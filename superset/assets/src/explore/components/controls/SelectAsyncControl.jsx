@@ -47,9 +47,17 @@ const defaultProps = {
   placeholder: t('Select ...'),
 };
 
-const SelectAsyncControl = (props) => {
-  const { value, onChange, dataEndpoint, multi, mutator, placeholder, onAsyncErrorMessage } = props;
-  const onSelectionChange = (options) => {
+const SelectAsyncControl = props => {
+  const {
+    value,
+    onChange,
+    dataEndpoint,
+    multi,
+    mutator,
+    placeholder,
+    onAsyncErrorMessage,
+  } = props;
+  const onSelectionChange = options => {
     let val;
     if (multi) {
       val = options.map(option => option.value);
@@ -67,12 +75,14 @@ const SelectAsyncControl = (props) => {
       <Select
         dataEndpoint={dataEndpoint}
         onChange={onSelectionChange}
-        onAsyncError={errorMsg => this.props.addDangerToast(onAsyncErrorMessage + ': ' + errorMsg)}
+        onAsyncError={errorMsg =>
+          this.props.addDangerToast(onAsyncErrorMessage + ': ' + errorMsg)
+        }
         mutator={mutator}
         multi={multi}
         value={value}
         placeholder={placeholder}
-        valueRenderer={v => (<div>{v.label}</div>)}
+        valueRenderer={v => <div>{v.label}</div>}
       />
     </div>
   );

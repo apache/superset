@@ -70,7 +70,9 @@ describe('DateFilterControl', () => {
     label.simulate('click');
     setTimeout(() => {
       expect(wrapper.find('.popover')).toHaveLength(1);
-      expect(wrapper.find('.ok')).first().simulate('click');
+      expect(wrapper.find('.ok'))
+        .first()
+        .simulate('click');
       setTimeout(() => {
         expect(wrapper.find('.popover')).toHaveLength(0);
       }, 10);

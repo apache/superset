@@ -16,18 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import '../../../../stylesheets/less/variables.less';
+
 .new-component {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
   padding: 16px;
-  background: white;
+  background: @lightest;
   cursor: move;
-}
 
-.new-component:not(.static):hover {
-  background: @gray-bg;
+  &:not(.static):hover {
+    background: @gray-bg;
+  }
 }
 
 .new-component-placeholder {
@@ -36,14 +38,18 @@
   width: 40px;
   height: 40px;
   margin-right: 16px;
-  border: 1px solid white;
+  border: 1px solid @lightest;
   display: flex;
   align-items: center;
   justify-content: center;
   color: @gray;
-  font-size: 1.5em;
-}
+  font-size: @font-size-xxl;
 
-.new-component-placeholder.fa-window-restore {
-  font-size: 1em;
+  &.fa-window-restore {
+    font-size: @font-size-l;
+  }
+
+  &.fa-area-chart {
+    font-size: @font-size-xl;
+  }
 }

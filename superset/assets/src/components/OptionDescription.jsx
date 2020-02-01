@@ -30,17 +30,16 @@ const propTypes = {
 export default function OptionDescription({ option }) {
   return (
     <span>
-      <span className="m-r-5 option-label">
-        {option.label}
-      </span>
-      {option.description &&
+      <span className="m-r-5 option-label">{option.label}</span>
+      {option.description && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"
           icon="question-circle-o"
           tooltip={option.description}
           label={`descr-${option.label}`}
         />
-      }
-    </span>);
+      )}
+    </span>
+  );
 }
 OptionDescription.propTypes = propTypes;

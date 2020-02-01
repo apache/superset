@@ -25,7 +25,7 @@ export default function findTabIndexByComponentId({
     directPathToChild.length === 0 ||
     directPathToChild.indexOf(currentComponent.id) === -1
   ) {
-    return 0;
+    return -1;
   }
 
   const currentComponentIdx = directPathToChild.findIndex(
@@ -37,5 +37,5 @@ export default function findTabIndexByComponentId({
       childId => childId === nextParentId,
     );
   }
-  return 0;
+  return -1;
 }

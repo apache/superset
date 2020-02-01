@@ -55,13 +55,11 @@ describe('ExploreResultsButton', () => {
   const mockColumns = {
     ds: {
       is_date: true,
-      is_dim: false,
       name: 'ds',
       type: 'STRING',
     },
     gender: {
       is_date: false,
-      is_dim: true,
       name: 'gender',
       type: 'STRING',
     },
@@ -99,7 +97,12 @@ describe('ExploreResultsButton', () => {
     });
 
     const badCols = wrapper.instance().getInvalidColumns();
-    expect(badCols).toEqual(['COUNT(*)', '1', '123', 'CASE WHEN 1=1 THEN 1 ELSE 0 END']);
+    expect(badCols).toEqual([
+      'COUNT(*)',
+      '1',
+      '123',
+      'CASE WHEN 1=1 THEN 1 ELSE 0 END',
+    ]);
 
     const msgWrapper = shallow(wrapper.instance().renderInvalidColumnMessage());
     expect(msgWrapper.find('div')).toHaveLength(1);
@@ -175,11 +178,14 @@ describe('ExploreResultsButton', () => {
     fetchMock.post(visualizeEndpoint, visualizationPayload);
 
     beforeEach(() => {
-      sinon
-        .stub(exploreUtils, 'getExploreUrlAndPayload')
-        .callsFake(() => ({ url: 'mockURL', payload: { datasource: '107__table' } }));
+      sinon.stub(exploreUtils, 'getExploreUrlAndPayload').callsFake(() => ({
+        url: 'mockURL',
+        payload: { datasource: '107__table' },
+      }));
       sinon.spy(exploreUtils, 'exportChart');
-      sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => mockOptions);
+      sinon
+        .stub(wrapper.instance(), 'buildVizOptions')
+        .callsFake(() => mockOptions);
     });
     afterEach(() => {
       exploreUtils.getExploreUrlAndPayload.restore();
@@ -188,7 +194,7 @@ describe('ExploreResultsButton', () => {
       fetchMock.reset();
     });
 
-    it('should build request with correct args', (done) => {
+    it('should build request with correct args', done => {
       wrapper.instance().visualize();
 
       setTimeout(() => {
@@ -196,7 +202,7 @@ describe('ExploreResultsButton', () => {
         expect(calls).toHaveLength(1);
         const formData = calls[0][1].body;
 
-        Object.keys(mockOptions).forEach((key) => {
+        Object.keys(mockOptions).forEach(key => {
           // eslint-disable-next-line no-unused-expressions
           expect(formData.get(key)).toBeDefined();
         });
@@ -205,7 +211,7 @@ describe('ExploreResultsButton', () => {
       });
     });
 
-    it('should export chart and add an info toast', (done) => {
+    it('should export chart and add an info toast', done => {
       const infoToastSpy = sinon.spy();
       const datasourceSpy = sinon.stub();
 
@@ -223,13 +229,15 @@ describe('ExploreResultsButton', () => {
       setTimeout(() => {
         expect(datasourceSpy.callCount).toBe(1);
         expect(exploreUtils.exportChart.callCount).toBe(1);
-        expect(exploreUtils.exportChart.getCall(0).args[0].datasource).toBe('107__table');
+        expect(exploreUtils.exportChart.getCall(0).args[0].datasource).toBe(
+          '107__table',
+        );
         expect(infoToastSpy.callCount).toBe(1);
         done();
       });
     });
 
-    it('should add error toast', (done) => {
+    it('should add error toast', done => {
       const dangerToastSpy = sinon.stub(actions, 'addDangerToast');
       const datasourceSpy = sinon.stub();
 

@@ -19,14 +19,15 @@ import pandas as pd
 from sqlalchemy import BigInteger, Date, DateTime, String
 
 from superset import db
+from superset.models.slice import Slice
 from superset.utils.core import get_example_database
+
 from .helpers import (
     config,
     get_example_data,
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
 )
 
@@ -94,10 +95,9 @@ def load_multiformat_time_series(only_metadata=False, force=False):
         slice_data = {
             "metrics": ["count"],
             "granularity_sqla": col.column_name,
-            "row_limit": config.get("ROW_LIMIT"),
+            "row_limit": config["ROW_LIMIT"],
             "since": "2015",
             "until": "2016",
-            "where": "",
             "viz_type": "cal_heatmap",
             "domain_granularity": "month",
             "subdomain_granularity": "day",

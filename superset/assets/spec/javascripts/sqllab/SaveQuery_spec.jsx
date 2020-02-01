@@ -19,26 +19,26 @@
 import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
+import * as sinon from 'sinon';
 import SaveQuery from '../../../src/SqlLab/components/SaveQuery';
 import ModalTrigger from '../../../src/components/ModalTrigger';
+import Button from '../../../src/components/Button';
 
 describe('SavedQuery', () => {
   const mockedProps = {
-    dbId: 1,
-    schema: 'main',
-    sql: 'SELECT * FROM t',
+    query: {
+      dbId: 1,
+      schema: 'main',
+      sql: 'SELECT * FROM t',
+    },
     defaultLabel: 'untitled',
     animation: false,
   };
   it('is valid', () => {
-    expect(
-      React.isValidElement(<SaveQuery />),
-    ).toBe(true);
+    expect(React.isValidElement(<SaveQuery />)).toBe(true);
   });
   it('is valid with props', () => {
-    expect(
-      React.isValidElement(<SaveQuery {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<SaveQuery {...mockedProps} />)).toBe(true);
   });
   it('has a ModalTrigger', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
@@ -53,5 +53,34 @@ describe('SavedQuery', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
     const modal = shallow(wrapper.instance().renderModalBody());
     expect(modal.find(FormControl)).toHaveLength(2);
+  });
+  it('has a save button if this is a new query', () => {
+    const saveSpy = sinon.spy();
+    const wrapper = shallow(<SaveQuery {...mockedProps} onSave={saveSpy} />);
+    const modal = shallow(wrapper.instance().renderModalBody());
+    expect(modal.find(Button)).toHaveLength(2);
+    modal
+      .find(Button)
+      .at(0)
+      .simulate('click');
+    expect(saveSpy.calledOnce).toBe(true);
+  });
+  it('has an update button if this is an existing query', () => {
+    const updateSpy = sinon.spy();
+    const props = {
+      ...mockedProps,
+      query: {
+        ...mockedProps.query,
+        remoteId: '42',
+      },
+    };
+    const wrapper = shallow(<SaveQuery {...props} onUpdate={updateSpy} />);
+    const modal = shallow(wrapper.instance().renderModalBody());
+    expect(modal.find(Button)).toHaveLength(3);
+    modal
+      .find(Button)
+      .at(0)
+      .simulate('click');
+    expect(updateSpy.calledOnce).toBe(true);
   });
 });

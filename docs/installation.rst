@@ -24,7 +24,7 @@ Getting Started
 Superset has deprecated support for Python ``2.*`` and supports
 only ``~=3.6`` to take advantage of the newer Python features and reduce
 the burden of supporting previous versions. We run our test suite
-against ``3.6``, but running on ``3.7`` **should** work as well.
+against ``3.6``, but ``3.7`` is fully supported as well.
 
 Cloud-native!
 -------------
@@ -57,19 +57,15 @@ Start with Docker
 -----------------
 
 .. note ::
-    The Docker-related files and documentation has been
-    community-contributed and
-    is not actively maintained and managed by the core committers working on
-    the project. Some issues have been reported as of 2019-01.
-    Help and contributions around Docker are welcomed!
+    The Docker-related files and documentation are actively maintained and
+    managed by the core committers working on the project. Help and contributions
+    around Docker are welcomed!
 
 If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset/contrib/docker
-    # prefix with SUPERSET_LOAD_EXAMPLES=yes to load examples:
-    docker-compose run --rm superset ./docker-init.sh
+    cd incubator-superset
     # you can run this command everytime you need to start superset now:
     docker-compose up
 
@@ -83,15 +79,14 @@ Don't forget to reload the page to take the new frontend into account though.
 See also `CONTRIBUTING.md#building <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#building>`_,
 for alternative way of serving the frontend.
 
-It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
-the volumes needed for development and change the variable `SUPERSET_ENV` to `production`.
+It is currently not recommended to run docker-compose in production.
 
 If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.
 OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for memory)
 
 Or if you're curious and want to install superset from bottom up, then go ahead.
 
-See also `contrib/docker/README.md <https://github.com/apache/incubator-superset/blob/master/contrib/docker/README.md>`_
+See also `docker/README.md <https://github.com/apache/incubator-superset/blob/master/docker/README.md>`_
 
 OS dependencies
 ---------------
@@ -121,7 +116,7 @@ For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
 
     sudo yum upgrade python-setuptools
-    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
+    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel cyrus-sasl-devel openldap-devel
 
 **Mac OS X** If possible, you should upgrade to the latest version of OS X as issues are more likely to be resolved for that version.
 You *will likely need* the latest version of XCode available for your installed version of OS X. You should also install
@@ -157,7 +152,7 @@ You can create and activate a virtualenv by: ::
     python3 -m venv venv
     . venv/bin/activate
 
-On windows the syntax for activating it is a bit different: ::
+On Windows the syntax for activating it is a bit different: ::
 
     venv\Scripts\activate
 
@@ -176,14 +171,14 @@ Superset installation and initialization
 Follow these few simple steps to install Superset.::
 
     # Install superset
-    pip install superset
+    pip install apache-superset
 
     # Initialize the database
     superset db upgrade
 
     # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
     $ export FLASK_APP=superset
-    flask fab create-admin
+    superset fab create-admin
 
     # Load some data to play with
     superset load_examples
@@ -192,7 +187,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset run -p 8080 --with-threads --reload --debugger
+    superset run -p 8088 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
@@ -220,7 +215,7 @@ setup known to work well in production: ::
         --limit-request-line 0 \
         --limit-request-field_size 0 \
         --statsd-host localhost:8125 \
-        superset:app
+        "superset.app:create_app()"
 
 Refer to the
 `Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
@@ -360,7 +355,7 @@ Here's a list of some of the recommended packages.
 |                  |                                       | For JDBC                                        |
 |                  |                                       | ``drill+jdbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Apache Druid     | ``pip install pyduid``                | ``druid://``                                    |
+| Apache Druid     | ``pip install pydruid``               | ``druid://``                                    |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Apache Hive      | ``pip install pyhive``                | ``hive://``                                     |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -376,6 +371,12 @@ Here's a list of some of the recommended packages.
 | BigQuery         | ``pip install pybigquery``            | ``bigquery://``                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://user:pwd@host:31010/``               |
++------------------+---------------------------------------+-------------------------------------------------+
+| Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                       |
++------------------+---------------------------------------+-------------------------------------------------+
+| Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -400,11 +401,24 @@ Here's a list of some of the recommended packages.
 | Vertica          | ``pip install                         |  ``vertica+vertica_python://``                  |
 |                  | sqlalchemy-vertica-python``           |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| Hana             | ``pip install hdbcli sqlalchemy-hana``|  ``hana://``                                    |
+|                  | or                                    |                                                 |
+|                  | ``pip install apache-superset[hana]`` |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+
 
 Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword ``sqlalchemy`` in addition of a keyword that describes the
 database you want to connect to should get you to the right place.
+
+Hana
+------------
+
+The connection string for Hana looks like this ::
+
+    hana://{username}:{password}@{host}:{port}
+
 
 (AWS) Athena
 ------------
@@ -430,7 +444,71 @@ The connection string for BigQuery looks like this ::
 
     bigquery://{project_id}
 
+Additionally, you will need to configure authentication via a
+Service Account. Create your Service Account via the Google
+Cloud Platform control panel, provide it access to the appropriate
+BigQuery datasets, and download the JSON configuration file
+for the service account. In Superset, Add a JSON blob to
+the "Secure Extra" field in the database configuration page
+with the following format ::
+
+    {
+        "credentials_info": <contents of credentials JSON file>
+    }
+
+The resulting file should have this structure ::
+
+    {
+        "credentials_info": {
+            "type": "service_account",
+            "project_id": "...",
+            "private_key_id": "...",
+            "private_key": "...",
+            "client_email": "...",
+            "client_id": "...",
+            "auth_uri": "...",
+            "token_uri": "...",
+            "auth_provider_x509_cert_url": "...",
+            "client_x509_cert_url": "...",
+        }
+    }
+
+You should then be able to connect to your BigQuery datasets.
+
 To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
+
+
+Elasticsearch
+-------------
+
+The connection string for Elasticsearch looks like this ::
+
+    elasticsearch+http://{user}:{password}@{host}:9200/
+
+Using HTTPS ::
+
+    elasticsearch+https://{user}:{password}@{host}:9200/
+
+
+Elasticsearch as a default limit of 10000 rows, so you can increase this limit on your cluster
+or set Superset's row limit on config ::
+
+    ROW_LIMIT = 10000
+
+You can query multiple indices on SQLLab for example ::
+
+    select timestamp, agent from "logstash-*"
+
+But, to use visualizations for multiple indices you need to create an alias index on your cluster ::
+
+    POST /_aliases
+    {
+        "actions" : [
+            { "add" : { "index" : "logstash-**", "alias" : "logstash_all" } }
+        ]
+    }
+
+Then register your table with the ``alias`` name ``logstasg_all``
 
 Snowflake
 ---------
@@ -577,6 +655,9 @@ object gets unpacked into the
 while the ``metadata_params`` get unpacked into the
 `sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
+.. note:: If your using CTAS on SQLLab and PostgreSQL
+    take a look at :ref:`ref_ctas_engine_config` for specific ``engine_params``.
+
 
 Schemas (Postgres & Redshift)
 -----------------------------
@@ -646,6 +727,15 @@ Druid
 Note that you can run the ``superset refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
+Dremio
+------
+
+Install the following dependencies to connect to Dremio:
+
+* Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
+* Dremio's ODBC driver: https://www.dremio.com/drivers/
+
+Example SQLAlchemy URI: ``dremio://dremio:dremio123@localhost:31010/dremio``
 
 Presto
 ------
@@ -659,13 +749,33 @@ it in the ``extra`` parameter::
     }
 
 
+Exasol
+---------
+
+The connection string for Exasol looks like this ::
+
+    exa+pyodbc://{user}:{password}@{host}
+
+*Note*: It's required to have Exasol ODBC drivers installed for the sqlalchemy dialect to work properly. Exasol ODBC Drivers available are here: https://www.exasol.com/portal/display/DOWNLOAD/Exasol+Download+Section
+
+Example config (odbcinst.ini can be left empty) ::
+
+    $ cat $/.../path/to/odbc.ini
+    [EXAODBC]
+    DRIVER = /.../path/to/driver/EXASOL_driver.so
+    EXAHOST = host:8563
+    EXASCHEMA = main
+
+See `SQLAlchemy for Exasol <https://github.com/blue-yonder/sqlalchemy_exasol>`_.
+
 CORS
 ----
 
 The extra CORS Dependency must be installed:
 
-    superset[cors]
+.. code-block:: text
 
+    pip install apache-superset[cors]
 
 The following keys in `superset_config.py` can be specified to configure CORS:
 
@@ -674,7 +784,7 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 * ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <https://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 
-DOMAIN SHARDING
+Domain Sharding
 ---------------
 
 Chrome allows up to 6 open connections per domain at a time. When there are more
@@ -686,7 +796,7 @@ doesn't allow cross-domain request).
 * ``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
 
 
-MIDDLEWARE
+Middleware
 ----------
 
 Superset allows you to add your own middleware. To add your own middleware, update the ``ADDITIONAL_MIDDLEWARE`` key in
@@ -748,7 +858,7 @@ Upgrading
 
 Upgrading should be as straightforward as running::
 
-    pip install superset --upgrade
+    pip install apache-superset --upgrade
     superset db upgrade
     superset init
 
@@ -819,7 +929,7 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
@@ -846,6 +956,12 @@ look something like:
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
 
+For performance gains, `MessagePack <https://github.com/msgpack/msgpack-python>`_
+and `PyArrow <https://arrow.apache.org/docs/python/>`_ are now used for results
+serialization. This can be disabled by setting ``RESULTS_BACKEND_USE_MSGPACK = False``
+in your configuration, should any issues arise. Please clear your existing results
+cache store when upgrading an existing environment.
+
 **Important notes**
 
 * It is important that all the worker nodes and web servers in
@@ -859,29 +975,68 @@ look something like:
   resulting in weird behaviors like duplicate delivery of reports,
   higher than expected load / traffic etc.
 
+* SQL Lab will only run your queries asynchronously if you enable
+  "Asynchronous Query Execution" in your database settings.
+
 
 Email Reports
 -------------
 Email reports allow users to schedule email reports for
 
-* slice and dashboard visualization (Attachment or inline)
-* slice data (CSV attachment on inline table)
+* chart and dashboard visualization (Attachment or inline)
+* chart data (CSV attachment on inline table)
+
+**Setup**
+
+Make sure you enable email reports in your configuration file
+
+.. code-block:: python
+
+    ENABLE_SCHEDULED_EMAIL_REPORTS = True
+
+Now you will find two new items in the navigation bar that allow you to schedule email
+reports
+
+* Manage -> Dashboard Emails
+* Manage -> Chart Email Schedules
 
 Schedules are defined in crontab format and each schedule
 can have a list of recipients (all of them can receive a single mail,
 or separate mails). For audit purposes, all outgoing mails can have a
 mandatory bcc.
 
-**Requirements**
+In order get picked up you need to configure a celery worker and a celery beat
+(see section above "Celery Tasks"). Your celery configuration also
+needs an entry ``email_reports.schedule_hourly`` for ``CELERYBEAT_SCHEDULE``.
 
-* A selenium compatible driver & headless browser
+To send emails you need to configure SMTP settings in your configuration file. e.g.
+
+.. code-block:: python
+
+    EMAIL_NOTIFICATIONS = True
+
+    SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
+    SMTP_STARTTLS = True
+    SMTP_SSL = False
+    SMTP_USER = "smtp_username"
+    SMTP_PORT = 25
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+    SMTP_MAIL_FROM = "insights@komoot.com"
+
+
+To render dashboards you need to install a local browser on your superset instance
 
   * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
   * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
-* Run `celery worker` and `celery beat` as follows ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
-    celery beat --app=superset.tasks.celery_app:app
+You need to adjust the ``EMAIL_REPORTS_WEBDRIVER`` accordingly in your configuration.
+
+You also need to specify on behalf of which username to render the dashboards. In general
+dashboards and charts are not accessible to unauthorized requests, that is why the
+worker needs to take over credentials of an existing user to take a snapshot. ::
+
+    EMAIL_REPORTS_USER = 'username_with_permission_to_access_dashboards'
+
 
 **Important notes**
 
@@ -895,6 +1050,10 @@ mandatory bcc.
 
 * It is recommended to run separate workers for ``sql_lab`` and
   ``email_reports`` tasks. Can be done by using ``queue`` field in ``CELERY_ANNOTATIONS``
+
+* Adjust ``WEBDRIVER_BASEURL`` in your config if celery workers can't access superset via its
+  default value ``http://0.0.0.0:8080/`` (notice the port number 8080, many other setups use
+  port 8088).
 
 SQL Lab
 -------
@@ -1175,7 +1334,7 @@ Then we can add this two lines to ``superset_config.py``:
   CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 
 Feature Flags
----------------------------
+-------------
 
 Because of a wide variety of users, Superset has some features that are not enabled by default. For example, some users have stronger security restrictions, while some others may not. So Superset allow users to enable or disable some features by config. For feature owners, you can add optional functionalities in Superset, but will be only affected by a subset of users.
 
@@ -1185,7 +1344,8 @@ You can enable or disable features with flag from ``superset_config.py``:
 
      DEFAULT_FEATURE_FLAGS = {
          'CLIENT_CACHE': False,
-         'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False
+         'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
+         'PRESTO_EXPAND_DATA': False,
      }
 
 Here is a list of flags and descriptions:
@@ -1195,3 +1355,54 @@ Here is a list of flags and descriptions:
   * For some security concerns, you may need to enforce CSRF protection on all query request to explore_json endpoint. In Superset, we use `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection for all POST requests, but this protection doesn't apply to GET method.
 
   * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/incubator-superset/pull/7935>`_ for more details.
+
+* PRESTO_EXPAND_DATA
+
+  * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.
+
+
+SIP-15
+------
+
+`SIP-15 <https://github.com/apache/incubator-superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
+
+Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive for string columns (due to lexicographical ordering) if no formatting was defined and the column formatting did not conform to an ISO 8601 date-time (refer to the SIP for details).
+
+To remedy this rather than having to define the date/time format for every non-IS0 8601 date-time column, once can define a default column mapping on a per database level via the ``extra`` parameter ::
+
+    {
+        "python_date_format_by_column_name": {
+            "ds": "%Y-%m-%d"
+        }
+    }
+
+**New deployments**
+
+All new Superset deployments should enable SIP-15 via,
+
+.. code-block:: python
+
+    SIP_15_ENABLED = True
+
+**Existing deployments**
+
+Given that it is not apparent whether the chart creator was aware of the time range inconsistencies (and adjusted the endpoints accordingly) changing the behavior of all charts is overly aggressive. Instead SIP-15 proivides a soft transistion allowing producers (chart owners) to see the impact of the proposed change and adjust their charts accordingly.
+
+Prior to enabling SIP-15 existing deployments should communicate to their users the impact of the change and define a grace period end date (exclusive of course) after which all charts will conform to the [start, end) interval, i.e.,
+
+.. code-block:: python
+
+    from dateime import date
+
+    SIP_15_ENABLED = True
+    SIP_15_GRACE_PERIOD_END = date(<YYYY>, <MM>, <DD>)
+
+To aid with transparency the current endpoint behavior is explicitly called out in the chart time range (post SIP-15 this will be [start, end) for all connectors and databases). One can override the defaults on a per database level via the ``extra``
+parameter ::
+
+    {
+        "time_range_endpoints": ["inclusive", "inclusive"]
+    }
+
+
+Note in a future release the interim SIP-15 logic will be removed (including the ``time_grain_endpoints`` form-data field) via a code change and Alembic migration.

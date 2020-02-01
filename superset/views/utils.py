@@ -14,28 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from collections import defaultdict
+from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
-from flask import request
 import simplejson as json
+from flask import request
 
+import superset.models.core as models
 from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.legacy import update_time_range
-import superset.models.core as models
-from superset.utils.core import QueryStatus
-
+from superset.models.slice import Slice
+from superset.utils.core import QueryStatus, TimeRangeEndpoint
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []
-if not app.config.get("ENABLE_JAVASCRIPT_CONTROLS"):
+if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
     FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
 def bootstrap_user_data(user, include_perms=False):
+    if user.is_anonymous:
+        return {}
     payload = {
         "username": user.username,
         "firstName": user.first_name,
@@ -80,15 +82,15 @@ def get_viz(
     slice_id=None, form_data=None, datasource_type=None, datasource_id=None, force=False
 ):
     if slice_id:
-        slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
+        slc = db.session.query(Slice).filter_by(id=slice_id).one()
         return slc.get_viz()
-    else:
-        viz_type = form_data.get("viz_type", "table")
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
-        )
-        viz_obj = viz.viz_types[viz_type](datasource, form_data=form_data, force=force)
-        return viz_obj
+
+    viz_type = form_data.get("viz_type", "table")
+    datasource = ConnectorRegistry.get_datasource(
+        datasource_type, datasource_id, db.session
+    )
+    viz_obj = viz.viz_types[viz_type](datasource, form_data=form_data, force=force)
+    return viz_obj
 
 
 def get_form_data(slice_id=None, use_slice_data=False):
@@ -128,13 +130,18 @@ def get_form_data(slice_id=None, use_slice_data=False):
     # Include the slice_form_data if request from explore or slice calls
     # or if form_data only contains slice_id and additional filters
     if slice_id and (use_slice_data or valid_slice_id):
-        slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+        slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
         if slc:
             slice_form_data = slc.form_data.copy()
             slice_form_data.update(form_data)
             form_data = slice_form_data
 
     update_time_range(form_data)
+
+    if app.config["SIP_15_ENABLED"]:
+        form_data["time_range_endpoints"] = get_time_range_endpoints(
+            form_data, slc, slice_id
+        )
 
     return form_data, slc
 
@@ -176,7 +183,9 @@ def get_datasource_info(
     return datasource_id, datasource_type
 
 
-def apply_display_max_row_limit(sql_results: Dict[str, Any]) -> Dict[str, Any]:
+def apply_display_max_row_limit(
+    sql_results: Dict[str, Any], rows: Optional[int] = None
+) -> Dict[str, Any]:
     """
     Given a `sql_results` nested structure, applies a limit to the number of rows
 
@@ -188,7 +197,9 @@ def apply_display_max_row_limit(sql_results: Dict[str, Any]) -> Dict[str, Any]:
     :param sql_results: The results of a sql query from sql_lab.get_sql_results
     :returns: The mutated sql_results structure
     """
-    display_limit = app.config.get("DISPLAY_MAX_ROW")
+
+    display_limit = rows or app.config["DISPLAY_MAX_ROW"]
+
     if (
         display_limit
         and sql_results["status"] == QueryStatus.SUCCESS
@@ -197,3 +208,57 @@ def apply_display_max_row_limit(sql_results: Dict[str, Any]) -> Dict[str, Any]:
         sql_results["data"] = sql_results["data"][:display_limit]
         sql_results["displayLimitReached"] = True
     return sql_results
+
+
+def get_time_range_endpoints(
+    form_data: Dict[str, Any],
+    slc: Optional[Slice] = None,
+    slice_id: Optional[int] = None,
+) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
+    """
+    Get the slice aware time range endpoints from the form-data falling back to the SQL
+    database specific definition or default if not defined.
+
+    Note under certain circumstances the slice object may not exist, however the slice
+    ID may be defined which serves as a fallback.
+
+    When SIP-15 is enabled all slices and will the [start, end) interval. If the grace
+    period is defined and has ended all slices will adhere to the [start, end) interval.
+
+    :param form_data: The form-data
+    :param slc: The slice
+    :param slice_id: The slice ID
+    :returns: The time range endpoints tuple
+    """
+
+    if (
+        app.config["SIP_15_GRACE_PERIOD_END"]
+        and date.today() >= app.config["SIP_15_GRACE_PERIOD_END"]
+    ):
+        return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
+
+    endpoints = form_data.get("time_range_endpoints")
+
+    if (slc or slice_id) and not endpoints:
+        try:
+            _, datasource_type = get_datasource_info(None, None, form_data)
+        except SupersetException:
+            return None
+
+        if datasource_type == "table":
+            if not slc:
+                slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
+
+            if slc:
+                endpoints = slc.datasource.database.get_extra().get(
+                    "time_range_endpoints"
+                )
+
+            if not endpoints:
+                endpoints = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+
+    if endpoints:
+        start, end = endpoints
+        return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
+
+    return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)

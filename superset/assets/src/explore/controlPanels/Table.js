@@ -36,18 +36,12 @@ export default {
       label: t('NOT GROUPED BY'),
       description: t('Use this section if you want to query atomic rows'),
       expanded: true,
-      controlSetRows: [
-        ['all_columns'],
-        ['order_by_cols'],
-        ['row_limit', null],
-      ],
+      controlSetRows: [['all_columns'], ['order_by_cols'], ['row_limit', null]],
     },
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [['adhoc_filters']],
     },
     {
       label: t('Options'),
@@ -63,6 +57,14 @@ export default {
   controlOverrides: {
     metrics: {
       validators: [],
+    },
+  },
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
     },
   },
 };

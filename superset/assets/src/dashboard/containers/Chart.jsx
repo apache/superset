@@ -20,13 +20,19 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import {
-  changeFilter as addFilter,
   toggleExpandSlice,
+  setFocusedFilterField,
+  unsetFocusedFilterField,
 } from '../actions/dashboardState';
 import { updateComponents } from '../actions/dashboardLayout';
+import { changeFilter } from '../actions/dashboardFilters';
 import { addDangerToast } from '../../messageToasts/actions';
 import { refreshChart } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
+import {
+  getActiveFilters,
+  getAppliedFilterValues,
+} from '../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import Chart from '../components/gridComponents/Chart';
 
@@ -44,7 +50,7 @@ function mapStateToProps(
 ) {
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
-  const { filters, colorScheme, colorNamespace } = dashboardState;
+  const { colorScheme, colorNamespace } = dashboardState;
 
   return {
     chart,
@@ -53,12 +59,11 @@ function mapStateToProps(
       {},
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    filters: filters || EMPTY_FILTERS,
+    filters: getActiveFilters() || EMPTY_FILTERS,
     // note: this method caches filters if possible to prevent render cascades
     formData: getFormDataWithExtraFilters({
       chart,
-      dashboardMetadata: dashboardInfo.metadata,
-      filters,
+      filters: getAppliedFilterValues(id),
       colorScheme,
       colorNamespace,
       sliceId: id,
@@ -77,7 +82,9 @@ function mapDispatchToProps(dispatch) {
       updateComponents,
       addDangerToast,
       toggleExpandSlice,
-      addFilter,
+      changeFilter,
+      setFocusedFilterField,
+      unsetFocusedFilterField,
       refreshChart,
       logEvent,
     },
@@ -85,7 +92,4 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Chart);
+export default connect(mapStateToProps, mapDispatchToProps)(Chart);

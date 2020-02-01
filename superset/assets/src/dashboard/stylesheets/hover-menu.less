@@ -19,8 +19,8 @@
 .hover-menu {
   opacity: 0;
   position: absolute;
-  z-index: 10;
-  font-size: 14px;
+  z-index: @z-index-above-dashboard-charts;
+  font-size: @font-size-m;
 }
 
 .hover-menu--left {
@@ -56,7 +56,7 @@
 /* A row within a column has inset hover menu */
 .dragdroppable-column .dragdroppable-row .hover-menu--left {
   left: -12px;
-  background: white;
+  background: @lightest;
   border: 1px solid @gray-light;
 }
 
@@ -64,7 +64,7 @@
 .dragdroppable-column .dragdroppable-column .hover-menu--top,
 .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
   top: -12px;
-  background: white;
+  background: @lightest;
   border: 1px solid @gray-light;
 }
 

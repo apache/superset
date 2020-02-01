@@ -33,7 +33,9 @@ describe('URLShortLinkModal', () => {
   function setup() {
     const mockStore = configureStore([]);
     const store = mockStore({});
-    return shallow(<URLShortLinkModal {...defaultProps} />, { context: { store } }).dive();
+    return shallow(<URLShortLinkModal {...defaultProps} />, {
+      context: { store },
+    }).dive();
   }
 
   it('renders ModalTrigger', () => {

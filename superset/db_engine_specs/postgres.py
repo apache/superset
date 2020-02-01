@@ -14,8 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+from datetime import datetime
+from typing import List, Optional, Tuple, TYPE_CHECKING
+
+from pytz import _FixedOffset  # type: ignore
+from sqlalchemy.dialects.postgresql.base import PGInspector
+
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database  # pylint: disable=unused-import
+
+
+# Replace psycopg2.tz.FixedOffsetTimezone with pytz, which is serializable by PyArrow
+# https://github.com/stub42/pytz/blob/b70911542755aeeea7b5a9e066df5e1c87e8f2c8/src/pytz/reference.py#L25
+class FixedOffsetTimezone(_FixedOffset):
+    pass
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -23,7 +38,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "DATE_TRUNC('second', {col})",
         "PT1M": "DATE_TRUNC('minute', {col})",
@@ -36,7 +51,8 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def fetch_data(cls, cursor, limit):
+    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
+        cursor.tzinfo_factory = FixedOffsetTimezone
         if not cursor.description:
             return []
         if cls.limit_method == LimitMethod.FETCH_MANY:
@@ -44,12 +60,8 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return cursor.fetchall()
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
-
-    @classmethod
-    def convert_dttm(cls, target_type, dttm):
-        return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
 
 
 class PostgresEngineSpec(PostgresBaseEngineSpec):
@@ -58,8 +70,19 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     try_remove_schema_from_table_name = False
 
     @classmethod
-    def get_table_names(cls, inspector, schema):
+    def get_table_names(
+        cls, database: "Database", inspector: PGInspector, schema: Optional[str]
+    ) -> List[str]:
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+        if tt == "TIMESTAMP":
+            return f"""TO_TIMESTAMP('{dttm.isoformat(sep=" ", timespec="microseconds")}', 'YYYY-MM-DD HH24:MI:SS.US')"""  # pylint: disable=line-too-long
+        return None

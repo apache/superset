@@ -14,13 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
-from datetime import datetime
 import json
 import unittest
+from datetime import datetime
 from unittest.mock import Mock, patch
 
+from tests.test_app import app
+
 from superset import db, security_manager
+
+from .base_tests import SupersetTestCase
+
 
 try:
     from superset.connectors.druid.models import (
@@ -31,7 +37,6 @@ try:
     )
 except ImportError:
     pass
-from .base_tests import SupersetTestCase
 
 
 class PickableMock(Mock):
@@ -94,7 +99,7 @@ GB_RESULT_SET = [
     },
 ]
 
-DruidCluster.get_druid_version = lambda _: "0.9.1"
+DruidCluster.get_druid_version = lambda _: "0.9.1"  # type: ignore
 
 
 class DruidTests(SupersetTestCase):
@@ -125,6 +130,11 @@ class DruidTests(SupersetTestCase):
             .first()
         )
         if cluster:
+            for datasource in (
+                db.session.query(DruidDatasource).filter_by(cluster_id=cluster.id).all()
+            ):
+                db.session.delete(datasource)
+
             db.session.delete(cluster)
         db.session.commit()
 
@@ -289,6 +299,7 @@ class DruidTests(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
+    @unittest.skipUnless(app.config["DRUID_IS_ACTIVE"], "DRUID_IS_ACTIVE is false")
     def test_filter_druid_datasource(self):
         CLUSTER_NAME = "new_druid"
         cluster = self.get_or_create(
@@ -297,13 +308,17 @@ class DruidTests(SupersetTestCase):
         db.session.merge(cluster)
 
         gamma_ds = self.get_or_create(
-            DruidDatasource, {"datasource_name": "datasource_for_gamma"}, db.session
+            DruidDatasource,
+            {"datasource_name": "datasource_for_gamma", "cluster": cluster},
+            db.session,
         )
         gamma_ds.cluster = cluster
         db.session.merge(gamma_ds)
 
         no_gamma_ds = self.get_or_create(
-            DruidDatasource, {"datasource_name": "datasource_not_for_gamma"}, db.session
+            DruidDatasource,
+            {"datasource_name": "datasource_not_for_gamma", "cluster": cluster},
+            db.session,
         )
         no_gamma_ds.cluster = cluster
         db.session.merge(no_gamma_ds)
@@ -340,6 +355,11 @@ class DruidTests(SupersetTestCase):
             .first()
         )
         if cluster:
+            for datasource in (
+                db.session.query(DruidDatasource).filter_by(cluster_id=cluster.id).all()
+            ):
+                db.session.delete(datasource)
+
             db.session.delete(cluster)
         db.session.commit()
 
@@ -474,17 +494,17 @@ class DruidTests(SupersetTestCase):
     )
     def test_urls(self):
         cluster = self.get_test_cluster_obj()
-        self.assertEquals(
+        self.assertEqual(
             cluster.get_base_url("localhost", "9999"), "http://localhost:9999"
         )
-        self.assertEquals(
+        self.assertEqual(
             cluster.get_base_url("http://localhost", "9999"), "http://localhost:9999"
         )
-        self.assertEquals(
+        self.assertEqual(
             cluster.get_base_url("https://localhost", "9999"), "https://localhost:9999"
         )
 
-        self.assertEquals(
+        self.assertEqual(
             cluster.get_base_broker_url(), "http://localhost:7980/druid/v2"
         )
 
@@ -562,7 +582,7 @@ class DruidTests(SupersetTestCase):
         url = "/datasource/external_metadata/druid/{}/".format(datasource.id)
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
-        self.assertEquals(col_names, {"__time", "dim1", "dim2", "metric1"})
+        self.assertEqual(col_names, {"__time", "dim1", "dim2", "metric1"})
 
 
 if __name__ == "__main__":

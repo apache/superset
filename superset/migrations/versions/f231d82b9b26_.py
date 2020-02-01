@@ -21,8 +21,8 @@ Revises: e68c4473c581
 Create Date: 2018-03-20 19:47:54.991259
 
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 from superset.utils.core import generic_find_uq_constraint_name
 

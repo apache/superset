@@ -16,23 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
+import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 import DashboardBuilder from '../containers/DashboardBuilder';
 import {
   chartPropShape,
   slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
-  loadStatsPropShape,
 } from '../util/propShapes';
-import { areObjectsEqual } from '../../reduxUtils';
 import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
 import OmniContainer from '../../components/OmniContainer';
+import { areObjectsEqual } from '../../reduxUtils';
 
 import '../stylesheets/index.less';
 
@@ -47,8 +46,8 @@ const propTypes = {
   dashboardState: dashboardStatePropShape.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
+  activeFilters: PropTypes.object.isRequired,
   datasources: PropTypes.object.isRequired,
-  loadStats: loadStatsPropShape.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
   initMessages: PropTypes.array,
@@ -78,11 +77,16 @@ class Dashboard extends React.PureComponent {
     return message; // Gecko + Webkit, Safari, Chrome etc.
   }
 
+  constructor(props) {
+    super(props);
+    this.appliedFilters = props.activeFilters || {};
+  }
+
   componentDidMount() {
     this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
@@ -91,7 +95,10 @@ class Dashboard extends React.PureComponent {
         key => currentChartIds.indexOf(key) === -1,
       );
       newChartIds.forEach(newChartId =>
-        this.props.actions.addSliceToDashboard(newChartId),
+        this.props.actions.addSliceToDashboard(
+          newChartId,
+          getLayoutComponentFromChartId(nextProps.layout, newChartId),
+        ),
       );
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
@@ -104,31 +111,38 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  componentDidUpdate(prevProps) {
-    const { refresh, filters, hasUnsavedChanges } = this.props.dashboardState;
-    if (refresh) {
-      // refresh charts if a filter was removed, added, or changed
-      let changedFilterKey = null;
-      const currFilterKeys = Object.keys(filters);
-      const prevFilterKeys = Object.keys(prevProps.dashboardState.filters);
+  componentDidUpdate() {
+    const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
-      currFilterKeys.forEach(key => {
-        const prevFilter = prevProps.dashboardState.filters[key];
-        if (
-          // filter was added or changed
-          typeof prevFilter === 'undefined' ||
-          !areObjectsEqual(prevFilter, filters[key])
-        ) {
-          changedFilterKey = key;
+    const appliedFilters = this.appliedFilters;
+    const { activeFilters } = this.props;
+    // do not apply filter when dashboard in edit mode
+    if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
+      // refresh charts if a filter was removed, added, or changed
+      const currFilterKeys = Object.keys(activeFilters);
+      const appliedFilterKeys = Object.keys(appliedFilters);
+
+      const allKeys = new Set(currFilterKeys.concat(appliedFilterKeys));
+      const affectedChartIds = [];
+      [...allKeys].forEach(filterKey => {
+        if (!currFilterKeys.includes(filterKey)) {
+          // removed filter?
+          [].push.apply(affectedChartIds, appliedFilters[filterKey].scope);
+        } else if (!appliedFilterKeys.includes(filterKey)) {
+          // added filter?
+          [].push.apply(affectedChartIds, activeFilters[filterKey].scope);
+        } else {
+          // changed filter field value or scope?
+          const affectedScope = (activeFilters[filterKey].scope || []).concat(
+            appliedFilters[filterKey].scope || [],
+          );
+          [].push.apply(affectedChartIds, affectedScope);
         }
       });
 
-      if (
-        !!changedFilterKey ||
-        currFilterKeys.length !== prevFilterKeys.length
-      ) {
-        this.refreshExcept(changedFilterKey);
-      }
+      const idSet = new Set(affectedChartIds);
+      this.refreshCharts([...idSet]);
+      this.appliedFilters = activeFilters;
     }
 
     if (hasUnsavedChanges) {
@@ -143,44 +157,18 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
-  refreshExcept(filterKey) {
-    const { filters } = this.props.dashboardState || {};
-    const currentFilteredNames =
-      filterKey && filters[filterKey] ? Object.keys(filters[filterKey]) : [];
-    const filter_immune_slices = this.props.dashboardInfo.metadata
-      .filter_immune_slices;
-    const filter_immune_slice_fields = this.props.dashboardInfo.metadata
-      .filter_immune_slice_fields;
-
-    this.getAllCharts().forEach(chart => {
-      // filterKey is a string, filter_immune_slices array contains numbers
-      if (
-        String(chart.id) === filterKey ||
-        filter_immune_slices.includes(chart.id)
-      ) {
-        return;
-      }
-
-      const filter_immune_slice_fields_names =
-        filter_immune_slice_fields[chart.id] || [];
-      // has filter-able field names
-      if (
-        currentFilteredNames.length === 0 ||
-        currentFilteredNames.some(
-          name => !filter_immune_slice_fields_names.includes(name),
-        )
-      ) {
-        this.props.actions.triggerQuery(true, chart.id);
-      }
+  refreshCharts(ids) {
+    ids.forEach(id => {
+      this.props.actions.triggerQuery(true, id);
     });
   }
 
   render() {
     return (
-      <React.Fragment>
+      <>
         <OmniContainer logEvent={this.props.actions.logEvent} />
         <DashboardBuilder />
-      </React.Fragment>
+      </>
     );
   }
 }

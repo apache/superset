@@ -37,6 +37,7 @@ import {
 import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';
 
 import { sliceId as chartId } from './mockChartQueries';
+import { filterId } from './mockDashboardFilters';
 
 export const sliceId = chartId;
 
@@ -186,4 +187,74 @@ export const dashboardLayoutWithTabs = {
     },
   },
   future: [],
+};
+
+export const filterComponent = {
+  ...newComponentFactory(CHART_TYPE),
+  id: 'CHART-rwDfbGqeEn',
+  parents: [
+    'ROOT_ID',
+    'TABS-VPEX_c476g',
+    'TAB-PMJyKM1yB',
+    'TABS-YdylzDMTMQ',
+    'TAB-O9AaU9FT0',
+    'ROW-l6PrlhwSjh',
+  ],
+  meta: {
+    chartId: filterId,
+    width: 3,
+    height: 10,
+    sliceName: 'Filter',
+  },
+};
+
+export const dashboardWithFilter = {
+  [DASHBOARD_ROOT_ID]: {
+    type: DASHBOARD_ROOT_TYPE,
+    id: DASHBOARD_ROOT_ID,
+    children: [DASHBOARD_GRID_ID],
+  },
+
+  [DASHBOARD_GRID_ID]: {
+    type: DASHBOARD_GRID_TYPE,
+    id: DASHBOARD_GRID_ID,
+    children: ['ROW_ID'],
+    meta: {},
+  },
+
+  [DASHBOARD_HEADER_ID]: {
+    type: DASHBOARD_HEADER_TYPE,
+    id: DASHBOARD_HEADER_ID,
+    meta: {
+      text: 'New dashboard',
+    },
+  },
+
+  ROW_ID: {
+    ...newComponentFactory(ROW_TYPE),
+    id: 'ROW_ID',
+    children: ['CHART_ID', 'FILTER_ID'],
+  },
+
+  FILTER_ID: {
+    ...newComponentFactory(CHART_TYPE),
+    id: 'FILTER_ID',
+    meta: {
+      chartId: filterId,
+      width: 3,
+      height: 10,
+      chartName: 'filter name',
+    },
+  },
+
+  CHART_ID: {
+    ...newComponentFactory(CHART_TYPE),
+    id: 'CHART_ID',
+    meta: {
+      chartId,
+      width: 3,
+      height: 10,
+      chartName: 'Mock chart name',
+    },
+  },
 };

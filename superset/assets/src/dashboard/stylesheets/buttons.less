@@ -16,26 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import '../../../stylesheets/less/variables.less';
+
 .icon-button {
   color: @gray;
-  font-size: 1.2em;
+  font-size: @font-size-l;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
   outline: none;
-}
 
-.icon-button:hover,
-.icon-button:active,
-.icon-button:focus {
-  color: @almost-black;
-  outline: none;
-  text-decoration: none;
+  &:hover,
+  &:active,
+  &:focus {
+    color: @almost-black;
+    outline: none;
+    text-decoration: none;
+  }
 }
 
 .icon-button-label {
   color: @gray-dark;
   padding-left: 8px;
-  font-size: 0.9em;
+  font-size: @font-size-m;
+}
+
+.text-button {
+  outline: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  background: none;
+  text-decoration: none;
+  font-size: inherit;
+  font-weight: inherit;
 }

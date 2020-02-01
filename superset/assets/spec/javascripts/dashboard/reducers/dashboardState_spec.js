@@ -18,11 +18,11 @@
  */
 import {
   ADD_SLICE,
-  CHANGE_FILTER,
   ON_CHANGE,
   ON_SAVE,
   REMOVE_SLICE,
   SET_EDIT_MODE,
+  SET_FOCUSED_FILTER_FIELD,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
   TOGGLE_EXPAND_SLICE,
@@ -52,16 +52,7 @@ describe('dashboardState reducer', () => {
         { sliceIds: [1, 2], filters: {} },
         { type: REMOVE_SLICE, sliceId: 2 },
       ),
-    ).toEqual({ sliceIds: [1], refresh: false, filters: {} });
-  });
-
-  it('should reset filters if a removed slice is a filter', () => {
-    expect(
-      dashboardStateReducer(
-        { sliceIds: [1, 2], filters: { 2: {}, 1: {} } },
-        { type: REMOVE_SLICE, sliceId: 2 },
-      ),
-    ).toEqual({ sliceIds: [1], filters: { 1: {} }, refresh: true });
+    ).toEqual({ sliceIds: [1], filters: {} });
   });
 
   it('should toggle fav star', () => {
@@ -142,103 +133,37 @@ describe('dashboardState reducer', () => {
     });
   });
 
-  describe('change filter', () => {
-    it('should add a new filter if it does not exist', () => {
-      expect(
-        dashboardStateReducer(
-          {
-            filters: {},
-            sliceIds: [1],
-          },
-          {
-            type: CHANGE_FILTER,
-            chart: { id: 1, formData: { groupby: 'column' } },
-            col: 'column',
-            vals: ['b', 'a'],
-            refresh: true,
-            merge: true,
-          },
-        ),
-      ).toEqual({
-        filters: { 1: { column: ['b', 'a'] } },
-        refresh: true,
-        sliceIds: [1],
-      });
+  it('should clear focused filter field', () => {
+    // dashboard only has 1 focused filter field at a time,
+    // but when user switch different filter boxes,
+    // browser didn't always fire onBlur and onFocus events in order.
+    // so in redux state focusedFilterField prop is a queue,
+    // we always shift first element in the queue
+
+    // init state: has 1 focus field
+    const initState = {
+      focusedFilterField: [
+        {
+          chartId: 1,
+          column: 'column_1',
+        },
+      ],
+    };
+    // when user switching filter,
+    // browser focus on new filter first,
+    // then blur current filter
+    const step1 = dashboardStateReducer(initState, {
+      type: SET_FOCUSED_FILTER_FIELD,
+      chartId: 2,
+      column: 'column_2',
+    });
+    const step2 = dashboardStateReducer(step1, {
+      type: SET_FOCUSED_FILTER_FIELD,
     });
 
-    it('should overwrite a filter if merge is false', () => {
-      expect(
-        dashboardStateReducer(
-          {
-            filters: {
-              1: { column: ['z'] },
-            },
-            sliceIds: [1],
-          },
-          {
-            type: CHANGE_FILTER,
-            chart: { id: 1, formData: { groupby: 'column' } },
-            col: 'column',
-            vals: ['b', 'a'],
-            refresh: true,
-            merge: false,
-          },
-        ),
-      ).toEqual({
-        filters: { 1: { column: ['b', 'a'] } },
-        refresh: true,
-        sliceIds: [1],
-      });
-    });
-
-    it('should merge a filter if merge is true', () => {
-      expect(
-        dashboardStateReducer(
-          {
-            filters: {
-              1: { column: ['z'] },
-            },
-            sliceIds: [1],
-          },
-          {
-            type: CHANGE_FILTER,
-            chart: { id: 1, formData: { groupby: 'column' } },
-            col: 'column',
-            vals: ['b', 'a'],
-            refresh: true,
-            merge: true,
-          },
-        ),
-      ).toEqual({
-        filters: { 1: { column: ['z', 'b', 'a'] } },
-        refresh: true,
-        sliceIds: [1],
-      });
-    });
-
-    it('should remove the filter if values are empty', () => {
-      expect(
-        dashboardStateReducer(
-          {
-            filters: {
-              1: { column: ['z'] },
-            },
-            sliceIds: [1],
-          },
-          {
-            type: CHANGE_FILTER,
-            chart: { id: 1, formData: { groupby: 'column' } },
-            col: 'column',
-            vals: [],
-            refresh: true,
-            merge: false,
-          },
-        ),
-      ).toEqual({
-        filters: {},
-        refresh: true,
-        sliceIds: [1],
-      });
+    expect(step2.focusedFilterField.slice(-1).pop()).toEqual({
+      chartId: 2,
+      column: 'column_2',
     });
   });
 });

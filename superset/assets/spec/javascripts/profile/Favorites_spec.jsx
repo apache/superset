@@ -35,12 +35,16 @@ describe('Favorites', () => {
   };
 
   it('renders 2 TableLoader', () => {
-    const wrapper = shallow(<Favorites {...mockedProps} />, { context: { store } });
+    const wrapper = shallow(<Favorites {...mockedProps} />, {
+      context: { store },
+    });
     expect(wrapper.find(TableLoader)).toHaveLength(2);
   });
 
   it('renders 2 titles', () => {
-    const wrapper = shallow(<Favorites {...mockedProps} />, { context: { store } });
+    const wrapper = shallow(<Favorites {...mockedProps} />, {
+      context: { store },
+    });
     expect(wrapper.find('h3')).toHaveLength(2);
   });
 });

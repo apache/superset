@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+from datetime import datetime
+from typing import Optional
 from urllib import parse
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -25,7 +26,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "DATE_TRUNC('SECOND', {col})",
         "PT1M": "DATE_TRUNC('MINUTE', {col})",
@@ -56,9 +57,20 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return uri
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "DATEADD(S, {col}, '1970-01-01')"
 
     @classmethod
-    def epoch_ms_to_dttm(cls):
+    def epoch_ms_to_dttm(cls) -> str:
         return "DATEADD(MS, {col}, '1970-01-01')"
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == "DATE":
+            return f"TO_DATE('{dttm.date().isoformat()}')"
+        if tt == "DATETIME":
+            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
+        if tt == "TIMESTAMP":
+            return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
+        return None

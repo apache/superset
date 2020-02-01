@@ -34,38 +34,51 @@ const defaultProps = {
   showType: false,
 };
 
-export default function MetricOption({ metric, openInNewWindow, showFormula, showType, url }) {
+export default function MetricOption({
+  metric,
+  openInNewWindow,
+  showFormula,
+  showType,
+  url,
+}) {
   const verbose = metric.verbose_name || metric.metric_name || metric.label;
-  const link = url ? <a href={url} target={openInNewWindow ? '_blank' : null}>{verbose}</a> : verbose;
+  const link = url ? (
+    <a href={url} target={openInNewWindow ? '_blank' : null}>
+      {verbose}
+    </a>
+  ) : (
+    verbose
+  );
   return (
     <div>
       {showType && <ColumnTypeLabel type="expression" />}
       <span className="m-r-5 option-label">{link}</span>
-      {metric.description &&
+      {metric.description && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"
           icon="info"
           tooltip={metric.description}
           label={`descr-${metric.metric_name}`}
         />
-      }
-      {showFormula &&
+      )}
+      {showFormula && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"
           icon="question-circle-o"
           tooltip={metric.expression}
           label={`expr-${metric.metric_name}`}
         />
-      }
-      {metric.warning_text &&
+      )}
+      {metric.warning_text && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-danger"
           icon="warning"
           tooltip={metric.warning_text}
           label={`warn-${metric.metric_name}`}
         />
-      }
-    </div>);
+      )}
+    </div>
+  );
 }
 MetricOption.propTypes = propTypes;
 MetricOption.defaultProps = defaultProps;

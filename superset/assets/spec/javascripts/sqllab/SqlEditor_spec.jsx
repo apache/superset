@@ -40,7 +40,7 @@ describe('SqlEditor', () => {
     queryEditor: initialState.sqlLab.queryEditors[0],
     latestQuery: queries[0],
     tables: [table],
-    getHeight: () => ('100px'),
+    getHeight: () => '100px',
     editorQueries: [],
     dataPreviewQueries: [],
     defaultQueryLimit: 1000,
@@ -48,13 +48,13 @@ describe('SqlEditor', () => {
   };
 
   beforeAll(() => {
-    jest.spyOn(SqlEditor.prototype, 'getSqlEditorHeight').mockImplementation(() => MOCKED_SQL_EDITOR_HEIGHT);
+    jest
+      .spyOn(SqlEditor.prototype, 'getSqlEditorHeight')
+      .mockImplementation(() => MOCKED_SQL_EDITOR_HEIGHT);
   });
 
   it('is valid', () => {
-    expect(
-      React.isValidElement(<SqlEditor {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<SqlEditor {...mockedProps} />)).toBe(true);
   });
   it('render a SqlEditorLeftBar', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
@@ -70,21 +70,23 @@ describe('SqlEditor', () => {
   });
   it('does not overflow the editor window', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
-    const totalSize = parseFloat(wrapper.find(AceEditorWrapper).props().height)
-      + wrapper.find(SouthPane).props().height
-      + SQL_TOOLBAR_HEIGHT
-      + (SQL_EDITOR_GUTTER_MARGIN * 2)
-      + SQL_EDITOR_GUTTER_HEIGHT;
+    const totalSize =
+      parseFloat(wrapper.find(AceEditorWrapper).props().height) +
+      wrapper.find(SouthPane).props().height +
+      SQL_TOOLBAR_HEIGHT +
+      SQL_EDITOR_GUTTER_MARGIN * 2 +
+      SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(MOCKED_SQL_EDITOR_HEIGHT);
   });
   it('does not overflow the editor window after resizing', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
     wrapper.setState({ height: 450 });
-    const totalSize = parseFloat(wrapper.find(AceEditorWrapper).props().height)
-      + wrapper.find(SouthPane).props().height
-      + SQL_TOOLBAR_HEIGHT
-      + (SQL_EDITOR_GUTTER_MARGIN * 2)
-      + SQL_EDITOR_GUTTER_HEIGHT;
+    const totalSize =
+      parseFloat(wrapper.find(AceEditorWrapper).props().height) +
+      wrapper.find(SouthPane).props().height +
+      SQL_TOOLBAR_HEIGHT +
+      SQL_EDITOR_GUTTER_MARGIN * 2 +
+      SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(450);
   });
   it('render a LimitControl with default limit', () => {
@@ -99,6 +101,8 @@ describe('SqlEditor', () => {
     const updatedProps = { ...mockedProps, queryEditor };
     const wrapper = shallow(<SqlEditor {...updatedProps} />);
     expect(wrapper.find(LimitControl)).toHaveLength(1);
-    expect(wrapper.find(LimitControl).props().value).toEqual(queryEditor.queryLimit);
+    expect(wrapper.find(LimitControl).props().value).toEqual(
+      queryEditor.queryLimit,
+    );
   });
 });

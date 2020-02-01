@@ -19,8 +19,10 @@ import pandas as pd
 from sqlalchemy import DateTime
 
 from superset import db
+from superset.models.slice import Slice
 from superset.utils import core as utils
-from .helpers import config, get_example_data, get_slice_json, merge_slice, Slice, TBL
+
+from .helpers import config, get_example_data, get_slice_json, merge_slice, TBL
 
 
 def load_random_time_series_data(only_metadata=False, force=False):
@@ -57,11 +59,10 @@ def load_random_time_series_data(only_metadata=False, force=False):
 
     slice_data = {
         "granularity_sqla": "day",
-        "row_limit": config.get("ROW_LIMIT"),
+        "row_limit": config["ROW_LIMIT"],
         "since": "1 year ago",
         "until": "now",
         "metric": "count",
-        "where": "",
         "viz_type": "cal_heatmap",
         "domain_granularity": "month",
         "subdomain_granularity": "day",

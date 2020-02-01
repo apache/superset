@@ -55,28 +55,31 @@ class ExploreChartPanel extends React.PureComponent {
 
     return (
       <ParentSize>
-        {({ width, height }) => (width > 0 && height > 0) && (
-          <ChartContainer
-            width={Math.floor(width)}
-            height={parseInt(this.props.height, 10) - headerHeight}
-            annotationData={chart.annotationData}
-            chartAlert={chart.chartAlert}
-            chartStackTrace={chart.chartStackTrace}
-            chartId={chart.id}
-            chartStatus={chart.chartStatus}
-            triggerRender={this.props.triggerRender}
-            datasource={this.props.datasource}
-            errorMessage={this.props.errorMessage}
-            formData={this.props.form_data}
-            onQuery={this.props.onQuery}
-            queryResponse={chart.queryResponse}
-            refreshOverlayVisible={this.props.refreshOverlayVisible}
-            setControlValue={this.props.actions.setControlValue}
-            timeout={this.props.timeout}
-            triggerQuery={chart.triggerQuery}
-            vizType={this.props.vizType}
-          />
-        )}
+        {({ width, height }) =>
+          width > 0 &&
+          height > 0 && (
+            <ChartContainer
+              width={Math.floor(width)}
+              height={parseInt(this.props.height, 10) - headerHeight}
+              annotationData={chart.annotationData}
+              chartAlert={chart.chartAlert}
+              chartStackTrace={chart.chartStackTrace}
+              chartId={chart.id}
+              chartStatus={chart.chartStatus}
+              triggerRender={this.props.triggerRender}
+              datasource={this.props.datasource}
+              errorMessage={this.props.errorMessage}
+              formData={this.props.form_data}
+              onQuery={this.props.onQuery}
+              queryResponse={chart.queryResponse}
+              refreshOverlayVisible={this.props.refreshOverlayVisible}
+              setControlValue={this.props.actions.setControlValue}
+              timeout={this.props.timeout}
+              triggerQuery={chart.triggerQuery}
+              vizType={this.props.vizType}
+            />
+          )
+        }
       </ParentSize>
     );
   }
@@ -108,10 +111,7 @@ class ExploreChartPanel extends React.PureComponent {
     );
     return (
       <div className="chart-container">
-        <Panel
-          style={{ height: this.props.height }}
-          header={header}
-        >
+        <Panel style={{ height: this.props.height }} header={header}>
           {this.renderChart()}
         </Panel>
       </div>

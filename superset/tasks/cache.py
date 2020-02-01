@@ -25,11 +25,12 @@ from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
 
 from superset import app, db
-from superset.models.core import Dashboard, Log, Slice
+from superset.extensions import celery_app
+from superset.models.core import Log
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.models.tags import Tag, TaggedObject
-from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import parse_human_datetime
-
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -76,8 +77,10 @@ def get_form_data(chart_id, dashboard=None):
 def get_url(chart):
     """Return external URL for warming up a given chart/table cache."""
     with app.test_request_context():
-        baseurl = "{SUPERSET_WEBSERVER_ADDRESS}:{SUPERSET_WEBSERVER_PORT}".format(
-            **app.config
+        baseurl = (
+            "{SUPERSET_WEBSERVER_PROTOCOL}://"
+            "{SUPERSET_WEBSERVER_ADDRESS}:"
+            "{SUPERSET_WEBSERVER_PORT}".format(**app.config)
         )
         return f"{baseurl}{chart.url}"
 

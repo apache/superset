@@ -17,10 +17,11 @@
 import json
 
 import pandas as pd
-from sqlalchemy import BigInteger, Text
+from sqlalchemy import BigInteger, Float, Text
 
 from superset import db
 from superset.utils import core as utils
+
 from .helpers import get_example_data, TBL
 
 
@@ -43,7 +44,7 @@ def load_sf_population_polygons(only_metadata=False, force=False):
                 "zipcode": BigInteger,
                 "population": BigInteger,
                 "contour": Text,
-                "area": BigInteger,
+                "area": Float,
             },
             index=False,
         )

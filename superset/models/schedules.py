@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """Models for scheduled execution of jobs"""
 
 import enum
@@ -26,7 +25,6 @@ from sqlalchemy.orm import relationship
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportMixin
-
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -52,7 +50,7 @@ class EmailSchedule:
 
     __tablename__ = "email_schedules"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(50))
 
@@ -93,3 +91,4 @@ def get_scheduler_model(report_type):
         return DashboardEmailSchedule
     elif report_type == ScheduleType.slice.value:
         return SliceEmailSchedule
+    return None

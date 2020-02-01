@@ -27,6 +27,7 @@ from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
     PrestoSQLValidationError,
 )
+
 from .base_tests import SupersetTestCase
 
 PRESTO_TEST_FEATURE_FLAGS = {
@@ -53,13 +54,17 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         app.config["SQL_VALIDATORS_BY_ENGINE"] = {}
 
         resp = self.validate_sql(
-            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
+            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
         self.assertIn("error", resp)
         self.assertIn("no SQL validator is configured", resp["error"])
 
     @patch("superset.views.core.get_validator_by_name")
-    @patch.dict("superset._feature_flags", PRESTO_TEST_FEATURE_FLAGS, clear=True)
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        PRESTO_TEST_FEATURE_FLAGS,
+        clear=True,
+    )
     def test_validate_sql_endpoint_mocked(self, get_validator_by_name):
         """Assert that, with a mocked validator, annotations make it back out
         from the validate_sql_json endpoint as a list of json dictionaries"""
@@ -86,7 +91,11 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         self.assertIn("expected,", resp[0]["message"])
 
     @patch("superset.views.core.get_validator_by_name")
-    @patch.dict("superset._feature_flags", PRESTO_TEST_FEATURE_FLAGS, clear=True)
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        PRESTO_TEST_FEATURE_FLAGS,
+        clear=True,
+    )
     def test_validate_sql_endpoint_failure(self, get_validator_by_name):
         """Assert that validate_sql_json errors out when the selected validator
         raises an unexpected exception"""
@@ -97,7 +106,7 @@ class SqlValidatorEndpointTests(SupersetTestCase):
         validator.validate.side_effect = Exception("Kaboom!")
 
         resp = self.validate_sql(
-            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
+            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
         self.assertIn("error", resp)
         self.assertIn("Kaboom!", resp["error"])
@@ -119,7 +128,7 @@ class PrestoValidatorTests(SupersetTestCase):
 
     def setUp(self):
         self.validator = PrestoDBSQLValidator
-        self.database = MagicMock()  # noqa
+        self.database = MagicMock()
         self.database_engine = self.database.get_sqla_engine.return_value
         self.database_conn = self.database_engine.raw_connection.return_value
         self.database_cursor = self.database_conn.cursor.return_value
@@ -186,7 +195,7 @@ class PrestoValidatorTests(SupersetTestCase):
         #    validator for sqlite, this test will fail because the validator
         #    will no longer error out.
         resp = self.validate_sql(
-            "SELECT * FROM ab_user", client_id="1", raise_on_error=False
+            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
         self.assertIn("error", resp)
         self.assertIn("no SQL validator is configured", resp["error"])

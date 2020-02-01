@@ -14,24 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
-from datetime import datetime, timedelta
 import logging
 import pickle as pkl
-from typing import Dict, List
+from datetime import datetime, timedelta
+from typing import Any, ClassVar, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 
-from superset import app, cache
-from superset import db
+from superset import app, cache, db
+from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
+
 from .query_object import QueryObject
 
 config = app.config
-stats_logger = config.get("STATS_LOGGER")
+stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 
 
 class QueryContext:
@@ -40,30 +41,31 @@ class QueryContext:
     to retrieve the data payload for a given viz.
     """
 
-    cache_type = "df"
-    enforce_numerical_metrics = True
+    cache_type: ClassVar[str] = "df"
+    enforce_numerical_metrics: ClassVar[bool] = True
+
+    datasource: BaseDatasource
+    queries: List[QueryObject]
+    force: bool
+    custom_cache_timeout: Optional[int]
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     # a vanilla python type https://github.com/python/mypy/issues/5288
     def __init__(
         self,
-        datasource: Dict,
-        queries: List[Dict],
+        datasource: Dict[str, Any],
+        queries: List[Dict[str, Any]],
         force: bool = False,
-        custom_cache_timeout: int = None,
-    ):
+        custom_cache_timeout: Optional[int] = None,
+    ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
-            datasource.get("type"), int(datasource.get("id")), db.session  # noqa: T400
+            str(datasource["type"]), int(datasource["id"]), db.session
         )
-        self.queries = list(map(lambda query_obj: QueryObject(**query_obj), queries))
-
+        self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
-
         self.custom_cache_timeout = custom_cache_timeout
 
-        self.enforce_numerical_metrics = True
-
-    def get_query_result(self, query_object):
+    def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""
 
         # Here, we assume that all the queries will use the same datasource, which is
@@ -72,7 +74,7 @@ class QueryContext:
 
         timestamp_format = None
         if self.datasource.type == "table":
-            dttm_col = self.datasource.get_col(query_object.granularity)
+            dttm_col = self.datasource.get_column(query_object.granularity)
             if dttm_col:
                 timestamp_format = dttm_col.python_date_format
 
@@ -85,7 +87,7 @@ class QueryContext:
         # be considered as the default ISO date format
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic
-        if df is not None and not df.empty:
+        if not df.empty:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ("epoch_s", "epoch_ms"):
                     # Column has already been formatted as a timestamp.
@@ -109,36 +111,40 @@ class QueryContext:
             "df": df,
         }
 
-    def df_metrics_to_num(self, df, query_object):
+    @staticmethod
+    def df_metrics_to_num(  # pylint: disable=invalid-name,no-self-use
+        df: pd.DataFrame, query_object: QueryObject
+    ) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
-        metrics = [metric for metric in query_object.metrics]
         for col, dtype in df.dtypes.items():
-            if dtype.type == np.object_ and col in metrics:
+            if dtype.type == np.object_ and col in query_object.metrics:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    def get_data(self, df):
+    @staticmethod
+    def get_data(  # pylint: disable=invalid-name,no-self-use
+        df: pd.DataFrame
+    ) -> List[Dict]:
         return df.to_dict(orient="records")
 
-    def get_single_payload(self, query_obj):
+    def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
         """Returns a payload of metadata and data"""
         payload = self.get_df_payload(query_obj)
-        df = payload.get("df")
-        status = payload.get("status")
+        df = payload["df"]
+        status = payload["status"]
         if status != utils.QueryStatus.FAILED:
-            if df is not None and df.empty:
+            if df.empty:
                 payload["error"] = "No data"
             else:
                 payload["data"] = self.get_data(df)
-        if "df" in payload:
-            del payload["df"]
+        del payload["df"]
         return payload
 
-    def get_payload(self):
-        """Get all the paylaods from the arrays"""
-        return [self.get_single_payload(query_ojbect) for query_ojbect in self.queries]
+    def get_payload(self) -> List[Dict[str, Any]]:
+        """Get all the payloads from the arrays"""
+        return [self.get_single_payload(query_object) for query_object in self.queries]
 
     @property
-    def cache_timeout(self):
+    def cache_timeout(self) -> int:
         if self.custom_cache_timeout is not None:
             return self.custom_cache_timeout
         if self.datasource.cache_timeout is not None:
@@ -148,24 +154,31 @@ class QueryContext:
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
-        return config.get("CACHE_DEFAULT_TIMEOUT")
+        return config["CACHE_DEFAULT_TIMEOUT"]
 
-    def get_df_payload(self, query_obj, **kwargs):
-        """Handles caching around the df paylod retrieval"""
-        extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj)
+    def cache_key(self, query_obj: QueryObject, **kwargs) -> Optional[str]:
+        extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj.to_dict())
         cache_key = (
             query_obj.cache_key(
                 datasource=self.datasource.uid,
                 extra_cache_keys=extra_cache_keys,
+                changed_on=self.datasource.changed_on,
                 **kwargs
             )
             if query_obj
             else None
         )
-        logging.info("Cache key: {}".format(cache_key))
+        return cache_key
+
+    def get_df_payload(  # pylint: disable=too-many-locals,too-many-statements
+        self, query_obj: QueryObject, **kwargs
+    ) -> Dict[str, Any]:
+        """Handles caching around the df payload retrieval"""
+        cache_key = self.cache_key(query_obj, **kwargs)
+        logging.info("Cache key: %s", cache_key)
         is_loaded = False
         stacktrace = None
-        df = None
+        df = pd.DataFrame()
         cached_dttm = datetime.utcnow().isoformat().split(".")[0]
         cache_value = None
         status = None
@@ -174,17 +187,18 @@ class QueryContext:
         if cache_key and cache and not self.force:
             cache_value = cache.get(cache_key)
             if cache_value:
-                stats_logger.incr("loaded_from_cache")
+                stats_logger.incr("loading_from_cache")
                 try:
                     cache_value = pkl.loads(cache_value)
                     df = cache_value["df"]
                     query = cache_value["query"]
                     status = utils.QueryStatus.SUCCESS
                     is_loaded = True
-                except Exception as e:
+                    stats_logger.incr("loaded_from_cache")
+                except Exception as e:  # pylint: disable=broad-except
                     logging.exception(e)
                     logging.error(
-                        "Error reading cache: " + utils.error_msg_from_exception(e)
+                        "Error reading cache: %s", utils.error_msg_from_exception(e)
                     )
                 logging.info("Serving from cache")
 
@@ -198,7 +212,7 @@ class QueryContext:
                 if status != utils.QueryStatus.FAILED:
                     stats_logger.incr("loaded_from_source")
                     is_loaded = True
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 logging.exception(e)
                 if not error_message:
                     error_message = "{}".format(e)
@@ -207,25 +221,19 @@ class QueryContext:
 
             if is_loaded and cache_key and cache and status != utils.QueryStatus.FAILED:
                 try:
-                    cache_value = dict(
-                        dttm=cached_dttm, df=df if df is not None else None, query=query
-                    )
+                    cache_value = dict(dttm=cached_dttm, df=df, query=query)
                     cache_binary = pkl.dumps(cache_value, protocol=pkl.HIGHEST_PROTOCOL)
 
                     logging.info(
-                        "Caching {} chars at key {}".format(
-                            len(cache_binary), cache_key
-                        )
+                        "Caching %d chars at key %s", len(cache_binary), cache_key
                     )
 
                     stats_logger.incr("set_cache_key")
-                    cache.set(
-                        cache_key, cache_value=cache_binary, timeout=self.cache_timeout
-                    )
-                except Exception as e:
+                    cache.set(cache_key, cache_binary, timeout=self.cache_timeout)
+                except Exception as e:  # pylint: disable=broad-except
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
-                    logging.warning("Could not cache key {}".format(cache_key))
+                    logging.warning("Could not cache key %s", cache_key)
                     logging.exception(e)
                     cache.delete(cache_key)
         return {
@@ -238,5 +246,5 @@ class QueryContext:
             "query": query,
             "status": status,
             "stacktrace": stacktrace,
-            "rowcount": len(df.index) if df is not None else 0,
+            "rowcount": len(df.index),
         }

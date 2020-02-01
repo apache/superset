@@ -42,7 +42,10 @@ const defaultProps = {
   getEndpoint: controlValues => `valid_metrics?data=${controlValues}`,
 };
 
-const VALID_METRIC = { metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' };
+const VALID_METRIC = {
+  metric_name: 'sum__value',
+  expression: 'SUM(energy_usage.value)',
+};
 
 function setup(overrides, validMetric) {
   const onChange = sinon.spy();
@@ -51,16 +54,22 @@ function setup(overrides, validMetric) {
     ...defaultProps,
     ...overrides,
   };
-  const VerifiedControl = withVerification(MetricsControl, 'metric_name', 'savedMetrics');
+  const VerifiedControl = withVerification(
+    MetricsControl,
+    'metric_name',
+    'savedMetrics',
+  );
   const wrapper = shallow(<VerifiedControl {...props} />);
-  fetchMock.mock('glob:*/valid_metrics*', validMetric || `["${VALID_METRIC.metric_name}"]`);
+  fetchMock.mock(
+    'glob:*/valid_metrics*',
+    validMetric || `["${VALID_METRIC.metric_name}"]`,
+  );
   return { props, wrapper, onChange };
 }
 
 afterEach(fetchMock.restore);
 
 describe('VerifiedMetricsControl', () => {
-
   it('Gets valid options', () => {
     const { wrapper } = setup();
     setTimeout(() => {
@@ -92,7 +101,9 @@ describe('VerifiedMetricsControl', () => {
   });
 
   it('Calls endpoint if control values change', () => {
-    const { props, wrapper } = setup({ controlValues: { metrics: 'sum__value' } });
+    const { props, wrapper } = setup({
+      controlValues: { metrics: 'sum__value' },
+    });
     setTimeout(() => {
       expect(fetchMock.calls(defaultProps.getEndpoint())).toHaveLength(1);
       fetchMock.reset();

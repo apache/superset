@@ -23,26 +23,17 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['metric'],
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [['metric'], ['adhoc_filters']],
     },
     {
       label: t('Options'),
       expanded: true,
-      controlSetRows: [
-        ['subheader'],
-        ['y_axis_format'],
-      ],
+      controlSetRows: [['subheader'], ['y_axis_format']],
     },
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [
-        ['header_font_size'],
-        ['subheader_font_size'],
-      ],
+      controlSetRows: [['header_font_size'], ['subheader_font_size']],
     },
   ],
   controlOverrides: {

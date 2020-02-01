@@ -23,6 +23,7 @@ import DashboardBuilder from '../components/DashboardBuilder';
 import {
   setColorSchemeAndUnsavedChanges,
   showBuilderPane,
+  setDirectPathToChild,
 } from '../actions/dashboardState';
 import {
   deleteTopLevelTabs,
@@ -47,12 +48,10 @@ function mapDispatchToProps(dispatch) {
       handleComponentDrop,
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
+      setDirectPathToChild,
     },
     dispatch,
   );
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(DashboardBuilder);
+export default connect(mapStateToProps, mapDispatchToProps)(DashboardBuilder);

@@ -24,7 +24,7 @@ import { SupersetClient } from '@superset-ui/connection';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from '../components/Loading';
-import '../../stylesheets/reactable-pagination.css';
+import '../../stylesheets/reactable-pagination.less';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
@@ -45,7 +45,7 @@ class TableLoader extends React.PureComponent {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     const { dataEndpoint, mutator } = this.props;
 
     SupersetClient.get({ endpoint: dataEndpoint })
@@ -89,7 +89,7 @@ class TableLoader extends React.PureComponent {
       >
         {this.state.data.map((row, i) => (
           <Tr key={i}>
-            {columns.map((col) => {
+            {columns.map(col => {
               if (row.hasOwnProperty('_' + col)) {
                 return (
                   <Td key={col} column={col} value={row['_' + col]}>

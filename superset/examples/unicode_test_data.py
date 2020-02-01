@@ -22,14 +22,15 @@ import pandas as pd
 from sqlalchemy import Date, Float, String
 
 from superset import db
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.utils import core as utils
+
 from .helpers import (
     config,
-    Dash,
     get_example_data,
     get_slice_json,
     merge_slice,
-    Slice,
     TBL,
     update_slice_ids,
 )
@@ -86,10 +87,9 @@ def load_unicode_test_data(only_metadata=False, force=False):
             "expressionType": "SIMPLE",
             "label": "Value",
         },
-        "row_limit": config.get("ROW_LIMIT"),
+        "row_limit": config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
-        "where": "",
         "viz_type": "word_cloud",
         "size_from": "10",
         "series": "short_phrase",
@@ -109,10 +109,10 @@ def load_unicode_test_data(only_metadata=False, force=False):
     merge_slice(slc)
 
     print("Creating a dashboard")
-    dash = db.session.query(Dash).filter_by(slug="unicode-test").first()
+    dash = db.session.query(Dashboard).filter_by(slug="unicode-test").first()
 
     if not dash:
-        dash = Dash()
+        dash = Dashboard()
     js = """\
 {
     "CHART-Hkx6154FEm": {

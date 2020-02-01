@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint no-native-reassign: 0 */
-import '@babel/polyfill';
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import jsdom from 'jsdom';
 import { configure } from 'enzyme';
@@ -35,7 +36,7 @@ global.document = global.jsdom('<!doctype html><html><body></body></html>');
 global.window = document.defaultView;
 global.HTMLElement = window.HTMLElement;
 
-Object.keys(document.defaultView).forEach((property) => {
+Object.keys(document.defaultView).forEach(property => {
   if (typeof global[property] === 'undefined') {
     exposedProperties.push(property);
     global[property] = document.defaultView[property];

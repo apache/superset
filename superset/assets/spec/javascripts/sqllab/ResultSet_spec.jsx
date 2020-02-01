@@ -70,7 +70,7 @@ describe('ResultSet', () => {
     beforeEach(() => {
       clearQuerySpy.reset();
       fetchQuerySpy.reset();
-      spy = sinon.spy(ResultSet.prototype, 'componentWillReceiveProps');
+      spy = sinon.spy(ResultSet.prototype, 'UNSAFE_componentWillReceiveProps');
     });
     afterEach(() => {
       spy.restore();
@@ -102,13 +102,16 @@ describe('ResultSet', () => {
       wrapper.setProps({ query: emptyResults });
       expect(wrapper.find(FilterableTable)).toHaveLength(0);
       expect(wrapper.find(Alert)).toHaveLength(1);
-      expect(wrapper.find(Alert).shallow().text()).toBe('The query returned no data');
+      expect(
+        wrapper
+          .find(Alert)
+          .shallow()
+          .text(),
+      ).toBe('The query returned no data');
     });
     it('should render cached query', () => {
       const wrapper = shallow(<ResultSet {...cachedQueryProps} />);
-      const cachedData = [
-        { col1: 'a', col2: 'b' },
-      ];
+      const cachedData = [{ col1: 'a', col2: 'b' }];
       wrapper.setState({ data: cachedData });
       const filterableTable = wrapper.find(FilterableTable);
       expect(filterableTable.props().data).toBe(cachedData);

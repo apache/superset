@@ -22,6 +22,7 @@ from sqlalchemy import String, Text
 
 from superset import db
 from superset.utils.core import get_example_database
+
 from .helpers import get_example_data, TBL
 
 

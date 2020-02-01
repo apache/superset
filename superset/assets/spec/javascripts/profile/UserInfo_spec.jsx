@@ -24,15 +24,12 @@ import { mount } from 'enzyme';
 import { user } from './fixtures';
 import UserInfo from '../../../src/profile/components/UserInfo';
 
-
 describe('UserInfo', () => {
   const mockedProps = {
     user,
   };
   it('is valid', () => {
-    expect(
-      React.isValidElement(<UserInfo {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<UserInfo {...mockedProps} />)).toBe(true);
   });
   it('renders a Gravatar', () => {
     const wrapper = mount(<UserInfo {...mockedProps} />);

@@ -35,6 +35,7 @@ export const mockStoreWithTabs = createStore(
   {
     ...mockState,
     dashboardLayout: dashboardLayoutWithTabs,
+    dashboardFilters: {},
   },
   compose(applyMiddleware(thunk)),
 );

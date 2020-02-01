@@ -17,9 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import {
-  getControlsState,
-} from '../store';
+import { getControlsState } from '../store';
 import { getControlState, getFormDataFromControls } from '../controlUtils';
 import * as actions from '../actions/exploreActions';
 
@@ -38,27 +36,45 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_DATASOURCE]() {
-      return {
+      const newFormData = { ...state.form_data };
+      if (action.datasource.type !== state.datasource.type) {
+        if (action.datasource.type === 'table') {
+          newFormData.granularity_sqla = action.datasource.granularity_sqla;
+          newFormData.time_grain_sqla = action.datasource.time_grain_sqla;
+          delete newFormData.druid_time_origin;
+          delete newFormData.granularity;
+        } else {
+          newFormData.druid_time_origin = action.datasource.druid_time_origin;
+          newFormData.granularity = action.datasource.granularity;
+          delete newFormData.granularity_sqla;
+          delete newFormData.time_grain_sqla;
+        }
+      }
+      const newState = {
         ...state,
         datasource: action.datasource,
+        datasource_id: action.datasource.id,
+        datasource_type: action.datasource.type,
+      };
+      return {
+        ...newState,
+        form_data: newFormData,
+        controls: getControlsState(newState, newFormData),
       };
     },
     [actions.FETCH_DATASOURCES_STARTED]() {
-
       return {
         ...state,
         isDatasourcesLoading: true,
       };
     },
     [actions.FETCH_DATASOURCES_SUCCEEDED]() {
-
       return {
         ...state,
         isDatasourcesLoading: false,
       };
     },
     [actions.FETCH_DATASOURCES_FAILED]() {
-
       return {
         ...state,
         isDatasourcesLoading: false,
@@ -78,9 +94,16 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_FIELD_VALUE]() {
+      let new_form_data = state.form_data;
+      if (action.controlName === 'viz_type') {
+        new_form_data = JSON.parse(JSON.stringify(new_form_data));
+        // Update state's vizType if we are switching to a new visualization
+        new_form_data.viz_type = action.value;
+      }
+
       // These errors are reported from the Control components
       let errors = action.validationErrors || [];
-      const vizType = state.form_data.viz_type;
+      const vizType = new_form_data.viz_type;
       const control = {
         ...getControlState(action.controlName, vizType, state, action.value),
       };
@@ -90,6 +113,7 @@ export default function exploreReducer(state = {}, action) {
       const hasErrors = errors && errors.length > 0;
       return {
         ...state,
+        form_data: new_form_data,
         triggerRender: control.renderTrigger && !hasErrors,
         controls: {
           ...state.controls,
@@ -107,7 +131,9 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.UPDATE_CHART_TITLE]() {
-      const updatedSlice = Object.assign({}, state.slice, { slice_name: action.slice_name });
+      const updatedSlice = Object.assign({}, state.slice, {
+        slice_name: action.slice_name,
+      });
       return {
         ...state,
         slice: updatedSlice,
@@ -116,7 +142,10 @@ export default function exploreReducer(state = {}, action) {
     [actions.RESET_FIELDS]() {
       return {
         ...state,
-        controls: getControlsState(state, getFormDataFromControls(state.controls)),
+        controls: getControlsState(
+          state,
+          getFormDataFromControls(state.controls),
+        ),
       };
     },
     [actions.CREATE_NEW_SLICE]() {

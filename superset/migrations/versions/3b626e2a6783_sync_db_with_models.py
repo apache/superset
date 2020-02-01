@@ -24,12 +24,14 @@ Revises: 5e4a03ef0bf0
 Create Date: 2016-09-22 10:21:33.618976
 
 """
+import logging
+
+import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import mysql
+
 from superset import db
 from superset.utils.core import generic_find_constraint_name
-import logging
-import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
 revision = "3b626e2a6783"

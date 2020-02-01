@@ -34,22 +34,24 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [
-        ['color_scheme', 'label_colors'],
-      ],
+      controlSetRows: [['color_scheme', 'label_colors']],
     },
   ],
   controlOverrides: {
     metric: {
       label: t('Primary Metric'),
-      description: t('The primary metric is used to define the arc segment sizes'),
+      description: t(
+        'The primary metric is used to define the arc segment sizes',
+      ),
     },
     secondary_metric: {
       label: t('Secondary Metric'),
       default: null,
-      description: t('[optional] this secondary metric is used to ' +
-      'define the color as a ratio against the primary metric. ' +
-      'When omitted, the color is categorical and based on labels'),
+      description: t(
+        '[optional] this secondary metric is used to ' +
+          'define the color as a ratio against the primary metric. ' +
+          'When omitted, the color is categorical and based on labels',
+      ),
     },
     groupby: {
       label: t('Hierarchy'),

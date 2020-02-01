@@ -52,7 +52,12 @@ describe('AddSliceContainer', () => {
   });
 
   it('renders a disabled button if no datasource is selected', () => {
-    expect(wrapper.find(Button).dive().find('.btn[disabled=true]')).toHaveLength(1);
+    expect(
+      wrapper
+        .find(Button)
+        .dive()
+        .find('.btn[disabled=true]'),
+    ).toHaveLength(1);
   });
 
   it('renders an enabled button if datasource is selected', () => {
@@ -62,7 +67,12 @@ describe('AddSliceContainer', () => {
       datasourceId: datasourceValue.split('__')[0],
       datasourceType: datasourceValue.split('__')[1],
     });
-    expect(wrapper.find(Button).dive().find('.btn[disabled=false]')).toHaveLength(1);
+    expect(
+      wrapper
+        .find(Button)
+        .dive()
+        .find('.btn[disabled=false]'),
+    ).toHaveLength(1);
   });
 
   it('formats explore url', () => {
@@ -72,7 +82,8 @@ describe('AddSliceContainer', () => {
       datasourceId: datasourceValue.split('__')[0],
       datasourceType: datasourceValue.split('__')[1],
     });
-    const formattedUrl = '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221__table%22%7D';
+    const formattedUrl =
+      '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221__table%22%7D';
     expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
   });
 });

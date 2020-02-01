@@ -43,7 +43,6 @@ class ShareSqlLabQuery extends React.Component {
     super(props);
     this.state = {
       shortUrl: t('Loading ...'),
-      showOverlay: false,
     };
     this.getCopyUrl = this.getCopyUrl.bind(this);
   }
@@ -53,15 +52,14 @@ class ShareSqlLabQuery extends React.Component {
     const sharedQuery = { dbId, title, schema, autorun, sql };
 
     return storeQuery(sharedQuery)
-      .then((shortUrl) => {
+      .then(shortUrl => {
         this.setState({ shortUrl });
       })
-      .catch((response) => {
-        getClientErrorObject(response)
-          .then(({ error }) => {
-            this.props.addDangerToast(error);
-            this.setState({ shortUrl: t('Error') });
-          });
+      .catch(response => {
+        getClientErrorObject(response).then(({ error }) => {
+          this.props.addDangerToast(error);
+          this.setState({ shortUrl: t('Error') });
+        });
       });
   }
 
@@ -70,7 +68,9 @@ class ShareSqlLabQuery extends React.Component {
       <Popover id="sqllab-shareurl-popover">
         <CopyToClipboard
           text={this.state.shortUrl || t('Loading ...')}
-          copyNode={<i className="fa fa-clipboard" title={t('Copy to clipboard')} />}
+          copyNode={
+            <i className="fa fa-clipboard" title={t('Copy to clipboard')} />
+          }
         />
       </Popover>
     );

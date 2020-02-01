@@ -23,10 +23,15 @@ export default {
     {
       label: t('Code'),
       expanded: true,
-      controlSetRows: [
-        ['markup_type'],
-        ['code'],
-      ],
+      controlSetRows: [['markup_type'], ['code']],
     },
   ],
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [],
+    },
+  },
 };

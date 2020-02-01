@@ -14,19 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 
 """Utility functions used across Superset"""
 
+import logging
+import time
+import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-import logging
-import time
-from urllib.error import URLError
-import urllib.request
+from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
+import simplejson as json
 from dateutil.tz import tzlocal
 from flask import render_template, Response, session, url_for
 from flask_babel import gettext as __
@@ -34,18 +34,17 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
-import simplejson as json
-from werkzeug.utils import parse_cookie
+from werkzeug.http import parse_cookie
 
 # Superset framework imports
 from superset import app, db, security_manager
+from superset.extensions import celery_app
 from superset.models.schedules import (
     EmailDeliveryType,
     get_scheduler_model,
     ScheduleType,
     SliceEmailReportFormat,
 )
-from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import get_email_address_list, send_email_smtp
 
 # Globals
@@ -60,7 +59,7 @@ EmailContent = namedtuple("EmailContent", ["body", "data", "images"])
 
 
 def _get_recipients(schedule):
-    bcc = config.get("EMAIL_REPORT_BCC_ADDRESS", None)
+    bcc = config["EMAIL_REPORT_BCC_ADDRESS"]
 
     if schedule.deliver_as_group:
         to = schedule.recipients
@@ -81,7 +80,7 @@ def _deliver_email(schedule, subject, email):
             images=email.images,
             bcc=bcc,
             mime_subtype="related",
-            dryrun=config.get("SCHEDULED_EMAIL_DEBUG_MODE"),
+            dryrun=config["SCHEDULED_EMAIL_DEBUG_MODE"],
         )
 
 
@@ -97,7 +96,7 @@ def _generate_mail_content(schedule, screenshot, name, url):
     elif schedule.delivery_type == EmailDeliveryType.inline:
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the ends
-        domain = parseaddr(config.get("SMTP_MAIL_FROM"))[1].split("@")[1]
+        domain = parseaddr(config["SMTP_MAIL_FROM"])[1].split("@")[1]
         msgid = make_msgid(domain)[1:-1]
 
         images = {msgid: screenshot}
@@ -118,7 +117,7 @@ def _generate_mail_content(schedule, screenshot, name, url):
 def _get_auth_cookies():
     # Login with the user specified to get the reports
     with app.test_request_context():
-        user = security_manager.find_user(config.get("EMAIL_REPORTS_USER"))
+        user = security_manager.find_user(config["EMAIL_REPORTS_USER"])
         login_user(user)
 
         # A mock response object to get the cookie information from
@@ -139,16 +138,16 @@ def _get_auth_cookies():
 def _get_url_path(view, **kwargs):
     with app.test_request_context():
         return urllib.parse.urljoin(
-            str(config.get("WEBDRIVER_BASEURL")), url_for(view, **kwargs)
+            str(config["WEBDRIVER_BASEURL"]), url_for(view, **kwargs)
         )
 
 
 def create_webdriver():
     # Create a webdriver for use in fetching reports
-    if config.get("EMAIL_REPORTS_WEBDRIVER") == "firefox":
+    if config["EMAIL_REPORTS_WEBDRIVER"] == "firefox":
         driver_class = firefox.webdriver.WebDriver
         options = firefox.options.Options()
-    elif config.get("EMAIL_REPORTS_WEBDRIVER") == "chrome":
+    elif config["EMAIL_REPORTS_WEBDRIVER"] == "chrome":
         driver_class = chrome.webdriver.WebDriver
         options = chrome.options.Options()
 
@@ -156,7 +155,7 @@ def create_webdriver():
 
     # Prepare args for the webdriver init
     kwargs = dict(options=options)
-    kwargs.update(config.get("WEBDRIVER_CONFIGURATION"))
+    kwargs.update(config["WEBDRIVER_CONFIGURATION"])
 
     # Initialize the driver
     driver = driver_class(**kwargs)
@@ -190,11 +189,11 @@ def destroy_webdriver(driver):
     # and catch-all exceptions
     try:
         retry_call(driver.close, tries=2)
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
     try:
         driver.quit()
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
 
 
@@ -208,7 +207,7 @@ def deliver_dashboard(schedule):
 
     # Create a driver, fetch the page, wait for the page to render
     driver = create_webdriver()
-    window = config.get("WEBDRIVER_WINDOW")["dashboard"]
+    window = config["WEBDRIVER_WINDOW"]["dashboard"]
     driver.set_window_size(*window)
     driver.get(dashboard_url)
     time.sleep(PAGE_RENDER_WAIT)
@@ -236,7 +235,7 @@ def deliver_dashboard(schedule):
 
     subject = __(
         "%(prefix)s %(title)s",
-        prefix=config.get("EMAIL_REPORTS_SUBJECT_PREFIX"),
+        prefix=config["EMAIL_REPORTS_SUBJECT_PREFIX"],
         title=dashboard.dashboard_title,
     )
 
@@ -264,7 +263,8 @@ def _get_slice_data(schedule):
         raise URLError(response.getcode())
 
     # TODO: Move to the csv module
-    rows = [r.split(b",") for r in response.content.splitlines()]
+    content = response.read()
+    rows = [r.split(b",") for r in content.splitlines()]
 
     if schedule.delivery_type == EmailDeliveryType.inline:
         data = None
@@ -281,7 +281,7 @@ def _get_slice_data(schedule):
             )
 
     elif schedule.delivery_type == EmailDeliveryType.attachment:
-        data = {__("%(name)s.csv", name=slc.slice_name): response.content}
+        data = {__("%(name)s.csv", name=slc.slice_name): content}
         body = __(
             '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
             name=slc.slice_name,
@@ -296,7 +296,7 @@ def _get_slice_visualization(schedule):
 
     # Create a driver, fetch the page, wait for the page to render
     driver = create_webdriver()
-    window = config.get("WEBDRIVER_WINDOW")["slice"]
+    window = config["WEBDRIVER_WINDOW"]["slice"]
     driver.set_window_size(*window)
 
     slice_url = _get_url_path("Superset.slice", slice_id=slc.id)
@@ -339,15 +339,21 @@ def deliver_slice(schedule):
 
     subject = __(
         "%(prefix)s %(title)s",
-        prefix=config.get("EMAIL_REPORTS_SUBJECT_PREFIX"),
+        prefix=config["EMAIL_REPORTS_SUBJECT_PREFIX"],
         title=schedule.slice.slice_name,
     )
 
     _deliver_email(schedule, subject, email)
 
 
-@celery_app.task(name="email_reports.send", bind=True, soft_time_limit=300)
-def schedule_email_report(task, report_type, schedule_id, recipients=None):
+@celery_app.task(
+    name="email_reports.send",
+    bind=True,
+    soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
+)
+def schedule_email_report(
+    task, report_type, schedule_id, recipients=None
+):  # pylint: disable=unused-argument
     model_cls = get_scheduler_model(report_type)
     schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
 
@@ -413,11 +419,11 @@ def schedule_window(report_type, start_at, stop_at, resolution):
 def schedule_hourly():
     """ Celery beat job meant to be invoked hourly """
 
-    if not config.get("ENABLE_SCHEDULED_EMAIL_REPORTS"):
+    if not config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
         logging.info("Scheduled email reports not enabled in config")
         return
 
-    resolution = config.get("EMAIL_REPORTS_CRON_RESOLUTION", 0) * 60
+    resolution = config["EMAIL_REPORTS_CRON_RESOLUTION"] * 60
 
     # Get the top of the hour
     start_at = datetime.now(tzlocal()).replace(microsecond=0, second=0, minute=0)

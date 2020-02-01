@@ -16,8 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, getNumberFormatterRegistry, NumberFormats } from '@superset-ui/number-format';
-import { getTimeFormatterRegistry, smartDateFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
+import {
+  createDurationFormatter,
+  getNumberFormatter,
+  getNumberFormatterRegistry,
+  NumberFormats,
+} from '@superset-ui/number-format';
+import {
+  getTimeFormatterRegistry,
+  smartDateFormatter,
+  smartDateVerboseFormatter,
+} from '@superset-ui/time-format';
 
 export default function setupFormatters() {
   getNumberFormatterRegistry()
@@ -54,7 +63,12 @@ export default function setupFormatters() {
     .registerValue('.0%f', getNumberFormatter('.1%'))
     .registerValue('$,0', getNumberFormatter('$,.4f'))
     .registerValue('$,0f', getNumberFormatter('$,.4f'))
-    .registerValue('$,.f', getNumberFormatter('$,.4f'));
+    .registerValue('$,.f', getNumberFormatter('$,.4f'))
+    .registerValue('DURATION', createDurationFormatter())
+    .registerValue(
+      'DURATION_SUB',
+      createDurationFormatter({ formatSubMilliseconds: true }),
+    );
 
   getTimeFormatterRegistry()
     .registerValue('smart_date', smartDateFormatter)

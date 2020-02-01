@@ -16,76 +16,109 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { t } from '@superset-ui/translation';
 import {
   getControlConfig,
   getControlState,
-  getControlKeys,
   applyMapStateToPropsToControl,
 } from '../../../src/explore/controlUtils';
 
 describe('controlUtils', () => {
   const state = {
     datasource: {
-      columns: [
-        'a', 'b', 'c',
-      ],
-      metrics: [
-        { metric_name: 'first' },
-        { metric_name: 'second' },
-      ],
+      columns: ['a', 'b', 'c'],
+      metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
     },
   };
 
-  describe('getControlConfig', () => {
-    it('returns a valid spatial controlConfig', () => {
-      const spatialControl = getControlConfig('spatial', 'deck_grid');
-      expect(spatialControl.type).toEqual('SpatialControl');
-      expect(spatialControl.validators).toHaveLength(1);
-    });
-    it('overrides according to vizType', () => {
-      let control = getControlConfig('metric', 'line');
-      expect(control.type).toEqual('MetricsControl');
-      expect(control.validators).toHaveLength(1);
-
-      // deck_polygon overrides and removes validators
-      control = getControlConfig('metric', 'deck_polygon');
-      expect(control.type).toEqual('MetricsControl');
-      expect(control.validators).toHaveLength(0);
-    });
+  beforeAll(() => {
+    getChartControlPanelRegistry()
+      .registerValue('test-chart', {
+        requiresTime: true,
+        controlPanelSections: [
+          {
+            label: t('Chart Options'),
+            expanded: true,
+            controlSetRows: [
+              [
+                'color_scheme',
+                {
+                  name: 'rose_area_proportion',
+                  config: {
+                    type: 'CheckboxControl',
+                    label: t('Use Area Proportions'),
+                    description: t(
+                      'Check if the Rose Chart should use segment area instead of ' +
+                        'segment radius for proportioning',
+                    ),
+                    default: false,
+                    renderTrigger: true,
+                  },
+                },
+              ],
+            ],
+          },
+        ],
+      })
+      .registerValue('test-chart-override', {
+        requiresTime: true,
+        controlPanelSections: [
+          {
+            label: t('Chart Options'),
+            expanded: true,
+            controlSetRows: [['color_scheme']],
+          },
+        ],
+        controlOverrides: {
+          color_scheme: {
+            label: t('My beautiful colors'),
+          },
+        },
+      });
   });
 
-  describe('getControlKeys', () => {
+  afterAll(() => {
+    getChartControlPanelRegistry()
+      .remove('test-chart')
+      .remove('test-chart-override');
+  });
 
-    window.featureFlags = {
-      SCOPED_FILTER: false,
-    };
+  describe('getControlConfig', () => {
+    it('returns a valid spatial controlConfig', () => {
+      const spatialControl = getControlConfig('color_scheme', 'test-chart');
+      expect(spatialControl.type).toEqual('ColorSchemeControl');
+    });
 
-    it('gets only strings, even when React components are in conf', () => {
-      const keys = getControlKeys('filter_box');
-      expect(keys.every(k => typeof k === 'string')).toEqual(true);
-      expect(keys).toHaveLength(16);
+    it('overrides according to vizType', () => {
+      let control = getControlConfig('color_scheme', 'test-chart');
+      expect(control.label).toEqual('Color Scheme');
+
+      // deck_polygon overrides and removes validators
+      control = getControlConfig('color_scheme', 'test-chart-override');
+      expect(control.label).toEqual('My beautiful colors');
     });
-    it('gets the right set of controlKeys for filter_box', () => {
-      const keys = getControlKeys('filter_box');
-      expect(keys.sort()).toEqual([
-        'adhoc_filters',
-        'cache_timeout',
-        'datasource',
-        'date_filter',
-        'druid_time_origin',
-        'filter_configs',
-        'granularity',
-        'instant_filtering',
-        'show_druid_time_granularity',
-        'show_druid_time_origin',
-        'show_sqla_time_column',
-        'show_sqla_time_granularity',
-        'slice_id',
-        'time_range',
-        'url_params',
-        'viz_type',
-      ]);
-    });
+
+    it(
+      'returns correct control config when control config is defined ' +
+        'in the control panel definition',
+      () => {
+        const roseAreaProportionControlConfig = getControlConfig(
+          'rose_area_proportion',
+          'test-chart',
+        );
+        expect(roseAreaProportionControlConfig).toEqual({
+          type: 'CheckboxControl',
+          label: t('Use Area Proportions'),
+          description: t(
+            'Check if the Rose Chart should use segment area instead of ' +
+              'segment radius for proportioning',
+          ),
+          default: false,
+          renderTrigger: true,
+        });
+      },
+    );
   });
 
   describe('applyMapStateToPropsToControl,', () => {
@@ -100,11 +133,9 @@ describe('controlUtils', () => {
       control = applyMapStateToPropsToControl(control, state);
       expect(control.mapStateToProps).toBe(undefined);
     });
-
   });
 
   describe('getControlState', () => {
-
     it('to be function free', () => {
       const control = getControlState('all_columns', 'table', state, ['a']);
       expect(control.mapStateToProps).toBe(undefined);
@@ -149,16 +180,12 @@ describe('controlUtils', () => {
       const control = getControlState('metrics', 'table', stateWithCount);
       expect(control.default).toEqual(['count']);
     });
-
   });
 
   describe('validateControl', () => {
-
     it('validates the control, returns an error if empty', () => {
       const control = getControlState('metric', 'table', state, null);
       expect(control.validationErrors).toEqual(['cannot be empty']);
     });
-
   });
-
 });

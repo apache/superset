@@ -21,7 +21,9 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import AdhocMetricStaticOption from '../../../../src/explore/components/AdhocMetricStaticOption';
-import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/AdhocMetric';
+import AdhocMetric, {
+  EXPRESSION_TYPES,
+} from '../../../../src/explore/AdhocMetric';
 import { AGGREGATES } from '../../../../src/explore/constants';
 
 const sumValueAdhocMetric = new AdhocMetric({
@@ -32,7 +34,9 @@ const sumValueAdhocMetric = new AdhocMetric({
 
 describe('AdhocMetricStaticOption', () => {
   it('renders the adhoc metrics label', () => {
-    const wrapper = shallow(<AdhocMetricStaticOption adhocMetric={sumValueAdhocMetric} />);
+    const wrapper = shallow(
+      <AdhocMetricStaticOption adhocMetric={sumValueAdhocMetric} />,
+    );
     expect(wrapper.text()).toBe('SUM(source)');
   });
 });

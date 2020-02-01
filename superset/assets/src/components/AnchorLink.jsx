@@ -22,62 +22,74 @@ import { t } from '@superset-ui/translation';
 
 import URLShortLinkButton from './URLShortLinkButton';
 import getDashboardUrl from '../dashboard/util/getDashboardUrl';
+import getLocationHash from '../dashboard/util/getLocationHash';
 
 const propTypes = {
   anchorLinkId: PropTypes.string.isRequired,
   filters: PropTypes.object,
   showShortLinkButton: PropTypes.bool,
+  inFocus: PropTypes.bool,
   placement: PropTypes.oneOf(['right', 'left', 'top', 'bottom']),
 };
 
 const defaultProps = {
+  inFocus: false,
   showShortLinkButton: false,
   placement: 'right',
   filters: {},
 };
 
-
 class AnchorLink extends React.PureComponent {
-
   componentDidMount() {
-    const hash = this.getLocationHash();
+    const hash = getLocationHash();
     const { anchorLinkId } = this.props;
 
     if (hash && anchorLinkId === hash) {
-      const directLinkComponent = document.getElementById(anchorLinkId);
-      if (directLinkComponent) {
-        setTimeout(() => {
-          directLinkComponent.scrollIntoView({
-            block: 'center',
-            behavior: 'smooth',
-          });
-        }, 1000);
-      }
+      this.scrollToView();
     }
   }
 
-  getLocationHash() {
-    return (window.location.hash || '').substring(1);
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    const { inFocus = false } = nextProps;
+    if (inFocus) {
+      this.scrollToView();
+    }
+  }
+
+  scrollToView(delay = 0) {
+    const { anchorLinkId } = this.props;
+    const directLinkComponent = document.getElementById(anchorLinkId);
+    if (directLinkComponent) {
+      setTimeout(() => {
+        directLinkComponent.scrollIntoView({
+          block: 'center',
+          behavior: 'smooth',
+        });
+      }, delay);
+    }
   }
 
   render() {
-    const { anchorLinkId, filters, showShortLinkButton, placement } = this.props;
+    const {
+      anchorLinkId,
+      filters,
+      showShortLinkButton,
+      placement,
+    } = this.props;
     return (
-      <span
-        className="anchor-link-container"
-        id={anchorLinkId}
-      >
-        {showShortLinkButton &&
-        <URLShortLinkButton
-          url={getDashboardUrl(
-            window.location.pathname,
-            filters,
-            anchorLinkId,
-          )}
-          emailSubject={t('Superset Chart')}
-          emailContent={t('Check out this chart in dashboard:')}
-          placement={placement}
-        />}
+      <span className="anchor-link-container" id={anchorLinkId}>
+        {showShortLinkButton && (
+          <URLShortLinkButton
+            url={getDashboardUrl(
+              window.location.pathname,
+              filters,
+              anchorLinkId,
+            )}
+            emailSubject={t('Superset Chart')}
+            emailContent={t('Check out this chart in dashboard:')}
+            placement={placement}
+          />
+        )}
       </span>
     );
   }

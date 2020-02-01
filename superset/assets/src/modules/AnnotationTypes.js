@@ -17,12 +17,11 @@
  * under the License.
  */
 function extractTypes(metadata) {
-  return Object.keys(metadata)
-    .reduce((prev, key) => {
-      const result = prev;
-      result[key] = key;
-      return result;
-    }, {});
+  return Object.keys(metadata).reduce((prev, key) => {
+    const result = prev;
+    result[key] = key;
+    return result;
+  }, {});
 }
 
 export const ANNOTATION_TYPES_METADATA = {
@@ -57,7 +56,9 @@ export const ANNOTATION_SOURCE_TYPES_METADATA = {
   },
 };
 
-export const ANNOTATION_SOURCE_TYPES = extractTypes(ANNOTATION_SOURCE_TYPES_METADATA);
+export const ANNOTATION_SOURCE_TYPES = extractTypes(
+  ANNOTATION_SOURCE_TYPES_METADATA,
+);
 
 export function requiresQuery(annotationSourceType) {
   return !!annotationSourceType;

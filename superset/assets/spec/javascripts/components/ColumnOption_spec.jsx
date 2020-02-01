@@ -60,17 +60,24 @@ describe('ColumnOption', () => {
   it('shows a label with column_name when no verbose_name', () => {
     props.column.verbose_name = null;
     wrapper = shallow(factory(props));
-    expect(wrapper.find('.option-label').first().text()).toBe('foo');
+    expect(
+      wrapper
+        .find('.option-label')
+        .first()
+        .text(),
+    ).toBe('foo');
   });
   it('shows a column type label when showType is true', () => {
-    wrapper = shallow(factory({
-      ...props,
-      showType: true,
-      column: {
-        expression: null,
-        type: 'str',
-      },
-    }));
+    wrapper = shallow(
+      factory({
+        ...props,
+        showType: true,
+        column: {
+          expression: null,
+          type: 'str',
+        },
+      }),
+    );
     expect(wrapper.find(ColumnTypeLabel)).toHaveLength(1);
   });
   it('column with expression has correct column label if showType is true', () => {
@@ -80,14 +87,16 @@ describe('ColumnOption', () => {
     expect(wrapper.find(ColumnTypeLabel).props().type).toBe('expression');
   });
   it('shows no column type label when type is null', () => {
-    wrapper = shallow(factory({
-      ...props,
-      showType: true,
-      column: {
-        expression: null,
-        type: null,
-      },
-    }));
+    wrapper = shallow(
+      factory({
+        ...props,
+        showType: true,
+        column: {
+          expression: null,
+          type: null,
+        },
+      }),
+    );
     expect(wrapper.find(ColumnTypeLabel)).toHaveLength(0);
   });
   it('dttm column has correct column label if showType is true', () => {

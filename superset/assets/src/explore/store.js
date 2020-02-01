@@ -17,13 +17,9 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import {
-  getControlState,
-  getControlKeys,
-  getFormDataFromControls,
-} from './controlUtils';
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import controls from './controls';
-import controlPanelConfigs from './controlPanels';
 
 function handleDeprecatedControls(formData) {
   // Reacffectation / handling of deprecated controls
@@ -37,12 +33,12 @@ function handleDeprecatedControls(formData) {
 
 export function getControlsState(state, inputFormData) {
   /*
-  * Gets a new controls object to put in the state. The controls object
-  * is similar to the configuration control with only the controls
-  * related to the current viz_type, materializes mapStateToProps functions,
-  * adds value keys coming from inputFormData passed here. This can't be an action creator
-  * just yet because it's used in both the explore and dashboard views.
-  * */
+   * Gets a new controls object to put in the state. The controls object
+   * is similar to the configuration control with only the controls
+   * related to the current viz_type, materializes mapStateToProps functions,
+   * adds value keys coming from inputFormData passed here. This can't be an action creator
+   * just yet because it's used in both the explore and dashboard views.
+   * */
 
   // Getting a list of active control names for the current viz
   const formData = Object.assign({}, inputFormData);
@@ -50,42 +46,42 @@ export function getControlsState(state, inputFormData) {
 
   handleDeprecatedControls(formData);
 
-  const controlNames = getControlKeys(vizType, state.datasource.type);
+  const controlsState = getAllControlsState(
+    vizType,
+    state.datasource.type,
+    state,
+    formData,
+  );
 
-  const viz = controlPanelConfigs[vizType] || {};
-  const controlsState = {};
-
-  controlNames.forEach((k) => {
-    const control = getControlState(k, vizType, state, formData[k]);
-    controlsState[k] = control;
-    formData[k] = control.value;
-  });
-
-  if (viz.onInit) {
-    return viz.onInit(controlsState);
+  const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
+  if (controlPanelConfig.onInit) {
+    return controlPanelConfig.onInit(controlsState);
   }
+
   return controlsState;
 }
 
 export function applyDefaultFormData(inputFormData) {
   const datasourceType = inputFormData.datasource.split('__')[1];
   const vizType = inputFormData.viz_type;
-  const controlNames = getControlKeys(vizType, datasourceType);
+  const controlsState = getAllControlsState(vizType, datasourceType, null, {
+    ...inputFormData,
+  });
   const formData = {};
-  controlNames.forEach((k) => {
-    const controlState = getControlState(k, vizType, null, inputFormData[k]);
-    if (inputFormData[k] === undefined) {
-      formData[k] = controlState.value;
+
+  Object.keys(controlsState).forEach(controlName => {
+    if (inputFormData[controlName] === undefined) {
+      formData[controlName] = controlsState[controlName].value;
     } else {
-      formData[k] = inputFormData[k];
+      formData[controlName] = inputFormData[controlName];
     }
   });
+
   return formData;
 }
 
-
 const defaultControls = Object.assign({}, controls);
-Object.keys(controls).forEach((f) => {
+Object.keys(controls).forEach(f => {
   defaultControls[f].value = controls[f].default;
 });
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
 import getInitialState from './getInitialState';
@@ -29,6 +28,7 @@ import {
   removeFromArr,
   getFromArr,
   addToArr,
+  extendArr,
 } from '../../reduxUtils';
 
 export default function sqlLabReducer(state = {}, action) {
@@ -39,12 +39,38 @@ export default function sqlLabReducer(state = {}, action) {
       const newState = Object.assign({}, state, { tabHistory });
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
+    [actions.QUERY_EDITOR_SAVED]() {
+      const { query, result } = action;
+      const existing = state.queryEditors.find(qe => qe.id === query.id);
+      return alterInArr(
+        state,
+        'queryEditors',
+        existing,
+        {
+          remoteId: result.remoteId,
+          title: query.title,
+        },
+        'id',
+      );
+    },
+    [actions.UPDATE_QUERY_EDITOR]() {
+      const id = action.alterations.remoteId;
+      const existing = state.queryEditors.find(qe => qe.remoteId === id);
+      if (existing == null) return state;
+      return alterInArr(
+        state,
+        'queryEditors',
+        existing,
+        action.alterations,
+        'remoteId',
+      );
+    },
     [actions.CLONE_QUERY_TO_NEW_TAB]() {
       const progenitor = state.queryEditors.find(
         qe => qe.id === state.tabHistory[state.tabHistory.length - 1],
       );
       const qe = {
-        id: shortid.generate(),
+        remoteId: progenitor.remoteId,
         title: t('Copy of %s', progenitor.title),
         dbId: action.query.dbId ? action.query.dbId : null,
         schema: action.query.schema ? action.query.schema : null,
@@ -53,23 +79,30 @@ export default function sqlLabReducer(state = {}, action) {
         queryLimit: action.query.queryLimit,
         maxRow: action.query.maxRow,
       };
-
       return sqlLabReducer(state, actions.addQueryEditor(qe));
     },
     [actions.REMOVE_QUERY_EDITOR]() {
       let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
       // List of remaining queryEditor ids
       const qeIds = newState.queryEditors.map(qe => qe.id);
+
       const queries = {};
-      Object.keys(state.queries).forEach((k) => {
+      Object.keys(state.queries).forEach(k => {
         const query = state.queries[k];
         if (qeIds.indexOf(query.sqlEditorId) > -1) {
           queries[k] = query;
         }
       });
+
       let tabHistory = state.tabHistory.slice();
       tabHistory = tabHistory.filter(id => qeIds.indexOf(id) > -1);
-      newState = Object.assign({}, newState, { tabHistory, queries });
+
+      // Remove associated table schemas
+      const tables = state.tables.filter(
+        table => table.queryEditorId !== action.queryEditor.id,
+      );
+
+      newState = Object.assign({}, newState, { tabHistory, tables, queries });
       return newState;
     },
     [actions.REMOVE_QUERY]() {
@@ -83,7 +116,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.MERGE_TABLE]() {
       const at = Object.assign({}, action.table);
       let existingTable;
-      state.tables.forEach((xt) => {
+      state.tables.forEach(xt => {
         if (
           xt.dbId === at.dbId &&
           xt.queryEditorId === at.queryEditorId &&
@@ -99,12 +132,13 @@ export default function sqlLabReducer(state = {}, action) {
         }
         return alterInArr(state, 'tables', existingTable, at);
       }
-      at.id = shortid.generate();
       // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
       let newState = addToArr(state, 'tables', at);
       if (action.query) {
-        newState = alterInArr(newState, 'tables', at, { dataPreviewQueryId: action.query.id });
+        newState = alterInArr(newState, 'tables', at, {
+          dataPreviewQueryId: action.query.id,
+        });
       }
       return newState;
     },
@@ -114,7 +148,9 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.REMOVE_DATA_PREVIEW]() {
       const queries = Object.assign({}, state.queries);
       delete queries[action.table.dataPreviewQueryId];
-      const newState = alterInArr(state, 'tables', action.table, { dataPreviewQueryId: null });
+      const newState = alterInArr(state, 'tables', action.table, {
+        dataPreviewQueryId: null,
+      });
       return Object.assign({}, newState, { queries });
     },
     [actions.CHANGE_DATA_PREVIEW_ID]() {
@@ -122,9 +158,11 @@ export default function sqlLabReducer(state = {}, action) {
       delete queries[action.oldQueryId];
 
       const newTables = [];
-      state.tables.forEach((xt) => {
+      state.tables.forEach(xt => {
         if (xt.dataPreviewQueryId === action.oldQueryId) {
-          newTables.push(Object.assign({}, xt, { dataPreviewQueryId: action.newQuery.id }));
+          newTables.push(
+            Object.assign({}, xt, { dataPreviewQueryId: action.newQuery.id }),
+          );
         } else {
           newTables.push(xt);
         }
@@ -195,13 +233,51 @@ export default function sqlLabReducer(state = {}, action) {
       newState = alterInArr(newState, 'queryEditors', sqlEditor, {
         validationResult: {
           id: action.query.id,
-          errors: [{
-            line_number: 1,
-            start_column: 1,
-            end_column: 1,
-            message: `The server failed to validate your query.\n${action.message}`,
-          }],
+          errors: [
+            {
+              line_number: 1,
+              start_column: 1,
+              end_column: 1,
+              message: `The server failed to validate your query.\n${action.message}`,
+            },
+          ],
           completed: true,
+        },
+      });
+      return newState;
+    },
+    [actions.COST_ESTIMATE_STARTED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: false,
+          cost: null,
+          error: null,
+        },
+      });
+      return newState;
+    },
+    [actions.COST_ESTIMATE_RETURNED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: true,
+          cost: action.json,
+          error: null,
+        },
+      });
+      return newState;
+    },
+    [actions.COST_ESTIMATE_FAILED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: false,
+          cost: null,
+          error: action.error,
         },
       });
       return newState;
@@ -211,11 +287,17 @@ export default function sqlLabReducer(state = {}, action) {
       if (action.query.sqlEditorId) {
         const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
         if (qe.latestQueryId && state.queries[qe.latestQueryId]) {
-          const newResults = Object.assign({}, state.queries[qe.latestQueryId].results, {
-            data: [],
-            query: null,
+          const newResults = Object.assign(
+            {},
+            state.queries[qe.latestQueryId].results,
+            {
+              data: [],
+              query: null,
+            },
+          );
+          const q = Object.assign({}, state.queries[qe.latestQueryId], {
+            results: newResults,
           });
-          const q = Object.assign({}, state.queries[qe.latestQueryId], { results: newResults });
           const queries = Object.assign({}, state.queries, { [q.id]: q });
           newState = Object.assign({}, state, { queries });
         }
@@ -224,18 +306,28 @@ export default function sqlLabReducer(state = {}, action) {
       }
       newState = addToObject(newState, 'queries', action.query);
       const sqlEditor = { id: action.query.sqlEditorId };
-      return alterInArr(newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
+      return alterInArr(newState, 'queryEditors', sqlEditor, {
+        latestQueryId: action.query.id,
+      });
     },
     [actions.STOP_QUERY]() {
-      return alterInObject(state, 'queries', action.query, { state: 'stopped', results: [] });
+      return alterInObject(state, 'queries', action.query, {
+        state: 'stopped',
+        results: [],
+      });
     },
     [actions.CLEAR_QUERY_RESULTS]() {
       const newResults = Object.assign({}, action.query.results);
       newResults.data = [];
-      return alterInObject(state, 'queries', action.query, { results: newResults, cached: true });
+      return alterInObject(state, 'queries', action.query, {
+        results: newResults,
+        cached: true,
+      });
     },
     [actions.REQUEST_QUERY_RESULTS]() {
-      return alterInObject(state, 'queries', action.query, { state: 'fetching' });
+      return alterInObject(state, 'queries', action.query, {
+        state: 'fetching',
+      });
     },
     [actions.QUERY_SUCCESS]() {
       let rows;
@@ -267,36 +359,113 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
       const qeIds = state.queryEditors.map(qe => qe.id);
-      if (qeIds.indexOf(action.queryEditor.id) > -1) {
+      if (
+        qeIds.indexOf(action.queryEditor.id) > -1 &&
+        state.tabHistory[state.tabHistory.length - 1] !== action.queryEditor.id
+      ) {
         const tabHistory = state.tabHistory.slice();
         tabHistory.push(action.queryEditor.id);
         return Object.assign({}, state, { tabHistory });
       }
       return state;
     },
+    [actions.LOAD_QUERY_EDITOR]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        ...action.queryEditor,
+      });
+    },
+    [actions.SET_TABLES]() {
+      return extendArr(state, 'tables', action.tables);
+    },
     [actions.SET_ACTIVE_SOUTHPANE_TAB]() {
       return Object.assign({}, state, { activeSouthPaneTab: action.tabId });
     },
+    [actions.MIGRATE_QUERY_EDITOR]() {
+      // remove migrated query editor from localStorage
+      const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
+      sqlLab.queryEditors = sqlLab.queryEditors.filter(
+        qe => qe.id !== action.oldQueryEditor.id,
+      );
+      localStorage.setItem('redux', JSON.stringify({ sqlLab }));
+
+      // replace localStorage query editor with the server backed one
+      return addToArr(
+        removeFromArr(state, 'queryEditors', action.oldQueryEditor),
+        'queryEditors',
+        action.newQueryEditor,
+      );
+    },
+    [actions.MIGRATE_TABLE]() {
+      // remove migrated table from localStorage
+      const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
+      sqlLab.tables = sqlLab.tables.filter(
+        table => table.id !== action.oldTable.id,
+      );
+      localStorage.setItem('redux', JSON.stringify({ sqlLab }));
+
+      // replace localStorage table with the server backed one
+      return addToArr(
+        removeFromArr(state, 'tables', action.oldTable),
+        'tables',
+        action.newTable,
+      );
+    },
+    [actions.MIGRATE_TAB_HISTORY]() {
+      // remove migrated tab from localStorage tabHistory
+      const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
+      sqlLab.tabHistory = sqlLab.tabHistory.filter(
+        tabId => tabId !== action.oldId,
+      );
+      localStorage.setItem('redux', JSON.stringify({ sqlLab }));
+      const tabHistory = state.tabHistory.filter(
+        tabId => tabId !== action.oldId,
+      );
+      tabHistory.push(action.newId);
+      return Object.assign({}, state, { tabHistory });
+    },
+    [actions.MIGRATE_QUERY]() {
+      const query = {
+        ...state.queries[action.queryId],
+        // point query to migrated query editor
+        sqlEditorId: action.queryEditorId,
+      };
+      const queries = Object.assign({}, state.queries, { [query.id]: query });
+      return Object.assign({}, state, { queries });
+    },
     [actions.QUERY_EDITOR_SETDB]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { dbId: action.dbId });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        dbId: action.dbId,
+      });
     },
     [actions.QUERY_EDITOR_SET_SCHEMA]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { schema: action.schema });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        schema: action.schema,
+      });
     },
     [actions.QUERY_EDITOR_SET_SCHEMA_OPTIONS]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { schemaOptions: action.options });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        schemaOptions: action.options,
+      });
     },
     [actions.QUERY_EDITOR_SET_TABLE_OPTIONS]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { tableOptions: action.options });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        tableOptions: action.options,
+      });
     },
     [actions.QUERY_EDITOR_SET_TITLE]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { title: action.title });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        title: action.title,
+      });
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        sql: action.sql,
+      });
     },
     [actions.QUERY_EDITOR_SET_QUERY_LIMIT]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { queryLimit: action.queryLimit });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        queryLimit: action.queryLimit,
+      });
     },
     [actions.QUERY_EDITOR_SET_TEMPLATE_PARAMS]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
@@ -304,19 +473,24 @@ export default function sqlLabReducer(state = {}, action) {
       });
     },
     [actions.QUERY_EDITOR_SET_SELECTED_TEXT]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { selectedText: action.sql });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        selectedText: action.sql,
+      });
     },
     [actions.QUERY_EDITOR_SET_AUTORUN]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        autorun: action.autorun,
+      });
     },
     [actions.QUERY_EDITOR_PERSIST_HEIGHT]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
-        height: action.currentHeight,
+        northPercent: action.northPercent,
+        southPercent: action.southPercent,
       });
     },
     [actions.SET_DATABASES]() {
       const databases = {};
-      action.databases.forEach((db) => {
+      action.databases.forEach(db => {
         databases[db.id] = db;
       });
       return Object.assign({}, state, { databases });
@@ -329,8 +503,9 @@ export default function sqlLabReducer(state = {}, action) {
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
         if (
-          !state.queries.hasOwnProperty(id)
-          || (state.queries[id].state !== 'stopped' && state.queries[id].state !== 'failed')
+          !state.queries.hasOwnProperty(id) ||
+          (state.queries[id].state !== 'stopped' &&
+            state.queries[id].state !== 'failed')
         ) {
           if (changedQuery.changedOn > queriesLastUpdate) {
             queriesLastUpdate = changedQuery.changedOn;
@@ -342,7 +517,10 @@ export default function sqlLabReducer(state = {}, action) {
       if (!change) {
         newQueries = state.queries;
       }
-      return Object.assign({}, state, { queries: newQueries, queriesLastUpdate });
+      return Object.assign({}, state, {
+        queries: newQueries,
+        queriesLastUpdate,
+      });
     },
     [actions.SET_USER_OFFLINE]() {
       return Object.assign({}, state, { offline: action.offline });

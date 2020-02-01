@@ -22,12 +22,14 @@ import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 
 import { chart } from '../../chart/chartReducer';
+import {
+  DASHBOARD_FILTER_SCOPE_GLOBAL,
+  dashboardFilter,
+} from './dashboardFilters';
 import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
-import findFirstParentContainerId from '../util/findFirstParentContainer';
-import getEmptyLayout from '../util/getEmptyLayout';
-import newComponentFactory from '../util/newComponentFactory';
+import { buildActiveFilters } from '../util/activeDashboardFilters';
 import {
   BUILDER_PANE_TYPE,
   DASHBOARD_HEADER_ID,
@@ -39,15 +41,22 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
+import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';
+import findFirstParentContainerId from '../util/findFirstParentContainer';
+import getEmptyLayout from '../util/getEmptyLayout';
+import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
+import getLocationHash from '../util/getLocationHash';
+import newComponentFactory from '../util/newComponentFactory';
+import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
 export default function(bootstrapData) {
-  const { user_id, datasources, common, editMode } = bootstrapData;
+  const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
-  let filters = {};
+  let preselectFilters = {};
   try {
     // allow request parameter overwrite dashboard metadata
-    filters = JSON.parse(
+    preselectFilters = JSON.parse(
       getParam('preselect_filters') || dashboard.metadata.default_filters,
     );
   } catch (e) {
@@ -92,17 +101,30 @@ export default function(bootstrapData) {
   let newSlicesContainer;
   let newSlicesContainerWidth = 0;
 
+  const filterImmuneSliceFields =
+    dashboard.metadata.filter_immune_slice_fields || {};
+  const filterImmuneSlices = dashboard.metadata.filter_immune_slices || [];
+  const filterScopes = dashboard.metadata.filter_scopes || {};
+
   const chartQueries = {};
+  const dashboardFilters = {};
   const slices = {};
   const sliceIds = new Set();
   dashboard.slices.forEach(slice => {
     const key = slice.slice_id;
     if (['separator', 'markup'].indexOf(slice.form_data.viz_type) === -1) {
+      const form_data = {
+        ...slice.form_data,
+        url_params: {
+          ...slice.form_data.url_params,
+          ...urlParams,
+        },
+      };
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data: slice.form_data,
-        formData: applyDefaultFormData(slice.form_data),
+        form_data,
+        formData: applyDefaultFormData(form_data),
       };
 
       slices[key] = {
@@ -127,20 +149,89 @@ export default function(bootstrapData) {
           newSlicesContainerWidth === 0 ||
           newSlicesContainerWidth + GRID_DEFAULT_CHART_WIDTH > GRID_COLUMN_COUNT
         ) {
-          newSlicesContainer = newComponentFactory(ROW_TYPE);
+          newSlicesContainer = newComponentFactory(
+            ROW_TYPE,
+            (parent.parents || []).slice(),
+          );
           layout[newSlicesContainer.id] = newSlicesContainer;
           parent.children.push(newSlicesContainer.id);
           newSlicesContainerWidth = 0;
         }
 
-        const chartHolder = newComponentFactory(CHART_TYPE, {
-          chartId: slice.slice_id,
-        });
+        const chartHolder = newComponentFactory(
+          CHART_TYPE,
+          {
+            chartId: slice.slice_id,
+          },
+          (newSlicesContainer.parents || []).slice(),
+        );
 
         layout[chartHolder.id] = chartHolder;
         newSlicesContainer.children.push(chartHolder.id);
         chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
         newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
+      }
+
+      // build DashboardFilters for interactive filter features
+      if (slice.form_data.viz_type === 'filter_box') {
+        const configs = getFilterConfigsFromFormdata(slice.form_data);
+        let columns = configs.columns;
+        const labels = configs.labels;
+        if (preselectFilters[key]) {
+          Object.keys(columns).forEach(col => {
+            if (preselectFilters[key][col]) {
+              columns = {
+                ...columns,
+                [col]: preselectFilters[key][col],
+              };
+            }
+          });
+        }
+
+        // backward compatible:
+        // merge scoped filter settings with old global immune settings
+        const scopesByChartId = Object.keys(columns).reduce((map, column) => {
+          const scopeSettings = {
+            ...filterScopes[key],
+          };
+          const { scope, immune } = {
+            ...DASHBOARD_FILTER_SCOPE_GLOBAL,
+            ...scopeSettings[column],
+          };
+          const immuneChartIds = new Set(filterImmuneSlices);
+          Object.keys(filterImmuneSliceFields)
+            .filter(strChartId =>
+              filterImmuneSliceFields[strChartId].includes(column),
+            )
+            .forEach(strChartId => {
+              immuneChartIds.add(parseInt(strChartId, 10));
+            });
+
+          return {
+            ...map,
+            [column]: {
+              scope,
+              immune: [...immuneChartIds].concat(immune),
+            },
+          };
+        }, {});
+
+        const componentId = chartIdToLayoutId[key];
+        const directPathToFilter = (layout[componentId].parents || []).slice();
+        directPathToFilter.push(componentId);
+        dashboardFilters[key] = {
+          ...dashboardFilter,
+          chartId: key,
+          componentId,
+          datasourceId: slice.form_data.datasource,
+          filterName: slice.slice_name,
+          directPathToFilter,
+          columns,
+          labels,
+          scopes: scopesByChartId,
+          isInstantFilter: !!slice.form_data.instant_filtering,
+          isDateFilter: Object.keys(columns).includes(TIME_RANGE),
+        };
       }
     }
 
@@ -152,6 +243,11 @@ export default function(bootstrapData) {
       layout[layoutId].meta.sliceName = slice.slice_name;
     }
   });
+  buildActiveFilters({
+    dashboardFilters,
+    components: layout,
+  });
+  buildFilterColorMap(dashboardFilters, layout);
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {
@@ -169,7 +265,7 @@ export default function(bootstrapData) {
   };
 
   // find direct link component and path from root
-  const directLinkComponentId = (window.location.hash || '#').substring(1);
+  const directLinkComponentId = getLocationHash();
   let directPathToChild = [];
   if (layout[directLinkComponentId]) {
     directPathToChild = (layout[directLinkComponentId].parents || []).slice();
@@ -185,9 +281,6 @@ export default function(bootstrapData) {
       id: dashboard.id,
       slug: dashboard.slug,
       metadata: {
-        filter_immune_slice_fields:
-          dashboard.metadata.filter_immune_slice_fields || {},
-        filter_immune_slices: dashboard.metadata.filter_immune_slices || [],
         timed_refresh_immune_slices:
           dashboard.metadata.timed_refresh_immune_slices,
       },
@@ -202,15 +295,17 @@ export default function(bootstrapData) {
         conf: common.conf,
       },
     },
+    dashboardFilters,
     dashboardState: {
       sliceIds: Array.from(sliceIds),
-      refresh: false,
-      // All the filter_box's state in this dashboard
-      // When dashboard is first loaded into browser,
-      // its value is from preselect_filters that dashboard owner saved in dashboard's meta data
-      // When user start interacting with dashboard, it will be user picked values from all filter_box
-      filters,
       directPathToChild,
+      directPathLastUpdated: Date.now(),
+      // dashboard only has 1 focused filter field at a time,
+      // but when user switch different filter boxes,
+      // browser didn't always fire onBlur and onFocus events in order.
+      // so in redux state focusedFilterField prop is a queue,
+      // but component use focusedFilterField prop as single object.
+      focusedFilterField: [],
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       css: dashboard.css || '',
