@@ -941,7 +941,7 @@ def get_example_database():
 
 
 def is_adhoc_metric(metric) -> bool:
-    return (
+    return bool(
         isinstance(metric, dict)
         and (
             (
