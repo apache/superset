@@ -155,7 +155,12 @@ class AceEditorWrapper extends React.PureComponent {
         });
       },
     };
-    const words = this.state.words.map(word => ({ ...word, completer }));
+    // Mutate instead of object spread here for performance
+    const words = this.state.words.map(word => {
+      /* eslint-disable-next-line no-param-reassign */
+      word.completer = completer;
+      return word;
+    });
     callback(null, words);
   }
   setAutoCompleter(props) {
