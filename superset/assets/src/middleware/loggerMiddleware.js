@@ -107,6 +107,7 @@ const loggerMiddleware = store => next => action => {
       ...eventData,
       event_type: 'user',
       event_id: lastEventId,
+      visibility: document.visibilityState,
     };
   }
 
