@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import React from 'react';
 
 export default {
   controlPanelSections: [
@@ -41,6 +42,14 @@ export default {
         ['color_picker', null],
         ['header_font_size'],
         ['subheader_font_size'],
+      ],
+    },
+    {
+      label: t('Advanced Analytics'),
+      expanded: false,
+      controlSetRows: [
+        [<h1 className="section-header">{t('Rolling Window')}</h1>],
+        ['rolling_type', 'rolling_periods', 'min_periods'],
       ],
     },
   ],
