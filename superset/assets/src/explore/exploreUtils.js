@@ -34,6 +34,14 @@ function getHostName(allowDomainSharding = false) {
   if (allowDomainSharding) {
     currentIndex = requestCounter % availableDomains.length;
     requestCounter += 1;
+
+    // if domain sharding is enabled, skip main domain for fetching chart API
+    // leave main domain free for other calls like fav star, save change, etc.
+    // to make dashboard be responsive when it's loading large number of charts
+    if (currentIndex === 0) {
+      currentIndex += 1;
+      requestCounter += 1;
+    }
   }
 
   return availableDomains[currentIndex];
