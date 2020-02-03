@@ -1962,6 +1962,8 @@ class Superset(BaseSupersetView):
             "This API endpoint is deprecated and will be removed in version 1.0.0"
         )
         database = db.session.query(models.Database).get(database_id)
+        if not database:
+            return json_error_response("Not found", 404)
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         # Check that the user can access the datasource
