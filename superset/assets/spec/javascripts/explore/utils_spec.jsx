@@ -163,13 +163,8 @@ describe('exploreUtils', () => {
         endpointType: 'json',
         allowDomainSharding: true,
       }).url;
-      expect(url).toMatch(availableDomains[0]);
-
-      url = getExploreUrlAndPayload({
-        formData,
-        endpointType: 'json',
-        allowDomainSharding: true,
-      }).url;
+      // skip main domain for fetching chart if domain sharding is enabled
+      // to leave main domain free for other calls like fav star, save change, etc.
       expect(url).toMatch(availableDomains[1]);
 
       url = getExploreUrlAndPayload({
@@ -192,7 +187,7 @@ describe('exploreUtils', () => {
         endpointType: 'json',
         allowDomainSharding: true,
       }).url;
-      expect(url).toMatch(availableDomains[0]);
+      expect(url).toMatch(availableDomains[1]);
     });
     it('not generate url to different domains without flag', () => {
       let csvURL = getExploreUrlAndPayload({
