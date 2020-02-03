@@ -16,16 +16,15 @@
 # under the License.
 from typing import Any, Dict, List, Optional
 
-from flask import g
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from superset import event_logger
 from superset.models.core import Database
-from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.database.decorators import check_datasource_access
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.mixins import DatabaseMixin
 from superset.views.database.validators import sqlalchemy_uri_validator
@@ -148,11 +147,10 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         "/<int:pk>/table/<string:table_name>/<string:schema_name>/", methods=["GET"]
     )
     @protect()
+    @check_datasource_access
     @safe
     @event_logger.log_this
-    def table_metadata(
-        self, pk: int, table_name: str, schema_name: str
-    ):  # pylint: disable=invalid-name
+    def table_metadata(self, database: Database, table_name: str, schema_name: str):
         """ Table schema info
         ---
         get:
@@ -267,27 +265,8 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        table_name_parsed = parse_js_uri_path_item(table_name)
-        schema_name_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
-        # schemas can be None but not tables
-        if not table_name_parsed:
-            return self.response_422(message=_(f"Could not parse table name or schema"))
-        database: Database = self.datamodel.get(pk)
-        if not database:
-            return self.response_404()
-        # Check that the user can access the datasource
-        if not self.appbuilder.sm.can_access_datasource(
-            database, table_name_parsed, schema_name_parsed
-        ):
-            self.logger.warning(
-                f"Permission denied for user {g.user} on table: {table_name_parsed} "
-                f"schema: {schema_name_parsed}"
-            )
-            return self.response_404()
         try:
-            table_info: Dict = get_table_metadata(
-                database, table_name_parsed, schema_name_parsed
-            )
+            table_info: Dict = get_table_metadata(database, table_name, schema_name)
         except SQLAlchemyError as e:
             return self.response_422(error_msg_from_exception(e))
         return self.response(200, **table_info)
@@ -298,11 +277,10 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         methods=["GET"],
     )
     @protect()
+    @check_datasource_access
     @safe
     @event_logger.log_this
-    def select_star(
-        self, pk: int, table_name: str, schema_name: str = None
-    ):  # pylint: disable=invalid-name
+    def select_star(self, database: Database, table_name: str, schema_name: str = None):
         """ Table schema info
         ---
         get:
@@ -345,28 +323,9 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        schema_name_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
-        table_name_parsed = parse_js_uri_path_item(table_name)
-        if not table_name_parsed:
-            return self.response_422(message=_("Table name could not be parsed"))
-        database: Database = self.datamodel.get(pk)
-        if not database:
-            return self.response_404()
-        # Check that the user can access the datasource
-        if not self.appbuilder.sm.can_access_datasource(
-            database, table_name_parsed, schema_name_parsed
-        ):
-            self.logger.warning(
-                f"Permission denied for user {g.user} on table: {table_name_parsed} "
-                f"schema: {schema_name_parsed}"
-            )
-            return self.response_404()
         try:
             result = database.select_star(
-                table_name_parsed,
-                schema_name_parsed,
-                latest_partition=True,
-                show_cols=True,
+                table_name, schema_name, latest_partition=True, show_cols=True
             )
         except NoSuchTableError:
             return self.response(404, message="Table not found on the database")

@@ -23,6 +23,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database
+from sqlalchemy.sql import func
 
 from .base_tests import SupersetTestCase
 
@@ -197,7 +198,8 @@ class DatabaseApiTests(SupersetTestCase):
             Database API: Test get select star not found database
         """
         self.login(username="admin")
-        uri = f"api/v1/database/1000/select_star/birth_names/"
+        max_id = db.session.query(func.max(Database.id)).scalar()
+        uri = f"api/v1/database/{max_id + 1}/select_star/birth_names/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
