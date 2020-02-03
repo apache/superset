@@ -24,10 +24,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import event_logger
 from superset.models.core import Database
-from superset.utils.core import (
-    error_msg_from_exception,
-    parse_js_uri_path_item,
-)
+from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.mixins import DatabaseMixin

@@ -1965,9 +1965,7 @@ class Superset(BaseSupersetView):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         # Check that the user can access the datasource
-        if not self.appbuilder.sm.can_access_datasource(
-                database, table_name, schema
-        ):
+        if not self.appbuilder.sm.can_access_datasource(database, table_name, schema):
             logging.warning(
                 f"Permission denied for user {g.user} on table: {table_name} "
                 f"schema: {schema}"
