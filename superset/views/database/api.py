@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any, Dict, List, Optional
 
+from flask import g
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
@@ -23,7 +24,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import event_logger
 from superset.models.core import Database
-from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.core import (
+    error_msg_from_exception,
+    parse_js_uri_path_item,
+)
 from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.mixins import DatabaseMixin
@@ -267,17 +271,25 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         table_name_parsed = parse_js_uri_path_item(table_name)
-        schema_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
+        schema_name_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
         # schemas can be None but not tables
         if not table_name_parsed:
             return self.response_422(message=_(f"Could not parse table name or schema"))
-        database: Database = self.datamodel.get(pk, self._base_filters)
+        database: Database = self.datamodel.get(pk)
         if not database:
             return self.response_404()
-
+        # Check that the user can access the datasource
+        if not self.appbuilder.sm.can_access_datasource(
+            database, table_name_parsed, schema_name_parsed
+        ):
+            self.logger.warning(
+                f"Permission denied for user {g.user} on table: {table_name_parsed} "
+                f"schema: {schema_name_parsed}"
+            )
+            return self.response_404()
         try:
             table_info: Dict = get_table_metadata(
-                database, table_name_parsed, schema_parsed
+                database, table_name_parsed, schema_name_parsed
             )
         except SQLAlchemyError as e:
             return self.response_422(error_msg_from_exception(e))
@@ -336,15 +348,28 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        database: Database = self.datamodel.get(pk, self._base_filters)
+        schema_name_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
+        table_name_parsed = parse_js_uri_path_item(table_name)
+        if not table_name_parsed:
+            return self.response_422(message=_("Table name could not be parsed"))
+        database: Database = self.datamodel.get(pk)
         if not database:
             return self.response_404()
-
-        schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
-        table_name = parse_js_uri_path_item(table_name)
+        # Check that the user can access the datasource
+        if not self.appbuilder.sm.can_access_datasource(
+            database, table_name_parsed, schema_name_parsed
+        ):
+            self.logger.warning(
+                f"Permission denied for user {g.user} on table: {table_name_parsed} "
+                f"schema: {schema_name_parsed}"
+            )
+            return self.response_404()
         return self.response(
             200,
             result=database.select_star(
-                table_name, schema, latest_partition=True, show_cols=True
+                table_name_parsed,
+                schema_name_parsed,
+                latest_partition=True,
+                show_cols=True,
             ),
         )

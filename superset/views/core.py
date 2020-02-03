@@ -1953,6 +1953,33 @@ class Superset(BaseSupersetView):
         payload = mydb.db_engine_spec.extra_table_metadata(mydb, table_name, schema)
         return json_success(json.dumps(payload))
 
+    @has_access
+    @expose("/select_star/<database_id>/<table_name>")
+    @expose("/select_star/<database_id>/<table_name>/<schema>")
+    @event_logger.log_this
+    def select_star(self, database_id, table_name, schema=None):
+        logging.warning(
+            "This API endpoint is deprecated and will be removed in version 1.0.0"
+        )
+        database = db.session.query(models.Database).get(database_id)
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        table_name = utils.parse_js_uri_path_item(table_name)
+        # Check that the user can access the datasource
+        if not self.appbuilder.sm.can_access_datasource(
+                database, table_name, schema
+        ):
+            logging.warning(
+                f"Permission denied for user {g.user} on table: {table_name} "
+                f"schema: {schema}"
+            )
+            return json_error_response("Not found", 404)
+
+        return json_success(
+            database.select_star(
+                table_name, schema, latest_partition=True, show_cols=True
+            )
+        )
+
     @has_access_api
     @expose("/estimate_query_cost/<database_id>/", methods=["POST"])
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
