@@ -164,6 +164,7 @@ the world know they are using Superset. Join our growing community!
  1. [Dial Once](https://www.dial-once.com/en/)
  1. [Digit Game Studios](https://www.digitgaming.com/)
  1. [Douban](https://www.douban.com/)
+ 1. [Dragonpass](https://www.dragonpass.com.cn/)
  1. [Endress+Hauser](http://www.endress.com/)
  1. [Faasos](http://faasos.com/)
  1. [Fanatics](https://www.fanatics.com)
