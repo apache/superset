@@ -18,12 +18,12 @@
 import json
 
 import prison
+from sqlalchemy.sql import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database
-from sqlalchemy.sql import func
 
 from .base_tests import SupersetTestCase
 
@@ -209,6 +209,9 @@ class DatabaseApiTests(SupersetTestCase):
         """
         self.login(username="admin")
         example_db = get_example_database()
+        # sqllite will not raise a NoSuchTableError
+        if example_db.backend == "sqlite":
+            return
         uri = f"api/v1/database/{example_db.id}/select_star/table_does_not_exist/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
