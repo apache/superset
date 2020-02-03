@@ -749,7 +749,7 @@ SQLALCHEMY_EXAMPLES_URI = None
 #
 # Note if no end date for the grace period is specified then the grace period is
 # indefinite.
-SIP_15_ENABLED = False
+SIP_15_ENABLED = True
 SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
 SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
 SIP_15_TOAST_MESSAGE = (

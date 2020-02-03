@@ -46,6 +46,13 @@ now uses UTC for the tooltips and default placeholder timestamps (sans timezone)
 have changed. FLASK_APP should be updated to `superset.app:create_app()` and Celery Workers
 should be started with `--app=superset.tasks.celery_app:app`
 
+* [9017](https://github.com/apache/incubator-superset/pull/9017): `SIP_15_ENABLED` now
+defaults to True which ensures that for all new SQL charts the time filter will behave
+like [start, end). Existing deployments should either disable this feature to keep the
+status quo or inform their users of this change prior to enabling the flag. The
+`SIP_15_GRACE_PERIOD_END` option provides a mechanism for specifying how long chart
+owners have to migrate their charts (the default is indefinite).
+
 ## 0.35.0
 
 * [8370](https://github.com/apache/incubator-superset/pull/8370): Deprecates
