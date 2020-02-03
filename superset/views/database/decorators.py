@@ -37,11 +37,17 @@ def check_datasource_access(f):
             return self.response_422(message=_("Table name could not be parsed"))
         database: Database = self.datamodel.get(pk)
         if not database:
+            self.stats_logger.incr(
+                f"database_not_found_{self.__class__.__name__}.select_star"
+            )
             return self.response_404()
         # Check that the user can access the datasource
         if not self.appbuilder.sm.can_access_datasource(
             database, table_name_parsed, schema_name_parsed
         ):
+            self.stats_logger.incr(
+                f"permisssion_denied_{self.__class__.__name__}.select_star"
+            )
             self.logger.warning(
                 f"Permission denied for user {g.user} on table: {table_name_parsed} "
                 f"schema: {schema_name_parsed}"

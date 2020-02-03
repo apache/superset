@@ -265,10 +265,13 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        self.stats_logger.incr(f"init_{self.__class__.__name__}.table")
         try:
             table_info: Dict = get_table_metadata(database, table_name, schema_name)
         except SQLAlchemyError as e:
+            self.stats_logger.incr(f"error_{self.__class__.__name__}.table")
             return self.response_422(error_msg_from_exception(e))
+        self.stats_logger.incr(f"success_{self.__class__.__name__}.table")
         return self.response(200, **table_info)
 
     @expose("/<int:pk>/select_star/<string:table_name>/", methods=["GET"])
@@ -323,10 +326,13 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        self.stats_logger.incr(f"init_{self.__class__.__name__}.select_star")
         try:
             result = database.select_star(
                 table_name, schema_name, latest_partition=True, show_cols=True
             )
         except NoSuchTableError:
+            self.stats_logger.incr(f"error_{self.__class__.__name__}.select_star")
             return self.response(404, message="Table not found on the database")
+        self.stats_logger.incr(f"success_{self.__class__.__name__}.select_star")
         return self.response(200, result=result)
