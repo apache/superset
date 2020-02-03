@@ -20,7 +20,7 @@ from flask import g
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from superset import event_logger
 from superset.models.core import Database
@@ -361,12 +361,13 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
                 f"schema: {schema_name_parsed}"
             )
             return self.response_404()
-        return self.response(
-            200,
-            result=database.select_star(
+        try:
+            result = database.select_star(
                 table_name_parsed,
                 schema_name_parsed,
                 latest_partition=True,
                 show_cols=True,
-            ),
-        )
+            )
+        except NoSuchTableError:
+            return self.response(404, message="Table not found on the database")
+        return self.response(200, result=result)
