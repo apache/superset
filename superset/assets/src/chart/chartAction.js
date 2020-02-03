@@ -33,7 +33,7 @@ import { addDangerToast } from '../messageToasts/actions';
 import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
-import { allowCrossDomain } from '../utils/hostNamesConfig';
+import { allowCrossDomain as allowDomainSharding } from '../utils/hostNamesConfig';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -212,7 +212,7 @@ export function exploreJSON(
       formData,
       endpointType: 'json',
       force,
-      allowDomainSharding: true,
+      allowDomainSharding,
       method,
     });
     const logStart = Logger.getTimestamp();
@@ -227,7 +227,7 @@ export function exploreJSON(
       signal,
       timeout: timeout * 1000,
     };
-    if (allowCrossDomain) {
+    if (allowDomainSharding) {
       querySettings = {
         ...querySettings,
         mode: 'cors',
