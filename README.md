@@ -218,3 +218,4 @@ the world know they are using Superset. Join our growing community!
  1. [Zaihang](http://www.zaih.com/)
  1. [Zalando](https://www.zalando.com)
  1. [Zalora](https://www.zalora.com)
+ 1. [Dragonpass/龙腾出行](https://www.dragonpass.com.cn)
