@@ -1882,6 +1882,48 @@ class Superset(BaseSupersetView):
         return Response(status=201)
 
     @has_access
+    @expose("/sqllab_ctas_viz/", methods=["POST"])
+    @event_logger.log_this
+    def sqllab_viz(self):
+        SqlaTable = ConnectorRegistry.sources["table"]
+        data = json.loads(request.form.get("data"))
+        table_name = data.get("datasourceName")
+        database_id = data.get("dbId")
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
+        if not table:
+            table = SqlaTable(table_name=table_name, owners=[g.user])
+        table.database_id = database_id
+        table.schema = data.get("schema")
+        table.template_params = data.get("templateParams")
+        table.is_sqllab_view = True
+        q = ParsedQuery(data.get("sql"))
+        table.sql = q.stripped()
+        db.session.add(table)
+        cols = []
+        for config in data.get("columns"):
+            column_name = config.get("name")
+            SqlaTable = ConnectorRegistry.sources["table"]
+            TableColumn = SqlaTable.column_class
+            SqlMetric = SqlaTable.metric_class
+            col = TableColumn(
+                column_name=column_name,
+                filterable=True,
+                groupby=True,
+                is_dttm=config.get("is_date", False),
+                type=config.get("type", False),
+            )
+            cols.append(col)
+
+        table.columns = cols
+        table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
+        db.session.commit()
+        return json_success(json.dumps({"table_id": table.id}))
+
+    @has_access
     @expose("/sqllab_viz/", methods=["POST"])
     @event_logger.log_this
     def sqllab_viz(self):
