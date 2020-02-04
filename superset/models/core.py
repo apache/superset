@@ -297,17 +297,18 @@ class Database(
         if nullpool:
             params["poolclass"] = NullPool
 
+        connect_args = params.get("connect_args", {})
+        configuration = connect_args.get("configuration", {})
+
         # If using Hive, this will set hive.server2.proxy.user=$effective_username
-        configuration: Dict[str, Any] = {}
         configuration.update(
             self.db_engine_spec.get_configuration_for_impersonation(
                 str(sqlalchemy_url), self.impersonate_user, effective_username
             )
         )
         if configuration:
-            d = params.get("connect_args", {})
-            d["configuration"] = configuration
-            params["connect_args"] = d
+            connect_args["configuration"] = configuration
+            params["connect_args"] = connect_args
 
         params.update(self.get_encrypted_extra())
 
@@ -315,6 +316,7 @@ class Database(
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url, params, effective_username, security_manager, source
             )
+
         return create_engine(sqlalchemy_url, **params)
 
     def get_reserved_words(self) -> Set[str]:
@@ -598,7 +600,7 @@ class Database(
         return self.inspector.get_foreign_keys(table_name, schema)
 
     def get_schema_access_for_csv_upload(  # pylint: disable=invalid-name
-        self
+        self,
     ) -> List[str]:
         return self.get_extra().get("schemas_allowed_for_csv_upload", [])
 
