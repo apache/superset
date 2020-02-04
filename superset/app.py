@@ -278,7 +278,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
 
-        if feature_flag_manager.is_feature_enabled("TAGGING_ENDPOINTS"):
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             appbuilder.add_view_no_menu(TagView)
 
         #

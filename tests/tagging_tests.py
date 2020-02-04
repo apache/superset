@@ -23,7 +23,7 @@ from tests.base_tests import SupersetTestCase
 
 class TaggingTests(SupersetTestCase):
     @skipUnless(
-        (is_feature_enabled("TAGGING_ENDPOINTS") == False),
+        (is_feature_enabled("TAGGING_SYSTEM") == False),
         "skipping as tagging endpoints are not enabled",
     )
     def test_tag_view_attachment_disabled(self):
@@ -31,7 +31,7 @@ class TaggingTests(SupersetTestCase):
         self.assertEqual(404, response.status_code)
 
     @skipUnless(
-        is_feature_enabled("TAGGING_ENDPOINTS"),
+        is_feature_enabled("TAGGING_SYSTEM"),
         "skipping as tagging endpoints are enabled",
     )
     def test_tag_view_attachment_enabled(self):
