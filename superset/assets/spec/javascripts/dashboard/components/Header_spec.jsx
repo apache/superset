@@ -51,7 +51,6 @@ describe('Header', () => {
     saveFaveStar: () => {},
     savePublished: () => {},
     isPublished: () => {},
-    startPeriodicRender: () => {},
     updateDashboardTitle: () => {},
     editMode: false,
     setEditMode: () => {},

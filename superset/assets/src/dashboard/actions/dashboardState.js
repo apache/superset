@@ -220,10 +220,8 @@ export function saveDashboardRequest(data, id, saveType) {
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
   return (dispatch, getState) => {
-    const timeout = getState().dashboardInfo.common.conf
-      .SUPERSET_WEBSERVER_TIMEOUT;
     if (!interval) {
-      chartList.forEach(chart => dispatch(refreshChart(chart, force, timeout)));
+      chartList.forEach(chartKey => dispatch(refreshChart(chartKey, force)));
       return;
     }
 
@@ -238,43 +236,9 @@ export function fetchCharts(chartList = [], force = false, interval = 0) {
     const delay = meta.stagger_refresh
       ? refreshTime / (chartList.length - 1)
       : 0;
-    chartList.forEach((chart, i) => {
-      setTimeout(
-        () => dispatch(refreshChart(chart, force, timeout)),
-        delay * i,
-      );
+    chartList.forEach((chartKey, i) => {
+      setTimeout(() => dispatch(refreshChart(chartKey, force)), delay * i);
     });
-  };
-}
-
-let refreshTimer = null;
-export function startPeriodicRender(interval) {
-  const stopPeriodicRender = () => {
-    if (refreshTimer) {
-      clearTimeout(refreshTimer);
-      refreshTimer = null;
-    }
-  };
-
-  return (dispatch, getState) => {
-    stopPeriodicRender();
-
-    const { metadata } = getState().dashboardInfo;
-    const immune = metadata.timed_refresh_immune_slices || [];
-    const refreshAll = () => {
-      const affected = Object.values(getState().charts).filter(
-        chart => immune.indexOf(chart.id) === -1,
-      );
-      return dispatch(fetchCharts(affected, true, interval * 0.2));
-    };
-    const fetchAndRender = () => {
-      refreshAll();
-      if (interval > 0) {
-        refreshTimer = setTimeout(fetchAndRender, interval);
-      }
-    };
-
-    fetchAndRender();
   };
 }
 

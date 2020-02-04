@@ -45,6 +45,7 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from '../../logger/LogUtils';
 import PropertiesModal from './PropertiesModal';
+import setPeriodicRunner from '../util/setPeriodicRunner';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -67,7 +68,6 @@ const propTypes = {
   fetchCharts: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
   savePublished: PropTypes.func.isRequired,
-  startPeriodicRender: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
@@ -126,7 +126,7 @@ class Header extends React.PureComponent {
 
   componentDidMount() {
     const refreshFrequency = this.props.refreshFrequency;
-    this.props.startPeriodicRender(refreshFrequency * 1000);
+    this.startPeriodicRender(refreshFrequency * 1000);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -188,7 +188,7 @@ class Header extends React.PureComponent {
 
   forceRefresh() {
     if (!this.props.isLoading) {
-      const chartList = Object.values(this.props.charts);
+      const chartList = Object.keys(this.props.charts);
       this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
         force: true,
         interval: 0,
@@ -200,11 +200,26 @@ class Header extends React.PureComponent {
   }
 
   startPeriodicRender(interval) {
-    this.props.logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
-      force: true,
+    const periodicRender = () => {
+      const { fetchCharts, logEvent, charts, dashboardInfo } = this.props;
+      const { metadata } = dashboardInfo;
+      const immune = metadata.timed_refresh_immune_slices || [];
+      const affectedCharts = Object.values(charts)
+        .filter(chart => immune.indexOf(chart.id) === -1)
+        .map(chart => chart.id);
+
+      logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
+        interval,
+        chartCount: affectedCharts.length,
+      });
+      return fetchCharts(affectedCharts, true, interval * 0.2);
+    };
+
+    this.refreshTimer = setPeriodicRunner({
       interval,
+      periodicRender,
+      refreshTimer: this.refreshTimer,
     });
-    return this.props.startPeriodicRender(interval);
   }
 
   toggleEditMode() {

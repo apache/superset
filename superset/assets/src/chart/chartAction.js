@@ -355,8 +355,12 @@ export function redirectSQLLab(formData) {
   };
 }
 
-export function refreshChart(chart, force, timeout) {
-  return dispatch => {
+export function refreshChart(chartKey, force) {
+  return (dispatch, getState) => {
+    const chart = (getState().charts || {})[chartKey];
+    const timeout = getState().dashboardInfo.common.conf
+      .SUPERSET_WEBSERVER_TIMEOUT;
+
     if (
       !chart.latestQueryFormData ||
       Object.keys(chart.latestQueryFormData).length === 0
