@@ -183,7 +183,7 @@ class ChartList extends React.PureComponent<Props, State> {
       return false;
     }
 
-    return Boolean(this.state.permissions.find((p) => p === perm));
+    return this.state.permissions.some((p) => p === perm);
   }
 
   public handleChartEdit = ({ id }: { id: number }) => {
@@ -199,10 +199,10 @@ class ChartList extends React.PureComponent<Props, State> {
         if (lastFetchDataConfig) {
           this.fetchData(lastFetchDataConfig);
         }
-        this.props.addSuccessToast(t('Deleted') + ` ${slice_name}`);
+        this.props.addSuccessToast(t('Deleted: %(slice_name)', slice_name));
       },
       (err: any) => {
-        this.props.addDangerToast(t('There was an issue deleting') + `${slice_name}`);
+        this.props.addDangerToast(t('There was an issue deleting: %(slice_name)', slice_name));
       },
     );
   }
@@ -308,7 +308,7 @@ class ChartList extends React.PureComponent<Props, State> {
             }}
           </ConfirmStatusChange>
         </Panel>
-      </div>
+      </div >
     );
   }
 }
