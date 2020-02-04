@@ -1363,9 +1363,7 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             return json_error_response(
-                "Connection failed!\n\n"
-                f"The error message returned was:\n{e}",
-                400,
+                "Connection failed!\n\n" f"The error message returned was:\n{e}", 400
             )
 
     @api
