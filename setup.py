@@ -104,6 +104,7 @@ setup(
         "simplejson>=3.15.0",
         "sqlalchemy>=1.3.5, <2.0",
         "sqlalchemy-utils>=0.33.2",
+	"snowflake-sqlalchemy>=1.2.0",
         "sqlparse>=0.3.0, <0.4",
         "wtforms-json",
     ],
