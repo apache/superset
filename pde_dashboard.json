@@ -1,0 +1,1949 @@
+{
+    "dashboards": [
+        {
+            "__Dashboard__": {
+                "css": null,
+                "dashboard_title": "demand_explorer",
+                "description": null,
+                "json_metadata": "{\"filter_immune_slices\": [], \"timed_refresh_immune_slices\": [], \"filter_immune_slice_fields\": {\"67\": [\"categories\", \"selectgroup\", \"skuid\"], \"68\": [\"categories\", \"skuid\"], \"69\": [\"skuid\"], \"73\": [\"skuid\"]}, \"expanded_slices\": {}, \"refresh_frequency\": 0, \"default_filters\": \"{}\", \"remote_id\": 34, \"import_time\": 1579586352}",
+                "position_json": "{\"CHART-2kJwQ0PPux\":{\"children\":[],\"id\":\"CHART-2kJwQ0PPux\",\"meta\":{\"chartId\":73,\"height\":65,\"sliceName\":\"Products\",\"width\":12},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"ROW-3C6eK8Zbe\"],\"type\":\"CHART\"},\"CHART-Ihh6GP52JE\":{\"children\":[],\"id\":\"CHART-Ihh6GP52JE\",\"meta\":{\"chartId\":67,\"height\":16,\"sliceName\":\"Select Store\",\"width\":4},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"ROW-G09YFDpg4\"],\"type\":\"CHART\"},\"CHART-M073SR8oVF\":{\"children\":[],\"id\":\"CHART-M073SR8oVF\",\"meta\":{\"chartId\":70,\"height\":53,\"sliceName\":\"Product Prediction\",\"width\":12},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"ROW-sSvADqc4M\"],\"type\":\"CHART\"},\"CHART-MIFVbUVrTD\":{\"children\":[],\"id\":\"CHART-MIFVbUVrTD\",\"meta\":{\"chartId\":68,\"height\":16,\"sliceName\":\"Select Group\",\"width\":4},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"ROW-G09YFDpg4\"],\"type\":\"CHART\"},\"CHART-cYijNG1Bv9\":{\"children\":[],\"id\":\"CHART-cYijNG1Bv9\",\"meta\":{\"chartId\":71,\"height\":16,\"sliceName\":\"Choose Products\",\"width\":4},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"ROW-yaV1K21Hb\"],\"type\":\"CHART\"},\"CHART-hL-P2n4pew\":{\"children\":[],\"id\":\"CHART-hL-P2n4pew\",\"meta\":{\"chartId\":72,\"height\":18,\"sliceName\":\"Product Prediction\",\"width\":12},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"ROW-txuO0oQvS\"],\"type\":\"CHART\"},\"CHART-m4KP4igTcE\":{\"children\":[],\"id\":\"CHART-m4KP4igTcE\",\"meta\":{\"chartId\":69,\"height\":16,\"sliceName\":\"Select category\",\"width\":4},\"parents\":[\"ROOT_ID\",\"GRID_ID\",\"ROW-G09YFDpg4\"],\"type\":\"CHART\"},\"DASHBOARD_VERSION_KEY\":\"v2\",\"GRID_ID\":{\"children\":[\"ROW-G09YFDpg4\",\"ROW-3C6eK8Zbe\",\"ROW-yaV1K21Hb\",\"ROW-txuO0oQvS\",\"ROW-sSvADqc4M\"],\"id\":\"GRID_ID\",\"parents\":[\"ROOT_ID\"],\"type\":\"GRID\"},\"HEADER_ID\":{\"id\":\"HEADER_ID\",\"meta\":{\"text\":\"demand_explorer\"},\"type\":\"HEADER\"},\"ROOT_ID\":{\"children\":[\"GRID_ID\"],\"id\":\"ROOT_ID\",\"type\":\"ROOT\"},\"ROW-3C6eK8Zbe\":{\"children\":[\"CHART-2kJwQ0PPux\"],\"id\":\"ROW-3C6eK8Zbe\",\"meta\":{\"0\":\"ROOT_ID\",\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"ROW\"},\"ROW-G09YFDpg4\":{\"children\":[\"CHART-Ihh6GP52JE\",\"CHART-MIFVbUVrTD\",\"CHART-m4KP4igTcE\"],\"id\":\"ROW-G09YFDpg4\",\"meta\":{\"0\":\"ROOT_ID\",\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"ROW\"},\"ROW-sSvADqc4M\":{\"children\":[\"CHART-M073SR8oVF\"],\"id\":\"ROW-sSvADqc4M\",\"meta\":{\"0\":\"ROOT_ID\",\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"ROW\"},\"ROW-txuO0oQvS\":{\"children\":[\"CHART-hL-P2n4pew\"],\"id\":\"ROW-txuO0oQvS\",\"meta\":{\"0\":\"ROOT_ID\",\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"ROW\"},\"ROW-yaV1K21Hb\":{\"children\":[\"CHART-cYijNG1Bv9\"],\"id\":\"ROW-yaV1K21Hb\",\"meta\":{\"0\":\"ROOT_ID\",\"background\":\"BACKGROUND_TRANSPARENT\"},\"parents\":[\"ROOT_ID\",\"GRID_ID\"],\"type\":\"ROW\"}}",
+                "slices": [
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "null.admin admin-Untitled Query-TaouwRi6q",
+                            "datasource_type": "table",
+                            "id": 67,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"69__table\", \"date_filter\": false, \"filter_configs\": [{\"asc\": true, \"clearable\": false, \"column\": \"store\", \"key\": \"b7XRAxSYe\", \"label\": \"Store\", \"multiple\": false}], \"granularity_sqla\": null, \"instant_filtering\": true, \"show_druid_time_granularity\": false, \"show_druid_time_origin\": false, \"show_sqla_time_column\": false, \"show_sqla_time_granularity\": false, \"slice_id\": 67, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"url_params\": {}, \"viz_type\": \"filter_box\", \"remote_id\": 67, \"datasource_name\": \"admin admin-Untitled Query-TaouwRi6q\", \"schema\": \"null\", \"database_name\": \"examples\"}",
+                            "slice_name": "Select Store",
+                            "viz_type": "filter_box"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "null.admin admin-Untitled Query-jmTxdyWf4",
+                            "datasource_type": "table",
+                            "id": 73,
+                            "params": "{\"adhoc_filters\": [], \"align_pn\": false, \"all_columns\": [\"ProductName\", \"SKUID\", \"Category\", \"AISegmentRevenue\", \"AISegmentForecast\", \"SalesUnitLastWeek\", \"SalesAmountLastWeek\", \"CurrentStock\", \"SupplyUnit\", \"AIweekofSuppy\", \"AIpredicteddemand\", \"LowerCI\", \"UpperCI\", \"DemandVariation\", \"StockStatus\"], \"color_pn\": true, \"datasource\": \"71__table\", \"granularity_sqla\": \"demanddate\", \"groupby\": [], \"include_search\": true, \"include_time\": false, \"metrics\": [], \"order_by_cols\": [], \"order_desc\": true, \"page_length\": 10, \"percent_metrics\": [], \"row_limit\": 1000, \"slice_id\": 73, \"table_filter\": false, \"table_timestamp_format\": \"%Y-%m-%d %H:%M:%S\", \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"timeseries_limit_metric\": null, \"url_params\": {}, \"viz_type\": \"table\", \"remote_id\": 73, \"datasource_name\": \"admin admin-Untitled Query-jmTxdyWf4\", \"schema\": \"null\", \"database_name\": \"examples\"}",
+                            "slice_name": "Products",
+                            "viz_type": "table"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "null.admin admin-Untitled Query-HG2k61aKZ",
+                            "datasource_type": "table",
+                            "id": 72,
+                            "params": "{\"adhoc_filters\": [], \"align_pn\": false, \"all_columns\": [\"postcode\", \"Lastweeksales\", \"Currentweekforecastsales\", \"Currentweeksalesachieved\", \"Forecasednextweek1\", \"Forecasednextweek2\", \"Forecasednextweek3\", \"ResupplyUnit\", \"Resupplydate\", \"AIRecommendationNextorder\"], \"color_pn\": true, \"datasource\": \"70__table\", \"granularity_sqla\": \"demanddate\", \"groupby\": [], \"include_search\": false, \"include_time\": false, \"metrics\": [], \"order_by_cols\": [], \"order_desc\": true, \"page_length\": 0, \"percent_metrics\": [], \"row_limit\": 1000, \"slice_id\": 72, \"table_filter\": false, \"table_timestamp_format\": \"%Y-%m-%d %H:%M:%S\", \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"timeseries_limit_metric\": null, \"viz_type\": \"table\", \"remote_id\": 72, \"datasource_name\": \"admin admin-Untitled Query-HG2k61aKZ\", \"schema\": \"null\", \"database_name\": \"examples\"}",
+                            "slice_name": "Product Prediction",
+                            "viz_type": "table"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "Untitled Query-65nX68nV4",
+                            "datasource_type": "table",
+                            "id": 70,
+                            "params": "{\"adhoc_filters\": [], \"annotation_layers\": [], \"bottom_margin\": \"auto\", \"color_scheme\": \"bnbColors\", \"comparison_type\": \"values\", \"contribution\": false, \"datasource\": \"67__table\", \"granularity_sqla\": \"demanddate\", \"groupby\": [\"skuid\"], \"label_colors\": {}, \"left_margin\": \"auto\", \"line_interpolation\": \"linear\", \"metrics\": [{\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"totalsalesunit\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 166, \"is_dttm\": false, \"optionName\": \"_col_totalsalesunit\", \"python_date_format\": null, \"type\": \"INT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"Total Sales Unit\", \"optionName\": \"metric_qv7q0dxs2pm_dtupn6qeiyr\", \"sqlExpression\": null}, {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"dailylowerci\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 168, \"is_dttm\": false, \"optionName\": \"_col_dailylowerci\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"Daily Lower CI\", \"optionName\": \"metric_uanbpb8c0aq_tmjz325x4d\", \"sqlExpression\": null}, {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"dailyupperci\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 169, \"is_dttm\": false, \"optionName\": \"_col_dailyupperci\", \"python_date_format\": null, \"type\": \"OBJECT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"Daily Upper CI\", \"optionName\": \"metric_62yt3tznsb9_2fkl6rr7wzm\", \"sqlExpression\": null}], \"order_desc\": true, \"resample_method\": null, \"resample_rule\": null, \"rich_tooltip\": true, \"rolling_type\": null, \"row_limit\": null, \"send_time_range\": false, \"show_brush\": \"auto\", \"show_legend\": false, \"show_markers\": false, \"slice_id\": 70, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"timeseries_limit_metric\": null, \"url_params\": {}, \"viz_type\": \"line\", \"x_axis_format\": \"smart_date\", \"x_axis_label\": \"\", \"x_axis_showminmax\": false, \"x_ticks_layout\": \"45\\u00b0\", \"y_axis_bounds\": [null, null], \"y_axis_format\": \"SMART_NUMBER\", \"y_axis_label\": \"\", \"y_axis_showminmax\": false, \"y_log_scale\": false, \"remote_id\": 70, \"datasource_name\": \"Untitled Query-65nX68nV4\", \"schema\": null, \"database_name\": \"examples\"}",
+                            "slice_name": "Product Prediction",
+                            "viz_type": "line"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "null.admin admin-Untitled Query-QH8ILFTbf",
+                            "datasource_type": "table",
+                            "id": 68,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"73__table\", \"date_filter\": false, \"filter_configs\": [{\"asc\": true, \"clearable\": false, \"column\": \"selectgroup\", \"key\": \"kbc2e6LUh\", \"label\": \"Group\", \"multiple\": false}], \"granularity_sqla\": null, \"instant_filtering\": true, \"show_druid_time_granularity\": false, \"show_druid_time_origin\": false, \"show_sqla_time_column\": false, \"show_sqla_time_granularity\": false, \"slice_id\": 68, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"viz_type\": \"filter_box\", \"remote_id\": 68, \"datasource_name\": \"admin admin-Untitled Query-QH8ILFTbf\", \"schema\": \"null\", \"database_name\": \"examples\"}",
+                            "slice_name": "Select Group",
+                            "viz_type": "filter_box"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "Untitled Query-CFlXZMo7c",
+                            "datasource_type": "table",
+                            "id": 69,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"68__table\", \"date_filter\": false, \"filter_configs\": [{\"asc\": true, \"clearable\": false, \"column\": \"categories\", \"key\": \"WGfkt1msj\", \"label\": \"Categories\", \"multiple\": false}], \"granularity_sqla\": null, \"instant_filtering\": true, \"show_druid_time_granularity\": false, \"show_druid_time_origin\": false, \"show_sqla_time_column\": false, \"show_sqla_time_granularity\": false, \"slice_id\": 69, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"viz_type\": \"filter_box\", \"remote_id\": 69, \"datasource_name\": \"Untitled Query-CFlXZMo7c\", \"schema\": null, \"database_name\": \"examples\"}",
+                            "slice_name": "Select Category",
+                            "viz_type": "filter_box"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "null.admin admin-Untitled Query-g4_lvbOFY",
+                            "datasource_type": "table",
+                            "id": 71,
+                            "params": "{\"adhoc_filters\": [], \"datasource\": \"72__table\", \"date_filter\": false, \"filter_configs\": [{\"asc\": true, \"clearable\": false, \"column\": \"skuid\", \"key\": \"35JUngqRS\", \"label\": \"SKUID\", \"multiple\": false}], \"granularity_sqla\": null, \"instant_filtering\": true, \"show_druid_time_granularity\": false, \"show_druid_time_origin\": false, \"show_sqla_time_column\": false, \"show_sqla_time_granularity\": false, \"slice_id\": 71, \"time_grain_sqla\": \"P1D\", \"time_range\": \"100 years ago : \", \"url_params\": {}, \"viz_type\": \"filter_box\", \"remote_id\": 71, \"datasource_name\": \"admin admin-Untitled Query-g4_lvbOFY\", \"schema\": \"null\", \"database_name\": \"examples\"}",
+                            "slice_name": "Choose Product",
+                            "viz_type": "filter_box"
+                        }
+                    }
+                ],
+                "slug": "pde"
+            }
+        }
+    ],
+    "datasources": [
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:16:34"
+                            },
+                            "column_name": "store",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 177,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 68,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:16:34"
+                            },
+                            "column_name": "selectgroup",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 178,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 68,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:16:34"
+                            },
+                            "column_name": "categories",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 179,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 68,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:16:34"
+                            },
+                            "column_name": "locationid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": false,
+                            "groupby": true,
+                            "id": 180,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 68,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 68,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 68,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 68, \"database_name\": \"examples\", \"import_time\": 1579586352}",
+                "schema": null,
+                "sql": "select store, selectgroup  ,categories,locationid\nfrom demandai.vw_dp_filters",
+                "table_name": "Untitled Query-CFlXZMo7c",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "CurrentStock",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 185,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "AIRecommendationNextorder",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 194,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "ProductName",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 195,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "SKUID",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 196,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "locationid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 197,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "demanddate",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 198,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "selectgroup",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 199,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "categories",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 200,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:28:26"
+                            },
+                            "column_name": "store",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 201,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:26:40"
+                            },
+                            "column_name": "Lastweeksales",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 186,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "INT",
+                            "verbose_name": "LastWeekSales"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:26:40"
+                            },
+                            "column_name": "Currentweekforecastsales",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 187,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "INT",
+                            "verbose_name": "CurrentWeekForecastSales"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:26:40"
+                            },
+                            "column_name": "Currentweeksalesachieved",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 188,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "OBJECT",
+                            "verbose_name": "CurrentWeekSalesAchieved"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:26:40"
+                            },
+                            "column_name": "ResupplyUnit",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 189,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "OBJECT",
+                            "verbose_name": "ReSupplyUnit"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:26:40"
+                            },
+                            "column_name": "Forecasednextweek1",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 190,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "INT",
+                            "verbose_name": "ForecastNextWeek1"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:26:40"
+                            },
+                            "column_name": "Forecasednextweek2",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 191,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "OBJECT",
+                            "verbose_name": "ForecastNextWeek2"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:26:40"
+                            },
+                            "column_name": "Forecasednextweek3",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 192,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "OBJECT",
+                            "verbose_name": "ForecastNextWeek3"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:26:40"
+                            },
+                            "column_name": "Resupplydate",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 193,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "OBJECT",
+                            "verbose_name": "ReSupplyDate"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-23T12:44:53"
+                            },
+                            "column_name": "postcode",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 184,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 70,
+                            "type": "STRING",
+                            "verbose_name": "Store Name"
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 70,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 70,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 70, \"database_name\": \"examples\", \"import_time\": 1579586352}",
+                "schema": "null",
+                "sql": "with \nsupplydt as \n(\nselect sd.skuid,sd.locationid,min(sd.resupplydate) latestsupplydat from demandai.sku_loc_resupply sd\nwhere\nsd.resupplydate >= now()::date\nand sd.ispeakrowdelete is null\ngroup by sd.skuid,sd.locationid \n)\n,\nlwsales as (\nselect \nskuid,locationid,staticweekno,weekstart,weekend,coalesce(sum(wg1.demand),0) totalsalesunit\nfrom \ndemandai.mvw_weekly_demand_staticweek wg1\nwhere \nstaticweekno =1\ngroup by skuid,locationid,staticweekno,weekstart,weekend\n),\ncurrweksales as (\nselect skuid,locationid,staticweekno,weekstart,weekend,coalesce(sum(wg1.demand),0) totalsalesunit\nfrom \ndemandai.mvw_weekly_demand_staticweek wg1\nwhere \nstaticweekno = 0\ngroup by skuid,locationid,staticweekno,weekstart,weekend\n)\n,\ncurrforecastweksale as (\nselect skuid,locationid,staticweekno,weekstart,coalesce(sum(peakforecast),0) totalforecastunit\nfrom  demandai.mvw_sku_forecast_with_lastrrp_staticweek\n where \n staticweekno =0\n group by skuid,locationid,staticweekno,weekstart\n),\nnextforecastweksale as (\nselect skuid,locationid,staticweekno,weekstart,coalesce(sum(peakforecast),0) as forecastsaleunitnextweek\nfrom  demandai.mvw_sku_forecast_with_lastrrp_staticweek\n where \n staticweekno =1\n group by skuid,locationid,staticweekno,weekstart\n)\n,\nnext2forecastweksale as (\nselect skuid,locationid,staticweekno,weekstart,coalesce(sum(peakforecast),0) as forecastsaleunit2nextweek\nfrom  demandai.mvw_sku_forecast_with_lastrrp_staticweek\n where \n staticweekno =2\n group by skuid,locationid,staticweekno,weekstart\n)\n,\nnext3forecastweksale as (\nselect skuid,locationid,staticweekno,weekstart,coalesce(sum(peakforecast),0) as forecastsaleunit3nextweek\nfrom  demandai.mvw_sku_forecast_with_lastrrp_staticweek\n where \n staticweekno =3\n group by skuid,locationid,staticweekno,weekstart\n)\n,\ndefilter as (\nselect locationid,skuid,SelectGroup,categories,store from demandai.vw_de_topproducts\nunion\nselect locationid,skuid,SelectGroup,categories,store from demandai.vw_de_locwisesku_seg_cate_brand\n)\nselect\nsd.postcode,coalesce(sd.currentstock,0) as \"CurrentStock\",\ncoalesce(lw.totalsalesunit,0) \"Lastweeksales\" ,fcw.totalforecastunit \"Currentweekforecastsales\",\ncoalesce(cw.totalsalesunit,0) \"Currentweeksalesachieved\",\ncoalesce(fnw.forecastsaleunitnextweek,0) as \"Forecasednextweek1\",\ncoalesce(fnw2.forecastsaleunit2nextweek,0) as \"Forecasednextweek2\",\ncoalesce(fnw3.forecastsaleunit3nextweek,0) as \"Forecasednextweek3\",\ncoalesce(slr.resupplyunit,0) as \"ResupplyUnit\",\nslr.latestsupplydat  as \"Resupplydate\",\ncase when \ncoalesce(fnw.forecastsaleunitnextweek-(coalesce(sd.currentstock,0) + coalesce(slr.resupplyunit,0)),0) > 0 then \ncoalesce(fnw.forecastsaleunitnextweek-(coalesce(sd.currentstock,0) + coalesce(slr.resupplyunit,0)),0) else null end \nas \"AIRecommendationNextorder\",\nsd.name as \"ProductName\",sd.skuid as \"SKUID\",sd.locationid,\nsd.demanddate,\ndf.SelectGroup,df.categories,df.store\nfrom \ndemandai.mvw_weekly_demand_staticweek sd\njoin defilter df on  df.skuid=sd.skuid and df.locationid = sd.locationid\nleft join lwsales lw on lw.skuid=sd.skuid and lw.locationid = sd.locationid\nleft join currweksales cw on cw.skuid=sd.skuid and cw.locationid = sd.locationid\nleft join currforecastweksale fcw on fcw.skuid=sd.skuid and fcw.locationid = sd.locationid\nleft join nextforecastweksale fnw on fnw.skuid=sd.skuid and fnw.locationid = sd.locationid\nleft join next2forecastweksale fnw2 on fnw2.skuid=sd.skuid and fnw2.locationid = sd.locationid\nleft join next3forecastweksale fnw3 on fnw3.skuid=sd.skuid and fnw3.locationid = sd.locationid\nleft join (\n\tselect supplydt.skuid,supplydt.locationid,sr.resupplyamount as resupplyunit , supplydt.latestsupplydat \n    from supplydt \n    inner join demandai.sku_loc_resupply sr on sr.skuid = supplydt.skuid   and sr.locationid = supplydt.locationid and sr.resupplydate = supplydt.latestsupplydat\n    where sr.ispeakrowdelete is null\n\t\t  ) slr on slr.skuid=sd.skuid and slr.locationid = sd.locationid \nwhere \nsd.demanddate = now()::date -1\nand df.SelectGroup = {{ \"'\" + \"','\".join(filter_values('selectgroup')) + \"'\" }}\n  and df.categories= {{ \"'\" + \"','\".join(filter_values('categories')) + \"'\" }}\n  and df.store= {{ \"'\" + \"','\".join(filter_values('store')) + \"'\" }}\n and sd.skuid = {{ \"'\" + \"','\".join(filter_values('skuid')) + \"'\" }}\norder by name",
+                "table_name": "admin admin-Untitled Query-HG2k61aKZ",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:18:53"
+                            },
+                            "column_name": "locationid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": false,
+                            "groupby": true,
+                            "id": 181,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 69,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:18:53"
+                            },
+                            "column_name": "locationvariant1",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": false,
+                            "groupby": true,
+                            "id": 182,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 69,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:18:53"
+                            },
+                            "column_name": "store",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": false,
+                            "groupby": true,
+                            "id": 183,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 69,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 69,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 69,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 69, \"database_name\": \"examples\", \"import_time\": 1579586352}",
+                "schema": "null",
+                "sql": "select locationid,locationvariant1,locationvariant1||'-'||locationid as store from \ndemandai.location_metadata lm\nwhere\nlm.locationstatus=true and \nlm.ispeakrowdelete is null",
+                "table_name": "admin admin-Untitled Query-TaouwRi6q",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "ProductName",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 202,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "SKUID",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": false,
+                            "groupby": true,
+                            "id": 203,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "Category",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 204,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "AISegmentRevenue",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 205,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "AISegmentForecast",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 206,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "SalesUnitLastWeek",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 207,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "SalesAmountLastWeek",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 208,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "CurrentStock",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 209,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "SupplyUnit",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 210,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "LowerCI",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 213,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "UpperCI",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 214,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "DemandVariation",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 215,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "StockStatus",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 216,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "demanddate",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 217,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "locationid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 218,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "selectgroup",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 219,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "categories",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 220,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:19:54"
+                            },
+                            "column_name": "store",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 221,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:21:57"
+                            },
+                            "column_name": "AIweekofSuppy",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 211,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "INT",
+                            "verbose_name": "AIWeekofSupply"
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T07:22:33"
+                            },
+                            "column_name": "AIpredicteddemand",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 212,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 71,
+                            "type": "INT",
+                            "verbose_name": "AIPredictedDemand"
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 71,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 71,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 71, \"database_name\": \"examples\", \"import_time\": 1579586352}",
+                "schema": "null",
+                "sql": "with \nsupplydt as \n(\nselect sd.skuid,sd.locationid,min(sd.resupplydate) latestsupplydat from demandai.sku_loc_resupply sd\nwhere\nsd.resupplydate >= now()::date\nand sd.ispeakrowdelete is null\ngroup by sd.skuid,sd.locationid \n),\nlwsales as \n(\nselect \nskuid,locationid,staticweekno,weekstart,weekend,coalesce(sum(wg1.demand),0) totalsales, coalesce(sum(wg1.demand * wg1.lastknownrrp),0) totalsalesamt\nfrom \ndemandai.mvw_weekly_demand_staticweek wg1\nwhere \nstaticweekno =1\ngroup by skuid,locationid,staticweekno,weekstart,weekend\n),\ncurrweksales as (\nselect skuid,locationid,staticweekno,weekstart,weekend,coalesce(sum(wg1.demand * wg1.lastknownrrp),0) totalsalesamt\nfrom \ndemandai.mvw_weekly_demand_staticweek wg1\nwhere \nstaticweekno = 0\ngroup by skuid,locationid,staticweekno,weekstart,weekend\n)\n, \nforecastlastweksale as (\nselect skuid,locationid,staticweekno,weekstart,coalesce(sum(peakforecast),0) totalforecast,coalesce(sum(peakforecast*lastknownrrp),0) totalforecastamount\nfrom  demandai.mvw_sku_forecast_with_lastrrp_staticweek\n where \n staticweekno = -1\n group by skuid,locationid,staticweekno,weekstart\n),\nnextforecastweksale as (\nselect skuid,locationid,staticweekno,weekstart,coalesce(sum(peakforecast),0) as forecastsaleunitnextweek,\ncoalesce(sum(peakforecast*lastknownrrp),0) totalforecastamount\nfrom  demandai.mvw_sku_forecast_with_lastrrp_staticweek\n where \n staticweekno =1\n group by skuid,locationid,staticweekno,weekstart\n),\ndefilter as (\nselect locationid,skuid,SelectGroup,categories,store from demandai.vw_de_topproducts\nunion\nselect locationid,skuid,SelectGroup,categories,store from demandai.vw_de_locwisesku_seg_cate_brand\n)\nselect \nsd.name as \"ProductName\",sd.skuid as \"SKUID\",sd.category as \"Category\",\nsd.peakcategory1 as \"AISegmentRevenue\",sd.peakcategory2 as \"AISegmentForecast\",\ncoalesce(lw.totalsales,0) \"SalesUnitLastWeek\" ,coalesce(lw.totalsalesamt,0) \"SalesAmountLastWeek\" ,\nround(((fcw.totalforecast*100) / \n   case\n      when\n         lw.totalsales is null \n      then\n         null \n      else\n         lw.totalsales \n   end\n), 2) \"%age of Forecasted unit sold\",\ncoalesce(sd.currentstock,0) as \"CurrentStock\",slr.resupplyunit as \"SupplyUnit\",\ncoalesce(sd.storedesiredstockduration,0) as \"AIweekofSuppy\",\ncoalesce(fnw.forecastsaleunitnextweek,0) as \"AIpredicteddemand\",\ncoalesce(ci.dailylowerci,0) as \"LowerCI\",\ncoalesce(ci.dailyupperci,0) as \"UpperCI\",\ncase when sd.demandgrowth is not null then round((sd.demandgrowth*100),2)|| '%' else null end as \"DemandVariation\",\ncase \nwhen sd.currentstock < sd.minstocklevel then 'Under Stock'\nwhen sd.currentstock > sd.maxstocklevel then 'Over Stock'\nelse 'Appropriate Stock' end as \"StockStatus\",\nsd.demanddate,sd.locationid,\ndf.SelectGroup,df.categories,df.store\nfrom \ndemandai.mvw_weekly_demand_staticweek sd\njoin defilter df on  df.skuid=sd.skuid and df.locationid = sd.locationid\nleft join lwsales lw on lw.skuid=sd.skuid and lw.locationid = sd.locationid\nleft join currweksales cw on cw.skuid=sd.skuid and cw.locationid = sd.locationid\nleft join forecastlastweksale fcw on fcw.skuid=sd.skuid and fcw.locationid = sd.locationid\nleft join nextforecastweksale fnw on fnw.skuid=sd.skuid and fnw.locationid = sd.locationid\nleft join (\n\tselect supplydt.skuid,supplydt.locationid,sr.resupplyamount as resupplyunit , supplydt.latestsupplydat \n    from supplydt \n    inner join demandai.sku_loc_resupply sr on sr.skuid = supplydt.skuid   and sr.locationid = supplydt.locationid and sr.resupplydate = supplydt.latestsupplydat\n    where sr.ispeakrowdelete is null\n\t\t  ) slr on slr.skuid=sd.skuid and slr.locationid = sd.locationid \nleft join (\n\tselect sf.skuid,sf.locationid,sf.peakforecastmeta1 as dailylowerci , sf.peakforecastmeta2 as dailyupperci\n\tfrom demandai.sku_loc_forecasts sf \n\twhere sf.forecastdate =now()::date\n\tand sf.ispeakrowdelete is null\n\t\t\t) ci on ci.skuid=sd.skuid and ci.locationid = sd.locationid \nwhere \nsd.demanddate = now()::date -1\n  and df.SelectGroup = {{ \"'\" + \"','\".join(filter_values('selectgroup')) + \"'\" }}\n  and df.categories= {{ \"'\" + \"','\".join(filter_values('categories')) + \"'\" }}\n  and df.store= {{ \"'\" + \"','\".join(filter_values('store')) + \"'\" }}\norder by name",
+                "table_name": "admin admin-Untitled Query-jmTxdyWf4",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:35:08"
+                            },
+                            "column_name": "locationid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 222,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 72,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:35:08"
+                            },
+                            "column_name": "skuid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 223,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 72,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:35:08"
+                            },
+                            "column_name": "selectgroup",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 224,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 72,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:35:08"
+                            },
+                            "column_name": "categories",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 225,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 72,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:35:08"
+                            },
+                            "column_name": "store",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 226,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 72,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 72,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 72,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 72, \"database_name\": \"examples\", \"import_time\": 1579586352}",
+                "schema": "null",
+                "sql": "select vd.locationid,vd.skuid,vd.SelectGroup,vd.categories,vd.store \nfrom demandai.vw_de_topproducts vd\ninner join demandai.sku_loc_demand sd on sd.skuid = vd.skuid and sd.locationid = vd.locationid\nwhere\nsd.demanddate::date = now()::date-1  and \nvd.SelectGroup = {{ \"'\" + \"','\".join(filter_values('selectgroup')) + \"'\" }}\n  and vd.categories= {{ \"'\" + \"','\".join(filter_values('categories')) + \"'\" }}\n  and vd.store= {{ \"'\" + \"','\".join(filter_values('store')) + \"'\" }}\nunion\nselect vd.locationid,vd.skuid,vd.SelectGroup,vd.categories,vd.store \nfrom demandai.vw_de_locwisesku_seg_cate_brand vd \ninner join demandai.sku_loc_demand sd on sd.skuid = vd.skuid and sd.locationid = vd.locationid\nwhere \nsd.demanddate::date = now()::date-1 \nand vd.SelectGroup = {{ \"'\" + \"','\".join(filter_values('selectgroup')) + \"'\" }}\n  and vd.categories= {{ \"'\" + \"','\".join(filter_values('categories')) + \"'\" }}\n  and vd.store= {{ \"'\" + \"','\".join(filter_values('store')) + \"'\" }}\n",
+                "table_name": "admin admin-Untitled Query-g4_lvbOFY",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "skuid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 166,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "locationid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 167,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "demanddate",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 168,
+                            "is_active": null,
+                            "is_dttm": true,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "DATETIME",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "staticweekno",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 169,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "totalsalesunit",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 170,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "INT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "totalsalesamt",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 171,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "dailylowerci",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 172,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "dailyupperci",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 173,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "OBJECT",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "selectgroup",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 174,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "categories",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 175,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-22T05:30:57"
+                            },
+                            "column_name": "store",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 176,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 67,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:12"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 67,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 67,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 67, \"database_name\": \"examples\", \"import_time\": 1579586352}",
+                "schema": null,
+                "sql": "with \ndefilter as (\nselect locationid,skuid,SelectGroup,categories,store from demandai.vw_de_topproducts\nunion\nselect locationid,skuid,SelectGroup,categories,store from demandai.vw_de_locwisesku_seg_cate_brand\n),\naa as (\nselect \nsd.skuid,sd.locationid,sd.demanddate::date,sd.staticweekno,coalesce(sd.demand,0) totalsalesunit, coalesce(sd.demand * sd.lastknownrrp,0) totalsalesamt,null as dailylowerci,null as dailyupperci,\ndf.SelectGroup,df.categories,df.store\nfrom \ndemandai.mvw_weekly_demand_staticweek sd\njoin defilter df on  df.skuid=sd.skuid and df.locationid = sd.locationid\nwhere \nsd.staticweekno between 0 and 5\nand sd.demanddate::date < now()::date \nunion all\nselect \nsd.skuid,sd.locationid,sd.forecastdate,sd.staticweekno,coalesce(sd.peakforecast,0) totalforecastunit,coalesce(sd.peakforecast*sd.lastknownrrp,0) totalforecastamt , sd.dailylowerci,sd.dailyupperci,\ndf.SelectGroup,df.categories,df.store\nfrom  demandai.mvw_sku_forecast_with_lastrrp_staticweek sd \njoin defilter df on  df.skuid=sd.skuid and df.locationid = sd.locationid\nwhere \nsd.staticweekno between 0 and 3\nand sd.forecastdate::date >= now()::date \n)\nselect * from \naa \nwhere \n skuid = {{ \"'\" + \"','\".join(filter_values('skuid')) + \"'\" }}\nand selectgroup={{ \"'\" + \"','\".join(filter_values('selectgroup')) + \"'\" }}\nand categories ={{ \"'\" + \"','\".join(filter_values('categories')) + \"'\" }} \nand store = {{ \"'\" + \"','\".join(filter_values('store')) + \"'\" }}",
+                "table_name": "Untitled Query-65nX68nV4",
+                "template_params": "{}"
+            }
+        },
+        {
+            "__SqlaTable__": {
+                "cache_timeout": null,
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:16:09"
+                            },
+                            "column_name": "store",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": true,
+                            "groupby": true,
+                            "id": 227,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 73,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:16:09"
+                            },
+                            "column_name": "selectgroup",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": false,
+                            "groupby": true,
+                            "id": 228,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 73,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:16:09"
+                            },
+                            "column_name": "categories",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": false,
+                            "groupby": true,
+                            "id": 229,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 73,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    },
+                    {
+                        "__TableColumn__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T09:16:09"
+                            },
+                            "column_name": "locationid",
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "description": null,
+                            "expression": null,
+                            "filterable": false,
+                            "groupby": true,
+                            "id": 230,
+                            "is_active": null,
+                            "is_dttm": false,
+                            "python_date_format": null,
+                            "table_id": 73,
+                            "type": "STRING",
+                            "verbose_name": null
+                        }
+                    }
+                ],
+                "database_id": 1,
+                "default_endpoint": null,
+                "description": null,
+                "fetch_values_predicate": null,
+                "filter_select_enabled": false,
+                "main_dttm_col": null,
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "changed_by_fk": 1,
+                            "changed_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "created_by_fk": 1,
+                            "created_on": {
+                                "__datetime__": "2020-01-21T05:59:13"
+                            },
+                            "d3format": null,
+                            "description": null,
+                            "expression": "count(*)",
+                            "id": 73,
+                            "metric_name": "count",
+                            "metric_type": null,
+                            "table_id": 73,
+                            "verbose_name": null,
+                            "warning_text": null
+                        }
+                    }
+                ],
+                "offset": 0,
+                "params": "{\"remote_id\": 73, \"database_name\": \"examples\", \"import_time\": 1579586352}",
+                "schema": "null",
+                "sql": "select store, selectgroup  ,categories,locationid\nfrom demandai.vw_dp_filters",
+                "table_name": "admin admin-Untitled Query-QH8ILFTbf",
+                "template_params": "{}"
+            }
+        }
+    ]
+}

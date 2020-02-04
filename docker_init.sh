@@ -45,3 +45,4 @@ flask fab create-user \
   # Load PCV datasources and dashboards at build time
 superset import_dashboards -p pcv_dashboard.json -u admin
 superset import_dashboards -p pdv_dashboard.json -u admin
+superset import_dashboards -p pde_dashboard.json -u admin
