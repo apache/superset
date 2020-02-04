@@ -148,6 +148,7 @@ class Slice(
             logging.exception(e)
             d["error"] = str(e)
         return {
+            "cache_timeout": self.cache_timeout,
             "datasource": self.datasource_name,
             "description": self.description,
             "description_markeddown": self.description_markeddown,
