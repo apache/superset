@@ -204,22 +204,18 @@ class PropertiesModal extends React.PureComponent {
                 <label className="control-label" htmlFor="owners">
                   {t('Owners')}
                 </label>
-                <>
-                  <Select
-                    name="owners"
-                    multi
-                    isLoading={!userOptions}
-                    value={values.owners}
-                    options={userOptions || []}
-                    onChange={this.onOwnersChange}
-                    disabled={!userOptions || !isOwnersLoaded}
-                  />
-                  <p className="help-block">
-                    {t(
-                      'Owners is a list of users who can alter the dashboard.',
-                    )}
-                  </p>
-                </>
+                <Select
+                  name="owners"
+                  multi
+                  isLoading={!userOptions}
+                  value={values.owners}
+                  options={userOptions || []}
+                  onChange={this.onOwnersChange}
+                  disabled={!userOptions || !isOwnersLoaded}
+                />
+                <p className="help-block">
+                  {t('Owners is a list of users who can alter the dashboard.')}
+                </p>
               </Col>
             </Row>
             <Row>
