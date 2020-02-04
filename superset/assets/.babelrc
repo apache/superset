@@ -24,6 +24,7 @@
     "lodash",
     "@babel/plugin-syntax-dynamic-import",
     "@babel/plugin-proposal-class-properties",
+    "emotion",
     "react-hot-loader/babel"
   ],
   "env": {

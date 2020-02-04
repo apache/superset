@@ -1,6 +1,3 @@
-
-
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,26 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import styled, { CreateStyled } from '@emotion/styled';
 
 const defaultTheme = {
+  borderRadius: '4px',
   colors: {
     primary: {
-      base: "#20A7C9"
+      base: '#20A7C9',
     },
     secondary: {
-      base: "#444E7C",
-      light1: "#8E94B0",
-      light2: "#B4B8CA",
-      light3: "#D9DBE4",
-      light4: "#ECEEF2",
-      light5: "#F5F5F8",
-      dark1: "#363E63",
-      dark2: "#282E4A",
-      dark3: "#1B1F31"
-    }
+      base: '#444E7C',
+      dark1: '#363E63',
+      dark2: '#282E4A',
+      dark3: '#1B1F31',
+      light1: '#8E94B0',
+      light2: '#B4B8CA',
+      light3: '#D9DBE4',
+      light4: '#ECEEF2',
+      light5: '#F5F5F8',
+    },
   },
-  borderRadius: "4px",
-  gridUnit: "4px"
+  gridUnit: '4px',
 };
+
+export default styled as CreateStyled<typeof defaultTheme>;
 
 export const supersetTheme = defaultTheme;

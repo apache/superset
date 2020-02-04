@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/** @jsx jsx */
+
+// import styled from '@emotion/styled';
+import { withTheme } from 'emotion-theming';
 import {
     Pagination as RB_Pagination,
     // @ts-ignore
   } from 'react-bootstrap';
-import styled, { withTheme } from 'styled-components';
+import styled from '../../stylesheets/styled-components/superset-theme';
 
 const Pagination = styled(RB_Pagination)`
 li {

@@ -30,7 +30,7 @@ import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
 import Welcome from './Welcome';
-import {ThemeProvider} from 'styled-components';
+import {ThemeProvider} from 'emotion-theming';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 import {supersetTheme} from '../../stylesheets/styled-components/superset-theme';
 
