@@ -145,3 +145,8 @@ export function createNewSlice(
     form_data,
   };
 }
+
+export const SLICE_UPDATED = 'SLICE_UPDATED';
+export function sliceUpdated(slice) {
+  return { type: SLICE_UPDATED, slice };
+}

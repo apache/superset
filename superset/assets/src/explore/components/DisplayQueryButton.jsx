@@ -46,6 +46,7 @@ import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
 import RowCountLabel from './RowCountLabel';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
+import PropertiesModal from './PropertiesModal';
 
 registerLanguage('markdown', markdownSyntax);
 registerLanguage('html', htmlSyntax);
@@ -58,6 +59,7 @@ const propTypes = {
   queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
   latestQueryFormData: PropTypes.object.isRequired,
+  slice: PropTypes.object,
 };
 const defaultProps = {
   animation: true,
@@ -75,9 +77,12 @@ export default class DisplayQueryButton extends React.PureComponent {
       error: null,
       filterText: '',
       sqlSupported: datasource && datasource.split('__')[1] === 'table',
+      isPropertiesModalOpen: false,
     };
     this.beforeOpen = this.beforeOpen.bind(this);
     this.changeFilterText = this.changeFilterText.bind(this);
+    this.openPropertiesModal = this.openPropertiesModal.bind(this);
+    this.closePropertiesModal = this.closePropertiesModal.bind(this);
   }
   beforeOpen(endpointType) {
     this.setState({ isLoading: true });
@@ -112,6 +117,12 @@ export default class DisplayQueryButton extends React.PureComponent {
   }
   redirectSQLLab() {
     this.props.onOpenInEditor(this.props.latestQueryFormData);
+  }
+  openPropertiesModal() {
+    this.setState({ isPropertiesModalOpen: true });
+  }
+  closePropertiesModal() {
+    this.setState({ isPropertiesModalOpen: false });
   }
   renderQueryModalBody() {
     if (this.state.isLoading) {
@@ -222,6 +233,19 @@ export default class DisplayQueryButton extends React.PureComponent {
         pullRight
         id="query"
       >
+        {this.props.slice && (
+          <>
+            <MenuItem onClick={this.openPropertiesModal}>
+              {t('Edit properties')}
+            </MenuItem>
+            <PropertiesModal
+              slice={this.props.slice}
+              show={this.state.isPropertiesModalOpen}
+              onHide={this.closePropertiesModal}
+              animation={this.props.animation}
+            />
+          </>
+        )}
         <ModalTrigger
           isMenuItem
           animation={this.props.animation}
@@ -230,7 +254,6 @@ export default class DisplayQueryButton extends React.PureComponent {
           bsSize="large"
           beforeOpen={() => this.beforeOpen('query')}
           modalBody={this.renderQueryModalBody()}
-          eventKey="1"
         />
         <ModalTrigger
           isMenuItem
@@ -240,7 +263,6 @@ export default class DisplayQueryButton extends React.PureComponent {
           bsSize="large"
           beforeOpen={() => this.beforeOpen('results')}
           modalBody={this.renderResultsModalBody()}
-          eventKey="2"
         />
         <ModalTrigger
           isMenuItem
@@ -250,7 +272,6 @@ export default class DisplayQueryButton extends React.PureComponent {
           bsSize="large"
           beforeOpen={() => this.beforeOpen('samples')}
           modalBody={this.renderSamplesModalBody()}
-          eventKey="2"
         />
         {this.state.sqlSupported && (
           <MenuItem eventKey="3" onClick={this.redirectSQLLab.bind(this)}>
