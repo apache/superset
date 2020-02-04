@@ -109,7 +109,7 @@ class CsvToDatabaseView(SimpleFormView):
         csv_filename = form.csv_file.data.filename
         extension = os.path.splitext(csv_filename)[1].lower()
         path = tempfile.NamedTemporaryFile(
-            dir=app.config["UPLOAD_FOLDER"], suffix=extension
+            dir=app.config["UPLOAD_FOLDER"], suffix=extension, delete=False
         ).name
         form.csv_file.data.filename = path
 
