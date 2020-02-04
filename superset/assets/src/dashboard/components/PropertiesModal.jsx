@@ -68,11 +68,12 @@ class PropertiesModal extends React.PureComponent {
   }
 
   componentDidMount() {
-    SupersetClient.get({ endpoint: `/users/api/read` }).then(response => {
-      const options = response.json.result.map((user, i) => ({
-        // ids are in a separate `pks` array in the results... need api v2
-        value: response.json.pks[i],
-        label: `${user.first_name} ${user.last_name}`,
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/related/owners`,
+    }).then(response => {
+      const options = response.json.result.map(item => ({
+        value: item.value,
+        label: item.text,
       }));
       this.setState({
         userOptions: options,
