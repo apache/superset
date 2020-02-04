@@ -53,6 +53,7 @@ intelligence web application
 
 Superset Resources
 ==================
+- Versioned versions of this documentation: https://readthedocs.org/projects/apache-superset/
 - `Superset's Github <https://github.com/apache/incubator-superset>`_, note
   that `we use Github for issue tracking <https://github.com/apache/incubator-superset/issues>`_
 - Superset's
