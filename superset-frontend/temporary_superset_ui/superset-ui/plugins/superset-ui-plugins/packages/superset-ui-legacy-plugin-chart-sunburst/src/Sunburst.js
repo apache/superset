@@ -32,6 +32,7 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
+  numberFormat: PropTypes.string,
   metrics: PropTypes.arrayOf(
     PropTypes.oneOfType([
       PropTypes.string,
@@ -61,7 +62,7 @@ function getAncestors(node) {
 function Sunburst(element, props) {
   const container = d3.select(element);
   container.classed('superset-legacy-chart-sunburst', true);
-  const { data, width, height, colorScheme, metrics } = props;
+  const { data, width, height, colorScheme, metrics, numberFormat } = props;
 
   // vars with shared scope within this function
   const margin = { top: 10, right: 5, bottom: 10, left: 5 };
@@ -97,7 +98,7 @@ function Sunburst(element, props) {
     .innerRadius(d => Math.sqrt(d.y))
     .outerRadius(d => Math.sqrt(d.y + d.dy));
 
-  const formatNum = getNumberFormatter(NumberFormats.SI_3_DIGIT);
+  const formatNum = getNumberFormatter(numberFormat || NumberFormats.SI_3_DIGIT);
   const formatPerc = getNumberFormatter(NumberFormats.PERCENT_3_POINT);
 
   container.select('svg').remove();
