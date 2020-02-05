@@ -15,7 +15,7 @@
     "format": "yarn prettier --write",
     "jest": "NODE_ENV=test nimbus jest --coverage --verbose",
     "lint": "nimbus eslint && nimbus prettier --check",
-    "lint:fix": "yarn lint --fix",
+    "lint:fix": "nimbus eslint --fix",
     "prettier": "nimbus prettier",
     "test": "yarn type && yarn jest",
     "test:watch": "yarn lint:fix && yarn jest --watch",
