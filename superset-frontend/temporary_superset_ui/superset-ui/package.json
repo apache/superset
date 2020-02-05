@@ -5,7 +5,6 @@
   "private": true,
   "scripts": {
     "build": "yarn babel && yarn type:dts && yarn build:assets",
-    "build-one": "nimbus babel --clean",
     "babel": "yarn babel:cjs && yarn babel:esm",
     "babel:cjs": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
     "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\" --esm",
@@ -131,11 +130,9 @@
           "rules": {
             "import/no-extraneous-dependencies": "off",
             "promise/param-names": "off",
-            "import/extensions": "off",
             "jest/require-to-throw-message": "off",
             "jest/no-test-return-statement": "off",
-            "jest/no-expect-resolves": "off",
-            "jest/no-test-callback": "off"
+            "jest/no-expect-resolves": "off"
           }
         },
         {
