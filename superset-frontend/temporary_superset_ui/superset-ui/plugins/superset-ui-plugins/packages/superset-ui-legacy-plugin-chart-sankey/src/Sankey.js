@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-param-reassign, no-magic-numbers, sort-keys, babel/no-invalid-this */
+/* eslint-disable no-param-reassign */
+/* eslint-disable react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
@@ -78,7 +79,7 @@ function Sankey(element, props) {
   let nodes = {};
   // Compute the distinct nodes from the links.
   const links = data.map(row => {
-    const link = Object.assign({}, row);
+    const link = { ...row };
     link.source = nodes[link.source] || (nodes[link.source] = { name: link.source });
     link.target = nodes[link.target] || (nodes[link.target] = { name: link.target });
     link.value = Number(link.value);
@@ -174,7 +175,7 @@ function Sankey(element, props) {
         .drag()
         .origin(d => d)
         .on('dragstart', function dragStart() {
-          this.parentNode.appendChild(this);
+          this.parentNode.append(this);
         })
         .on('drag', dragmove),
     );

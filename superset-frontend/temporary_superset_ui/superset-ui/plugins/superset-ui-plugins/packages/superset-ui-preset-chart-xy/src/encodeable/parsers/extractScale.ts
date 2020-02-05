@@ -73,7 +73,6 @@ export interface ScaleTypeToD3ScaleType<Output> {
   [ScaleType.BAND]: ScaleBand<{ toString(): string }>;
 }
 
-// eslint-disable-next-line complexity
 export function deriveScaleTypeFromDataTypeAndChannelType(
   dataType: Type | undefined,
   channelType: ChannelType,
@@ -81,7 +80,8 @@ export function deriveScaleTypeFromDataTypeAndChannelType(
 ): ScaleType | undefined {
   if (typeof dataType === 'undefined') {
     return undefined;
-  } else if (dataType === 'nominal' || dataType === 'ordinal') {
+  }
+  if (dataType === 'nominal' || dataType === 'ordinal') {
     switch (channelType) {
       // For positional (x and y) ordinal and ordinal fields,
       // "point" is the default scale type for all marks
@@ -128,7 +128,6 @@ export function deriveScaleTypeFromDataTypeAndChannelType(
   return undefined;
 }
 
-// eslint-disable-next-line complexity
 function createScaleFromType<Output>(type: ScaleType) {
   switch (type) {
     case ScaleType.LINEAR:
@@ -164,7 +163,6 @@ function createScaleFromType<Output>(type: ScaleType) {
   }
 }
 
-// eslint-disable-next-line complexity
 function createScale<Output extends Value>(
   channelType: ChannelType,
   scaleType: ScaleType,
@@ -220,6 +218,7 @@ function getScaleTypeCategory(scaleType: ScaleType) {
     return 'discretizing';
   }
 
+  // eslint-disable-next-line no-console
   console.warn(`Unknown scaleType ${scaleType}`);
 
   return undefined;

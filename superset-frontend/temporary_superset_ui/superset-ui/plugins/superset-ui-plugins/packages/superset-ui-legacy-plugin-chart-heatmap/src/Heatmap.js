@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, func-names, babel/no-invalid-this, no-plusplus, no-magic-numbers */
+/* eslint-disable func-names, no-plusplus, react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import 'd3-svg-legend';
@@ -107,11 +107,10 @@ function Heatmap(element, props) {
     let longestX = 1;
     let longestY = 1;
 
-    for (let i = 0; i < records.length; i++) {
-      const datum = records[i];
+    records.forEach(datum => {
       longestX = Math.max(longestX, (datum.x && datum.x.toString().length) || 1);
       longestY = Math.max(longestY, (datum.y && datum.y.toString().length) || 1);
-    }
+    });
 
     if (leftMargin === 'auto') {
       margin.left = Math.ceil(Math.max(margin.left, pixelsPerCharY * longestY));

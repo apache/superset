@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, no-magic-numbers */
 import { ChartProps } from '@superset-ui/chart';
 import { RawBoxPlotDataRow, BoxPlotDataRow } from '../types';
 

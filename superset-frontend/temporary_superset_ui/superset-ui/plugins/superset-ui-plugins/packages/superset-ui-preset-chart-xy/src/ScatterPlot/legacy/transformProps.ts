@@ -1,4 +1,3 @@
-/* eslint-disable sort-keys */
 import { ChartProps } from '@superset-ui/chart';
 import { flatMap } from 'lodash';
 

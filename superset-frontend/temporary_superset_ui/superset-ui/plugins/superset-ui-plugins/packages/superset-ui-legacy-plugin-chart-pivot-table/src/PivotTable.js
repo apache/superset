@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, no-magic-numbers, babel/no-invalid-this, babel/new-cap */
+/* eslint-disable react/sort-prop-types */
 import dt from 'datatables.net-bs';
 import PropTypes from 'prop-types';
 import { formatNumber } from '@superset-ui/number-format';
@@ -56,6 +56,7 @@ function PivotTable(element, props) {
   const cols = Array.isArray(columns[0]) ? columns.map(col => col[0]) : columns;
 
   // jQuery hack to set verbose names in headers
+  // eslint-disable-next-line func-name-matching
   const replaceCell = function replace() {
     const s = $(this)[0].textContent;
     $(this)[0].textContent = verboseMap[s] || s;

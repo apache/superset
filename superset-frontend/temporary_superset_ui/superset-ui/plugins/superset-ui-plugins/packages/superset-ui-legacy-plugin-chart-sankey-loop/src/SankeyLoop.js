@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-param-reassign, no-magic-numbers, sort-keys, babel/no-invalid-this */
+/* eslint-disable react/sort-prop-types */
 import PropTypes from 'prop-types';
 import { select } from 'd3-selection';
 import { sankeyDiagram, sankey } from 'd3-sankey-diagram';

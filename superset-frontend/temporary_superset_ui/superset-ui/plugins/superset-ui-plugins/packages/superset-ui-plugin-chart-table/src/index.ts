@@ -25,6 +25,7 @@ import TableFormData from './TableFormData';
 
 Core.initialize({ name: 'superset-datatable' });
 const { aesthetic } = Core;
+// @ts-ignore
 aesthetic.globals = {};
 
 export default class TableChartPlugin extends ChartPlugin<TableFormData> {

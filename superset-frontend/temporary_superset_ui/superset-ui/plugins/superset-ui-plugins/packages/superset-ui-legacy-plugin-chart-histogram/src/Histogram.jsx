@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
+/* eslint-disable react/sort-prop-types */
 import PropTypes from 'prop-types';
 import React from 'react';
 import { Histogram, BarSeries, XAxis, YAxis } from '@data-ui/histogram';
@@ -45,10 +45,10 @@ const propTypes = {
   yAxisLabel: PropTypes.string,
 };
 const defaultProps = {
+  binCount: 15,
   className: '',
   colorScheme: '',
   normalized: false,
-  binCount: 15,
   opacity: 1,
   xAxisLabel: '',
   yAxisLabel: '',
@@ -73,7 +73,7 @@ class CustomHistogram extends React.PureComponent {
     const keys = data.map(d => d.key);
     const colorScale = scaleOrdinal({
       domain: keys,
-      range: keys.map(colorFn),
+      range: keys.map(x => colorFn(x)),
     });
 
     return (

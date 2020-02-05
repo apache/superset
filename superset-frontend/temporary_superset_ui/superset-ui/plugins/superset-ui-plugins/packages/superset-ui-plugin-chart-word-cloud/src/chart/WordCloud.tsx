@@ -6,9 +6,7 @@ import { WordCloudEncoding, wordCloudEncoderFactory } from './Encoder';
 export const ROTATION = {
   flat: () => 0,
   // this calculates a random rotation between -90 and 90 degrees.
-  /* eslint-disable-next-line no-magic-numbers */
   random: () => Math.floor(Math.random() * 6 - 3) * 30,
-  /* eslint-disable-next-line no-magic-numbers */
   square: () => Math.floor(Math.random() * 2) * 90,
 };
 
@@ -42,6 +40,7 @@ export default class WordCloud extends React.PureComponent<
   State
 > {
   isMounted: boolean = false;
+
   state: State = {
     words: [],
   };
@@ -88,7 +87,6 @@ export default class WordCloud extends React.PureComponent<
     cloudLayout()
       .size([width, height])
       .words(data)
-      /* eslint-disable-next-line no-magic-numbers */
       .padding(5)
       .rotate(ROTATION[rotation] || ROTATION.flat)
       .text(d => encoder.channels.text.getValueFromDatum(d))

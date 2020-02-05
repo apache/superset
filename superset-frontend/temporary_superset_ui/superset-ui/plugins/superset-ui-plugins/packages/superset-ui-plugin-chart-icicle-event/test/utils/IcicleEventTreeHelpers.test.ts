@@ -17,7 +17,7 @@
  * under the License.
  */
 import { HierarchyNode, HierarchyRectangularNode, hierarchy as d3Hierarchy } from 'd3-hierarchy';
-import { IcicleEventNode } from '../../types/IcicleEventNode';
+import { IcicleEventNode } from '../../src/IcicleEventNode';
 import {
   findDepth,
   hierarchySort,

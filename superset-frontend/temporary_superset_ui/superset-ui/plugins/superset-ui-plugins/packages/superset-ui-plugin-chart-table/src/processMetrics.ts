@@ -13,10 +13,10 @@ function processMetrics(
   percentMetrics: QueryFormDataMetric[],
   records: PlainObject[],
 ) {
-  const processedMetrics = (metrics || []).map(m => (m as AdhocMetric).label || (m as string));
+  const processedMetrics = (metrics || []).map(m => (m as AdhocMetric).label ?? (m as string));
 
   const processedPercentMetrics = (percentMetrics || [])
-    .map(m => (m as AdhocMetric).label || (m as string))
+    .map(m => (m as AdhocMetric).label ?? (m as string))
     .map(m => `%${m}`);
 
   return processedMetrics

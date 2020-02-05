@@ -104,7 +104,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
 
       keys.forEach(key => {
         const column = columnsMap[key];
-        const format = column && column.format;
+        const format = column?.format;
         const maxLength = Math.max(
           ...rows.map(d => getText(d.data[key], format).length),
           key.length,
@@ -203,7 +203,7 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
           .join('|')
           .toLowerCase();
 
-        return content.indexOf(value.toLowerCase()) >= 0;
+        return content.includes(value.toLowerCase());
       });
       this.setState({
         filteredRows,
@@ -283,12 +283,12 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
           <div className={cx(styles.searchBar)}>
             <div className={cx(styles.searchBox)}>
               <Input
+                compact
                 name="search"
                 label=""
                 placeholder="Search"
-                onChange={this.handleSearch}
-                compact
                 value={searchKeyword}
+                onChange={this.handleSearch}
               />
             </div>
             <Text small>
@@ -298,11 +298,11 @@ class TableVis extends React.PureComponent<InternalTableProps, TableState> {
         )}
         <div className={cx(styles.container)}>
           <DataTable
+            zebra
+            dynamicRowHeight
             data={dataToRender}
             keys={keys}
             columnMetadata={columnMetadata}
-            zebra
-            dynamicRowHeight
             rowHeight="micro"
             renderers={renderers}
             height={tableHeight}
@@ -329,7 +329,6 @@ export default withStyles(({ unit }) => ({
   },
   searchBox: {
     marginLeft: unit,
-    // eslint-disable-next-line no-magic-numbers
     width: 25 * unit,
   },
 }))(TableVis);

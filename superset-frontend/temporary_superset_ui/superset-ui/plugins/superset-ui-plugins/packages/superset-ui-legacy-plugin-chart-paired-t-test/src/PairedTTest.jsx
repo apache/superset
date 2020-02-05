@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-magic-numbers, react/no-array-index-key */
+/* eslint-disable react/no-array-index-key */
 import PropTypes from 'prop-types';
 import React from 'react';
 import TTestTable, { dataPropType } from './TTestTable';
