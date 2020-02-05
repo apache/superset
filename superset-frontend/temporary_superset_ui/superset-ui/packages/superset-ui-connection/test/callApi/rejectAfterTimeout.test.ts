@@ -3,19 +3,21 @@ import rejectAfterTimeout from '../../src/callApi/rejectAfterTimeout';
 import throwIfCalled from '../utils/throwIfCalled';
 
 describe('rejectAfterTimeout()', () => {
-  it('returns a promise that rejects after the specified timeout', done => {
-    expect.assertions(1);
-    jest.useFakeTimers();
+  it('returns a promise that rejects after the specified timeout', () => {
+    return new Promise(done => {
+      expect.assertions(1);
+      jest.useFakeTimers();
 
-    rejectAfterTimeout(10)
-      .then(throwIfCalled)
-      .catch(error => {
-        expect(error).toBeDefined();
+      rejectAfterTimeout(10)
+        .then(throwIfCalled)
+        .catch(error => {
+          expect(error).toBeDefined();
 
-        return done();
-      });
+          return done();
+        });
 
-    jest.advanceTimersByTime(11);
-    jest.useRealTimers();
+      jest.advanceTimersByTime(11);
+      jest.useRealTimers();
+    });
   });
 });

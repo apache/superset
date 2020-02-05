@@ -52,17 +52,19 @@ describe('reactify(renderFn)', () => {
     }
   }
 
-  it('returns a React component class', done => {
-    const wrapper = mount(<TestComponent />);
+  it('returns a React component class', () => {
+    return new Promise(done => {
+      const wrapper = mount(<TestComponent />);
 
-    expect(renderFn).toHaveBeenCalledTimes(1);
-    expect(wrapper.html()).toEqual('<div id="test"><b>abc</b></div>');
-    setTimeout(() => {
-      expect(renderFn).toHaveBeenCalledTimes(2);
-      expect(wrapper.html()).toEqual('<div id="test"><b>def</b></div>');
-      wrapper.unmount();
-      done();
-    }, 20);
+      expect(renderFn).toHaveBeenCalledTimes(1);
+      expect(wrapper.html()).toEqual('<div id="test"><b>abc</b></div>');
+      setTimeout(() => {
+        expect(renderFn).toHaveBeenCalledTimes(2);
+        expect(wrapper.html()).toEqual('<div id="test"><b>def</b></div>');
+        wrapper.unmount();
+        done();
+      }, 20);
+    });
   });
   describe('displayName', () => {
     it('has displayName if renderFn.displayName is defined', () => {
@@ -101,12 +103,14 @@ describe('reactify(renderFn)', () => {
     new AnotherChart({ id: 'test' }).execute();
     expect(anotherRenderFn).not.toHaveBeenCalled();
   });
-  it('calls willUnmount hook when it is provided', done => {
-    const wrapper = mount(<AnotherTestComponent />);
-    setTimeout(() => {
-      wrapper.unmount();
-      expect(willUnmountCb).toHaveBeenCalledTimes(1);
-      done();
-    }, 20);
+  it('calls willUnmount hook when it is provided', () => {
+    return new Promise(done => {
+      const wrapper = mount(<AnotherTestComponent />);
+      setTimeout(() => {
+        wrapper.unmount();
+        expect(willUnmountCb).toHaveBeenCalledTimes(1);
+        done();
+      }, 20);
+    });
   });
 });
