@@ -146,11 +146,16 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "cache_timeout",
     ]
     list_columns = [
+        "id",
         "slice_name",
+        "url",
         "description",
         "changed_by.username",
         "changed_by_name",
+        "changed_by_url",
         "changed_on",
+        "datasource_name_text",
+        "datasource_link",
         "viz_type",
         "params",
         "cache_timeout",

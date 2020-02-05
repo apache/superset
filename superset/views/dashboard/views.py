@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import re
 
 from flask import g, redirect, request, Response
@@ -32,12 +31,10 @@ from superset.utils import core as utils
 from ..base import (
     BaseSupersetView,
     check_ownership,
-    common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
     SupersetModelView,
 )
-from ..utils import bootstrap_user_data
 from .mixin import DashboardMixin
 
 
@@ -59,17 +56,8 @@ class DashboardModelView(
     def list(self):
         if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
             return super().list()
-        payload = {
-            "user": bootstrap_user_data(g.user),
-            "common": common_bootstrap_payload(),
-        }
-        return self.render_template(
-            "superset/welcome.html",
-            entry="welcome",
-            bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
-            ),
-        )
+
+        return super().render_app_template()
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
     def mulexport(self, items):  # pylint: disable=no-self-use

@@ -39,6 +39,8 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 
+from .utils import bootstrap_user_data
+
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
@@ -229,6 +231,19 @@ class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
 class SupersetModelView(ModelView):
     page_size = 100
     list_widget = SupersetListWidget
+
+    def render_app_template(self):
+        payload = {
+            "user": bootstrap_user_data(g.user),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_template(
+            "superset/welcome.html",
+            entry="welcome",
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
 
 
 class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-methods
