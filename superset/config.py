@@ -276,6 +276,7 @@ DEFAULT_FEATURE_FLAGS = {
     "CLIENT_CACHE": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "PRESTO_EXPAND_DATA": False,
+    "TAGGING_SYSTEM": False,
 }
 
 # This is merely a default.
