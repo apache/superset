@@ -123,7 +123,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         return filters
 
     def incr_stats(self, action: str, func_name: str) -> None:
-        self.stats_logger.incr(f"{action}_{self.__class__.__name__}.{func_name}")
+        self.stats_logger.incr(f"{self.__class__.__name__}.{func_name}.{action}")
 
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
