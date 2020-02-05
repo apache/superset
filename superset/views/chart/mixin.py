@@ -37,7 +37,13 @@ class SliceMixin:  # pylint: disable=too-few-public-methods
         "owners",
     )
     list_columns = ["slice_link", "viz_type", "datasource_link", "creator", "modified"]
-    order_columns = ["viz_type", "datasource_link", "modified"]
+    order_columns = [
+        "slice_name",
+        "viz_type",
+        "datasource_link",
+        "modified",
+        "changed_on",
+    ]
     edit_columns = [
         "slice_name",
         "description",

@@ -36,27 +36,25 @@ interface Props {
 }
 
 interface State {
-  dashboards: any[];
-  dashboardCount: number;
-  loading: boolean;
+  chartCount: number;
+  charts: any[];
   filterTypes: FilterTypeMap;
-  permissions: string[];
   labelColumns: { [key: string]: string };
   lastFetchDataConfig: FetchDataConfig | null;
+  loading: boolean;
+  permissions: string[];
 }
 
-interface Dashboard {
-  id: number;
-  changed_by: string;
-  changed_by_name: string;
-  changed_by_url: string;
+interface Chart {
   changed_on: string;
-  dashboard_title: string;
-  published: boolean;
+  creator: string;
+  id: number;
+  slice_name: string;
   url: string;
+  viz_type: string;
 }
 
-class DashboardList extends React.PureComponent<Props, State> {
+class ChartList extends React.PureComponent<Props, State> {
 
   get canEdit() {
     return this.hasPerm('can_edit');
@@ -66,17 +64,13 @@ class DashboardList extends React.PureComponent<Props, State> {
     return this.hasPerm('can_delete');
   }
 
-  get canExport() {
-    return this.hasPerm('can_mulexport');
-  }
-
   public static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
   };
 
   public state: State = {
-    dashboardCount: 0,
-    dashboards: [],
+    chartCount: 0,
+    charts: [],
     filterTypes: {},
     labelColumns: {},
     lastFetchDataConfig: null,
@@ -90,12 +84,32 @@ class DashboardList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: { url, dashboard_title },
+          original: { url, slice_name },
         },
-      }: any) => <a href={url}>{dashboard_title}</a>,
-      Header: t('Title'),
-      accessor: 'dashboard_title',
+      }: any) => <a href={url}>{slice_name}</a>,
+      Header: t('Chart'),
+      accessor: 'slice_name',
       filterable: true,
+      sortable: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { viz_type },
+        },
+      }: any) => viz_type,
+      Header: t('Visualization Type'),
+      accessor: 'viz_type',
+      sortable: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { datasource_name_text, datasource_link },
+        },
+      }: any) => <a href={datasource_link}>{datasource_name_text}</a>,
+      Header: t('Datasource'),
+      accessor: 'datasource_name_text',
       sortable: true,
     },
     {
@@ -104,20 +118,8 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { changed_by_name, changed_by_url },
         },
       }: any) => <a href={changed_by_url}>{changed_by_name}</a>,
-      Header: t('Changed By Name'),
-      accessor: 'changed_by_fk',
-      sortable: true,
-    },
-    {
-      Cell: ({
-        row: {
-          original: { published },
-        },
-      }: any) => (
-          <span className='no-wrap'>{published ? <i className='fa fa-check' /> : ''}</span>
-        ),
-      Header: t('Published'),
-      accessor: 'published',
+      Header: t('Creator'),
+      accessor: 'creator',
       sortable: true,
     },
     {
@@ -128,24 +130,24 @@ class DashboardList extends React.PureComponent<Props, State> {
       }: any) => (
           <span className='no-wrap'>{moment(changed_on).fromNow()}</span>
         ),
-      Header: t('Changed On'),
+      Header: t('Last Modified'),
       accessor: 'changed_on',
       sortable: true,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
-        const handleDelete = () => this.handleDashboardDelete(original);
-        const handleEdit = () => this.handleDashboardEdit(original);
-        const handleExport = () => this.handleBulkDashboardExport([original]);
-        if (!this.canEdit && !this.canDelete && !this.canExport) {
+        const handleDelete = () => this.handleChartDelete(original);
+        const handleEdit = () => this.handleChartEdit(original);
+        if (!this.canEdit && !this.canDelete) {
           return null;
         }
+
         return (
           <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
-                description={<>{t('Are you sure you want to delete')} <b>{original.dashboard_title}</b>?</>}
+                description={<>{t('Are you sure you want to delete')} <b>{original.slice_name}</b>?</>}
                 onConfirm={handleDelete}
               >
                 {(confirmDelete) => (
@@ -159,15 +161,6 @@ class DashboardList extends React.PureComponent<Props, State> {
                 )}
               </ConfirmStatusChange>
             )}
-            {this.canExport && (
-              <span
-                role='button'
-                className='action-button'
-                onClick={handleExport}
-              >
-                <i className='fa fa-database' />
-              </span>
-            )}
             {this.canEdit && (
               <span
                 role='button'
@@ -180,36 +173,42 @@ class DashboardList extends React.PureComponent<Props, State> {
           </span>
         );
       },
-      Header: t('Actions'),
+      Header: 'Actions',
       id: 'actions',
     },
   ];
 
-  public handleDashboardEdit = ({ id }: { id: number }) => {
-    window.location.assign(`/dashboard/edit/${id}`);
+  public hasPerm = (perm: string) => {
+    if (!this.state.permissions.length) {
+      return false;
+    }
+
+    return this.state.permissions.some((p) => p === perm);
   }
 
-  public handleDashboardDelete = ({ id, dashboard_title }: Dashboard) => {
-    return SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/${id}`,
+  public handleChartEdit = ({ id }: { id: number }) => {
+    window.location.assign(`/chart/edit/${id}`);
+  }
+
+  public handleChartDelete = ({ id, slice_name }: Chart) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/chart/${id}`,
     }).then(
-      () => {
+      (resp) => {
         const { lastFetchDataConfig } = this.state;
         if (lastFetchDataConfig) {
           this.fetchData(lastFetchDataConfig);
         }
-        this.props.addSuccessToast(t('Deleted') + ` ${dashboard_title}`);
+        this.props.addSuccessToast(t('Deleted: %(slice_name)', slice_name));
       },
       (err: any) => {
-        console.error(err);
-        this.props.addDangerToast(t('There was an issue deleting') + `${dashboard_title}`);
+        this.props.addDangerToast(t('There was an issue deleting: %(slice_name)', slice_name));
       },
     );
   }
-
-  public handleBulkDashboardDelete = (dashboards: Dashboard[]) => {
+  public handleBulkDashboardDelete = (charts: Chart[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/?q=!(${dashboards.map(({ id }) => id).join(',')})`,
+      endpoint: `/api/v1/dashboard/?q=!(${charts.map(({ id }) => id).join(',')})`,
     }).then(
       ({ json = {} }) => {
         const { lastFetchDataConfig } = this.state;
@@ -225,30 +224,17 @@ class DashboardList extends React.PureComponent<Props, State> {
     );
   }
 
-  public handleBulkDashboardExport = (dashboards: Dashboard[]) => {
-    return window.location.href = `/ api / v1 / dashboard /export/?q=!(${dashboards.map(({ id }) => id).join(',')})`;
-  }
-
   public fetchData = ({
     pageIndex,
     pageSize,
     sortBy,
     filters,
   }: FetchDataConfig) => {
-    // set loading state, cache the last config for fetching data in this component.
-    this.setState({
-      lastFetchDataConfig: {
-        filters,
-        pageIndex,
-        pageSize,
-        sortBy,
-      },
-      loading: true,
-    });
-    const filterExps = filters.map(({ id, filterId, value }) => ({
-      col: id,
-      opr: filterId,
-      value,
+    this.setState({ loading: true });
+    const filterExps = Object.keys(filters).map((fk) => ({
+      col: fk,
+      opr: filters[fk].filterId,
+      value: filters[fk].filterValue,
     }));
 
     const queryParams = JSON.stringify({
@@ -260,14 +246,14 @@ class DashboardList extends React.PureComponent<Props, State> {
     });
 
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/?q=${queryParams}`,
+      endpoint: `/api/v1/chart/?q=${queryParams}`,
     })
       .then(({ json = {} }) => {
-        this.setState({ dashboards: json.result, dashboardCount: json.count, labelColumns: json.label_columns });
+        this.setState({ charts: json.result, chartCount: json.count, labelColumns: json.label_columns });
       })
       .catch(() => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Dashboards'),
+          t('An error occurred while fetching Charts'),
         );
       })
       .finally(() => {
@@ -277,7 +263,7 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   public componentDidMount() {
     SupersetClient.get({
-      endpoint: `/api/v1/dashboard/_info`,
+      endpoint: `/api/v1/chart/_info`,
     })
       .then(({ json = {} }) => {
         this.setState({ filterTypes: json.filters, permissions: json.permissions });
@@ -285,13 +271,14 @@ class DashboardList extends React.PureComponent<Props, State> {
   }
 
   public render() {
-    const { dashboards, dashboardCount, loading, filterTypes } = this.state;
+    const { charts, chartCount, loading, filterTypes } = this.state;
     return (
-      <div className='container welcome' >
+      <div className='container welcome'>
         <Panel>
+
           <ConfirmStatusChange
             title={t('Please confirm')}
-            description={t('Are you sure you want to delete the selected dashboards?')}
+            description={t('Are you sure you want to delete the selected charts?')}
             onConfirm={this.handleBulkDashboardDelete}
           >
             {(confirmDelete) => {
@@ -303,20 +290,13 @@ class DashboardList extends React.PureComponent<Props, State> {
                   onSelect: confirmDelete,
                 });
               }
-              if (this.canExport) {
-                bulkActions.push({
-                  key: 'export',
-                  name: <><i className='fa fa-database' /> Export</>,
-                  onSelect: this.handleBulkDashboardExport,
-                });
-              }
               return (
                 <ListView
-                  className='dashboard-list-view'
-                  title={'Dashboards'}
+                  className='chart-list-view'
+                  title={'Charts'}
                   columns={this.columns}
-                  data={dashboards}
-                  count={dashboardCount}
+                  data={charts}
+                  count={chartCount}
                   pageSize={PAGE_SIZE}
                   fetchData={this.fetchData}
                   loading={loading}
@@ -328,17 +308,9 @@ class DashboardList extends React.PureComponent<Props, State> {
             }}
           </ConfirmStatusChange>
         </Panel>
-      </div>
+      </div >
     );
-  }
-
-  private hasPerm = (perm: string) => {
-    if (!this.state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(this.state.permissions.find((p) => p === perm));
   }
 }
 
-export default withToasts(DashboardList);
+export default withToasts(ChartList);

@@ -221,6 +221,10 @@ class Slice(
         name = escape(self.chart)
         return Markup(f'<a href="{self.url}">{name}</a>')
 
+    @property
+    def changed_by_url(self) -> str:
+        return f"/superset/profile/{self.created_by.username}"
+
     def get_viz(self, force: bool = False) -> BaseViz:
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
 

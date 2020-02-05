@@ -470,7 +470,7 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_gamma_user_schema_access_to_charts(self):
         self.login(username="gamma")
-        data = str(self.client.get("chart/list/").data)
+        data = str(self.client.get("api/v1/chart/").data)
         self.assertIn(
             "Life Expectancy VS Rural %", data
         )  # wb_health_population slice, has access
