@@ -27,7 +27,6 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause, Select
-from werkzeug.utils import secure_filename
 
 from superset import app, cache, conf
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -150,14 +149,12 @@ class HiveEngineSpec(PrestoEngineSpec):
             )
 
         filename = form.csv_file.data.filename
-
         upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
-        upload_path = config["UPLOAD_FOLDER"] + secure_filename(filename)
 
         # Optional dependency
         from tableschema import Table  # pylint: disable=import-error
 
-        hive_table_schema = Table(upload_path).infer()
+        hive_table_schema = Table(filename).infer()
         column_name_and_type = []
         for column_info in hive_table_schema["fields"]:
             column_name_and_type.append(
@@ -173,7 +170,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         s3 = boto3.client("s3")
         location = os.path.join("s3a://", bucket_path, upload_prefix, table_name)
         s3.upload_file(
-            upload_path, bucket_path, os.path.join(upload_prefix, table_name, filename)
+            filename,
+            bucket_path,
+            os.path.join(upload_prefix, table_name, os.path.basename(filename)),
         )
         sql = f"""CREATE TABLE {full_table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
