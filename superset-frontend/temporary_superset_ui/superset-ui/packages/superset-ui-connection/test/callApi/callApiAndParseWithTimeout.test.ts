@@ -65,25 +65,27 @@ describe('callApiAndParseWithTimeout()', () => {
       rejectionSpy.mockClear();
     });
 
-    it('rejects if the request exceeds the timeout', done => {
-      expect.assertions(3);
-      jest.useFakeTimers();
+    it('rejects if the request exceeds the timeout', () => {
+      return new Promise(done => {
+        expect.assertions(3);
+        jest.useFakeTimers();
 
-      const mockTimeoutUrl = '/mock/timeout/url';
-      const unresolvingPromise = new Promise(() => {});
-      fetchMock.get(mockTimeoutUrl, () => unresolvingPromise);
+        const mockTimeoutUrl = '/mock/timeout/url';
+        const unresolvingPromise = new Promise(() => {});
+        fetchMock.get(mockTimeoutUrl, () => unresolvingPromise);
 
-      callApiAndParseWithTimeout({ url: mockTimeoutUrl, method: 'GET', timeout: 1 })
-        .then(throwIfCalled)
-        .catch(error => {
-          expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
-          expect(Object.keys(error)).toEqual(expect.arrayContaining(['error', 'statusText']));
-          expect(error.statusText).toBe('timeout');
+        callApiAndParseWithTimeout({ url: mockTimeoutUrl, method: 'GET', timeout: 1 })
+          .then(throwIfCalled)
+          .catch(error => {
+            expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
+            expect(Object.keys(error)).toEqual(expect.arrayContaining(['error', 'statusText']));
+            expect(error.statusText).toBe('timeout');
 
-          return done(); // eslint-disable-line promise/no-callback-in-promise
-        });
+            return done(); // eslint-disable-line promise/no-callback-in-promise
+          });
 
-      jest.advanceTimersByTime(2);
+        jest.advanceTimersByTime(2);
+      });
     });
 
     it('resolves if the request does not exceed the timeout', () => {

@@ -59,55 +59,61 @@ describe('createLoadableRenderer', () => {
       expect(onRenderFailure).not.toHaveBeenCalled();
     });
 
-    it('calls onRenderFailure when fails', done => {
-      const loadChartFailure = jest.fn(() => Promise.reject(new Error('Invalid chart')));
-      const FailedRenderer = createLoadableRenderer({
-        loader: {
-          Chart: loadChartFailure,
-        },
-        loading,
-        render,
+    it('calls onRenderFailure when fails', () => {
+      return new Promise(done => {
+        const loadChartFailure = jest.fn(() => Promise.reject(new Error('Invalid chart')));
+        const FailedRenderer = createLoadableRenderer({
+          loader: {
+            Chart: loadChartFailure,
+          },
+          loading,
+          render,
+        });
+        const onRenderSuccess = jest.fn();
+        const onRenderFailure = jest.fn();
+        shallow(
+          <FailedRenderer onRenderSuccess={onRenderSuccess} onRenderFailure={onRenderFailure} />,
+        );
+        expect(loadChartFailure).toHaveBeenCalledTimes(1);
+        setTimeout(() => {
+          expect(render).not.toHaveBeenCalled();
+          expect(onRenderSuccess).not.toHaveBeenCalled();
+          expect(onRenderFailure).toHaveBeenCalledTimes(1);
+          done();
+        }, 10);
       });
-      const onRenderSuccess = jest.fn();
-      const onRenderFailure = jest.fn();
-      shallow(
-        <FailedRenderer onRenderSuccess={onRenderSuccess} onRenderFailure={onRenderFailure} />,
-      );
-      expect(loadChartFailure).toHaveBeenCalledTimes(1);
-      setTimeout(() => {
-        expect(render).not.toHaveBeenCalled();
-        expect(onRenderSuccess).not.toHaveBeenCalled();
-        expect(onRenderFailure).toHaveBeenCalledTimes(1);
-        done();
-      }, 10);
     });
 
-    it('onRenderFailure is optional', done => {
-      const loadChartFailure = jest.fn(() => Promise.reject(new Error('Invalid chart')));
-      const FailedRenderer = createLoadableRenderer({
-        loader: {
-          Chart: loadChartFailure,
-        },
-        loading,
-        render,
+    it('onRenderFailure is optional', () => {
+      return new Promise(done => {
+        const loadChartFailure = jest.fn(() => Promise.reject(new Error('Invalid chart')));
+        const FailedRenderer = createLoadableRenderer({
+          loader: {
+            Chart: loadChartFailure,
+          },
+          loading,
+          render,
+        });
+        shallow(<FailedRenderer />);
+        expect(loadChartFailure).toHaveBeenCalledTimes(1);
+        setTimeout(() => {
+          expect(render).not.toHaveBeenCalled();
+          done();
+        }, 10);
       });
-      shallow(<FailedRenderer />);
-      expect(loadChartFailure).toHaveBeenCalledTimes(1);
-      setTimeout(() => {
-        expect(render).not.toHaveBeenCalled();
-        done();
-      }, 10);
     });
 
-    it('renders the lazy-load components', done => {
-      const wrapper = shallow(<LoadableRenderer />);
-      // lazy-loaded component not rendered immediately
-      expect(wrapper.find(TestComponent)).toHaveLength(0);
-      setTimeout(() => {
-        // but rendered after the component is loaded.
-        expect(wrapper.find(TestComponent)).toHaveLength(1);
-        done();
-      }, 10);
+    it('renders the lazy-load components', () => {
+      return new Promise(done => {
+        const wrapper = shallow(<LoadableRenderer />);
+        // lazy-loaded component not rendered immediately
+        expect(wrapper.find(TestComponent)).toHaveLength(0);
+        setTimeout(() => {
+          // but rendered after the component is loaded.
+          expect(wrapper.find(TestComponent)).toHaveLength(1);
+          done();
+        }, 10);
+      });
     });
 
     it('does not throw if loaders are empty', () => {
