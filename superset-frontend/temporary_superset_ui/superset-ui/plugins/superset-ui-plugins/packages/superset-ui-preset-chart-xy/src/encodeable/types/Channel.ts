@@ -3,7 +3,6 @@ import { XFieldDef, YFieldDef, MarkPropChannelDef, TextChannelDef } from './Chan
 
 export type ChannelInput = number | string | boolean | null | Date | undefined;
 
-// eslint-disable-next-line import/prefer-default-export
 export interface ChannelOptions {
   namespace?: string;
   legend?: boolean;

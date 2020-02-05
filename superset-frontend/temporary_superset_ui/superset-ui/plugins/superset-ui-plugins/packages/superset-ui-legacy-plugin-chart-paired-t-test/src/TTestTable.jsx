@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-magic-numbers, no-plusplus, react/no-array-index-key, react/jsx-no-bind */
+/* eslint-disable no-plusplus, react/no-array-index-key, react/jsx-no-bind */
 import dist from 'distributions';
 import React from 'react';
 import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
@@ -109,10 +109,10 @@ class TTestTable extends React.Component {
     // Compute the lift value between two time series
     let sumValues = 0;
     let sumControl = 0;
-    for (let i = 0; i < values.length; i++) {
-      sumValues += values[i].y;
+    values.forEach((value, i) => {
+      sumValues += value.y;
       sumControl += control[i].y;
-    }
+    });
 
     return (((sumValues - sumControl) / sumControl) * 100).toFixed(liftValPrec);
   }
@@ -124,21 +124,21 @@ class TTestTable extends React.Component {
     let diffSum = 0;
     let diffSqSum = 0;
     let finiteCount = 0;
-    for (let i = 0; i < values.length; i++) {
-      const diff = control[i].y - values[i].y;
+    values.forEach((value, i) => {
+      const diff = control[i].y - value.y;
       /* eslint-disable-next-line */
       if (isFinite(diff)) {
         finiteCount++;
         diffSum += diff;
         diffSqSum += diff * diff;
       }
-    }
+    });
     const tvalue = -Math.abs(
       diffSum * Math.sqrt((finiteCount - 1) / (finiteCount * diffSqSum - diffSum * diffSum)),
     );
     try {
       return (2 * new dist.Studentt(finiteCount - 1).cdf(tvalue)).toFixed(pValPrec); // two-sided test
-    } catch (err) {
+    } catch (error) {
       return NaN;
     }
   }
@@ -223,8 +223,8 @@ class TTestTable extends React.Component {
       return (
         <Tr
           key={i}
-          onClick={this.computeTTest.bind(this, i)}
           className={i === control ? 'control' : ''}
+          onClick={this.computeTTest.bind(this, i)}
         >
           {values}
         </Tr>

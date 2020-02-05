@@ -1,31 +1,56 @@
-.babelrc
-.cache
-.cache-loader
 .DS_Store
+*.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Cache
+.bundle/
+.happo/
+.idea/
+.next/
+.cache
 .eslintcache
-.eslintignore
-.eslintrc.js
 .idea
 .npm
-.prettierignore
 .vscode
 .yarnclean
 
-*.log
-*.map
-*.min.js
-.*.swp
-
-babel.config.js
+# Directories
 build/
 coverage/
+dist/
 esm/
-jest.config.js
 lib/
-logs/
+public/
 node_modules/
-package-lock.json
+tmp/
+
+# Custom
+*.map
+*.min.js
+test-changelog.md
+
+# Configs (provided by Nimbus)
+.babelrc
+.eslintignore
+.eslintrc.js
+.flowconfig
+.prettierignore
+babel.config.js
+jest.config.js
 prettier.config.js
+tsconfig.eslint.json
 tsconfig.json
+tsconfig.options.json
+*.tsbuildinfo
+webpack.config.js
+
+# Lock files, libs should not have lock files
+npm-shrinkwrap.json
+package-lock.json
 yarn.lock
+old-yarn.lock
+.*.swp
 _gh-pages

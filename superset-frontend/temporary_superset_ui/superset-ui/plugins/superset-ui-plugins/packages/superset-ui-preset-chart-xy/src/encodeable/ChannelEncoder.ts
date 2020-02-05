@@ -21,14 +21,21 @@ import AxisAgent from './AxisAgent';
 
 export default class ChannelEncoder<Def extends ChannelDef> {
   readonly name: string | Symbol | number;
+
   readonly type: ChannelType;
+
   readonly definition: Def;
+
   readonly options: ChannelOptions;
 
   protected readonly getValue: (datum: PlainObject) => ChannelInput;
+
   readonly encodeValue: (value: ChannelInput) => ExtractChannelOutput<Def> | null | undefined;
+
   readonly formatValue: (value: ChannelInput | { toString(): string }) => string;
+
   readonly scale?: ScaleAgent<ExtractChannelOutput<Def>>;
+
   readonly axis?: AxisAgent<Def>;
 
   constructor({
@@ -67,8 +74,10 @@ export default class ChannelEncoder<Def extends ChannelDef> {
   }
 
   encode(datum: PlainObject): ExtractChannelOutput<Def> | null | undefined;
+
   // eslint-disable-next-line no-dupe-class-members
   encode(datum: PlainObject, otherwise: ExtractChannelOutput<Def>): ExtractChannelOutput<Def>;
+
   // eslint-disable-next-line no-dupe-class-members
   encode(datum: PlainObject, otherwise?: ExtractChannelOutput<Def>) {
     const value = this.get(datum);
@@ -100,14 +109,16 @@ export default class ChannelEncoder<Def extends ChannelDef> {
       const { type } = this.definition;
       if (type === 'nominal' || type === 'ordinal') {
         return Array.from(new Set(data.map(d => this.get(d)))) as string[];
-      } else if (type === 'quantitative') {
+      }
+      if (type === 'quantitative') {
         const extent = d3Extent(data, d => this.get<number>(d));
         if (typeof extent[0] === 'undefined') {
           return [0, 1];
         }
 
         return extent as [number, number];
-      } else if (type === 'temporal') {
+      }
+      if (type === 'temporal') {
         const extent = d3Extent(data, d => this.get<number | Date>(d));
         if (typeof extent[0] === 'undefined') {
           return [0, 1];
@@ -122,7 +133,7 @@ export default class ChannelEncoder<Def extends ChannelDef> {
 
   getTitle() {
     if (isFieldDef(this.definition)) {
-      return this.definition.title || this.definition.field;
+      return this.definition.title ?? this.definition.field;
     }
 
     return '';

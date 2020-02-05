@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
 function transformData(data, formData) {
   const { metric, series } = formData;
 

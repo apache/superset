@@ -1,7 +1,5 @@
-/* eslint-disable complexity */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable no-magic-numbers */
 import React, { CSSProperties, useMemo } from 'react';
 import { HEIGHT_TO_PX } from '@airbnb/lunar/lib/components/DataTable/constants';
 import { RendererProps } from '@airbnb/lunar/lib/components/DataTable/types';
@@ -87,7 +85,7 @@ export default function getRenderer({
   return ({ keyName, row }: RendererProps) => {
     const value = row.rowData.data[keyName];
     const cell = { key: keyName as string, value };
-    const handleClick = isMetric ? NOOP : useMemo(() => handleCellSelected(cell), [keyName, value]);
+    const handleClick = isMetric ? NOOP : useMemo(() => handleCellSelected(cell), [cell]);
 
     let Parent;
     if (isMetric) {

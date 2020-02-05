@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, react/require-default-props, react/forbid-prop-types */
-/* eslint-disable promise/always-return, promise/catch-or-return */
+/* eslint-disable react/require-default-props, react/sort-prop-types */
 import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -117,7 +116,7 @@ class LineMulti extends React.Component {
 
       // add null values at the edges to fix multiChart bug when series with
       // different x values use different y axes
-      if (lineCharts.length && lineCharts2.length) {
+      if (lineCharts.length > 0 && lineCharts2.length > 0) {
         let minX = Infinity;
         let maxX = -Infinity;
         queryDataCopy.data.forEach(datum => {

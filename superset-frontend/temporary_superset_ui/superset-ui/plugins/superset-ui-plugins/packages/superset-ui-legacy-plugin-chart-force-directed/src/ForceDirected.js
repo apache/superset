@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-magic-numbers, sort-keys, func-names */
-/* eslint-disable no-param-reassign, babel/no-invalid-this */
+/* eslint-disable react/sort-prop-types, func-names, no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import './ForceDirected.css';

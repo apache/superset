@@ -1,5 +1,3 @@
-/* eslint-disable sort-keys, no-magic-numbers, complexity */
-
 import React from 'react';
 import { BoxPlotSeries, XYChart } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
@@ -86,6 +84,7 @@ export default class BoxPlot extends React.PureComponent<Props> {
 
     return layout.renderChartWithFrame((chartDim: Dimension) => (
       <XYChart
+        showYGrid
         width={chartDim.width}
         height={chartDim.height}
         ariaLabel="BoxPlot"
@@ -93,7 +92,6 @@ export default class BoxPlot extends React.PureComponent<Props> {
         renderTooltip={({ datum, color }: { datum: BoxPlotDataRow; color: string }) => (
           <TooltipRenderer datum={datum} color={color} encoder={encoder} />
         )}
-        showYGrid
         theme={theme}
         xScale={convertScaleToDataUIScale(channels.x.scale!.config)}
         yScale={convertScaleToDataUIScale(channels.y.scale!.config)}

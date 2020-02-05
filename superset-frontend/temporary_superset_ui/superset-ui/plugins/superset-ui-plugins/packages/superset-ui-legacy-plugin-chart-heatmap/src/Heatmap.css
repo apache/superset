@@ -43,13 +43,14 @@
   shape-rendering: crispEdges;
 }
 
-.superset-legacy-chart-heatmap canvas, .superset-legacy-chart-heatmap img {
-  image-rendering: optimizeSpeed;             /* Older versions of FF          */
-  image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+.superset-legacy-chart-heatmap canvas,
+.superset-legacy-chart-heatmap img {
+  image-rendering: optimizeSpeed; /* Older versions of FF          */
+  image-rendering: -moz-crisp-edges; /* FF 6.0+                       */
   image-rendering: -webkit-optimize-contrast; /* Safari                        */
-  image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
-  image-rendering: pixelated;                 /* Awesome future-browsers       */
-  -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
+  image-rendering: -o-crisp-edges; /* OS X & Windows Opera (12.02+) */
+  image-rendering: pixelated; /* Awesome future-browsers       */
+  -ms-interpolation-mode: nearest-neighbor; /* IE                            */
 }
 
 .superset-legacy-chart-heatmap .legendCells text {
@@ -67,5 +68,5 @@
 
 .dashboard .superset-legacy-chart-heatmap .axis text {
   font-size: 10px;
-  opacity: .75;
+  opacity: 0.75;
 }

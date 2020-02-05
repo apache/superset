@@ -18,7 +18,7 @@
  */
 import React, { PureComponent } from 'react';
 import memoizeOne from 'memoize-one';
-import { IcicleEventNode } from '../types/IcicleEventNode';
+import { IcicleEventNode } from './IcicleEventNode';
 import IcicleEventChart from './IcicleEventChart';
 import { createPartitionAndLayout } from './utils/IcicleEventTreeHelpers';
 

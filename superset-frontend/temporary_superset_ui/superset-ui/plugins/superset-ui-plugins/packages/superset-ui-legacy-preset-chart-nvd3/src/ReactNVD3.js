@@ -21,7 +21,7 @@ import Component from './NVD3Vis';
 import { hideTooltips, removeTooltip } from './utils';
 
 function componentWillUnmount() {
-  const { id } = this.props; // eslint-disable-line babel/no-invalid-this
+  const { id } = this.props;
   if (id !== null && id !== undefined) {
     removeTooltip(id);
   } else {

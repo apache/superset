@@ -1,5 +1,3 @@
-/* eslint-disable sort-keys, no-magic-numbers */
-
 import { pick } from 'lodash';
 import { ChartProps } from '@superset-ui/chart';
 import { BoxPlotDataRow, RawBoxPlotDataRow } from './types';

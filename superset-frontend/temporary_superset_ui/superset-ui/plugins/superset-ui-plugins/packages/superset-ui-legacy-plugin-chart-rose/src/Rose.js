@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint no-use-before-define: ["error", { "functions": false }] */
-/* eslint-disable sort-keys, no-magic-numbers, no-restricted-syntax, no-plusplus, babel/no-invalid-this */
+/* eslint-disable no-restricted-syntax, no-plusplus */
+/* eslint-disable react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import nv from 'nvd3';
@@ -248,7 +249,7 @@ function Rose(element, props) {
         arcId++;
         innerRadius = outerRadius;
       }
-      const labelArc = Object.assign({}, arcSt.data[i * numGroups]);
+      const labelArc = { ...arcSt.data[i * numGroups] };
       labelArc.outerRadius = maxRadius + 20;
       labelArc.innerRadius = maxRadius + 15;
       arcSt.labels.push(labelArc);

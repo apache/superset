@@ -17,18 +17,18 @@
  * under the License.
  */
 
- .superset-legacy-chart-chord svg #circle circle {
+.superset-legacy-chart-chord svg #circle circle {
   fill: none;
   pointer-events: all;
 }
 
 .superset-legacy-chart-chord svg .group path {
-  fill-opacity: .6;
+  fill-opacity: 0.6;
 }
 
 .superset-legacy-chart-chord svg path.chord {
   stroke: #000;
-  stroke-width: .25px;
+  stroke-width: 0.25px;
 }
 
 .superset-legacy-chart-chord svg #circle:hover path.fade {

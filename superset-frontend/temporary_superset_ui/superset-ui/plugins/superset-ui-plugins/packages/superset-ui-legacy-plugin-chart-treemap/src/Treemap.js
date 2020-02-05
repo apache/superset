@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-param-reassign, sort-keys */
-/* eslint-disable func-names, no-magic-numbers, babel/no-invalid-this */
+/* eslint-disable no-param-reassign, func-names */
+/* eslint-disable react/sort-prop-types */
 import { select as d3Select, selectAll as d3SelectAll } from 'd3-selection';
 import { treemap as d3Treemap, hierarchy as d3Hierarchy, treemapSquarify } from 'd3-hierarchy';
 import PropTypes from 'prop-types';
@@ -137,9 +137,9 @@ function Treemap(element, props) {
       .selectAll('tspan')
       .data(d =>
         d.data.name
-          .substring(d.data.name.lastIndexOf('.') + 1)
+          .slice(Math.max(0, d.data.name.lastIndexOf('.') + 1))
           .split(/(?=[A-Z][^A-Z])/g)
-          .concat(`\xa0${formatNumber(d.value)}`),
+          .concat(`\u00A0{formatNumber(d.value)}`),
       )
       .enter()
       .append('tspan')
@@ -152,7 +152,7 @@ function Treemap(element, props) {
       .selectAll('tspan')
       .data(d =>
         d.data.name
-          .substring(d.data.name.lastIndexOf('.') + 1)
+          .slice(Math.max(0, d.data.name.lastIndexOf('.') + 1))
           .split(/(?=[A-Z][^A-Z])/g)
           .concat(formatNumber(d.value)),
       )
