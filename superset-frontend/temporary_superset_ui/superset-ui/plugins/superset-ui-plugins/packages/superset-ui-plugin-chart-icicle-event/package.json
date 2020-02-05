@@ -32,7 +32,7 @@
     "@types/d3": "^5.7.2",
     "@types/d3-hierarchy": "^1.1.6",
     "@types/d3-selection": "^1.4.1",
-    "@types/memoize-one": "^4.1.1",
+    "@types/memoize-one": "^5.1.2",
     "d3-array": "^2.2.0",
     "d3-hierarchy": "^1.1.8",
     "d3-selection": "^1.4.0",
