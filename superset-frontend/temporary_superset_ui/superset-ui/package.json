@@ -4,7 +4,7 @@
   "description": "Superset UI",
   "private": true,
   "scripts": {
-    "build": "yarn babel && yarn type:dts && yarn build:assets",
+    "build": "yarn babel && yarn type && yarn build:assets",
     "babel": "yarn babel:cjs && yarn babel:esm",
     "babel:cjs": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
     "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\" --esm",
@@ -19,7 +19,7 @@
     "prettier": "nimbus prettier",
     "test": "yarn jest",
     "test:watch": "yarn lint:fix && yarn jest --watch",
-    "type:dts": "nimbus typescript --build --reference-workspaces",
+    "type": "nimbus typescript --build --reference-workspaces",
     "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn install && yarn test",
     "prerelease": "yarn build",
     "pretest": "yarn lint",
