@@ -17,14 +17,25 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queryData, datasource } = chartProps;
   const { colorScheme, metric, secondaryMetric } = formData;
 
-  return {
+  const returnProps = {
     width,
     height,
     data: queryData.data,
     colorScheme,
     metrics: [metric, secondaryMetric],
   };
+
+  if (datasource && datasource.metrics) {
+    const metricWithFormat = datasource.metrics.find(
+      ({ metric_name: metricName, d3format }) => metricName === formData.metric && d3format,
+    );
+    if (metricWithFormat) {
+      Object.assign(returnProps, { numberFormat: metricWithFormat.d3format });
+    }
+  }
+
+  return returnProps;
 }
