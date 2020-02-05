@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, no-magic-numbers, react/forbid-prop-types */
-/* eslint-disable react/require-default-props */
+/* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
+/* eslint-disable react/forbid-prop-types, react/require-default-props */
 import React from 'react';
 import PropTypes from 'prop-types';
 import MapGL from 'react-map-gl';

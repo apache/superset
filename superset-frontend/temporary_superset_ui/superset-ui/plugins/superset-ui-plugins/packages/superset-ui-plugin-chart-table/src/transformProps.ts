@@ -49,7 +49,7 @@ function transformData(data: PlainObject[], formData: PlainObject) {
 
   // handle percentage columns.
   const percentMetrics: string[] = (formData.percentMetrics || []).map(
-    (metric: QueryFormDataMetric) => (metric as AdhocMetric).label || (metric as string),
+    (metric: QueryFormDataMetric) => (metric as AdhocMetric).label ?? (metric as string),
   );
 
   if (percentMetrics.length > 0) {

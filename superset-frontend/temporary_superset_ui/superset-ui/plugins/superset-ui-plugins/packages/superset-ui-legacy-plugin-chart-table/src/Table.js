@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, no-magic-numbers, complexity, func-names */
-/* eslint-disable babel/no-invalid-this, babel/new-cap, no-negated-condition */
-/* eslint-disable prefer-destructuring, react/forbid-prop-types */
+/* eslint-disable func-names, no-negated-condition */
+/* eslint-disable prefer-destructuring */
+/* eslint-disable react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import dt from 'datatables.net-bs/js/dataTables.bootstrap';
@@ -96,22 +96,22 @@ function TableVis(element, props) {
 
   function col(c) {
     const arr = [];
-    for (let i = 0; i < data.length; i += 1) {
-      arr.push(data[i][c]);
-    }
+    data.forEach(row => {
+      arr.push(row[c]);
+    });
 
     return arr;
   }
   const maxes = {};
   const mins = {};
-  for (let i = 0; i < metrics.length; i += 1) {
+  metrics.forEach(metric => {
     if (alignPositiveNegative) {
-      maxes[metrics[i]] = d3.max(col(metrics[i]).map(Math.abs));
+      maxes[metric] = d3.max(col(metric).map(Math.abs));
     } else {
-      maxes[metrics[i]] = d3.max(col(metrics[i]));
-      mins[metrics[i]] = d3.min(col(metrics[i]));
+      maxes[metric] = d3.max(col(metric));
+      mins[metric] = d3.min(col(metric));
     }
-  }
+  });
 
   const tsFormatter = getTimeFormatter(tableTimestampFormat);
 
@@ -146,7 +146,7 @@ function TableVis(element, props) {
       columns.map(({ key, format }) => {
         const val = row[key];
         let html;
-        const isMetric = metrics.indexOf(key) >= 0;
+        const isMetric = metrics.includes(key);
         if (key === '__timestamp') {
           html = tsFormatter(val);
         }
@@ -213,7 +213,7 @@ function TableVis(element, props) {
     })
     .attr('data-sort', d => (d.isMetric ? d.val : null))
     // Check if the dashboard currently has a filter for each row
-    .classed('filtered', d => filters && filters[d.col] && filters[d.col].indexOf(d.val) >= 0)
+    .classed('filtered', d => filters && filters[d.col] && filters[d.col].includes(d.val))
     .on('click', function(d) {
       if (!d.isMetric && tableFilter) {
         const td = d3.select(this);
@@ -259,7 +259,7 @@ function TableVis(element, props) {
     const keys = columns.map(c => c.key);
     const index = keys.indexOf(sortBy);
     datatable.column(index).order(orderDesc ? 'desc' : 'asc');
-    if (metrics.indexOf(sortBy) < 0) {
+    if (!metrics.includes(sortBy)) {
       // Hiding the sortBy column if not in the metrics list
       datatable.column(index).visible(false);
     }

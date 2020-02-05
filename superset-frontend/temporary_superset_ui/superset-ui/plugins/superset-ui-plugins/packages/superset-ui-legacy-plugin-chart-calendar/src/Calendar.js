@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, no-magic-numbers, react/forbid-prop-types */
 import PropTypes from 'prop-types';
 import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
@@ -54,8 +53,11 @@ const propTypes = {
     subdomain: PropTypes.string,
   }),
   height: PropTypes.number,
+  // eslint-disable-next-line react/sort-prop-types
   cellPadding: PropTypes.number,
+  // eslint-disable-next-line react/sort-prop-types
   cellRadius: PropTypes.number,
+  // eslint-disable-next-line react/sort-prop-types
   cellSize: PropTypes.number,
   linearColorScheme: PropTypes.string,
   showLegend: PropTypes.bool,
@@ -119,7 +121,7 @@ function Calendar(element, props) {
       .createLinearScale(extents);
 
     const legend = d3Range(steps).map(i => extents[0] + step * i);
-    const legendColors = legend.map(colorScale);
+    const legendColors = legend.map(x => colorScale(x));
 
     const cal = new CalHeatMap();
 

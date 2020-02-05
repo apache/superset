@@ -11,7 +11,7 @@ export default function createEncoderClass<
 >({
   channelTypes,
   defaultEncoding,
-  allChannelOptions: allChannelOptions = {},
+  allChannelOptions = {},
 }: {
   channelTypes: ChannelTypes;
   defaultEncoding: Encoding;

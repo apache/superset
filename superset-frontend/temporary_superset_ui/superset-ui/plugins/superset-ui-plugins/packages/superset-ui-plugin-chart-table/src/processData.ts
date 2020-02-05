@@ -30,7 +30,7 @@ function processData(
   }
 
   return processedRecords.map(
-    sortByKey && metrics.indexOf(sortByKey) < 0
+    sortByKey && !metrics.includes(sortByKey)
       ? row => {
           const data = { ...row };
           delete data[sortByKey];

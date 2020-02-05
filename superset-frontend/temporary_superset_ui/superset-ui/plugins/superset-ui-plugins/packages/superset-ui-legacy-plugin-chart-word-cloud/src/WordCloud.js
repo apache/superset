@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable react/sort-prop-types */
 
-/* eslint-disable sort-keys, no-magic-numbers */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import cloudLayout from 'd3-cloud';

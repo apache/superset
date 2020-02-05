@@ -2,8 +2,6 @@ import { pick } from 'lodash';
 import { ChartProps } from '@superset-ui/chart';
 import { HookProps, FormDataProps } from './Line';
 
-/* eslint-disable sort-keys */
-
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, queryData } = chartProps;
   const { data } = queryData;

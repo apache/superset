@@ -1,3 +1,4 @@
+/* eslint-disable react/sort-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,8 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-magic-numbers, complexity, sort-keys */
-/* eslint-disable no-plusplus, react/forbid-prop-types */
+/* eslint-disable no-plusplus */
 import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
 import nv from 'nvd3';
@@ -269,7 +269,7 @@ function nvd3Vis(element, props) {
   container.style.height = `${maxHeight}px`;
 
   function isVizTypes(types) {
-    return types.indexOf(vizType) >= 0;
+    return types.includes(vizType);
   }
 
   const drawGraph = function drawGraph() {
@@ -378,7 +378,7 @@ function nvd3Vis(element, props) {
         chart.labelThreshold(0.05);
         chart.cornerRadius(true);
 
-        if (['key', 'value', 'percent'].indexOf(pieLabelType) >= 0) {
+        if (['key', 'value', 'percent'].includes(pieLabelType)) {
           chart.labelType(pieLabelType);
         } else if (pieLabelType === 'key_value') {
           chart.labelType(d => `${d.data.x}: ${numberFormatter(d.data.y)}`);
@@ -510,7 +510,7 @@ function nvd3Vis(element, props) {
       if (isXAxisString) {
         chart.xAxis.tickFormat(d =>
           d.length > MAX_NO_CHARACTERS_IN_LABEL
-            ? `${d.substring(0, MAX_NO_CHARACTERS_IN_LABEL)}…`
+            ? `${d.slice(0, Math.max(0, MAX_NO_CHARACTERS_IN_LABEL))}…`
             : d,
         );
       } else {
@@ -682,7 +682,7 @@ function nvd3Vis(element, props) {
 
       // match number of ticks in both axes
       const difference = ticks1.length - ticks2.length;
-      if (ticks1.length && ticks2.length && difference !== 0) {
+      if (ticks1.length > 0 && ticks2.length > 0 && difference !== 0) {
         const smallest = difference < 0 ? ticks1 : ticks2;
         const delta = smallest[1] - smallest[0];
         for (let i = 0; i < Math.abs(difference); i++) {
@@ -951,7 +951,7 @@ function nvd3Vis(element, props) {
                 })
                 .filter(record => !Number.isNaN(record[e.timeColumn].getMilliseconds()));
 
-              if (records.length) {
+              if (records.length > 0) {
                 annotations
                   .selectAll('line')
                   .data(records)
@@ -1029,7 +1029,7 @@ function nvd3Vis(element, props) {
                     !Number.isNaN(record[e.intervalEndColumn].getMilliseconds()),
                 );
 
-              if (records.length) {
+              if (records.length > 0) {
                 annotations
                   .selectAll('rect')
                   .data(records)
