@@ -1363,7 +1363,7 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             return json_error_response(
-                "Connection failed!\n\n" "The error message returned was:\n{}".format(e)
+                "Connection failed!\n\n" f"The error message returned was:\n{e}", 400
             )
 
     @api
@@ -2711,11 +2711,11 @@ class Superset(BaseSupersetView):
                 database, schemas_allowed, False
             )
             return self.json_response(schemas_allowed_processed)
-        except Exception:
+        except Exception as e:
+            self.logger.exception(e)
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
-                "Please contact your Superset Admin!",
-                stacktrace=utils.get_stacktrace(),
+                "Please contact your Superset Admin!"
             )
 
 
