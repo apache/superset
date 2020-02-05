@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { Row, Col, Button, Modal, FormControl } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
 import Select from 'react-select';
+import AceEditor from 'react-ace';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -49,19 +50,25 @@ const defaultProps = {
 class PropertiesModal extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.defaultMetadataValue = JSON.stringify(
+      props.dashboardInfo.metadata,
+      null,
+      2,
+    );
     this.state = {
       errors: [],
       values: {
         dashboard_title: props.dashboardTitle,
         slug: props.dashboardInfo.slug,
         owners: props.owners || [],
-        json_metadata: JSON.stringify(props.dashboardInfo.metadata),
+        json_metadata: this.defaultMetadataValue,
       },
       isOwnersLoaded: false,
       userOptions: null,
       isAdvancedOpen: false,
     };
     this.onChange = this.onChange.bind(this);
+    this.onMetadataChange = this.onMetadataChange.bind(this);
     this.onOwnersChange = this.onOwnersChange.bind(this);
     this.save = this.save.bind(this);
     this.toggleAdvanced = this.toggleAdvanced.bind(this);
@@ -91,16 +98,19 @@ class PropertiesModal extends React.PureComponent {
   }
 
   onOwnersChange(value) {
-    this.setState(state => ({
-      values: {
-        ...state.values,
-        owners: value,
-      },
-    }));
+    this.updateFormState('owners', value);
+  }
+
+  onMetadataChange(metadata) {
+    this.updateFormState('json_metadata', metadata);
   }
 
   onChange(e) {
     const { name, value } = e.target;
+    this.updateFormState(name, value);
+  }
+
+  updateFormState(name, value) {
     this.setState(state => ({
       values: {
         ...state.values,
@@ -245,14 +255,16 @@ class PropertiesModal extends React.PureComponent {
                     <label className="control-label" htmlFor="json_metadata">
                       {t('JSON Metadata')}
                     </label>
-                    <FormControl
-                      componentClass="textarea"
-                      style={{ maxWidth: '100%' }}
+                    <AceEditor
+                      mode="json"
                       name="json_metadata"
-                      type="text"
-                      bsSize="sm"
+                      defaultValue={this.defaultMetadataValue}
                       value={values.json_metadata}
-                      onChange={this.onChange}
+                      onChange={this.onMetadataChange}
+                      theme="textmate"
+                      tabSize={2}
+                      width="100%"
+                      height="200px"
                     />
                     <p className="help-block">
                       {t(
