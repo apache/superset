@@ -216,6 +216,7 @@ export default class ResultSet extends React.PureComponent {
           <Alert bsStyle="info">
             {t('Table')} [<strong>{query.tempTable}</strong>] {t('was created')}{' '}
             &nbsp;
+            // TODO add viz table button here as well
             <Button
               bsSize="small"
               className="m-r-5"

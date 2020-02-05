@@ -40,7 +40,7 @@ from superset.views.base import (
     ListWidgetWithCheckboxes,
     SupersetModelView,
     YamlExportMixin,
-)
+    validate_sqlatable, create_table_permissions)
 
 from . import models
 
@@ -339,37 +339,10 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     }
 
     def pre_add(self, table):
-        with db.session.no_autoflush:
-            table_query = db.session.query(models.SqlaTable).filter(
-                models.SqlaTable.table_name == table.table_name,
-                models.SqlaTable.schema == table.schema,
-                models.SqlaTable.database_id == table.database.id,
-            )
-            if db.session.query(table_query.exists()).scalar():
-                raise Exception(get_datasource_exist_error_msg(table.full_name))
-
-        # Fail before adding if the table can't be found
-        try:
-            table.get_sqla_table_object()
-        except Exception as e:
-            logger.exception(f"Got an error in pre_add for {table.name}")
-            raise Exception(
-                _(
-                    "Table [{}] could not be found, "
-                    "please double check your "
-                    "database connection, schema, and "
-                    "table name, error: {}"
-                ).format(table.name, str(e))
-            )
+        validate_sqlatable(table)
 
     def post_add(self, table, flash_message=True):
-        table.fetch_metadata()
-        security_manager.add_permission_view_menu("datasource_access", table.get_perm())
-        if table.schema:
-            security_manager.add_permission_view_menu(
-                "schema_access", table.schema_perm
-            )
-
+        create_table_permissions(table)
         if flash_message:
             flash(
                 _(

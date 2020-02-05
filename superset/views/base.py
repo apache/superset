@@ -35,6 +35,7 @@ from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
 from superset import appbuilder, conf, db, get_feature_flags, security_manager
+from superset.connectors.sqla import models
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
@@ -51,6 +52,8 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "DISPLAY_MAX_ROW",
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_error_msg():
@@ -142,6 +145,41 @@ def handle_api_exception(f):
 
 def get_datasource_exist_error_msg(full_name):
     return __("Datasource %(name)s already exists", name=full_name)
+
+
+def validate_sqlatable(table: models.SqlaTable) -> None:
+    """Checks the table existence in the database."""
+    with db.session.no_autoflush:
+        table_query = db.session.query(models.SqlaTable).filter(
+            models.SqlaTable.table_name == table.table_name,
+            models.SqlaTable.schema == table.schema,
+            models.SqlaTable.database_id == table.database_id,
+        )
+        if db.session.query(table_query.exists()).scalar():
+            raise Exception(get_datasource_exist_error_msg(table.full_name))
+
+    # Fail before adding if the table can't be found
+    try:
+        table.get_sqla_table_object()
+    except Exception as e:
+        logger.exception(f"Got an error in pre_add for {table.name}")
+        raise Exception(
+            _(
+                "Table [{}] could not be found, "
+                "please double check your "
+                "database connection, schema, and "
+                "table name, error: {}"
+            ).format(table.name, str(e))
+        )
+
+
+def create_table_permissions(table: models.SqlaTable) -> None:
+    table.fetch_metadata()
+    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
+    if table.schema:
+        security_manager.add_permission_view_menu(
+            "schema_access", table.schema_perm
+        )
 
 
 def get_user_roles():

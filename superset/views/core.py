@@ -106,7 +106,7 @@ from .base import (
     json_error_response,
     json_success,
     SupersetModelView,
-)
+    create_table_permissions, validate_sqlatable)
 from .dashboard import views as dash_views
 from .database import views as in_views
 from .utils import (
@@ -1882,9 +1882,18 @@ class Superset(BaseSupersetView):
         return Response(status=201)
 
     @has_access
-    @expose("/sqllab_ctas_viz/", methods=["POST"])
+    @expose("/sqllab_table_viz/", methods=["POST"])
     @event_logger.log_this
-    def sqllab_viz(self):
+    def sqllab_table_viz(self):
+        """ This endpoint visualizes table no matter if it is created or not.
+
+        It expects the json with params:
+        * datasourceName - e.g. table name, required
+        * dbId - database id, required
+        * schema - table schema, optional
+        * templateParams - params for the Jinja templating syntax, optional
+        :return: Response
+        """
         SqlaTable = ConnectorRegistry.sources["table"]
         data = json.loads(request.form.get("data"))
         table_name = data.get("datasourceName")
@@ -1895,32 +1904,17 @@ class Superset(BaseSupersetView):
             .one_or_none()
         )
         if not table:
+            # Create table if doesn't exist.
             table = SqlaTable(table_name=table_name, owners=[g.user])
-        table.database_id = database_id
-        table.schema = data.get("schema")
-        table.template_params = data.get("templateParams")
-        table.is_sqllab_view = True
-        q = ParsedQuery(data.get("sql"))
-        table.sql = q.stripped()
-        db.session.add(table)
-        cols = []
-        for config in data.get("columns"):
-            column_name = config.get("name")
-            SqlaTable = ConnectorRegistry.sources["table"]
-            TableColumn = SqlaTable.column_class
-            SqlMetric = SqlaTable.metric_class
-            col = TableColumn(
-                column_name=column_name,
-                filterable=True,
-                groupby=True,
-                is_dttm=config.get("is_date", False),
-                type=config.get("type", False),
-            )
-            cols.append(col)
-
-        table.columns = cols
-        table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
-        db.session.commit()
+            table.database_id = database_id
+            table.database = db.session.query(models.Database).filter_by(id=database_id).one()
+            table.schema = data.get("schema")
+            table.template_params = data.get("templateParams")
+            db.session.add(table)
+            # needed for the table validation.
+            validate_sqlatable(table)
+            db.session.commit()
+            create_table_permissions(table)
         return json_success(json.dumps({"table_id": table.id}))
 
     @has_access
