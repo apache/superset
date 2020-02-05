@@ -1,6 +1,6 @@
 /* [LICENSE TBD] */
 /* eslint-disable */
-module.exports = function(config) {
+export default function(config) {
   var __ = {
     data: [],
     highlighted: [],
@@ -2336,7 +2336,7 @@ module.exports = function(config) {
   };
 
   return pc;
-};
+}
 
 d3.renderQueue = function(func) {
   var _queue = [], // data to be rendered

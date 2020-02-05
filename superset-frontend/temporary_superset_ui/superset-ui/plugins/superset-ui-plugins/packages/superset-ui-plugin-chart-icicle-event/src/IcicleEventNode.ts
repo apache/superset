@@ -21,5 +21,5 @@ export type IcicleEventNode = {
   event: string;
   name?: string;
   value: number;
-  children?: IcicleEventNode[]
-}
+  children?: IcicleEventNode[];
+};

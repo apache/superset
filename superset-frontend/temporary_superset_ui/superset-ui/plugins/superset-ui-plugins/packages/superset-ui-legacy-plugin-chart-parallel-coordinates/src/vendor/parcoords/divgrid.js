@@ -1,7 +1,7 @@
 /* [LICENSE TBD] */
 /* eslint-disable */
 // from http://bl.ocks.org/3687826
-module.exports = function(config) {
+export default function(config) {
   var columns = [];
 
   var dg = function(selection) {
@@ -80,4 +80,4 @@ module.exports = function(config) {
   };
 
   return dg;
-};
+}

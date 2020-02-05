@@ -41,7 +41,7 @@
 
 /* Northward tooltips */
 .d3-tip.n:after {
-  content: "\25BC";
+  content: '\25BC';
   margin: -1px 0 0 0;
   top: 100%;
   left: 0;
@@ -50,7 +50,7 @@
 
 /* Eastward tooltips */
 .d3-tip.e:after {
-  content: "\25C0";
+  content: '\25C0';
   margin: -4px 0 0 0;
   top: 50%;
   left: -8px;
@@ -58,7 +58,7 @@
 
 /* Southward tooltips */
 .d3-tip.s:after {
-  content: "\25B2";
+  content: '\25B2';
   margin: 0 0 1px 0;
   top: -8px;
   left: 0;
@@ -67,7 +67,7 @@
 
 /* Westward tooltips */
 .d3-tip.w:after {
-  content: "\25B6";
+  content: '\25B6';
   margin: -4px 0 0 -1px;
   top: 50%;
   left: 100%;

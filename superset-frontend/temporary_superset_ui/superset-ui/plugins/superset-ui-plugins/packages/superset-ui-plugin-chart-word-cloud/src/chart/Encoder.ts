@@ -9,7 +9,6 @@ type WordCloudEncodingConfig = {
   text: ['Text', string];
 };
 
-// eslint-disable-next-line import/prefer-default-export
 export const wordCloudEncoderFactory = createEncoderFactory<WordCloudEncodingConfig>({
   channelTypes: {
     color: 'Color',

@@ -19,7 +19,7 @@
 
 .superset-legacy-chart-sankey .node rect {
   cursor: move;
-  fill-opacity: .9;
+  fill-opacity: 0.9;
   shape-rendering: crispEdges;
 }
 
@@ -31,11 +31,11 @@
 .superset-legacy-chart-sankey .link {
   fill: none;
   stroke: #000;
-  stroke-opacity: .2;
+  stroke-opacity: 0.2;
 }
 
 .superset-legacy-chart-sankey .link:hover {
-  stroke-opacity: .5;
+  stroke-opacity: 0.5;
 }
 
 .superset-legacy-chart-sankey-tooltip {

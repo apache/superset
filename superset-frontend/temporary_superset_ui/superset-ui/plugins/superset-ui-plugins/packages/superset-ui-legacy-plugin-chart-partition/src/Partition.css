@@ -29,7 +29,7 @@
 .superset-legacy-chart-partition rect {
   stroke: #eee;
   fill: #aaa;
-  fill-opacity: .8;
+  fill-opacity: 0.8;
   transition: fill-opacity 180ms linear;
   cursor: pointer;
 }
@@ -54,7 +54,7 @@
   opacity: 0;
   padding: 5px;
   pointer-events: none;
-  background-color: rgba(255,255,255, 0.75);
+  background-color: rgba(255, 255, 255, 0.75);
   border-radius: 5px;
 }
 

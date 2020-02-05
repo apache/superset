@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
+/* eslint-disable react/sort-prop-types */
 import PropTypes from 'prop-types';
 import { ANNOTATION_TYPES } from './vendor/superset/AnnotationTypes';
 

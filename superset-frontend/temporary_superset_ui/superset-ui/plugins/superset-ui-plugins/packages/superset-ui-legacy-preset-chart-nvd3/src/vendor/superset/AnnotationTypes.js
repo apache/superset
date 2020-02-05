@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
 function extractTypes(metadata) {
   return Object.keys(metadata).reduce((prev, key) => {
     const result = prev;

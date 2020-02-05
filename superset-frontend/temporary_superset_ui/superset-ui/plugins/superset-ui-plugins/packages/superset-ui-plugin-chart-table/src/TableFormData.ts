@@ -8,4 +8,5 @@ type TableFormData = QueryFormData & {
   order_by_cols: string[];
 };
 
+// eslint-disable-next-line no-undef
 export default TableFormData;

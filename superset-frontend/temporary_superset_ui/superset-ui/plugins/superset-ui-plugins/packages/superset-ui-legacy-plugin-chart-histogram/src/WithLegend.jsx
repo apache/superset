@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
+/* eslint-disable react/sort-prop-types, react/jsx-sort-default-props */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ParentSize } from '@vx/responsive';

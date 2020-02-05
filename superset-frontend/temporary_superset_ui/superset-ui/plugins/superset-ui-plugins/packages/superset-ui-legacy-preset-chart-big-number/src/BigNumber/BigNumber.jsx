@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, react/forbid-prop-types */
+/* eslint-disable react/forbid-prop-types */
+/* eslint-disable react/jsx-sort-default-props */
+/* eslint-disable react/sort-prop-types */
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
@@ -42,7 +44,6 @@ const PROPORTION = {
 
 export function renderTooltipFactory(formatValue) {
   function renderTooltip({ datum }) {
-    // eslint-disable-line
     const { x: rawDate, y: rawValue } = datum;
     const formattedDate = smartDateVerboseFormatter(rawDate);
     const value = formatValue(rawValue);
@@ -128,7 +129,7 @@ class BigNumberVis extends React.PureComponent {
     const text = formatBigNumber(bigNumber);
 
     const container = this.createTemporaryContainer();
-    document.body.appendChild(container);
+    document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
       maxWidth: Math.floor(width),
@@ -156,7 +157,7 @@ class BigNumberVis extends React.PureComponent {
     let fontSize = 0;
     if (subheader) {
       const container = this.createTemporaryContainer();
-      document.body.appendChild(container);
+      document.body.append(container);
       fontSize = computeMaxFontSize({
         text: subheader,
         maxWidth: Math.floor(width),
@@ -192,6 +193,7 @@ class BigNumberVis extends React.PureComponent {
 
     return (
       <XYChart
+        snapTooltipToDataX
         ariaLabel={`Big number visualization ${subheader}`}
         xScale={{ type: 'timeUtc' }}
         yScale={{
@@ -202,16 +204,15 @@ class BigNumberVis extends React.PureComponent {
         height={maxHeight}
         margin={CHART_MARGIN}
         renderTooltip={renderTooltip}
-        snapTooltipToDataX
       >
         <LinearGradient id={this.gradientId} from={mainColor} to="#fff" />
         <AreaSeries data={trendLineData} fill={`url(#${this.gradientId})`} stroke={mainColor} />
         <CrossHair
+          fullHeight
           stroke={mainColor}
           circleFill={mainColor}
           circleStroke="#fff"
           showHorizontalLine={false}
-          fullHeight
           strokeDasharray="5,2"
         />
       </XYChart>

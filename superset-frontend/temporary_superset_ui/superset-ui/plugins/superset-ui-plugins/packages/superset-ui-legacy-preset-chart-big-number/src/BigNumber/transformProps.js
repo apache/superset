@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable complexity, sort-keys */
 import * as color from 'd3-color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { renderTooltipFactory } from './BigNumber';

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
+/* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';

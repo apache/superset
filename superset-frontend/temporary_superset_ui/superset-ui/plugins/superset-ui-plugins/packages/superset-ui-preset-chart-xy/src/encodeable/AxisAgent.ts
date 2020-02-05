@@ -1,4 +1,3 @@
-/* eslint-disable no-magic-numbers */
 import { CSSProperties } from 'react';
 import { getTextDimension, Margin, Dimension } from '@superset-ui/dimension';
 import { CategoricalColorScale } from '@superset-ui/color';
@@ -45,7 +44,9 @@ export interface AxisLayout {
 
 export default class AxisAgent<Def extends ChannelDef> {
   private readonly channelEncoder: ChannelEncoder<Def>;
+
   private readonly format?: (value: any) => string;
+
   readonly config: CoreAxis;
 
   constructor(channelEncoder: ChannelEncoder<Def>) {
@@ -63,7 +64,7 @@ export default class AxisAgent<Def extends ChannelDef> {
   }
 
   getFormat() {
-    return this.format || this.channelEncoder.formatValue;
+    return this.format ?? this.channelEncoder.formatValue;
   }
 
   hasTitle() {
@@ -75,7 +76,8 @@ export default class AxisAgent<Def extends ChannelDef> {
 
     if (title === undefined || title === true) {
       return this.channelEncoder.getTitle();
-    } else if (title === false || title === '') {
+    }
+    if (title === false || title === '') {
       return '';
     }
 
@@ -103,7 +105,6 @@ export default class AxisAgent<Def extends ChannelDef> {
     return [];
   }
 
-  // eslint-disable-next-line complexity
   computeLayout({
     axisTitleHeight = 20,
     axisWidth,

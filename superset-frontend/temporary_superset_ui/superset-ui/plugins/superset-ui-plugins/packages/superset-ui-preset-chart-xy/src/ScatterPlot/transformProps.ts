@@ -1,5 +1,3 @@
-/* eslint-disable sort-keys */
-
 import { pick } from 'lodash';
 import { ChartProps } from '@superset-ui/chart';
 import { HookProps } from './ScatterPlot';

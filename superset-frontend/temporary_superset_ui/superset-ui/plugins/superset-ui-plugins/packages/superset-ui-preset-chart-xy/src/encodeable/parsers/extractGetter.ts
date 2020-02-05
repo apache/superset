@@ -5,7 +5,8 @@ import identity from '../utils/identity';
 export default function extractGetter(definition: ChannelDef) {
   if (isValueDef(definition)) {
     return () => definition.value;
-  } else if ('field' in definition && definition.field !== undefined) {
+  }
+  if ('field' in definition && definition.field !== undefined) {
     return get(definition.field);
   }
 

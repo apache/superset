@@ -1,3 +1,4 @@
+/* eslint-disable react/sort-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,7 +18,7 @@
  * under the License.
  */
 /* eslint no-param-reassign: [2, {"props": false}] */
-/* eslint-disable sort-keys, no-magic-numbers, babel/no-invalid-this, no-plusplus */
+/* eslint-disable no-plusplus */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { hierarchy } from 'd3-hierarchy';
@@ -30,7 +31,7 @@ import './Partition.css';
 // return an array of nodes in breadth-first order
 function init(root) {
   const flat = [];
-  const dy = 1.0 / (root.height + 1);
+  const dy = 1 / (root.height + 1);
   let prev = null;
   root.each(n => {
     n.y = dy * n.depth;
@@ -108,7 +109,7 @@ function Icicle(element, props) {
 
   // Chart options
   const chartType = timeSeriesOption;
-  const hasTime = ['adv_anal', 'time_series'].indexOf(chartType) >= 0;
+  const hasTime = ['adv_anal', 'time_series'].includes(chartType);
   const format = getNumberFormatter(numberFormat);
   const timeFormat = getTimeFormatter(dateTimeFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
@@ -143,7 +144,7 @@ function Icicle(element, props) {
     const root = hierarchy(datum);
 
     function hasDateNode(n) {
-      return metrics.indexOf(n.data.name) >= 0 && hasTime;
+      return metrics.includes(n.data.name) && hasTime;
     }
 
     // node.name is the metric/group name

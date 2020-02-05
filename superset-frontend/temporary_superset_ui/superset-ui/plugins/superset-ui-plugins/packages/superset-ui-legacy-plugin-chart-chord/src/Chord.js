@@ -1,4 +1,3 @@
-/* eslint-disable no-param-reassign, sort-keys, no-magic-numbers */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable no-param-reassign, react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
@@ -110,7 +110,6 @@ function Chord(element, props) {
   // Remove the labels that don't fit. :(
   groupText
     .filter(function filter(d, i) {
-      /* eslint-disable-next-line babel/no-invalid-this */
       return groupPath[0][i].getTotalLength() / 2 - 16 < this.getComputedTextLength();
     })
     .remove();

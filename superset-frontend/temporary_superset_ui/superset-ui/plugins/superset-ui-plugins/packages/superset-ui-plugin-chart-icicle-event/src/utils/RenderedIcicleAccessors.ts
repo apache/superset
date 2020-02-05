@@ -17,7 +17,7 @@
  * under the License.
  */
 import { HierarchyRectangularNode } from 'd3-hierarchy';
-import { IcicleEventNode } from '../../types/IcicleEventNode';
+import { IcicleEventNode } from '../IcicleEventNode';
 
 export function x0(isVertical: boolean, d: HierarchyRectangularNode<IcicleEventNode>) {
   return isVertical ? d.y0 : d.x0;

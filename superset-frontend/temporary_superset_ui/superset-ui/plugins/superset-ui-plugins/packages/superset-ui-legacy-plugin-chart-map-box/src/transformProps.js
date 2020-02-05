@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys, no-restricted-properties */
 import supercluster from 'supercluster';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapBox';
 
@@ -58,7 +57,7 @@ export default function transformProps(chartProps) {
     });
     opts.map = prop => ({
       sum: prop.metric,
-      squaredSum: Math.pow(prop.metric, 2),
+      squaredSum: prop.metric ** 2,
       min: prop.metric,
       max: prop.metric,
     });

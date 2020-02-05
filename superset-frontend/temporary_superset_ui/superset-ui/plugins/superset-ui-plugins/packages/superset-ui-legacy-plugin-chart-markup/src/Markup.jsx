@@ -48,7 +48,6 @@ class Markup extends React.PureComponent {
         <iframe
           title="superset-markup"
           frameBorder={0}
-          /* eslint-disable-next-line no-magic-numbers */
           height={isSeparator ? height - 20 : height}
           sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation"
           srcDoc={`

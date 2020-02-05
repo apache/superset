@@ -1,5 +1,3 @@
-/* eslint-disable no-magic-numbers */
-
 export default function createTickLabelProps({
   labelAngle,
   labelOverlap,

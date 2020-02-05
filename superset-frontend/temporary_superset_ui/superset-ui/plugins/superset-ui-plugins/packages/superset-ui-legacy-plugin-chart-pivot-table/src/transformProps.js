@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
 export default function transformProps(chartProps) {
   const { height, datasource, formData, queryData } = chartProps;
   const { groupby, numberFormat } = formData;

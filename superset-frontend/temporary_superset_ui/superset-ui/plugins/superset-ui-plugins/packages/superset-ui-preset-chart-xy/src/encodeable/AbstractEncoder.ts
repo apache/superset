@@ -19,7 +19,9 @@ export default abstract class AbstractEncoder<
   Options extends BaseOptions = BaseOptions
 > {
   readonly spec: FullSpec<Encoding, Options>;
+
   readonly channelTypes: ChannelTypes;
+
   readonly channels: AllChannelEncoders<Encoding>;
 
   readonly legends: {
@@ -91,6 +93,7 @@ export default abstract class AbstractEncoder<
   /**
    * subclass can override this
    */
+  // eslint-disable-next-line class-methods-use-this
   createFullSpec(spec: PartialSpec<Encoding, Options>, defaultEncoding?: Encoding) {
     if (typeof defaultEncoding === 'undefined') {
       return spec as FullSpec<Encoding, Options>;
@@ -139,7 +142,6 @@ export default abstract class AbstractEncoder<
             return domain.map((value: ChannelInput) => ({
               field,
               value,
-              // eslint-disable-next-line sort-keys
               encodedValues: channelNames.reduce(
                 (prev: Partial<Record<keyof Encoding, Value | undefined>>, curr) => {
                   const map = prev;

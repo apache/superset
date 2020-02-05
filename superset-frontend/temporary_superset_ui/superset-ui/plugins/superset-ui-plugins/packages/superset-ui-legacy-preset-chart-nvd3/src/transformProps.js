@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
 import isTruthy from './utils/isTruthy';
 import { formatLabel } from './utils';
 
@@ -94,7 +93,7 @@ export default function transformProps(chartProps) {
   } else if (chartProps.formData.vizType === 'dual_line') {
     yAxisFormat = yAxisFormat || grabD3Format(chartProps, chartProps.formData.metric);
     yAxis2Format = yAxis2Format || grabD3Format(chartProps, chartProps.formData.metric2);
-  } else if (['line', 'dist_bar', 'bar', 'area'].indexOf(chartProps.formData.vizType) > -1) {
+  } else if (['line', 'dist_bar', 'bar', 'area'].includes(chartProps.formData.vizType)) {
     yAxisFormat = yAxisFormat || grabD3Format(chartProps, chartProps.formData.metrics[0]);
   }
 

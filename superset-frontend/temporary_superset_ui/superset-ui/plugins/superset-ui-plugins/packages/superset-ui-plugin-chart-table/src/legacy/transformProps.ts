@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
 
 import { ChartProps } from '@superset-ui/chart';
 import getProcessColumnsFunction from '../processColumns';

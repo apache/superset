@@ -1,5 +1,3 @@
-/* eslint-disable no-magic-numbers */
-
 import React from 'react';
 import { TooltipFrame, TooltipTable } from '@superset-ui/chart-composition';
 import { isFieldDef } from '../encodeable/types/ChannelDef';

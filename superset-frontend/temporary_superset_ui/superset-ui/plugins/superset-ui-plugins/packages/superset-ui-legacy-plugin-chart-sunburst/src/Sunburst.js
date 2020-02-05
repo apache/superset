@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-param-reassign, sort-keys, no-magic-numbers */
-/* eslint-disable complexity, no-plusplus, no-continue, babel/no-invalid-this */
+/* eslint-disable no-param-reassign, react/sort-prop-types */
+/* eslint-disable no-plusplus */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
@@ -254,7 +254,7 @@ function Sunburst(element, props) {
     // Then highlight only those that are an ancestor of the current segment.
     arcs
       .selectAll('path')
-      .filter(node => sequenceArray.indexOf(node) >= 0)
+      .filter(node => sequenceArray.includes(node))
       .style('opacity', 1)
       .style('stroke', '#aaa');
 
@@ -291,14 +291,13 @@ function Sunburst(element, props) {
     };
 
     // each record [groupby1val, groupby2val, (<string> or 0)n, m1, m2]
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
+    rows.forEach(row => {
       const m1 = Number(row[row.length - 2]);
       const m2 = Number(row[row.length - 1]);
-      const levels = row.slice(0, row.length - 2);
+      const levels = row.slice(0, -2);
       if (Number.isNaN(m1)) {
         // e.g. if this is a header row
-        continue;
+        return;
       }
       let currentNode = root;
       for (let level = 0; level < levels.length; level++) {
@@ -307,22 +306,11 @@ function Sunburst(element, props) {
         // If the next node has the name '0', it will
         const isLeafNode = level >= levels.length - 1 || levels[level + 1] === 0;
         let childNode;
-        let currChild;
 
         if (!isLeafNode) {
-          // Not yet at the end of the sequence; move down the tree.
-          let foundChild = false;
-          for (let k = 0; k < children.length; k++) {
-            currChild = children[k];
-            if (currChild.name === nodeName && currChild.level === level) {
-              // must match name AND level
-              childNode = currChild;
-              foundChild = true;
-              break;
-            }
-          }
-          // If we don't already have a child node for this branch, create it.
-          if (!foundChild) {
+          childNode = children.find(child => child.name === nodeName && child.level === level);
+
+          if (!childNode) {
             childNode = {
               name: nodeName,
               children: [],
@@ -341,7 +329,7 @@ function Sunburst(element, props) {
           children.push(childNode);
         }
       }
-    }
+    });
 
     function recurse(node) {
       if (node.children) {

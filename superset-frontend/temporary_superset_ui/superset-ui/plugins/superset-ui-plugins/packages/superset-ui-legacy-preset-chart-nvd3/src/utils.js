@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable babel/no-invalid-this, no-magic-numbers */
 import d3 from 'd3';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
@@ -304,13 +303,12 @@ export function tipFactory(layer) {
         return '';
       }
       const title =
-        d[layer.titleColumn] && d[layer.titleColumn].length
+        d[layer.titleColumn] && d[layer.titleColumn].length > 0
           ? `${d[layer.titleColumn]} - ${layer.name}`
           : layer.name;
       const body = Array.isArray(layer.descriptionColumns)
         ? layer.descriptionColumns.map(c => d[c])
-        : /* eslint-disable-next-line compat/compat */
-          Object.values(d);
+        : Object.values(d);
 
       return `<div><strong>${title}</strong></div><br/><div>${body.join(', ')}</div>`;
     });
@@ -334,7 +332,7 @@ export function formatLabel(input, verboseMap = {}) {
   // When using the time shift feature, the label contains a '---' in the array
   const verboseLookup = s => verboseMap[s] || s;
 
-  return Array.isArray(input) && input.length
+  return Array.isArray(input) && input.length > 0
     ? input.map(l => (TIME_SHIFT_PATTERN.test(l) ? l : verboseLookup(l))).join(', ')
     : verboseLookup(input);
 }

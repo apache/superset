@@ -1,4 +1,4 @@
-/* eslint-disable babel/no-invalid-this, no-plusplus */
+/* eslint-disable no-plusplus */
 
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the
@@ -15,7 +15,6 @@ export default function wrapSvgText(text, width, adjustedY) {
   text.each(function each() {
     const d3Text = d3.select(this);
     const words = d3Text.text().split(/\s+/);
-    let word;
     let line = [];
     let lineNumber = 0;
     const x = d3Text.attr('x');
@@ -29,8 +28,7 @@ export default function wrapSvgText(text, width, adjustedY) {
       .attr('dy', `${dy}em`);
 
     let didWrap = false;
-    for (let i = 0; i < words.length; i++) {
-      word = words[i];
+    words.forEach(word => {
       line.push(word);
       tspan.text(line.join(' '));
       if (tspan.node().getComputedTextLength() > width) {
@@ -46,7 +44,8 @@ export default function wrapSvgText(text, width, adjustedY) {
           .text(word);
         didWrap = true;
       }
-    }
+    });
+
     if (!didWrap && typeof adjustedY !== 'undefined') {
       tspan.attr('y', adjustedY);
     }

@@ -1,5 +1,3 @@
-/* eslint-disable no-magic-numbers */
-
 import React, { CSSProperties } from 'react';
 import { Dimension } from '@superset-ui/dimension';
 import { AxisLayout } from '../encodeable/AxisAgent';
