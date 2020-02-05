@@ -41,12 +41,12 @@ from .base import (
 class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Callable) -> BaseQuery:
         """
-        Filter queries to only those owned by current user if
-        can_only_access_owned_queries permission is set.
+        Filter queries to only those owned by current user. If
+        can_access_all_queries permission is set a user can list all queries
 
         :returns: query
         """
-        if security_manager.can_only_access_owned_queries():
+        if not security_manager.can_access_all_queries():
             query = query.filter(Query.user_id == g.user.get_user_id())
         return query
 
