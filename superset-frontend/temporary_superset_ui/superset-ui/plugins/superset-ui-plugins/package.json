@@ -24,7 +24,8 @@
     "prerelease": "yarn build",
     "pretest": "yarn lint",
     "release": "yarn prepare-release && lerna publish --exact && yarn postrelease",
-    "postrelease": "lerna run deploy-demo"
+    "postrelease": "lerna run deploy-demo",
+    "storybook": "cd packages/superset-ui-plugins-demo && yarn storybook"
   },
   "repository": "https://github.com/apache-superset/superset-ui-plugins.git",
   "keywords": [
