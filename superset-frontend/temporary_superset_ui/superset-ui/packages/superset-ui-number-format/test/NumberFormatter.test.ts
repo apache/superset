@@ -1,6 +1,26 @@
 import NumberFormatter from '../src/NumberFormatter';
 
 describe('NumberFormatter', () => {
+  describe('new NumberFormatter(config)', () => {
+    it('requires config.id', () => {
+      expect(
+        () =>
+          // @ts-ignore
+          new NumberFormatter({
+            formatFunc: () => '',
+          }),
+      ).toThrow();
+    });
+    it('requires config.formatFunc', () => {
+      expect(
+        () =>
+          // @ts-ignore
+          new NumberFormatter({
+            id: 'my_format',
+          }),
+      ).toThrow();
+    });
+  });
   describe('formatter is also a format function itself', () => {
     const formatter = new NumberFormatter({
       id: 'fixed_3',
