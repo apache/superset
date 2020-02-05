@@ -2502,10 +2502,15 @@ class Superset(BaseSupersetView):
         :returns: Response with list of sql query dicts
         """
         query = db.session.query(Query)
-        if security_manager.can_only_access_owned_queries():
-            search_user_id = g.user.get_user_id()
-        else:
+        if security_manager.can_access_all_queries():
             search_user_id = request.args.get("user_id")
+        elif (
+            request.args.get("user_id") is not None
+            and request.args.get("user_id") != g.user.get_user_id()
+        ):
+            return Response(status=403, mimetype="application/json")
+        else:
+            search_user_id = g.user.get_user_id()
         database_id = request.args.get("database_id")
         search_text = request.args.get("search_text")
         status = request.args.get("status")

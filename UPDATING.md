@@ -22,6 +22,11 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+* [9046](https://github.com/apache/incubator-superset/pull/9046): Replaces `can_only_access_owned_queries` by
+`all_query_access` favoring a white list approach. Since a new permission is introduced use `superset init` 
+to create and associate it by default to the `Admin` role. Note that, by default, all non `Admin` users will
+not be able to access queries they do not own.
+
 * [8901](https://github.com/apache/incubator-superset/pull/8901): The datasource's update
 timestamp has been added to the query object's cache key to ensure updates to
 datasources are always reflected in associated query results. As a consequence all
