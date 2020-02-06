@@ -111,11 +111,6 @@ class CeleryTestCase(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         with app.app_context():
-            main_db = get_example_database()
-            # sqlite supports attaching schemas only for the single connection. It doesn't work with our celery setup.
-            # https://www.sqlite.org/inmemorydb.html
-            if main_db.backend != "sqlite":
-                db.session.execute("CREATE SCHEMA IF NOT EXISTS sqllab_test_db")
 
             class CeleryConfig(object):
                 BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
@@ -134,11 +129,6 @@ class CeleryTestCase(SupersetTestCase):
 
     @classmethod
     def tearDownClass(cls):
-        with app.app_context():
-            main_db = get_example_database()
-            if main_db.backend != "sqlite":
-                db.session.execute("DROP SCHEMA sqllab_test_db")
-
         subprocess.call(
             "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9", shell=True
         )
@@ -372,9 +362,12 @@ class CeleryTestCase(SupersetTestCase):
         with mock.patch.object(
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
-            data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                results, db_engine_spec, False, True
-            )
+            (
+                data,
+                selected_columns,
+                all_columns,
+                expanded_columns,
+            ) = sql_lab._serialize_and_expand_data(results, db_engine_spec, False, True)
             expand_data.assert_called_once()
 
         self.assertIsInstance(data, list)
@@ -393,9 +386,12 @@ class CeleryTestCase(SupersetTestCase):
         with mock.patch.object(
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
-            data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                results, db_engine_spec, True
-            )
+            (
+                data,
+                selected_columns,
+                all_columns,
+                expanded_columns,
+            ) = sql_lab._serialize_and_expand_data(results, db_engine_spec, True)
             expand_data.assert_not_called()
 
         self.assertIsInstance(data, bytes)
@@ -416,7 +412,12 @@ class CeleryTestCase(SupersetTestCase):
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": QueryStatus.PENDING,
         }
-        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(
             results, db_engine_spec, use_new_deserialization
         )
         payload = {
@@ -449,7 +450,12 @@ class CeleryTestCase(SupersetTestCase):
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": QueryStatus.PENDING,
         }
-        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(
             results, db_engine_spec, use_new_deserialization
         )
         payload = {

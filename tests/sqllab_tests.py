@@ -77,8 +77,6 @@ class SqlLabTests(SupersetTestCase):
         if main_db.backend == "sqlite":
             # sqlite doesn't support database creation
             return
-        db.session.execute("CREATE SCHEMA IF NOT EXISTS admin_database")
-        db.session.commit()
 
         old_allow_ctas = main_db.allow_ctas
         main_db.allow_ctas = True  # enable cta
@@ -100,11 +98,6 @@ class SqlLabTests(SupersetTestCase):
 
         # cleanup
         db.session.execute("DROP TABLE admin_database.test_target")
-
-        db.session.commit()
-        db.session.execute("DROP SCHEMA admin_database")
-        db.session.commit()
-
         main_db.allow_ctas = old_allow_ctas
         db.session.commit()
 
