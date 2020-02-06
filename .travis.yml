@@ -64,6 +64,7 @@ jobs:
         - redis-server
       before_script:
         - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
+        - mysql -u root -e "DROP DATABASE IF EXISTS sqllab_test_db; CREATE DATABASE sqllab_test_db DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
         - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
         - mysql -u root -e "GRANT ALL ON *.* TO 'mysqluser'@'localhost';"
     - language: python
@@ -91,8 +92,9 @@ jobs:
         - postgresql
         - redis-server
       before_script:
-        - psql -U postgres -c "CREATE DATABASE superset;"
-        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword' SUPERUSER;"
+        - psql -U postgres -c "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset;"
+        - psql -U postgres -c "DROP DATABASE IF EXISTS sqllab_test_db; CREATE DATABASE sqllab_test_db;"
+        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
     - language: python
       python: 3.6
       env: TOXENV=pylint
