@@ -16,12 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.dashboard-list-view {
-  .actions {
-    font-size: 20px;
-  }
+import React from 'react';
 
-  .action-button {
-    margin: 0 8px;
-  }
-}
+const IndeterminateCheckbox = React.forwardRef(
+  ({ indeterminate, ...rest }, ref) => {
+    const defaultRef = React.useRef();
+    const resolvedRef = ref || defaultRef;
+
+    React.useEffect(() => {
+      resolvedRef.current.indeterminate = indeterminate;
+    }, [resolvedRef, indeterminate]);
+
+    return (
+      <>
+        <input type="checkbox" ref={resolvedRef} {...rest} />
+      </>
+    );
+  },
+);
+
+export default IndeterminateCheckbox;

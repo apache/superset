@@ -45,12 +45,14 @@
     z-index: @z-index-chart;
     pointer-events: none;
   }
+
   .resizable-container.resizable-container--resizing:hover > .grid-row:after,
   .hover-menu:hover + .grid-row:after,
   .dashboard-component-tabs > .hover-menu:hover + div:after {
     border: 1px dashed @indicator-color;
     z-index: @z-index-chart--dragging;
   }
+
   .grid-row:after,
   .dashboard-component-tabs > .hover-menu + div:after {
     border: 1px dashed @gray-light;
@@ -60,6 +62,7 @@
 .grid-row.grid-row--empty {
   align-items: center; /* this centers the empty note content */
   height: 100px;
+
   &:before {
     position: absolute;
     top: 0;

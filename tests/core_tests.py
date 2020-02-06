@@ -109,7 +109,7 @@ class CoreTests(SupersetTestCase):
                 {
                     "granularity": "ds",
                     "groupby": ["name"],
-                    "metrics": ["sum__num"],
+                    "metrics": [{"label": "sum__num"}],
                     "filters": [],
                     "row_limit": 100,
                 }
@@ -244,6 +244,7 @@ class CoreTests(SupersetTestCase):
             "metric": "sum__value",
             "row_limit": 5000,
             "slice_id": slice_id,
+            "time_range_endpoints": ["inclusive", "exclusive"],
         }
         # Changing name and save as a new slice
         resp = self.client.post(
@@ -265,6 +266,7 @@ class CoreTests(SupersetTestCase):
             "row_limit": 5000,
             "slice_id": new_slice_id,
             "time_range": "now",
+            "time_range_endpoints": ["inclusive", "exclusive"],
         }
         # Setting the name back to its original name by overwriting new slice
         self.client.post(
@@ -416,6 +418,26 @@ class CoreTests(SupersetTestCase):
         assert response.status_code == 200
         assert response.headers["Content-Type"] == "application/json"
 
+    def test_testconn_failed_conn(self, username="admin"):
+        self.login(username=username)
+
+        data = json.dumps(
+            {"uri": "broken://url", "name": "examples", "impersonate_user": False}
+        )
+        response = self.client.post(
+            "/superset/testconn", data=data, content_type="application/json"
+        )
+        assert response.status_code == 400
+        assert response.headers["Content-Type"] == "application/json"
+        response_body = json.loads(response.data.decode("utf-8"))
+        expected_body = {
+            "error": "Connection failed!\n\nThe error message returned was:\nCan't load plugin: sqlalchemy.dialects:broken"
+        }
+        assert response_body == expected_body, "%s != %s" % (
+            response_body,
+            expected_body,
+        )
+
     def test_custom_password_store(self):
         database = utils.get_example_database()
         conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
@@ -553,13 +575,6 @@ class CoreTests(SupersetTestCase):
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2017-01-01T00:00:00")
-
-    def test_table_metadata(self):
-        maindb = utils.get_example_database()
-        data = self.get_json_resp(f"/superset/table/{maindb.id}/birth_names/null/")
-        self.assertEqual(data["name"], "birth_names")
-        assert len(data["columns"]) > 5
-        assert data.get("selectStar").startswith("SELECT")
 
     def test_fetch_datasource_metadata(self):
         self.login(username="admin")

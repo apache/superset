@@ -223,41 +223,20 @@ class SqlLabTests(SupersetTestCase):
         data = json.loads(resp)
         self.assertEqual(2, len(data))
 
-    def test_search_query_with_owner_only_perms(self) -> None:
+    def test_search_query_only_owned(self) -> None:
         """
-        Test a search query with can_only_access_owned_queries perm added to
-        Admin and make sure only Admin queries show up.
+        Test a search query with a user that does not have can_access_all_queries.
         """
-        session = db.session
-
-        # Add can_only_access_owned_queries perm to Admin user
-        owned_queries_view = security_manager.find_permission_view_menu(
-            "can_only_access_owned_queries", "can_only_access_owned_queries"
-        )
-        security_manager.add_permission_role(
-            security_manager.find_role("Admin"), owned_queries_view
-        )
-        session.commit()
-
-        # Test search_queries for Admin user
+        # Test search_queries for Alpha user
         self.run_some_queries()
-        self.login("admin")
+        self.login("gamma_sqllab")
 
-        user_id = security_manager.find_user("admin").id
+        user_id = security_manager.find_user("gamma_sqllab").id
         data = self.get_json_resp("/superset/search_queries")
-        self.assertEqual(2, len(data))
+
+        self.assertEqual(1, len(data))
         user_ids = {k["userId"] for k in data}
         self.assertEqual(set([user_id]), user_ids)
-
-        # Remove can_only_access_owned_queries from Admin
-        owned_queries_view = security_manager.find_permission_view_menu(
-            "can_only_access_owned_queries", "can_only_access_owned_queries"
-        )
-        security_manager.del_permission_role(
-            security_manager.find_role("Admin"), owned_queries_view
-        )
-
-        session.commit()
 
     def test_alias_duplicate(self):
         self.run_sql(
@@ -356,22 +335,45 @@ class SqlLabTests(SupersetTestCase):
         assert admin.username in user_queries
         assert gamma_sqllab.username in user_queries
 
-    def test_queryview_filter_owner_only(self) -> None:
+    def test_queryview_can_access_all_queries(self) -> None:
         """
-        Test queryview api with can_only_access_owned_queries perm added to
-        Admin and make sure only Admin queries show up.
+        Test queryview api with can_access_all_queries perm added to
+        gamma and make sure all queries show up.
         """
         session = db.session
 
-        # Add can_only_access_owned_queries perm to Admin user
-        owned_queries_view = security_manager.find_permission_view_menu(
-            "can_only_access_owned_queries", "can_only_access_owned_queries"
+        # Add all_query_access perm to Gamma user
+        all_queries_view = security_manager.find_permission_view_menu(
+            "all_query_access", "all_query_access"
         )
+
         security_manager.add_permission_role(
-            security_manager.find_role("Admin"), owned_queries_view
+            security_manager.find_role("gamma_sqllab"), all_queries_view
         )
         session.commit()
 
+        # Test search_queries for Admin user
+        self.run_some_queries()
+        self.login("gamma_sqllab")
+        url = "/queryview/api/read"
+        data = self.get_json_resp(url)
+        self.assertEqual(3, len(data["result"]))
+
+        # Remove all_query_access from gamma sqllab
+        all_queries_view = security_manager.find_permission_view_menu(
+            "all_query_access", "all_query_access"
+        )
+        security_manager.del_permission_role(
+            security_manager.find_role("gamma_sqllab"), all_queries_view
+        )
+
+        session.commit()
+
+    def test_queryview_admin_can_access_all_queries(self) -> None:
+        """
+        Test queryview api with all_query_access perm added to
+        Admin and make sure only Admin queries show up. This is the default
+        """
         # Test search_queries for Admin user
         self.run_some_queries()
         self.login("admin")
@@ -379,21 +381,7 @@ class SqlLabTests(SupersetTestCase):
         url = "/queryview/api/read"
         data = self.get_json_resp(url)
         admin = security_manager.find_user("admin")
-        self.assertEqual(2, len(data["result"]))
-        all_admin_user_queries = all(
-            [result.get("username") == admin.username for result in data["result"]]
-        )
-        assert all_admin_user_queries is True
-
-        # Remove can_only_access_owned_queries from Admin
-        owned_queries_view = security_manager.find_permission_view_menu(
-            "can_only_access_owned_queries", "can_only_access_owned_queries"
-        )
-        security_manager.del_permission_role(
-            security_manager.find_role("Admin"), owned_queries_view
-        )
-
-        session.commit()
+        self.assertEqual(3, len(data["result"]))
 
     def test_api_database(self):
         self.login("admin")
@@ -407,7 +395,7 @@ class SqlLabTests(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        url = "api/v1/database/?{}={}".format("q", prison.dumps(arguments))
+        url = f"api/v1/database/?q={prison.dumps(arguments)}"
         self.assertEqual(
             {"examples", "fake_db_100"},
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},

@@ -146,12 +146,12 @@ class TableColumn(Model, BaseColumn):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
-        if not self.expression:
+        if self.expression:
+            col = literal_column(self.expression)
+        else:
             db_engine_spec = self.table.database.db_engine_spec
             type_ = db_engine_spec.get_sqla_column_type(self.type)
             col = column(self.column_name, type_=type_)
-        else:
-            col = literal_column(self.expression)
         col = self.table.make_sqla_column_compatible(col, label)
         return col
 
@@ -400,8 +400,8 @@ class SqlaTable(Model, BaseDatasource):
     def make_sqla_column_compatible(
         self, sqla_col: Column, label: Optional[str] = None
     ) -> Column:
-        """Takes a sql alchemy column object and adds label info if supported by engine.
-        :param sqla_col: sql alchemy column instance
+        """Takes a sqlalchemy column object and adds label info if supported by engine.
+        :param sqla_col: sqlalchemy column instance
         :param label: alias/label that column is expected to have
         :return: either a sql alchemy column or label instance if supported by engine
         """
@@ -702,7 +702,7 @@ class SqlaTable(Model, BaseDatasource):
             )
         if not groupby and not metrics and not columns:
             raise Exception(_("Empty query?"))
-        metrics_exprs = []
+        metrics_exprs: List[ColumnElement] = []
         for m in metrics:
             if utils.is_adhoc_metric(m):
                 metrics_exprs.append(self.adhoc_metric_to_sqla(m, cols))
@@ -841,12 +841,20 @@ class SqlaTable(Model, BaseDatasource):
         if not orderby and not columns:
             orderby = [(main_metric_expr, not order_desc)]
 
+        # To ensure correct handling of the ORDER BY labeling we need to reference the
+        # metric instance if defined in the SELECT clause.
+        metrics_exprs_by_label = {m._label: m for m in metrics_exprs}
+
         for col, ascending in orderby:
             direction = asc if ascending else desc
             if utils.is_adhoc_metric(col):
                 col = self.adhoc_metric_to_sqla(col, cols)
             elif col in cols:
                 col = cols[col].get_sqla_col()
+
+            if isinstance(col, Label) and col._label in metrics_exprs_by_label:
+                col = metrics_exprs_by_label[col._label]
+
             qry = qry.order_by(direction(col))
 
         if row_limit:

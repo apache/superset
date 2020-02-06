@@ -149,11 +149,18 @@ class AceEditorWrapper extends React.PureComponent {
           );
         }
         editor.completer.insertMatch({
-          value: `${data.caption}${data.meta === 'function' ? '' : ' '}`,
+          value: `${data.caption}${
+            ['function', 'schema'].includes(data.meta) ? '' : ' '
+          }`,
         });
       },
     };
-    const words = this.state.words.map(word => ({ ...word, completer }));
+    // Mutate instead of object spread here for performance
+    const words = this.state.words.map(word => {
+      /* eslint-disable-next-line no-param-reassign */
+      word.completer = completer;
+      return word;
+    });
     callback(null, words);
   }
   setAutoCompleter(props) {

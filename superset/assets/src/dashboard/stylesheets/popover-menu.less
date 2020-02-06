@@ -40,9 +40,6 @@
 
 .popover-menu {
   position: absolute;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   flex-wrap: nowrap;
   left: 1px;
   top: -42px;
@@ -53,6 +50,28 @@
   font-size: @font-size-m;
   cursor: default;
   z-index: @z-index-max;
+
+  &, .menu-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* vertical spacer after each menu item */
+  .menu-item:not(:only-child):not(:last-child):after {
+    content: '';
+    width: 1;
+    height: 100%;
+    background: @gray-light;
+    margin: 0 16px;
+  }
+
+  .popover-dropdown.btn {
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    color: @almost-black;
+  }
 }
 
 /* the focus menu doesn't account for parent padding */
@@ -68,41 +87,29 @@
   left: -7px;
 }
 
-.popover-menu .menu-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+.popover-menu .popover-dropdown.btn,
+.hover-dropdown .btn {
+  &:hover,
+  &:active,
+  &:focus {
+    background: initial;
+    box-shadow: none;
+  }
 }
 
-/* vertical spacer after each menu item */
-.popover-menu .menu-item:not(:only-child):not(:last-child):after {
-  content: '';
-  width: 1;
-  height: 100%;
-  background: @gray-light;
-  margin: 0 16px;
-}
+.hover-dropdown,
+.popover-menu {
+  li.dropdown-item {
+    &:hover a {
+      background: @menu-hover;
+    }
 
-.popover-menu .popover-dropdown.btn {
-  border: none;
-  padding: 0;
-  font-size: inherit;
-  color: @almost-black;
-}
-
-.popover-menu .popover-dropdown.btn:hover,
-.popover-menu .popover-dropdown.btn:active,
-.popover-menu .popover-dropdown.btn:focus,
-.hover-dropdown .btn:hover,
-.hover-dropdown .btn:active,
-.hover-dropdown .btn:focus {
-  background: initial;
-  box-shadow: none;
-}
-
-.hover-dropdown li.dropdown-item:hover a,
-.popover-menu li.dropdown-item:hover a {
-  background: @menu-hover;
+    &.active a {
+      background: @gray-light;
+      font-weight: @font-weight-bold;
+      color: @almost-black;
+    }
+  }
 }
 
 .popover-dropdown .caret {
@@ -111,43 +118,36 @@
   border-top-color: transparent;
 }
 
-.hover-dropdown li.dropdown-item.active a,
-.popover-menu li.dropdown-item.active a {
-  background: @gray-light;
-  font-weight: @font-weight-bold;
-  color: @almost-black;
-}
-
 /* background style menu */
 .background-style-option {
   display: inline-block;
-}
 
-.background-style-option:before {
-  content: '';
-  width: 1em;
-  height: 1em;
-  margin-right: 8px;
-  display: inline-block;
-  vertical-align: middle;
-}
+  &:before {
+    content: '';
+    width: 1em;
+    height: 1em;
+    margin-right: 8px;
+    display: inline-block;
+    vertical-align: middle;
+  }
 
-.background-style-option.background--white {
-  padding-left: 0;
-  background: transparent;
-}
+  &.background--white {
+    padding-left: 0;
+    background: transparent;
 
-.background-style-option.background--white:before {
-  background: @lightest;
-  border: 1px solid @gray-light;
-}
+    &:before {
+      background: @lightest;
+      border: 1px solid @gray-light;
+    }
+  }
 
-/* Create the transparent rect icon */
-.background-style-option.background--transparent:before {
-  background-image: linear-gradient(45deg, @gray 25%, transparent 25%),
-    linear-gradient(-45deg, @gray 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, @gray 75%),
-    linear-gradient(-45deg, transparent 75%, @gray 75%);
-  background-size: 8px 8px;
-  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+  /* Create the transparent rect icon */
+  &.background--transparent:before {
+    background-image: linear-gradient(45deg, @gray 25%, transparent 25%),
+      linear-gradient(-45deg, @gray 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, @gray 75%),
+      linear-gradient(-45deg, transparent 75%, @gray 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+  }
 }

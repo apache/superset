@@ -37,28 +37,28 @@
   will-change: transform, opacity;
   transform: translateY(-100%);
   transition: transform @timing-normal, opacity @timing-normal;
+
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+  }
 }
 
 .toast > button {
   color: @almost-black;
-}
 
-.toast > button:hover {
-  color: @gray-dark;
+  &:hover {
+    color: @gray-dark;
+  }
 }
 
 .toast--visible {
   transform: translateY(0);
   opacity: 1;
-}
-
-.toast:after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 6px;
-  height: 100%;
 }
 
 .toast--info:after {

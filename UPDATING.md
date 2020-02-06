@@ -22,6 +22,11 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+* [9046](https://github.com/apache/incubator-superset/pull/9046): Replaces `can_only_access_owned_queries` by
+`all_query_access` favoring a white list approach. Since a new permission is introduced use `superset init` 
+to create and associate it by default to the `Admin` role. Note that, by default, all non `Admin` users will
+not be able to access queries they do not own.
+
 * [8901](https://github.com/apache/incubator-superset/pull/8901): The datasource's update
 timestamp has been added to the query object's cache key to ensure updates to
 datasources are always reflected in associated query results. As a consequence all
@@ -45,6 +50,13 @@ now uses UTC for the tooltips and default placeholder timestamps (sans timezone)
 * [8418](https://github.com/apache/incubator-superset/pull/8418): FLASK_APP / Worker App
 have changed. FLASK_APP should be updated to `superset.app:create_app()` and Celery Workers
 should be started with `--app=superset.tasks.celery_app:app`
+
+* [9017](https://github.com/apache/incubator-superset/pull/9017): `SIP_15_ENABLED` now
+defaults to True which ensures that for all new SQL charts the time filter will behave
+like [start, end). Existing deployments should either disable this feature to keep the
+status quo or inform their users of this change prior to enabling the flag. The
+`SIP_15_GRACE_PERIOD_END` option provides a mechanism for specifying how long chart
+owners have to migrate their charts (the default is indefinite).
 
 ## 0.35.0
 
@@ -152,6 +164,8 @@ the deploy finishes).
 ## Superset 0.29.0
 * India was removed from the "Country Map" visualization as the geojson
   file included in the package was very large
+
+* [5933](https://github.com/apache/incubator-superset/pull/5933)/[6078](https://github.com/apache/incubator-superset/pull/6078): changes which add schema and table metadata cache timeout logic at the database level. If left undefined caching of metadata is disabled.
 
 ## Superset 0.28.0
 * Support for Python 2 is deprecated, we only support >=3.6 from

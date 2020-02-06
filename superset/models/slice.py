@@ -148,6 +148,7 @@ class Slice(
             logging.exception(e)
             d["error"] = str(e)
         return {
+            "cache_timeout": self.cache_timeout,
             "datasource": self.datasource_name,
             "description": self.description,
             "description_markeddown": self.description_markeddown,
@@ -219,6 +220,10 @@ class Slice(
     def slice_link(self) -> Markup:
         name = escape(self.chart)
         return Markup(f'<a href="{self.url}">{name}</a>')
+
+    @property
+    def changed_by_url(self) -> str:
+        return f"/superset/profile/{self.created_by.username}"
 
     def get_viz(self, force: bool = False) -> BaseViz:
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.

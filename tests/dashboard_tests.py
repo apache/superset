@@ -305,8 +305,8 @@ class DashboardTests(SupersetTestCase):
         self.revoke_public_access_to_table(table)
         self.logout()
 
-        resp = self.get_resp("/chart/list/")
-        self.assertNotIn("birth_names</a>", resp)
+        resp = self.get_resp("/api/v1/chart/")
+        self.assertNotIn("birth_names", resp)
 
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn("/superset/dashboard/births/", resp)
@@ -314,7 +314,7 @@ class DashboardTests(SupersetTestCase):
         self.grant_public_access_to_table(table)
 
         # Try access after adding appropriate permissions.
-        self.assertIn("birth_names", self.get_resp("/chart/list/"))
+        self.assertIn("birth_names", self.get_resp("/api/v1/chart/"))
 
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertIn("/superset/dashboard/births/", resp)
@@ -322,8 +322,8 @@ class DashboardTests(SupersetTestCase):
         self.assertIn("Births", self.get_resp("/superset/dashboard/births/"))
 
         # Confirm that public doesn't have access to other datasets.
-        resp = self.get_resp("/chart/list/")
-        self.assertNotIn("wb_health_population</a>", resp)
+        resp = self.get_resp("/api/v1/chart/")
+        self.assertNotIn("wb_health_population", resp)
 
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn("/superset/dashboard/world_health/", resp)

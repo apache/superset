@@ -124,6 +124,46 @@ class SupersetResultSetTestCase(SupersetTestCase):
             ],
         )
 
+    def test_nested_types(self):
+        data = [
+            (
+                4,
+                [{"table_name": "unicode_test", "database_id": 1}],
+                [1, 2, 3],
+                {"chart_name": "scatter"},
+            ),
+            (
+                3,
+                [{"table_name": "birth_names", "database_id": 1}],
+                [4, 5, 6],
+                {"chart_name": "plot"},
+            ),
+        ]
+        cursor_descr = [("id",), ("dict_arr",), ("num_arr",), ("map_col",)]
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "INT")
+        self.assertEqual(results.columns[1]["type"], "STRING")
+        self.assertEqual(results.columns[2]["type"], "STRING")
+        self.assertEqual(results.columns[3]["type"], "STRING")
+        df = results.to_pandas_df()
+        self.assertEqual(
+            df_to_records(df),
+            [
+                {
+                    "id": 4,
+                    "dict_arr": '[{"table_name": "unicode_test", "database_id": 1}]',
+                    "num_arr": "[1, 2, 3]",
+                    "map_col": '{"chart_name": "scatter"}',
+                },
+                {
+                    "id": 3,
+                    "dict_arr": '[{"table_name": "birth_names", "database_id": 1}]',
+                    "num_arr": "[4, 5, 6]",
+                    "map_col": '{"chart_name": "plot"}',
+                },
+            ],
+        )
+
     def test_empty_datetime(self):
         data = [(None,)]
         cursor_descr = [("ds", "timestamp", None, None, None, None, True)]

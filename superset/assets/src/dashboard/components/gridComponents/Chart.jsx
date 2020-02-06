@@ -205,7 +205,7 @@ class Chart extends React.Component {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
-    return this.props.refreshChart(this.props.chart, true, this.props.timeout);
+    return this.props.refreshChart(this.props.chart.id, true);
   }
 
   render() {

@@ -21,11 +21,13 @@
 .reactable-pagination td {
   padding: 15px 0 0 0 !important;
 }
+
 .reactable-pagination a:focus {
   text-decoration: none;
   color: @gray-dark;
   outline: 1;
 }
+
 .reactable-page-button,
 .reactable-next-page,
 .reactable-previous-page {
@@ -41,19 +43,19 @@
   text-decoration: none;
   vertical-align: middle;
   white-space: nowrap;
+
+  &:hover {
+    background-color: @gray-bg;
+    border-color: @gray;
+    color: @gray-dark;
+    text-decoration: none;
+  }
 }
+
 .reactable-current-page {
   border: 1px solid @gray-light;
   color: @gray-dark;
   font-weight: @font-weight-bold;
   pointer-events: none;
   opacity: 0.65;
-}
-.reactable-page-button:hover,
-.reactable-next-page:hover,
-.reactable-previous-page:hover {
-  background-color: @gray-bg;
-  border-color: @gray;
-  color: @gray-dark;
-  text-decoration: none;
 }
