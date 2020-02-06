@@ -280,10 +280,7 @@ export default function(bootstrapData) {
     dashboardInfo: {
       id: dashboard.id,
       slug: dashboard.slug,
-      metadata: {
-        timed_refresh_immune_slices:
-          dashboard.metadata.timed_refresh_immune_slices,
-      },
+      metadata: dashboard.metadata,
       userId: user_id,
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,
