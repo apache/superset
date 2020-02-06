@@ -126,7 +126,7 @@ class BigNumberVis extends React.PureComponent {
 
   renderHeader(maxHeight) {
     const { bigNumber, formatBigNumber, width } = this.props;
-    const text = formatBigNumber(bigNumber);
+    const text = bigNumber === null ? 'No data' : formatBigNumber(bigNumber);
 
     const container = this.createTemporaryContainer();
     document.body.append(container);
@@ -153,13 +153,18 @@ class BigNumberVis extends React.PureComponent {
   }
 
   renderSubheader(maxHeight) {
-    const { subheader, width } = this.props;
+    const { bigNumber, subheader, width } = this.props;
     let fontSize = 0;
-    if (subheader) {
+
+    const text =
+      bigNumber === null
+        ? 'Try applying different filters or ensuring your Datasource contains data'
+        : subheader;
+    if (text) {
       const container = this.createTemporaryContainer();
       document.body.append(container);
       fontSize = computeMaxFontSize({
-        text: subheader,
+        text,
         maxWidth: Math.floor(width),
         maxHeight,
         className: 'subheader-line',
@@ -176,7 +181,7 @@ class BigNumberVis extends React.PureComponent {
           height: maxHeight,
         }}
       >
-        {subheader}
+        {text}
       </div>
     );
   }
