@@ -30,7 +30,7 @@
   "dependencies": {
     "@data-ui/histogram": "^0.0.84",
     "@data-ui/theme": "^0.0.82",
-    "@vx/legend": "^0.0.192",
+    "@vx/legend": "^0.0.193",
     "@vx/responsive": "^0.0.192",
     "@vx/scale": "^0.0.192",
     "prop-types": "^15.6.2"
