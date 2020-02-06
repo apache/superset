@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "mustache": "^3.0.1",
+    "mustache": "^4.0.0",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
