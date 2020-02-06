@@ -18,13 +18,23 @@ import logging
 from typing import Dict, List
 
 from flask import current_app, g
+from flask_appbuilder import permission_name
+from flask_appbuilder.api import (
+    expose,
+    get_item_schema,
+    get_list_schema,
+    ModelRestApi,
+    protect,
+    rison,
+    safe,
+)
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import RouteMethod
 from superset.models.core import Database
 from superset.views.base import DatasourceFilter, get_datasource_exist_error_msg
@@ -175,3 +185,133 @@ class TableRestApi(BaseOwnedModelRestApi):
         "template_params",
         "owners",
     ]
+
+
+class TableColumnRestApi(ModelRestApi):
+    datamodel = SQLAInterface(TableColumn)
+
+    resource_name = "table"
+    allow_browser_login = True
+    class_permission_name = "TableModelView"
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED}
+    openapi_spec_tag = "TableRestApi"
+
+    list_columns = [
+        "column_name",
+        "verbose_name",
+        "type",
+        "groupby",
+        "filterable",
+        "is_dttm",
+    ]
+
+    edit_columns = [
+        "column_name",
+        "verbose_name",
+        "description",
+        "type",
+        "groupby",
+        "filterable",
+        "expression",
+        "is_dttm",
+        "python_date_format",
+    ]
+    add_columns = edit_columns
+    show_columns = edit_columns
+
+    @expose("/<pk>/column/", methods=["GET"])
+    @protect()
+    @safe
+    @permission_name("get")
+    @rison(get_list_schema)
+    def get_list(self, pk: int, **kwargs):
+        """Get list of columns from a table
+        ---
+        get:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The table id
+            required: true
+          - $ref: '#/components/parameters/get_list_schema'
+          responses:
+            200:
+              description: Items from Model
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: string
+                      result:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/{{self.__class__.__name__}}.get_list'  # noqa
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Check table id and permissions
+        filters = kwargs["rison"].get("filters", [])
+        filters.append({"col": "table", "opr": "rel_o_m", "value": pk})
+        kwargs["rison"]["filters"] = filters
+        return super().get_list_headless(**kwargs)
+
+    @expose("/<int:pk>/column/<column_id>", methods=["GET"])
+    @protect()
+    @safe
+    @permission_name("get")
+    @rison(get_item_schema)
+    def get(self, pk: int, column_id: int, **kwargs):
+        """Get column from a table
+        ---
+        get:
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The table id
+            required: true
+          - in: path
+            schema:
+              type: integer
+            name: column_id
+          - $ref: '#/components/parameters/get_item_schema'
+          responses:
+            200:
+              description: Items from Model
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: string
+                      result:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/{{self.__class__.__name__}}.get'  # noqa
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Check table id and permissions
+        return super().get_headless(column_id, **kwargs)
