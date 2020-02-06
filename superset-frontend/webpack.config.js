@@ -21,7 +21,7 @@ const path = require('path');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
   .BundleAnalyzerPlugin;
-const CleanWebpackPlugin = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -61,7 +61,11 @@ const plugins = [
   }),
 
   // create fresh dist/ upon build
-  new CleanWebpackPlugin(['.']),
+  new CleanWebpackPlugin({
+    dry: false,
+    // required because the build directory is outside the frontend directory:
+    dangerouslyAllowCleanPatternsOutsideProject: true,
+  }),
 
   // expose mode variable to other modules
   new webpack.DefinePlugin({
@@ -77,7 +81,7 @@ const plugins = [
     'package.json',
     { from: 'images', to: 'images' },
     { from: 'stylesheets', to: 'stylesheets' },
-  ])
+  ]),
 ];
 
 if (isDevMode) {
@@ -96,7 +100,7 @@ if (isDevMode) {
 
 const output = {
   path: BUILD_DIR,
-  publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
+  publicPath: '/static/assets/', // necessary for lazy-loaded chunks
 };
 
 if (isDevMode) {
@@ -287,7 +291,7 @@ const config = {
       '/': `http://localhost:${supersetPort}`,
       target: `http://localhost:${supersetPort}`,
     },
-    contentBase: path.join(process.cwd(), '../static/assets/dist'),
+    contentBase: path.join(process.cwd(), '../static/assets'),
   },
 };
 

@@ -172,7 +172,7 @@
     "babel-plugin-lodash": "^3.3.4",
     "babel-preset-airbnb": "^4.0.1",
     "cache-loader": "^1.2.2",
-    "clean-webpack-plugin": "^0.1.19",
+    "clean-webpack-plugin": "^3.0.0",
     "copy-webpack-plugin": "^5.1.1",
     "cross-env": "^5.2.0",
     "css-loader": "^1.0.0",
