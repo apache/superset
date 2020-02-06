@@ -96,7 +96,7 @@ class SqlLabTests(SupersetTestCase):
         data = db.session.execute("SELECT * FROM admin_database.test_target").fetchall()
         self.assertEqual(
             75691, len(data)
-        )  # SQL_MAX_ROW not applied due to the SQLLAB_CTA_NO_LIMIT set to True
+        )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
         # cleanup
         db.session.execute("DROP TABLE admin_database.test_target")

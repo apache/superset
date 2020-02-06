@@ -2408,8 +2408,8 @@ class Superset(BaseSupersetView):
                 f"Query {query_id}: Template rendering failed: {error_msg}"
             )
 
-        # Limit is not appliced to the CTA queries if SQLLAB_CTA_NO_LIMIT flag is set to True.
-        if not (config.get("SQLLAB_CTA_NO_LIMIT") and select_as_cta):
+        # Limit is not appliced to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set to True.
+        if not (config.get("SQLLAB_CTAS_NO_LIMIT") and select_as_cta):
             # set LIMIT after template processing
             limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
             query.limit = min(lim for lim in limits if lim is not None)

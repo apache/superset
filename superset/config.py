@@ -528,7 +528,7 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = 10  # seconds
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
-SQLLAB_CTA_NO_LIMIT = False
+SQLLAB_CTAS_NO_LIMIT = False
 
 # This allows you to define custom logic around the "CREATE TABLE AS" or CTAS feature
 # in SQL Lab that defines where the target schema should be for a given user.
