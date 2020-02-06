@@ -22,6 +22,7 @@ const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
   .BundleAnalyzerPlugin;
 const CleanWebpackPlugin = require('clean-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
@@ -35,7 +36,7 @@ const parsedArgs = require('minimist')(process.argv.slice(2));
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
 // output dir
-const BUILD_DIR = path.resolve(__dirname, './dist');
+const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
 
 const {
   mode = 'development',
@@ -60,7 +61,7 @@ const plugins = [
   }),
 
   // create fresh dist/ upon build
-  new CleanWebpackPlugin(['dist']),
+  new CleanWebpackPlugin(['.']),
 
   // expose mode variable to other modules
   new webpack.DefinePlugin({
@@ -71,6 +72,12 @@ const plugins = [
   new ForkTsCheckerWebpackPlugin({
     checkSyntacticErrors: true,
   }),
+
+  new CopyPlugin([
+    'package.json',
+    { from: 'images', to: 'images' },
+    { from: 'stylesheets', to: 'stylesheets' },
+  ])
 ];
 
 if (isDevMode) {

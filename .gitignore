@@ -57,10 +57,11 @@ tmp
 *.js.map
 node_modules
 npm-debug.log*
-superset/assets/coverage/*
-superset/assets/cypress/screenshots
-superset/assets/cypress/videos
-superset/assets/version_info.json
+superset-frontend/coverage/*
+superset-frontend/cypress/screenshots
+superset-frontend/cypress/videos
+superset-frontend/version_info.json
+superset/static
 yarn-error.log
 
 # IntelliJ
