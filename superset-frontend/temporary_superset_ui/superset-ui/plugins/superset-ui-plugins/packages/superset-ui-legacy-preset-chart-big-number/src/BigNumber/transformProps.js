@@ -55,7 +55,7 @@ export default function transformProps(chartProps) {
   let formattedSubheader = subheader;
   if (supportTrendLine) {
     const sortedData = [...data].sort((a, b) => a[TIME_COLUMN] - b[TIME_COLUMN]);
-    bigNumber = sortedData[sortedData.length - 1][metricName];
+    bigNumber = sortedData.length === 0 ? null : sortedData[sortedData.length - 1][metricName];
     if (compareLag > 0) {
       const compareIndex = sortedData.length - (compareLag + 1);
       if (compareIndex >= 0) {
@@ -73,7 +73,7 @@ export default function transformProps(chartProps) {
         }))
       : null;
   } else {
-    bigNumber = data[0][metricName];
+    bigNumber = data.length === 0 ? null : data[0][metricName];
     trendLineData = null;
   }
 
