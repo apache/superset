@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import uuid
 from datetime import datetime
 from math import nan
@@ -22,6 +23,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 
+import tests.test_app
 import superset.viz as viz
 from superset import app
 from superset.constants import NULL_STRING

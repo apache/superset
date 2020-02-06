@@ -20,6 +20,7 @@ import json
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import prison
 
+import tests.test_app
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
