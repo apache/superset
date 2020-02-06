@@ -237,11 +237,11 @@ class SupersetTestCase(TestCase):
             self.login(username=(user_name or "admin"))
         dbid = self._get_database_by_name(database_name).id
         json_payload = {
-            'database_id': dbid,
-            'sql': sql,
-            'client_id': client_id,
-            'queryLimit': query_limit,
-            'sql_editor_id': sql_editor_id,
+            "database_id": dbid,
+            "sql": sql,
+            "client_id": client_id,
+            "queryLimit": query_limit,
+            "sql_editor_id": sql_editor_id,
         }
         if tmp_table_name:
             json_payload["tmp_table_name"] = tmp_table_name
