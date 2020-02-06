@@ -1047,26 +1047,6 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=["GET"])
-    def checkbox(self, model_view, id_, attr, value):
-        """endpoint for checking/unchecking any boolean in a sqla model"""
-        modelview_to_model = {
-            "{}ColumnInlineView".format(name.capitalize()): source.column_class
-            for name, source in ConnectorRegistry.sources.items()
-        }
-        model = modelview_to_model[model_view]
-        col = db.session.query(model).get(id_)
-        checked = value == "true"
-        if col:
-            setattr(col, attr, checked)
-            if checked:
-                metrics = col.get_metrics().values()
-                col.datasource.add_missing_metrics(metrics)
-            db.session.commit()
-        return json_success('"OK"')
-
-    @api
-    @has_access_api
     @expose("/schemas/<db_id>/")
     @expose("/schemas/<db_id>/<force_refresh>/")
     def schemas(self, db_id, force_refresh="false"):
