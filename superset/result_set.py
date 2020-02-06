@@ -93,8 +93,9 @@ class SupersetResultSet:
             # generate numpy structured array dtype
             numpy_dtype = [(column_name, "object") for column_name in column_names]
 
-        # put data in a structured array so we can efficiently access each column
-        array = np.array(data, dtype=numpy_dtype)
+        # put data in a structured array so we can efficiently access each column.
+        # cast `data` as list due to MySQL (others?) wrapping results with a tuple.
+        array = np.array(list(data), dtype=numpy_dtype)
         if array.size > 0:
             for column in column_names:
                 try:
