@@ -98,6 +98,7 @@ export function getExploreLongUrl(
     .directory(directory)
     .search(search)
     .toString();
+  console.log('blabla', url, uri, directory)
   if (!allowOverflow && url.length > MAX_URL_LENGTH) {
     const minimalFormData = {
       datasource: formData.datasource,
@@ -132,6 +133,7 @@ export function getExploreUrlAndPayload({
     port: location.port ? location.port : '',
     path: '/',
   });
+  console.log("hjhjkh", uri)
 
   if (curUrl) {
     uri = URI(URI(curUrl).search());
@@ -196,7 +198,6 @@ export function exportChart(formData, endpointType) {
     endpointType,
     allowDomainSharding: false,
   });
-
   const exploreForm = document.createElement('form');
   exploreForm.action = url;
   exploreForm.method = 'POST';

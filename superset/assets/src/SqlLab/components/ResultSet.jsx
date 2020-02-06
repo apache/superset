@@ -23,6 +23,7 @@ import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
 import Loading from '../../components/Loading';
+import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
@@ -99,10 +100,10 @@ export default class ResultSet extends React.PureComponent {
   popSelectStar() {
     const qe = {
       id: shortid.generate(),
-      title: this.props.query.tempTable,
+      title: this.props.query.tempTableName,
       autorun: false,
       dbId: this.props.query.dbId,
-      sql: `SELECT * FROM ${this.props.query.tempTable}`,
+      sql: `SELECT * FROM ${this.props.query.tempTableName}`,
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -214,20 +215,31 @@ export default class ResultSet extends React.PureComponent {
       return (
         <div>
           <Alert bsStyle="info">
-            {t('Table')} [<strong>{query.tempTable}</strong>] {t('was created')}{' '}
+            {t('Table')} [<strong>{query.tempTableName}</strong>] {t('was created')}{' '}
             &nbsp;
-            // TODO add viz table button here as well
-            <Button
-              bsSize="small"
-              className="m-r-5"
-              onClick={this.popSelectStar.bind(this)}
-            >
-              {t('Query in a new tab')}
-            </Button>
+            <ButtonGroup>
+              <Button
+                bsSize="small"
+                className="m-r-5"
+                onClick={this.popSelectStar.bind(this)}
+              >
+                {t('Query in a new tab !!')}
+              </Button>
+              <ExploreCtasResultsButton
+                table={query.tempTableName}
+                schema={query.schema}
+                dbId={query.dbId}
+                database={this.props.database}
+                actions={this.props.actions}
+              />
+            </ButtonGroup>
           </Alert>
         </div>
       );
     } else if (query.state === 'success' && query.results) {
+        { console.log('query')}
+        { console.log(query) }
+
       const results = query.results;
       let data;
       if (this.props.cache && query.cached) {

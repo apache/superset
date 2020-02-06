@@ -1881,7 +1881,7 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
         return Response(status=201)
 
-    @has_access
+    # @has_access
     @expose("/sqllab_table_viz/", methods=["POST"])
     @event_logger.log_this
     def sqllab_table_viz(self):
@@ -1905,14 +1905,16 @@ class Superset(BaseSupersetView):
         )
         if not table:
             # Create table if doesn't exist.
-            table = SqlaTable(table_name=table_name, owners=[g.user])
-            table.database_id = database_id
-            table.database = db.session.query(models.Database).filter_by(id=database_id).one()
-            table.schema = data.get("schema")
-            table.template_params = data.get("templateParams")
+            with db.session.no_autoflush:
+                table = SqlaTable(table_name=table_name, owners=[g.user])
+                table.database_id = database_id
+                table.database = db.session.query(models.Database).filter_by(id=database_id).one()
+                table.schema = data.get("schema")
+                table.template_params = data.get("templateParams")
+                # needed for the table validation.
+                validate_sqlatable(table)
+
             db.session.add(table)
-            # needed for the table validation.
-            validate_sqlatable(table)
             db.session.commit()
             create_table_permissions(table)
         return json_success(json.dumps({"table_id": table.id}))

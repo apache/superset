@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Alert } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/translation';
 
-import shortid from 'shortid';
 import { exportChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
@@ -33,12 +30,14 @@ import Button from '../../components/Button';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  table: PropTypes.object,
+  table: PropTypes.string.isRequired,
+  schema: PropTypes.string,
+  dbId: PropTypes.number.isRequired,
   errorMessage: PropTypes.string,
-  database: PropTypes.object.isRequired,
+  templateParams: PropTypes.string,
 };
 const defaultProps = {
-  table: {},
+  vizRequest: {},
 };
 
 class ExploreCtasResultsButton extends React.PureComponent {
@@ -50,66 +49,30 @@ class ExploreCtasResultsButton extends React.PureComponent {
   onClick() {
     this.visualize();
   }
-  getColumns() {
-    const props = this.props;
-    if (
-      props.query &&
-      props.query.results &&
-      props.query.results.selected_columns
-    ) {
-      return props.query.results.selected_columns;
-    }
-    return [];
-  }
-  getQueryDuration() {
-    return moment
-      .duration(this.props.query.endDttm - this.props.query.startDttm)
-      .asSeconds();
-  }
-  getInvalidColumns() {
-    const re1 = /^[A-Za-z_]\w*$/; // starts with char or _, then only alphanum
-    const re2 = /__\d+$/; // does not finish with __ and then a number which screams dup col name
 
-    return this.props.query.results.selected_columns
-      .map(col => col.name)
-      .filter(col => !re1.test(col) || re2.test(col));
-  }
-  datasourceName() {
-    const { query } = this.props;
-    const uniqueId = shortid.generate();
-    let datasourceName = uniqueId;
-    if (query) {
-      datasourceName = query.user ? `${query.user}-` : '';
-      datasourceName += `${query.tab}-${uniqueId}`;
-    }
-    return datasourceName;
-  }
   buildVizOptions() {
-    const { schema, sql, dbId, templateParams } = this.props.query;
     return {
-      dbId,
-      schema,
-      sql,
-      templateParams,
-      datasourceName: this.datasourceName(),
-      columns: this.getColumns(),
+      datasourceName: this.props.table,
+      schema: this.props.schema,
+      dbId: this.props.dbId,
+      templateParams: this.props.templateParams,
     };
   }
   visualize() {
     this.props.actions
-      .createDatasource(this.buildVizOptions())
+      .createCtasDatasource(this.buildVizOptions())
       .then(data => {
-        const columns = this.getColumns();
         const formData = {
           datasource: `${data.table_id}__table`,
-          metrics: [],
+          metrics: ["count"],
           groupby: [],
           viz_type: 'table',
           since: '100 years ago',
-          all_columns: columns.map(c => c.name),
+          all_columns: [],
           row_limit: 1000,
         };
-
+        console.log('formData')
+        console.log(formData)
         this.props.actions.addInfoToast(
           t('Creating a data source and creating a new tab'),
         );
@@ -123,62 +86,12 @@ class ExploreCtasResultsButton extends React.PureComponent {
         );
       });
   }
-  renderTimeoutWarning() {
-    return (
-      <Alert bsStyle="warning">
-        {t(
-          'This query took %s seconds to run, ',
-          Math.round(this.getQueryDuration()),
-        ) +
-          t(
-            'and the explore view times out at %s seconds ',
-            this.props.timeout,
-          ) +
-          t(
-            'following this flow will most likely lead to your query timing out. ',
-          ) +
-          t(
-            'We recommend your summarize your data further before following that flow. ',
-          ) +
-          t('If activated you can use the ')}
-        <strong>CREATE TABLE AS </strong>
-        {t('feature to store a summarized data set that you can then explore.')}
-      </Alert>
-    );
-  }
-  renderInvalidColumnMessage() {
-    const invalidColumns = this.getInvalidColumns();
-    if (invalidColumns.length === 0) {
-      return null;
-    }
-    return (
-      <div>
-        {t('Column name(s) ')}
-        <code>
-          <strong>{invalidColumns.join(', ')} </strong>
-        </code>
-        {t('cannot be used as a column name. Please use aliases (as in ')}
-        <code>
-          SELECT count(*)
-          <strong>AS my_alias</strong>
-        </code>
-        ){' '}
-        {t(`limited to alphanumeric characters and underscores. Column aliases ending with
-          double underscores followed by a numeric value are not allowed for reasons
-          discussed in Github issue #5739.
-          `)}
-      </div>
-    );
-  }
   render() {
-    const allowsSubquery =
-      this.props.database && this.props.database.allows_subquery;
     return (
       <>
         <Button
           bsSize="small"
           onClick={this.onClick}
-          disabled={!allowsSubquery}
           tooltip={t('Explore the result set in the data exploration view')}
         >
           <InfoTooltipWithTrigger
@@ -197,8 +110,8 @@ class ExploreCtasResultsButton extends React.PureComponent {
     );
   }
 }
-ExploreResultsButton.propTypes = propTypes;
-ExploreResultsButton.defaultProps = defaultProps;
+ExploreCtasResultsButton.propTypes = propTypes;
+ExploreCtasResultsButton.defaultProps = defaultProps;
 
 function mapStateToProps({ sqlLab, common }) {
   return {
@@ -213,8 +126,8 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export { ExploreResultsButton };
+export { ExploreCtasResultsButton };
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(ExploreResultsButton);
+)(ExploreCtasResultsButton);
