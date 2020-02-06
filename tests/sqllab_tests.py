@@ -270,27 +270,6 @@ class SqlLabTests(SupersetTestCase):
         self.assertEqual(len(data), results.size)
         self.assertEqual(len(cols), len(results.columns))
 
-    def test_sqllab_table_viz(self):
-        self.login("admin")
-        examples_dbid = get_example_database().id
-        payload = {
-            "datasourceName": f"ab_role",
-            "schema": "superset",
-            "columns": [],
-            "dbId": examples_dbid,
-        }
-
-        data = {"data": json.dumps(payload)}
-        resp = self.get_json_resp("/superset/sqllab_table_viz/", data=data)
-        self.assertIn("table_id", resp)
-
-        # ensure owner is set correctly
-        table_id = resp["table_id"]
-        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
-        self.assertEqual([owner.username for owner in table.owners], ["admin"])
-        db.session.remove(table)
-        db.session.commit()
-
     def test_sqllab_viz(self):
         self.login("admin")
         examples_dbid = get_example_database().id
@@ -316,6 +295,26 @@ class SqlLabTests(SupersetTestCase):
         table_id = resp["table_id"]
         table = db.session.query(SqlaTable).filter_by(id=table_id).one()
         self.assertEqual([owner.username for owner in table.owners], ["admin"])
+
+    def test_sqllab_table_viz(self):
+        self.login("admin")
+        examples_dbid = get_example_database().id
+        payload = {
+            "datasourceName": "ab_role",
+            "columns": [],
+            "dbId": examples_dbid,
+        }
+
+        data = {"data": json.dumps(payload)}
+        resp = self.get_json_resp("/superset/sqllab_table_viz/", data=data)
+        self.assertIn("table_id", resp)
+
+        # ensure owner is set correctly
+        table_id = resp["table_id"]
+        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
+        self.assertEqual([owner.username for owner in table.owners], ["admin"])
+        db.session.delete(table)
+        db.session.commit()
 
     def test_sql_limit(self):
         self.login("admin")

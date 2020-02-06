@@ -1881,7 +1881,7 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
         return Response(status=201)
 
-    # @has_access
+    @has_access
     @expose("/sqllab_table_viz/", methods=["POST"])
     @event_logger.log_this
     def sqllab_table_viz(self):
