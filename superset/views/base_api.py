@@ -27,6 +27,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
 
+logger = logging.getLogger(__name__)
 get_related_schema = {
     "type": "object",
     "properties": {
@@ -62,7 +63,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
     Extends FAB's ModelResApi to implement specific superset generic functionality
     """
 
-    logger = logging.getLogger(__name__)
     method_permission_name = {
         "get_list": "list",
         "get": "show",

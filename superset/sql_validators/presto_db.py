@@ -30,6 +30,7 @@ from superset.utils.core import sources
 MAX_ERROR_ROWS = 10
 
 config = app.config
+logger = logging.getLogger(__name__)
 
 
 class PrestoSQLValidationError(Exception):
@@ -70,7 +71,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             db_engine_spec.execute(cursor, sql)
             polled = cursor.poll()
             while polled:
-                logging.info("polling presto for validation progress")
+                logger.info("polling presto for validation progress")
                 stats = polled.get("stats", {})
                 if stats:
                     state = stats.get("state")
@@ -136,7 +137,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 end_column=end_column,
             )
         except Exception as e:
-            logging.exception(f"Unexpected error running validation query: {e}")
+            logger.exception(f"Unexpected error running validation query: {e}")
             raise e
 
     @classmethod
@@ -154,7 +155,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         parsed_query = ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
-        logging.info(f"Validating {len(statements)} statement(s)")
+        logger.info(f"Validating {len(statements)} statement(s)")
         engine = database.get_sqla_engine(
             schema=schema,
             nullpool=True,
@@ -172,6 +173,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     )
                     if annotation:
                         annotations.append(annotation)
-        logging.debug(f"Validation found {len(annotations)} error(s)")
+        logger.debug(f"Validation found {len(annotations)} error(s)")
 
         return annotations

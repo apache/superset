@@ -36,6 +36,8 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 
 from superset.utils.core import QueryStatus
 
+logger = logging.getLogger(__name__)
+
 
 def json_to_dict(json_str):
     if json_str:
@@ -165,7 +167,7 @@ class ImportMixin:
             obj_query = session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
         except MultipleResultsFound as e:
-            logging.error(
+            logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
                 str(obj_query),
@@ -177,13 +179,13 @@ class ImportMixin:
             is_new_obj = True
             # Create new DB object
             obj = cls(**dict_rep)
-            logging.info("Importing new %s %s", obj.__tablename__, str(obj))
+            logger.info("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
             session.add(obj)
         else:
             is_new_obj = False
-            logging.info("Updating %s %s", obj.__tablename__, str(obj))
+            logger.info("Updating %s %s", obj.__tablename__, str(obj))
             # Update columns
             for k, v in dict_rep.items():
                 setattr(obj, k, v)
@@ -213,7 +215,7 @@ class ImportMixin:
                         session.query(child_class).filter(and_(*delete_filters))
                     ).difference(set(added))
                     for o in to_delete:
-                        logging.info("Deleting %s %s", child, str(obj))
+                        logger.info("Deleting %s %s", child, str(obj))
                         session.delete(o)
 
         return obj

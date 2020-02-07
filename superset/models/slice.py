@@ -45,6 +45,7 @@ slice_user = Table(
     Column("user_id", Integer, ForeignKey("ab_user.id")),
     Column("slice_id", Integer, ForeignKey("slices.id")),
 )
+logger = logging.getLogger(__name__)
 
 
 class Slice(
@@ -145,7 +146,7 @@ class Slice(
             d = self.viz.data
             self.token = d.get("token")  # type: ignore
         except Exception as e:  # pylint: disable=broad-except
-            logging.exception(e)
+            logger.exception(e)
             d["error"] = str(e)
         return {
             "cache_timeout": self.cache_timeout,
@@ -172,8 +173,8 @@ class Slice(
         try:
             form_data = json.loads(self.params)
         except Exception as e:  # pylint: disable=broad-except
-            logging.error("Malformed json in slice's params")
-            logging.exception(e)
+            logger.error("Malformed json in slice's params")
+            logger.exception(e)
         form_data.update(
             {
                 "slice_id": self.id,
@@ -292,7 +293,7 @@ class Slice(
             session.flush()
             return slc_to_override.id
         session.add(slc_to_import)
-        logging.info("Final slice: %s", str(slc_to_import.to_json()))
+        logger.info("Final slice: %s", str(slc_to_import.to_json()))
         session.flush()
         return slc_to_import.id
 

@@ -51,6 +51,7 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "DISPLAY_MAX_ROW",
 )
+logger = logging.getLogger(__name__)
 
 
 def get_error_msg():
@@ -104,7 +105,7 @@ def api(f):
         try:
             return f(self, *args, **kwargs)
         except Exception as e:  # pylint: disable=broad-except
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(get_error_msg())
 
     return functools.update_wrapper(wraps, f)
@@ -121,20 +122,20 @@ def handle_api_exception(f):
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(
                 utils.error_msg_from_exception(e), status=e.status, link=e.link
             )
         except SupersetException as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(
                 utils.error_msg_from_exception(e), status=e.status
             )
         except HTTPException as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(utils.error_msg_from_exception(e), status=e.code)
         except Exception as e:  # pylint: disable=broad-except
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
 
     return functools.update_wrapper(wraps, f)
@@ -173,7 +174,7 @@ def menu_data():
             )
         # when user object has no username
         except NameError as e:
-            logging.exception(e)
+            logger.exception(e)
 
         if logo_target_path.startswith("/"):
             root_path = f"/superset{logo_target_path}"
@@ -258,7 +259,7 @@ def validate_json(_form, field):
     try:
         json.loads(field.data)
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
         raise Exception(_("json isn't valid"))
 
 

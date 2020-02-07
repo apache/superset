@@ -17,6 +17,7 @@
 # isort:skip_file
 import uuid
 from datetime import datetime
+import logging
 from math import nan
 from unittest.mock import Mock, patch
 
@@ -32,6 +33,8 @@ from superset.utils.core import DTTM_ALIAS
 
 from .base_tests import SupersetTestCase
 from .utils import load_fixture
+
+logger = logging.getLogger(__name__)
 
 
 class BaseVizTestCase(SupersetTestCase):
@@ -116,7 +119,7 @@ class BaseVizTestCase(SupersetTestCase):
         result = test_viz.get_df(query_obj)
         import logging
 
-        logging.info(result)
+        logger.info(result)
         pd.testing.assert_series_equal(
             result[DTTM_ALIAS], pd.Series([datetime(1960, 1, 1, 5, 0)], name=DTTM_ALIAS)
         )
