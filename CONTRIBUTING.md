@@ -322,15 +322,15 @@ Then, [open a pull request](https://help.github.com/articles/about-pull-requests
 If you're adding new images to the documentation, you'll notice that the images
 referenced in the rst, e.g.
 
-    .. image:: _static/img/tutorial/tutorial_01_sources_database.png
+    .. image:: _static/images/tutorial/tutorial_01_sources_database.png
 
 aren't actually stored in that directory. Instead, you should add and commit
 images (and any other static assets) to the `superset-frontend/images` directory.
 When the docs are deployed to https://superset.incubator.apache.org/, images
-are copied from there to the `_static/img` directory, just like they're referenced
+are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/img/tutorial` instead.
+For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
 
 #### API documentation
 
