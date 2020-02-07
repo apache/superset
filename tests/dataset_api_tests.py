@@ -28,8 +28,8 @@ from superset.utils.core import get_example_database
 from .base_tests import SupersetTestCase
 
 
-class TableApiTests(SupersetTestCase):
-    def insert_table(
+class DatasetApiTests(SupersetTestCase):
+    def insert_dataset(
         self, table_name: str, schema: str, owners: List[int], database: Database
     ) -> SqlaTable:
         obj_owners = list()
@@ -45,7 +45,7 @@ class TableApiTests(SupersetTestCase):
 
     def test_get_list(self):
         """
-            Table API: Test get list
+            Dataset API: Test get list
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -55,7 +55,7 @@ class TableApiTests(SupersetTestCase):
                 {"col": "table_name", "opr": "eq", "value": f"birth_names"},
             ]
         }
-        uri = f"api/v1/table/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
@@ -71,11 +71,11 @@ class TableApiTests(SupersetTestCase):
 
     def test_get_list_gamma(self):
         """
-            Table API: Test get list gamma
+            Dataset API: Test get list gamma
         """
         example_db = get_example_database()
         self.login(username="gamma")
-        uri = "api/v1/table/"
+        uri = "api/v1/dataset/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
@@ -83,7 +83,7 @@ class TableApiTests(SupersetTestCase):
 
     def test_get_item(self):
         """
-            Table API: Test get item
+            Dataset API: Test get item
         """
         example_db = get_example_database()
         table = (
@@ -92,23 +92,23 @@ class TableApiTests(SupersetTestCase):
             .one()
         )
         self.login(username="admin")
-        uri = f"api/v1/table/{table.id}"
+        uri = f"api/v1/dataset/{table.id}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_result = {
-            "cache_timeout": 55,
+            "cache_timeout": None,
             "database": {"database_name": "examples", "id": 1},
-            "default_endpoint": "",
-            "description": "Adding a DESCRip",
+            "default_endpoint": None,
+            "description": None,
             "fetch_values_predicate": None,
             "filter_select_enabled": True,
             "is_sqllab_view": False,
-            "main_dttm_col": None,
-            "offset": 66,
+            "main_dttm_col": "ds",
+            "offset": 0,
             "owners": [],
-            "schema": "",
-            "sql": "",
+            "schema": None,
+            "sql": None,
             "table_name": "birth_names",
             "template_params": None,
         }
@@ -116,16 +116,16 @@ class TableApiTests(SupersetTestCase):
 
     def test_get_info(self):
         """
-            Table API: Test get info
+            Dataset API: Test get info
         """
         self.login(username="admin")
-        uri = "api/v1/table/_info"
+        uri = "api/v1/dataset/_info"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
     def test_create_item(self):
         """
-            Table API: Test create item
+            Dataset API: Test create item
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -134,7 +134,7 @@ class TableApiTests(SupersetTestCase):
             "schema": "",
             "table_name": "ab_permission",
         }
-        uri = "api/v1/table/"
+        uri = "api/v1/dataset/"
         rv = self.client.post(uri, json=table_data)
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -146,7 +146,7 @@ class TableApiTests(SupersetTestCase):
 
     def test_create_item_gamma(self):
         """
-            Table API: Test create item gamma
+            Dataset API: Test create item gamma
         """
         self.login(username="gamma")
         example_db = get_example_database()
@@ -155,13 +155,13 @@ class TableApiTests(SupersetTestCase):
             "schema": "",
             "table_name": "ab_permission",
         }
-        uri = "api/v1/table/"
+        uri = "api/v1/dataset/"
         rv = self.client.post(uri, json=table_data)
         self.assertEqual(rv.status_code, 401)
 
     def test_create_item_owner(self):
         """
-            Table API: Test create item owner
+            Dataset API: Test create item owner
         """
         example_db = get_example_database()
         self.login(username="alpha")
@@ -174,7 +174,7 @@ class TableApiTests(SupersetTestCase):
             "table_name": "ab_permission",
             "owners": [admin.id],
         }
-        uri = "api/v1/table/"
+        uri = "api/v1/dataset/"
         rv = self.client.post(uri, json=table_data)
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
@@ -185,7 +185,7 @@ class TableApiTests(SupersetTestCase):
 
     def test_create_validate_uniqueness(self):
         """
-            Table API: Test create validate table uniqueness
+            Dataset API: Test create validate table uniqueness
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -194,21 +194,21 @@ class TableApiTests(SupersetTestCase):
             "schema": "",
             "table_name": "birth_names",
         }
-        uri = "api/v1/table/"
+        uri = "api/v1/dataset/"
         rv = self.client.post(uri, json=table_data)
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            data, {"message": {"_schema": ["Datasource birth_names already exists"]}}
+            data, {"message": {"table_name": ["Datasource birth_names already exists"]}}
         )
 
     def test_create_validate_database(self):
         """
-            Table API: Test create validate database exists
+            Dataset API: Test create validate database exists
         """
         self.login(username="admin")
-        table_data = {"database": 100, "schema": "", "table_name": "birth_names"}
-        uri = "api/v1/table/"
+        table_data = {"database": 1000, "schema": "", "table_name": "birth_names"}
+        uri = "api/v1/dataset/"
         rv = self.client.post(uri, json=table_data)
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
@@ -216,7 +216,7 @@ class TableApiTests(SupersetTestCase):
 
     def test_create_validate_tables_exists(self):
         """
-            Table API: Test create validate table exists
+            Dataset API: Test create validate table exists
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -225,15 +225,15 @@ class TableApiTests(SupersetTestCase):
             "schema": "",
             "table_name": "does_not_exist",
         }
-        uri = "api/v1/table/"
+        uri = "api/v1/dataset/"
         rv = self.client.post(uri, json=table_data)
         self.assertEqual(rv.status_code, 422)
 
     def test_update_item(self):
         """
-            Table API: Test update item
+            Dataset API: Test update item
         """
-        table = self.insert_table("ab_permission", "", [], get_example_database())
+        table = self.insert_dataset("ab_permission", "", [], get_example_database())
         self.login(username="admin")
         table_data = {
             "description": "changed_description",
@@ -244,7 +244,7 @@ class TableApiTests(SupersetTestCase):
             "is_sqllab_view": True,
             "template_params": "changed_params",
         }
-        uri = f"api/v1/table/{table.id}"
+        uri = f"api/v1/dataset/{table.id}"
         rv = self.client.put(uri, json=table_data)
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(SqlaTable).get(table.id)
@@ -260,12 +260,12 @@ class TableApiTests(SupersetTestCase):
 
     def test_update_item_gamma(self):
         """
-            Table API: Test update item gamma
+            Dataset API: Test update item gamma
         """
-        table = self.insert_table("ab_permission", "", [], get_example_database())
+        table = self.insert_dataset("ab_permission", "", [], get_example_database())
         self.login(username="gamma")
         table_data = {"description": "changed_description"}
-        uri = f"api/v1/table/{table.id}"
+        uri = f"api/v1/dataset/{table.id}"
         rv = self.client.put(uri, json=table_data)
         self.assertEqual(rv.status_code, 401)
         db.session.delete(table)
@@ -273,15 +273,15 @@ class TableApiTests(SupersetTestCase):
 
     def test_update_item_not_owned(self):
         """
-            Table API: Test update item not owned
+            Dataset API: Test update item not owned
         """
         admin = self.get_user("admin")
-        table = self.insert_table(
+        table = self.insert_dataset(
             "ab_permission", "", [admin.id], get_example_database()
         )
         self.login(username="alpha")
         table_data = {"description": "changed_description"}
-        uri = f"api/v1/table/{table.id}"
+        uri = f"api/v1/dataset/{table.id}"
         rv = self.client.put(uri, json=table_data)
         self.assertEqual(rv.status_code, 403)
         db.session.delete(table)
@@ -289,27 +289,27 @@ class TableApiTests(SupersetTestCase):
 
     def test_delete_item(self):
         """
-            Table API: Test delete item
+            Dataset API: Test delete item
         """
         admin = self.get_user("admin")
-        table = self.insert_table(
+        table = self.insert_dataset(
             "ab_permission", "", [admin.id], get_example_database()
         )
         self.login(username="admin")
-        uri = f"api/v1/table/{table.id}"
+        uri = f"api/v1/dataset/{table.id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 200)
 
     def test_delete_item_not_owned(self):
         """
-            Table API: Test delete item not owned
+            Dataset API: Test delete item not owned
         """
         admin = self.get_user("admin")
-        table = self.insert_table(
+        table = self.insert_dataset(
             "ab_permission", "", [admin.id], get_example_database()
         )
         self.login(username="alpha")
-        uri = f"api/v1/table/{table.id}"
+        uri = f"api/v1/dataset/{table.id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         db.session.delete(table)
@@ -317,14 +317,14 @@ class TableApiTests(SupersetTestCase):
 
     def test_delete_item_not_authorized(self):
         """
-            Table API: Test delete item not authorized
+            Dataset API: Test delete item not authorized
         """
         admin = self.get_user("admin")
-        table = self.insert_table(
+        table = self.insert_dataset(
             "ab_permission", "", [admin.id], get_example_database()
         )
         self.login(username="gamma")
-        uri = f"api/v1/table/{table.id}"
+        uri = f"api/v1/dataset/{table.id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 401)
         db.session.delete(table)

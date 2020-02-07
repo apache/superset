@@ -18,7 +18,7 @@ import functools
 import logging
 from typing import Dict, Tuple
 
-from flask import request
+from flask import request, Response
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import Filters
@@ -201,7 +201,7 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
     @protect()
     @check_ownership_and_item_exists
     @safe
-    def put(self, item):  # pylint: disable=arguments-differ
+    def put(self, item) -> Response:  # pylint: disable=arguments-differ
         """Changes a owned Model
         ---
         put:
@@ -245,6 +245,9 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
         item = self.edit_model_schema.load(request.json, instance=item)
         if item.errors:
             return self.response_422(message=item.errors)
+        self.pre_update(item)
+        if item.errors:
+            return self.response_422(message=item.errors)
         try:
             self.datamodel.edit(item.data, raise_exception=True)
             return self.response(
@@ -257,7 +260,7 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
     @expose("/", methods=["POST"])
     @protect()
     @safe
-    def post(self):
+    def post(self) -> Response:
         """Creates a new owned Model
         ---
         post:
@@ -295,6 +298,9 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         if item.errors:
             return self.response_422(message=item.errors)
+        self.pre_add(item)
+        if item.errors:
+            return self.response_422(message=item.errors)
         try:
             self.datamodel.add(item.data, raise_exception=True)
             return self.response(
@@ -310,7 +316,7 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
     @protect()
     @check_ownership_and_item_exists
     @safe
-    def delete(self, item):  # pylint: disable=arguments-differ
+    def delete(self, item) -> Response:  # pylint: disable=arguments-differ
         """Deletes owned Model
         ---
         delete:

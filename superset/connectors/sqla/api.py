@@ -17,91 +17,43 @@
 import logging
 from typing import Dict, List
 
-from flask import current_app, g
+from flask import g, request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
     expose,
     get_item_schema,
     get_list_schema,
-    ModelRestApi,
     protect,
     rison,
     safe,
 )
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import lazy_gettext as _
-from marshmallow import fields, post_load, validates_schema, ValidationError
+from marshmallow import fields, post_load, ValidationError
 from marshmallow.validate import Length
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.validators import (
+    validate_database,
+    validate_python_date_format,
+    validate_table_exists,
+    validate_table_uniqueness,
+)
 from superset.constants import RouteMethod
-from superset.models.core import Database
-from superset.views.base import DatasourceFilter, get_datasource_exist_error_msg
-from superset.views.base_api import BaseOwnedModelRestApi
+from superset.exceptions import SupersetSecurityException
+from superset.views.base import check_ownership, DatasourceFilter
+from superset.views.base_api import BaseOwnedModelRestApi, BaseSupersetModelRestApi
 from superset.views.base_schemas import BaseOwnedSchema, validate_owner
 
 logger = logging.getLogger(__name__)
 
 
-def validate_database(value):
-    item = (
-        current_app.appbuilder.get_session.query(Database)
-        .filter_by(id=value)
-        .one_or_none()
-    )
-    if not item:
-        g.tmp_database = None
-        raise ValidationError(_("Database does not exist"))
-    # Database exists save it on g to save further db round trips
-    g.tmp_database = item
-
-
-def validate_table_exists(data: Dict):
-    if "table_name" not in data:
-        return
-    table_name: str = data["table_name"]
-    try:
-        if g.tmp_database:
-            g.tmp_database.get_table(table_name, schema=data.get("schema", ""))
-    except SQLAlchemyError as e:
-        logger.exception(f"Got an error {e} validating table: {table_name}")
-        raise ValidationError(
-            _(
-                f"Table [{table_name}] could not be found, "
-                "please double check your "
-                "database connection, schema, and "
-                f"table name, error: {e}"
-            )
-        )
-
-
-def validate_table_uniqueness(data: Dict):
-    if not ("database" in data and "table_name" in data):
-        return
-    database_name: str = data["database"]
-    table_name: str = data["table_name"]
-
-    with current_app.appbuilder.get_session.no_autoflush:
-        table_query = current_app.appbuilder.get_session.query(SqlaTable).filter(
-            SqlaTable.table_name == table_name, SqlaTable.database_id == database_name
-        )
-        if current_app.appbuilder.get_session.query(table_query.exists()).scalar():
-            raise ValidationError(get_datasource_exist_error_msg(table_name))
-
-
-class TablePostSchema(BaseOwnedSchema):
+class DatasetPostSchema(BaseOwnedSchema):
     __class_model__ = SqlaTable
 
     database = fields.Integer(validate=validate_database)
     schema = fields.String()
     table_name = fields.String(required=True, validate=Length(1, 250))
     owners = fields.List(fields.Integer(validate=validate_owner))
-
-    @validates_schema
-    def validate_schema(self, data: Dict):  # pylint: disable=no-self-use
-        validate_table_uniqueness(data)
-        validate_table_exists(data)
 
     @post_load
     def make_object(self, data: Dict, discard: List[str] = None) -> SqlaTable:
@@ -110,7 +62,7 @@ class TablePostSchema(BaseOwnedSchema):
         return instance
 
 
-class TablePutSchema(BaseOwnedSchema):
+class DatasetPutSchema(BaseOwnedSchema):
     __class_model__ = SqlaTable
 
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
@@ -127,16 +79,12 @@ class TablePutSchema(BaseOwnedSchema):
     template_params = fields.String(allow_none=True)
     owners = fields.List(fields.Integer(validate=validate_owner))
 
-    @validates_schema
-    def validate_schema(self, data: Dict):  # pylint: disable=no-self-use
-        validate_table_exists(data)
 
-
-class TableRestApi(BaseOwnedModelRestApi):
+class DatasetRestApi(BaseOwnedModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
     base_filters = [["id", DatasourceFilter, lambda: []]]
 
-    resource_name = "table"
+    resource_name = "dataset"
     allow_browser_login = True
 
     class_permission_name = "TableModelView"
@@ -167,8 +115,8 @@ class TableRestApi(BaseOwnedModelRestApi):
         "owners.id",
         "owners.username",
     ]
-    add_model_schema = TablePostSchema()
-    edit_model_schema = TablePutSchema()
+    add_model_schema = DatasetPostSchema()
+    edit_model_schema = DatasetPutSchema()
     add_columns = ["database", "schema", "table_name", "owners"]
     edit_columns = [
         "table_name",
@@ -185,16 +133,33 @@ class TableRestApi(BaseOwnedModelRestApi):
         "template_params",
         "owners",
     ]
+    openapi_spec_tag = "Datasets"
+
+    def pre_add(self, item):
+        try:
+            validate_table_uniqueness(item.data)
+        except ValidationError as e:
+            item.errors.update(e.normalized_messages())
+        try:
+            validate_table_exists(item.data)
+        except ValidationError as e:
+            item.errors.update(e.normalized_messages())
+
+    def pre_update(self, item):
+        try:
+            validate_table_exists(item.data)
+        except ValidationError as e:
+            item.errors.update(e.normalized_messages())
 
 
-class TableColumnRestApi(ModelRestApi):
+class DatasetColumnRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(TableColumn)
 
-    resource_name = "table"
+    resource_name = "dataset"
     allow_browser_login = True
-    class_permission_name = "TableModelView"
+    class_permission_name = "TableColumnInlineView"
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED}
-    openapi_spec_tag = "TableRestApi"
+    openapi_spec_tag = "Datasets"
 
     list_columns = [
         "column_name",
@@ -205,7 +170,7 @@ class TableColumnRestApi(ModelRestApi):
         "is_dttm",
     ]
 
-    edit_columns = [
+    show_columns = [
         "column_name",
         "verbose_name",
         "description",
@@ -216,24 +181,35 @@ class TableColumnRestApi(ModelRestApi):
         "is_dttm",
         "python_date_format",
     ]
-    add_columns = edit_columns
-    show_columns = edit_columns
+    add_columns = show_columns + ["table"]
+    edit_columns = show_columns + ["table"]
+
+    validators_columns = {"python_date_format": validate_python_date_format}
+
+    def check_dataset_exists(self, dataset_id: int) -> SqlaTable:
+        datamodel = SQLAInterface(SqlaTable, self.datamodel.session)
+        filters = self.datamodel.get_filters().add_filter_list(
+            DatasetRestApi.base_filters
+        )
+        return datamodel.get(dataset_id, filters)
 
     @expose("/<pk>/column/", methods=["GET"])
     @protect()
     @safe
     @permission_name("get")
     @rison(get_list_schema)
-    def get_list(self, pk: int, **kwargs):
-        """Get list of columns from a table
+    def get_list(self, pk: int, **kwargs):  # pylint: disable=arguments-differ
+        """Get list of columns from a dataset
         ---
         get:
+          description: >-
+            Query columns from a dataset, accepts filters, ordering and pagination
           parameters:
           - in: path
             schema:
               type: integer
             name: pk
-            description: The table id
+            description: The dataset id
             required: true
           - $ref: '#/components/parameters/get_list_schema'
           responses:
@@ -251,7 +227,8 @@ class TableColumnRestApi(ModelRestApi):
                       result:
                           type: array
                           items:
-                            $ref: '#/components/schemas/{{self.__class__.__name__}}.get_list'  # noqa
+                            $ref:
+                              '#/components/schemas/{{self.__class__.__name__}}.get_list'
             400:
               $ref: '#/components/responses/400'
             401:
@@ -261,7 +238,9 @@ class TableColumnRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        # Check table id and permissions
+        item = self.check_dataset_exists(pk)
+        if not item:
+            return self.response_404()
         filters = kwargs["rison"].get("filters", [])
         filters.append({"col": "table", "opr": "rel_o_m", "value": pk})
         kwargs["rison"]["filters"] = filters
@@ -272,16 +251,20 @@ class TableColumnRestApi(ModelRestApi):
     @safe
     @permission_name("get")
     @rison(get_item_schema)
-    def get(self, pk: int, column_id: int, **kwargs):
-        """Get column from a table
+    def get(
+        self, pk: int, column_id: int, **kwargs
+    ):  # pylint: disable=arguments-differ
+        """Get column from a dataset
         ---
         get:
+          description: >-
+            Get a column from a dataset
           parameters:
           - in: path
             schema:
               type: integer
             name: pk
-            description: The table id
+            description: The dataset id
             required: true
           - in: path
             schema:
@@ -313,5 +296,169 @@ class TableColumnRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        # Check table id and permissions
+        item = self.check_dataset_exists(pk)
+        if not item:
+            return self.response_404()
         return super().get_headless(column_id, **kwargs)
+
+    @expose("/<int:pk>/column/", methods=["POST"])
+    @protect()
+    @safe
+    @permission_name("post")
+    def post(self, pk):  # pylint: disable=arguments-differ
+        """Add a column to a dataset
+        ---
+        post:
+          description: >-
+            Add a column to a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset id
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Item inserted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item = self.check_dataset_exists(pk)
+        if not item:
+            return self.response_404()
+        try:
+            check_ownership(item)
+        except SupersetSecurityException as e:
+            return self.response(403, message=str(e))
+        request.json["table"] = pk
+        return self.post_headless()
+
+    @expose("/<int:pk>/column/<column_id>", methods=["PUT"])
+    @protect()
+    @safe
+    @permission_name("put")
+    def put(self, pk: int, column_id: int):  # pylint: disable=arguments-differ
+        """Change a column from a dataset
+        ---
+        put:
+          description: >-
+            Change a column from a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset id
+          - in: path
+            schema:
+              type: integer
+            name: column_id
+            description: The column id
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Item changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item = self.check_dataset_exists(pk)
+        if not item:
+            return self.response_404()
+        try:
+            check_ownership(item)
+        except SupersetSecurityException as e:
+            return self.response(403, message=str(e))
+        request.json["table"] = pk
+        return self.put_headless(column_id)
+
+    @expose("/<int:pk>/column/<column_id>", methods=["DELETE"])
+    @protect()
+    @safe
+    @permission_name("delete")
+    def delete(
+        self, pk: int, column_id: int  # pylint: disable=arguments-differ
+    ) -> Response:
+        """Delete a column from a dataset
+        ---
+        delete:
+          description: >-
+            Delete a column from a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Item deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item = self.check_dataset_exists(pk)
+        if not item:
+            return self.response_404()
+        try:
+            check_ownership(item)
+        except SupersetSecurityException as e:
+            return self.response(403, message=str(e))
+        return self.delete_headless(column_id)
