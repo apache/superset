@@ -1,17 +1,9 @@
+/* eslint-disable react/sort-prop-types */
 /* eslint-disable react/require-default-props */
 /* eslint-disable react/no-unused-prop-types */
-/* eslint-disable react/forbid-prop-types */
 /* eslint-disable react/no-access-state-in-setstate */
-/* eslint-disable compat/compat */
-/* eslint-disable react/destructuring-assignment */
-/* eslint-disable react/jsx-handler-names */
-/* eslint-disable react/no-unsafe */
-/* eslint-disable react/sort-comp */
 /* eslint-disable camelcase */
 /* eslint-disable no-prototype-builtins */
-/* eslint-disable sort-keys */
-/* eslint-disable no-eq-null */
-/* eslint-disable no-magic-numbers */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -107,6 +99,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     });
   }
 
+  // eslint-disable-next-line class-methods-use-this
   getStateFromProps(props, state) {
     const features = props.payload.data.features || [];
     const timestamps = features.map(f => f.__timestamp);
@@ -178,6 +171,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     return [getLayer(fd, filteredPayload, onAddFilter, setTooltip)];
   }
 
+  // eslint-disable-next-line class-methods-use-this
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
     const colorFn = getScale(fd.color_scheme);
@@ -233,7 +227,6 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           end={this.state.end}
           getStep={this.state.getStep}
           values={this.state.values}
-          onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
           viewport={this.state.viewport}
           mapboxApiAccessToken={this.props.mapboxApiKey}

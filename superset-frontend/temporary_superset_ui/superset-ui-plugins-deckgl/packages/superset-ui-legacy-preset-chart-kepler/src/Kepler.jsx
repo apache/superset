@@ -1,12 +1,12 @@
+/* eslint-disable react/sort-prop-types */
+/* eslint-disable max-classes-per-file */
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable prefer-destructuring */
-/* eslint-disable react/destructuring-assignment */
 /* eslint-disable react/jsx-handler-names */
 /* eslint-disable react/no-deprecated */
 /* eslint-disable no-negated-condition */
 /* eslint-disable react/prop-types */
 /* eslint-disable react/require-default-props */
-/* eslint-disable sort-keys */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -69,7 +69,7 @@ class Kepler extends React.PureComponent {
       const { keplerGl } = this.props;
 
       return KeplerGlSchema.getConfigToSave(keplerGl[this.state.keplerId]);
-    } catch (e) {
+    } catch (error) {
       return null;
     }
   }
@@ -114,8 +114,8 @@ class Kepler extends React.PureComponent {
       <div>
         <KeplerGl
           id={this.state.keplerId}
-          onSaveMap={this.setMapConfig}
           theme="light"
+          onSaveMap={this.setMapConfig}
           {...this.props}
         />
       </div>
@@ -128,12 +128,8 @@ Kepler.propTypes = propTypes;
 
 const mapStateToProps = state => ({ keplerGl: state.keplerGl });
 const dispatchToProps = dispatch => ({ dispatch });
-const KeplerConnected = connect(
-  mapStateToProps,
-  dispatchToProps,
-)(Kepler);
+const KeplerConnected = connect(mapStateToProps, dispatchToProps)(Kepler);
 
-// eslint-disable-next-line react/no-multi-comp
 export default class SubApp extends React.Component {
   constructor(props) {
     super(props);

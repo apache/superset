@@ -1,4 +1,3 @@
-/* eslint-disable no-magic-numbers */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -61,7 +60,10 @@ export function getBounds(points) {
   const latBounds = latExt[0] === latExt[1] ? getLatBoundsForSingleCoordinate(latExt) : latExt;
   const lngBounds = lngExt[0] === lngExt[1] ? getLngBoundsForSingleCoordinate(lngExt) : lngExt;
 
-  return [[lngBounds[0], latBounds[0]], [lngBounds[1], latBounds[1]]];
+  return [
+    [lngBounds[0], latBounds[0]],
+    [lngBounds[1], latBounds[1]],
+  ];
 }
 
 export function fitViewport(viewport, points, padding = 10) {
@@ -77,9 +79,9 @@ export function fitViewport(viewport, points, padding = 10) {
         width: viewport.width,
       }),
     };
-  } catch (e) {
+  } catch (error) {
     /* eslint no-console: 0 */
-    console.error('Could not auto zoom', e);
+    console.error('Could not auto zoom', error);
 
     return viewport;
   }
@@ -153,5 +155,5 @@ export function getAggFunc(type = 'sum', accessor = null) {
     return arr => d3func(arr);
   }
 
-  return arr => d3func(arr.map(accessor));
+  return arr => d3func(arr.map(x => accessor(x)));
 }

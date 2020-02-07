@@ -1,6 +1,6 @@
+/* eslint-disable react/jsx-sort-default-props */
+/* eslint-disable react/sort-prop-types */
 /* eslint-disable react/jsx-handler-names */
-/* eslint-disable react/destructuring-assignment */
-/* eslint-disable sort-keys */
 /* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -98,13 +98,13 @@ export default class DeckGLContainer extends React.Component {
     return (
       <div style={{ position: 'relative', width, height: adjustedHeight }}>
         <DeckGL
+          initWebGLParameters
+          controller
           width={width}
           height={adjustedHeight}
           layers={layers}
           viewState={viewState}
           onViewStateChange={this.onViewStateChange}
-          initWebGLParameters
-          controller
         >
           <StaticMap
             mapStyle={this.props.mapStyle}

@@ -1,7 +1,6 @@
-/* eslint-disable react/destructuring-assignment */
+/* eslint-disable react/jsx-sort-default-props */
+/* eslint-disable react/sort-prop-types */
 /* eslint-disable jsx-a11y/anchor-is-valid */
-/* eslint-disable sort-keys */
-/* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file

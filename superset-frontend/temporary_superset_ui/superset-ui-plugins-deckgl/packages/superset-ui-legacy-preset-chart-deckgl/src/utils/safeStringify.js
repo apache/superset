@@ -36,7 +36,7 @@ export function safeStringify(object) {
         try {
           // Quick deep copy to duplicate if this is a repeat rather than a circle.
           return JSON.parse(JSON.stringify(value));
-        } catch (err) {
+        } catch (error) {
           // Discard key if value cannot be duplicated.
           return;
         }
