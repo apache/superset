@@ -105,6 +105,7 @@ class SupersetSecurityManager(SecurityManager):
         "DruidColumnInlineView",
         "DruidDatasourceModelView",
         "DruidMetricInlineView",
+        "Datasource",
     } | READ_ONLY_MODEL_VIEWS
 
     ADMIN_ONLY_VIEW_MENUS = {
@@ -131,7 +132,7 @@ class SupersetSecurityManager(SecurityManager):
         "all_query_access",
     }
 
-    READ_ONLY_PERMISSION = {"can_show", "can_list"}
+    READ_ONLY_PERMISSION = {"can_show", "can_list", "can_get", "can_external_metadata"}
 
     ALPHA_ONLY_PERMISSIONS = {
         "muldelete",
