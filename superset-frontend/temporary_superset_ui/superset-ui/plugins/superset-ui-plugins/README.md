@@ -3,7 +3,7 @@
 [![Codecov branch](https://img.shields.io/codecov/c/github/apache-superset/superset-ui-plugins/master.svg?style=flat-square)](https://codecov.io/gh/apache-superset/superset-ui-plugins/branch/master)
 [![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui-plugins/master.svg?style=flat-square)](https://travis-ci.com/apache-superset/superset-ui-plugins)
 [![David](https://img.shields.io/david/dev/apache-superset/superset-ui-plugins.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?type=dev)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/d2c78390-752e-4fc2-abf0-7e6df362b9ff/deploy-status)](https://app.netlify.com/sites/superset-ui-plugins/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/cef8fedc-2938-4f20-9823-fcd3cd2f30b3/deploy-status)](https://app.netlify.com/sites/superset-ui-plugins/deploys)
 
 `@superset-ui/legacy-*` packages are extracted from the classic
 [Apache Superset](https://github.com/apache/incubator-superset) and converted into plugins. These
