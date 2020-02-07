@@ -22,4 +22,5 @@ recursive-include superset/examples *
 recursive-include superset/migrations *
 recursive-include superset/templates *
 recursive-include superset/translations *
+recursive-include superset/static *
 recursive-exclude tests *
