@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
@@ -21,6 +22,7 @@ from random import random
 
 import prison
 
+import tests.test_app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.dataframe import df_to_records

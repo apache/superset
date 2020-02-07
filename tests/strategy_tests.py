@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset cache warmup"""
 import json
 from unittest.mock import MagicMock
 
+import tests.test_app
 from superset import db
 from superset.models.core import Log
 from superset.models.tags import get_tag, ObjectTypes, TaggedObject, TagTypes
