@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- .deckgl-tooltip > div {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+.deckgl-tooltip > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

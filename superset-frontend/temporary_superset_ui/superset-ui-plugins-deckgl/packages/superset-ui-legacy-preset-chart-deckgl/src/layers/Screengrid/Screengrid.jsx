@@ -1,8 +1,5 @@
+/* eslint-disable react/sort-prop-types */
 /* eslint-disable react/jsx-handler-names */
-/* eslint-disable react/destructuring-assignment */
-/* eslint-disable no-magic-numbers */
-/* eslint-disable sort-keys */
-/* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -63,10 +60,9 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
     data = jsFnMutator(data);
   }
 
-  // eslint-disable-next-line no-eq-null
   if (filters != null) {
     filters.forEach(f => {
-      data = data.filter(f);
+      data = data.filter(x => f(x));
     });
   }
 
@@ -179,12 +175,12 @@ class DeckGLScreenGrid extends React.PureComponent {
     return (
       <div>
         <AnimatableDeckGLContainer
+          aggregation
           getLayers={this.getLayers}
           start={this.state.start}
           end={this.state.end}
           getStep={this.state.getStep}
           values={this.state.values}
-          onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
           viewport={this.state.viewport}
           width={this.props.width}
@@ -192,7 +188,8 @@ class DeckGLScreenGrid extends React.PureComponent {
           mapboxApiAccessToken={payload.data.mapboxApiKey}
           mapStyle={formData.mapbox_style}
           setControlValue={setControlValue}
-          aggregation
+          onValuesChange={this.onValuesChange}
+          onViewportChange={this.onViewportChange}
         />
       </div>
     );

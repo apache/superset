@@ -1,5 +1,3 @@
-/* eslint-disable no-restricted-properties */
-/* eslint-disable no-magic-numbers */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -33,15 +31,20 @@ const METER_TO_MILE = 1609.34;
 export function unitToRadius(unit, num) {
   if (unit === 'square_m') {
     return Math.sqrt(num / Math.PI);
-  } else if (unit === 'radius_m') {
+  }
+  if (unit === 'radius_m') {
     return num;
-  } else if (unit === 'radius_km') {
+  }
+  if (unit === 'radius_km') {
     return num * 1000;
-  } else if (unit === 'radius_miles') {
+  }
+  if (unit === 'radius_miles') {
     return num * METER_TO_MILE;
-  } else if (unit === 'square_km') {
+  }
+  if (unit === 'square_km') {
     return Math.sqrt(num / Math.PI) * 1000;
-  } else if (unit === 'square_miles') {
+  }
+  if (unit === 'square_miles') {
     return Math.sqrt(num / Math.PI) * METER_TO_MILE;
   }
 
@@ -55,7 +58,7 @@ export function kmToPixels(kilometers, latitude, zoomLevel) {
   // Algorithm from: https://wiki.openstreetmap.org/wiki/Zoom_levels
   const latitudeRad = latitude * (Math.PI / 180);
   // Seems like the zoomLevel is off by one
-  const kmPerPixel = (EARTH_CIRCUMFERENCE_KM * Math.cos(latitudeRad)) / Math.pow(2, zoomLevel + 9);
+  const kmPerPixel = (EARTH_CIRCUMFERENCE_KM * Math.cos(latitudeRad)) / 2 ** (zoomLevel + 9);
 
   return roundDecimal(kilometers / kmPerPixel, 2);
 }

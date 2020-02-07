@@ -1,10 +1,9 @@
+/* eslint-disable react/jsx-sort-default-props */
+/* eslint-disable react/sort-prop-types */
 /* eslint-disable react/jsx-handler-names */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable no-negated-condition */
-/* eslint-disable react/destructuring-assignment */
-/* eslint-disable no-eq-null */
-/* eslint-disable sort-keys */
 /* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one

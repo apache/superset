@@ -1,13 +1,8 @@
-/* eslint-disable compat/compat */
-/* eslint-disable react/no-unsafe */
-/* eslint-disable promise/always-return */
+/* eslint-disable react/jsx-sort-default-props */
+/* eslint-disable react/sort-prop-types */
 /* eslint-disable react/jsx-handler-names */
 /* eslint-disable react/no-access-state-in-setstate */
-/* eslint-disable react/sort-comp */
 /* eslint-disable camelcase */
-/* eslint-disable react/destructuring-assignment */
-/* eslint-disable sort-keys */
-/* eslint-disable react/forbid-prop-types */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -126,10 +121,10 @@ class DeckMulti extends React.PureComponent {
       <DeckGLContainer
         mapboxApiAccessToken={payload.data.mapboxApiKey}
         viewport={this.state.viewport || this.props.viewport}
-        onViewportChange={this.onViewportChange}
         layers={layers}
         mapStyle={formData.mapbox_style}
         setControlValue={setControlValue}
+        onViewportChange={this.onViewportChange}
       />
     );
   }

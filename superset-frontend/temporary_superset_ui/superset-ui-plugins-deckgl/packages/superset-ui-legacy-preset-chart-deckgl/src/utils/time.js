@@ -1,8 +1,4 @@
-/* eslint-disable sort-keys */
-/* eslint-disable babel/no-invalid-this */
-/* eslint-disable no-eq-null */
 /* eslint-disable no-negated-condition */
-/* eslint-disable func-names */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,7 +48,8 @@ export function truncate(timestamp, step) {
       const difference = part - explodedLowerBound[i];
 
       return part - ((part - truncatePartTo[i]) % difference);
-    } else if (i < firstDiffIndex || firstDiffIndex === -1) {
+    }
+    if (i < firstDiffIndex || firstDiffIndex === -1) {
       return part;
     }
 
@@ -85,7 +82,7 @@ export function getPlaySliderParams(timestamps, timeGrain) {
   let step;
   let reference;
 
-  if (timeGrain.indexOf('/') !== -1) {
+  if (timeGrain.includes('/')) {
     // Here, time grain is a time interval instead of a simple duration, either
     // `reference/duration` or `duration/reference`. We need to parse the
     // duration and make sure that start and end are in the right places. For

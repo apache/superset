@@ -1,9 +1,3 @@
-/* eslint-disable babel/new-cap */
-/* eslint-disable babel/no-invalid-this */
-/* eslint-disable compat/compat */
-/* eslint-disable import/no-extraneous-dependencies */
-/* eslint-disable no-magic-numbers */
-/* eslint-disable sort-keys */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -68,6 +62,7 @@ const rateLimitedUpdateConfigControl = RateLimit(updateConfigControl, 1000);
 export default function getKeplerStore(setControlValue) {
   // Using react-palm middleware to intercept changes and
   // save the state into the config control as text
+  // eslint-disable-next-line unicorn/consistent-function-scoping
   const stateChangeMiddleware = store => next => action => {
     const returnValue = next(action);
     rateLimitedUpdateConfigControl(store, setControlValue);

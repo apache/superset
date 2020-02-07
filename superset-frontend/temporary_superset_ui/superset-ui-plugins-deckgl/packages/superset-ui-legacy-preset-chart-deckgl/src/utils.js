@@ -1,4 +1,3 @@
-/* eslint-disable no-magic-numbers */
 /* eslint-disable no-negated-condition */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -44,7 +43,7 @@ export function getBreakPoints(
     const precision = delta === 0 ? 0 : Math.max(0, Math.ceil(Math.log10(1 / delta)));
     const extraBucket = maxValue > maxValue.toFixed(precision) ? 1 : 0;
 
-    return Array(numBuckets + 1 + extraBucket)
+    return new Array(numBuckets + 1 + extraBucket)
       .fill()
       .map((_, i) => (minValue + i * delta).toFixed(precision));
   }
@@ -111,7 +110,7 @@ export function getBreakPointColorScaler(
     if (maskPoint(v)) {
       c[3] = 0;
     } else {
-      c[3] = (opacity / 100.0) * 255;
+      c[3] = (opacity / 100) * 255;
     }
 
     return c;

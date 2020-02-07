@@ -31,6 +31,7 @@
     "mapbox-gl": "^0.53.0",
     "prop-types": "^15.6.0",
     "react-palm": "^3.1.2",
+    "redux": "^4.0.5",
     "shortid": "^2.2.15",
     "styled-components": "^4.4.0",
     "viewport-mercator-project": "^6.1.1"
