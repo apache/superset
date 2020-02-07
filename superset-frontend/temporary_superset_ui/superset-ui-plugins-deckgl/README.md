@@ -4,7 +4,7 @@
 [![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui-plugins-deckgl/master.svg?style=flat-square
 )](https://travis-ci.com/apache-superset/superset-ui-plugins-deckgl)
 [![David](https://img.shields.io/david/dev/apache-superset/superset-ui-plugins-deckgl.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins-deckgl?type=dev)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/d2c78390-752e-4fc2-abf0-7e6df362b9ff/deploy-status)](https://app.netlify.com/sites/superset-ui-plugins-deckgl/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/4d054ead-0e76-4e03-b684-797ca5924161/deploy-status)](https://app.netlify.com/sites/superset-ui-plugins-deckgl/deploys)
 
 ## Demo (Storybook)
 
