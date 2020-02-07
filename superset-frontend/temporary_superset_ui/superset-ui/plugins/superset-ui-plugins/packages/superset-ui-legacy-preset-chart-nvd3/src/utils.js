@@ -142,7 +142,7 @@ export function generateAreaChartTooltipContent(d, timeFormatter, valueFormatter
     "<table><thead><tr><td colspan='4'>" +
     `<strong class='x-value'>${timeFormatter(d.value)}</strong>` +
     '</td></tr></thead><tbody>' +
-    '<tr><td></td><td>Category</td><td>Value</td><td>% to total</td></tr>';
+    '<tr class="tooltip-header"><td></td><td>Category</td><td>Value</td><td>% to total</td></tr>';
   d.series.forEach(series => {
     const key = getFormattedKey(series.key, true);
     let trClass = '';

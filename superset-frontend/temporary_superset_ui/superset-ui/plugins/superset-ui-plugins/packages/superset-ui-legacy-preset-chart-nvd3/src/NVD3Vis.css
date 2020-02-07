@@ -140,11 +140,11 @@
 }
 
 /* START tooltip styles - these prevent long column names from overflowing the tooltip */
-.nvtooltip tbody tr:first-child td {
+.nvtooltip .tooltip-header {
   white-space: nowrap;
   font-weight: bold;
 }
-.nvtooltip tbody tr:not(:first-child) td:nth-child(2) {
+.nvtooltip tbody tr:not(.tooltip-header) td:nth-child(2) {
   word-break: break-word;
 }
 /* END tooltip styles */
