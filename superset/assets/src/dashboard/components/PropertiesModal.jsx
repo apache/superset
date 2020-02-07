@@ -75,11 +75,12 @@ class PropertiesModal extends React.PureComponent {
   }
 
   componentDidMount() {
-    SupersetClient.get({ endpoint: `/users/api/read` }).then(response => {
-      const options = response.json.result.map((user, i) => ({
-        // ids are in a separate `pks` array in the results... need api v2
-        value: response.json.pks[i],
-        label: `${user.first_name} ${user.last_name}`,
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/related/owners`,
+    }).then(response => {
+      const options = response.json.result.map(item => ({
+        value: item.value,
+        label: item.text,
       }));
       this.setState({
         userOptions: options,
@@ -213,24 +214,18 @@ class PropertiesModal extends React.PureComponent {
                 <label className="control-label" htmlFor="owners">
                   {t('Owners')}
                 </label>
-                {userOptions && (
-                  <>
-                    <Select
-                      name="owners"
-                      multi
-                      isLoading={!userOptions}
-                      value={values.owners}
-                      options={userOptions || []}
-                      onChange={this.onOwnersChange}
-                      disabled={!isOwnersLoaded}
-                    />
-                    <p className="help-block">
-                      {t(
-                        'Owners is a list of users who can alter the dashboard.',
-                      )}
-                    </p>
-                  </>
-                )}
+                <Select
+                  name="owners"
+                  multi
+                  isLoading={!userOptions}
+                  value={values.owners}
+                  options={userOptions || []}
+                  onChange={this.onOwnersChange}
+                  disabled={!userOptions || !isOwnersLoaded}
+                />
+                <p className="help-block">
+                  {t('Owners is a list of users who can alter the dashboard.')}
+                </p>
               </Col>
             </Row>
             <Row>
