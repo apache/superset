@@ -1,7 +1,5 @@
-/* eslint-disable no-magic-numbers */
-/* eslint-disable react/forbid-prop-types */
+/* eslint-disable react/sort-prop-types */
 /* eslint-disable react/no-array-index-key */
-/* eslint-disable sort-keys */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
