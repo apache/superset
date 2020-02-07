@@ -166,6 +166,40 @@ class SupersetResultSetTestCase(SupersetTestCase):
             ],
         )
 
+    def test_single_column_multidim_nested_types(self):
+        data = [
+            (
+                [
+                    "test",
+                    [
+                        [
+                            "foo",
+                            123456,
+                            [
+                                [["test"], 3432546, 7657658766],
+                                [["fake"], 656756765, 324324324324],
+                            ],
+                        ]
+                    ],
+                    ["test2", 43, 765765765],
+                    None,
+                    None,
+                ],
+            )
+        ]
+        cursor_descr = [("metadata",)]
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "STRING")
+        df = results.to_pandas_df()
+        self.assertEqual(
+            df_to_records(df),
+            [
+                {
+                    "metadata": '["test", [["foo", 123456, [[["test"], 3432546, 7657658766], [["fake"], 656756765, 324324324324]]]], ["test2", 43, 765765765], null, null]'
+                }
+            ],
+        )
+
     def test_empty_datetime(self):
         data = [(None,)]
         cursor_descr = [("ds", "timestamp", None, None, None, None, True)]
