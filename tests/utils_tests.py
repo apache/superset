@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
@@ -25,6 +26,7 @@ from flask import Flask
 from flask_caching import Cache
 from sqlalchemy.exc import ArgumentError
 
+import tests.test_app
 from superset import app, db, security_manager
 from superset.exceptions import SupersetException
 from superset.models.core import Database

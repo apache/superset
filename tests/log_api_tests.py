@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 from typing import Optional
@@ -21,6 +22,7 @@ from typing import Optional
 import prison
 from flask_appbuilder.security.sqla.models import User
 
+import tests.test_app
 from superset import db
 from superset.models.core import Log
 
