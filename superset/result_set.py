@@ -57,6 +57,15 @@ def dedup(l: List[str], suffix: str = "__", case_sensitive: bool = True) -> List
     return new_l
 
 
+def stringify(obj: Any) -> str:
+    return json.dumps(obj, default=utils.json_iso_dttm_ser)
+
+
+def stringify_values(array: np.ndarray) -> np.ndarray:
+    vstringify: Callable = np.vectorize(stringify)
+    return vstringify(array)
+
+
 class SupersetResultSet:
     def __init__(
         self,
@@ -68,6 +77,8 @@ class SupersetResultSet:
         column_names: List[str] = []
         pa_data: List[pa.Array] = []
         deduped_cursor_desc: List[Tuple[Any, ...]] = []
+        numpy_dtype: List[Tuple[str, ...]] = []
+        stringified_arr: np.ndarray
 
         if cursor_description:
             # get deduped list of column names
@@ -79,33 +90,45 @@ class SupersetResultSet:
                 for column_name, description in zip(column_names, cursor_description)
             ]
 
-        # put data in a 2D array so we can efficiently access each column;
-        array = np.array(data, dtype="object")
-        if array.size > 0:
-            pa_data = [pa.array(array[:, i]) for i, column in enumerate(column_names)]
+            # generate numpy structured array dtype
+            numpy_dtype = [(column_name, "object") for column_name in column_names]
 
-        # workaround for bug converting `psycopg2.tz.FixedOffsetTimezone` tzinfo values.
-        # related: https://issues.apache.org/jira/browse/ARROW-5248
+        # put data in a structured array so we can efficiently access each column.
+        # cast `data` as list due to MySQL (others?) wrapping results with a tuple.
+        array = np.array(list(data), dtype=numpy_dtype)
+        if array.size > 0:
+            for column in column_names:
+                try:
+                    pa_data.append(pa.array(array[column].tolist()))
+                except (
+                    pa.lib.ArrowInvalid,
+                    pa.lib.ArrowTypeError,
+                    pa.lib.ArrowNotImplementedError,
+                ):
+                    # attempt serialization of values as strings
+                    stringified_arr = stringify_values(array[column])
+                    pa_data.append(pa.array(stringified_arr.tolist()))
+
         if pa_data:
             for i, column in enumerate(column_names):
-                # TODO: revisit nested column serialization once Arrow 1.0 is released with:
-                # https://github.com/apache/arrow/pull/6199
-                # Related issue: #8978
                 if pa.types.is_nested(pa_data[i].type):
-                    stringify_func = lambda item: json.dumps(
-                        item, default=utils.json_iso_dttm_ser
-                    )
-                    vfunc = np.vectorize(stringify_func)
-                    strigified_arr = vfunc(array[:, i])
-                    pa_data[i] = pa.array(strigified_arr)
+                    # TODO: revisit nested column serialization once PyArrow updated with:
+                    # https://github.com/apache/arrow/pull/6199
+                    # Related issue: https://github.com/apache/incubator-superset/issues/8978
+                    stringified_arr = stringify_values(array[column])
+                    pa_data[i] = pa.array(stringified_arr.tolist())
 
                 elif pa.types.is_temporal(pa_data[i].type):
-                    sample = self.first_nonempty(array[:, i])
+                    # workaround for bug converting `psycopg2.tz.FixedOffsetTimezone` tzinfo values.
+                    # related: https://issues.apache.org/jira/browse/ARROW-5248
+                    sample = self.first_nonempty(array[column])
                     if sample and isinstance(sample, datetime.datetime):
                         try:
                             if sample.tzinfo:
                                 tz = sample.tzinfo
-                                series = pd.Series(array[:, i], dtype="datetime64[ns]")
+                                series = pd.Series(
+                                    array[column], dtype="datetime64[ns]"
+                                )
                                 series = pd.to_datetime(series).dt.tz_localize(tz)
                                 pa_data[i] = pa.Array.from_pandas(
                                     series, type=pa.timestamp("ns", tz=tz)
