@@ -1643,7 +1643,7 @@ class Superset(BaseSupersetView):
                 )
                 obj.get_json()
             except Exception as e:
-                self.logger.exception("Failed to warm up cache")
+                logger.exception("Failed to warm up cache")
                 return json_error_response(utils.error_msg_from_exception(e))
         return json_success(
             json.dumps(
@@ -2698,7 +2698,7 @@ class Superset(BaseSupersetView):
             )
             return self.json_response(schemas_allowed_processed)
         except Exception as e:
-            self.logger.exception(e)
+            logger.exception(e)
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
                 "Please contact your Superset Admin!"
