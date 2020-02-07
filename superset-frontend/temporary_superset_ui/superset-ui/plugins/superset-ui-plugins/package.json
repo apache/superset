@@ -65,7 +65,7 @@
     "husky": "^4.2.1",
     "jest-mock-console": "^1.0.0",
     "lerna": "^3.15.0",
-    "lint-staged": "^9.2.5",
+    "lint-staged": "^10.0.7",
     "react-test-renderer": "^16.9.0",
     "react-dom": "^16.9.0",
     "react": "^16.9.0"
