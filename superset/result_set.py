@@ -30,6 +30,8 @@ import pyarrow as pa
 from superset import db_engine_specs
 from superset.utils import core as utils
 
+logger = logging.getLogger(__name__)
+
 
 def dedup(l: List[str], suffix: str = "__", case_sensitive: bool = True) -> List[str]:
     """De-duplicates a list of string by suffixing a counter
@@ -134,7 +136,7 @@ class SupersetResultSet:
                                     series, type=pa.timestamp("ns", tz=tz)
                                 )
                         except Exception as e:
-                            logging.exception(e)
+                            logger.exception(e)
 
         self.table = pa.Table.from_arrays(pa_data, names=column_names)
         self._type_dict: Dict[str, Any] = {}
@@ -146,7 +148,7 @@ class SupersetResultSet:
                 if deduped_cursor_desc
             }
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
 
     @staticmethod
     def convert_pa_dtype(pa_dtype: pa.DataType) -> Optional[str]:

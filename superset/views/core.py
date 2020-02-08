@@ -123,6 +123,7 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
 stats_logger = config["STATS_LOGGER"]
 DAR = DatasourceAccessRequest
 QueryStatus = utils.QueryStatus
+logger = logging.getLogger(__name__)
 
 DATABASE_KEYS = [
     "allow_csv_upload",
@@ -220,7 +221,7 @@ def check_slice_perms(self, slice_id):
 def _deserialize_results_payload(
     payload: Union[bytes, str], query, use_msgpack: Optional[bool] = False
 ) -> dict:
-    logging.debug(f"Deserializing from msgpack: {use_msgpack}")
+    logger.debug(f"Deserializing from msgpack: {use_msgpack}")
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_msgpack_deserialize", stats_logger
@@ -607,7 +608,7 @@ class Superset(BaseSupersetView):
             if query_obj:
                 query = viz_obj.datasource.get_query_str(query_obj)
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(e)
 
         if not query:
@@ -746,7 +747,7 @@ class Superset(BaseSupersetView):
                     "danger",
                 )
             except Exception as e:
-                logging.exception(e)
+                logger.exception(e)
                 flash(
                     _(
                         "An unknown error occurred. "
@@ -1341,7 +1342,7 @@ class Superset(BaseSupersetView):
                 conn.scalar(select([1]))
                 return json_success('"OK"')
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(
                 "Connection failed!\n\n" f"The error message returned was:\n{e}", 400
             )
@@ -1642,7 +1643,7 @@ class Superset(BaseSupersetView):
                 )
                 obj.get_json()
             except Exception as e:
-                self.logger.exception("Failed to warm up cache")
+                logger.exception("Failed to warm up cache")
                 return json_error_response(utils.error_msg_from_exception(e))
         return json_success(
             json.dumps(
@@ -1686,7 +1687,7 @@ class Superset(BaseSupersetView):
     @expose("/dashboard/<dashboard_id>/published/", methods=("GET", "POST"))
     def publish(self, dashboard_id):
         """Gets and toggles published status on dashboards"""
-        logging.warning(
+        logger.warning(
             "This API endpoint is deprecated and will be removed in version 1.0.0"
         )
         session = db.session()
@@ -1860,7 +1861,7 @@ class Superset(BaseSupersetView):
                 "Can't find User '%(name)s', please ask your admin " "to create one.",
                 name=user_name,
             )
-            logging.error(err_msg)
+            logger.error(err_msg)
             return json_error_response(err_msg)
         cluster = (
             db.session.query(DruidCluster)
@@ -1872,12 +1873,12 @@ class Superset(BaseSupersetView):
                 "Can't find DruidCluster with cluster_name = " "'%(name)s'",
                 name=cluster_name,
             )
-            logging.error(err_msg)
+            logger.error(err_msg)
             return json_error_response(err_msg)
         try:
             DruidDatasource.sync_to_db_from_config(druid_config, user, cluster)
         except Exception as e:
-            logging.exception(utils.error_msg_from_exception(e))
+            logger.exception(utils.error_msg_from_exception(e))
             return json_error_response(utils.error_msg_from_exception(e))
         return Response(status=201)
 
@@ -1966,7 +1967,7 @@ class Superset(BaseSupersetView):
                     mydb, schema, sql, utils.sources.get("sql_lab")
                 )
         except SupersetTimeoutException as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(timeout_msg)
         except Exception as e:
             return json_error_response(str(e))
@@ -2064,7 +2065,7 @@ class Superset(BaseSupersetView):
             QueryStatus.SUCCESS,
             QueryStatus.TIMED_OUT,
         ]:
-            logging.error(
+            logger.error(
                 f"Query with client_id {client_id} could not be stopped: query already complete"
             )
             return self.json_response("OK")
@@ -2128,7 +2129,7 @@ class Superset(BaseSupersetView):
             )
             return json_success(payload)
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             msg = _(
                 f"{validator.name} was unable to check your query.\n"
                 "Please recheck your query.\n"
@@ -2156,7 +2157,7 @@ class Superset(BaseSupersetView):
         :param query: The query (SQLAlchemy) object
         :return: String JSON response
         """
-        logging.info(f"Query {query.id}: Running query on a Celery worker")
+        logger.info(f"Query {query.id}: Running query on a Celery worker")
         # Ignore the celery future object and the request may time out.
         try:
             sql_lab.get_sql_results.delay(
@@ -2170,7 +2171,7 @@ class Superset(BaseSupersetView):
                 log_params=log_params,
             )
         except Exception as e:
-            logging.exception(f"Query {query.id}: {e}")
+            logger.exception(f"Query {query.id}: {e}")
             msg = _(
                 "Failed to start remote query on a worker. "
                 "Tell your administrator to verify the availability of "
@@ -2232,7 +2233,7 @@ class Superset(BaseSupersetView):
                 encoding=None,
             )
         except Exception as e:
-            logging.exception(f"Query {query.id}: {e}")
+            logger.exception(f"Query {query.id}: {e}")
             return json_error_response(f"{{e}}")
         if data.get("status") == QueryStatus.FAILED:
             return json_error_response(payload=data)
@@ -2260,7 +2261,7 @@ class Superset(BaseSupersetView):
                 query_params.get("templateParams") or "{}"
             )
         except json.JSONDecodeError:
-            logging.warning(
+            logger.warning(
                 f"Invalid template parameter {query_params.get('templateParams')}"
                 " specified. Defaulting to empty dict"
             )
@@ -2268,7 +2269,7 @@ class Superset(BaseSupersetView):
         limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
         async_flag: bool = cast(bool, query_params.get("runAsync"))
         if limit < 0:
-            logging.warning(
+            logger.warning(
                 f"Invalid limit of {limit} specified. Defaulting to max limit."
             )
             limit = 0
@@ -2310,13 +2311,13 @@ class Superset(BaseSupersetView):
             query_id = query.id
             session.commit()  # shouldn't be necessary
         except SQLAlchemyError as e:
-            logging.error(f"Errors saving query details {e}")
+            logger.error(f"Errors saving query details {e}")
             session.rollback()
             raise Exception(_("Query record was not created as expected."))
         if not query_id:
             raise Exception(_("Query record was not created as expected."))
 
-        logging.info(f"Triggering query_id: {query_id}")
+        logger.info(f"Triggering query_id: {query_id}")
 
         rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
         if rejected_tables:
@@ -2368,7 +2369,7 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     def csv(self, client_id):
         """Download the query results as csv."""
-        logging.info("Exporting CSV file [{}]".format(client_id))
+        logger.info("Exporting CSV file [{}]".format(client_id))
         query = db.session.query(Query).filter_by(client_id=client_id).one()
 
         rejected_tables = security_manager.rejected_tables(
@@ -2379,12 +2380,12 @@ class Superset(BaseSupersetView):
             return redirect("/")
         blob = None
         if results_backend and query.results_key:
-            logging.info(
+            logger.info(
                 "Fetching CSV from results backend " "[{}]".format(query.results_key)
             )
             blob = results_backend.get(query.results_key)
         if blob:
-            logging.info("Decompressing")
+            logger.info("Decompressing")
             payload = utils.zlib_decompress(
                 blob, decode=not results_backend_use_msgpack
             )
@@ -2393,10 +2394,10 @@ class Superset(BaseSupersetView):
             )
             columns = [c["name"] for c in obj["columns"]]
             df = pd.DataFrame.from_records(obj["data"], columns=columns)
-            logging.info("Using pandas to convert to CSV")
+            logger.info("Using pandas to convert to CSV")
             csv = df.to_csv(index=False, **config["CSV_EXPORT"])
         else:
-            logging.info("Running a query to turn into CSV")
+            logger.info("Running a query to turn into CSV")
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
@@ -2414,7 +2415,7 @@ class Superset(BaseSupersetView):
             "sql": query.sql,
             "exported_format": "csv",
         }
-        logging.info(
+        logger.info(
             f"CSV exported: {repr(event_info)}", extra={"superset_event": event_info}
         )
         return response
@@ -2697,7 +2698,7 @@ class Superset(BaseSupersetView):
             )
             return self.json_response(schemas_allowed_processed)
         except Exception as e:
-            self.logger.exception(e)
+            logger.exception(e)
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
                 "Please contact your Superset Admin!"

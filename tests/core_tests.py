@@ -54,6 +54,8 @@ from superset.views.database.views import DatabaseView
 
 from .base_tests import SupersetTestCase
 
+logger = logging.getLogger(__name__)
+
 
 class CoreTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
@@ -321,7 +323,7 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, "explore_json", slc.explore_json_url),
             ]
         for name, method, url in urls:
-            logging.info(f"[{name}]/[{method}]: {url}")
+            logger.info(f"[{name}]/[{method}]: {url}")
             print(f"[{name}]/[{method}]: {url}")
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)

@@ -45,6 +45,8 @@ from superset.views.base import (
 
 from . import models
 
+logger = logging.getLogger(__name__)
+
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidColumn)
@@ -380,7 +382,7 @@ class Druid(BaseSupersetView):
                     ),
                     "danger",
                 )
-                logging.exception(e)
+                logger.exception(e)
                 pass
             if valid_cluster:
                 cluster.metadata_last_refreshed = datetime.now()

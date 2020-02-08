@@ -62,6 +62,7 @@ from superset.utils import core as utils, import_datasource
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
+logger = logging.getLogger(__name__)
 
 
 class SqlaQuery(NamedTuple):
@@ -98,7 +99,7 @@ class AnnotationDatasource(BaseDatasource):
         except Exception as e:
             df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
-            logging.exception(e)
+            logger.exception(e)
             error_message = utils.error_msg_from_exception(e)
         return QueryResult(
             status=status, df=df, duration=0, query="", error_message=error_message
@@ -590,7 +591,7 @@ class SqlaTable(Model, BaseDatasource):
     def get_query_str_extended(self, query_obj: Dict[str, Any]) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
-        logging.info(sql)
+        logger.info(sql)
         sql = sqlparse.format(sql, reindent=True)
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
@@ -1005,7 +1006,7 @@ class SqlaTable(Model, BaseDatasource):
         except Exception as e:
             df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
-            logging.exception(f"Query {sql} on schema {self.schema} failed")
+            logger.exception(f"Query {sql} on schema {self.schema} failed")
             db_engine_spec = self.database.db_engine_spec
             error_message = db_engine_spec.extract_error_message(e)
 
@@ -1025,7 +1026,7 @@ class SqlaTable(Model, BaseDatasource):
         try:
             table = self.get_sqla_table_object()
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             raise Exception(
                 _(
                     "Table [{}] doesn't seem to exist in the specified database, "
@@ -1052,8 +1053,8 @@ class SqlaTable(Model, BaseDatasource):
                 )
             except Exception as e:
                 datatype = "UNKNOWN"
-                logging.error("Unrecognized data type in {}.{}".format(table, col.name))
-                logging.exception(e)
+                logger.error("Unrecognized data type in {}.{}".format(table, col.name))
+                logger.exception(e)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name, type=datatype)
