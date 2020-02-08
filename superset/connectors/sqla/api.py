@@ -37,6 +37,7 @@ from superset.connectors.sqla.validators import (
     validate_python_date_format,
     validate_table_exists,
     validate_table_uniqueness,
+    validate_table_column_name,
 )
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
@@ -50,9 +51,11 @@ logger = logging.getLogger(__name__)
 class DatasetPostSchema(BaseOwnedSchema):
     __class_model__ = SqlaTable
 
-    database = fields.Integer(validate=validate_database)
+    database = fields.Integer(required=True, validate=validate_database)
     schema = fields.String()
-    table_name = fields.String(required=True, validate=Length(1, 250))
+    table_name = fields.String(
+        required=True, allow_none=False, validate=Length(1, 250)
+    )
     owners = fields.List(fields.Integer(validate=validate_owner))
 
     @post_load
@@ -184,11 +187,18 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
     add_columns = show_columns + ["table"]
     edit_columns = show_columns + ["table"]
 
-    validators_columns = {"python_date_format": validate_python_date_format}
+    validators_columns = {
+        "column_name": validate_table_column_name,
+        "python_date_format": validate_python_date_format
+    }
 
     def check_dataset_exists(self, dataset_id: int) -> SqlaTable:
+        """
+            Checks if a dataset exists by id and filtering be it's base filter
+            takes into account security
+        """
         datamodel = SQLAInterface(SqlaTable, self.datamodel.session)
-        filters = self.datamodel.get_filters().add_filter_list(
+        filters = datamodel.get_filters().add_filter_list(
             DatasetRestApi.base_filters
         )
         return datamodel.get(dataset_id, filters)

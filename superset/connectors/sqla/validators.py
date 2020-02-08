@@ -22,7 +22,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
 from superset.views.base import get_datasource_exist_error_msg
 
@@ -84,4 +84,19 @@ def validate_table_uniqueness(table: SqlaTable):
         if current_app.appbuilder.get_session.query(table_query.exists()).scalar():
             raise ValidationError(
                 get_datasource_exist_error_msg(table_name), field_names=["table_name"]
+            )
+
+
+def validate_table_column_name(column_name: str):
+    if not column_name:
+        raise ValidationError("Missing data for required field.")
+    session = current_app.appbuilder.get_session
+
+    with session.no_autoflush:
+        table_query = session.query(TableColumn).filter(
+            TableColumn.column_name == column_name
+        )
+        if session.query(table_query.exists()).scalar():
+            raise ValidationError(
+                f"Column {column_name} already exists"
             )
