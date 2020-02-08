@@ -51,6 +51,8 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.viz import BaseViz
 
+logger = logging.getLogger(__name__)
+
 
 class SupersetSecurityListWidget(ListWidget):
     """
@@ -529,7 +531,7 @@ class SupersetSecurityManager(SecurityManager):
         :see: SecurityManager.add_permission_view_menu
         """
 
-        logging.warning(
+        logger.warning(
             "This method 'merge_perm' is deprecated use add_permission_view_menu"
         )
         self.add_permission_view_menu(permission_name, view_menu_name)
@@ -561,7 +563,7 @@ class SupersetSecurityManager(SecurityManager):
         from superset.connectors.base.models import BaseMetric
         from superset.models import core as models
 
-        logging.info("Fetching a set of all perms to lookup which ones are missing")
+        logger.info("Fetching a set of all perms to lookup which ones are missing")
         all_pvs = set()
         for pv in self.get_session.query(self.permissionview_model).all():
             if pv.permission and pv.view_menu:
@@ -572,18 +574,18 @@ class SupersetSecurityManager(SecurityManager):
             if view_menu and perm and (view_menu, perm) not in all_pvs:
                 self.add_permission_view_menu(view_menu, perm)
 
-        logging.info("Creating missing datasource permissions.")
+        logger.info("Creating missing datasource permissions.")
         datasources = ConnectorRegistry.get_all_datasources(db.session)
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
 
-        logging.info("Creating missing database permissions.")
+        logger.info("Creating missing database permissions.")
         databases = db.session.query(models.Database).all()
         for database in databases:
             merge_pv("database_access", database.perm)
 
-        logging.info("Creating missing metrics permissions")
+        logger.info("Creating missing metrics permissions")
         metrics: List[BaseMetric] = []
         for datasource_class in ConnectorRegistry.sources.values():
             metrics += list(db.session.query(datasource_class.metric_class).all())
@@ -593,7 +595,7 @@ class SupersetSecurityManager(SecurityManager):
         Clean up the FAB faulty permissions.
         """
 
-        logging.info("Cleaning faulty perms")
+        logger.info("Cleaning faulty perms")
         sesh = self.get_session
         pvms = sesh.query(ab_models.PermissionView).filter(
             or_(
@@ -604,7 +606,7 @@ class SupersetSecurityManager(SecurityManager):
         deleted_count = pvms.delete()
         sesh.commit()
         if deleted_count:
-            logging.info("Deleted {} faulty permissions".format(deleted_count))
+            logger.info("Deleted {} faulty permissions".format(deleted_count))
 
     def sync_role_definitions(self) -> None:
         """
@@ -613,7 +615,7 @@ class SupersetSecurityManager(SecurityManager):
 
         from superset import conf
 
-        logging.info("Syncing role definition")
+        logger.info("Syncing role definition")
 
         self.create_custom_permissions()
 
@@ -641,7 +643,7 @@ class SupersetSecurityManager(SecurityManager):
         :param pvm_check: The FAB permission/view check
         """
 
-        logging.info("Syncing {} perms".format(role_name))
+        logger.info("Syncing {} perms".format(role_name))
         sesh = self.get_session
         pvms = sesh.query(ab_models.PermissionView).all()
         pvms = [p for p in pvms if p.permission and p.view_menu]

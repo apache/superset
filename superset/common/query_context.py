@@ -33,6 +33,7 @@ from .query_object import QueryObject
 
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
+logger = logging.getLogger(__name__)
 
 
 class QueryContext:
@@ -175,7 +176,7 @@ class QueryContext:
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.cache_key(query_obj, **kwargs)
-        logging.info("Cache key: %s", cache_key)
+        logger.info("Cache key: %s", cache_key)
         is_loaded = False
         stacktrace = None
         df = pd.DataFrame()
@@ -196,11 +197,11 @@ class QueryContext:
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
                 except Exception as e:  # pylint: disable=broad-except
-                    logging.exception(e)
-                    logging.error(
+                    logger.exception(e)
+                    logger.error(
                         "Error reading cache: %s", utils.error_msg_from_exception(e)
                     )
-                logging.info("Serving from cache")
+                logger.info("Serving from cache")
 
         if query_obj and not is_loaded:
             try:
@@ -213,7 +214,7 @@ class QueryContext:
                     stats_logger.incr("loaded_from_source")
                     is_loaded = True
             except Exception as e:  # pylint: disable=broad-except
-                logging.exception(e)
+                logger.exception(e)
                 if not error_message:
                     error_message = "{}".format(e)
                 status = utils.QueryStatus.FAILED
@@ -224,7 +225,7 @@ class QueryContext:
                     cache_value = dict(dttm=cached_dttm, df=df, query=query)
                     cache_binary = pkl.dumps(cache_value, protocol=pkl.HIGHEST_PROTOCOL)
 
-                    logging.info(
+                    logger.info(
                         "Caching %d chars at key %s", len(cache_binary), cache_key
                     )
 
@@ -233,8 +234,8 @@ class QueryContext:
                 except Exception as e:  # pylint: disable=broad-except
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
-                    logging.warning("Could not cache key %s", cache_key)
-                    logging.exception(e)
+                    logger.warning("Could not cache key %s", cache_key)
+                    logger.exception(e)
                     cache.delete(cache_key)
         return {
             "cache_key": cache_key,

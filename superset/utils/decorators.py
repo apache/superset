@@ -28,6 +28,7 @@ from superset.utils.dates import now_as_float
 # resource? Flask-Caching will cache forever, but for the HTTP header we need
 # to specify a "far future" date.
 FAR_FUTURE = 365 * 24 * 60 * 60  # 1 year in seconds
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -81,7 +82,7 @@ def etag_cache(max_age, check_perms=bool):
                 except Exception:  # pylint: disable=broad-except
                     if app.debug:
                         raise
-                    logging.exception("Exception possibly due to cache backend.")
+                    logger.exception("Exception possibly due to cache backend.")
 
             # if no response was cached, compute it using the wrapped function
             if response is None:
@@ -103,7 +104,7 @@ def etag_cache(max_age, check_perms=bool):
                     except Exception:  # pylint: disable=broad-except
                         if app.debug:
                             raise
-                    logging.exception("Exception possibly due to cache backend.")
+                    logger.exception("Exception possibly due to cache backend.")
 
             return response.make_conditional(request)
 

@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 
 QueryStatus = utils.QueryStatus
 config = app.config
+logger = logging.getLogger(__name__)
 
 
 def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
@@ -334,7 +335,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 else:  # otherwise column is a basic data type
                     column_type = presto_type_map[column.Type]()
             except KeyError:
-                logging.info(
+                logger.info(
                     "Did not recognize type {} of column {}".format(  # pylint: disable=logging-format-interpolation
                         column.Type, column.Column
                     )
@@ -714,7 +715,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
         query_id = query.id
-        logging.info(f"Query {query_id}: Polling the cursor for progress")
+        logger.info(f"Query {query_id}: Polling the cursor for progress")
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -740,7 +741,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 total_splits = float(stats.get("totalSplits"))
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
-                    logging.info(
+                    logger.info(
                         "Query {} progress: {} / {} "  # pylint: disable=logging-format-interpolation
                         "splits".format(query_id, completed_splits, total_splits)
                     )
@@ -748,7 +749,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                         query.progress = progress
                     session.commit()
             time.sleep(1)
-            logging.info(f"Query {query_id}: Polling the cursor for progress")
+            logger.info(f"Query {query_id}: Polling the cursor for progress")
             polled = cursor.poll()
 
     @classmethod

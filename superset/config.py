@@ -39,6 +39,9 @@ from superset.typing import CacheConfig
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
+logger = logging.getLogger(__name__)
+
+
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
 EVENT_LOGGER = DBEventLogger()
@@ -773,7 +776,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 
         print(f"Loaded your LOCAL configuration at [{cfg_path}]")
     except Exception:
-        logging.exception(
+        logger.exception(
             f"Failed to import config for {CONFIG_PATH_ENV_VAR}={cfg_path}"
         )
         raise
@@ -784,5 +787,5 @@ elif importlib.util.find_spec("superset_config"):
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
-        logging.exception("Found but failed to import local superset_config")
+        logger.exception("Found but failed to import local superset_config")
         raise

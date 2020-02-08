@@ -31,6 +31,7 @@ from tests.base_tests import SupersetTestCase
 from .utils import read_fixture
 
 send_email_test = mock.Mock()
+logger = logging.getLogger(__name__)
 
 
 class EmailSmtpTest(SupersetTestCase):
@@ -47,7 +48,7 @@ class EmailSmtpTest(SupersetTestCase):
         )
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
-        logging.debug(call_args)
+        logger.debug(call_args)
         assert call_args[0] == app.config["SMTP_MAIL_FROM"]
         assert call_args[1] == ["to"]
         msg = call_args[2]
@@ -64,7 +65,7 @@ class EmailSmtpTest(SupersetTestCase):
         )
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
-        logging.debug(call_args)
+        logger.debug(call_args)
         assert call_args[0] == app.config["SMTP_MAIL_FROM"]
         assert call_args[1] == ["to"]
         msg = call_args[2]
@@ -82,7 +83,7 @@ class EmailSmtpTest(SupersetTestCase):
         )
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
-        logging.debug(call_args)
+        logger.debug(call_args)
         assert call_args[0] == app.config["SMTP_MAIL_FROM"]
         assert call_args[1] == ["to"]
         msg = call_args[2]
