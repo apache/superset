@@ -22,6 +22,7 @@ from superset.models.core import Database
 
 DATABASES_KEY = "databases"
 DRUID_CLUSTERS_KEY = "druid_clusters"
+logger = logging.getLogger(__name__)
 
 
 def export_schema_to_dict(back_references):
@@ -42,7 +43,7 @@ def export_schema_to_dict(back_references):
 
 def export_to_dict(session, recursive, back_references, include_defaults):
     """Exports databases and druid clusters to a dictionary"""
-    logging.info("Starting export")
+    logger.info("Starting export")
     dbs = session.query(Database)
     databases = [
         database.export_to_dict(
@@ -52,7 +53,7 @@ def export_to_dict(session, recursive, back_references, include_defaults):
         )
         for database in dbs
     ]
-    logging.info("Exported %d %s", len(databases), DATABASES_KEY)
+    logger.info("Exported %d %s", len(databases), DATABASES_KEY)
     cls = session.query(DruidCluster)
     clusters = [
         cluster.export_to_dict(
@@ -62,7 +63,7 @@ def export_to_dict(session, recursive, back_references, include_defaults):
         )
         for cluster in cls
     ]
-    logging.info("Exported %d %s", len(clusters), DRUID_CLUSTERS_KEY)
+    logger.info("Exported %d %s", len(clusters), DRUID_CLUSTERS_KEY)
     data = dict()
     if databases:
         data[DATABASES_KEY] = databases
@@ -74,15 +75,15 @@ def export_to_dict(session, recursive, back_references, include_defaults):
 def import_from_dict(session, data, sync=[]):
     """Imports databases and druid clusters from dictionary"""
     if isinstance(data, dict):
-        logging.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
+        logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
         for database in data.get(DATABASES_KEY, []):
             Database.import_from_dict(session, database, sync=sync)
 
-        logging.info(
+        logger.info(
             "Importing %d %s", len(data.get(DRUID_CLUSTERS_KEY, [])), DRUID_CLUSTERS_KEY
         )
         for datasource in data.get(DRUID_CLUSTERS_KEY, []):
             DruidCluster.import_from_dict(session, datasource, sync=sync)
         session.commit()
     else:
-        logging.info("Supplied object is not a dictionary.")
+        logger.info("Supplied object is not a dictionary.")

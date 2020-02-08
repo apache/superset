@@ -24,6 +24,8 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
+logger = logging.getLogger(__name__)
+
 
 def decode_dashboards(o):
     """
@@ -64,7 +66,7 @@ def import_dashboards(session, data_stream, import_time=None):
 
 def export_dashboards(session):
     """Returns all dashboards metadata as a json dump"""
-    logging.info("Starting export")
+    logger.info("Starting export")
     dashboards = session.query(Dashboard)
     dashboard_ids = []
     for dashboard in dashboards:
