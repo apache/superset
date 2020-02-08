@@ -110,6 +110,7 @@ The following RDBMS are currently supported:
 - `Apache Spark SQL <https://spark.apache.org/sql/>`_
 - `BigQuery <https://cloud.google.com/bigquery/>`_
 - `ClickHouse <https://clickhouse.yandex/>`_
+- `CockroachDB <https://www.cockroachlabs.com/>`_
 - `Dremio <https://dremio.com/>`_
 - `Elasticsearch <https://www.elastic.co/products/elasticsearch/>`_
 - `Exasol <https://www.exasol.com/>`_
