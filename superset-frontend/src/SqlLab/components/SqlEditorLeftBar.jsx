@@ -60,7 +60,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     );
   }
   onTablesLoad(tables, functions) {
-    this.props.actions.queryEditorSetTableOptions(
+    this.props.actions.queryEditorSetSchemaObjectOptions(
       this.props.queryEditor,
       tables,
       functions,

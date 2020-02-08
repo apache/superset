@@ -786,7 +786,7 @@ export function queryEditorSetSchemaOptions(queryEditor, options) {
   return { type: QUERY_EDITOR_SET_SCHEMA_OPTIONS, queryEditor, options };
 }
 
-export function queryEditorSetTableOptions(
+export function queryEditorSetSchemaObjectOptions(
   queryEditor,
   tableOptions,
   functionOptions,
