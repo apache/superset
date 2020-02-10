@@ -23,7 +23,7 @@ SQL Lab is a modern, feature-rich SQL IDE written in
 
 ------
 
-.. image:: images/screenshots/sqllab.png
+.. image:: _static/images/screenshots/sqllab.png
 
 ------
 

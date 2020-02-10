@@ -49,7 +49,7 @@ RUN svn co https://dist.apache.org/repos/dist/dev/incubator/superset/$VERSION ./
 RUN tar -xvf *.tar.gz
 WORKDIR apache-superset-incubating-$VERSION
 
-RUN cd superset/assets \
+RUN cd superset-frontend \
     && npm ci \
     && npm run build \
     && rm -rf node_modules

@@ -20,18 +20,7 @@ graft licenses/
 include README.md
 recursive-include superset/examples *
 recursive-include superset/migrations *
-
-include superset/assets/package.json
-
-# Whitelist anything that needs to be added to the static bundle
-recursive-exclude superset/static *
-recursive-include superset/static/assets/branding *
-recursive-include superset/static/assets/dist *
-recursive-include superset/static/assets/images *
-recursive-exclude superset/static/images/viz_thumbnails_large *
-recursive-include superset/static/assets/stylesheets *
-include superset/static/assets/version_info.json
-
 recursive-include superset/templates *
 recursive-include superset/translations *
+recursive-include superset/static *
 recursive-exclude tests *

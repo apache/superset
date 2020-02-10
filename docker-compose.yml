@@ -66,7 +66,7 @@ services:
 
   superset-node:
     image: node:10-jessie
-    command: ["bash", "-c", "cd /app/superset/assets && npm install && npm run dev"]
+    command: ["bash", "-c", "cd /app/superset-frontend && npm install && npm run dev"]
     env_file: docker/.env
     depends_on: *superset-depends-on
     volumes: *superset-volumes

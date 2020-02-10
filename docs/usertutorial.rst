@@ -44,7 +44,7 @@ In the top menu, select :menuselection:`Sources --> Databases`. Find the
 :guilabel:`examples` database in the list and select the edit record
 button.
 
-.. image:: images/usertutorial/edit-record.png
+.. image:: _static/images/usertutorial/edit-record.png
 
 Within the :guilabel:`Edit Database` page, check the
 :guilabel:`Allow Csv Upload` checkbox.
@@ -59,17 +59,17 @@ Download the data for this tutorial to your computer from
 
 In the top menu, select :menuselection:`Sources --> Upload a CSV`.
 
-.. image:: images/usertutorial/upload_a_csv.png
+.. image:: _static/images/usertutorial/upload_a_csv.png
 
 Then, enter the :guilabel:`Table name` as `tutorial_flights`
 and select the :guilabel:`CSV file` from your computer.
 
-.. image:: images/usertutorial/csv_to_database_configuration.png
+.. image:: _static/images/usertutorial/csv_to_database_configuration.png
 
 Next enter the text `Travel Date` into the
 :guilabel:`Parse Dates` field.
 
-.. image:: images/usertutorial/parse_dates_column.png
+.. image:: _static/images/usertutorial/parse_dates_column.png
 
 Leaving all the other options in their default settings, select
 :guilabel:`Save` at the bottom of the page.
@@ -82,17 +82,17 @@ the number of flights and cost per travel class.
 
 To create a new chart, select the :menuselection:`New --> Chart`.
 
-.. image:: images/usertutorial/add_new_chart.png
+.. image:: _static/images/usertutorial/add_new_chart.png
 
 Once in the :guilabel:`Create a new chart` dialogue, select
 :guilabel:`tutorial_flights` from the :guilabel:`Chose a datasource`
 dropdown.
 
-.. image:: images/usertutorial/chose_a_datasource.png
+.. image:: _static/images/usertutorial/chose_a_datasource.png
 
 Next, select the visualization type as :guilabel:`Table`.
 
-.. image:: images/usertutorial/select_table_visualization_type.png
+.. image:: _static/images/usertutorial/select_table_visualization_type.png
 
 Then, select :guilabel:`Create new chart` to go into the chart view.
 
@@ -103,7 +103,7 @@ within the :guilabel:`Time` section, remove the filter on
 changing the selection to :guilabel:`No filter`, with a final
 :guilabel:`OK` to confirm your selection.
 
-.. image:: images/usertutorial/no_filter_on_time_filter.png
+.. image:: _static/images/usertutorial/no_filter_on_time_filter.png
 
 Now, we want to specify the rows in our table by using the
 :guilabel:`Group by` option. Since in this example, we want to
@@ -117,11 +117,11 @@ since we have a row per flight), is already there. To add cost, within
 :guilabel:`Metrics`, select :guilabel:`Cost`. :guilabel:`Save` the
 default aggregation option, which is to sum the column.
 
-.. image:: images/usertutorial/sum_cost_column.png
+.. image:: _static/images/usertutorial/sum_cost_column.png
 
 Finally, select :guilabel:`Run Query` to see the results of the table.
 
-.. image:: images/usertutorial/tutorial_table.png
+.. image:: _static/images/usertutorial/tutorial_table.png
 
 Congratulations, you have created your first visualization in Apache
 Superset!
@@ -133,7 +133,7 @@ name as Tutorial Table (you will be able to find it again through the
 select :guilabel:`Add to new dashboard` and enter `Tutorial Dashboard`.
 Finally, select :guilabel:`Save & go to dashboard`.
 
-.. image:: images/usertutorial/save_tutorial_table.png
+.. image:: _static/images/usertutorial/save_tutorial_table.png
 
 Dashboard basics
 ----------------
@@ -149,7 +149,7 @@ section. Select :guilabel:`Edit dashboard` and then hover over the
 table. By selecting the bottom right hand corner of the table (the
 cursor will change too), you can resize it by dragging and dropping.
 
-.. image:: images/usertutorial/resize_tutorial_table_on_dashboard.png
+.. image:: _static/images/usertutorial/resize_tutorial_table_on_dashboard.png
 
 Finally, save your changes by selecting :guilabel:`Save changes` in the
 top right.
@@ -180,7 +180,7 @@ June 2011 respectively by either entering directly the dates or using
 the calendar widget (by selecting the month name and then the year, you
 can move more quickly to far away dates).
 
-.. image:: images/usertutorial/select_dates_pivot_table.png
+.. image:: _static/images/usertutorial/select_dates_pivot_table.png
 
 Next, within the :guilabel:`Query` section, remove the default COUNT(*)
 and add Cost, keeping the default SUM aggregate. Note that Apache
@@ -196,12 +196,12 @@ Within :guilabel:`Columns`, select first :guilabel:`Department` and then
 :guilabel:`Travel Class`. All set – let’s :guilabel:`Run Query` to see
 some data!
 
-.. image:: images/usertutorial/tutorial_pivot_table.png
+.. image:: _static/images/usertutorial/tutorial_pivot_table.png
 
 You should see months in the rows and Department and Travel Class in the
 columns. To get this in our dashboard, select :guilabel:`Save`, name the
 chart Tutorial Pivot and using
-:guilabel:`Add chart to existing dashboard` select 
+:guilabel:`Add chart to existing dashboard` select
 :guilabel:`Tutorial Dashboard`, and then finally
 :guilabel:`Save & go to dashboard`.
 
@@ -224,7 +224,7 @@ add :guilabel:`Cost`. This time, we want to change how this column is
 aggregated to show the mean value: we can do this by selecting
 :guilabel:`AVG` in the :guilabel:`aggregate` dropdown.
 
-.. image:: images/usertutorial/average_aggregate_for_cost.png
+.. image:: _static/images/usertutorial/average_aggregate_for_cost.png
 
 Next, select :guilabel:`Run Query` to show the data on the chart.
 
@@ -245,7 +245,7 @@ filter by selecting No in the :guilabel:`Show Range Filter` drop down
 and adding some labels using :guilabel:`X Axis Label` and
 :guilabel:`Y Axis Label`.
 
-.. image:: images/usertutorial/tutorial_line_chart.png
+.. image:: _static/images/usertutorial/tutorial_line_chart.png
 
 Once you’re done, :guilabel:`Save` as Tutorial Line Chart, use
 :guilabel:`Add chart to
@@ -265,7 +265,7 @@ Within the Insert components pane, drag and drop a :guilabel:`Markdown`
 box on the dashboard. Look for the blue lines which indicate the anchor
 where the box will go.
 
-.. image:: images/usertutorial/blue_bar_insert_component.png
+.. image:: _static/images/usertutorial/blue_bar_insert_component.png
 
 Now, to edit the text, select the box. You can enter text, in markdown
 format (see `this Markdown
@@ -274,7 +274,7 @@ for more information about this format). You can toggle between
 :guilabel:`Edit` and :guilabel:`Preview` using the menu on the top of
 the box.
 
-.. image:: images/usertutorial/markdown.png
+.. image:: _static/images/usertutorial/markdown.png
 
 To exit, select any other part of the dashboard. Finally, don’t forget
 to keep your changes using :guilabel:`Save changes`.
@@ -307,7 +307,7 @@ select :guilabel:`Run Query`. This gives us a preview of our filter.
 Next, remove the date filter by unchecking the :guilabel:`Date Filter`
 checkbox.
 
-.. image:: images/usertutorial/filter_on_origin_country.png
+.. image:: _static/images/usertutorial/filter_on_origin_country.png
 
 Finally, select :guilabel:`Save`, name the chart as Tutorial Filter, add
 the chart to our existing Tutorial Dashboard and then
@@ -329,7 +329,7 @@ simply select :guilabel:`Draft` next to the title of your dashboard on
 the top left to change your dashboard to be in :guilabel:`Published`
 state. You can also favorite this dashboard by selecting the star.
 
-.. image:: images/usertutorial/publish_dashboard.png
+.. image:: _static/images/usertutorial/publish_dashboard.png
 
 Taking your dashboard further
 -----------------------------
@@ -358,7 +358,7 @@ by selecting the green plus sign. Then, select the
 :guilabel:`Volcanic Eruptions` layer, add a short description Grímsvötn
 and the eruption dates (23-25 May 2011) before finally saving.
 
-.. image:: images/usertutorial/edit_annotation.png
+.. image:: _static/images/usertutorial/edit_annotation.png
 
 Then, navigate to the line chart by going to :guilabel:`Charts` then
 selecting :guilabel:`Tutorial
@@ -368,14 +368,14 @@ Line Chart` from the list. Next, go to the
 
 - name the layer as `Volcanic Eruptions`
 - change the :guilabel:`Annotation Layer Type` to :guilabel:`Event`
-- set the :guilabel:`Annotation Source` as :guilabel:`Superset annotation` 
+- set the :guilabel:`Annotation Source` as :guilabel:`Superset annotation`
 - specify the :guilabel:`Annotation Layer` as :guilabel:`Volcanic Eruptions`
 
-.. image:: images/usertutorial/annotation_settings.png
+.. image:: _static/images/usertutorial/annotation_settings.png
 
 Select :guilabel:`Apply` to see your annotation shown on the chart.
 
-.. image:: images/usertutorial/annotation.png
+.. image:: _static/images/usertutorial/annotation.png
 
 If you wish, you can change how your annotation looks by changing the
 settings in the :guilabel:`Display configuration` section. Otherwise,
@@ -418,7 +418,7 @@ Next, in the query section, change the :guilabel:`Metrics` to the sum of
 :guilabel:`Cost`. Select :guilabel:`Run Query` to show the chart. You
 should see the total cost per day for each month in October 2011.
 
-.. image:: images/usertutorial/advanced_analytics_base.png
+.. image:: _static/images/usertutorial/advanced_analytics_base.png
 
 Finally, save the visualization as Tutorial Advanced Analytics Base,
 adding it to the Tutorial Dashboard.
@@ -443,7 +443,7 @@ After displaying the chart by selecting :guilabel:`Run Query` you will
 see that the data is less variable and that the series starts later as
 the ramp up period is excluded.
 
-.. image:: images/usertutorial/rolling_mean.png
+.. image:: _static/images/usertutorial/rolling_mean.png
 
 Save the chart as Tutorial Rolling Mean and add it to the Tutorial
 Dashboard.
@@ -464,14 +464,14 @@ typing in "minus 1 week" (note this box accepts input in natural
 language). :guilabel:`Run Query` to see the new chart, which has an
 additional series with the same values, shifted a week back in time.
 
-.. image:: images/usertutorial/time_comparison_two_series.png
+.. image:: _static/images/usertutorial/time_comparison_two_series.png
 
 Then, change the :guilabel:`Calculation type` to
 :guilabel:`Absolute difference` and select :guilabel:`Run
 Query`. We can now see only one series again, this time showing the
 difference between the two series we saw previously.
 
-.. image:: images/usertutorial/time_comparison_absolute_difference.png
+.. image:: _static/images/usertutorial/time_comparison_absolute_difference.png
 
 Save the chart as Tutorial Time Comparison and add it to the Tutorial
 Dashboard.
@@ -488,7 +488,7 @@ Next, in the :guilabel:`Python Functions` subsection of
 in the :guilabel:`Rule` and median as the :guilabel:`Method` and show
 the chart by selecting :guilabel:`Run Query`.
 
-.. image:: images/usertutorial/resample.png
+.. image:: _static/images/usertutorial/resample.png
 
 Note that now we have a single data point every 7 days. In our case, the
 value showed corresponds to the median value within the seven daily data
@@ -505,4 +505,3 @@ side and compare the different outputs.
 .. [#f1] See the Pandas `rolling method documentation <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rolling.html>`_ for more information.
 .. [#f2] See the Pandas `cumsum method documentation <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.cumsum.html>`_ for more information.
 .. [#f3] See the Pandas `resample method documentation <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.resample.html>`_ for more information.
-
