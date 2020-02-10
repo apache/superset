@@ -230,11 +230,13 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
                         type: array
                         items:
                           type: string
+                      count:
+                        type: number
                       result:
-                          type: array
-                          items:
-                            $ref:
-                              '#/components/schemas/{{self.__class__.__name__}}.get_list'
+                        type: array
+                        items:
+                          $ref:
+                            '#/components/schemas/{{self.__class__.__name__}}.get_list'
             400:
               $ref: '#/components/responses/400'
             401:
