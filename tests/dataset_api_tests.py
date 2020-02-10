@@ -491,9 +491,9 @@ class DatasetApiTests(SupersetTestCase):
 
         rv = self.client.post(uri, json=column_data)
         self.assertEqual(rv.status_code, 422)
-        data = json.loads(rv.data.decode("utf-8"))["id"]
+        data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            data, {"message": {"python_date_format": ["Invalid date/timestamp format"]}}
+            data, {"message": {"column_name": ["Column col_exp already exists"]}}
         )
         model = db.session.query(TableColumn).get(model_id)
         db.session.delete(model)
@@ -524,7 +524,89 @@ class DatasetApiTests(SupersetTestCase):
         table = self.get_example_db_table()
         self.login(username="admin")
         uri = f"api/v1/dataset/{table.id}/column/"
-        column_data = self.example_create_column_data
+        column_data = self.example_create_column_data.copy()
         column_data["python_date_format"] = "wrong type"
         rv = self.client.post(uri, json=column_data)
         self.assertEqual(rv.status_code, 422)
+
+    def test_update_dataset_column_item(self):
+        """
+            Dataset API: Test update dataset column item
+        """
+        table = self.get_example_db_table()
+        column = self.insert_dataset_column(table.id, "col_exp_base")
+        self.login(username="admin")
+        column_data = self.example_create_column_data.copy()
+        uri = f"api/v1/dataset/{table.id}/column/{column.id}"
+        rv = self.client.put(uri, json=column_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(TableColumn).get(column.id)
+        self.assertEqual(model.column_name, column_data["column_name"])
+        self.assertEqual(model.verbose_name, column_data["verbose_name"])
+        self.assertEqual(model.groupby, column_data["groupby"])
+        self.assertEqual(model.table_id, table.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dataset_column_item_not_owned(self):
+        """
+            Dataset API: Test update dataset column item no owned
+        """
+        table = self.get_example_db_table()
+        column = self.insert_dataset_column(table.id, "col_exp_base")
+
+        self.login(username="alpha")
+        column_data = self.example_create_column_data.copy()
+        uri = f"api/v1/dataset/{table.id}/column/{column.id}"
+        rv = self.client.put(uri, json=column_data)
+        self.assertEqual(rv.status_code, 403)
+        model = db.session.query(TableColumn).get(column.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dataset_column_item_gamma(self):
+        """
+            Dataset API: Test update dataset column item gamma
+        """
+        table = self.get_example_db_table()
+        column = self.insert_dataset_column(table.id, "col_exp_base")
+
+        self.login(username="gamma")
+        column_data = self.example_create_column_data.copy()
+        uri = f"api/v1/dataset/{table.id}/column/{column.id}"
+        rv = self.client.put(uri, json=column_data)
+        self.assertEqual(rv.status_code, 401)
+        model = db.session.query(TableColumn).get(column.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_delete_dataset_column_item(self):
+        """
+            Dataset API: Test delete dataset column item
+        """
+        table = self.get_example_db_table()
+        column = self.insert_dataset_column(table.id, "col_exp_base")
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{table.id}/column/{column.id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 200)
+
+    def test_delete_dataset_column_item_not_owned(self):
+        """
+            Dataset API: Test delete dataset column item
+        """
+        admin = self.get_user("admin")
+        table = self.insert_dataset(
+            "ab_permission", "", [admin.id], get_example_database()
+        )
+        column = self.insert_dataset_column(table.id, "col_exp_base")
+
+        self.login(username="alpha")
+        uri = f"api/v1/dataset/{table.id}/column/{column.id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+        db.session.delete(column)
+        db.session.commit()
+        db.session.delete(table)
+        db.session.commit()

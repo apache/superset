@@ -97,6 +97,4 @@ def validate_table_column_name(column_name: str):
             TableColumn.column_name == column_name
         )
         if session.query(table_query.exists()).scalar():
-            raise ValidationError(
-                f"Column {column_name} already exists"
-            )
+            raise ValidationError(f"Column {column_name} already exists")

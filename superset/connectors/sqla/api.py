@@ -35,9 +35,9 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.validators import (
     validate_database,
     validate_python_date_format,
+    validate_table_column_name,
     validate_table_exists,
     validate_table_uniqueness,
-    validate_table_column_name,
 )
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
@@ -53,9 +53,7 @@ class DatasetPostSchema(BaseOwnedSchema):
 
     database = fields.Integer(required=True, validate=validate_database)
     schema = fields.String()
-    table_name = fields.String(
-        required=True, allow_none=False, validate=Length(1, 250)
-    )
+    table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     owners = fields.List(fields.Integer(validate=validate_owner))
 
     @post_load
@@ -189,7 +187,7 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
 
     validators_columns = {
         "column_name": validate_table_column_name,
-        "python_date_format": validate_python_date_format
+        "python_date_format": validate_python_date_format,
     }
 
     def check_dataset_exists(self, dataset_id: int) -> SqlaTable:
@@ -198,9 +196,7 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
             takes into account security
         """
         datamodel = SQLAInterface(SqlaTable, self.datamodel.session)
-        filters = datamodel.get_filters().add_filter_list(
-            DatasetRestApi.base_filters
-        )
+        filters = datamodel.get_filters().add_filter_list(DatasetRestApi.base_filters)
         return datamodel.get(dataset_id, filters)
 
     @expose("/<pk>/column/", methods=["GET"])
@@ -296,7 +292,7 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
                       result:
                           type: array
                           items:
-                            $ref: '#/components/schemas/{{self.__class__.__name__}}.get'  # noqa
+                            $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
             400:
               $ref: '#/components/responses/400'
             401:
@@ -432,8 +428,8 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @permission_name("delete")
-    def delete(
-        self, pk: int, column_id: int  # pylint: disable=arguments-differ
+    def delete(  # pylint: disable=arguments-differ
+        self, pk: int, column_id: int
     ) -> Response:
         """Delete a column from a dataset
         ---
