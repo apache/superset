@@ -19,7 +19,7 @@ import logging
 import re
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 import sqlalchemy as sa
@@ -62,6 +62,7 @@ from superset.utils import core as utils, import_datasource
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
+logger = logging.getLogger(__name__)
 
 
 class SqlaQuery(NamedTuple):
@@ -84,8 +85,7 @@ class AnnotationDatasource(BaseDatasource):
 
     cache_timeout = 0
 
-    def query(self, query_obj: Dict) -> QueryResult:
-        df = None
+    def query(self, query_obj: Dict[str, Any]) -> QueryResult:
         error_message = None
         qry = db.session.query(Annotation)
         qry = qry.filter(Annotation.layer_id == query_obj["filter"][0]["val"])
@@ -97,8 +97,9 @@ class AnnotationDatasource(BaseDatasource):
         try:
             df = pd.read_sql_query(qry.statement, db.engine)
         except Exception as e:
+            df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
-            logging.exception(e)
+            logger.exception(e)
             error_message = utils.error_msg_from_exception(e)
         return QueryResult(
             status=status, df=df, duration=0, query="", error_message=error_message
@@ -146,12 +147,12 @@ class TableColumn(Model, BaseColumn):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
-        if not self.expression:
+        if self.expression:
+            col = literal_column(self.expression)
+        else:
             db_engine_spec = self.table.database.db_engine_spec
             type_ = db_engine_spec.get_sqla_column_type(self.type)
             col = column(self.column_name, type_=type_)
-        else:
-            col = literal_column(self.expression)
         col = self.table.make_sqla_column_compatible(col, label)
         return col
 
@@ -400,8 +401,8 @@ class SqlaTable(Model, BaseDatasource):
     def make_sqla_column_compatible(
         self, sqla_col: Column, label: Optional[str] = None
     ) -> Column:
-        """Takes a sql alchemy column object and adds label info if supported by engine.
-        :param sqla_col: sql alchemy column instance
+        """Takes a sqlalchemy column object and adds label info if supported by engine.
+        :param sqla_col: sqlalchemy column instance
         :param label: alias/label that column is expected to have
         :return: either a sql alchemy column or label instance if supported by engine
         """
@@ -530,23 +531,12 @@ class SqlaTable(Model, BaseDatasource):
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            self.table_name,
-            sql=self.sql,
-            schema=self.schema,
-            show_cols=False,
-            latest_partition=False,
+            self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
-
-    def get_col(self, col_name: str) -> Optional[Column]:
-        columns = self.columns
-        for col in columns:
-            if col_name == col.column_name:
-                return col
-        return None
 
     @property
     def data(self) -> Dict:
-        d = super(SqlaTable, self).data
+        d = super().data
         if self.type == "table":
             grains = self.database.grains() or []
             if grains:
@@ -598,17 +588,17 @@ class SqlaTable(Model, BaseDatasource):
     def get_template_processor(self, **kwargs):
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_query_str_extended(self, query_obj: Dict) -> QueryStringExtended:
+    def get_query_str_extended(self, query_obj: Dict[str, Any]) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
-        logging.info(sql)
+        logger.info(sql)
         sql = sqlparse.format(sql, reindent=True)
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
             labels_expected=sqlaq.labels_expected, sql=sql, prequeries=sqlaq.prequeries
         )
 
-    def get_query_str(self, query_obj: Dict) -> str:
+    def get_query_str(self, query_obj: Dict[str, Any]) -> str:
         query_str_ext = self.get_query_str_extended(query_obj)
         all_queries = query_str_ext.prequeries + [query_str_ext.sql]
         return ";\n\n".join(all_queries) + ";"
@@ -713,7 +703,7 @@ class SqlaTable(Model, BaseDatasource):
             )
         if not groupby and not metrics and not columns:
             raise Exception(_("Empty query?"))
-        metrics_exprs = []
+        metrics_exprs: List[ColumnElement] = []
         for m in metrics:
             if utils.is_adhoc_metric(m):
                 metrics_exprs.append(self.adhoc_metric_to_sqla(m, cols))
@@ -852,12 +842,20 @@ class SqlaTable(Model, BaseDatasource):
         if not orderby and not columns:
             orderby = [(main_metric_expr, not order_desc)]
 
+        # To ensure correct handling of the ORDER BY labeling we need to reference the
+        # metric instance if defined in the SELECT clause.
+        metrics_exprs_by_label = {m._label: m for m in metrics_exprs}
+
         for col, ascending in orderby:
             direction = asc if ascending else desc
             if utils.is_adhoc_metric(col):
                 col = self.adhoc_metric_to_sqla(col, cols)
             elif col in cols:
                 col = cols[col].get_sqla_col()
+
+            if isinstance(col, Label) and col._label in metrics_exprs_by_label:
+                col = metrics_exprs_by_label[col._label]
+
             qry = qry.order_by(direction(col))
 
         if row_limit:
@@ -976,14 +974,23 @@ class SqlaTable(Model, BaseDatasource):
 
         return or_(*groups)
 
-    def query(self, query_obj: Dict) -> QueryResult:
+    def query(self, query_obj: Dict[str, Any]) -> QueryResult:
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
         status = utils.QueryStatus.SUCCESS
         error_message = None
 
-        def mutator(df):
+        def mutator(df: pd.DataFrame) -> None:
+            """
+            Some engines change the case or generate bespoke column names, either by
+            default or due to lack of support for aliasing. This function ensures that
+            the column names in the DataFrame correspond to what is expected by
+            the viz components.
+
+            :param df: Original DataFrame returned by the engine
+            """
+
             labels_expected = query_str_ext.labels_expected
             if df is not None and not df.empty:
                 if len(df.columns) != len(labels_expected):
@@ -993,14 +1000,13 @@ class SqlaTable(Model, BaseDatasource):
                     )
                 else:
                     df.columns = labels_expected
-            return df
 
         try:
             df = self.database.get_df(sql, self.schema, mutator)
         except Exception as e:
-            df = None
+            df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
-            logging.exception(f"Query {sql} on schema {self.schema} failed")
+            logger.exception(f"Query {sql} on schema {self.schema} failed")
             db_engine_spec = self.database.db_engine_spec
             error_message = db_engine_spec.extract_error_message(e)
 
@@ -1020,7 +1026,7 @@ class SqlaTable(Model, BaseDatasource):
         try:
             table = self.get_sqla_table_object()
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             raise Exception(
                 _(
                     "Table [{}] doesn't seem to exist in the specified database, "
@@ -1047,8 +1053,8 @@ class SqlaTable(Model, BaseDatasource):
                 )
             except Exception as e:
                 datatype = "UNKNOWN"
-                logging.error("Unrecognized data type in {}.{}".format(table, col.name))
-                logging.exception(e)
+                logger.error("Unrecognized data type in {}.{}".format(table, col.name))
+                logger.exception(e)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name, type=datatype)
@@ -1135,13 +1141,16 @@ class SqlaTable(Model, BaseDatasource):
     def default_query(qry) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_extra_cache_keys(self, query_obj: Dict) -> bool:
+    def has_calls_to_cache_key_wrapper(self, query_obj: Dict[str, Any]) -> bool:
         """
-        Detects the presence of calls to cache_key_wrapper in items in query_obj that can
-        be templated.
+        Detects the presence of calls to `cache_key_wrapper` in items in query_obj that
+        can be templated. If any are present, the query must be evaluated to extract
+        additional keys for the cache key. This method is needed to avoid executing
+        the template code unnecessarily, as it may contain expensive calls, e.g. to
+        extract the latest partition of a database.
 
         :param query_obj: query object to analyze
-        :return: True if at least one item calls cache_key_wrapper, otherwise False
+        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
         """
         regex = re.compile(r"\{\{.*cache_key_wrapper\(.*\).*\}\}")
         templatable_statements: List[str] = []
@@ -1159,12 +1168,19 @@ class SqlaTable(Model, BaseDatasource):
                 return True
         return False
 
-    def get_extra_cache_keys(self, query_obj: Dict) -> List[Any]:
-        if self.has_extra_cache_keys(query_obj):
+    def get_extra_cache_keys(self, query_obj: Dict[str, Any]) -> List[Hashable]:
+        """
+        The cache key of a SqlaTable needs to consider any keys added by the parent class
+        and any keys added via `cache_key_wrapper`.
+
+        :param query_obj: query object to analyze
+        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
+        """
+        extra_cache_keys = super().get_extra_cache_keys(query_obj)
+        if self.has_calls_to_cache_key_wrapper(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
-            extra_cache_keys = sqla_query.extra_cache_keys
-            return extra_cache_keys
-        return []
+            extra_cache_keys += sqla_query.extra_cache_keys
+        return extra_cache_keys
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

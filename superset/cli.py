@@ -33,6 +33,8 @@ from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
 
+logger = logging.getLogger(__name__)
+
 
 @click.group(cls=FlaskGroup, create_app=create_app)
 @with_appcontext
@@ -180,7 +182,7 @@ def refresh_druid(datasource, merge):
             cluster.refresh_datasources(datasource_name=datasource, merge_flag=merge)
         except Exception as e:  # pylint: disable=broad-except
             print("Error while processing cluster '{}'\n{}".format(cluster, str(e)))
-            logging.exception(e)
+            logger.exception(e)
         cluster.metadata_last_refreshed = datetime.now()
         print("Refreshed metadata from cluster " "[" + cluster.cluster_name + "]")
     session.commit()
@@ -222,13 +224,13 @@ def import_dashboards(path, recursive, username):
     if username is not None:
         g.user = security_manager.find_user(username=username)
     for file_ in files:
-        logging.info("Importing dashboard from file %s", file_)
+        logger.info("Importing dashboard from file %s", file_)
         try:
             with file_.open() as data_stream:
                 dashboard_import_export.import_dashboards(db.session, data_stream)
         except Exception as e:  # pylint: disable=broad-except
-            logging.error("Error when importing dashboard from file %s", file_)
-            logging.error(e)
+            logger.error("Error when importing dashboard from file %s", file_)
+            logger.error(e)
 
 
 @superset.command()
@@ -247,7 +249,7 @@ def export_dashboards(print_stdout, dashboard_file):
     if print_stdout or not dashboard_file:
         print(data)
     if dashboard_file:
-        logging.info("Exporting dashboards to %s", dashboard_file)
+        logger.info("Exporting dashboards to %s", dashboard_file)
         with open(dashboard_file, "w") as data_stream:
             data_stream.write(data)
 
@@ -292,15 +294,15 @@ def import_datasources(path, sync, recursive):
         files.extend(path_object.rglob("*.yaml"))
         files.extend(path_object.rglob("*.yml"))
     for file_ in files:
-        logging.info("Importing datasources from file %s", file_)
+        logger.info("Importing datasources from file %s", file_)
         try:
             with file_.open() as data_stream:
                 dict_import_export.import_from_dict(
                     db.session, yaml.safe_load(data_stream), sync=sync_array
                 )
         except Exception as e:  # pylint: disable=broad-except
-            logging.error("Error when importing datasources from file %s", file_)
-            logging.error(e)
+            logger.error("Error when importing datasources from file %s", file_)
+            logger.error(e)
 
 
 @superset.command()
@@ -340,7 +342,7 @@ def export_datasources(
     if print_stdout or not datasource_file:
         yaml.safe_dump(data, stdout, default_flow_style=False)
     if datasource_file:
-        logging.info("Exporting datasources to %s", datasource_file)
+        logger.info("Exporting datasources to %s", datasource_file)
         with open(datasource_file, "w") as data_stream:
             yaml.safe_dump(data, data_stream, default_flow_style=False)
 
@@ -389,7 +391,7 @@ def update_datasources_cache():
 )
 def worker(workers):
     """Starts a Superset worker for async SQL query execution."""
-    logging.info(
+    logger.info(
         "The 'superset worker' command is deprecated. Please use the 'celery "
         "worker' command instead."
     )
@@ -424,7 +426,7 @@ def flower(port, address):
         f"--port={port} "
         f"--address={address} "
     )
-    logging.info(
+    logger.info(
         "The 'superset flower' command is deprecated. Please use the 'celery "
         "flower' command instead."
     )

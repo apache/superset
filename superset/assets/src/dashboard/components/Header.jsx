@@ -44,6 +44,8 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from '../../logger/LogUtils';
+import PropertiesModal from './PropertiesModal';
+import setPeriodicRunner from '../util/setPeriodicRunner';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -66,7 +68,6 @@ const propTypes = {
   fetchCharts: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
   savePublished: PropTypes.func.isRequired,
-  startPeriodicRender: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
@@ -86,6 +87,8 @@ const propTypes = {
   maxUndoHistoryToast: PropTypes.func.isRequired,
   refreshFrequency: PropTypes.number.isRequired,
   setRefreshFrequency: PropTypes.func.isRequired,
+  dashboardInfoChanged: PropTypes.func.isRequired,
+  dashboardTitleChanged: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -103,6 +106,7 @@ class Header extends React.PureComponent {
     this.state = {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
+      showingPropertiesModal: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -116,11 +120,13 @@ class Header extends React.PureComponent {
     this.forceRefresh = this.forceRefresh.bind(this);
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
+    this.showPropertiesModal = this.showPropertiesModal.bind(this);
+    this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
   }
 
   componentDidMount() {
     const refreshFrequency = this.props.refreshFrequency;
-    this.props.startPeriodicRender(refreshFrequency * 1000);
+    this.startPeriodicRender(refreshFrequency * 1000);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -182,7 +188,7 @@ class Header extends React.PureComponent {
 
   forceRefresh() {
     if (!this.props.isLoading) {
-      const chartList = Object.values(this.props.charts);
+      const chartList = Object.keys(this.props.charts);
       this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
         force: true,
         interval: 0,
@@ -194,11 +200,26 @@ class Header extends React.PureComponent {
   }
 
   startPeriodicRender(interval) {
-    this.props.logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
-      force: true,
+    const periodicRender = () => {
+      const { fetchCharts, logEvent, charts, dashboardInfo } = this.props;
+      const { metadata } = dashboardInfo;
+      const immune = metadata.timed_refresh_immune_slices || [];
+      const affectedCharts = Object.values(charts)
+        .filter(chart => immune.indexOf(chart.id) === -1)
+        .map(chart => chart.id);
+
+      logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
+        interval,
+        chartCount: affectedCharts.length,
+      });
+      return fetchCharts(affectedCharts, true, interval * 0.2);
+    };
+
+    this.refreshTimer = setPeriodicRunner({
       interval,
+      periodicRender,
+      refreshTimer: this.refreshTimer,
     });
-    return this.props.startPeriodicRender(interval);
   }
 
   toggleEditMode() {
@@ -256,6 +277,14 @@ class Header extends React.PureComponent {
     }
   }
 
+  showPropertiesModal() {
+    this.setState({ showingPropertiesModal: true });
+  }
+
+  hidePropertiesModal() {
+    this.setState({ showingPropertiesModal: false });
+  }
+
   render() {
     const {
       dashboardTitle,
@@ -303,14 +332,16 @@ class Header extends React.PureComponent {
               canSave={userCanSaveAs}
             />
           </span>
-          <span className="favstar">
-            <FaveStar
-              itemId={dashboardInfo.id}
-              fetchFaveStar={this.props.fetchFaveStar}
-              saveFaveStar={this.props.saveFaveStar}
-              isStarred={this.props.isStarred}
-            />
-          </span>
+          {dashboardInfo.userId && (
+            <span className="favstar">
+              <FaveStar
+                itemId={dashboardInfo.id}
+                fetchFaveStar={this.props.fetchFaveStar}
+                saveFaveStar={this.props.saveFaveStar}
+                isStarred={this.props.isStarred}
+              />
+            </span>
+          )}
         </div>
 
         <div className="button-container">
@@ -405,6 +436,29 @@ class Header extends React.PureComponent {
             </Button>
           )}
 
+          {this.state.showingPropertiesModal && (
+            <PropertiesModal
+              dashboardTitle={dashboardTitle}
+              dashboardInfo={dashboardInfo}
+              show={this.state.showingPropertiesModal}
+              onHide={this.hidePropertiesModal}
+              onDashboardSave={updates => {
+                this.props.dashboardInfoChanged({
+                  slug: updates.slug,
+                  metadata: JSON.parse(updates.jsonMetadata),
+                });
+                this.props.dashboardTitleChanged(updates.title);
+                if (updates.slug) {
+                  history.pushState(
+                    { event: 'dashboard_properties_changed' },
+                    '',
+                    `/superset/dashboard/${updates.slug}/`,
+                  );
+                }
+              }}
+            />
+          )}
+
           <HeaderActionsDropdown
             addSuccessToast={this.props.addSuccessToast}
             addDangerToast={this.props.addDangerToast}
@@ -427,6 +481,7 @@ class Header extends React.PureComponent {
             userCanEdit={userCanEdit}
             userCanSave={userCanSaveAs}
             isLoading={isLoading}
+            showPropertiesModal={this.showPropertiesModal}
           />
         </div>
       </div>

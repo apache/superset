@@ -23,14 +23,13 @@ from typing import Any, Dict, Optional
 import simplejson as json
 import yaml
 from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
-from flask_appbuilder import BaseView, Model, ModelView
+from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
-from marshmallow import Schema
 from sqlalchemy import or_
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
@@ -39,6 +38,8 @@ from superset import appbuilder, conf, db, get_feature_flags, security_manager
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
+
+from .utils import bootstrap_user_data
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -50,6 +51,7 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "DISPLAY_MAX_ROW",
 )
+logger = logging.getLogger(__name__)
 
 
 def get_error_msg():
@@ -64,12 +66,9 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
+def json_error_response(msg=None, status=500, payload=None, link=None):
     if not payload:
         payload = {"error": "{}".format(msg)}
-    if not stacktrace:
-        stacktrace = utils.get_stacktrace()
-    payload["stacktrace"] = stacktrace
     if link:
         payload["link"] = link
 
@@ -91,7 +90,7 @@ def data_payload_response(payload_json, has_error=False):
 
 def generate_download_headers(extension, filename=None):
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
-    content_disp = "attachment; filename={}.{}".format(filename, extension)
+    content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
     return headers
 
@@ -106,7 +105,7 @@ def api(f):
         try:
             return f(self, *args, **kwargs)
         except Exception as e:  # pylint: disable=broad-except
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(get_error_msg())
 
     return functools.update_wrapper(wraps, f)
@@ -123,32 +122,21 @@ def handle_api_exception(f):
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(
-                utils.error_msg_from_exception(e),
-                status=e.status,
-                stacktrace=utils.get_stacktrace(),
-                link=e.link,
+                utils.error_msg_from_exception(e), status=e.status, link=e.link
             )
         except SupersetException as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=utils.get_stacktrace(),
-                status=e.status,
+                utils.error_msg_from_exception(e), status=e.status
             )
         except HTTPException as e:
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc(),
-                status=e.code,
-            )
+            logger.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e), status=e.code)
         except Exception as e:  # pylint: disable=broad-except
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e), stacktrace=utils.get_stacktrace()
-            )
+            logger.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e))
 
     return functools.update_wrapper(wraps, f)
 
@@ -165,7 +153,8 @@ def get_user_roles():
 
 
 class BaseSupersetView(BaseView):
-    def json_response(self, obj, status=200):  # pylint: disable=no-self-use
+    @staticmethod
+    def json_response(obj, status=200) -> Response:  # pylint: disable=no-self-use
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
@@ -185,7 +174,7 @@ def menu_data():
             )
         # when user object has no username
         except NameError as e:
-            logging.exception(e)
+            logger.exception(e)
 
         if logo_target_path.startswith("/"):
             root_path = f"/superset{logo_target_path}"
@@ -208,6 +197,8 @@ def menu_data():
         "navbar_right": {
             "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
             "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
+            "version_string": appbuilder.app.config.get("VERSION_STRING"),
+            "version_sha": appbuilder.app.config.get("VERSION_SHA"),
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": g.user.is_anonymous,
@@ -242,6 +233,19 @@ class SupersetModelView(ModelView):
     page_size = 100
     list_widget = SupersetListWidget
 
+    def render_app_template(self):
+        payload = {
+            "user": bootstrap_user_data(g.user),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_template(
+            "superset/welcome.html",
+            entry="welcome",
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
+
 
 class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-methods
     """An alternative to list view that renders Boolean fields as checkboxes
@@ -255,11 +259,11 @@ def validate_json(_form, field):
     try:
         json.loads(field.data)
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
         raise Exception(_("json isn't valid"))
 
 
-class YamlExportMixin(object):  # pylint: disable=too-few-public-methods
+class YamlExportMixin:  # pylint: disable=too-few-public-methods
     """
     Override this if you want a dict response instead, with a certain key.
     Used on DatabaseView for cli compatibility
@@ -282,7 +286,7 @@ class YamlExportMixin(object):  # pylint: disable=too-few-public-methods
         )
 
 
-class DeleteMixin(object):  # pylint: disable=too-few-public-methods
+class DeleteMixin:  # pylint: disable=too-few-public-methods
     def _delete(self, primary_key):
         """
             Delete function logic, override to implement diferent logic
@@ -351,24 +355,6 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 self.model.schema_perm.in_(schema_perms),
             )
         )
-
-
-class BaseSupersetSchema(Schema):
-    """
-    Extends Marshmallow schema so that we can pass a Model to load
-    (following marshamallow-sqlalchemy pattern). This is useful
-    to perform partial model merges on HTTP PUT
-    """
-
-    def __init__(self, **kwargs):
-        self.instance = None
-        super().__init__(**kwargs)
-
-    def load(
-        self, data, many=None, partial=None, instance: Model = None, **kwargs
-    ):  # pylint: disable=arguments-differ
-        self.instance = instance
-        return super().load(data, many=many, partial=partial, **kwargs)
 
 
 class CsvResponse(Response):  # pylint: disable=too-many-ancestors

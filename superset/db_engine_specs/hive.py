@@ -19,7 +19,7 @@ import os
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib import parse
 
 from sqlalchemy import Column
@@ -27,15 +27,19 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause, Select
-from werkzeug.utils import secure_filename
 
-from superset import app, conf
+from superset import app, cache, conf
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.utils import core as utils
 
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database  # pylint: disable=unused-import
+
 QueryStatus = utils.QueryStatus
 config = app.config
+logger = logging.getLogger(__name__)
 
 tracking_url_trans = conf.get("TRACKING_URL_TRANSFORMER")
 hive_poll_interval = conf.get("HIVE_POLL_INTERVAL")
@@ -115,7 +119,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         bucket_path = config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
         if not bucket_path:
-            logging.info("No upload bucket specified")
+            logger.info("No upload bucket specified")
             raise Exception(
                 "No upload bucket specified. You can specify one in the config file."
             )
@@ -146,14 +150,12 @@ class HiveEngineSpec(PrestoEngineSpec):
             )
 
         filename = form.csv_file.data.filename
-
         upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
-        upload_path = config["UPLOAD_FOLDER"] + secure_filename(filename)
 
         # Optional dependency
         from tableschema import Table  # pylint: disable=import-error
 
-        hive_table_schema = Table(upload_path).infer()
+        hive_table_schema = Table(filename).infer()
         column_name_and_type = []
         for column_info in hive_table_schema["fields"]:
             column_name_and_type.append(
@@ -169,7 +171,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         s3 = boto3.client("s3")
         location = os.path.join("s3a://", bucket_path, upload_prefix, table_name)
         s3.upload_file(
-            upload_path, bucket_path, os.path.join(upload_prefix, table_name, filename)
+            filename,
+            bucket_path,
+            os.path.join(upload_prefix, table_name, os.path.basename(filename)),
         )
         sql = f"""CREATE TABLE {full_table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
@@ -221,7 +225,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                 map_progress = int(match.groupdict()["map_progress"])
                 reduce_progress = int(match.groupdict()["reduce_progress"])
                 stages[stage_number] = (map_progress + reduce_progress) / 2
-        logging.info(
+        logger.info(
             "Progress detail: {}, "  # pylint: disable=logging-format-interpolation
             "current job {}, "
             "total jobs: {}".format(stages, current_job, total_jobs)
@@ -264,7 +268,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             if log:
                 log_lines = log.splitlines()
                 progress = cls.progress(log_lines)
-                logging.info(f"Query {query_id}: Progress total: {progress}")
+                logger.info(f"Query {query_id}: Progress total: {progress}")
                 needs_commit = False
                 if progress > query.progress:
                     query.progress = progress
@@ -273,22 +277,22 @@ class HiveEngineSpec(PrestoEngineSpec):
                     tracking_url = cls.get_tracking_url(log_lines)
                     if tracking_url:
                         job_id = tracking_url.split("/")[-2]
-                        logging.info(
+                        logger.info(
                             f"Query {query_id}: Found the tracking url: {tracking_url}"
                         )
                         tracking_url = tracking_url_trans(tracking_url)
-                        logging.info(
+                        logger.info(
                             f"Query {query_id}: Transformation applied: {tracking_url}"
                         )
                         query.tracking_url = tracking_url
-                        logging.info(f"Query {query_id}: Job id: {job_id}")
+                        logger.info(f"Query {query_id}: Job id: {job_id}")
                         needs_commit = True
                 if job_id and len(log_lines) > last_log_line:
                     # Wait for job id before logging things out
                     # this allows for prefixing all log lines and becoming
                     # searchable in something like Kibana
                     for l in log_lines[last_log_line:]:
-                        logging.info(f"Query {query_id}: [{job_id}] {l}")
+                        logger.info(f"Query {query_id}: [{job_id}] {l}")
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
@@ -354,7 +358,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         database,
         table_name: str,
         engine: Engine,
-        sql: Optional[str] = None,
         schema: str = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -368,7 +371,6 @@ class HiveEngineSpec(PrestoEngineSpec):
             database,
             table_name,
             engine,
-            sql,
             schema,
             limit,
             show_cols,
@@ -424,3 +426,15 @@ class HiveEngineSpec(PrestoEngineSpec):
     ):  # pylint: disable=arguments-differ
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)
+
+    @classmethod
+    @cache.memoize()
+    def get_function_names(cls, database: "Database") -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return database.get_df("SHOW FUNCTIONS")["tab_name"].tolist()

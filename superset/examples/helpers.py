@@ -25,13 +25,12 @@ from urllib import request
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
+from superset.models.slice import Slice
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 
 # Shortcuts
 DB = models.Database
-Slice = models.Slice
-Dash = models.Dashboard
 
 TBL = ConnectorRegistry.sources["table"]
 

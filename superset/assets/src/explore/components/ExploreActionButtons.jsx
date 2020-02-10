@@ -33,6 +33,7 @@ const propTypes = {
   chartStatus: PropTypes.string,
   latestQueryFormData: PropTypes.object,
   queryResponse: PropTypes.object,
+  slice: PropTypes.object,
 };
 
 export default function ExploreActionButtons({
@@ -41,6 +42,7 @@ export default function ExploreActionButtons({
   chartStatus,
   latestQueryFormData,
   queryResponse,
+  slice,
 }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
@@ -89,6 +91,7 @@ export default function ExploreActionButtons({
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
         onOpenInEditor={actions.redirectSQLLab}
+        slice={slice}
       />
     </div>
   );

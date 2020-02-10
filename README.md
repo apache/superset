@@ -36,8 +36,6 @@ Superset
 **Apache Superset** (incubating) is a modern, enterprise-ready
 business intelligence web application
 
-[this project used to be named **Caravel**, and **Panoramix** in the past]
-
 
 Screenshots & Gifs
 ------------------
@@ -166,6 +164,7 @@ the world know they are using Superset. Join our growing community!
  1. [Dial Once](https://www.dial-once.com/en/)
  1. [Digit Game Studios](https://www.digitgaming.com/)
  1. [Douban](https://www.douban.com/)
+ 1. [Dragonpass](https://www.dragonpass.com.cn/)
  1. [Endress+Hauser](http://www.endress.com/)
  1. [Faasos](http://faasos.com/)
  1. [Fanatics](https://www.fanatics.com)
@@ -188,10 +187,14 @@ the world know they are using Superset. Join our growing community!
  1. [Myra Labs](http://www.myralabs.com/)
  1. [Now](https://www.now.vn/)
  1. [Ona](https://ona.io)
+ 1. [Peak AI](https://www.peak.ai/)
  1. [PeopleDoc](https://www.people-doc.com)
+ 1. [Popoko VM Games Studio](https://popoko.live)
+ 1. [Preset, Inc.](https://preset.io)
  1. [Pronto Tools](http://www.prontotools.io)
- 1. [QPID Health](http://www.qpidhealth.com/    )
+ 1. [QPID Health](http://www.qpidhealth.com/)
  1. [Qunar](https://www.qunar.com/)
+ 1. [Reward Gateway](https://www.rewardgateway.com)
  1. [Safaricom](https://www.safaricom.co.ke/)
  1. [Scoot](https://scoot.co/)
  1. [ScopeAI](https://www.getscopeai.com)
@@ -203,6 +206,7 @@ the world know they are using Superset. Join our growing community!
  1. [Tails.com](https://tails.com)
  1. [Tenable](https://www.tenable.com)
  1. [THE ICONIC](http://theiconic.com.au/)
+ 1. [timbr.ai](https://timbr.ai/)
  1. [TME QQMUSIC/WESING](https://www.tencentmusic.com/)
  1. [Tobii](http://www.tobii.com/)
  1. [Tooploox](https://www.tooploox.com/)
@@ -212,7 +216,6 @@ the world know they are using Superset. Join our growing community!
  1. [VIPKID](https://www.vipkid.com.cn/)
  1. [WeSure](https://www.wesure.cn/)
  1. [Windsor.ai](https://www.windsor.ai/)
- 1. [WP-Semantix](https://wpsemantix.com/)
  1. [Yahoo!](https://yahoo.com/)
  1. [Zaihang](http://www.zaih.com/)
  1. [Zalando](https://www.zalando.com)

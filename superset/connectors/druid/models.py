@@ -45,7 +45,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import backref, relationship, RelationshipProperty, Session
+from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, security_manager
@@ -87,6 +87,7 @@ except ImportError:
 DRUID_TZ = conf.get("DRUID_TZ")
 POST_AGG_TYPE = "postagg"
 metadata = Model.metadata  # pylint: disable=no-member
+logger = logging.getLogger(__name__)
 
 try:
     # Postaggregator might not have been imported.
@@ -222,7 +223,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         session = db.session
         ds_list = (
             session.query(DruidDatasource)
-            .filter(DruidDatasource.cluster_name == self.cluster_name)
+            .filter(DruidDatasource.cluster_id == self.id)
             .filter(DruidDatasource.datasource_name.in_(datasource_names))
         )
         ds_map = {ds.name: ds for ds in ds_list}
@@ -468,7 +469,7 @@ class DruidDatasource(Model, BaseDatasource):
     """ORM object referencing Druid datasources (tables)"""
 
     __tablename__ = "datasources"
-    __table_args__ = (UniqueConstraint("datasource_name", "cluster_name"),)
+    __table_args__ = (UniqueConstraint("datasource_name", "cluster_id"),)
 
     type = "druid"
     query_language = "json"
@@ -484,11 +485,9 @@ class DruidDatasource(Model, BaseDatasource):
     is_hidden = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))
-    cluster_name = Column(
-        String(250), ForeignKey("clusters.cluster_name"), nullable=False
-    )
+    cluster_id = Column(Integer, ForeignKey("clusters.id"), nullable=False)
     cluster = relationship(
-        "DruidCluster", backref="datasources", foreign_keys=[cluster_name]
+        "DruidCluster", backref="datasources", foreign_keys=[cluster_id]
     )
     owners = relationship(
         owner_class, secondary=druiddatasource_user, backref="druiddatasources"
@@ -499,7 +498,7 @@ class DruidDatasource(Model, BaseDatasource):
         "is_hidden",
         "description",
         "default_endpoint",
-        "cluster_name",
+        "cluster_id",
         "offset",
         "cache_timeout",
         "params",
@@ -511,7 +510,15 @@ class DruidDatasource(Model, BaseDatasource):
     export_children = ["columns", "metrics"]
 
     @property
-    def database(self) -> RelationshipProperty:
+    def cluster_name(self) -> str:
+        cluster = (
+            self.cluster
+            or db.session.query(DruidCluster).filter_by(id=self.cluster_id).one()
+        )
+        return cluster.cluster_name
+
+    @property
+    def database(self) -> DruidCluster:
         return self.cluster
 
     @property
@@ -608,17 +615,13 @@ class DruidDatasource(Model, BaseDatasource):
                 db.session.query(DruidDatasource)
                 .filter(
                     DruidDatasource.datasource_name == d.datasource_name,
-                    DruidCluster.cluster_name == d.cluster_name,
+                    DruidDatasource.cluster_id == d.cluster_id,
                 )
                 .first()
             )
 
         def lookup_cluster(d: DruidDatasource) -> Optional[DruidCluster]:
-            return (
-                db.session.query(DruidCluster)
-                .filter_by(cluster_name=d.cluster_name)
-                .one()
-            )
+            return db.session.query(DruidCluster).filter_by(id=d.cluster_id).first()
 
         return import_datasource.import_datasource(
             db.session, i_datasource, lookup_cluster, lookup_datasource, import_time
@@ -626,7 +629,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
-        logging.info("Syncing datasource [{}]".format(self.datasource_name))
+        logger.info("Syncing datasource [{}]".format(self.datasource_name))
         client = self.cluster.get_pydruid_client()
         try:
             results = client.time_boundary(datasource=self.datasource_name)
@@ -655,8 +658,8 @@ class DruidDatasource(Model, BaseDatasource):
                 analysisTypes=[],
             )
         except Exception as e:
-            logging.warning("Failed first attempt to get latest segment")
-            logging.exception(e)
+            logger.warning("Failed first attempt to get latest segment")
+            logger.exception(e)
         if not segment_metadata:
             # if no segments in the past 7 days, look at all segments
             lbound = datetime(1901, 1, 1).isoformat()[:10]
@@ -672,8 +675,8 @@ class DruidDatasource(Model, BaseDatasource):
                     analysisTypes=[],
                 )
             except Exception as e:
-                logging.warning("Failed 2nd attempt to get latest segment")
-                logging.exception(e)
+                logger.warning("Failed 2nd attempt to get latest segment")
+                logger.exception(e)
         if segment_metadata:
             return segment_metadata[-1]["columns"]
 
@@ -961,7 +964,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List:
         """Retrieve some values for the given column"""
-        logging.info(
+        logger.info(
             "Getting values for columns [{}] limited to [{}]".format(column_name, limit)
         )
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
@@ -988,11 +991,9 @@ class DruidDatasource(Model, BaseDatasource):
     def get_query_str(self, query_obj, phase=1, client=None):
         return self.run_query(client=client, phase=phase, **query_obj)
 
-    def _add_filter_from_pre_query_data(
-        self, df: Optional[pd.DataFrame], dimensions, dim_filter
-    ):
+    def _add_filter_from_pre_query_data(self, df: pd.DataFrame, dimensions, dim_filter):
         ret = dim_filter
-        if df is not None and not df.empty:
+        if not df.empty:
             new_filters = []
             for unused, row in df.iterrows():
                 fields = []
@@ -1223,12 +1224,12 @@ class DruidDatasource(Model, BaseDatasource):
             qry["limit"] = row_limit
             client.scan(**qry)
         elif len(groupby) == 0 and not having_filters:
-            logging.info("Running timeseries query for no groupby values")
+            logger.info("Running timeseries query for no groupby values")
             del qry["dimensions"]
             client.timeseries(**qry)
         elif not having_filters and len(groupby) == 1 and order_desc:
             dim = list(qry["dimensions"])[0]
-            logging.info("Running two-phase topn query for dimension [{}]".format(dim))
+            logger.info("Running two-phase topn query for dimension [{}]".format(dim))
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
                 order_by = utils.get_metric_name(timeseries_limit_metric)
@@ -1253,7 +1254,7 @@ class DruidDatasource(Model, BaseDatasource):
             del pre_qry["dimensions"]
 
             client.topn(**pre_qry)
-            logging.info("Phase 1 Complete")
+            logger.info("Phase 1 Complete")
             if phase == 2:
                 query_str += "// Two phase query\n// Phase 1\n"
             query_str += json.dumps(
@@ -1264,6 +1265,8 @@ class DruidDatasource(Model, BaseDatasource):
                 return query_str
             query_str += "// Phase 2 (built based on phase one's results)\n"
             df = client.export_pandas()
+            if df is None:
+                df = pd.DataFrame()
             qry["filter"] = self._add_filter_from_pre_query_data(
                 df, [pre_qry["dimension"]], filters
             )
@@ -1274,13 +1277,13 @@ class DruidDatasource(Model, BaseDatasource):
             del qry["dimensions"]
             qry["metric"] = list(qry["aggregations"].keys())[0]
             client.topn(**qry)
-            logging.info("Phase 2 Complete")
+            logger.info("Phase 2 Complete")
         elif len(groupby) > 0 or having_filters:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
-            logging.info("Running groupby query for dimensions [{}]".format(dimensions))
+            logger.info("Running groupby query for dimensions [{}]".format(dimensions))
             if timeseries_limit and is_timeseries:
-                logging.info("Running two-phase query for timeseries")
+                logger.info("Running two-phase query for timeseries")
 
                 pre_qry = deepcopy(qry)
                 pre_qry_dims = self._dimensions_to_values(qry["dimensions"])
@@ -1322,7 +1325,7 @@ class DruidDatasource(Model, BaseDatasource):
                     "columns": [{"dimension": order_by, "direction": order_direction}],
                 }
                 client.groupby(**pre_qry)
-                logging.info("Phase 1 Complete")
+                logger.info("Phase 1 Complete")
                 query_str += "// Two phase query\n// Phase 1\n"
                 query_str += json.dumps(
                     client.query_builder.last_query.query_dict, indent=2
@@ -1332,6 +1335,8 @@ class DruidDatasource(Model, BaseDatasource):
                     return query_str
                 query_str += "// Phase 2 (built based on phase one's results)\n"
                 df = client.export_pandas()
+                if df is None:
+                    df = pd.DataFrame()
                 qry["filter"] = self._add_filter_from_pre_query_data(
                     df, pre_qry["dimensions"], filters
                 )
@@ -1353,7 +1358,7 @@ class DruidDatasource(Model, BaseDatasource):
                     ],
                 }
             client.groupby(**qry)
-            logging.info("Query Complete")
+            logger.info("Query Complete")
         query_str += json.dumps(client.query_builder.last_query.query_dict, indent=2)
         return query_str
 
@@ -1376,12 +1381,12 @@ class DruidDatasource(Model, BaseDatasource):
         client = self.cluster.get_pydruid_client()
         query_str = self.get_query_str(client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
+        if df is None:
+            df = pd.DataFrame()
 
-        if df is None or df.size == 0:
+        if df.empty:
             return QueryResult(
-                df=pd.DataFrame([]),
-                query=query_str,
-                duration=datetime.now() - qry_start_dttm,
+                df=df, query=query_str, duration=datetime.now() - qry_start_dttm
             )
 
         df = self.homogenize_types(df, query_obj.get("groupby", []))
@@ -1619,12 +1624,7 @@ class DruidDatasource(Model, BaseDatasource):
     def query_datasources_by_name(
         cls, session: Session, database: Database, datasource_name: str, schema=None
     ) -> List["DruidDatasource"]:
-        return (
-            session.query(cls)
-            .filter_by(cluster_name=database.id)
-            .filter_by(datasource_name=datasource_name)
-            .all()
-        )
+        return []
 
     def external_metadata(self) -> List[Dict]:
         self.merge_flag = True

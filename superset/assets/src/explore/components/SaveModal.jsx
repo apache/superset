@@ -154,9 +154,9 @@ class SaveModal extends React.Component {
         }
         // Go to new slice url or dashboard url
         if (gotodash) {
-          window.location = supersetURL(data.dashboard);
+          window.location.assign(supersetURL(data.dashboard));
         } else {
-          window.location = data.slice.slice_url;
+          window.location.assign(data.slice.slice_url);
         }
       });
     this.props.onHide();

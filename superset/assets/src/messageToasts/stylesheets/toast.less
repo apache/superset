@@ -24,7 +24,7 @@
   left: 50%;
   transform: translate(-50%, 0);
   width: 600px;
-  z-index: 3000; // top of the world
+  z-index: @z-index-max;
 }
 
 .toast {
@@ -36,15 +36,24 @@
   box-shadow: 0 2px 4px 0 fade(@darkest, @opacity-medium-light);
   will-change: transform, opacity;
   transform: translateY(-100%);
-  transition: transform 0.3s, opacity 0.3s;
+  transition: transform @timing-normal, opacity @timing-normal;
+
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+  }
 }
 
 .toast > button {
   color: @almost-black;
-}
 
-.toast > button:hover {
-  color: @gray-dark;
+  &:hover {
+    color: @gray-dark;
+  }
 }
 
 .toast--visible {
@@ -52,17 +61,8 @@
   opacity: 1;
 }
 
-.toast:after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 6px;
-  height: 100%;
-}
-
 .toast--info:after {
-  background: linear-gradient(to bottom, @pink, @purple);
+  background: @info;
 }
 
 .toast--success:after {

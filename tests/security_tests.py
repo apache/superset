@@ -14,17 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import inspect
 import unittest
 from unittest.mock import Mock, patch
 
 import prison
 
+import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetSecurityException
-from superset.models.core import Database, Slice
+from superset.models.core import Database
+from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -237,7 +240,7 @@ class RolePermissionTests(SupersetTestCase):
         datasource = DruidDatasource(
             datasource_name="tmp_datasource",
             cluster=druid_cluster,
-            cluster_name="druid_test",
+            cluster_id=druid_cluster.id,
         )
         session.add(datasource)
         session.commit()
@@ -457,7 +460,7 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_gamma_user_schema_access_to_dashboards(self):
         self.login(username="gamma")
-        data = str(self.client.get("dashboard/list/").data)
+        data = str(self.client.get("api/v1/dashboard/").data)
         self.assertIn("/superset/dashboard/world_health/", data)
         self.assertNotIn("/superset/dashboard/births/", data)
 
@@ -469,7 +472,7 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_gamma_user_schema_access_to_charts(self):
         self.login(username="gamma")
-        data = str(self.client.get("chart/list/").data)
+        data = str(self.client.get("api/v1/chart/").data)
         self.assertIn(
             "Life Expectancy VS Rural %", data
         )  # wb_health_population slice, has access
@@ -484,14 +487,6 @@ class RolePermissionTests(SupersetTestCase):
         example_db = session.query(Database).filter_by(database_name="examples").one()
         example_db.expose_in_sqllab = True
         session.commit()
-
-        OLD_FLASK_GET_SQL_DBS_REQUEST = (
-            "databaseasync/api/read?_flt_0_expose_in_sqllab=1&"
-            "_oc_DatabaseAsync=database_name&_od_DatabaseAsync=asc"
-        )
-        self.login(username="gamma")
-        databases_json = self.client.get(OLD_FLASK_GET_SQL_DBS_REQUEST).json
-        self.assertEquals(databases_json["count"], 1)
 
         arguments = {
             "keys": ["none"],
@@ -508,18 +503,15 @@ class RolePermissionTests(SupersetTestCase):
         self.logout()
 
     def assert_can_read(self, view_menu, permissions_set):
-        self.assertIn(("can_show", view_menu), permissions_set)
         self.assertIn(("can_list", view_menu), permissions_set)
 
     def assert_can_write(self, view_menu, permissions_set):
         self.assertIn(("can_add", view_menu), permissions_set)
-        self.assertIn(("can_download", view_menu), permissions_set)
         self.assertIn(("can_delete", view_menu), permissions_set)
         self.assertIn(("can_edit", view_menu), permissions_set)
 
     def assert_cannot_write(self, view_menu, permissions_set):
         self.assertNotIn(("can_add", view_menu), permissions_set)
-        self.assertNotIn(("can_download", view_menu), permissions_set)
         self.assertNotIn(("can_delete", view_menu), permissions_set)
         self.assertNotIn(("can_edit", view_menu), permissions_set)
         self.assertNotIn(("can_save", view_menu), permissions_set)
@@ -529,7 +521,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_can_write(view_menu, permissions_set)
 
     def assert_can_gamma(self, perm_set):
-        self.assert_can_read("DatabaseAsync", perm_set)
         self.assert_can_read("TableModelView", perm_set)
 
         # make sure that user can create slices and dashboards
@@ -553,8 +544,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
 
     def assert_can_alpha(self, perm_set):
-        self.assert_can_all("SqlMetricInlineView", perm_set)
-        self.assert_can_all("TableColumnInlineView", perm_set)
         self.assert_can_all("TableModelView", perm_set)
 
         self.assertIn(("all_datasource_access", "all_datasource_access"), perm_set)
@@ -568,7 +557,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", perm_set)
 
     def assert_can_admin(self, perm_set):
-        self.assert_can_read("DatabaseAsync", perm_set)
         self.assert_can_all("DatabaseView", perm_set)
         self.assert_can_all("RoleModelView", perm_set)
         self.assert_can_all("UserDBModelView", perm_set)
@@ -582,7 +570,7 @@ class RolePermissionTests(SupersetTestCase):
     def test_is_admin_only(self):
         self.assertFalse(
             security_manager._is_admin_only(
-                security_manager.find_permission_view_menu("can_show", "TableModelView")
+                security_manager.find_permission_view_menu("can_list", "TableModelView")
             )
         )
         self.assertFalse(
@@ -593,16 +581,21 @@ class RolePermissionTests(SupersetTestCase):
             )
         )
 
-        self.assertTrue(
-            security_manager._is_admin_only(
-                security_manager.find_permission_view_menu("can_delete", "DatabaseView")
+        log_permissions = ["can_list", "can_show"]
+        for log_permission in log_permissions:
+            self.assertTrue(
+                security_manager._is_admin_only(
+                    security_manager.find_permission_view_menu(
+                        log_permission, "LogModelView"
+                    )
+                )
             )
-        )
+
         if app.config["ENABLE_ACCESS_REQUEST"]:
             self.assertTrue(
                 security_manager._is_admin_only(
                     security_manager.find_permission_view_menu(
-                        "can_show", "AccessRequestsModelView"
+                        "can_list", "AccessRequestsModelView"
                     )
                 )
             )
@@ -625,7 +618,7 @@ class RolePermissionTests(SupersetTestCase):
     def test_is_alpha_only(self):
         self.assertFalse(
             security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu("can_show", "TableModelView")
+                security_manager.find_permission_view_menu("can_list", "TableModelView")
             )
         )
 
@@ -646,13 +639,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(
             security_manager._is_alpha_only(
                 security_manager.find_permission_view_menu(
-                    "can_edit", "SqlMetricInlineView"
-                )
-            )
-        )
-        self.assertTrue(
-            security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu(
                     "all_database_access", "all_database_access"
                 )
             )
@@ -661,7 +647,7 @@ class RolePermissionTests(SupersetTestCase):
     def test_is_gamma_pvm(self):
         self.assertTrue(
             security_manager._is_gamma_pvm(
-                security_manager.find_permission_view_menu("can_show", "TableModelView")
+                security_manager.find_permission_view_menu("can_list", "TableModelView")
             )
         )
 
@@ -673,9 +659,10 @@ class RolePermissionTests(SupersetTestCase):
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
     def test_alpha_permissions(self):
-        self.assert_can_gamma(get_perm_tuples("Alpha"))
-        self.assert_can_alpha(get_perm_tuples("Alpha"))
-        self.assert_cannot_alpha(get_perm_tuples("Alpha"))
+        alpha_perm_tuples = get_perm_tuples("Alpha")
+        self.assert_can_gamma(alpha_perm_tuples)
+        self.assert_can_alpha(alpha_perm_tuples)
+        self.assert_cannot_alpha(alpha_perm_tuples)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
@@ -702,18 +689,15 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_gamma_permissions(self):
         def assert_can_read(view_menu):
-            self.assertIn(("can_show", view_menu), gamma_perm_set)
             self.assertIn(("can_list", view_menu), gamma_perm_set)
 
         def assert_can_write(view_menu):
             self.assertIn(("can_add", view_menu), gamma_perm_set)
-            self.assertIn(("can_download", view_menu), gamma_perm_set)
             self.assertIn(("can_delete", view_menu), gamma_perm_set)
             self.assertIn(("can_edit", view_menu), gamma_perm_set)
 
         def assert_cannot_write(view_menu):
             self.assertNotIn(("can_add", view_menu), gamma_perm_set)
-            self.assertNotIn(("can_download", view_menu), gamma_perm_set)
             self.assertNotIn(("can_delete", view_menu), gamma_perm_set)
             self.assertNotIn(("can_edit", view_menu), gamma_perm_set)
             self.assertNotIn(("can_save", view_menu), gamma_perm_set)

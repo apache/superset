@@ -17,6 +17,7 @@
 from datetime import datetime
 from typing import List, Optional, Tuple, TYPE_CHECKING
 
+from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
@@ -24,6 +25,12 @@ from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database  # pylint: disable=unused-import
+
+
+# Replace psycopg2.tz.FixedOffsetTimezone with pytz, which is serializable by PyArrow
+# https://github.com/stub42/pytz/blob/b70911542755aeeea7b5a9e066df5e1c87e8f2c8/src/pytz/reference.py#L25
+class FixedOffsetTimezone(_FixedOffset):
+    pass
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -45,6 +52,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
+        cursor.tzinfo_factory = FixedOffsetTimezone
         if not cursor.description:
             return []
         if cls.limit_method == LimitMethod.FETCH_MANY:

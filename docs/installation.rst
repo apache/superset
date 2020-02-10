@@ -372,6 +372,10 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| CockroachDB      | ``pip install cockroachdb``           | ``cockroachdb://``                              |
++------------------+---------------------------------------+-------------------------------------------------+
+| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://user:pwd@host:31010/``               |
++------------------+---------------------------------------+-------------------------------------------------+
 | Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                       |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
@@ -400,7 +404,8 @@ Here's a list of some of the recommended packages.
 |                  | sqlalchemy-vertica-python``           |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Hana             | ``pip install hdbcli sqlalchemy-hana``|  ``hana://``                                    |
-|                  | or ``pip install superset[hana]``     |                                                 |
+|                  | or                                    |                                                 |
+|                  | ``pip install apache-superset[hana]`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 
 
@@ -724,6 +729,15 @@ Druid
 Note that you can run the ``superset refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
+Dremio
+------
+
+Install the following dependencies to connect to Dremio:
+
+* Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
+* Dremio's ODBC driver: https://www.dremio.com/drivers/
+
+Example SQLAlchemy URI: ``dremio://dremio:dremio123@localhost:31010/dremio``
 
 Presto
 ------
@@ -761,8 +775,9 @@ CORS
 
 The extra CORS Dependency must be installed:
 
-    superset[cors]
+.. code-block:: text
 
+    pip install apache-superset[cors]
 
 The following keys in `superset_config.py` can be specified to configure CORS:
 

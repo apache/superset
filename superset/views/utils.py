@@ -27,6 +27,7 @@ from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.legacy import update_time_range
+from superset.models.slice import Slice
 from superset.utils.core import QueryStatus, TimeRangeEndpoint
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []
@@ -35,6 +36,8 @@ if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
 
 
 def bootstrap_user_data(user, include_perms=False):
+    if user.is_anonymous:
+        return {}
     payload = {
         "username": user.username,
         "firstName": user.first_name,
@@ -79,7 +82,7 @@ def get_viz(
     slice_id=None, form_data=None, datasource_type=None, datasource_id=None, force=False
 ):
     if slice_id:
-        slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
+        slc = db.session.query(Slice).filter_by(id=slice_id).one()
         return slc.get_viz()
 
     viz_type = form_data.get("viz_type", "table")
@@ -127,7 +130,7 @@ def get_form_data(slice_id=None, use_slice_data=False):
     # Include the slice_form_data if request from explore or slice calls
     # or if form_data only contains slice_id and additional filters
     if slice_id and (use_slice_data or valid_slice_id):
-        slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+        slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
         if slc:
             slice_form_data = slc.form_data.copy()
             slice_form_data.update(form_data)
@@ -209,7 +212,7 @@ def apply_display_max_row_limit(
 
 def get_time_range_endpoints(
     form_data: Dict[str, Any],
-    slc: Optional[models.Slice] = None,
+    slc: Optional[Slice] = None,
     slice_id: Optional[int] = None,
 ) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
     """
@@ -244,9 +247,7 @@ def get_time_range_endpoints(
 
         if datasource_type == "table":
             if not slc:
-                slc = (
-                    db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
-                )
+                slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
 
             if slc:
                 endpoints = slc.datasource.database.get_extra().get(

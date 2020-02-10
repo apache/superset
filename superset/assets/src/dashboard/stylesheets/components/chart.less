@@ -41,14 +41,14 @@
   }
 
   &.fade-in {
-    border-radius: 4px;
+    border-radius: @border-radius-large;
     box-shadow: inset 0 0 0 2px @shadow-highlight,
       0 0 0 3px fade(@shadow-highlight, @opacity-light);
     transition: box-shadow 1s ease-in-out;
   }
 
   &.fade-out {
-    border-radius: 4px;
+    border-radius: @border-radius-large;
     box-shadow: none;
     transition: box-shadow 1s ease-in-out;
   }
@@ -62,53 +62,52 @@
   overflow: visible;
 }
 
-.dashboard--editing .dashboard-component-chart-holder:after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0px;
-  left: 0px;
-  z-index: 1;
-  pointer-events: none;
-  border: 1px solid transparent;
-}
+.dashboard--editing {
+  .dashboard-component-chart-holder {
+    &:after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0px;
+      left: 0px;
+      z-index: @z-index-chart;
+      pointer-events: none;
+      border: 1px solid transparent;
+    }
 
-.dashboard--editing
-  .resizable-container:hover
-  > .dashboard-component-chart-holder:after,
-.dashboard--editing .dashboard-component-chart-holder:hover:after {
-  border: 1px dashed @indicator-color;
-  z-index: 2;
-}
+    &:hover:after {
+      border: 1px dashed @indicator-color;
+      z-index: @z-index-chart--dragging;
+    }
+  }
 
-.dashboard--editing
-  .resizable-container.resizable-container--resizing:hover
-  > .dashboard-component-chart-holder:after {
-  border: 1px dashed @indicator-color;
-}
+  .resizable-container {
+    &:hover,
+    &.resizable-container--resizing:hover {
+      & > .dashboard-component-chart-holder:after {
+        border: 1px dashed @indicator-color;
+      }
+    }
+  }
 
-.dashboard--editing
-  .dashboard-component-chart-holder
-  .dashboard-chart
-  .chart-container {
-  cursor: move;
-  opacity: 0.2;
-}
+  .resizable-container .dashboard-component-chart-holder {
+    .dashboard-chart {
+      .chart-container {
+        cursor: move;
+        opacity: 0.2;
+      }
 
-.dashboard--editing
-  .dashboard-component-chart-holder:hover
-  .dashboard-chart
-  .chart-container {
-  opacity: 0.7;
-}
+      .slice_container {
+        /* disable chart interactions in edit mode */
+        pointer-events: none;
+      }
+    }
 
-.dashboard--editing
-  .dashboard-component-chart-holder
-  .dashboard-chart
-  .slice_container {
-  /* disable chart interactions in edit mode */
-  pointer-events: none;
+    &:hover .dashboard-chart .chart-container {
+      opacity: 0.7;
+    }
+  }
 }
 
 .slice-header-controls-trigger {
@@ -123,11 +122,14 @@
 }
 
 .dot {
-  height: 4px;
-  width: 4px;
+  @dot-diameter: 4px;
+
+  height: @dot-diameter;
+  width: @dot-diameter;
+  border-radius: @dot-diameter / 2;
+  margin: @dot-diameter / 2 0;
+
   background-color: @gray;
-  border-radius: 50%;
-  margin: 2px 0;
   display: inline-block;
 
   .vertical-dots-container & {

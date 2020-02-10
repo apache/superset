@@ -34,7 +34,6 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
 from sqlalchemy.types import TypeEngine
-from werkzeug.utils import secure_filename
 
 from superset import app, sql_parse
 from superset.utils import core as utils
@@ -104,7 +103,7 @@ def compile_timegrain_expression(
     return element.name.replace("{col}", compiler.process(element.col, **kw))
 
 
-class LimitMethod(object):  # pylint: disable=too-few-public-methods
+class LimitMethod:  # pylint: disable=too-few-public-methods
     """Enum the ways that limits can be applied"""
 
     FETCH_MANY = "fetch_many"
@@ -290,12 +289,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def get_pandas_dtype(
-        cls, cursor_description: List[tuple]
-    ) -> Optional[Dict[str, str]]:
-        return None
-
-    @classmethod
     def extra_table_metadata(
         cls, database, table_name: str, schema_name: str
     ) -> Dict[str, Any]:
@@ -363,9 +356,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: params to be passed to DataFrame.read_csv
         :return: Pandas DataFrame containing data from csv
         """
-        kwargs["filepath_or_buffer"] = (
-            config["UPLOAD_FOLDER"] + kwargs["filepath_or_buffer"]
-        )
         kwargs["encoding"] = "utf-8"
         kwargs["iterator"] = True
         chunks = pd.read_csv(**kwargs)
@@ -400,7 +390,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
             )
 
-        filename = secure_filename(form.csv_file.data.filename)
+        filename = form.csv_file.data.filename
+
         if not _allowed_file(filename):
             raise Exception("Invalid file type selected")
         csv_to_df_kwargs = {
@@ -617,7 +608,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database,
         table_name: str,
         engine: Engine,
-        sql: Optional[str] = None,
         schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -630,7 +620,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param database: Database instance
         :param table_name: Table name
-        :param sql: SQL defining a subselect
         :param engine: SqlALchemy Engine instance
         :param schema: Schema
         :param limit: limit to impose on query
@@ -640,23 +629,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        fields = "*"
+        cols = cols or []
+        if (show_cols or latest_partition) and not cols:
+            cols = database.get_columns(table_name, schema)
+
+        if show_cols:
+            fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
         if schema:
             full_table_name = quote(schema) + "." + quote(table_name)
         else:
             full_table_name = quote(table_name)
 
-        if sql is not None:
-            subselect = f"(\n{sql}\n) AS {quote(table_name)}"
-            qry = select("*").select_from(text(subselect))
-        else:
-            fields = "*"
-            cols = cols or []
-            if (show_cols or latest_partition) and not cols:
-                cols = database.get_columns(table_name, schema)
-            if show_cols:
-                fields = cls._get_fields(cols)
-            qry = select(fields).select_from(text(full_table_name))
+        qry = select(fields).select_from(text(full_table_name))
 
         if limit:
             qry = qry.limit(limit)
@@ -666,10 +652,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             if partition_query is not None:
                 qry = partition_query
-        select_star_query = database.compile_sqla_query(qry)
+        sql = database.compile_sqla_query(qry)
         if indent:
-            select_star_query = sqlparse.format(select_star_query, reindent=True)
-        return select_star_query
+            sql = sqlparse.format(sql, reindent=True)
+        return sql
 
     @classmethod
     def estimate_statement_cost(
@@ -856,3 +842,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: Compiled column type
         """
         return sqla_column_type.compile(dialect=dialect).upper()
+
+    @classmethod
+    def get_function_names(cls, database: "Database") -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return []
+
+    @staticmethod
+    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple]:
+        """
+        Convert pyodbc.Row objects from `fetch_data` to tuples.
+
+        :param data: List of tuples or pyodbc.Row objects
+        :return: List of tuples
+        """
+        if data and type(data[0]).__name__ == "Row":
+            data = [tuple(row) for row in data]
+        return data

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
+import tests.test_app
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.utils.core import get_example_database
@@ -60,7 +62,7 @@ class DatabaseModelTestCase(SupersetTestCase):
             "extras": {"where": "(user != '{{ cache_key_wrapper('user_2') }}')"},
         }
         extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_extra_cache_keys(query_obj))
+        self.assertTrue(table.has_calls_to_cache_key_wrapper(query_obj))
         self.assertListEqual(extra_cache_keys, ["user_1", "user_2"])
 
     def test_has_no_extra_cache_keys(self):
@@ -81,5 +83,5 @@ class DatabaseModelTestCase(SupersetTestCase):
             "extras": {"where": "(user != 'abc')"},
         }
         extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertFalse(table.has_extra_cache_keys(query_obj))
+        self.assertFalse(table.has_calls_to_cache_key_wrapper(query_obj))
         self.assertListEqual(extra_cache_keys, [])

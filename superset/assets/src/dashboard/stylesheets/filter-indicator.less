@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+@import '../../../stylesheets/less/variables.less';
+
 .dashboard-filter-indicators-container {
   position: absolute;
   right: -20px;
@@ -35,7 +38,7 @@
     overflow: hidden;
     display: flex;
     background-color: @gray-light;
-    transition: width 0.3s;
+    transition: width @timing-normal;
     border-top-right-radius: 2px;
     border-bottom-right-radius: 2px;
 
@@ -44,7 +47,7 @@
       height: 20px;
       position: absolute;
       right: 100%;
-      transition: width 0.3s;
+      transition: width @timing-normal;
     }
 
     .filter-badge {

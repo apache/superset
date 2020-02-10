@@ -19,9 +19,10 @@ import pandas as pd
 from sqlalchemy import DateTime
 
 from superset import db
+from superset.models.slice import Slice
 from superset.utils import core as utils
 
-from .helpers import config, get_example_data, get_slice_json, merge_slice, Slice, TBL
+from .helpers import config, get_example_data, get_slice_json, merge_slice, TBL
 
 
 def load_random_time_series_data(only_metadata=False, force=False):

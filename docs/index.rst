@@ -53,6 +53,7 @@ intelligence web application
 
 Superset Resources
 ==================
+- Versioned versions of this documentation: https://readthedocs.org/projects/apache-superset/
 - `Superset's Github <https://github.com/apache/incubator-superset>`_, note
   that `we use Github for issue tracking <https://github.com/apache/incubator-superset/issues>`_
 - Superset's
@@ -109,6 +110,8 @@ The following RDBMS are currently supported:
 - `Apache Spark SQL <https://spark.apache.org/sql/>`_
 - `BigQuery <https://cloud.google.com/bigquery/>`_
 - `ClickHouse <https://clickhouse.yandex/>`_
+- `CockroachDB <https://www.cockroachlabs.com/>`_
+- `Dremio <https://dremio.com/>`_
 - `Elasticsearch <https://www.elastic.co/products/elasticsearch/>`_
 - `Exasol <https://www.exasol.com/>`_
 - `Google Sheets <https://www.google.com/sheets/about/>`_

@@ -32,7 +32,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import app, is_feature_enabled, security_manager
+from superset import app, cache, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
@@ -45,21 +45,7 @@ if TYPE_CHECKING:
 
 QueryStatus = utils.QueryStatus
 config = app.config
-
-# map between Presto types and Pandas
-pandas_dtype_map = {
-    "boolean": "object",  # to support nullable bool
-    "tinyint": "Int64",  # note: capital "I" means nullable int
-    "smallint": "Int64",
-    "integer": "Int64",
-    "bigint": "Int64",
-    "real": "float64",
-    "double": "float64",
-    "varchar": "object",
-    "timestamp": "datetime64[ns]",
-    "date": "datetime64[ns]",
-    "varbinary": "object",
-}
+logger = logging.getLogger(__name__)
 
 
 def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
@@ -349,7 +335,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 else:  # otherwise column is a basic data type
                     column_type = presto_type_map[column.Type]()
             except KeyError:
-                logging.info(
+                logger.info(
                     "Did not recognize type {} of column {}".format(  # pylint: disable=logging-format-interpolation
                         column.Type, column.Column
                     )
@@ -409,7 +395,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         database,
         table_name: str,
         engine: Engine,
-        sql: Optional[str] = None,
         schema: str = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -433,7 +418,6 @@ class PrestoEngineSpec(BaseEngineSpec):
             database,
             table_name,
             engine,
-            sql,
             schema,
             limit,
             show_cols,
@@ -731,7 +715,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
         query_id = query.id
-        logging.info(f"Query {query_id}: Polling the cursor for progress")
+        logger.info(f"Query {query_id}: Polling the cursor for progress")
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -757,7 +741,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 total_splits = float(stats.get("totalSplits"))
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
-                    logging.info(
+                    logger.info(
                         "Query {} progress: {} / {} "  # pylint: disable=logging-format-interpolation
                         "splits".format(query_id, completed_splits, total_splits)
                     )
@@ -765,7 +749,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                         query.progress = progress
                     session.commit()
             time.sleep(1)
-            logging.info(f"Query {query_id}: Polling the cursor for progress")
+            logger.info(f"Query {query_id}: Polling the cursor for progress")
             polled = cursor.poll()
 
     @classmethod
@@ -964,7 +948,13 @@ class PrestoEngineSpec(BaseEngineSpec):
         return df.to_dict()[field_to_return][0]
 
     @classmethod
-    def get_pandas_dtype(cls, cursor_description: List[tuple]) -> Dict[str, str]:
-        return {
-            col[0]: pandas_dtype_map.get(col[1], "object") for col in cursor_description
-        }
+    @cache.memoize()
+    def get_function_names(cls, database: "Database") -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()

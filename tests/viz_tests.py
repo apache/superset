@@ -14,14 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import uuid
 from datetime import datetime
+import logging
 from math import nan
 from unittest.mock import Mock, patch
 
 import numpy as np
 import pandas as pd
 
+import tests.test_app
 import superset.viz as viz
 from superset import app
 from superset.constants import NULL_STRING
@@ -30,6 +33,8 @@ from superset.utils.core import DTTM_ALIAS
 
 from .base_tests import SupersetTestCase
 from .utils import load_fixture
+
+logger = logging.getLogger(__name__)
 
 
 class BaseVizTestCase(SupersetTestCase):
@@ -100,7 +105,7 @@ class BaseVizTestCase(SupersetTestCase):
         datasource.type = "table"
         datasource.query = Mock(return_value=results)
         mock_dttm_col = Mock()
-        datasource.get_col = Mock(return_value=mock_dttm_col)
+        datasource.get_column = Mock(return_value=mock_dttm_col)
 
         test_viz = viz.BaseViz(datasource, form_data)
         test_viz.df_metrics_to_num = Mock()
@@ -109,12 +114,12 @@ class BaseVizTestCase(SupersetTestCase):
         results.df = pd.DataFrame(data={DTTM_ALIAS: ["1960-01-01 05:00:00"]})
         datasource.offset = 0
         mock_dttm_col = Mock()
-        datasource.get_col = Mock(return_value=mock_dttm_col)
+        datasource.get_column = Mock(return_value=mock_dttm_col)
         mock_dttm_col.python_date_format = "epoch_ms"
         result = test_viz.get_df(query_obj)
         import logging
 
-        logging.info(result)
+        logger.info(result)
         pd.testing.assert_series_equal(
             result[DTTM_ALIAS], pd.Series([datetime(1960, 1, 1, 5, 0)], name=DTTM_ALIAS)
         )

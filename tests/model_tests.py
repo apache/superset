@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import textwrap
 import unittest
 
 import pandas
 from sqlalchemy.engine.url import make_url
 
+import tests.test_app
 from superset import app
 from superset.models.core import Database
 from superset.utils.core import get_example_database, QueryStatus
@@ -251,7 +253,7 @@ class SqlaTableModelTestCase(SupersetTestCase):
         else:
             self.assertNotIn("JOIN", sql.upper())
         spec.allows_joins = old_inner_join
-        self.assertIsNotNone(qr.df)
+        self.assertFalse(qr.df.empty)
         return qr.df
 
     def test_query_with_expr_groupby_timeseries(self):
@@ -262,8 +264,9 @@ class SqlaTableModelTestCase(SupersetTestCase):
 
         df1 = self.query_with_expr_helper(is_timeseries=True, inner_join=True)
         df2 = self.query_with_expr_helper(is_timeseries=True, inner_join=False)
-        self.assertIsNotNone(df2)  # df1 can be none if the db does not support join
-        if df1 is not None:
+        self.assertFalse(df2.empty)
+        # df1 can be empty if the db does not support join
+        if not df1.empty:
             pandas.testing.assert_frame_equal(
                 cannonicalize_df(df1), cannonicalize_df(df2)
             )

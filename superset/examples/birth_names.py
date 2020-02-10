@@ -23,16 +23,16 @@ from sqlalchemy.sql import column
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
 from .helpers import (
     config,
-    Dash,
     get_example_data,
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
     update_slice_ids,
 )
@@ -441,10 +441,10 @@ def load_birth_names(only_metadata=False, force=False):
         misc_dash_slices.add(slc.slice_name)
 
     print("Creating a dashboard")
-    dash = db.session.query(Dash).filter_by(slug="births").first()
+    dash = db.session.query(Dashboard).filter_by(slug="births").first()
 
     if not dash:
-        dash = Dash()
+        dash = Dashboard()
         db.session.add(dash)
     dash.published = True
     dash.json_metadata = textwrap.dedent(

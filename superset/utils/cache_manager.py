@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
-
 from flask import Flask
 from flask_caching import Cache
+
+from superset.typing import CacheConfig
 
 
 class CacheManager:
@@ -27,30 +27,26 @@ class CacheManager:
         self._tables_cache = None
         self._cache = None
 
-    def init_app(self, app):
-        self._cache = self._setup_cache(app, app.config.get("CACHE_CONFIG"))
+    def init_app(self, app: Flask) -> None:
+        self._cache = self._setup_cache(app, app.config["CACHE_CONFIG"])
         self._tables_cache = self._setup_cache(
-            app, app.config.get("TABLE_NAMES_CACHE_CONFIG")
+            app, app.config["TABLE_NAMES_CACHE_CONFIG"]
         )
 
     @staticmethod
-    def _setup_cache(app: Flask, cache_config) -> Optional[Cache]:
+    def _setup_cache(app: Flask, cache_config: CacheConfig) -> Cache:
         """Setup the flask-cache on a flask app"""
-        if cache_config:
-            if isinstance(cache_config, dict):
-                if cache_config.get("CACHE_TYPE") != "null":
-                    return Cache(app, config=cache_config)
-            else:
-                # Accepts a custom cache initialization function,
-                # returning an object compatible with Flask-Caching API
-                return cache_config(app)
+        if isinstance(cache_config, dict):
+            return Cache(app, config=cache_config)
 
-        return None
+        # Accepts a custom cache initialization function, returning an object compatible
+        # with Flask-Caching API.
+        return cache_config(app)
 
     @property
-    def tables_cache(self):
+    def tables_cache(self) -> Cache:
         return self._tables_cache
 
     @property
-    def cache(self):
+    def cache(self) -> Cache:
         return self._cache

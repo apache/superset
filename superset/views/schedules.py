@@ -23,17 +23,19 @@ from flask import flash, g
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from wtforms import BooleanField, StringField
 
-from superset import app, appbuilder, db, security_manager
+from superset import db, security_manager
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetException
-from superset.models.core import Dashboard, Slice
+from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     DashboardEmailSchedule,
     ScheduleType,
     SliceEmailSchedule,
 )
+from superset.models.slice import Slice
 from superset.tasks.schedules import schedule_email_report
 from superset.utils.core import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
@@ -44,6 +46,7 @@ from .base import DeleteMixin, SupersetModelView
 class EmailScheduleView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
+    include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
     schedule_type: Optional[Type] = None
     schedule_type_model: Optional[Type] = None
@@ -270,29 +273,3 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
         if item.slice is None:
             raise SupersetException("Slice is mandatory")
         super(SliceEmailScheduleView, self).pre_add(item)
-
-
-def _register_schedule_menus():
-    appbuilder.add_separator("Manage")
-
-    appbuilder.add_view(
-        DashboardEmailScheduleView,
-        "Dashboard Email Schedules",
-        label=__("Dashboard Emails"),
-        category="Manage",
-        category_label=__("Manage"),
-        icon="fa-search",
-    )
-
-    appbuilder.add_view(
-        SliceEmailScheduleView,
-        "Chart Emails",
-        label=__("Chart Email Schedules"),
-        category="Manage",
-        category_label=__("Manage"),
-        icon="fa-search",
-    )
-
-
-if app.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
-    _register_schedule_menus()

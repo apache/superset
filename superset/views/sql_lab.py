@@ -21,10 +21,11 @@ from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 
-from superset import appbuilder, db, get_feature_flags, security_manager
+from superset import db, get_feature_flags, security_manager
+from superset.constants import RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.utils import core as utils
 
@@ -40,18 +41,19 @@ from .base import (
 class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Callable) -> BaseQuery:
         """
-        Filter queries to only those owned by current user if
-        can_only_access_owned_queries permission is set.
+        Filter queries to only those owned by current user. If
+        can_access_all_queries permission is set a user can list all queries
 
         :returns: query
         """
-        if security_manager.can_only_access_owned_queries():
+        if not security_manager.can_access_all_queries():
             query = query.filter(Query.user_id == g.user.get_user_id())
         return query
 
 
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
+    include_route_methods = {RouteMethod.SHOW, RouteMethod.LIST, RouteMethod.API_READ}
 
     list_title = _("List Query")
     show_title = _("Show Query")
@@ -71,20 +73,11 @@ class QueryView(SupersetModelView):
     }
 
 
-appbuilder.add_view(
-    QueryView,
-    "Queries",
-    label=__("Queries"),
-    category="Manage",
-    category_label=__("Manage"),
-    icon="fa-search",
-)
-
-
 class SavedQueryView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SavedQuery)
+    include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("List Saved Query")
     show_title = _("Show Saved Query")
@@ -153,6 +146,12 @@ class SavedQueryView(
 
 
 class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
+    include_route_methods = {
+        RouteMethod.API_READ,
+        RouteMethod.API_CREATE,
+        RouteMethod.API_UPDATE,
+        RouteMethod.API_GET,
+    }
     list_columns = [
         "id",
         "label",
@@ -171,10 +170,6 @@ class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
     @expose("show/<pk>")
     def show(self, pk):
         return super().show(pk)
-
-
-appbuilder.add_view_no_menu(SavedQueryViewApi)
-appbuilder.add_view_no_menu(SavedQueryView)
 
 
 def _get_owner_id(tab_state_id):
@@ -332,15 +327,6 @@ class TableSchemaView(BaseSupersetView):
         return json_success(response)
 
 
-appbuilder.add_view_no_menu(TabStateView)
-appbuilder.add_view_no_menu(TableSchemaView)
-
-
-appbuilder.add_link(
-    __("Saved Queries"), href="/sqllab/my_queries/", icon="fa-save", category="SQL Lab"
-)
-
-
 class SqlLab(BaseSupersetView):
     """The base views for Superset!"""
 
@@ -349,6 +335,3 @@ class SqlLab(BaseSupersetView):
     def my_queries(self):  # pylint: disable=no-self-use
         """Assigns a list of found users to the given role."""
         return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.id))
-
-
-appbuilder.add_view_no_menu(SqlLab)

@@ -30,9 +30,8 @@
   }
 
   &-inverse {
-
     .badge {
-      background-color: #fff;
+      background-color: @lightest;
       color: @brand-primary;
     }
   }
@@ -68,38 +67,37 @@
 // Buttons ====================================================================
 
 .btn-default:hover {
-  color: #555;
-  background-color: #efefef;
+  color: @gray-dark;
+  background-color: @gray-bg;
 }
 
 .nav-tabs {
   .dropdown-toggle.btn,
-  .dropdown-toggle.btn:hover,
-  .dropdown-toggle.btn:active,
-  .dropdown-toggle.btn:focus,
-  .btn-group.open .dropdown-toggle.btn,
-  .btn-group.open .dropdown-toggle.btn:hover,
-  .btn-group.open .dropdown-toggle.btn:active,
-  .btn-group.open .dropdown-toggle.btn:focus {
-    border-color: transparent;
-    background-color: transparent;
-    box-shadow: none;
+  .btn-group.open .dropdown-toggle.btn {
+    &,
+    &:hover,
+    &:active,
+    &:focus {
+      border-color: transparent;
+      background-color: transparent;
+      box-shadow: none;
+    }
   }
 }
 
 .caret {
   border: none;
   color: @gray;
-}
 
-.caret:before {
-  font-family: "FontAwesome";
-  font-size: @font-size-xs;
-  content: "\f078";
-}
+  &:hover {
+    color: @gray-darker;
+  }
 
-.caret:hover {
-  color: @gray-darker;
+  &:before {
+    font-family: 'FontAwesome';
+    font-size: @font-size-xs;
+    content: '\f078';
+  }
 }
 
 // Typography =================================================================
@@ -115,7 +113,7 @@ body {
 
 .text-success,
 .text-success:hover {
-  color: @brand-success;
+  color: @success;
 }
 
 .text-danger,
@@ -137,7 +135,6 @@ body {
 
 table,
 .table {
-
   .dropdown-menu a {
     text-decoration: none;
   }
@@ -146,10 +143,10 @@ table,
   .warning,
   .danger,
   .info {
-    color: #fff;
+    color: @lightest;
 
     a {
-      color: #fff;
+      color: @lightest;
     }
 
     .btn-default {
@@ -159,7 +156,6 @@ table,
 }
 
 // Forms ======================================================================
-
 
 .has-warning {
   .help-block,
@@ -230,14 +226,12 @@ table,
 // Navs =======================================================================
 
 .nav-pills {
-
   & > li > a {
-    border-radius: 2px;
+    border-radius: @border-radius-normal;
   }
 }
 
 .dropdown-menu {
-
   & > li > a:hover,
   & > li > a:focus {
     background-image: none;
@@ -260,6 +254,7 @@ table,
 .alert {
   border: none;
 }
+
 .alert-link {
   text-decoration: underline;
 }
@@ -267,19 +262,23 @@ table,
 .alert-info .alert-link {
   color: @alert-info-text;
 }
+
 .alert-danger .alert-link {
   color: @alert-danger-text;
 }
+
 .alert-warning .alert-link {
   color: @alert-warning-text;
 }
+
 .alert-success .alert-link {
   color: @alert-success-text;
 }
 
 .label {
-  border-radius: 2px;
+  border-radius: @border-radius-normal;
 }
+
 label {
   font-weight: @font-weight-normal;
 }
@@ -289,9 +288,10 @@ label {
 .progress {
   height: 14px;
   .box-shadow(none);
+
   .progress-bar {
     font-size: @font-size-s;
-    line-height: 12px;
+    line-height: @line-height-tight;
     padding-top: 1px;
   }
 }
@@ -300,6 +300,7 @@ label {
 
 .panel {
   border: none;
+
   &-heading,
   &-footer {
     border-top-right-radius: 0;
@@ -311,33 +312,50 @@ label {
       padding: 15px 15px 0 15px;
       background-color: transparent;
     }
+
     .panel-title {
       color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
-      h1, h2, h3, h4, h5, h6 {
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
         margin: 10px 0 0 0;
         font-weight: @font-weight-bold;
       }
     }
+
     .close {
       color: @text-color;
     }
   }
+
   &-primary {
     .panel-heading {
       padding: 15px 15px 0 15px;
       background-color: transparent;
     }
+
     .panel-title {
       color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
-      h1, h2, h3, h4, h5, h6 {
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
         margin: 10px 0 0 0;
         font-weight: @font-weight-bold;
       }
     }
+
     .close {
       color: @text-color;
     }
@@ -349,7 +367,6 @@ label {
 }
 
 a.list-group-item {
-
   &-success {
     &.active {
       background-color: @state-success-bg;
@@ -400,8 +417,10 @@ a.list-group-item {
   border-top: 3px solid transparent;
 }
 
-.nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
-  background-color: #fff;
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+  background-color: @lightest;
   font-weight: @font-weight-bold;
   border-top: 3px solid @brand-primary;
 }
@@ -412,12 +431,15 @@ a.list-group-item {
   .info {
     color: @state-info-text;
   }
+
   .danger {
     color: @state-danger-text;
   }
+
   .warning {
     color: @state-warning-text;
   }
+
   .success {
     color: @state-success-text;
   }
@@ -430,7 +452,7 @@ hr {
 
 // generate space-n classes for vertical spacing
 .space-loop(@counter) when (@counter > 0) {
-  .space-loop((@counter - 1));    // next iteration
+  .space-loop((@counter - 1)); // next iteration
   .space-@{counter} {
     margin-bottom: (10px * @counter); // code for each iteration
   }
@@ -440,4 +462,3 @@ hr {
 a {
   cursor: pointer;
 }
-

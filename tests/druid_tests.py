@@ -14,16 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 import unittest
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-from superset import db, security_manager
 from tests.test_app import app
 
+from superset import db, security_manager
+
 from .base_tests import SupersetTestCase
+
 
 try:
     from superset.connectors.druid.models import (
@@ -128,9 +131,7 @@ class DruidTests(SupersetTestCase):
         )
         if cluster:
             for datasource in (
-                db.session.query(DruidDatasource)
-                .filter_by(cluster_name=cluster.cluster_name)
-                .all()
+                db.session.query(DruidDatasource).filter_by(cluster_id=cluster.id).all()
             ):
                 db.session.delete(datasource)
 
@@ -355,9 +356,7 @@ class DruidTests(SupersetTestCase):
         )
         if cluster:
             for datasource in (
-                db.session.query(DruidDatasource)
-                .filter_by(cluster_name=cluster.cluster_name)
-                .all()
+                db.session.query(DruidDatasource).filter_by(cluster_id=cluster.id).all()
             ):
                 db.session.delete(datasource)
 

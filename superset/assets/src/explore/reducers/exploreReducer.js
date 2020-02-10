@@ -158,6 +158,15 @@ export default function exploreReducer(state = {}, action) {
         can_overwrite: action.can_overwrite,
       };
     },
+    [actions.SLICE_UPDATED]() {
+      return {
+        ...state,
+        slice: {
+          ...state.slice,
+          ...action.slice,
+        },
+      };
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
