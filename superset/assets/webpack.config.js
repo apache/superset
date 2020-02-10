@@ -169,7 +169,13 @@ const config = {
             options: {
               // transpile only in happyPack mode
               // type checking is done via fork-ts-checker-webpack-plugin
+              babelOptions: {
+                babelrc: false,
+                presets: ["@babel/preset-env", "@emotion/babel-preset-css-prop"],
+                plugins: ["emotion"]
+              },
               happyPackMode: true,
+              plugins: ["emotion", { "sourceMap": true }]
             },
           },
         ],
@@ -191,6 +197,7 @@ const config = {
             options: {
               presets: ['airbnb', '@babel/preset-react', '@babel/preset-env'],
               plugins: [
+                'emotion',
                 'lodash',
                 '@babel/plugin-syntax-dynamic-import',
                 'react-hot-loader/babel',
