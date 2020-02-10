@@ -56,9 +56,9 @@ need to be done at every release.
 
 ## Crafting a source release
 
-When crafting a new minor or major release we create 
+When crafting a new minor or major release we create
 a branch named with the release MAJOR.MINOR version (on this example 0.34).
-This new branch will hold all PATCH and release candidates 
+This new branch will hold all PATCH and release candidates
 that belong to the MAJOR.MINOR version.
 
 The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
@@ -77,7 +77,7 @@ deprecations and upgrading-related topics,
 make sure to move the content now under the `Next Version` section under a new
 section for the new release.
 
-Finally bump the version number on `superset/static/assets/package.json`:
+Finally bump the version number on `superset-frontend/package.json`:
 
 ```json
     "version": "0.34.1"
@@ -120,7 +120,7 @@ The script will output the exported variables. Here's example for 0.34.1 RC1:
 
 The first step of preparing an Apache Release is packaging a release candidate
 to be voted on. Make sure you have correctly prepared and tagged the ready to ship
-release on Superset's repo (MAJOR.MINOR branch), the following script will clone 
+release on Superset's repo (MAJOR.MINOR branch), the following script will clone
 the tag and create a signed source tarball from it:
 
 ```bash
@@ -131,14 +131,14 @@ the tag and create a signed source tarball from it:
 
 Note that `make_tarball.sh`:
 
-- By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`. 
-This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory 
+- By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
+This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
 
 ### Build and test the created source tarball
 
-To build and run the just created tarball 
+To build and run the just created tarball
 ```bash
     # Build and run a release candidate tarball
     ./test_run_tarball.sh local
@@ -174,12 +174,12 @@ https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fb
 To easily send a voting request to Superset community, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv 
+    # Note: use Superset's virtualenv
     (venv)$ python send_email.py vote_pmc
 ```
 
 The script will interactively ask for extra information so it can authenticate on the Apache Email Relay.
-The release version and release candidate number are fetched from the previously set environment variables. 
+The release version and release candidate number are fetched from the previously set environment variables.
 
 ```bash
     Sender email (ex: user@apache.org): your_apache_email@apache.org
@@ -194,12 +194,12 @@ https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71
 To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv 
+    # Note: use Superset's virtualenv
     (venv)$ python send_email.py result_pmc
 ```
 
 The script will interactively ask for extra information needed to fill out the email template. Based on the
-voting description, it will generate a passing, non passing or non conclusive email. 
+voting description, it will generate a passing, non passing or non conclusive email.
 here's an example:
 
 ```bash
@@ -217,7 +217,7 @@ started at general@incubator.apache.org.
 To easily send the voting request to Apache community, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv 
+    # Note: use Superset's virtualenv
     (venv)$ python send_email.py vote_ipmc
 ```
 
@@ -227,12 +227,12 @@ least 72 hours have past, you can post a [RESULT] thread
 To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv 
+    # Note: use Superset's virtualenv
     (venv)$ python send_email.py result_ipmc
 ```
 
 Again, the script will interactively ask for extra information needed to fill out the email template. Based on the
-voting description, it will generate a passing, non passing or non conclusive email. 
+voting description, it will generate a passing, non passing or non conclusive email.
 here's an example:
 
 ```bash
@@ -291,7 +291,7 @@ while requesting access to push packages.
 Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
 
 ```bash
-    # Note use Superset's virtualenv 
+    # Note use Superset's virtualenv
     (venv)$ python send_email.py announce
 ```
 

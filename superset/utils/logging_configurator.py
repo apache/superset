@@ -21,6 +21,8 @@ from logging.handlers import TimedRotatingFileHandler
 import flask.app
 import flask.config
 
+logger = logging.getLogger(__name__)
+
 
 # pylint: disable=too-few-public-methods
 class LoggingConfigurator(abc.ABC):
@@ -64,4 +66,4 @@ class DefaultLoggingConfigurator(LoggingConfigurator):
             )
             logging.getLogger().addHandler(handler)
 
-        logging.info("logging was configured successfully")
+        logger.info("logging was configured successfully")

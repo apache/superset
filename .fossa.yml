@@ -26,8 +26,8 @@ analyze:
   modules:
   - name: assets
     type: npm
-    target: superset/assets
-    path: superset/assets
+    target: superset-frontend
+    path: superset-frontend
   - name: docs
     type: pip
     target: docs

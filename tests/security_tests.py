@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import inspect
 import unittest
 from unittest.mock import Mock, patch
 
 import prison
 
+import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
@@ -470,7 +472,7 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_gamma_user_schema_access_to_charts(self):
         self.login(username="gamma")
-        data = str(self.client.get("chart/list/").data)
+        data = str(self.client.get("api/v1/chart/").data)
         self.assertIn(
             "Life Expectancy VS Rural %", data
         )  # wb_health_population slice, has access

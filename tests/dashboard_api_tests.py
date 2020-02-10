@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 from typing import List
 
 import prison
 
+import tests.test_app
 from superset import db, security_manager
 from superset.models import core as models
 from superset.models.slice import Slice

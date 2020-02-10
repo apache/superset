@@ -51,6 +51,7 @@ if TYPE_CHECKING:
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
+logger = logging.getLogger(__name__)
 
 
 def copy_dashboard(mapper, connection, target):
@@ -277,11 +278,11 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                         value["meta"]["chartId"] = old_to_new_slc_id_dict[old_slice_id]
             dashboard.position_json = json.dumps(position_data)
 
-        logging.info(
+        logger.info(
             "Started import of the dashboard: %s", dashboard_to_import.to_json()
         )
         session = db.session
-        logging.info("Dashboard has %d slices", len(dashboard_to_import.slices))
+        logger.info("Dashboard has %d slices", len(dashboard_to_import.slices))
         # copy slices object as Slice.import_slice will mutate the slice
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
@@ -297,7 +298,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             if "remote_id" in slc.params_dict
         }
         for slc in slices:
-            logging.info(
+            logger.info(
                 "Importing slice %s from the dashboard: %s",
                 slc.to_json(),
                 dashboard_to_import.dashboard_title,

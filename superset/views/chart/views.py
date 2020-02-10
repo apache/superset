@@ -20,7 +20,7 @@ from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
-from superset import db
+from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.models.slice import Slice
@@ -63,6 +63,14 @@ class SliceModelView(
                 {"datasources": sorted(datasources, key=lambda d: d["label"])}
             ),
         )
+
+    @expose("/list/")
+    @has_access
+    def list(self):
+        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+            return super().list()
+
+        return super().render_app_template()
 
 
 class SliceAsync(SliceModelView):  # pylint: disable=too-many-ancestors

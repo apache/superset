@@ -27,7 +27,7 @@ if sys.version_info < (3, 6):
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-PACKAGE_JSON = os.path.join(BASE_DIR, "superset", "assets", "package.json")
+PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
 with open(PACKAGE_JSON, "r") as package_file:
     version_string = json.load(package_file)["version"]
 
@@ -50,9 +50,7 @@ print("VERSION: " + version_string)
 print("GIT SHA: " + GIT_SHA)
 print("-==-" * 15)
 
-VERSION_INFO_FILE = os.path.join(
-    BASE_DIR, "superset", "static", "assets", "version_info.json"
-)
+VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset-frontend", "version_info.json")
 
 with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
@@ -119,6 +117,7 @@ setup(
         "druid": ["pydruid==0.5.7", "requests==2.22.0"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "dremio": ["sqlalchemy_dremio>=0.5.0dev0"],
+        "cockroachdb": ["cockroachdb==0.3.3"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",

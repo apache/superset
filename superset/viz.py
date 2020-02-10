@@ -66,6 +66,7 @@ config = app.config
 stats_logger = config["STATS_LOGGER"]
 relative_start = config["DEFAULT_RELATIVE_START_TIME"]
 relative_end = config["DEFAULT_RELATIVE_END_TIME"]
+logger = logging.getLogger(__name__)
 
 METRIC_KEYS = [
     "metric",
@@ -395,7 +396,7 @@ class BaseViz:
         if not query_obj:
             query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
-        logging.info("Cache key: {}".format(cache_key))
+        logger.info("Cache key: {}".format(cache_key))
         is_loaded = False
         stacktrace = None
         df = None
@@ -403,7 +404,7 @@ class BaseViz:
         if cache_key and cache and not self.force:
             cache_value = cache.get(cache_key)
             if cache_value:
-                stats_logger.incr("loaded_from_cache")
+                stats_logger.incr("loading_from_cache")
                 try:
                     cache_value = pkl.loads(cache_value)
                     df = cache_value["df"]
@@ -412,12 +413,13 @@ class BaseViz:
                     self._any_cache_key = cache_key
                     self.status = utils.QueryStatus.SUCCESS
                     is_loaded = True
+                    stats_logger.incr("loaded_from_cache")
                 except Exception as e:
-                    logging.exception(e)
-                    logging.error(
+                    logger.exception(e)
+                    logger.error(
                         "Error reading cache: " + utils.error_msg_from_exception(e)
                     )
-                logging.info("Serving from cache")
+                logger.info("Serving from cache")
 
         if query_obj and not is_loaded:
             try:
@@ -426,7 +428,7 @@ class BaseViz:
                     stats_logger.incr("loaded_from_source")
                     is_loaded = True
             except Exception as e:
-                logging.exception(e)
+                logger.exception(e)
                 if not self.error_message:
                     self.error_message = "{}".format(e)
                 self.status = utils.QueryStatus.FAILED
@@ -442,7 +444,7 @@ class BaseViz:
                     cache_value = dict(dttm=cached_dttm, df=df, query=self.query)
                     cache_value = pkl.dumps(cache_value, protocol=pkl.HIGHEST_PROTOCOL)
 
-                    logging.info(
+                    logger.info(
                         "Caching {} chars at key {}".format(len(cache_value), cache_key)
                     )
 
@@ -451,8 +453,8 @@ class BaseViz:
                 except Exception as e:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
-                    logging.warning("Could not cache key {}".format(cache_key))
-                    logging.exception(e)
+                    logger.warning("Could not cache key {}".format(cache_key))
+                    logger.exception(e)
                     cache.delete(cache_key)
         return {
             "cache_key": self._any_cache_key,
