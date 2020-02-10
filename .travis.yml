@@ -110,7 +110,7 @@ cache:
     - ~/.npm
     - ~/.cache
     - ~/.travis_cache/
-    - superset/assets/.terser-plugin-cache/
+    - superset-frontend/.terser-plugin-cache/
 addons:
   apt:
     packages:

@@ -65,7 +65,7 @@ Here's a list of repositories that contain Superset-related packages:
   distributed on
   [pypi](https://pypi.org/project/apache-superset/). This repository
   also includes Superset's main Javascript bundles and react apps under
-  the [superset/assets](https://github.com/apache/incubator-superset/tree/master/superset/assets)
+  the [superset-frontend](https://github.com/apache/incubator-superset/tree/master/superset-frontend)
   folder.
 - [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
   contains core Superset's
@@ -322,15 +322,15 @@ Then, [open a pull request](https://help.github.com/articles/about-pull-requests
 If you're adding new images to the documentation, you'll notice that the images
 referenced in the rst, e.g.
 
-    .. image:: _static/img/tutorial/tutorial_01_sources_database.png
+    .. image:: _static/images/tutorial/tutorial_01_sources_database.png
 
 aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset/assets/images` directory.
+images (and any other static assets) to the `superset-frontend/images` directory.
 When the docs are deployed to https://superset.incubator.apache.org/, images
-are copied from there to the `_static/img` directory, just like they're referenced
+are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in `superset/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/img/tutorial` instead.
+For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
 
 #### API documentation
 
@@ -418,7 +418,7 @@ app.logger.info(form_data)
 
 ### Frontend Assets
 
-Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset/assets` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
+Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset-frontend` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
 
 #### nvm and node
 
@@ -437,7 +437,7 @@ Install third-party dependencies listed in `package.json`:
 
 ```bash
 # From the root of the repository
-cd superset/assets
+cd superset-frontend
 
 # Install dependencies from `package-lock.json`
 npm ci
@@ -481,7 +481,7 @@ See docs [here](docker/README.md)
 #### Updating NPM packages
 
 Use npm in the prescribed way, making sure that
-`superset/assets/package-lock.json` is updated according to `npm`-prescribed
+`superset-frontend/package-lock.json` is updated according to `npm`-prescribed
 best practices.
 
 #### Feature flags
@@ -494,7 +494,7 @@ FEATURE_FLAGS = {
 }
 ```
 
-If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset/assets/src/featureFlags.ts`. For example,
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset-frontend/src/featureFlags.ts`. For example,
 
 ```
 export enum FeatureFlag {
@@ -524,7 +524,7 @@ Lint the project with:
 tox -e flake8
 
 # for javascript
-cd superset/assets
+cd superset-frontend
 npm ci
 npm run lint
 ```
@@ -616,7 +616,7 @@ def sqrt(x: Union[float, int]) -> Union[float, int]:
 We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
 ```bash
-cd superset/assets
+cd superset-frontend
 npm run test
 ```
 
@@ -636,7 +636,7 @@ superset run --port 8081
 Run Cypress tests:
 
 ```bash
-cd superset/assets
+cd superset-frontend
 npm run build
 
 cd cypress-base
@@ -653,7 +653,7 @@ npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --conf
 npm run cypress open
 ```
 
-See [`superset/assets/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset/assets/cypress_build.sh).
+See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset-frontend/cypress_build.sh).
 
 ## Translating
 
