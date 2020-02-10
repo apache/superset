@@ -103,6 +103,7 @@ setup(
         "sqlalchemy>=1.3.5, <2.0",
         "sqlalchemy-utils>=0.33.2",
         "sqlparse>=0.3.0, <0.4",
+        "werkzeug<1.0",
         "wtforms-json",
     ],
     extras_require={
