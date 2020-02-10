@@ -20,28 +20,36 @@ from typing import Dict, List
 from flask import g, request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
+    BaseApi,
     expose,
+    get_info_schema,
     get_item_schema,
     get_list_schema,
+    merge_response_func,
     protect,
     rison,
     safe,
 )
+from flask_appbuilder.api.schemas import API_FILTERS_RIS_KEY, API_PERMISSIONS_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, ValidationError
 from marshmallow.validate import Length
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.decorators import (
+    check_dataset_exists,
+    check_ownership_dataset_exists,
+)
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.connectors.sqla.validators import (
     validate_database,
     validate_python_date_format,
     validate_table_column_name,
     validate_table_exists,
+    validate_table_metric_name,
     validate_table_uniqueness,
 )
 from superset.constants import RouteMethod
-from superset.exceptions import SupersetSecurityException
-from superset.views.base import check_ownership, DatasourceFilter
+from superset.views.base import DatasourceFilter
 from superset.views.base_api import BaseOwnedModelRestApi, BaseSupersetModelRestApi
 from superset.views.base_schemas import BaseOwnedSchema, validate_owner
 
@@ -190,19 +198,54 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
         "python_date_format": validate_python_date_format,
     }
 
-    def check_dataset_exists(self, dataset_id: int) -> SqlaTable:
+    @expose("/column/_info", methods=["GET"])
+    @protect()
+    @safe
+    @rison(get_info_schema)
+    @permission_name("info")
+    @merge_response_func(
+        BaseApi.merge_current_user_permissions, API_PERMISSIONS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_search_filters, API_FILTERS_RIS_KEY
+    )
+    def info(self, **kwargs) -> Response:
+        """ CRUD REST meta data containing user permissions and filters
+        ---
+        get:
+          description: >-
+            CRUD REST meta data containing user permissions and filters for this
+            resource
+          parameters:
+          - $ref: '#/components/parameters/get_info_schema'
+          responses:
+            200:
+              description: Item from Model
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      filters:
+                        type: object
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
         """
-            Checks if a dataset exists by id and filtering be it's base filter
-            takes into account security
-        """
-        datamodel = SQLAInterface(SqlaTable, self.datamodel.session)
-        filters = datamodel.get_filters().add_filter_list(DatasetRestApi.base_filters)
-        return datamodel.get(dataset_id, filters)
+        return self.info_headless(**kwargs)
 
     @expose("/<pk>/column/", methods=["GET"])
     @protect()
     @safe
-    @permission_name("get")
     @rison(get_list_schema)
     def get_list(self, pk: int, **kwargs):  # pylint: disable=arguments-differ
         """Get list of columns from a dataset
@@ -246,18 +289,17 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        item = self.check_dataset_exists(pk)
+        item = check_dataset_exists(pk)
         if not item:
             return self.response_404()
         filters = kwargs["rison"].get("filters", [])
         filters.append({"col": "table", "opr": "rel_o_m", "value": pk})
         kwargs["rison"]["filters"] = filters
-        return super().get_list_headless(**kwargs)
+        return self.get_list_headless(**kwargs)
 
     @expose("/<int:pk>/column/<column_id>", methods=["GET"])
     @protect()
     @safe
-    @permission_name("get")
     @rison(get_item_schema)
     def get(
         self, pk: int, column_id: int, **kwargs
@@ -304,16 +346,15 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        item = self.check_dataset_exists(pk)
+        item = check_dataset_exists(pk)
         if not item:
             return self.response_404()
-        return super().get_headless(column_id, **kwargs)
+        return self.get_headless(column_id, **kwargs)
 
     @expose("/<int:pk>/column/", methods=["POST"])
     @protect()
     @safe
-    @permission_name("post")
-    def post(self, pk):  # pylint: disable=arguments-differ
+    def post(self, pk: int):  # pylint: disable=arguments-differ
         """Add a column to a dataset
         ---
         post:
@@ -355,21 +396,14 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        item = self.check_dataset_exists(pk)
-        if not item:
-            return self.response_404()
-        try:
-            check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(403, message=str(e))
         request.json["table"] = pk
         return self.post_headless()
 
     @expose("/<int:pk>/column/<column_id>", methods=["PUT"])
     @protect()
+    @check_ownership_dataset_exists
     @safe
-    @permission_name("put")
-    def put(self, pk: int, column_id: int):  # pylint: disable=arguments-differ
+    def put(self, item: SqlaTable, column_id: int):  # pylint: disable=arguments-differ
         """Change a column from a dataset
         ---
         put:
@@ -416,22 +450,15 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        item = self.check_dataset_exists(pk)
-        if not item:
-            return self.response_404()
-        try:
-            check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(403, message=str(e))
-        request.json["table"] = pk
+        request.json["table"] = item.id
         return self.put_headless(column_id)
 
     @expose("/<int:pk>/column/<column_id>", methods=["DELETE"])
     @protect()
+    @check_ownership_dataset_exists
     @safe
-    @permission_name("delete")
     def delete(  # pylint: disable=arguments-differ
-        self, pk: int, column_id: int
+        self, item: SqlaTable, column_id: int  # pylint: disable=unused-argument
     ) -> Response:
         """Delete a column from a dataset
         ---
@@ -462,11 +489,324 @@ class DatasetColumnRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        item = self.check_dataset_exists(pk)
+        return self.delete_headless(column_id)
+
+
+class DatasetMetricRestApi(BaseSupersetModelRestApi):
+    datamodel = SQLAInterface(SqlMetric)
+
+    resource_name = "dataset"
+    allow_browser_login = True
+    class_permission_name = "SqlMetricInlineView"
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED}
+    openapi_spec_tag = "Datasets"
+
+    list_columns = ["metric_name", "verbose_name", "metric_type"]
+
+    show_columns = [
+        "metric_name",
+        "description",
+        "verbose_name",
+        "metric_type",
+        "expression",
+        "table",
+        "d3format",
+        "warning_text",
+    ]
+    add_columns = show_columns + ["table"]
+    edit_columns = show_columns + ["table"]
+
+    validators_columns = {"metric_name": validate_table_metric_name}
+
+    @expose("/metric/_info", methods=["GET"])
+    @protect()
+    @safe
+    @rison(get_info_schema)
+    @permission_name("info")
+    @merge_response_func(
+        BaseApi.merge_current_user_permissions, API_PERMISSIONS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_search_filters, API_FILTERS_RIS_KEY
+    )
+    def info(self, **kwargs) -> Response:
+        """ CRUD REST meta data containing user permissions and filters
+        ---
+        get:
+          description: >-
+            CRUD REST meta data containing user permissions and filters for this
+            resource
+          parameters:
+          - $ref: '#/components/parameters/get_info_schema'
+          responses:
+            200:
+              description: Item from Model
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      filters:
+                        type: object
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return self.info_headless(**kwargs)
+
+    @expose("/<pk>/metric/", methods=["GET"])
+    @protect()
+    @safe
+    @rison(get_list_schema)
+    def get_list(self, pk: int, **kwargs):  # pylint: disable=arguments-differ
+        """Get list of metrics from a dataset
+        ---
+        get:
+          description: >-
+            Query metrics from a dataset, accepts filters, ordering and pagination
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset id
+            required: true
+          - $ref: '#/components/parameters/get_list_schema'
+          responses:
+            200:
+              description: Items from Model
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: string
+                      count:
+                        type: number
+                      result:
+                        type: array
+                        items:
+                          $ref:
+                            '#/components/schemas/{{self.__class__.__name__}}.get_list'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item = check_dataset_exists(pk)
         if not item:
             return self.response_404()
-        try:
-            check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(403, message=str(e))
-        return self.delete_headless(column_id)
+        filters = kwargs["rison"].get("filters", [])
+        filters.append({"col": "table", "opr": "rel_o_m", "value": pk})
+        kwargs["rison"]["filters"] = filters
+        return self.get_list_headless(**kwargs)
+
+    @expose("/<int:pk>/metric/<metric_id>", methods=["GET"])
+    @protect()
+    @safe
+    @rison(get_item_schema)
+    def get(
+        self, pk: int, metric_id: int, **kwargs
+    ):  # pylint: disable=arguments-differ
+        """Get a metric from a dataset
+        ---
+        get:
+          description: >-
+            Get a metric from a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset id
+            required: true
+          - in: path
+            schema:
+              type: integer
+            name: metric_id
+          - $ref: '#/components/parameters/get_item_schema'
+          responses:
+            200:
+              description: Items from Model
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: string
+                      result:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item = check_dataset_exists(pk)
+        if not item:
+            return self.response_404()
+        return self.get_headless(metric_id, **kwargs)
+
+    @expose("/<int:pk>/metric/", methods=["POST"])
+    @protect()
+    @safe
+    def post(self, pk: int):  # pylint: disable=arguments-differ
+        """Add a metric to a dataset
+        ---
+        post:
+          description: >-
+            Add a metric to a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset id
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Item inserted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        request.json["table"] = pk
+        return self.post_headless()
+
+    @expose("/<int:pk>/metric/<metric_id>", methods=["PUT"])
+    @protect()
+    @check_ownership_dataset_exists
+    @safe
+    def put(self, item: SqlaTable, metric_id: int):  # pylint: disable=arguments-differ
+        """Change a metric from a dataset
+        ---
+        put:
+          description: >-
+            Change a metric from a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset id
+          - in: path
+            schema:
+              type: integer
+            name: metric_id
+            description: The metric id
+          requestBody:
+            description: Model schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Item changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        request.json["table"] = item.id
+        return self.put_headless(metric_id)
+
+    @expose("/<int:pk>/metric/<metric_id>", methods=["DELETE"])
+    @protect()
+    @check_ownership_dataset_exists
+    @safe
+    def delete(  # pylint: disable=arguments-differ
+        self, item: SqlaTable, metric_id: int  # pylint: disable=unused-argument
+    ) -> Response:
+        """Delete a metric from a dataset
+        ---
+        delete:
+          description: >-
+            Delete a metric from a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Item deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return self.delete_headless(metric_id)

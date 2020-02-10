@@ -22,7 +22,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.views.base import get_datasource_exist_error_msg
 
@@ -98,3 +98,16 @@ def validate_table_column_name(column_name: str):
         )
         if session.query(table_query.exists()).scalar():
             raise ValidationError(f"Column {column_name} already exists")
+
+
+def validate_table_metric_name(metric_name: str):
+    if not metric_name:
+        raise ValidationError("Missing data for required field.")
+    session = current_app.appbuilder.get_session
+
+    with session.no_autoflush:
+        table_query = session.query(SqlMetric).filter(
+            TableColumn.column_name == metric_name
+        )
+        if session.query(table_query.exists()).scalar():
+            raise ValidationError(f"Metric {metric_name} already exists")
