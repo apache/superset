@@ -48,7 +48,7 @@ ARG SUPERSET_RELEASE_RC_TARBALL
 # Can fetch source from svn or copy tarball from local mounted directory
 COPY $SUPERSET_RELEASE_RC_TARBALL ./
 RUN tar -xvf *.tar.gz
-WORKDIR /home/superset/apache-superset-incubating-$VERSION/superset/assets
+WORKDIR /home/superset/apache-superset-incubating-$VERSION/superset-frontend
 
 RUN npm ci \
     && npm run build \

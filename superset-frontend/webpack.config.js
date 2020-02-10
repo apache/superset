@@ -21,7 +21,8 @@ const path = require('path');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
   .BundleAnalyzerPlugin;
-const CleanWebpackPlugin = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
@@ -35,7 +36,7 @@ const parsedArgs = require('minimist')(process.argv.slice(2));
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
 // output dir
-const BUILD_DIR = path.resolve(__dirname, './dist');
+const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
 
 const {
   mode = 'development',
@@ -60,7 +61,11 @@ const plugins = [
   }),
 
   // create fresh dist/ upon build
-  new CleanWebpackPlugin(['dist']),
+  new CleanWebpackPlugin({
+    dry: false,
+    // required because the build directory is outside the frontend directory:
+    dangerouslyAllowCleanPatternsOutsideProject: true,
+  }),
 
   // expose mode variable to other modules
   new webpack.DefinePlugin({
@@ -71,6 +76,12 @@ const plugins = [
   new ForkTsCheckerWebpackPlugin({
     checkSyntacticErrors: true,
   }),
+
+  new CopyPlugin([
+    'package.json',
+    { from: 'images', to: 'images' },
+    { from: 'stylesheets', to: 'stylesheets' },
+  ]),
 ];
 
 if (isDevMode) {
@@ -89,7 +100,7 @@ if (isDevMode) {
 
 const output = {
   path: BUILD_DIR,
-  publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
+  publicPath: '/static/assets/', // necessary for lazy-loaded chunks
 };
 
 if (isDevMode) {
@@ -280,7 +291,7 @@ const config = {
       '/': `http://localhost:${supersetPort}`,
       target: `http://localhost:${supersetPort}`,
     },
-    contentBase: path.join(process.cwd(), '../static/assets/dist'),
+    contentBase: path.join(process.cwd(), '../static/assets'),
   },
 };
 

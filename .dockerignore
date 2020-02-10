@@ -34,7 +34,7 @@
 tests/
 docs/
 install/
-superset/assets/node_modules/
-superset/assets/cypress/
-superset/assets/coverage/
+superset-frontend/node_modules/
+superset-frontend/cypress/
+superset-frontend/coverage/
 venv
