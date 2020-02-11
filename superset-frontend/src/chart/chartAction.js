@@ -257,7 +257,7 @@ export function exploreJSON(
             viz_type: formData.viz_type,
             data_age: json.is_cached
               ? moment(new Date()).diff(moment.utc(json.cached_dttm))
-              : 0,
+              : null,
           }),
         );
         return dispatch(chartUpdateSucceeded(json, key));
