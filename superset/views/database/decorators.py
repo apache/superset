@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import functools
 
 from flask import g
@@ -22,6 +23,7 @@ from flask_babel import lazy_gettext as _
 from superset.models.core import Database
 from superset.utils.core import parse_js_uri_path_item
 
+logger = logging.getLogger(__name__)
 
 def check_datasource_access(f):
     """
@@ -48,7 +50,7 @@ def check_datasource_access(f):
             self.stats_logger.incr(
                 f"permisssion_denied_{self.__class__.__name__}.select_star"
             )
-            self.logger.warning(
+            logger.warning(
                 f"Permission denied for user {g.user} on table: {table_name_parsed} "
                 f"schema: {schema_name_parsed}"
             )
