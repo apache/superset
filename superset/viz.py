@@ -30,7 +30,6 @@ import re
 import uuid
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
-from functools import reduce
 from itertools import product
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
@@ -532,11 +531,13 @@ class TableViz(BaseViz):
         d = super().query_obj()
         fd = self.form_data
 
-        if fd.get("all_columns") and (fd.get("groupby") or fd.get("metrics")):
+        if fd.get("all_columns") and (
+            fd.get("groupby") or fd.get("metrics") or fd.get("percent_metrics")
+        ):
             raise Exception(
                 _(
-                    "Choose either fields to [Group By] and [Metrics] or "
-                    "[Columns], not both"
+                    "Choose either fields to [Group By] and [Metrics] and/or "
+                    "[Percentage Metrics], or [Columns], not both"
                 )
             )
 
@@ -554,46 +555,50 @@ class TableViz(BaseViz):
 
         # Add all percent metrics that are not already in the list
         if "percent_metrics" in fd:
-            d["metrics"] = d["metrics"] + list(
-                filter(lambda m: m not in d["metrics"], fd["percent_metrics"] or [])
+            d["metrics"].extend(
+                m for m in fd["percent_metrics"] or [] if m not in d["metrics"]
             )
 
         d["is_timeseries"] = self.should_be_timeseries()
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
-        fd = self.form_data
-        if not self.should_be_timeseries() and df is not None and DTTM_ALIAS in df:
+        """
+        Transform the query result to the table representation.
+
+        :param df: The interim dataframe
+        :returns: The table visualization data
+
+        The interim dataframe comprises of the group-by and non-group-by columns and
+        the union of the metrics representing the non-percent and percent metrics. Note
+        the percent metrics have yet to be transformed.
+        """
+
+        if not self.should_be_timeseries() and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
 
-        # Sum up and compute percentages for all percent metrics
-        percent_metrics = fd.get("percent_metrics") or []
-        percent_metrics = [utils.get_metric_name(m) for m in percent_metrics]
+        # Transform the data frame to adhere to the UI ordering of the columns and
+        # metrics whilst simultaneously computing the percentages (via normalization)
+        # for the percent metrics.
+        non_percent_metric_columns = (
+            self.form_data.get("all_columns") or self.form_data.get("groupby") or []
+        ) + utils.get_metric_names(self.form_data.get("metrics") or [])
 
-        if len(percent_metrics):
-            percent_metrics = list(filter(lambda m: m in df, percent_metrics))
-            metric_sums = {
-                m: reduce(lambda a, b: a + b, df[m]) for m in percent_metrics
-            }
-            metric_percents = {
-                m: list(
-                    map(
-                        lambda a: None if metric_sums[m] == 0 else a / metric_sums[m],
-                        df[m],
-                    )
-                )
-                for m in percent_metrics
-            }
-            for m in percent_metrics:
-                m_name = "%" + m
-                df[m_name] = pd.Series(metric_percents[m], name=m_name)
-            # Remove metrics that are not in the main metrics list
-            metrics = fd.get("metrics") or []
-            metrics = [utils.get_metric_name(m) for m in metrics]
-            for m in filter(
-                lambda m: m not in metrics and m in df.columns, percent_metrics
-            ):
-                del df[m]
+        percent_metric_columns = utils.get_metric_names(
+            self.form_data.get("percent_metrics") or []
+        )
+
+        df = pd.concat(
+            [
+                df[non_percent_metric_columns],
+                (
+                    df[percent_metric_columns]
+                    .div(df[percent_metric_columns].sum())
+                    .add_prefix("%")
+                ),
+            ],
+            axis=1,
+        )
 
         data = self.handle_js_int_overflow(
             dict(records=df.to_dict(orient="records"), columns=list(df.columns))
