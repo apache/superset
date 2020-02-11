@@ -137,8 +137,8 @@ class DummyStrategy(Strategy):
     name = "dummy"
 
     def get_urls(self):
-        session = db.create_scoped_session()
-        charts = session.query(Slice).all()
+        scoped_session = db.create_scoped_session()
+        charts = scoped_session.query(Slice).all()
 
         return [get_url(chart) for chart in charts]
 
@@ -170,10 +170,10 @@ class TopNDashboardsStrategy(Strategy):
 
     def get_urls(self):
         urls = []
-        session = db.create_scoped_session()
+        scoped_session = db.create_scoped_session()
 
         records = (
-            session.query(Log.dashboard_id, func.count(Log.dashboard_id))
+            scoped_session.query(Log.dashboard_id, func.count(Log.dashboard_id))
             .filter(and_(Log.dashboard_id.isnot(None), Log.dttm >= self.since))
             .group_by(Log.dashboard_id)
             .order_by(func.count(Log.dashboard_id).desc())
@@ -181,7 +181,9 @@ class TopNDashboardsStrategy(Strategy):
             .all()
         )
         dash_ids = [record.dashboard_id for record in records]
-        dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
+        dashboards = (
+            scoped_session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
+        )
         for dashboard in dashboards:
             for chart in dashboard.slices:
                 urls.append(get_url(chart))
@@ -213,14 +215,14 @@ class DashboardTagsStrategy(Strategy):
 
     def get_urls(self):
         urls = []
-        session = db.create_scoped_session()
+        scoped_session = db.create_scoped_session()
 
-        tags = session.query(Tag).filter(Tag.name.in_(self.tags)).all()
+        tags = scoped_session.query(Tag).filter(Tag.name.in_(self.tags)).all()
         tag_ids = [tag.id for tag in tags]
 
         # add dashboards that are tagged
         tagged_objects = (
-            session.query(TaggedObject)
+            scoped_session.query(TaggedObject)
             .filter(
                 and_(
                     TaggedObject.object_type == "dashboard",
@@ -230,14 +232,16 @@ class DashboardTagsStrategy(Strategy):
             .all()
         )
         dash_ids = [tagged_object.object_id for tagged_object in tagged_objects]
-        tagged_dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids))
+        tagged_dashboards = scoped_session.query(Dashboard).filter(
+            Dashboard.id.in_(dash_ids)
+        )
         for dashboard in tagged_dashboards:
             for chart in dashboard.slices:
                 urls.append(get_url(chart))
 
         # add charts that are tagged
         tagged_objects = (
-            session.query(TaggedObject)
+            scoped_session.query(TaggedObject)
             .filter(
                 and_(
                     TaggedObject.object_type == "chart",
@@ -247,7 +251,7 @@ class DashboardTagsStrategy(Strategy):
             .all()
         )
         chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
-        tagged_charts = session.query(Slice).filter(Slice.id.in_(chart_ids))
+        tagged_charts = scoped_session.query(Slice).filter(Slice.id.in_(chart_ids))
         for chart in tagged_charts:
             urls.append(get_url(chart))
 
