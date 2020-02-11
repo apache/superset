@@ -26,6 +26,7 @@ import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../utils/common';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const propTypes = {
   queryEditor: PropTypes.shape({
@@ -34,6 +35,7 @@ const propTypes = {
     schema: PropTypes.string,
     autorun: PropTypes.bool,
     sql: PropTypes.string,
+    remoteId: PropTypes.number,
   }).isRequired,
   addDangerToast: PropTypes.func.isRequired,
 };
@@ -45,12 +47,22 @@ class ShareSqlLabQuery extends React.Component {
       shortUrl: t('Loading ...'),
     };
     this.getCopyUrl = this.getCopyUrl.bind(this);
+    this.getCopyUrlForSavedQuery = this.getCopyUrlForSavedQuery.bind(this);
+    this.getCopyUrlForKvStore = this.getCopyUrlForKvStore.bind(this);
   }
 
   getCopyUrl() {
     const { dbId, title, schema, autorun, sql } = this.props.queryEditor;
     const sharedQuery = { dbId, title, schema, autorun, sql };
 
+    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
+      return this.getCopyUrlForKvStore();
+    }
+
+    this.getCopyUrlForSavedQuery();
+  }
+
+  getCopyUrlForKvStore() {
     return storeQuery(sharedQuery)
       .then(shortUrl => {
         this.setState({ shortUrl });
@@ -61,6 +73,21 @@ class ShareSqlLabQuery extends React.Component {
           this.setState({ shortUrl: t('Error') });
         });
       });
+  }
+
+  getCopyUrlForSavedQuery() {
+    let savedQueryToastContent;
+
+    if (this.props.queryEditor.remoteId) {
+      savedQueryToastContent =
+        window.location.origin +
+        window.location.pathname +
+        `?savedQueryId=${this.props.queryEditor.remoteId}`;
+      this.setState({ shortUrl: savedQueryToastContent });
+    } else {
+      savedQueryToastContent = t('Please save the query to enable sharing');
+      this.setState({ shortUrl: savedQueryToastContent });
+    }
   }
 
   renderPopover() {
