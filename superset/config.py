@@ -696,6 +696,9 @@ WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 
+# User credentials to use for celery's cache warm-up task
+CACHE_WARMUP_USER = "admin"
+
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
 
