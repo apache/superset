@@ -61,7 +61,6 @@ npm-debug.log*
 superset-frontend/coverage/*
 superset-frontend/cypress/screenshots
 superset-frontend/cypress/videos
-superset-frontend/version_info.json
 superset/static
 yarn-error.log
 

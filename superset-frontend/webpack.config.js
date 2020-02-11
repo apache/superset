@@ -79,7 +79,6 @@ const plugins = [
 
   new CopyPlugin([
     'package.json',
-    'version_info.json',
     { from: 'images', to: 'images' },
     { from: 'stylesheets', to: 'stylesheets' },
   ]),
