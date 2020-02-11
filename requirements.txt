@@ -58,7 +58,7 @@ pathlib2==2.3.5
 polyline==1.4.0
 prison==0.1.2             # via flask-appbuilder
 py==1.8.1                 # via retry
-pyarrow==0.15.1
+pyarrow==0.16.0
 pycparser==2.19           # via cffi
 pyjwt==1.7.1              # via flask-appbuilder, flask-jwt-extended
 pyrsistent==0.15.7        # via jsonschema
