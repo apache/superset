@@ -54,15 +54,15 @@ def convert_filter_scopes(json_metadata: Dict, filters: List[Slice]):
         slice_params = json.loads(filter_slice.params or "{}")
         configs = slice_params.get("filter_configs") or []
 
-        if slice_params.get("date_filter", False):
+        if slice_params.get("date_filter"):
             add_filter_scope("__time_range", filter_id)
-        if slice_params.get("show_sqla_time_column", False):
+        if slice_params.get("show_sqla_time_column"):
             add_filter_scope("__time_col", filter_id)
-        if slice_params.get("show_sqla_time_granularity", False):
+        if slice_params.get("show_sqla_time_granularity"):
             add_filter_scope("__time_grain", filter_id)
-        if slice_params.get("show_druid_time_granularity", False):
+        if slice_params.get("show_druid_time_granularity"):
             add_filter_scope("__granularity", filter_id)
-        if slice_params.get("show_druid_time_origin", False):
+        if slice_params.get("show_druid_time_origin"):
             add_filter_scope("druid_time_origin", filter_id)
         for config in configs:
             add_filter_scope(config.get("column"), filter_id)

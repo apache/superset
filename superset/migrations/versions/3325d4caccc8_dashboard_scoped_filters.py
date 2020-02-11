@@ -72,22 +72,19 @@ def upgrade():
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
-        print("scanning dashboard ({}/{}) >>>>".format(i + 1, len(dashboards)))
+        print(f"scanning dashboard ({i + 1}/{len(dashboards)}) >>>>")
         try:
             json_metadata = json.loads(dashboard.json_metadata or "{}")
             if "filter_scopes" in json_metadata:
                 continue
 
             filter_scopes = {}
-            slice_ids = [slice.id for slice in dashboard.slices]
-            filters = (
-                session.query(Slice)
-                .filter(and_(Slice.id.in_(slice_ids), Slice.viz_type == "filter_box"))
-                .all()
-            )
+            filters = [
+                slice for slice in dashboard.slices if slice.viz_type == "filter_box"
+            ]
 
             # if dashboard has filter_box
-            if len(filters):
+            if filters:
                 filter_scopes = convert_filter_scopes(json_metadata, filters)
 
             json_metadata.pop("filter_immune_slices", None)
