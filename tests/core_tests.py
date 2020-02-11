@@ -30,13 +30,20 @@ import re
 import string
 from typing import Any, Dict
 import unittest
-from unittest import mock
+from unittest import mock, skipUnless
 
 import pandas as pd
 import sqlalchemy as sqla
 
 from tests.test_app import app
-from superset import dataframe, db, jinja_context, security_manager, sql_lab
+from superset import (
+    dataframe,
+    db,
+    jinja_context,
+    security_manager,
+    sql_lab,
+    is_feature_enabled,
+)
 from superset.common.query_context import QueryContext
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
@@ -497,6 +504,9 @@ class CoreTests(SupersetTestCase):
         resp = self.client.post("/r/shortner/", data=dict(data=data))
         assert re.search(r"\/r\/[0-9]+", resp.data.decode("utf-8"))
 
+    @skipUnless(
+        (is_feature_enabled("KV_STORE")), "skipping as /kv/ endpoints are not enabled"
+    )
     def test_kv(self):
         self.login(username="admin")
 
