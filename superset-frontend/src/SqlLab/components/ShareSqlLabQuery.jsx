@@ -52,9 +52,6 @@ class ShareSqlLabQuery extends React.Component {
   }
 
   getCopyUrl() {
-    const { dbId, title, schema, autorun, sql } = this.props.queryEditor;
-    const sharedQuery = { dbId, title, schema, autorun, sql };
-
     if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
       return this.getCopyUrlForKvStore();
     }
@@ -63,6 +60,9 @@ class ShareSqlLabQuery extends React.Component {
   }
 
   getCopyUrlForKvStore() {
+    const { dbId, title, schema, autorun, sql } = this.props.queryEditor;
+    const sharedQuery = { dbId, title, schema, autorun, sql };
+
     return storeQuery(sharedQuery)
       .then(shortUrl => {
         this.setState({ shortUrl });
