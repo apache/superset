@@ -310,7 +310,7 @@ def cache_warmup(strategy_name, *args, **kwargs):
             logger.info(f"Fetching {url}")
             cookies = get_auth_cookies()
             opener = request.build_opener()
-            opener.addheaders.append(('Cookie', 'session={}'.format(cookies[0])))
+            opener.addheaders.append(("Cookie", "session={}".format(cookies[0])))
             opener.open(url)
 
             results["success"].append(url)
