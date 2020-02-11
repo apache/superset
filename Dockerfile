@@ -83,8 +83,7 @@ COPY --from=superset-py /usr/local/lib/python3.6/site-packages/ /usr/local/lib/p
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/assets /app/superset/assets
-COPY --from=superset-node /app/superset-frontend/package.json /app/superset-frontend/package.json
-COPY --from=superset-node /app/superset-frontend/version_info.json /app/superset-frontend/version_info.json
+COPY --from=superset-node /app/superset-frontend /app/superset-frontend
 
 ## Lastly, let's install superset itself
 COPY superset /app/superset
