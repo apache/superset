@@ -23,6 +23,7 @@ import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
 import Loading from '../../components/Loading';
+import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
@@ -216,18 +217,45 @@ export default class ResultSet extends React.PureComponent {
         </Alert>
       );
     } else if (query.state === 'success' && query.ctas) {
+      // Get the schema of the temporary table that was created.
+      let schema = query.schema;
+      let tempTable = query.tempTable;
+      // Sync queries only have tempTable in query.results.query
+      if (
+        query.results &&
+        query.results.query &&
+        query.results.query.tempTable
+      ) {
+        tempTable = query.results.query.tempTable;
+      }
+      if (tempTable !== undefined) {
+        const tableNameParts = tempTable.split('.');
+        if (tableNameParts.length > 1) {
+          schema = tableNameParts[0];
+        }
+      }
+
       return (
         <div>
           <Alert bsStyle="info">
-            {t('Table')} [<strong>{query.tempTable}</strong>] {t('was created')}{' '}
+            {t('Table')} [<strong>{tempTable}</strong>] {t('was created')}{' '}
             &nbsp;
-            <Button
-              bsSize="small"
-              className="m-r-5"
-              onClick={this.popSelectStar}
-            >
-              {t('Query in a new tab')}
-            </Button>
+            <ButtonGroup>
+              <Button
+                bsSize="small"
+                className="m-r-5"
+                onClick={this.popSelectStar}
+              >
+                {t('Query in a new tab')}
+              </Button>
+              <ExploreCtasResultsButton
+                table={query.tempTableName}
+                schema={schema}
+                dbId={query.dbId}
+                database={this.props.database}
+                actions={this.props.actions}
+              />
+            </ButtonGroup>
           </Alert>
         </div>
       );
