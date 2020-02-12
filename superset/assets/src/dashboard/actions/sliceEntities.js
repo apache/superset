@@ -28,7 +28,7 @@ export function fetchAllSlices(userId) {
       dispatch(fetchAllSlicesStarted());
 
       return SupersetClient.get({
-        endpoint: `/sliceaddview/api/read?_flt_0_created_by=${userId}`,
+        endpoint: `/sliceaddview/api/read?_flt_0_owners=${userId}`,
       })
         .then(({ json }) => {
           const slices = {};
