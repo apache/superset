@@ -21,8 +21,8 @@ croniter==0.3.31
 cryptography==2.8
 decorator==4.4.1          # via retry
 defusedxml==0.6.0         # via python3-openid
-flask-appbuilder==2.2.2
-flask-babel==0.12.2       # via flask-appbuilder
+flask-appbuilder==2.2.3
+flask-babel==1.0.0        # via flask-appbuilder
 flask-caching==1.8.0
 flask-compress==1.4.0
 flask-jwt-extended==3.24.1  # via flask-appbuilder
@@ -67,7 +67,7 @@ python-dotenv==0.10.5
 python-editor==1.0.4      # via alembic
 python-geohash==0.8.5
 python3-openid==3.1.0     # via flask-openid
-pytz==2019.3              # via babel, celery, pandas
+pytz==2019.3              # via babel, celery, flask-babel, pandas
 pyyaml==5.3
 retry==0.9.2
 selenium==3.141.0
