@@ -50,7 +50,6 @@ webpack.config.js
 # Lock files, libs should not have lock files
 npm-shrinkwrap.json
 package-lock.json
-yarn.lock
 old-yarn.lock
 .*.swp
 _gh-pages
