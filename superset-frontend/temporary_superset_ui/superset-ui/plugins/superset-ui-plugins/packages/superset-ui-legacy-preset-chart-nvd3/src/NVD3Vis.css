@@ -148,3 +148,8 @@
   word-break: break-word;
 }
 /* END tooltip styles */
+
+.superset-legacy-chart-nvd3 .nv-noData.body {
+  font-size: 14px;
+  font-weight: normal;
+}

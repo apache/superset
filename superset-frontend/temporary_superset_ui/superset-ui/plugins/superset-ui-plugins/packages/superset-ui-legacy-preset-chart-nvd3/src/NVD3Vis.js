@@ -67,6 +67,39 @@ import {
 } from './PropTypes';
 import './NVD3Vis.css';
 
+const NO_DATA_RENDER_DATA = [
+  { text: 'No data', dy: '-.75em', class: 'header' },
+  { text: 'Adjust filters or check the Datasource.', dy: '.75em', class: 'body' },
+];
+
+// Override the noData render function to make a prettier UX
+// Code adapted from https://github.com/novus/nvd3/blob/master/src/utils.js#L653
+nv.utils.noData = function(chart, container) {
+  const opt = chart.options();
+  const margin = opt.margin();
+  const height = nv.utils.availableHeight(null, container, margin);
+  const width = nv.utils.availableWidth(null, container, margin);
+  const x = margin.left + width / 2;
+  const y = margin.top + height / 2;
+
+  // Remove any previously created chart components
+  container.selectAll('g').remove();
+
+  const noDataText = container.selectAll('.nv-noData').data(NO_DATA_RENDER_DATA);
+
+  noDataText
+    .enter()
+    .append('text')
+    .attr('class', d => `nvd3 nv-noData ${d.class}`)
+    .attr('dy', d => d.dy)
+    .style('text-anchor', 'middle');
+
+  noDataText
+    .attr('x', x)
+    .attr('y', y)
+    .text(d => d.text);
+};
+
 const { getColor, getScale } = CategoricalColorNamespace;
 
 // Limit on how large axes margins can grow as the chart window is resized
