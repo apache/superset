@@ -15,21 +15,33 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+import logging
+import uuid
 from contextlib import closing
 from datetime import datetime
-import logging
-from time import sleep
-import uuid
+from sys import getsizeof
+from typing import Optional, Tuple, Union
 
+import backoff
+import msgpack
+import pyarrow as pa
+import simplejson as json
+import sqlalchemy
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
 from flask_babel import lazy_gettext as _
-import simplejson as json
-import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
-from superset import app, dataframe, db, results_backend, security_manager
+from superset import (
+    app,
+    db,
+    results_backend,
+    results_backend_use_msgpack,
+    security_manager,
+)
+from superset.dataframe import SupersetDataFrame
+from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
 from superset.tasks.celery_app import app as celery_app
@@ -70,23 +82,31 @@ def handle_query_error(msg, query, session, payload=None):
     return payload
 
 
-def get_query(query_id, session, retry_count=5):
-    """attemps to get the query and retry if it cannot"""
-    query = None
-    attempt = 0
-    while not query and attempt < retry_count:
-        try:
-            query = session.query(Query).filter_by(id=query_id).one()
-        except Exception:
-            attempt += 1
-            logging.error("Query with id `{}` could not be retrieved".format(query_id))
-            stats_logger.incr("error_attempting_orm_query_" + str(attempt))
-            logging.error("Sleeping for a sec before retrying...")
-            sleep(1)
-    if not query:
-        stats_logger.incr("error_failed_at_getting_orm_query")
+def get_query_backoff_handler(details):
+    query_id = details["kwargs"]["query_id"]
+    logging.error(f"Query with id `{query_id}` could not be retrieved")
+    stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
+    logging.error(f"Query {query_id}: Sleeping for a sec before retrying...")
+
+
+def get_query_giveup_handler(details):
+    stats_logger.incr("error_failed_at_getting_orm_query")
+
+
+@backoff.on_exception(
+    backoff.constant,
+    SqlLabException,
+    interval=1,
+    on_backoff=get_query_backoff_handler,
+    on_giveup=get_query_giveup_handler,
+    max_tries=5,
+)
+def get_query(query_id, session):
+    """attempts to get the query and retry if it cannot"""
+    try:
+        return session.query(Query).filter_by(id=query_id).one()
+    except Exception:
         raise SqlLabException("Failed at getting query")
-    return query
 
 
 @contextmanager
@@ -144,7 +164,7 @@ def get_sql_results(
                 start_time=start_time,
             )
         except Exception as e:
-            logging.exception(e)
+            logging.exception(f"Query {query_id}: {e}")
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
             return handle_query_error(str(e), query, session)
@@ -152,6 +172,7 @@ def get_sql_results(
 
 def execute_sql_statement(sql_statement, query, user_name, session, cursor):
     """Executes a single SQL statement"""
+    query_id = query.id
     database = query.database
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
@@ -199,29 +220,73 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
                 security_manager,
             )
         query.executed_sql = sql
+        session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            logging.info("Running query: \n{}".format(sql))
+            logging.info(f"Query {query_id}: Running query: \n{sql}")
             db_engine_spec.execute(cursor, sql, async_=True)
-            logging.info("Handling cursor")
+            logging.info(f"Query {query_id}: Handling cursor")
             db_engine_spec.handle_cursor(cursor, query, session)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
-            logging.debug("Fetching data for query object: {}".format(query.to_dict()))
+            logging.debug(
+                "Query {}: Fetching data for query object: {}".format(
+                    query_id, query.to_dict()
+                )
+            )
             data = db_engine_spec.fetch_data(cursor, query.limit)
 
     except SoftTimeLimitExceeded as e:
-        logging.exception(e)
+        logging.exception(f"Query {query_id}: {e}")
         raise SqlLabTimeoutException(
             "SQL Lab timeout. This environment's policy is to kill queries "
             "after {} seconds.".format(SQLLAB_TIMEOUT)
         )
     except Exception as e:
-        logging.exception(e)
+        logging.exception(f"Query {query_id}: {e}")
         raise SqlLabException(db_engine_spec.extract_error_message(e))
 
-    logging.debug("Fetching cursor description")
+    logging.debug(f"Query {query_id}: Fetching cursor description")
     cursor_description = cursor.description
-    return dataframe.SupersetDataFrame(data, cursor_description, db_engine_spec)
+    return SupersetDataFrame(data, cursor_description, db_engine_spec)
+
+
+def _serialize_payload(
+    payload: dict, use_msgpack: Optional[bool] = False
+) -> Union[bytes, str]:
+    logging.debug(f"Serializing to msgpack: {use_msgpack}")
+    if use_msgpack:
+        return msgpack.dumps(payload, default=json_iso_dttm_ser, use_bin_type=True)
+    else:
+        return json.dumps(payload, default=json_iso_dttm_ser, ignore_nan=True)
+
+
+def _serialize_and_expand_data(
+    cdf: SupersetDataFrame,
+    db_engine_spec: BaseEngineSpec,
+    use_msgpack: Optional[bool] = False,
+) -> Tuple[Union[bytes, str], list, list, list]:
+    selected_columns: list = cdf.columns or []
+    expanded_columns: list
+
+    if use_msgpack:
+        with stats_timing(
+            "sqllab.query.results_backend_pa_serialization", stats_logger
+        ):
+            data = (
+                pa.default_serialization_context()
+                .serialize(cdf.raw_df)
+                .to_buffer()
+                .to_pybytes()
+            )
+        # expand when loading data from results backend
+        all_columns, expanded_columns = (selected_columns, [])
+    else:
+        data = cdf.data or []
+        all_columns, data, expanded_columns = db_engine_spec.expand_data(
+            selected_columns, data
+        )
+
+    return (data, selected_columns, all_columns, expanded_columns)
 
 
 def execute_sql_statements(
@@ -251,11 +316,12 @@ def execute_sql_statements(
     # Breaking down into multiple statements
     parsed_query = ParsedQuery(rendered_query)
     statements = parsed_query.get_statements()
-    logging.info(f"Executing {len(statements)} statement(s)")
+    logging.info(f"Query {query_id}: Executing {len(statements)} statement(s)")
 
-    logging.info("Set query to 'running'")
+    logging.info(f"Query {query_id}: Set query to 'running'")
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
+    session.commit()
 
     engine = database.get_sqla_engine(
         schema=query.schema,
@@ -269,16 +335,20 @@ def execute_sql_statements(
         with closing(conn.cursor()) as cursor:
             statement_count = len(statements)
             for i, statement in enumerate(statements):
-                # TODO CHECK IF STOPPED
+                # Check if stopped
+                query = get_query(query_id, session)
+                if query.status == QueryStatus.STOPPED:
+                    return
+
+                # Run statement
                 msg = f"Running statement {i+1} out of {statement_count}"
-                logging.info(msg)
+                logging.info(f"Query {query_id}: {msg}")
                 query.set_extra_json_key("progress", msg)
                 session.commit()
                 try:
                     cdf = execute_sql_statement(
                         statement, query, user_name, session, cursor
                     )
-                    msg = f"Running statement {i+1} out of {statement_count}"
                 except Exception as e:
                     msg = str(e)
                     if statement_count > 1:
@@ -300,10 +370,8 @@ def execute_sql_statements(
         )
     query.end_time = now_as_float()
 
-    selected_columns = cdf.columns or []
-    data = cdf.data or []
-    all_columns, data, expanded_columns = db_engine_spec.expand_data(
-        selected_columns, data
+    data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
+        cdf, db_engine_spec, store_results and results_backend_use_msgpack
     )
 
     payload.update(
@@ -320,15 +388,26 @@ def execute_sql_statements(
 
     if store_results:
         key = str(uuid.uuid4())
-        logging.info(f"Storing results in results backend, key: {key}")
+        logging.info(
+            f"Query {query_id}: Storing results in results backend, key: {key}"
+        )
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
-            json_payload = json.dumps(
-                payload, default=json_iso_dttm_ser, ignore_nan=True
-            )
+            with stats_timing(
+                "sqllab.query.results_backend_write_serialization", stats_logger
+            ):
+                serialized_payload = _serialize_payload(
+                    payload, results_backend_use_msgpack
+                )
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
                 cache_timeout = config.get("CACHE_DEFAULT_TIMEOUT", 0)
-            results_backend.set(key, zlib_compress(json_payload), cache_timeout)
+
+            compressed = zlib_compress(serialized_payload)
+            logging.debug(
+                f"*** serialized payload size: {getsizeof(serialized_payload)}"
+            )
+            logging.debug(f"*** compressed payload size: {getsizeof(compressed)}")
+            results_backend.set(key, compressed, cache_timeout)
         query.results_key = key
 
     query.status = QueryStatus.SUCCESS

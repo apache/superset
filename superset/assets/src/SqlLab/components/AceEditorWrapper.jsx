@@ -27,6 +27,11 @@ import { areArraysShallowEqual } from '../../reduxUtils';
 
 const langTools = ace.acequire('ace/ext/language_tools');
 
+const SQL_KEYWORD_AUTOCOMPLETE_SCORE = 100;
+const SCHEMA_AUTOCOMPLETE_SCORE = 60;
+const TABLE_AUTOCOMPLETE_SCORE = 55;
+const COLUMN_AUTOCOMPLETE_SCORE = 50;
+
 const keywords = (
   'SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|AND|OR|GROUP|BY|ORDER|LIMIT|OFFSET|HAVING|AS|CASE|' +
   'WHEN|THEN|ELSE|END|TYPE|LEFT|RIGHT|JOIN|ON|OUTER|DESC|ASC|UNION|CREATE|TABLE|PRIMARY|KEY|IF|' +
@@ -41,7 +46,7 @@ const dataTypes = (
 
 const sqlKeywords = [].concat(keywords.split('|'), dataTypes.split('|'));
 export const sqlWords = sqlKeywords.map(s => ({
-  name: s, value: s, score: 60, meta: 'sql',
+  name: s, value: s, score: SQL_KEYWORD_AUTOCOMPLETE_SCORE, meta: 'sql',
 }));
 
 const propTypes = {
@@ -62,8 +67,8 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onBlur: () => {},
-  onChange: () => {},
+  onBlur: () => { },
+  onChange: () => { },
   schemas: [],
   tables: [],
   extendedTables: [],
@@ -83,7 +88,7 @@ class AceEditorWrapper extends React.PureComponent {
     this.props.actions.queryEditorSetSelectedText(this.props.queryEditor, null);
     this.setAutoCompleter(this.props);
   }
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (!areArraysShallowEqual(this.props.tables, nextProps.tables) ||
       !areArraysShallowEqual(this.props.schemas, nextProps.schemas) ||
       !areArraysShallowEqual(this.props.extendedTables, nextProps.extendedTables)) {
@@ -147,26 +152,37 @@ class AceEditorWrapper extends React.PureComponent {
   }
   setAutoCompleter(props) {
     // Loading schema, table and column names as auto-completable words
-    let words = [];
     const schemas = props.schemas || [];
-    schemas.forEach((s) => {
-      words.push({ name: s.label, value: s.value, score: 60, meta: 'schema' });
-    });
+    const schemaWords = schemas.map(s => ({
+      name: s.label,
+      value: s.value,
+      score: SCHEMA_AUTOCOMPLETE_SCORE,
+      meta: 'schema',
+    }));
     const columns = {};
     const tables = props.tables || [];
     const extendedTables = props.extendedTables || [];
-    tables.forEach((t) => {
+    const tableWords = tables.map((t) => {
       const tableName = t.value;
-      words.push({ name: t.label, value: tableName, score: 55, meta: 'table' });
       const extendedTable = extendedTables.find(et => et.name === tableName);
       const cols = extendedTable && extendedTable.columns || [];
       cols.forEach((col) => {
         columns[col.name] = null;  // using an object as a unique set
       });
+      return {
+        name: t.label,
+        value: tableName,
+        score: TABLE_AUTOCOMPLETE_SCORE,
+        meta: 'table',
+      };
     });
-    words = words.concat(Object.keys(columns).map(col => (
-      { name: col, value: col, score: 50, meta: 'column' }
-    )), sqlWords);
+
+    const columnWords = Object.keys(columns).map(col => (
+      { name: col, value: col, score: COLUMN_AUTOCOMPLETE_SCORE, meta: 'column' }
+    ));
+
+    const words = schemaWords.concat(tableWords).concat(columnWords).concat(sqlWords);
+
     this.setState({ words }, () => {
       const completer = {
         getCompletions: this.getCompletions.bind(this),

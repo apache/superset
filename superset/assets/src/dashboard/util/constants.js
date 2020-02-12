@@ -69,3 +69,10 @@ export const BUILDER_PANE_TYPE = {
   ADD_COMPONENTS: 'ADD_COMPONENTS',
   COLORS: 'COLORS',
 };
+
+// filter indicators display length
+export const FILTER_INDICATORS_DISPLAY_LENGTH = 3;
+
+// in-component element types: can be added into
+// directPathToChild, used for in dashboard navigation and focus
+export const IN_COMPONENT_ELEMENT_TYPES = ['LABEL'];

@@ -17,8 +17,8 @@
 import json
 import textwrap
 
-
 from superset import db
+
 from .helpers import Dash, misc_dash_slices, Slice, update_slice_ids
 
 DASH_SLUG = "misc_charts"

@@ -16,16 +16,17 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for email service in Superset"""
-from email.mime.application import MIMEApplication
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
 import logging
 import tempfile
 import unittest
+from email.mime.application import MIMEApplication
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
 from unittest import mock
 
 from superset import app
 from superset.utils import core as utils
+
 from .utils import read_fixture
 
 send_email_test = mock.Mock()

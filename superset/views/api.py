@@ -15,16 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
+import simplejson as json
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
-import simplejson as json
 
+import superset.models.core as models
 from superset import appbuilder, db, event_logger, security_manager
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
-import superset.models.core as models
 from superset.utils import core as utils
+
 from .base import api, BaseSupersetView, handle_api_exception
 
 
@@ -41,7 +42,7 @@ class Api(BaseSupersetView):
         params: query_context: json_blob
         """
         query_context = QueryContext(**json.loads(request.form.get("query_context")))
-        security_manager.assert_datasource_permission(query_context.datasource)
+        security_manager.assert_query_context_permission(query_context)
         payload_json = query_context.get_payload()
         return json.dumps(
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True

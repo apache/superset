@@ -57,7 +57,7 @@ export default class AlteredSliceTag extends React.Component {
     this.state = { diffs, hasDiffs: !isEmpty(diffs) };
   }
 
-  componentWillReceiveProps(newProps) {
+  UNSAFE_componentWillReceiveProps(newProps) {
     // Update differences if need be
     if (isEqual(this.props, newProps)) {
       return;

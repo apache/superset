@@ -16,13 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 """Utility functions used across Superset"""
-from datetime import date, datetime, time, timedelta
 import decimal
-from email.mime.application import MIMEApplication
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import formatdate
 import errno
 import functools
 import json
@@ -30,33 +24,32 @@ import logging
 import os
 import signal
 import smtplib
-import sys
-from time import struct_time
 import traceback
-from typing import List, NamedTuple, Optional, Tuple
-from urllib.parse import unquote_plus
 import uuid
 import zlib
+from datetime import date, datetime, time, timedelta
+from email.mime.application import MIMEApplication
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formatdate
+from time import struct_time
+from typing import Iterator, List, NamedTuple, Optional, Tuple, Union
+from urllib.parse import unquote_plus
 
 import bleach
 import celery
-from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
-from flask import current_app, flash, Flask, g, Markup, render_template
-from flask_appbuilder.security.sqla.models import User
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
-from flask_caching import Cache
 import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
-
-try:
-    from pydruid.utils.having import Having
-except ImportError:
-    pass
 import sqlalchemy as sa
+from dateutil.parser import parse
+from dateutil.relativedelta import relativedelta
+from flask import current_app, flash, Flask, g, Markup, render_template
+from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as __, lazy_gettext as _
+from flask_caching import Cache
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
@@ -65,10 +58,14 @@ from sqlalchemy.types import TEXT, TypeDecorator
 from superset.exceptions import SupersetException, SupersetTimeoutException
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
+try:
+    from pydruid.utils.having import Having
+except ImportError:
+    pass
+
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 
-PY3K = sys.version_info >= (3, 0)
 DTTM_ALIAS = "__timestamp"
 ADHOC_METRIC_EXPRESSION_TYPES = {"SIMPLE": "SIMPLE", "SQL": "SQL"}
 
@@ -107,7 +104,7 @@ def flasher(msg, severity=None):
             logging.info(msg)
 
 
-class _memoized:  # noqa
+class _memoized:
     """Decorator that caches a function's return value each time it is called
 
     If called later with the same arguments, the cached value is returned, and
@@ -294,7 +291,7 @@ class DashboardEncoder(json.JSONEncoder):
             return json.JSONEncoder(sort_keys=True).default(self, o)
 
 
-def parse_human_timedelta(s: str) -> timedelta:
+def parse_human_timedelta(s: Optional[str]) -> timedelta:
     """
     Returns ``datetime.datetime`` from natural language time deltas
 
@@ -351,6 +348,23 @@ def datetime_f(dttm):
     return "<nobr>{}</nobr>".format(dttm)
 
 
+def format_timedelta(td: timedelta) -> str:
+    """
+    Ensures negative time deltas are easily interpreted by humans
+
+    >>> td = timedelta(0) - timedelta(days=1, hours=5,minutes=6)
+    >>> str(td)
+    '-2 days, 18:54:00'
+    >>> format_timedelta(td)
+    '-1 day, 5:06:00'
+    """
+    if td < timedelta(0):
+        return "-" + str(abs(td))
+    else:
+        # Change this to format positive time deltas the way you want
+        return str(td)
+
+
 def base_json_conv(obj):
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
@@ -365,7 +379,7 @@ def base_json_conv(obj):
     elif isinstance(obj, uuid.UUID):
         return str(obj)
     elif isinstance(obj, timedelta):
-        return str(obj)
+        return format_timedelta(obj)
     elif isinstance(obj, bytes):
         try:
             return obj.decode("utf-8")
@@ -440,8 +454,8 @@ def error_msg_from_exception(e):
         if isinstance(e.message, dict):
             msg = e.message.get("message")
         elif e.message:
-            msg = "{}".format(e.message)
-    return msg or "{}".format(e)
+            msg = e.message
+    return msg or str(e)
 
 
 def markdown(s: str, markup_wrap: Optional[bool] = False) -> str:
@@ -796,29 +810,25 @@ def zlib_compress(data):
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
     """
-    if PY3K:
-        if isinstance(data, str):
-            return zlib.compress(bytes(data, "utf-8"))
-        return zlib.compress(data)
+    if isinstance(data, str):
+        return zlib.compress(bytes(data, "utf-8"))
     return zlib.compress(data)
 
 
-def zlib_decompress_to_string(blob):
+def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, str]:
     """
     Decompress things to a string in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
-    >>> got_str = zlib_decompress_to_string(blob)
+    >>> got_str = zlib_decompress(blob)
     >>> got_str == json_str
     True
     """
-    if PY3K:
-        if isinstance(blob, bytes):
-            decompressed = zlib.decompress(blob)
-        else:
-            decompressed = zlib.decompress(bytes(blob, "utf-8"))
-        return decompressed.decode("utf-8")
-    return zlib.decompress(blob)
+    if isinstance(blob, bytes):
+        decompressed = zlib.decompress(blob)
+    else:
+        decompressed = zlib.decompress(bytes(blob, "utf-8"))
+    return decompressed.decode("utf-8") if decode else decompressed
 
 
 _celery_app = None
@@ -907,9 +917,7 @@ def merge_extra_filters(form_data: dict):
                         if isinstance(existing_filters[filter_key], list):
                             # Add filters for unequal lists
                             # order doesn't matter
-                            if sorted(existing_filters[filter_key]) != sorted(
-                                filtr["val"]
-                            ):
+                            if set(existing_filters[filter_key]) != set(filtr["val"]):
                                 form_data["adhoc_filters"].append(to_adhoc(filtr))
                         else:
                             form_data["adhoc_filters"].append(to_adhoc(filtr))
@@ -944,10 +952,6 @@ def user_label(user: User) -> Optional[str]:
     return None
 
 
-def get_or_create_main_db():
-    get_main_database()
-
-
 def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     from superset import db
     from superset.models import core as models
@@ -963,12 +967,6 @@ def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     database.set_sqlalchemy_uri(sqlalchemy_uri)
     db.session.commit()
     return database
-
-
-def get_main_database():
-    from superset import conf
-
-    return get_or_create_db("main", conf.get("SQLALCHEMY_DATABASE_URI"))
 
 
 def get_example_database():
@@ -1049,23 +1047,23 @@ def get_since_until(
     relative_end = parse_human_datetime(relative_end if relative_end else "today")
     common_time_frames = {
         "Last day": (
-            relative_start - relativedelta(days=1),  # noqa: T400
+            relative_start - relativedelta(days=1),  # type: ignore
             relative_end,
         ),
         "Last week": (
-            relative_start - relativedelta(weeks=1),  # noqa: T400
+            relative_start - relativedelta(weeks=1),  # type: ignore
             relative_end,
         ),
         "Last month": (
-            relative_start - relativedelta(months=1),  # noqa: T400
+            relative_start - relativedelta(months=1),  # type: ignore
             relative_end,
         ),
         "Last quarter": (
-            relative_start - relativedelta(months=3),  # noqa: T400
+            relative_start - relativedelta(months=3),  # type: ignore
             relative_end,
         ),
         "Last year": (
-            relative_start - relativedelta(years=1),  # noqa: T400
+            relative_start - relativedelta(years=1),  # type: ignore
             relative_end,
         ),
     }
@@ -1084,13 +1082,15 @@ def get_since_until(
         else:
             rel, num, grain = time_range.split()
             if rel == "Last":
-                since = relative_start - relativedelta(  # noqa: T400
+                since = relative_start - relativedelta(  # type: ignore
                     **{grain: int(num)}
                 )
                 until = relative_end
             else:  # rel == 'Next'
                 since = relative_start
-                until = relative_end + relativedelta(**{grain: int(num)})  # noqa: T400
+                until = relative_end + relativedelta(  # type: ignore
+                    **{grain: int(num)}
+                )
     else:
         since = since or ""
         if since:
@@ -1100,13 +1100,13 @@ def get_since_until(
 
     if time_shift:
         time_delta = parse_past_timedelta(time_shift)
-        since = since if since is None else (since - time_delta)  # noqa: T400
-        until = until if until is None else (until - time_delta)  # noqa: T400
+        since = since if since is None else (since - time_delta)  # type: ignore
+        until = until if until is None else (until - time_delta)  # type: ignore
 
     if since and until and since > until:
         raise ValueError(_("From date cannot be larger than to date"))
 
-    return since, until  # noqa: T400
+    return since, until  # type: ignore
 
 
 def add_ago_to_since(since: str) -> str:
@@ -1212,3 +1212,35 @@ class DatasourceName(NamedTuple):
 def get_stacktrace():
     if current_app.config.get("SHOW_STACKTRACE"):
         return traceback.format_exc()
+
+
+def split(
+    s: str, delimiter: str = " ", quote: str = '"', escaped_quote: str = r"\""
+) -> Iterator[str]:
+    """
+    A split function that is aware of quotes and parentheses.
+
+    :param s: string to split
+    :param delimiter: string defining where to split, usually a comma or space
+    :param quote: string, either a single or a double quote
+    :param escaped_quote: string representing an escaped quote
+    :return: list of strings
+    """
+    parens = 0
+    quotes = False
+    i = 0
+    for j, c in enumerate(s):
+        complete = parens == 0 and not quotes
+        if complete and c == delimiter:
+            yield s[i:j]
+            i = j + len(delimiter)
+        elif c == "(":
+            parens += 1
+        elif c == ")":
+            parens -= 1
+        elif c == quote:
+            if quotes and s[j - len(escaped_quote) + 1 : j + 1] != escaped_quote:
+                quotes = False
+            elif not quotes:
+                quotes = True
+    yield s[i:]

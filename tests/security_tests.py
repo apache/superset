@@ -16,8 +16,11 @@
 # under the License.
 import inspect
 import unittest
+from unittest.mock import Mock, patch
 
-from superset import app, appbuilder, security_manager
+from superset import app, appbuilder, security_manager, viz
+from superset.exceptions import SupersetSecurityException
+
 from .base_tests import SupersetTestCase
 
 
@@ -324,3 +327,52 @@ class RolePermissionTests(SupersetTestCase):
         if unsecured_views:
             view_str = "\n".join([str(v) for v in unsecured_views])
             raise Exception(f"Some views are not secured:\n{view_str}")
+
+
+class SecurityManagerTests(SupersetTestCase):
+    """
+    Testing the Security Manager.
+    """
+
+    @patch("superset.security.SupersetSecurityManager.datasource_access")
+    def test_assert_datasource_permission(self, mock_datasource_access):
+        datasource = self.get_datasource_mock()
+
+        # Datasource with the "datasource_access" permission.
+        mock_datasource_access.return_value = True
+        security_manager.assert_datasource_permission(datasource)
+
+        # Datasource without the "datasource_access" permission.
+        mock_datasource_access.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.assert_datasource_permission(datasource)
+
+    @patch("superset.security.SupersetSecurityManager.datasource_access")
+    def test_assert_query_context_permission(self, mock_datasource_access):
+        query_context = Mock()
+        query_context.datasource = self.get_datasource_mock()
+
+        # Query context with the "datasource_access" permission.
+        mock_datasource_access.return_value = True
+        security_manager.assert_query_context_permission(query_context)
+
+        # Query context without the "datasource_access" permission.
+        mock_datasource_access.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.assert_query_context_permission(query_context)
+
+    @patch("superset.security.SupersetSecurityManager.datasource_access")
+    def test_assert_viz_permission(self, mock_datasource_access):
+        test_viz = viz.TableViz(self.get_datasource_mock(), form_data={})
+
+        # Visualization with the "datasource_access" permission.
+        mock_datasource_access.return_value = True
+        security_manager.assert_viz_permission(test_viz)
+
+        # Visualization without the "datasource_access" permission.
+        mock_datasource_access.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.assert_viz_permission(test_viz)

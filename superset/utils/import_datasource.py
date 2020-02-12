@@ -26,7 +26,7 @@ def import_datasource(
     """Imports the datasource from the object to the database.
 
      Metrics and columns and datasource will be overrided if exists.
-     This function can be used to import/export dashboards between multiple
+     This function can be used to import/export datasources between multiple
      superset instances. Audit metadata isn't copies over.
     """
     make_transient(i_datasource)

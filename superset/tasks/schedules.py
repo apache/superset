@@ -18,15 +18,16 @@
 
 """Utility functions used across Superset"""
 
+import logging
+import time
+import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-import logging
-import time
 from urllib.error import URLError
-import urllib.request
 
 import croniter
+import simplejson as json
 from dateutil.tz import tzlocal
 from flask import render_template, Response, session, url_for
 from flask_babel import gettext as __
@@ -34,8 +35,7 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
-import simplejson as json
-from werkzeug.utils import parse_cookie
+from werkzeug.http import parse_cookie
 
 # Superset framework imports
 from superset import app, db, security_manager

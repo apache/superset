@@ -61,7 +61,7 @@ export class SouthPane extends React.PureComponent {
     this.getSouthPaneHeight = this.getSouthPaneHeight.bind(this);
     this.switchTab = this.switchTab.bind(this);
   }
-  componentWillReceiveProps() {
+  UNSAFE_componentWillReceiveProps() {
     // south pane expands the entire height of the tab content on mount
     this.setState({ height: this.getSouthPaneHeight() });
   }

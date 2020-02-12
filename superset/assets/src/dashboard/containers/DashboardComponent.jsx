@@ -23,6 +23,7 @@ import { connect } from 'react-redux';
 
 import ComponentLookup from '../components/gridComponents';
 import getDetailedComponentWidth from '../util/getDetailedComponentWidth';
+import { getActiveFilters } from '../util/activeDashboardFilters';
 import { componentShape } from '../util/propShapes';
 import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
 
@@ -32,7 +33,7 @@ import {
   updateComponents,
   handleComponentDrop,
 } from '../actions/dashboardLayout';
-
+import { setDirectPathToChild } from '../actions/dashboardState';
 import { logEvent } from '../../logger/actions';
 
 const propTypes = {
@@ -44,10 +45,12 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   logEvent: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  directPathLastUpdated: PropTypes.number,
 };
 
 const defaultProps = {
   directPathToChild: [],
+  directPathLastUpdated: 0,
   isComponentVisible: true,
 };
 
@@ -62,8 +65,13 @@ function mapStateToProps(
     component,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
-    filters: dashboardState.filters,
+    filters: getActiveFilters(),
     directPathToChild: dashboardState.directPathToChild,
+    directPathLastUpdated: dashboardState.directPathLastUpdated,
+    filterFieldOnFocus:
+      dashboardState.focusedFilterField.length === 0
+        ? {}
+        : dashboardState.focusedFilterField.slice(-1).pop(),
   };
 
   // rows and columns need more data about their child dimensions
@@ -91,6 +99,7 @@ function mapDispatchToProps(dispatch) {
       deleteComponent,
       updateComponents,
       handleComponentDrop,
+      setDirectPathToChild,
       logEvent,
     },
     dispatch,

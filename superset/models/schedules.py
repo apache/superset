@@ -27,7 +27,6 @@ from sqlalchemy.orm import relationship
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
-
 metadata = Model.metadata  # pylint: disable=no-member
 
 

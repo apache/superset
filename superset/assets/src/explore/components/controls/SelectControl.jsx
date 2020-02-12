@@ -82,7 +82,7 @@ export default class SelectControl extends React.PureComponent {
     this.createMetaSelectAllOption = this.createMetaSelectAllOption.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.choices !== this.props.choices ||
         nextProps.options !== this.props.options) {
       const options = this.getOptions(nextProps);

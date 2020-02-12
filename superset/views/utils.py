@@ -19,16 +19,15 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
-from flask import request
 import simplejson as json
+from flask import request
 
+import superset.models.core as models
 from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.legacy import update_time_range
-import superset.models.core as models
 from superset.utils.core import QueryStatus
-
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []
 if not app.config.get("ENABLE_JAVASCRIPT_CONTROLS"):

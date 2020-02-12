@@ -69,7 +69,7 @@ export default class ResultSet extends React.PureComponent {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
   }
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // when new results comes in, save them locally and clear in store
     if (this.props.cache && (!nextProps.query.cached)
       && nextProps.query.results

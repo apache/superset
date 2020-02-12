@@ -23,6 +23,7 @@ from sqlalchemy.sql import column
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.utils import core as utils
+
 from .helpers import (
     get_example_data,
     get_slice_json,

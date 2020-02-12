@@ -19,7 +19,6 @@
 /* eslint-disable camelcase */
 import {
   ADD_SLICE,
-  CHANGE_FILTER,
   ON_CHANGE,
   ON_SAVE,
   REMOVE_SLICE,
@@ -33,6 +32,8 @@ import {
   TOGGLE_PUBLISHED,
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
+  SET_DIRECT_PATH,
+  SET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
 import { BUILDER_PANE_TYPE } from '../util/constants';
 
@@ -54,19 +55,9 @@ export default function dashboardStateReducer(state = {}, action) {
       const updatedSliceIds = new Set(state.sliceIds);
       updatedSliceIds.delete(sliceId);
 
-      const key = sliceId;
-      // if this slice is a filter
-      const newFilter = { ...state.filters };
-      let refresh = false;
-      if (state.filters[key]) {
-        delete newFilter[key];
-        refresh = true;
-      }
       return {
         ...state,
         sliceIds: Array.from(updatedSliceIds),
-        filters: newFilter,
-        refresh,
       };
     },
     [TOGGLE_FAVE_STAR]() {
@@ -121,46 +112,6 @@ export default function dashboardStateReducer(state = {}, action) {
         updatedColorScheme: false,
       };
     },
-
-    [CHANGE_FILTER]() {
-      const hasSelectedFilter = state.sliceIds.includes(action.chart.id);
-      if (!hasSelectedFilter) {
-        return state;
-      }
-
-      let filters = state.filters;
-      const { chart, col, vals: nextVals, merge, refresh } = action;
-      const sliceId = chart.id;
-      let newFilter = {};
-      if (!(sliceId in filters)) {
-        // if no filters existed for the slice, set them
-        newFilter = { [col]: nextVals };
-      } else if ((filters[sliceId] && !(col in filters[sliceId])) || !merge) {
-        // If no filters exist for this column, or we are overwriting them
-        newFilter = { ...filters[sliceId], [col]: nextVals };
-      } else if (filters[sliceId][col] instanceof Array) {
-        newFilter[col] = [...filters[sliceId][col], ...nextVals];
-      } else {
-        newFilter[col] = [filters[sliceId][col], ...nextVals];
-      }
-      filters = { ...filters, [sliceId]: newFilter };
-
-      // remove any empty filters so they don't pollute the logs
-      Object.keys(filters).forEach(chartId => {
-        Object.keys(filters[chartId]).forEach(column => {
-          if (
-            !filters[chartId][column] ||
-            filters[chartId][column].length === 0
-          ) {
-            delete filters[chartId][column];
-          }
-        });
-        if (Object.keys(filters[chartId]).length === 0) {
-          delete filters[chartId];
-        }
-      });
-      return { ...state, filters, refresh };
-    },
     [SET_UNSAVED_CHANGES]() {
       const { hasUnsavedChanges } = action.payload;
       return { ...state, hasUnsavedChanges };
@@ -169,7 +120,29 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         refreshFrequency: action.refreshFrequency,
-        hasUnsavedChanges: true,
+        hasUnsavedChanges: action.isPersistent,
+      };
+    },
+    [SET_DIRECT_PATH]() {
+      return {
+        ...state,
+        directPathToChild: action.path,
+        directPathLastUpdated: Date.now(),
+      };
+    },
+    [SET_FOCUSED_FILTER_FIELD]() {
+      const { focusedFilterField } = state;
+      if (action.chartId && action.column) {
+        focusedFilterField.push({
+          chartId: action.chartId,
+          column: action.column,
+        });
+      } else {
+        focusedFilterField.shift();
+      }
+      return {
+        ...state,
+        focusedFilterField,
       };
     },
   };

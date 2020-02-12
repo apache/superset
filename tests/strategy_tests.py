@@ -26,8 +26,8 @@ from superset.tasks.cache import (
     get_form_data,
     TopNDashboardsStrategy,
 )
-from .base_tests import SupersetTestCase
 
+from .base_tests import SupersetTestCase
 
 URL_PREFIX = "0.0.0.0:8081"
 

@@ -24,6 +24,7 @@ from sqlalchemy import func
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+
 from .base_tests import SupersetTestCase
 
 
@@ -69,7 +70,7 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp(url)
         self.assertIn("[ untitled dashboard ]", resp)
         dash_count_after = db.session.query(func.count(models.Dashboard.id)).first()[0]
-        self.assertEquals(dash_count_before + 1, dash_count_after)
+        self.assertEqual(dash_count_before + 1, dash_count_after)
 
     def test_dashboard_modes(self):
         self.login(username="admin")
@@ -246,7 +247,9 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         existing_slice = (
-            db.session.query(models.Slice).filter_by(slice_name="Name Cloud").first()
+            db.session.query(models.Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .first()
         )
         data = {
             "slice_ids": [new_slice.data["slice_id"], existing_slice.data["slice_id"]]

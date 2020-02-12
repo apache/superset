@@ -19,17 +19,29 @@
 import sinon from 'sinon';
 import { SupersetClient } from '@superset-ui/connection';
 
-import { saveDashboardRequest } from '../../../../src/dashboard/actions/dashboardState';
+import {
+  removeSliceFromDashboard,
+  saveDashboardRequest,
+} from '../../../../src/dashboard/actions/dashboardState';
+import { REMOVE_FILTER } from '../../../../src/dashboard/actions/dashboardFilters';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from '../../../../src/dashboard/actions/dashboardLayout';
+import {
+  filterId,
+  sliceEntitiesForDashboard as sliceEntities,
+} from '../fixtures/mockSliceEntities';
+import { emptyFilters } from '../fixtures/mockDashboardFilters';
 import mockDashboardData from '../fixtures/mockDashboardData';
 import { DASHBOARD_GRID_ID } from '../../../../src/dashboard/util/constants';
 
 describe('dashboardState actions', () => {
   const mockState = {
     dashboardState: {
+      sliceIds: [filterId],
       hasUnsavedChanges: true,
     },
     dashboardInfo: {},
+    sliceEntities,
+    dashboardFilters: emptyFilters,
     dashboardLayout: {
       past: [],
       present: mockDashboardData.positions,
@@ -96,5 +108,15 @@ describe('dashboardState actions', () => {
         mockParentsList,
       );
     });
+  });
+
+  it('should dispatch removeFilter if a removed slice is a filter_box', () => {
+    const { getState, dispatch } = setup(mockState);
+    const thunk = removeSliceFromDashboard(filterId);
+    thunk(dispatch, getState);
+
+    const removeFilter = dispatch.getCall(0).args[0];
+    removeFilter(dispatch, getState);
+    expect(dispatch.getCall(3).args[0].type).toBe(REMOVE_FILTER);
   });
 });

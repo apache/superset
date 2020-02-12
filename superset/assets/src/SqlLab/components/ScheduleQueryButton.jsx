@@ -125,8 +125,8 @@ class ScheduleQueryButton extends React.PureComponent {
   onDescriptionChange(e) {
     this.setState({ description: e.target.value });
   }
-  toggleSchedule(e) {
-    this.setState({ target: e.target, showSchedule: !this.state.showSchedule });
+  toggleSchedule() {
+    this.setState({ showSchedule: !this.state.showSchedule });
   }
   renderModalBody() {
     return (
@@ -170,9 +170,7 @@ class ScheduleQueryButton extends React.PureComponent {
         {this.props.scheduleQueryWarning && (
           <Row>
             <Col md={12}>
-              <small>
-                {this.props.scheduleQueryWarning}
-              </small>
+              <small>{this.props.scheduleQueryWarning}</small>
             </Col>
           </Row>
         )}
@@ -183,7 +181,9 @@ class ScheduleQueryButton extends React.PureComponent {
     return (
       <span className="ScheduleQueryButton">
         <ModalTrigger
-          ref={(ref) => { this.saveModal = ref; }}
+          ref={(ref) => {
+            this.saveModal = ref;
+          }}
           modalTitle={t('Schedule Query')}
           modalBody={this.renderModalBody()}
           triggerNode={

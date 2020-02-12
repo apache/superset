@@ -39,11 +39,23 @@ export default function sqlLabReducer(state = {}, action) {
       const newState = Object.assign({}, state, { tabHistory });
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
+    [actions.QUERY_EDITOR_SAVED]() {
+      const { query, result } = action;
+      const existing = state.queryEditors.find(qe => qe.id === query.id);
+      return alterInArr(state, 'queryEditors', existing, { remoteId: result.remoteId }, 'id');
+    },
+    [actions.UPDATE_QUERY_EDITOR]() {
+      const id = action.alterations.remoteId;
+      const existing = state.queryEditors.find(qe => qe.remoteId === id);
+      if (existing == null) return state;
+      return alterInArr(state, 'queryEditors', existing, action.alterations, 'remoteId');
+    },
     [actions.CLONE_QUERY_TO_NEW_TAB]() {
       const progenitor = state.queryEditors.find(
         qe => qe.id === state.tabHistory[state.tabHistory.length - 1],
       );
       const qe = {
+        remoteId: progenitor.remoteId,
         id: shortid.generate(),
         title: t('Copy of %s', progenitor.title),
         dbId: action.query.dbId ? action.query.dbId : null,
@@ -206,6 +218,42 @@ export default function sqlLabReducer(state = {}, action) {
       });
       return newState;
     },
+    [actions.COST_ESTIMATE_STARTED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: false,
+          cost: null,
+          error: null,
+        },
+      });
+      return newState;
+    },
+    [actions.COST_ESTIMATE_RETURNED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: true,
+          cost: action.json,
+          error: null,
+        },
+      });
+      return newState;
+    },
+    [actions.COST_ESTIMATE_FAILED]() {
+      let newState = Object.assign({}, state);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      newState = alterInArr(newState, 'queryEditors', sqlEditor, {
+        queryCostEstimate: {
+          completed: false,
+          cost: null,
+          error: action.error,
+        },
+      });
+      return newState;
+    },
     [actions.START_QUERY]() {
       let newState = Object.assign({}, state);
       if (action.query.sqlEditorId) {
@@ -311,7 +359,8 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.QUERY_EDITOR_PERSIST_HEIGHT]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
-        height: action.currentHeight,
+        northPercent: action.northPercent,
+        southPercent: action.southPercent,
       });
     },
     [actions.SET_DATABASES]() {

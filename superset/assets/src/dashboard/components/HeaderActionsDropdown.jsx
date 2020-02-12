@@ -76,7 +76,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     injectCustomCss(this.state.css);
 
     SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
@@ -103,8 +103,8 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.props.updateCss(css);
   }
 
-  changeRefreshInterval(refreshInterval) {
-    this.props.setRefreshFrequency(refreshInterval);
+  changeRefreshInterval(refreshInterval, isPersistent) {
+    this.props.setRefreshFrequency(refreshInterval, isPersistent);
     this.props.startPeriodicRender(refreshInterval * 1000);
   }
 
@@ -177,13 +177,20 @@ class HeaderActionsDropdown extends React.PureComponent {
         <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
           {t('Force refresh dashboard')}
         </MenuItem>
-        {editMode && (
-          <RefreshIntervalModal
-            refreshFrequency={refreshFrequency}
-            onChange={this.changeRefreshInterval}
-            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
-          />
-        )}
+
+        <RefreshIntervalModal
+          refreshFrequency={refreshFrequency}
+          onChange={this.changeRefreshInterval}
+          editMode={editMode}
+          triggerNode={
+            <span>
+              {editMode
+                ? t('Set auto-refresh interval')
+                : t('Auto-refresh dashboard')}
+            </span>
+          }
+        />
+
         {editMode && (
           <MenuItem target="_blank" href={`/dashboard/edit/${dashboardId}`}>
             {t('Edit dashboard metadata')}

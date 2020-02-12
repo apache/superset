@@ -27,6 +27,7 @@ const propTypes = {
   triggerNode: PropTypes.node.isRequired,
   refreshFrequency: PropTypes.number.isRequired,
   onChange: PropTypes.func.isRequired,
+  editMode: PropTypes.bool.isRequired,
 };
 
 const options = [
@@ -48,7 +49,17 @@ class RefreshIntervalModal extends React.PureComponent {
     this.state = {
       refreshFrequency: props.refreshFrequency,
     };
+    this.handleFrequencyChange = this.handleFrequencyChange.bind(this);
   }
+
+  handleFrequencyChange(opt) {
+    const value = opt ? opt.value : options[0].value;
+    this.setState({
+      refreshFrequency: value,
+    });
+    this.props.onChange(value, this.props.editMode);
+  }
+
   render() {
     return (
       <ModalTrigger
@@ -61,13 +72,7 @@ class RefreshIntervalModal extends React.PureComponent {
             <Select
               options={options}
               value={this.state.refreshFrequency}
-              onChange={opt => {
-                const value = opt ? opt.value : options[0].value;
-                this.setState({
-                  refreshFrequency: value,
-                });
-                this.props.onChange(value);
-              }}
+              onChange={this.handleFrequencyChange}
             />
           </div>
         }

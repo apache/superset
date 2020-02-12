@@ -102,7 +102,7 @@ class SliceAdder extends React.Component {
     this.slicesRequest = this.props.fetchAllSlices(this.props.userId);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const nextState = {};
     if (nextProps.lastUpdated !== this.props.lastUpdated) {
       nextState.filteredSlices = Object.values(nextProps.slices)

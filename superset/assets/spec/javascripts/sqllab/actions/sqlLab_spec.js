@@ -114,7 +114,7 @@ describe('async actions', () => {
   });
 
   describe('runQuery', () => {
-    const runQueryEndpoint = 'glob:*/superset/sql_json/*';
+    const runQueryEndpoint = 'glob:*/superset/sql_json/';
     fetchMock.post(runQueryEndpoint, '{ "data": ' + mockBigNumber + ' }');
 
     const makeRequest = () => {

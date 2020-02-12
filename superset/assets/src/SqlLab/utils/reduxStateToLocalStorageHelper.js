@@ -19,12 +19,17 @@
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../constants';
 
 const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
+  'remoteId',
   'autorun',
   'dbId',
+  'height',
   'id',
   'latestQueryId',
+  'northPercent',
   'queryLimit',
+  'schema',
   'selectedText',
+  'southPercent',
   'sql',
   'templateParams',
   'title',

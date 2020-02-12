@@ -25,6 +25,7 @@ import { t } from '@superset-ui/translation';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from './Link';
 import ColumnElement from './ColumnElement';
+import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
 
@@ -170,6 +171,13 @@ class TableElement extends React.PureComponent {
             text={table.selectStar}
             shouldShowText={false}
             tooltipText={t('Copy SELECT statement to the clipboard')}
+          />
+        }
+        {table.view &&
+          <ShowSQL
+            sql={table.view}
+            tooltipText={t('Show CREATE VIEW statement')}
+            title={t('CREATE VIEW statement')}
           />
         }
         <Link

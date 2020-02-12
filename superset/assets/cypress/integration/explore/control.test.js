@@ -164,7 +164,7 @@ describe('AdhocFilters', () => {
         .trigger('mousedown')
         .click();
     });
-
+    cy.get('.adhoc-filter-option').click({ force: true });
     cy.get('#filter-edit-popover').within(() => {
       cy.get('[data-test=adhoc-filter-simple-value]').within(() => {
         cy.get('div.select-input').click({ force: true });
@@ -197,6 +197,7 @@ describe('AdhocFilters', () => {
         .click();
     });
 
+    cy.get('.adhoc-filter-option').click({ force: true });
     cy.get('#filter-edit-popover').within(() => {
       cy.get('#adhoc-filter-edit-tabs-tab-SQL').click();
       cy.get('.ace_content').click();

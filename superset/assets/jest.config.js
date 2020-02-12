@@ -23,7 +23,7 @@ module.exports = {
     '\\.(gif|ttf|eot|svg)$': '<rootDir>/spec/__mocks__/fileMock.js',
     '^src/(.*)$': '<rootDir>/src/$1',
   },
-  setupTestFrameworkScriptFile: '<rootDir>/spec/helpers/shim.js',
+  setupFilesAfterEnv: ['<rootDir>/spec/helpers/shim.js'],
   testURL: 'http://localhost',
   collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
   coverageDirectory: '<rootDir>/coverage/',

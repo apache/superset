@@ -16,11 +16,27 @@
 # under the License.
 import hashlib
 import re
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 from sqlalchemy import literal_column
 
 from superset.db_engine_specs.base import BaseEngineSpec
+
+pandas_dtype_map = {
+    "STRING": "object",
+    "BOOLEAN": "bool",
+    "INTEGER": "Int64",
+    "FLOAT": "float64",
+    "TIMESTAMP": "datetime64[ns]",
+    "DATETIME": "datetime64[ns]",
+    "DATE": "object",
+    "BYTES": "object",
+    "TIME": "object",
+    "RECORD": "object",
+    "NUMERIC": "object",
+}
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -43,7 +59,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     """
     arraysize = 5000
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "TIMESTAMP_TRUNC({col}, SECOND)",
         "PT1M": "TIMESTAMP_TRUNC({col}, MINUTE)",
@@ -56,28 +72,29 @@ class BigQueryEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         tt = target_type.upper()
         if tt == "DATE":
             return "'{}'".format(dttm.strftime("%Y-%m-%d"))
         return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
 
     @classmethod
-    def fetch_data(cls, cursor, limit):
+    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
         data = super(BigQueryEngineSpec, cls).fetch_data(cursor, limit)
         if data and type(data[0]).__name__ == "Row":
-            data = [r.values() for r in data]
+            data = [r.values() for r in data]  # type: ignore
         return data
 
     @staticmethod
-    def mutate_label(label):
+    def _mutate_label(label: str) -> str:
         """
         BigQuery field_name should start with a letter or underscore and contain only
         alphanumeric characters. Labels that start with a number are prefixed with an
         underscore. Any unsupported characters are replaced with underscores and an
         md5 hash is added to the end of the label to avoid possible collisions.
-        :param str label: the original label which might include unsupported characters
-        :return: String that is supported by the database
+
+        :param label: Expected expression label
+        :return: Conditionally mutated label
         """
         label_hashed = "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
 
@@ -93,15 +110,20 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return label_mutated
 
     @classmethod
-    def truncate_label(cls, label):
+    def _truncate_label(cls, label: str) -> str:
         """BigQuery requires column names start with either a letter or
         underscore. To make sure this is always the case, an underscore is prefixed
-        to the truncated label.
+        to the md5 hash of the original label.
+
+        :param label: expected expression label
+        :return: truncated label
         """
         return "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
 
     @classmethod
-    def extra_table_metadata(cls, database, table_name, schema_name):
+    def extra_table_metadata(
+        cls, database, table_name: str, schema_name: str
+    ) -> Dict[str, Any]:
         indexes = database.get_indexes(table_name, schema_name)
         if not indexes:
             return {}
@@ -136,11 +158,11 @@ class BigQueryEngineSpec(BaseEngineSpec):
         ]
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "TIMESTAMP_SECONDS({col})"
 
     @classmethod
-    def epoch_ms_to_dttm(cls):
+    def epoch_ms_to_dttm(cls) -> str:
         return "TIMESTAMP_MILLIS({col})"
 
     @classmethod
@@ -175,3 +197,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
             if key in kwargs:
                 gbq_kwargs[key] = kwargs[key]
         pandas_gbq.to_gbq(df, **gbq_kwargs)
+
+    @classmethod
+    def get_pandas_dtype(cls, cursor_description: List[tuple]) -> Dict[str, str]:
+        return {
+            col[0]: pandas_dtype_map.get(col[1], "object") for col in cursor_description
+        }

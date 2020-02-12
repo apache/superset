@@ -31,7 +31,7 @@ export default {
   controlOverrides: {
     code: {
       default: '####Section Title\n' +
-      'A paragraph describing the section' +
+      'A paragraph describing the section ' +
       'of the dashboard, right before the separator line ' +
       '\n\n' +
       '---------------',

@@ -35,6 +35,11 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       errors: [],
       completed: false,
     },
+    queryCostEstimate: {
+      cost: null,
+      completed: false,
+      error: null,
+    },
   };
 
   return {

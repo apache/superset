@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 
@@ -25,7 +24,7 @@ class TeradataEngineSpec(BaseEngineSpec):
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 30  # since 14.10 this is 128
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1M": "TRUNC(CAST({col} as DATE), 'MI')",
         "PT1H": "TRUNC(CAST({col} as DATE), 'HH')",
@@ -37,7 +36,7 @@ class TeradataEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return (
             "CAST(((CAST(DATE '1970-01-01' + ({col} / 86400) AS TIMESTAMP(0) "
             "AT 0)) AT 0) + (({col} MOD 86400) * INTERVAL '00:00:01' "

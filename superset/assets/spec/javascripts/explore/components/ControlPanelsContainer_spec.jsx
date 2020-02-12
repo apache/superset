@@ -18,20 +18,13 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { t } from '@superset-ui/translation';
 import { defaultControls } from 'src/explore/store';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { ControlPanelsContainer } from 'src/explore/components/ControlPanelsContainer';
 import ControlPanelSection from 'src/explore/components/ControlPanelSection';
 import * as featureFlags from 'src/featureFlags';
-
-const defaultProps = {
-  datasource_type: 'table',
-  actions: {},
-  controls: defaultControls,
-  form_data: getFormDataFromControls(defaultControls),
-  isDatasourceMetaLoading: false,
-  exploreState: {},
-};
 
 describe('ControlPanelsContainer', () => {
   let wrapper;
@@ -39,18 +32,77 @@ describe('ControlPanelsContainer', () => {
   const isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(() => scopedFilterOn);
 
+  beforeAll(() => {
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('GROUP BY'),
+          description: t('Use this section if you want a query that aggregates'),
+          expanded: true,
+          controlSetRows: [
+            ['groupby'],
+            ['metrics'],
+            ['percent_metrics'],
+            ['timeseries_limit_metric', 'row_limit'],
+            ['include_time', 'order_desc'],
+          ],
+        },
+        {
+          label: t('NOT GROUPED BY'),
+          description: t('Use this section if you want to query atomic rows'),
+          expanded: true,
+          controlSetRows: [
+            ['all_columns'],
+            ['order_by_cols'],
+            ['row_limit', null],
+          ],
+        },
+        {
+          label: t('Query'),
+          expanded: true,
+          controlSetRows: [
+            ['adhoc_filters'],
+          ],
+        },
+        {
+          label: t('Options'),
+          expanded: true,
+          controlSetRows: [
+            ['table_timestamp_format'],
+            ['page_length', null],
+            ['include_search', 'table_filter'],
+            ['align_pn', 'color_pn'],
+          ],
+        },
+      ],
+    });
+  });
+
   afterAll(() => {
+    getChartControlPanelRegistry().remove('table');
     isFeatureEnabledMock.mockRestore();
   });
 
+  function getDefaultProps() {
+    return {
+      datasource_type: 'table',
+      actions: {},
+      controls: defaultControls,
+      // Note: default viz_type is table
+      form_data: getFormDataFromControls(defaultControls),
+      isDatasourceMetaLoading: false,
+      exploreState: {},
+    };
+  }
+
   it('renders ControlPanelSections', () => {
-    wrapper = shallow(<ControlPanelsContainer {...defaultProps} />);
+    wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
     expect(wrapper.find(ControlPanelSection)).toHaveLength(6);
   });
 
   it('renders filter panel when SCOPED_FILTER flag is on', () => {
     scopedFilterOn = true;
-    wrapper = shallow(<ControlPanelsContainer {...defaultProps} />);
+    wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
     expect(wrapper.find(ControlPanelSection)).toHaveLength(7);
   });
 });

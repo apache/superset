@@ -26,12 +26,12 @@ if sys.version_info < (3, 6):
     sys.exit("Sorry, Python < 3.6 is not supported")
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-PACKAGE_DIR = os.path.join(BASE_DIR, "superset", "static", "assets")
-PACKAGE_FILE = os.path.join(PACKAGE_DIR, "package.json")
-with open(PACKAGE_FILE) as package_file:
+
+PACKAGE_JSON = os.path.join(BASE_DIR, "superset", "assets", "package.json")
+with open(PACKAGE_JSON, "r") as package_file:
     version_string = json.load(package_file)["version"]
 
-with io.open("README.md", encoding="utf-8") as f:
+with io.open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -50,7 +50,11 @@ print("VERSION: " + version_string)
 print("GIT SHA: " + GIT_SHA)
 print("-==-" * 15)
 
-with open(os.path.join(PACKAGE_DIR, "version_info.json"), "w") as version_file:
+VERSION_INFO_FILE = os.path.join(
+    BASE_DIR, "superset", "static", "assets", "version_info.json"
+)
+
+with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
 
 
@@ -65,6 +69,7 @@ setup(
     zip_safe=False,
     scripts=["superset/bin/superset"],
     install_requires=[
+        "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
         "celery>=4.3.0, <5.0.0",
         "click>=6.0, <7.0.0",  # `click`>=7 forces "-" instead of "_"
@@ -72,8 +77,8 @@ setup(
         "contextlib2",
         "croniter>=0.3.28",
         "cryptography>=2.4.2",
-        "flask>=1.0.0, <2.0.0",
-        "flask-appbuilder>=2.1.9, <2.3.0",
+        "flask>=1.1.0, <2.0.0",
+        "flask-appbuilder>=2.1.13, <2.3.0",
         "flask-caching",
         "flask-compress",
         "flask-talisman",
@@ -82,9 +87,9 @@ setup(
         "geopy",
         "gunicorn<19.9.0",  # deprecated
         "humanize",
-        "idna",
         "isodate",
         "markdown>=3.0",
+        "msgpack>=0.6.1, <0.7.0",
         "pandas>=0.24.2, <0.25.0",
         "parsedatetime",
         "pathlib2",
@@ -92,6 +97,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
+        "pyarrow>=0.15.1, <0.16.0",
         "pyyaml>=5.1",
         "retry>=0.9.2",
         "selenium>=3.141.0",
@@ -109,13 +115,15 @@ setup(
         "mysql": ["mysqlclient==1.4.2.post1"],
         "postgres": ["psycopg2-binary==2.7.5"],
         "presto": ["pyhive[presto]>=0.4.0"],
-        "druid": ["pydruid==0.5.2", "requests==2.22.0"],
+        "druid": ["pydruid==0.5.7", "requests==2.22.0"],
     },
+    python_requires="~=3.6",
     author="Apache Software Foundation",
     author_email="dev@superset.incubator.apache.org",
     url="https://superset.apache.org/",
-    download_url=(
-        "https://dist.apache.org/repos/dist/release/superset/" + version_string
-    ),
-    classifiers=["Programming Language :: Python :: 3.6"],
+    download_url="https://www.apache.org/dist/incubator/superset/" + version_string,
+    classifiers=[
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+    ],
 )

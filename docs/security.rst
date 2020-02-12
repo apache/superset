@@ -20,7 +20,7 @@ Security
 Security in Superset is handled by Flask AppBuilder (FAB). FAB is a
 "Simple and rapid application development framework, built on top of Flask.".
 FAB provides authentication, user management, permissions and roles.
-Please read its `Security documentation 
+Please read its `Security documentation
 <https://flask-appbuilder.readthedocs.io/en/latest/security.html>`_.
 
 Provided Roles
@@ -153,26 +153,3 @@ a set of data sources that power dashboards only made available to executives.
 When looking at its dashboard list, this user will only see the
 list of dashboards it has access to, based on the roles and
 permissions that were attributed.
-
-
-Restricting the access to some metrics
-""""""""""""""""""""""""""""""""""""""
-
-Sometimes some metrics are relatively sensitive (e.g. revenue).
-We may want to restrict those metrics to only a few roles.
-For example, assumed there is a metric ``[cluster1].[datasource1].[revenue]``
-and only Admin users are allowed to see it. Here’s how to restrict the access.
-
-1. Edit the datasource (``Menu -> Source -> Druid datasources -> edit the
-   record "datasource1"``) and go to the tab ``List Druid Metric``. Check
-   the checkbox ``Is Restricted`` in the row of the metric ``revenue``.
-
-2. Edit the role (``Menu -> Security -> List Roles -> edit the record
-   “Admin”``), in the permissions field, type-and-search the permission
-   ``metric access on [cluster1].[datasource1].[revenue] (id: 1)``, then
-   click the Save button on the bottom of the page.
-
-Any users without the permission will see the error message
-*Access to the metrics denied: revenue (Status: 500)* in the slices.
-It also happens when the user wants to access a post-aggregation metric that
-is dependent on revenue.

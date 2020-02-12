@@ -27,8 +27,8 @@ revision = "d94d33dbe938"
 down_revision = "80aa3f04bc82"
 
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.utils.core import MediumText

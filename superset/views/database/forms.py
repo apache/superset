@@ -33,7 +33,7 @@ config = app.config
 
 class CsvToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
-    def csv_allowed_dbs():
+    def csv_allowed_dbs():  # type: ignore
         csv_allowed_dbs = []
         csv_enabled_dbs = (
             db.session.query(models.Database).filter_by(allow_csv_upload=True).all()
@@ -90,7 +90,17 @@ class CsvToDatabaseForm(DynamicForm):
     csv_file = FileField(
         _("CSV File"),
         description=_("Select a CSV file to be uploaded to a database."),
-        validators=[FileRequired(), FileAllowed(["csv"], _("CSV Files Only!"))],
+        validators=[
+            FileRequired(),
+            FileAllowed(
+                config["ALLOWED_EXTENSIONS"],
+                _(
+                    "Only the following file extensions are allowed: "
+                    "%(allowed_extensions)s",
+                    allowed_extensions=", ".join(config["ALLOWED_EXTENSIONS"]),
+                ),
+            ),
+        ],
     )
     con = QuerySelectField(
         _("Database"),

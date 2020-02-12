@@ -27,10 +27,11 @@ revision = "4451805bbaa1"
 down_revision = "bddc498dd179"
 
 
-from alembic import op
 import json
-from sqlalchemy.ext.declarative import declarative_base
+
+from alembic import op
 from sqlalchemy import Column, create_engine, ForeignKey, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 

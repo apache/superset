@@ -18,16 +18,21 @@ import json
 import unittest
 from unittest.mock import Mock
 
-try:
-    from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
-    import pydruid.utils.postaggregator as postaggs
-except ImportError:
-    pass
-
 import superset.connectors.druid.models as models
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.exceptions import SupersetException
+
 from .base_tests import SupersetTestCase
+
+try:
+    from pydruid.utils.dimensions import (
+        MapLookupExtraction,
+        RegexExtraction,
+        RegisteredLookupExtraction,
+    )
+    import pydruid.utils.postaggregator as postaggs
+except ImportError:
+    pass
 
 
 def mock_metric(metric_name, is_postagg=False):
@@ -113,6 +118,27 @@ class DruidFuncTestCase(unittest.TestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
+    def test_get_filters_extraction_fn_registered_lookup_extraction(self):
+        filters = [{"col": "country", "val": ["Spain"], "op": "in"}]
+        dimension_spec = {
+            "type": "extraction",
+            "dimension": "country_name",
+            "outputName": "country",
+            "outputType": "STRING",
+            "extractionFn": {"type": "registeredLookup", "lookup": "country_name"},
+        }
+        spec_json = json.dumps(dimension_spec)
+        col = DruidColumn(column_name="country", dimension_spec_json=spec_json)
+        column_dict = {"country": col}
+        f = DruidDatasource.get_filters(filters, [], column_dict)
+        assert isinstance(f.extraction_function, RegisteredLookupExtraction)
+        dim_ext_fn = dimension_spec["extractionFn"]
+        self.assertEqual(dim_ext_fn["type"], f.extraction_function.extraction_type)
+        self.assertEqual(dim_ext_fn["lookup"], f.extraction_function._lookup)
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
     def test_get_filters_ignores_invalid_filter_objects(self):
         filtr = {"col": "col1", "op": "=="}
         filters = [filtr]
@@ -194,6 +220,32 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr["op"] = "<"
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertTrue(res.filter["filter"]["upperStrict"])
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
+    def test_get_filters_is_null_filter(self):
+        filtr = {"col": "A", "op": "IS NULL"}
+        col = DruidColumn(column_name="A")
+        column_dict = {"A": col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual("selector", res.filter["filter"]["type"])
+        self.assertEqual("", res.filter["filter"]["value"])
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
+    )
+    def test_get_filters_is_not_null_filter(self):
+        filtr = {"col": "A", "op": "IS NOT NULL"}
+        col = DruidColumn(column_name="A")
+        column_dict = {"A": col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual("not", res.filter["filter"]["type"])
+        self.assertIn("field", res.filter["filter"])
+        self.assertEqual(
+            "selector", res.filter["filter"]["field"].filter["filter"]["type"]
+        )
+        self.assertEqual("", res.filter["filter"]["field"].filter["filter"]["value"])
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"

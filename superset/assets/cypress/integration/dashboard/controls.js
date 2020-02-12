@@ -52,7 +52,7 @@ export default () => describe('top-level controls', () => {
     forceRefreshRequests.length = 0;
   });
 
-  it('should allow chart level refresh', () => {
+  it.skip('should allow chart level refresh', () => {
     cy.wait(sliceRequests);
     cy.get('.grid-container .world_map').should('be.exist');
     cy.get(`#slice_${mapId}-controls`).click();
@@ -60,7 +60,7 @@ export default () => describe('top-level controls', () => {
       .find('.refresh-tooltip').trigger('click', { force: true });
 
     // not allow dashboard level force refresh when any chart is loading
-    cy.get('#save-dash-split-button').trigger('click', { forece: true });
+    cy.get('#save-dash-split-button').trigger('click', { force: true });
     cy.contains('Force refresh dashboard').parent().should('have.class', 'disabled');
     // not allow chart level force refresh when it is loading
     cy.get(`#slice_${mapId}-controls`).next()
@@ -74,7 +74,7 @@ export default () => describe('top-level controls', () => {
     cy.contains('Force refresh dashboard').parent().not('have.class', 'disabled');
   });
 
-  it('should allow dashboard level force refresh', () => {
+  it.skip('should allow dashboard level force refresh', () => {
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
     cy.get('#save-dash-split-button').trigger('click');

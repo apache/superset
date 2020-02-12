@@ -66,9 +66,9 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
+import { DEFAULT_VIEWPORT } from '../explore/components/controls/ViewportControl';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -88,6 +88,8 @@ const D3_FORMAT_OPTIONS = [
   [',.3f', ',.3f (12345.432 => 12,345.432)'],
   ['+,', '+, (12345.432 => +12,345.432)'],
   ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
+  ['DURATION', 'Duration in ms (66000 => 1m 6s)'],
+  ['DURATION_SUB', 'Duration in ms (100.40008 => 100ms 400µs 80ns)'],
 ];
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
@@ -302,6 +304,16 @@ export const controls = {
       ['bl', 'Bottom left'],
       ['br', 'Bottom right'],
     ],
+    renderTrigger: true,
+  },
+
+  legend_format: {
+    label: t('Legend Format'),
+    description: t('Choose the format for legend values'),
+    type: 'SelectControl',
+    clearable: false,
+    default: D3_FORMAT_OPTIONS[0],
+    choices: D3_FORMAT_OPTIONS,
     renderTrigger: true,
   },
 
@@ -578,19 +590,6 @@ export const controls = {
       'Zambia',
     ].map(s => [s, s]),
     description: t('The name of the country that Superset should display'),
-  },
-  country_fieldtype: {
-    type: 'SelectControl',
-    label: t('Country Field Type'),
-    default: 'cca2',
-    choices: [
-      ['name', 'Full name'],
-      ['cioc', 'code International Olympic Committee (cioc)'],
-      ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
-      ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
-    ],
-    description: t('The country code standard that Superset should expect ' +
-    'to find in the [country] column'),
   },
 
   freq: {
@@ -1299,16 +1298,6 @@ export const controls = {
     description: t('Pick your favorite markup language'),
   },
 
-  rotation: {
-    type: 'SelectControl',
-    label: t('Word Rotation'),
-    choices: formatSelectOptions(['random', 'flat', 'square']),
-    renderTrigger: true,
-    default: 'square',
-    clearable: false,
-    description: t('Rotation to apply to words in the cloud'),
-  },
-
   line_interpolation: {
     type: 'SelectControl',
     label: t('Line Style'),
@@ -1384,24 +1373,6 @@ export const controls = {
     ]),
   },
 
-  size_from: {
-    type: 'TextControl',
-    isInt: true,
-    label: t('Minimum Font Size'),
-    renderTrigger: true,
-    default: '20',
-    description: t('Font size for the smallest value in the list'),
-  },
-
-  size_to: {
-    type: 'TextControl',
-    isInt: true,
-    label: t('Maximum Font Size'),
-    renderTrigger: true,
-    default: '150',
-    description: t('Font size for the biggest value in the list'),
-  },
-
   header_font_size: {
     type: 'SelectControl',
     label: t('Header Font Size'),
@@ -1470,7 +1441,7 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: (
-      'Whether to apply filters as they change, or wait for' +
+      'Whether to apply filters as they change, or wait for ' +
       'users to hit an [Apply] button'
     ),
   },
@@ -1570,14 +1541,6 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('Whether to color +/- values'),
-  },
-
-  show_bubbles: {
-    type: 'CheckboxControl',
-    label: t('Show Bubbles'),
-    default: false,
-    renderTrigger: true,
-    description: t('Whether to display bubbles on top of countries'),
   },
 
   show_legend: {
@@ -1903,7 +1866,7 @@ export const controls = {
     renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
-    default: defaultViewport,
+    default: DEFAULT_VIEWPORT,
     // Viewport changes shouldn't prompt user to re-run query
     dontRefreshOnChange: true,
   },
@@ -2102,43 +2065,11 @@ export const controls = {
     }),
   },
 
-  significance_level: {
-    type: 'TextControl',
-    label: t('Significance Level'),
-    default: 0.05,
-    description: t('Threshold alpha level for determining significance'),
-  },
-
-  pvalue_precision: {
-    type: 'TextControl',
-    label: t('p-value precision'),
-    default: 6,
-    description: t('Number of decimal places with which to display p-values'),
-  },
-
-  liftvalue_precision: {
-    type: 'TextControl',
-    label: t('Lift percent precision'),
-    default: 4,
-    description: t('Number of decimal places with which to display lift values'),
-  },
-
   column_collection: {
     type: 'CollectionControl',
     label: t('Time Series Columns'),
     validators: [v.nonEmpty],
     controlName: 'TimeSeriesColumnControl',
-  },
-
-  rose_area_proportion: {
-    type: 'CheckboxControl',
-    label: t('Use Area Proportions'),
-    description: t(
-      'Check if the Rose Chart should use segment area instead of ' +
-      'segment radius for proportioning',
-    ),
-    default: false,
-    renderTrigger: true,
   },
 
   time_series_option: {

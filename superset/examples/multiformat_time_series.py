@@ -20,6 +20,7 @@ from sqlalchemy import BigInteger, Date, DateTime, String
 
 from superset import db
 from superset.utils.core import get_example_database
+
 from .helpers import (
     config,
     get_example_data,

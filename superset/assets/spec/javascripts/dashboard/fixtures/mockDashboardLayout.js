@@ -37,6 +37,7 @@ import {
 import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';
 
 import { sliceId as chartId } from './mockChartQueries';
+import { filterId } from './mockDashboardFilters';
 
 export const sliceId = chartId;
 
@@ -186,4 +187,23 @@ export const dashboardLayoutWithTabs = {
     },
   },
   future: [],
+};
+
+export const filterComponent = {
+  ...newComponentFactory(CHART_TYPE),
+  id: 'CHART-rwDfbGqeEn',
+  parents: [
+    'ROOT_ID',
+    'TABS-VPEX_c476g',
+    'TAB-PMJyKM1yB',
+    'TABS-YdylzDMTMQ',
+    'TAB-O9AaU9FT0',
+    'ROW-l6PrlhwSjh',
+  ],
+  meta: {
+    chartId: filterId,
+    width: 3,
+    height: 10,
+    chartName: 'Filter',
+  },
 };

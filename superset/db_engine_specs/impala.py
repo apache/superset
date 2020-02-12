@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+from datetime import datetime
+from typing import List
+
+from sqlalchemy.engine.reflection import Inspector
+
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
@@ -23,7 +27,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1M": "TRUNC({col}, 'MI')",
         "PT1H": "TRUNC({col}, 'HH')",
@@ -35,18 +39,18 @@ class ImpalaEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "from_unixtime({col})"
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         tt = target_type.upper()
         if tt == "DATE":
             return "'{}'".format(dttm.strftime("%Y-%m-%d"))
         return "'{}'".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
 
     @classmethod
-    def get_schema_names(cls, inspector):
+    def get_schema_names(cls, inspector: Inspector) -> List[str]:
         schemas = [
             row[0]
             for row in inspector.engine.execute("SHOW SCHEMAS")

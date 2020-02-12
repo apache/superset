@@ -479,6 +479,24 @@ The Python code is auto-formatted using [Black](https://github.com/python/black)
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
 
 
+## Conventions
+
+### Python
+
+Parameters in the `config.py` (which are accessible via the Flask app.config dictionary) are assummed to always be defined and thus should be accessed directly via,
+
+```python
+blueprints = app.config["BLUEPRINTS"]
+```
+
+rather than,
+
+```python
+blueprints = app.config.get("BLUEPRINTS")
+```
+
+or similar as the later will cause typing issues. The former is of type `List[Callable]` whereas the later is of type `Optional[List[Callable]]`.
+
 ## Testing
 
 ### Python Testing

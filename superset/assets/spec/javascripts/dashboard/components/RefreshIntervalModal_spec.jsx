@@ -25,6 +25,8 @@ describe('RefreshIntervalModal', () => {
   const mockedProps = {
     triggerNode: <i className="fa fa-edit" />,
     refreshFrequency: 10,
+    onChange: jest.fn(),
+    editMode: true,
   };
   it('is valid', () => {
     expect(
@@ -38,5 +40,11 @@ describe('RefreshIntervalModal', () => {
   it('should render a interval seconds', () => {
     const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
     expect(wrapper.prop('refreshFrequency')).toEqual(10);
+  });
+  it('should change refreshFrequency with edit mode', () => {
+    const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
+    wrapper.instance().handleFrequencyChange({ value: 30 });
+    expect(mockedProps.onChange).toHaveBeenCalled();
+    expect(mockedProps.onChange).toHaveBeenCalledWith(30, mockedProps.editMode);
   });
 });

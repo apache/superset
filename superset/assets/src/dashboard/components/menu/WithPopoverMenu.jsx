@@ -53,7 +53,7 @@ class WithPopoverMenu extends React.PureComponent {
     this.handleClick = this.handleClick.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.editMode && nextProps.isFocused && !this.state.isFocused) {
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);

@@ -17,9 +17,10 @@
 # pylint: disable=C,R,W
 import json
 import os
+from typing import Any, Dict
 
 # Global caching for JSON language packs
-ALL_LANGUAGE_PACKS = {"en": {}}
+ALL_LANGUAGE_PACKS: Dict[str, Dict[Any, Any]] = {"en": {}}
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 

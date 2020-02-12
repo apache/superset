@@ -20,6 +20,8 @@ import shortid from 'shortid';
 import JSONbig from 'json-bigint';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import invert from 'lodash/invert';
+import mapKeys from 'lodash/mapKeys';
 
 import { now } from '../../modules/dates';
 import {
@@ -32,6 +34,8 @@ import COMMON_ERR_MESSAGES from '../../utils/errorMessages';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
+export const UPDATE_QUERY_EDITOR = 'UPDATE_QUERY_EDITOR';
+export const QUERY_EDITOR_SAVED = 'QUERY_EDITOR_SAVED';
 export const CLONE_QUERY_TO_NEW_TAB = 'CLONE_QUERY_TO_NEW_TAB';
 export const REMOVE_QUERY_EDITOR = 'REMOVE_QUERY_EDITOR';
 export const MERGE_TABLE = 'MERGE_TABLE';
@@ -70,6 +74,9 @@ export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
 export const START_QUERY_VALIDATION = 'START_QUERY_VALIDATION';
 export const QUERY_VALIDATION_RETURNED = 'QUERY_VALIDATION_RETURNED';
 export const QUERY_VALIDATION_FAILED = 'QUERY_VALIDATION_FAILED';
+export const COST_ESTIMATE_STARTED = 'COST_ESTIMATE_STARTED';
+export const COST_ESTIMATE_RETURNED = 'COST_ESTIMATE_RETURNED';
+export const COST_ESTIMATE_FAILED = 'COST_ESTIMATE_FAILED';
 
 export const CREATE_DATASOURCE_STARTED = 'CREATE_DATASOURCE_STARTED';
 export const CREATE_DATASOURCE_SUCCESS = 'CREATE_DATASOURCE_SUCCESS';
@@ -78,6 +85,24 @@ export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
 export const addInfoToast = addInfoToastAction;
 export const addSuccessToast = addSuccessToastAction;
 export const addDangerToast = addDangerToastAction;
+
+// a map of SavedQuery field names to the different names used client-side,
+// because for now making the names consistent is too complicated
+// so it might as well only happen in one place
+const queryClientMapping = {
+  id: 'remoteId',
+  db_id: 'dbId',
+  client_id: 'id',
+  label: 'title',
+};
+const queryServerMapping = invert(queryClientMapping);
+
+// uses a mapping like those above to convert object key names to another style
+const fieldConverter = mapping => obj =>
+  mapKeys(obj, (value, key) => key in mapping ? mapping[key] : key);
+
+const convertQueryToServer = fieldConverter(queryServerMapping);
+const convertQueryToClient = fieldConverter(queryClientMapping);
 
 export function resetState() {
   return { type: RESET_STATE };
@@ -102,11 +127,34 @@ export function saveQuery(query) {
   return dispatch =>
     SupersetClient.post({
       endpoint: '/savedqueryviewapi/api/create',
-      postPayload: query,
+      postPayload: convertQueryToServer(query),
       stringify: false,
     })
-      .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
+      .then((result) => {
+        dispatch({
+          type: QUERY_EDITOR_SAVED,
+          query,
+          result: convertQueryToClient(result.json.item),
+        });
+        dispatch(addSuccessToast(t('Your query was saved')));
+      })
       .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
+}
+
+export function updateQueryEditor(alterations) {
+  return { type: UPDATE_QUERY_EDITOR, alterations };
+}
+
+export function updateSavedQuery(query) {
+  return dispatch =>
+    SupersetClient.put({
+      endpoint: `/savedqueryviewapi/api/update/${query.remoteId}`,
+      postPayload: convertQueryToServer(query),
+      stringify: false,
+    })
+      .then(() => dispatch(addSuccessToast(t('Your query was updated'))))
+      .catch(() => dispatch(addDangerToast(t('Your query could not be updated'))))
+      .then(() => dispatch(updateQueryEditor(query)));
 }
 
 export function scheduleQuery(query) {
@@ -118,6 +166,27 @@ export function scheduleQuery(query) {
     })
       .then(() => dispatch(addSuccessToast(t('Your query has been scheduled. To see details of your query, navigate to Saved Queries'))))
       .catch(() => dispatch(addDangerToast(t('Your query could not be scheduled'))));
+}
+
+export function estimateQueryCost(query) {
+  const { dbId, schema, sql, templateParams } = query;
+  const endpoint = schema === null
+      ? `/superset/estimate_query_cost/${dbId}/`
+      : `/superset/estimate_query_cost/${dbId}/${schema}/`;
+  return dispatch => Promise.all([
+    dispatch({ type: COST_ESTIMATE_STARTED, query }),
+    SupersetClient.post({
+      endpoint,
+      postPayload: { sql, templateParams: JSON.parse(templateParams || '{}') },
+    })
+      .then(({ json }) => dispatch({ type: COST_ESTIMATE_RETURNED, query, json }))
+      .catch(response =>
+        getClientErrorObject(response).then((error) => {
+          const message = error.error || error.statusText || t('Failed at retrieving results');
+          return dispatch({ type: COST_ESTIMATE_FAILED, query, error: message });
+        }),
+      ),
+  ]);
 }
 
 export function startQuery(query) {
@@ -196,9 +265,9 @@ export function runQuery(query) {
     };
 
     return SupersetClient.post({
-      endpoint: `/superset/sql_json/${window.location.search}`,
-      postPayload,
-      stringify: false,
+      endpoint: '/superset/sql_json/',
+      body: JSON.stringify(postPayload),
+      headers: { 'Content-Type': 'application/json' },
       parseMethod: 'text',
     })
       .then(({ text = '{}' }) => {
@@ -455,8 +524,8 @@ export function setUserOffline(offline) {
   return { type: SET_USER_OFFLINE, offline };
 }
 
-export function persistEditorHeight(queryEditor, currentHeight) {
-  return { type: QUERY_EDITOR_PERSIST_HEIGHT, queryEditor, currentHeight };
+export function persistEditorHeight(queryEditor, northPercent, southPercent) {
+  return { type: QUERY_EDITOR_PERSIST_HEIGHT, queryEditor, northPercent, southPercent };
 }
 
 export function popStoredQuery(urlId) {
@@ -480,13 +549,9 @@ export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({ endpoint: `/savedqueryviewapi/api/get/${saveQueryId}` })
       .then(({ json }) => {
-        const { result } = json;
         const queryEditorProps = {
-          title: result.label,
-          dbId: result.db_id ? parseInt(result.db_id, 10) : null,
-          schema: result.schema,
+          ...convertQueryToClient(json.result),
           autorun: false,
-          sql: result.sql,
         };
         return dispatch(addQueryEditor(queryEditorProps));
       })

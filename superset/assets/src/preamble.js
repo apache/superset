@@ -17,6 +17,7 @@
  * under the License.
  */
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
+import moment from 'moment';
 import { configure } from '@superset-ui/translation';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
@@ -29,6 +30,7 @@ if (typeof window !== 'undefined') {
   if (bootstrapData.common && bootstrapData.common.language_pack) {
     const languagePack = bootstrapData.common.language_pack;
     configure({ languagePack });
+    moment.locale(bootstrapData.common.locale);
   } else {
     configure();
   }

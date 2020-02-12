@@ -27,8 +27,8 @@ def fetch_logs(self, max_rows=1024, orientation=None):
     .. note::
         This is not a part of DB-API.
     """
-    from pyhive import hive  # noqa
-    from TCLIService import ttypes  # noqa
+    from pyhive import hive
+    from TCLIService import ttypes
     from thrift import Thrift  # pylint: disable=import-error
 
     orientation = orientation or ttypes.TFetchOrientation.FETCH_NEXT

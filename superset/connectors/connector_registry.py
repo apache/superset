@@ -15,16 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from sqlalchemy.orm import subqueryload
+from collections import OrderedDict
+from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
+
+from sqlalchemy.orm import Session, subqueryload
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+    from superset.connectors.base.models import BaseDatasource
 
 
 class ConnectorRegistry(object):
     """ Central Registry for all available datasource engines"""
 
-    sources = {}
+    sources: Dict[str, Type["BaseDatasource"]] = {}
 
     @classmethod
-    def register_sources(cls, datasource_config):
+    def register_sources(cls, datasource_config: OrderedDict) -> None:
         for module_name, class_names in datasource_config.items():
             class_names = [str(s) for s in class_names]
             module_obj = __import__(module_name, fromlist=class_names)
@@ -33,7 +40,9 @@ class ConnectorRegistry(object):
                 cls.sources[source_class.type] = source_class
 
     @classmethod
-    def get_datasource(cls, datasource_type, datasource_id, session):
+    def get_datasource(
+        cls, datasource_type: str, datasource_id: int, session: Session
+    ) -> Optional["BaseDatasource"]:
         return (
             session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
@@ -41,8 +50,8 @@ class ConnectorRegistry(object):
         )
 
     @classmethod
-    def get_all_datasources(cls, session):
-        datasources = []
+    def get_all_datasources(cls, session: Session) -> List["BaseDatasource"]:
+        datasources: List["BaseDatasource"] = []
         for source_type in ConnectorRegistry.sources:
             source_class = ConnectorRegistry.sources[source_type]
             qry = session.query(source_class)
@@ -52,15 +61,22 @@ class ConnectorRegistry(object):
 
     @classmethod
     def get_datasource_by_name(
-        cls, session, datasource_type, datasource_name, schema, database_name
-    ):
+        cls,
+        session: Session,
+        datasource_type: str,
+        datasource_name: str,
+        schema: str,
+        database_name: str,
+    ) -> Optional["BaseDatasource"]:
         datasource_class = ConnectorRegistry.sources[datasource_type]
         return datasource_class.get_datasource_by_name(
             session, datasource_name, schema, database_name
         )
 
     @classmethod
-    def query_datasources_by_permissions(cls, session, database, permissions):
+    def query_datasources_by_permissions(
+        cls, session: Session, database: "Database", permissions: Set[str]
+    ) -> List["BaseDatasource"]:
         datasource_class = ConnectorRegistry.sources[database.type]
         return (
             session.query(datasource_class)
@@ -70,7 +86,9 @@ class ConnectorRegistry(object):
         )
 
     @classmethod
-    def get_eager_datasource(cls, session, datasource_type, datasource_id):
+    def get_eager_datasource(
+        cls, session: Session, datasource_type: str, datasource_id: int
+    ) -> "BaseDatasource":
         """Returns datasource with columns and metrics."""
         datasource_class = ConnectorRegistry.sources[datasource_type]
         return (
@@ -84,7 +102,13 @@ class ConnectorRegistry(object):
         )
 
     @classmethod
-    def query_datasources_by_name(cls, session, database, datasource_name, schema=None):
+    def query_datasources_by_name(
+        cls,
+        session: Session,
+        database: "Database",
+        datasource_name: str,
+        schema: Optional[str] = None,
+    ) -> List["BaseDatasource"]:
         datasource_class = ConnectorRegistry.sources[database.type]
         return datasource_class.query_datasources_by_name(
             session, database, datasource_name, schema=None

@@ -75,6 +75,8 @@ const FREEFORM_TOOLTIP = t(
   '`last october` can be used.',
 );
 
+const DATE_FILTER_POPOVER_STYLE = { width: '250px' };
+
 const propTypes = {
   animation: PropTypes.bool,
   name: PropTypes.string.isRequired,
@@ -83,12 +85,16 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string,
   height: PropTypes.number,
+  onOpenDateFilterControl: PropTypes.func,
+  onCloseDateFilterControl: PropTypes.func,
 };
 
 const defaultProps = {
   animation: true,
   onChange: () => {},
   value: 'Last week',
+  onOpenDateFilterControl: () => {},
+  onCloseDateFilterControl: () => {},
 };
 
 function isValidMoment(s) {
@@ -182,6 +188,7 @@ export default class DateFilterControl extends React.Component {
 
     this.close = this.close.bind(this);
     this.handleClick = this.handleClick.bind(this);
+    this.handleClickTrigger = this.handleClickTrigger.bind(this);
     this.isValidSince = this.isValidSince.bind(this);
     this.isValidUntil = this.isValidUntil.bind(this);
     this.onEnter = this.onEnter.bind(this);
@@ -242,11 +249,35 @@ export default class DateFilterControl extends React.Component {
   }
 
   handleClick(e) {
+    const target = e.target;
     // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
-    if (this.startEndSectionRef && this.startEndSectionRef.contains(e.target)) {
+    if (this.startEndSectionRef && this.startEndSectionRef.contains(target)) {
       this.setTypeCustomStartEnd();
     }
+
+    // if user click outside popover, popover will hide and we will call onCloseDateFilterControl,
+    // but need to exclude OverlayTrigger component to avoid handle click events twice.
+    if (target.getAttribute('name') !== 'popover-trigger') {
+      if (
+        this.popoverContainer &&
+        !this.popoverContainer.contains(target)
+      ) {
+        this.props.onCloseDateFilterControl();
+      }
+    }
   }
+
+  handleClickTrigger() {
+    // when user clicks OverlayTrigger,
+    // popoverContainer component will be created after handleClickTrigger
+    // and before handleClick handler
+    if (!this.popoverContainer) {
+      this.props.onOpenDateFilterControl();
+    } else {
+      this.props.onCloseDateFilterControl();
+    }
+  }
+
   close() {
     let val;
     if (this.state.type === TYPES.DEFAULTS || this.state.tab === TABS.DEFAULTS) {
@@ -256,6 +287,7 @@ export default class DateFilterControl extends React.Component {
     } else {
       val = [this.state.since, this.state.until].join(SEPARATOR);
     }
+    this.props.onCloseDateFilterControl();
     this.props.onChange(val);
     this.refs.trigger.hide();
     this.setState({ showSinceCalendar: false, showUntilCalendar: false });
@@ -338,7 +370,7 @@ export default class DateFilterControl extends React.Component {
     });
     return (
       <Popover id="filter-popover" placement="top" positionTop={0}>
-        <div style={{ width: '250px' }}>
+        <div style={DATE_FILTER_POPOVER_STYLE} ref={(ref) => { this.popoverContainer = ref; }}>
           <Tabs
             defaultActiveKey={this.state.tab === TABS.DEFAULTS ? 1 : 2}
             id="type"
@@ -474,8 +506,9 @@ export default class DateFilterControl extends React.Component {
           ref="trigger"
           placement="right"
           overlay={this.renderPopover()}
+          onClick={this.handleClickTrigger}
         >
-          <Label style={{ cursor: 'pointer' }}>{value}</Label>
+          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>{value}</Label>
         </OverlayTrigger>
       </div>
     );

@@ -19,6 +19,7 @@
 import chartQueries from './mockChartQueries';
 import { dashboardLayout } from './mockDashboardLayout';
 import dashboardInfo from './mockDashboardInfo';
+import { emptyFilters } from './mockDashboardFilters';
 import dashboardState from './mockDashboardState';
 import messageToasts from '../../messageToasts/mockMessageToasts';
 import datasources from '../../../fixtures/mockDatasource';
@@ -29,6 +30,7 @@ export default {
   sliceEntities,
   charts: chartQueries,
   dashboardInfo,
+  dashboardFilters: emptyFilters,
   dashboardState,
   dashboardLayout,
   messageToasts,

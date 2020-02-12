@@ -16,21 +16,23 @@
 # under the License.
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
-from contextlib import closing
-from copy import copy, deepcopy
-from datetime import datetime
 import json
 import logging
 import textwrap
+from contextlib import closing
+from copy import copy, deepcopy
+from datetime import datetime
 from typing import List
+from urllib import parse
 
+import numpy
+import pandas as pd
+import sqlalchemy as sqla
+import sqlparse
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
-import numpy
-import pandas as pd
-import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean,
     Column,
@@ -50,7 +52,6 @@ from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
-import sqlparse
 
 from superset import app, db, db_engine_specs, is_feature_enabled, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -60,7 +61,6 @@ from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import cache as cache_util, core as utils
 from superset.viz import viz_types
-from urllib import parse  # noqa
 
 config = app.config
 custom_password_store = config.get("SQLALCHEMY_CUSTOM_PASSWORD_STORE")
@@ -71,7 +71,7 @@ metadata = Model.metadata  # pylint: disable=no-member
 PASSWORD_MASK = "X" * 10
 
 
-def set_related_perm(mapper, connection, target):  # noqa
+def set_related_perm(mapper, connection, target):
     src_class = target.cls_model
     id_ = target.datasource_id
     if id_:
@@ -167,14 +167,14 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     perm = Column(String(1000))
     owners = relationship(security_manager.user_model, secondary=slice_user)
 
-    export_fields = (
+    export_fields = [
         "slice_name",
         "datasource_type",
         "datasource_name",
         "viz_type",
         "params",
         "cache_timeout",
-    )
+    ]
 
     def __repr__(self):
         return self.slice_name or str(self.id)
@@ -424,14 +424,14 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
 
-    export_fields = (
+    export_fields = [
         "dashboard_title",
         "position_json",
         "json_metadata",
         "description",
         "css",
         "slug",
-    )
+    ]
 
     def __repr__(self):
         return self.dashboard_title or str(self.id)
@@ -571,6 +571,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         slices = copy(dashboard_to_import.slices)
         old_to_new_slc_id_dict = {}
         new_filter_immune_slices = []
+        new_filter_immune_slice_fields = {}
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
         i_params_dict = dashboard_to_import.params_dict
@@ -596,6 +597,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 and old_slc_id_str in i_params_dict["filter_immune_slices"]
             ):
                 new_filter_immune_slices.append(new_slc_id_str)
+            if (
+                "filter_immune_slice_fields" in i_params_dict
+                and old_slc_id_str in i_params_dict["filter_immune_slice_fields"]
+            ):
+                new_filter_immune_slice_fields[new_slc_id_str] = i_params_dict[
+                    "filter_immune_slice_fields"
+                ][old_slc_id_str]
             if (
                 "timed_refresh_immune_slices" in i_params_dict
                 and old_slc_id_str in i_params_dict["timed_refresh_immune_slices"]
@@ -631,6 +639,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         if new_filter_immune_slices:
             dashboard_to_import.alter_params(
                 filter_immune_slices=new_filter_immune_slices
+            )
+        if new_filter_immune_slice_fields:
+            dashboard_to_import.alter_params(
+                filter_immune_slice_fields=new_filter_immune_slice_fields
             )
         if new_timed_refresh_immune_slices:
             dashboard_to_import.alter_params(
@@ -723,7 +735,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
-    database_name = Column(String(250), unique=True)
+    database_name = Column(String(250), unique=True, nullable=False)
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get("SECRET_KEY")))
     cache_timeout = Column(Integer)
@@ -750,7 +762,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     )
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
-    export_fields = (
+    export_fields = [
         "database_name",
         "sqlalchemy_uri",
         "cache_timeout",
@@ -759,11 +771,11 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         "allow_ctas",
         "allow_csv_upload",
         "extra",
-    )
+    ]
     export_children = ["tables"]
 
     def __repr__(self):
-        return self.verbose_name if self.verbose_name else self.database_name
+        return self.name
 
     @property
     def name(self):
@@ -774,6 +786,16 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.allows_subqueries
 
     @property
+    def allows_cost_estimate(self) -> bool:
+        extra = self.get_extra()
+        database_version = extra.get("version")
+        cost_estimate_enabled = extra.get("cost_estimate_enabled")
+        return (
+            self.db_engine_spec.get_allow_cost_estimate(database_version)
+            and cost_estimate_enabled
+        )
+
+    @property
     def data(self):
         return {
             "id": self.id,
@@ -781,6 +803,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             "backend": self.backend,
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
+            "allows_cost_estimate": self.allows_cost_estimate,
         }
 
     @property
@@ -1052,7 +1075,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         """
         try:
             tables = self.db_engine_spec.get_table_names(
-                inspector=self.inspector, schema=schema
+                database=self, inspector=self.inspector, schema=schema
             )
             return [
                 utils.DatasourceName(table=table, schema=schema) for table in tables
@@ -1086,7 +1109,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         """
         try:
             views = self.db_engine_spec.get_view_names(
-                inspector=self.inspector, schema=schema
+                database=self, inspector=self.inspector, schema=schema
             )
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as e:

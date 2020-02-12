@@ -16,12 +16,13 @@
 # under the License.
 # pylint: disable=C,R,W
 """Package's main module!"""
-from copy import deepcopy
 import json
 import logging
-from logging.handlers import TimedRotatingFileHandler
 import os
+from copy import deepcopy
+from typing import Any, Dict
 
+import wtforms_json
 from flask import Flask, redirect
 from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
@@ -29,8 +30,6 @@ from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
-from werkzeug.contrib.fixers import ProxyFix
-import wtforms_json
 
 from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -47,14 +46,14 @@ if not os.path.exists(config.DATA_DIR):
     os.makedirs(config.DATA_DIR)
 
 app = Flask(__name__)
-app.config.from_object(CONFIG_MODULE)
+app.config.from_object(CONFIG_MODULE)  # type: ignore
 conf = app.config
 
 #################################################################
 # Handling manifest file logic at app start
 #################################################################
 MANIFEST_FILE = APP_DIR + "/static/assets/dist/manifest.json"
-manifest = {}
+manifest: Dict[Any, Any] = {}
 
 
 def parse_manifest_json():
@@ -105,11 +104,7 @@ def get_manifest():
 
 #################################################################
 
-# Setup the cache prior to registering the blueprints.
-cache = setup_cache(app, conf.get("CACHE_CONFIG"))
-tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
-
-for bp in conf.get("BLUEPRINTS"):
+for bp in conf["BLUEPRINTS"]:
     try:
         print("Registering blueprint: '{}'".format(bp.name))
         app.register_blueprint(bp)
@@ -119,14 +114,6 @@ for bp in conf.get("BLUEPRINTS"):
 
 if conf.get("SILENCE_FAB"):
     logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
-
-if app.debug:
-    app.logger.setLevel(logging.DEBUG)  # pylint: disable=no-member
-else:
-    # In production mode, add log handler to sys.stderr.
-    app.logger.addHandler(logging.StreamHandler())  # pylint: disable=no-member
-    app.logger.setLevel(logging.INFO)  # pylint: disable=no-member
-logging.getLogger("pyhive.presto").setLevel(logging.INFO)
 
 db = SQLA(app)
 
@@ -138,21 +125,12 @@ if conf.get("WTF_CSRF_ENABLED"):
 
 pessimistic_connection_handling(db.engine)
 
+cache = setup_cache(app, conf.get("CACHE_CONFIG"))
+tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
+
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
-# Logging configuration
-logging.basicConfig(format=app.config.get("LOG_FORMAT"))
-logging.getLogger().setLevel(app.config.get("LOG_LEVEL"))
-
-if app.config.get("ENABLE_TIME_ROTATE"):
-    logging.getLogger().setLevel(app.config.get("TIME_ROTATE_LOG_LEVEL"))
-    handler = TimedRotatingFileHandler(
-        app.config.get("FILENAME"),
-        when=app.config.get("ROLLOVER"),
-        interval=app.config.get("INTERVAL"),
-        backupCount=app.config.get("BACKUP_COUNT"),
-    )
-    logging.getLogger().addHandler(handler)
+app.config["LOGGING_CONFIGURATOR"].configure_logging(app.config, app.debug)
 
 if app.config.get("ENABLE_CORS"):
     from flask_cors import CORS
@@ -160,7 +138,11 @@ if app.config.get("ENABLE_CORS"):
     CORS(app, **app.config.get("CORS_OPTIONS"))
 
 if app.config.get("ENABLE_PROXY_FIX"):
-    app.wsgi_app = ProxyFix(app.wsgi_app)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
+    app.wsgi_app = ProxyFix(  # type: ignore
+        app.wsgi_app, **app.config.get("PROXY_FIX_CONFIG")
+    )
 
 if app.config.get("ENABLE_CHUNK_ENCODING"):
 
@@ -175,16 +157,16 @@ if app.config.get("ENABLE_CHUNK_ENCODING"):
                 environ["wsgi.input_terminated"] = True
             return self.app(environ, start_response)
 
-    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)
+    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)  # type: ignore
 
-if app.config.get("UPLOAD_FOLDER"):
+if app.config["UPLOAD_FOLDER"]:
     try:
-        os.makedirs(app.config.get("UPLOAD_FOLDER"))
+        os.makedirs(app.config["UPLOAD_FOLDER"])
     except OSError:
         pass
 
-for middleware in app.config.get("ADDITIONAL_MIDDLEWARE"):
-    app.wsgi_app = middleware(app.wsgi_app)
+for middleware in app.config["ADDITIONAL_MIDDLEWARE"]:
+    app.wsgi_app = middleware(app.wsgi_app)  # type: ignore
 
 
 class MyIndexView(IndexView):
@@ -214,6 +196,7 @@ with app.app_context():
 security_manager = appbuilder.sm
 
 results_backend = app.config.get("RESULTS_BACKEND")
+results_backend_use_msgpack = app.config.get("RESULTS_BACKEND_USE_MSGPACK")
 
 # Merge user defined feature flags with default feature flags
 _feature_flags = app.config.get("DEFAULT_FEATURE_FLAGS") or {}
@@ -241,9 +224,11 @@ def is_feature_enabled(feature):
 if conf.get("ENABLE_FLASK_COMPRESS"):
     Compress(app)
 
+
+talisman = Talisman()
+
 if app.config["TALISMAN_ENABLED"]:
-    talisman_config = app.config.get("TALISMAN_CONFIG")
-    Talisman(app, **talisman_config)
+    talisman.init_app(app, **app.config["TALISMAN_CONFIG"])
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization
@@ -251,9 +236,9 @@ flask_app_mutator = app.config.get("FLASK_APP_MUTATOR")
 if flask_app_mutator:
     flask_app_mutator(app)
 
-from superset import views  # noqa
+from superset import views  # noqa isort:skip
 
 # Registering sources
-module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
-module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
+module_datasource_map = app.config["DEFAULT_MODULE_DS_MAP"]
+module_datasource_map.update(app.config["ADDITIONAL_MODULE_DS_MAP"])
 ConnectorRegistry.register_sources(module_datasource_map)

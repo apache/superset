@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+from datetime import datetime
 from urllib import parse
 
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -25,7 +25,7 @@ class DrillEngineSpec(BaseEngineSpec):
 
     engine = "drill"
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "NEARESTDATE({col}, 'SECOND')",
         "PT1M": "NEARESTDATE({col}, 'MINUTE')",
@@ -41,15 +41,15 @@ class DrillEngineSpec(BaseEngineSpec):
 
     # Returns a function to convert a Unix timestamp in milliseconds to a date
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return cls.epoch_ms_to_dttm().replace("{col}", "({col}*1000)")
 
     @classmethod
-    def epoch_ms_to_dttm(cls):
+    def epoch_ms_to_dttm(cls) -> str:
         return "TO_DATE({col})"
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         tt = target_type.upper()
         if tt == "DATE":
             return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])

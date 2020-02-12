@@ -368,5 +368,12 @@ describe('MetricsControl', () => {
       wrapper.setProps({ ...props, columns: [] });
       expect(onChange.calledOnce).toEqual(false);
     });
+    it('Does not fail if no columns or savedMetrics are passed', () => {
+      const { wrapper } = setup({
+        savedMetrics: null,
+        columns: null,
+      });
+      expect(wrapper.exists('.metrics-select')).toEqual(true);
+    });
   });
 });

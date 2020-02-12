@@ -14,9 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
-from typing import Dict
+from datetime import datetime
+from typing import Any, Dict, Optional
 from urllib import parse
+
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
@@ -25,7 +28,7 @@ class MySQLEngineSpec(BaseEngineSpec):
     engine = "mysql"
     max_column_name_length = 64
 
-    time_grain_functions = {
+    _time_grain_functions = {
         None: "{col}",
         "PT1S": "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
@@ -47,7 +50,7 @@ class MySQLEngineSpec(BaseEngineSpec):
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
-    def convert_dttm(cls, target_type, dttm):
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
         if target_type.upper() in ("DATETIME", "DATE"):
             return "STR_TO_DATE('{}', '%Y-%m-%d %H:%i:%s')".format(
                 dttm.strftime("%Y-%m-%d %H:%M:%S")
@@ -61,7 +64,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         return uri
 
     @classmethod
-    def get_datatype(cls, type_code):
+    def get_datatype(cls, type_code: Any) -> Optional[str]:
         if not cls.type_code_map:
             # only import and store if needed at least once
             import MySQLdb  # pylint: disable=import-error
@@ -73,26 +76,29 @@ class MySQLEngineSpec(BaseEngineSpec):
         datatype = type_code
         if isinstance(type_code, int):
             datatype = cls.type_code_map.get(type_code)
-        if datatype and isinstance(datatype, str) and len(datatype):
+        if datatype and isinstance(datatype, str) and datatype:
             return datatype
+        return None
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "from_unixtime({col})"
 
     @classmethod
-    def extract_error_message(cls, e):
+    def _extract_error_message(cls, e):
         """Extract error message for queries"""
         message = str(e)
         try:
             if isinstance(e.args, tuple) and len(e.args) > 1:
                 message = e.args[1]
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
         return message
 
     @classmethod
-    def column_datatype_to_string(cls, sqla_column_type, dialect):
+    def column_datatype_to_string(
+        cls, sqla_column_type: TypeEngine, dialect: Dialect
+    ) -> str:
         datatype = super().column_datatype_to_string(sqla_column_type, dialect)
         # MySQL dialect started returning long overflowing datatype
         # as in 'VARCHAR(255) COLLATE UTF8MB4_GENERAL_CI'

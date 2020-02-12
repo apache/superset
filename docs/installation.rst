@@ -24,7 +24,7 @@ Getting Started
 Superset has deprecated support for Python ``2.*`` and supports
 only ``~=3.6`` to take advantage of the newer Python features and reduce
 the burden of supporting previous versions. We run our test suite
-against ``3.6``, but running on ``3.7`` **should** work as well.
+against ``3.6``, but ``3.7`` is fully supported as well.
 
 Cloud-native!
 -------------
@@ -176,7 +176,7 @@ Superset installation and initialization
 Follow these few simple steps to install Superset.::
 
     # Install superset
-    pip install superset
+    pip install apache-superset
 
     # Initialize the database
     superset db upgrade
@@ -192,7 +192,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset run -p 8080 --with-threads --reload --debugger
+    superset run -p 8088 --with-threads --reload --debugger
 
 After installation, you should be able to point your browser to the right
 hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
@@ -360,7 +360,7 @@ Here's a list of some of the recommended packages.
 |                  |                                       | For JDBC                                        |
 |                  |                                       | ``drill+jdbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Apache Druid     | ``pip install pyduid``                | ``druid://``                                    |
+| Apache Druid     | ``pip install pydruid``                | ``druid://``                                    |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Apache Hive      | ``pip install pyhive``                | ``hive://``                                     |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -376,6 +376,8 @@ Here's a list of some of the recommended packages.
 | BigQuery         | ``pip install pybigquery``            | ``bigquery://``                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
++------------------+---------------------------------------+-------------------------------------------------+
+| Exasol           | ``pip install sqlalchemy-exasol``     | ``exa+pyodbc://``                               |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Google Sheets    | ``pip install gsheetsdb``             | ``gsheets://``                                  |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -577,6 +579,9 @@ object gets unpacked into the
 while the ``metadata_params`` get unpacked into the
 `sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
+.. note:: If your using CTAS on SQLLab and PostgreSQL
+    take a look at :ref:`ref_ctas_engine_config` for specific ``engine_params``.
+
 
 Schemas (Postgres & Redshift)
 -----------------------------
@@ -658,6 +663,25 @@ it in the ``extra`` parameter::
         "version": "0.123"
     }
 
+
+Exasol
+---------
+
+The connection string for Exasol looks like this ::
+
+    exa+pyodbc://{user}:{password}@{host}
+
+*Note*: It's required to have Exasol ODBC drivers installed for the sqlalchemy dialect to work properly. Exasol ODBC Drivers available are here: https://www.exasol.com/portal/display/DOWNLOAD/Exasol+Download+Section
+
+Example config (odbcinst.ini can be left empty) ::
+
+    $ cat $/.../path/to/odbc.ini
+    [EXAODBC]
+    DRIVER = /.../path/to/driver/EXASOL_driver.so
+    EXAHOST = host:8563
+    EXASCHEMA = main
+
+See `SQLAlchemy for Exasol <https://github.com/blue-yonder/sqlalchemy_exasol>`_.
 
 CORS
 ----
@@ -748,7 +772,7 @@ Upgrading
 
 Upgrading should be as straightforward as running::
 
-    pip install superset --upgrade
+    pip install apache-superset --upgrade
     superset db upgrade
     superset init
 
@@ -819,7 +843,7 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
@@ -846,6 +870,12 @@ look something like:
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
 
+For performance gains, `MessagePack <https://github.com/msgpack/msgpack-python>`_
+and `PyArrow <https://arrow.apache.org/docs/python/>`_ are now used for results
+serialization. This can be disabled by setting ``RESULTS_BACKEND_USE_MSGPACK = False``
+in your configuration, should any issues arise. Please clear your existing results
+cache store when upgrading an existing environment.
+
 **Important notes**
 
 * It is important that all the worker nodes and web servers in
@@ -858,6 +888,9 @@ look something like:
   entire setup. If not, background jobs can get scheduled multiple times
   resulting in weird behaviors like duplicate delivery of reports,
   higher than expected load / traffic etc.
+  
+* SQL Lab will only run your queries asynchronously if you enable 
+  "Asynchronous Query Execution" in your database settings.
 
 
 Email Reports
@@ -1185,7 +1218,8 @@ You can enable or disable features with flag from ``superset_config.py``:
 
      DEFAULT_FEATURE_FLAGS = {
          'CLIENT_CACHE': False,
-         'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False
+         'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
+         'PRESTO_EXPAND_DATA': False,
      }
 
 Here is a list of flags and descriptions:
@@ -1195,3 +1229,7 @@ Here is a list of flags and descriptions:
   * For some security concerns, you may need to enforce CSRF protection on all query request to explore_json endpoint. In Superset, we use `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection for all POST requests, but this protection doesn't apply to GET method.
 
   * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/incubator-superset/pull/7935>`_ for more details.
+
+* PRESTO_EXPAND_DATA
+
+  * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.

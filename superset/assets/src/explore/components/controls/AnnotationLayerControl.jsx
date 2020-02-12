@@ -56,7 +56,7 @@ class AnnotationLayerControl extends React.PureComponent {
     this.removeAnnotationLayer = this.removeAnnotationLayer.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const { name, annotationError, validationErrors, value } = nextProps;
     if (Object.keys(annotationError).length && !validationErrors.length) {
       this.props.actions.setControlValue(name, value, Object.keys(annotationError));

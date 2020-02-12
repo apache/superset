@@ -17,19 +17,53 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { NVD3TimeSeries } from './sections';
 
 export default {
   requiresTime: true,
   controlPanelSections: [
-    NVD3TimeSeries[0],
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        ['metrics'],
+        ['adhoc_filters'],
+        ['groupby'],
+        ['limit', 'timeseries_limit_metric'],
+        ['order_desc', 'contribution'],
+        ['row_limit', null],
+      ],
+    },
     {
       label: t('Paired t-test'),
       expanded: false,
       controlSetRows: [
-        ['significance_level'],
-        ['pvalue_precision'],
-        ['liftvalue_precision'],
+        [{
+          name: 'significance_level',
+          config: {
+            type: 'TextControl',
+            label: t('Significance Level'),
+            default: 0.05,
+            description: t('Threshold alpha level for determining significance'),
+          },
+        }],
+        [{
+          name: 'pvalue_precision',
+          config: {
+            type: 'TextControl',
+            label: t('p-value precision'),
+            default: 6,
+            description: t('Number of decimal places with which to display p-values'),
+          },
+        }],
+        [{
+          name: 'liftvalue_precision',
+          config: {
+            type: 'TextControl',
+            label: t('Lift percent precision'),
+            default: 4,
+            description: t('Number of decimal places with which to display lift values'),
+          },
+        }],
       ],
     },
   ],

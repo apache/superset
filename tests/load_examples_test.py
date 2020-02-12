@@ -16,6 +16,7 @@
 # under the License.
 from superset import examples
 from superset.cli import load_test_users_run
+
 from .base_tests import SupersetTestCase
 
 

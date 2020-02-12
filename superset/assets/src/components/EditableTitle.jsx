@@ -61,7 +61,7 @@ export default class EditableTitle extends React.PureComponent {
     this.contentRef = React.createRef();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.title !== this.state.title) {
       this.setState({
         lastTitle: this.state.title,
@@ -84,6 +84,8 @@ export default class EditableTitle extends React.PureComponent {
   }
 
   handleBlur() {
+    const title = this.state.title.trim();
+
     if (!this.props.canEdit) {
       return;
     }
@@ -92,7 +94,7 @@ export default class EditableTitle extends React.PureComponent {
       isEditing: false,
     });
 
-    if (!this.state.title.length) {
+    if (!title.length) {
       this.setState({
         title: this.state.lastTitle,
       });
@@ -100,14 +102,14 @@ export default class EditableTitle extends React.PureComponent {
       return;
     }
 
-    if (this.state.lastTitle !== this.state.title) {
+    if (this.state.lastTitle !== title) {
       this.setState({
-        lastTitle: this.state.title,
+        lastTitle: title,
       });
     }
 
-    if (this.props.title !== this.state.title) {
-      this.props.onSaveTitle(this.state.title);
+    if (this.props.title !== title) {
+      this.props.onSaveTitle(title);
     }
   }
 

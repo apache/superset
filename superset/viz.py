@@ -20,30 +20,31 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
-from collections import defaultdict, OrderedDict
 import copy
-from datetime import datetime, timedelta
-from functools import reduce
 import hashlib
 import inspect
-from itertools import product
 import logging
 import math
 import pickle as pkl
 import re
 import uuid
+from collections import defaultdict, OrderedDict
+from datetime import datetime, timedelta
+from functools import reduce
+from itertools import product
+from typing import Any, Dict, List, Optional
 
+import geohash
+import numpy as np
+import pandas as pd
+import polyline
+import simplejson as json
 from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
-import geohash
 from geopy.point import Point
 from markdown import markdown
-import numpy as np
-import pandas as pd
 from pandas.tseries.frequencies import to_offset
-import polyline
-import simplejson as json
 
 from superset import app, cache, get_css_manifest_files
 from superset.exceptions import NullValueException, SpatialException
@@ -54,7 +55,6 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
-
 
 config = app.config
 stats_logger = config.get("STATS_LOGGER")
@@ -77,7 +77,7 @@ class BaseViz(object):
 
     """All visualizations derive this base class"""
 
-    viz_type = None
+    viz_type: Optional[str] = None
     verbose_name = "Base Viz"
     credits = ""
     is_timeseries = False
@@ -181,7 +181,9 @@ class BaseViz(object):
         df = self.get_df(query_obj)
         return df.to_dict(orient="records")
 
-    def get_df(self, query_obj=None):
+    def get_df(
+        self, query_obj: Optional[Dict[str, Any]] = None
+    ) -> Optional[pd.DataFrame]:
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
             query_obj = self.query_obj()
@@ -629,9 +631,7 @@ class TimeTableViz(BaseViz):
         if fd.get("groupby"):
             values = self.metric_labels[0]
             columns = fd.get("groupby")
-        pt = df.pivot_table(
-            index=DTTM_ALIAS, columns=columns, values=values, dropna=False
-        )
+        pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
         return dict(
@@ -685,7 +685,7 @@ class PivotTableViz(BaseViz):
 
         # Ensure that Pandas's sum function mimics that of SQL.
         if aggfunc == "sum":
-            aggfunc = lambda x: x.sum(min_count=1)  # noqa: E731
+            aggfunc = lambda x: x.sum(min_count=1)
 
         groupby = self.form_data.get("groupby")
         columns = self.form_data.get("columns")
@@ -697,7 +697,6 @@ class PivotTableViz(BaseViz):
             values=[utils.get_metric_name(m) for m in self.form_data.get("metrics")],
             aggfunc=aggfunc,
             margins=self.form_data.get("pivot_margins"),
-            dropna=False,
         )
         # Display metrics side by side with each column
         if self.form_data.get("combine_metric"):
@@ -725,7 +724,9 @@ class MarkupViz(BaseViz):
     def query_obj(self):
         return None
 
-    def get_df(self, query_obj=None):
+    def get_df(
+        self, query_obj: Optional[Dict[str, Any]] = None
+    ) -> Optional[pd.DataFrame]:
         return None
 
     def get_data(self, df):
@@ -858,7 +859,7 @@ class NVD3Viz(BaseViz):
     """Base class for all nvd3 vizs"""
 
     credits = '<a href="http://nvd3.org/">NVD3.org</a>'
-    viz_type = None
+    viz_type: Optional[str] = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
 
@@ -966,7 +967,9 @@ class BubbleViz(NVD3Viz):
         self.series = form_data.get("series") or self.entity
         d["row_limit"] = form_data.get("limit")
 
-        d["metrics"] = list(set([self.z_metric, self.x_metric, self.y_metric]))
+        d["metrics"] = [self.z_metric, self.x_metric, self.y_metric]
+        if len(set(self.metric_labels)) < 3:
+            raise Exception(_("Please use 3 different metric labels"))
         if not all(d["metrics"] + [self.entity]):
             raise Exception(_("Pick a metric for x, y and size"))
         return d
@@ -1082,6 +1085,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = _("Time Series - Line Chart")
     sort_series = False
     is_timeseries = True
+    pivot_fill_value: Optional[int] = None
 
     def to_series(self, df, classed="", title_suffix=""):
         cols = []
@@ -1151,14 +1155,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 values=self.metric_labels,
                 fill_value=0,
                 aggfunc=sum,
-                dropna=False,
             )
         else:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get("groupby"),
                 values=self.metric_labels,
-                dropna=False,
+                fill_value=self.pivot_fill_value,
             )
 
         rule = fd.get("resample_rule")
@@ -1369,7 +1372,7 @@ class NVD3DualLineViz(NVD3Viz):
 
         metric = utils.get_metric_name(fd.get("metric"))
         metric_2 = utils.get_metric_name(fd.get("metric_2"))
-        df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2], dropna=False)
+        df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2])
 
         chart_data = self.to_series(df)
         return chart_data
@@ -1421,7 +1424,6 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
             index=DTTM_ALIAS,
             columns="series",
             values=utils.get_metric_name(fd.get("metric")),
-            dropna=False,
         )
         chart_data = self.to_series(df)
         for serie in chart_data:
@@ -1445,6 +1447,7 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     viz_type = "area"
     verbose_name = _("Time Series - Stacked")
     sort_series = True
+    pivot_fill_value = 0
 
 
 class DistributionPieViz(NVD3Viz):
@@ -1457,7 +1460,7 @@ class DistributionPieViz(NVD3Viz):
 
     def get_data(self, df):
         metric = self.metric_labels[0]
-        df = df.pivot_table(index=self.groupby, values=[metric], dropna=False)
+        df = df.pivot_table(index=self.groupby, values=[metric])
         df.sort_values(by=metric, ascending=False, inplace=True)
         df = df.reset_index()
         df.columns = ["x", "y"]
@@ -1526,7 +1529,7 @@ class DistributionBarViz(DistributionPieViz):
     is_timeseries = False
 
     def query_obj(self):
-        d = super().query_obj()  # noqa
+        d = super().query_obj()
         fd = self.form_data
         if len(d["groupby"]) < len(fd.get("groupby") or []) + len(
             fd.get("columns") or []
@@ -1545,9 +1548,7 @@ class DistributionBarViz(DistributionPieViz):
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)
         columns = fd.get("columns") or []
-        pt = df.pivot_table(
-            index=self.groupby, columns=columns, values=metrics, dropna=False
-        )
+        pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T
             pt = (pt / pt.sum()).T
@@ -1854,7 +1855,7 @@ class IFrameViz(BaseViz):
     def query_obj(self):
         return None
 
-    def get_df(self, query_obj=None):
+    def get_df(self, query_obj: Dict[str, Any] = None) -> Optional[pd.DataFrame]:
         return None
 
     def get_data(self, df):
@@ -2113,7 +2114,7 @@ class BaseDeckGLViz(BaseViz):
 
     is_timeseries = False
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
-    spatial_control_keys = []
+    spatial_control_keys: List[str] = []
 
     def get_metrics(self):
         self.metric = self.form_data.get("size")
@@ -2432,7 +2433,9 @@ class DeckPolygon(DeckPathViz):
         fd = self.form_data
         elevation = fd["point_radius_fixed"]["value"]
         type_ = fd["point_radius_fixed"]["type"]
-        d["elevation"] = d.get(elevation["label"]) if type_ == "metric" else elevation
+        d["elevation"] = (
+            d.get(utils.get_metric_name(elevation)) if type_ == "metric" else elevation
+        )
         return d
 
 
@@ -2772,6 +2775,6 @@ viz_types = {
     if (
         inspect.isclass(o)
         and issubclass(o, BaseViz)
-        and o.viz_type not in config.get("VIZ_TYPE_BLACKLIST")
+        and o.viz_type not in config["VIZ_TYPE_BLACKLIST"]
     )
 }

@@ -15,16 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
+import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 from jinja2.sandbox import SandboxedEnvironment
-import simplejson as json
 from sqlalchemy import and_, func
 from werkzeug.routing import BaseConverter
 
@@ -33,6 +30,7 @@ from superset.jinja_context import current_user_id, current_username
 from superset.models.core import Dashboard, Slice
 from superset.models.sql_lab import SavedQuery
 from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
+
 from .base import BaseSupersetView, json_success
 
 

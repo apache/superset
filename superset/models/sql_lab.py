@@ -16,12 +16,12 @@
 # under the License.
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for SQL Lab"""
-from datetime import datetime
 import re
+from datetime import datetime
 
+import sqlalchemy as sqla
 from flask import Markup
 from flask_appbuilder import Model
-import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean,
     Column,

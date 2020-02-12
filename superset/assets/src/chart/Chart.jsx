@@ -58,12 +58,16 @@ const propTypes = {
   // dashboard callbacks
   addFilter: PropTypes.func,
   onQuery: PropTypes.func,
+  onFilterMenuOpen: PropTypes.func,
+  onFilterMenuClose: PropTypes.func,
 };
 
 const BLANK = {};
 
 const defaultProps = {
   addFilter: () => BLANK,
+  onFilterMenuOpen: () => BLANK,
+  onFilterMenuClose: () => BLANK,
   initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,
@@ -172,9 +176,7 @@ class Chart extends React.PureComponent {
             />
           )}
           <div className={`slice_container ${isFaded ? ' faded' : ''}`}>
-            <ChartRenderer
-              {...this.props}
-            />
+            <ChartRenderer {...this.props} />
           </div>
         </div>
       </ErrorBoundary>

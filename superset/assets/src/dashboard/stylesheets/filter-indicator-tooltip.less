@@ -1,0 +1,78 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+#filter-indicator-tooltip {
+  font-size: 15px;
+  text-align: left;
+
+  > .tooltip-arrow {
+    margin-right: 8px;
+    border-left-color: #484848;
+  }
+
+  > .tooltip-inner {
+    width: 200px;
+    max-width: 200px;
+    border-radius: 4px;
+    margin-right: 8px;
+    padding: 16px 12px;
+    background-color: #484848;
+    text-align: left;
+  }
+}
+
+.tooltip-item {
+  position: relative;
+
+  .filter-content {
+    line-height: 22px;
+    margin-right: 22px;
+    text-align: left;
+    display: flex;
+    flex-flow: row wrap;
+    align-items: stretch;
+
+    label {
+      font-weight: 700;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      margin-right: 4px;
+    }
+  }
+
+  .filter-edit {
+    position: absolute;
+    top: 4px;
+    right: 0;
+  }
+}
+
+.group-title {
+  margin-bottom: 8px;
+}
+
+.tooltip-group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    margin-bottom: 8px;
+  }
+}

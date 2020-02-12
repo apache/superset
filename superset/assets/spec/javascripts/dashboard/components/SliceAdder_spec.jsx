@@ -109,7 +109,7 @@ describe('SliceAdder', () => {
     });
 
     it('fetch slices should update state', () => {
-      wrapper.instance().componentWillReceiveProps({
+      wrapper.instance().UNSAFE_componentWillReceiveProps({
         ...props,
         lastUpdated: new Date().getTime(),
       });
@@ -122,7 +122,7 @@ describe('SliceAdder', () => {
     });
 
     it('select slices should update state', () => {
-      wrapper.instance().componentWillReceiveProps({
+      wrapper.instance().UNSAFE_componentWillReceiveProps({
         ...props,
         selectedSliceIds: [127],
       });

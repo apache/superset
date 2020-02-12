@@ -16,13 +16,13 @@
 # under the License.
 # pylint: disable=C,R,W
 """Defines the templating context for SQL Lab"""
-from datetime import datetime, timedelta
 import inspect
 import json
 import random
 import time
-from typing import Any, List, Optional, Tuple
 import uuid
+from datetime import datetime, timedelta
+from typing import Any, List, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
 from flask import g, request

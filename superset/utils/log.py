@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from abc import ABC, abstractmethod
-from datetime import datetime
 import functools
 import inspect
 import json
 import logging
 import textwrap
+from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any, cast, Type
 
 from flask import current_app, g, request

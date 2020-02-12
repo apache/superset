@@ -26,6 +26,8 @@ import DashboardComponent from '../../containers/DashboardComponent';
 import DeleteComponentButton from '../DeleteComponentButton';
 import HoverMenu from '../menu/HoverMenu';
 import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
+import getDirectPathToTabIndex from '../../util/getDirectPathToTabIndex';
+import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
@@ -58,7 +60,7 @@ const propTypes = {
   // dnd
   createComponent: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
-  onChangeTab: PropTypes.func,
+  onChangeTab: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
 };
@@ -70,7 +72,6 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   directPathToChild: [],
-  onChangeTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -79,10 +80,13 @@ const defaultProps = {
 class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
-    const tabIndex = findTabIndexByComponentId({
-      currentComponent: props.component,
-      directPathToChild: props.directPathToChild,
-    });
+    const tabIndex = Math.max(
+      0,
+      findTabIndexByComponentId({
+        currentComponent: props.component,
+        directPathToChild: props.directPathToChild,
+      }),
+    );
 
     this.state = {
       tabIndex,
@@ -93,19 +97,42 @@ class Tabs extends React.PureComponent {
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const maxIndex = Math.max(0, nextProps.component.children.length - 1);
     if (this.state.tabIndex > maxIndex) {
       this.setState(() => ({ tabIndex: maxIndex }));
     }
+
+    if (nextProps.isComponentVisible) {
+      const nextFocusComponent = getLeafComponentIdFromPath(
+        nextProps.directPathToChild,
+      );
+      const currentFocusComponent = getLeafComponentIdFromPath(
+        this.props.directPathToChild,
+      );
+
+      if (nextFocusComponent !== currentFocusComponent) {
+        const nextTabIndex = findTabIndexByComponentId({
+          currentComponent: nextProps.component,
+          directPathToChild: nextProps.directPathToChild,
+        });
+
+        // make sure nextFocusComponent is under this tabs component
+        if (nextTabIndex > -1 && nextTabIndex !== this.state.tabIndex) {
+          this.setState(() => ({ tabIndex: nextTabIndex }));
+        }
+      }
+    }
   }
 
   handleClickTab(tabIndex, ev) {
-    const target = ev.target;
-    // special handler for clicking on anchor link icon (or whitespace nearby):
-    // will show short link popover but do not change tab
-    if (target.classList.contains('short-link-trigger')) {
-      return;
+    if (ev) {
+      const target = ev.target;
+      // special handler for clicking on anchor link icon (or whitespace nearby):
+      // will show short link popover but do not change tab
+      if (target && target.classList.contains('short-link-trigger')) {
+        return;
+      }
     }
 
     const { component, createComponent } = this.props;
@@ -128,8 +155,8 @@ class Tabs extends React.PureComponent {
         index: tabIndex,
       });
 
-      this.setState(() => ({ tabIndex }));
-      this.props.onChangeTab({ tabIndex, tabId: component.children[tabIndex] });
+      const pathToTabIndex = getDirectPathToTabIndex(component, tabIndex);
+      this.props.onChangeTab({ pathToTabIndex });
     }
   }
 

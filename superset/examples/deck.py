@@ -18,6 +18,7 @@
 import json
 
 from superset import db
+
 from .helpers import Dash, get_slice_json, merge_slice, Slice, TBL, update_slice_ids
 
 COLOR_RED = {"r": 205, "g": 0, "b": 3, "a": 0.82}
@@ -335,8 +336,30 @@ def load_deck_dash():
         "time_grain_sqla": None,
         "time_range": " : ",
         "line_column": "contour",
-        "metric": None,
+        "metric": {
+            "aggregate": "SUM",
+            "column": {
+                "column_name": "population",
+                "description": None,
+                "expression": None,
+                "filterable": True,
+                "groupby": True,
+                "id": 1332,
+                "is_dttm": False,
+                "optionName": "_col_population",
+                "python_date_format": None,
+                "type": "BIGINT",
+                "verbose_name": None,
+            },
+            "expressionType": "SIMPLE",
+            "fromFormData": True,
+            "hasCustomLabel": True,
+            "label": "Population",
+            "optionName": "metric_t2v4qbfiz1_w6qgpx4h2p",
+            "sqlExpression": None,
+        },
         "line_type": "json",
+        "linear_color_scheme": "oranges",
         "mapbox_style": "mapbox://styles/mapbox/light-v9",
         "viewport": {
             "longitude": -122.43388541747726,
@@ -360,16 +383,26 @@ def load_deck_dash():
         "filled": True,
         "stroked": False,
         "extruded": True,
-        "point_radius_scale": 100,
-        "point_radius_fixed": {"type": "metric", "value": "count"},
-        "multiplier": 1,
-        "js_columns": ["population", "area"],
-        "js_data_mutator": "data => data.map(d => ({\n"
-        "    ...d,\n"
-        "    elevation: d.extraProps.population/d.extraProps.area/10,\n"
-        "}));",
+        "multiplier": 0.1,
+        "point_radius_fixed": {
+            "type": "metric",
+            "value": {
+                "aggregate": None,
+                "column": None,
+                "expressionType": "SQL",
+                "fromFormData": None,
+                "hasCustomLabel": None,
+                "label": "Density",
+                "optionName": "metric_c5rvwrzoo86_293h6yrv2ic",
+                "sqlExpression": "SUM(population)/SUM(area)",
+            },
+        },
+        "js_columns": [],
+        "js_data_mutator": "",
         "js_tooltip": "",
         "js_onclick_href": "",
+        "legend_format": ".1s",
+        "legend_position": "tr",
         "where": "",
         "having": "",
         "filters": [],
