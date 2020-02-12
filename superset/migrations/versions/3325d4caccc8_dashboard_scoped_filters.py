@@ -78,7 +78,6 @@ def upgrade():
             if "filter_scopes" in json_metadata:
                 continue
 
-            filter_scopes = {}
             filters = [
                 slice for slice in dashboard.slices if slice.viz_type == "filter_box"
             ]
@@ -86,18 +85,20 @@ def upgrade():
             # if dashboard has filter_box
             if filters:
                 filter_scopes = convert_filter_scopes(json_metadata, filters)
-
-            json_metadata.pop("filter_immune_slices", None)
-            json_metadata.pop("filter_immune_slice_fields", None)
-            if filter_scopes:
                 json_metadata["filter_scopes"] = filter_scopes
                 logging.info(
                     f"Adding filter_scopes for dashboard {dashboard.id}: {json.dumps(filter_scopes)}"
                 )
+
+            json_metadata.pop("filter_immune_slices", None)
+            json_metadata.pop("filter_immune_slice_fields", None)
+
             if json_metadata:
                 dashboard.json_metadata = json.dumps(
                     json_metadata, indent=None, separators=(",", ":"), sort_keys=True
                 )
+            else:
+                dashboard.json_metadata = None
 
             session.merge(dashboard)
         except Exception as e:

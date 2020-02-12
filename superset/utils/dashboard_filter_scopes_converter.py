@@ -16,6 +16,7 @@
 # under the License.
 import json
 import logging
+from collections import defaultdict
 from typing import Dict, List
 
 from superset.models.slice import Slice
@@ -26,13 +27,11 @@ logger = logging.getLogger(__name__)
 def convert_filter_scopes(json_metadata: Dict, filters: List[Slice]):
     filter_scopes = {}
     immuned_by_id: List[int] = json_metadata.get("filter_immune_slices") or []
-    immuned_by_column: Dict = {}
+    immuned_by_column: Dict = defaultdict(list)
     for slice_id, columns in json_metadata.get(
         "filter_immune_slice_fields", {}
     ).items():
         for column in columns:
-            if immuned_by_column.get(column, None) is None:
-                immuned_by_column[column] = []
             immuned_by_column[column].append(int(slice_id))
 
     def add_filter_scope(filter_field, filter_id):
