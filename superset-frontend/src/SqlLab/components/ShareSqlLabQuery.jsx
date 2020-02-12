@@ -20,13 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Button from '../../components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../utils/common';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const propTypes = {
   queryEditor: PropTypes.shape({
@@ -54,7 +54,7 @@ class ShareSqlLabQuery extends React.Component {
       return this.getCopyUrlForKvStore();
     }
 
-    this.getCopyUrlForSavedQuery();
+    return this.getCopyUrlForSavedQuery();
   }
 
   getCopyUrlForKvStore() {
