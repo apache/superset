@@ -79,7 +79,11 @@ describe('ShareSqlLabQuery via /kv/store', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
         .spyOn(featureFlags, 'isFeatureEnabled')
-        .mockImplementation(feature => true);
+        .mockImplementation(() => true);
+    });
+
+    afterAll(() => {
+      isFeatureEnabledMock.restore();
     });
 
     it('renders an OverlayTrigger with Button', () => {
@@ -135,12 +139,16 @@ describe('ShareSqlLabQuery via /kv/store', () => {
           return Promise.resolve();
         });
     });
-  })
+  });
   describe('via saved query', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
         .spyOn(featureFlags, 'isFeatureEnabled')
-        .mockImplementation(feature => false);
+        .mockImplementation(() => false);
+    });
+
+    afterAll(() => {
+      isFeatureEnabledMock.restore();
     });
 
     it('renders an OverlayTrigger with Button', () => {
@@ -173,7 +181,7 @@ describe('ShareSqlLabQuery via /kv/store', () => {
 
       instance.getCopyUrl();
 
-      expect(instance.state.shortUrl).toContain('save')
+      expect(instance.state.shortUrl).toContain('save');
     });
   });
 });
