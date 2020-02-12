@@ -3815,7 +3815,7 @@
   resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.4.tgz#38fd73ddfd9b55abb1e1b2ed578cb55bd7b7d339"
   integrity sha512-8+KAKzEvSUdeo+kmqnKrqgeE+LcA0tjYWFY7RPProVYwnqDjukzO+3b6dLD56rYX5TdWejnEOLJYOIeh4CXKuA==
 
-"@types/lodash@*", "@types/lodash@4.14.149", "@types/lodash@^4.14.148":
+"@types/lodash@*", "@types/lodash@4.14.149", "@types/lodash@^4.14.146", "@types/lodash@^4.14.148":
   version "4.14.149"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.149.tgz#1342d63d948c6062838fbf961012f74d4e638440"
   integrity sha512-ijGqzZt/b7BfzcK9vTrS6MFljQRPn5BFWOx8oE0GYxribu6uV+aA9zZuXI1zc/etK9E8nrgdoF2+LgUw7+9tJQ==
@@ -4381,6 +4381,17 @@
     lodash "^4.17.10"
     prop-types "^15.6.1"
     resize-observer-polyfill "1.5.0"
+
+"@vx/responsive@^0.0.193":
+  version "0.0.193"
+  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.193.tgz#bde9756dbe0423014120e1e5db7df2d08563de4f"
+  integrity sha512-Dw3v/tZFOxVXIjWVIX7eSHSyr+67gTTphtWoZitGxAKj3xEweTsTZiGhuC3Kqi/Ux1y1/sm0vbOSgzahglPD1g==
+  dependencies:
+    "@types/lodash" "^4.14.146"
+    "@types/react" "*"
+    lodash "^4.17.10"
+    prop-types "^15.6.1"
+    resize-observer-polyfill "1.5.1"
 
 "@vx/scale@0.0.140":
   version "0.0.140"
@@ -15400,7 +15411,7 @@ resize-observer-polyfill@1.5.0:
   resolved "https://registry.yarnpkg.com/resize-observer-polyfill/-/resize-observer-polyfill-1.5.0.tgz#660ff1d9712a2382baa2cad450a4716209f9ca69"
   integrity sha512-M2AelyJDVR/oLnToJLtuDJRBBWUGUvvGigj1411hXhAdyFWqMaqHp7TixW3FpiLuVaikIcR1QL+zqoJoZlOgpg==
 
-resize-observer-polyfill@^1.5.1:
+resize-observer-polyfill@1.5.1, resize-observer-polyfill@^1.5.1:
   version "1.5.1"
   resolved "https://registry.yarnpkg.com/resize-observer-polyfill/-/resize-observer-polyfill-1.5.1.tgz#0e9020dd3d21024458d4ebd27e23e40269810464"
   integrity sha512-LwZrotdHOo12nQuZlHEmtuXdqGoOD0OhaxopaNFxWzInpEgaLWoVuAMbTzixuosCx2nEG58ngzW3vxdWoxIgdg==

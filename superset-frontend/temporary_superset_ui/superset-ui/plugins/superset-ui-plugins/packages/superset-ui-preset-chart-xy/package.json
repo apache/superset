@@ -35,7 +35,7 @@
     "@vx/axis": "^0.0.192",
     "@vx/group": "^0.0.192",
     "@vx/legend": "^0.0.193",
-    "@vx/responsive": "^0.0.192",
+    "@vx/responsive": "^0.0.193",
     "@vx/scale": "^0.0.192",
     "@vx/shape": "^0.0.193",
     "csstype": "^2.6.3",
