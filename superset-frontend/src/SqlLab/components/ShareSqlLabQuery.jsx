@@ -47,8 +47,6 @@ class ShareSqlLabQuery extends React.Component {
       shortUrl: t('Loading ...'),
     };
     this.getCopyUrl = this.getCopyUrl.bind(this);
-    this.getCopyUrlForSavedQuery = this.getCopyUrlForSavedQuery.bind(this);
-    this.getCopyUrlForKvStore = this.getCopyUrlForKvStore.bind(this);
   }
 
   getCopyUrl() {
