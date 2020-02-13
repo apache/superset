@@ -13,11 +13,6 @@ from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.commands.exceptions import (
-    CreateFailedError,
-    DeleteFailedError,
-    UpdateFailedError,
-)
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.datasets.commands.create import CreateDatasetCommand
@@ -25,6 +20,9 @@ from superset.datasets.commands.delete import DeleteDatasetCommand
 from superset.datasets.commands.exceptions import (
     DatasetInvalidError,
     DatasetNotFoundError,
+    DatasetUpdateFailedError,
+    DatasetCreateFailedError,
+    DatasetDeleteFailedError,
 )
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.schemas import DatasetPostSchema, DatasetPutSchema
@@ -143,7 +141,7 @@ class DatasetRestApi(BaseOwnedModelRestApi):
             return self.response(201, id=new_model.id, result=item.data)
         except DatasetInvalidError:
             return self.response_422(message=item.errors)
-        except CreateFailedError as e:
+        except DatasetCreateFailedError as e:
             logger.error(f"Error creating model {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))
 
@@ -209,7 +207,7 @@ class DatasetRestApi(BaseOwnedModelRestApi):
             return self.response_403()
         except DatasetInvalidError:
             return self.response_422(message=item.errors)
-        except UpdateFailedError as e:
+        except DatasetUpdateFailedError as e:
             logger.error(f"Error updating model {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))
 
@@ -256,6 +254,6 @@ class DatasetRestApi(BaseOwnedModelRestApi):
             return self.response_404()
         except SupersetSecurityException:
             return self.response_403()
-        except DeleteFailedError as e:
+        except DatasetDeleteFailedError as e:
             logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))

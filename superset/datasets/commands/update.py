@@ -18,12 +18,12 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import UnmarshalResult, ValidationError
 
 from superset.commands.base import BaseCommand, CommandValidateReturn
-from superset.commands.exceptions import UpdateFailedError
 from superset.datasets.commands.base import populate_owners
 from superset.datasets.commands.exceptions import (
-    DatabaseNotFoundValidationError,
+    DatabaseChangeValidationError,
     DatasetExistsValidationError,
     DatasetInvalidError,
+    DatasetUpdateFailedError,
     DatasetNotFoundError,
 )
 from superset.datasets.dao import DatasetDAO
@@ -50,7 +50,7 @@ class UpdateDatasetCommand(BaseCommand):
         dataset = DatasetDAO.update(self._model, self._properties)
 
         if not dataset:
-            raise UpdateFailedError("Dataset could not be updated.")
+            raise DatasetUpdateFailedError()
         return dataset
 
     def validate(self) -> CommandValidateReturn:
@@ -68,13 +68,10 @@ class UpdateDatasetCommand(BaseCommand):
             exceptions.append(DatasetExistsValidationError(table_name))
             is_valid = False
 
-        # Validate/Populate database
-        if database_id:
-            database = DatasetDAO.get_database_by_id(database_id)
-            if not database:
-                exceptions.append(DatabaseNotFoundValidationError())
-                is_valid = False
-            self._properties["database"] = database
+        # Validate/Populate database not allowed to change
+        if database_id and database_id != self._model:
+            exceptions.append(DatabaseChangeValidationError())
+            is_valid = False
 
         # Validate/Populate owner
         try:

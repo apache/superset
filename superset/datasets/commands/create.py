@@ -18,12 +18,12 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import UnmarshalResult, ValidationError
 
 from superset.commands.base import BaseCommand, CommandValidateReturn
-from superset.commands.exceptions import CreateFailedError
 from superset.datasets.commands.base import populate_owners
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
     DatasetExistsValidationError,
     DatasetInvalidError,
+    DatasetCreateFailedError,
     TableNotFoundValidationError,
 )
 from superset.datasets.dao import DatasetDAO
@@ -45,7 +45,7 @@ class CreateDatasetCommand(BaseCommand):
         dataset = DatasetDAO.create(self._properties)
 
         if not dataset:
-            raise CreateFailedError("Dataset could not be created.")
+            raise DatasetCreateFailedError()
         return dataset
 
     def validate(self) -> CommandValidateReturn:

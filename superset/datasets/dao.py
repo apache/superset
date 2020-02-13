@@ -42,7 +42,7 @@ class DatasetDAO:
     def get_database_by_id(database_id) -> Optional[Database]:
         try:
             return db.session.query(Database).filter_by(id=database_id).one_or_none()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Could not get database by id: {e}")
             return None
 
@@ -51,7 +51,7 @@ class DatasetDAO:
         try:
             database.get_table(table_name, schema=schema)
             return True
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Got an error {e} validating table: {table_name}")
             return False
 
@@ -88,7 +88,7 @@ class DatasetDAO:
         try:
             db.session.add(model)
             db.session.commit()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Failed to create dataset: {e}")
             db.session.rollback()
             return None
@@ -101,7 +101,7 @@ class DatasetDAO:
         try:
             db.session.merge(model)
             db.session.commit()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Failed to update dataset: {e}")
             db.session.rollback()
             return None
@@ -112,7 +112,7 @@ class DatasetDAO:
         try:
             db.session.delete(model)
             db.session.commit()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Failed to delete dataset: {e}")
             db.session.rollback()
             return None

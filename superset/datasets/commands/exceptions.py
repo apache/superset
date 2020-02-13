@@ -17,7 +17,12 @@
 from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
-from superset.commands.exceptions import CommandException
+from superset.commands.exceptions import (
+    CommandException,
+    CreateFailedError,
+    DeleteFailedError,
+    UpdateFailedError,
+)
 from superset.views.base import get_datasource_exist_error_msg
 
 
@@ -28,6 +33,15 @@ class DatabaseNotFoundValidationError(ValidationError):
 
     def __init__(self):
         super().__init__(_("Database does not exist"), field_names=["database"])
+
+
+class DatabaseChangeValidationError(ValidationError):
+    """
+    Marshmallow validation error database changes are not allowed on update
+    """
+
+    def __init__(self):
+        super().__init__(_("Database not allowed to change"), field_names=["database"])
 
 
 class DatasetExistsValidationError(ValidationError):
@@ -68,4 +82,16 @@ class DatasetNotFoundError(CommandException):
 
 
 class DatasetInvalidError(CommandException):
-    message = "Dataset parameters are invalid."
+    message = _("Dataset parameters are invalid.")
+
+
+class DatasetCreateFailedError(CreateFailedError):
+    message = _("Dataset could not be created.")
+
+
+class DatasetUpdateFailedError(UpdateFailedError):
+    message = _("Dataset could not be updated.")
+
+
+class DatasetDeleteFailedError(DeleteFailedError):
+    message = _("Dataset could not be deleted.")

@@ -18,8 +18,10 @@
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand, CommandValidateReturn
-from superset.commands.exceptions import DeleteFailedError
-from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasets.commands.exceptions import (
+    DatasetNotFoundError,
+    DatasetDeleteFailedError,
+)
 from superset.datasets.dao import DatasetDAO
 from superset.views.base import check_ownership
 
@@ -38,7 +40,7 @@ class DeleteDatasetCommand(BaseCommand):
         dataset = DatasetDAO.delete(self._model)
 
         if not dataset:
-            raise DeleteFailedError("Dataset could not be deleted.")
+            raise DatasetDeleteFailedError()
         return dataset
 
     def validate(self) -> CommandValidateReturn:
