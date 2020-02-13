@@ -233,8 +233,8 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     add_title = _("Add Row level security filter")
     edit_title = _("Edit Row level security filter")
 
-    list_columns = ["table", "roles", "clause", "creator", "modified"]
-    order_columns = ["modified"]
+    list_columns = ["table.table_name", "roles", "clause", "creator", "modified"]
+    order_columns = ["table.table_name", "clause", "modified"]
     edit_columns = ["table", "roles", "clause"]
     show_columns = edit_columns
     search_columns = ("table", "roles", "clause")
