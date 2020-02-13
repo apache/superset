@@ -282,7 +282,7 @@ class Database(
     ) -> Engine:
         extra = self.get_extra()
         sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
-        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
         effective_username = self.get_effective_user(sqlalchemy_url, user_name)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a

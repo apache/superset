@@ -19,6 +19,7 @@ from typing import Any, Dict, Optional
 from urllib import parse
 
 from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.engine.url import URL
 from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -59,10 +60,11 @@ class MySQLEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema=None):
+    def adjust_database_uri(
+        cls, uri: URL, selected_schema: Optional[str] = None
+    ) -> None:
         if selected_schema:
             uri.database = parse.quote(selected_schema, safe="")
-        return uri
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
@@ -86,7 +88,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
-    def _extract_error_message(cls, e):
+    def _extract_error_message(cls, e: Exception) -> str:
         """Extract error message for queries"""
         message = str(e)
         try:
