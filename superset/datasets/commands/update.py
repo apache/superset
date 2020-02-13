@@ -23,8 +23,8 @@ from superset.datasets.commands.exceptions import (
     DatabaseChangeValidationError,
     DatasetExistsValidationError,
     DatasetInvalidError,
-    DatasetUpdateFailedError,
     DatasetNotFoundError,
+    DatasetUpdateFailedError,
 )
 from superset.datasets.dao import DatasetDAO
 from superset.views.base import check_ownership
