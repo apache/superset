@@ -99,28 +99,6 @@
                     {
                         "__Slice__": {
                             "cache_timeout": null,
-                            "datasource_name": "customerai.Top Products",
-                            "datasource_type": "table",
-                            "id": 14,
-                            "params": "{\"adhoc_filters\": [], \"bar_stacked\": false, \"bottom_margin\": \"auto\", \"color_scheme\": \"bnbColors\", \"columns\": [], \"contribution\": false, \"datasource\": \"42__table\", \"granularity_sqla\": null, \"groupby\": [\"associationvalue\"], \"label_colors\": {\"#Customers(At Risk)\": \"#d0021b\", \"#Customers(Engagement)\": \"#265fe5\", \"#Customers(In Market)\": \"#417505\", \"#Customers(Next Transaction)\": \"#265fe5\", \"COUNT(atrisk)\": \"#d0021b\", \"COUNT(engagement)\": \"#265fe5\", \"COUNT(gender)\": \"#b587ff\", \"COUNT(location)\": \"#7ed321\", \"COUNT(predinmarket)\": \"#417505\", \"COUNT(transaction)\": \"#265fe5\", \"No. of Customers\": \"#f5a623\"}, \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"#Customers(Product)\", \"optionName\": \"metric_h1yn9vcw58f_kn0y4tbqi0h\", \"sqlExpression\": \"SUM(user_count)\"}], \"order_bars\": false, \"reduce_x_ticks\": false, \"row_limit\": null, \"show_bar_value\": false, \"show_controls\": false, \"show_legend\": false, \"slice_id\": 120, \"time_grain_sqla\": null, \"time_range\": \"Last week\", \"url_params\": {}, \"viz_type\": \"dist_bar\", \"x_axis_label\": \"Product\", \"x_ticks_layout\": \"staggered\", \"y_axis_format\": \"SMART_NUMBER\", \"y_axis_label\": \"\", \"remote_id\": 14, \"datasource_name\": \"Top Products\", \"schema\": \"pcv\", \"database_name\": \"examples\", \"import_time\": 1577340210}",
-                            "slice_name": "Top Products",
-                            "viz_type": "dist_bar"
-                        }
-                    },
-                    {
-                        "__Slice__": {
-                            "cache_timeout": null,
-                            "datasource_name": "pcv.Top Brands",
-                            "datasource_type": "table",
-                            "id": 17,
-                            "params": "{\"adhoc_filters\": [], \"bar_stacked\": false, \"bottom_margin\": \"auto\", \"color_scheme\": \"bnbColors\", \"columns\": [], \"contribution\": false, \"datasource\": \"13__table\", \"granularity_sqla\": null, \"groupby\": [\"associationvalue\"], \"label_colors\": {\"#Customers(At Risk)\": \"#d0021b\", \"#Customers(Brand)\": \"#f5a623\", \"#Customers(Engagement)\": \"#265fe5\", \"#Customers(Gender)\": \"#b587ff\", \"#Customers(In Market)\": \"#417505\", \"#Customers(Location)\": \"#7ed321\", \"#Customers(Next Transaction)\": \"#265fe5\", \"#Customers(Product)\": \"#f5a623\", \"COUNT(atrisk)\": \"#d0021b\", \"COUNT(engagement)\": \"#265fe5\", \"COUNT(gender)\": \"#b587ff\", \"COUNT(location)\": \"#7ed321\", \"COUNT(predinmarket)\": \"#417505\", \"COUNT(transaction)\": \"#265fe5\", \"No. of Customers\": \"#f5a623\"}, \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"#Customers(Brand)\", \"optionName\": \"metric_cjynmjfddcw_t29xvsfxrf\", \"sqlExpression\": \"SUM(user_count)\"}], \"order_bars\": false, \"reduce_x_ticks\": false, \"row_limit\": null, \"show_bar_value\": false, \"show_controls\": false, \"show_legend\": false, \"slice_id\": 76, \"time_grain_sqla\": null, \"time_range\": \"Last week\", \"url_params\": {}, \"viz_type\": \"dist_bar\", \"x_axis_label\": \"Brand\", \"x_ticks_layout\": \"staggered\", \"y_axis_format\": \"SMART_NUMBER\", \"y_axis_label\": \"\", \"remote_id\": 17, \"datasource_name\": \"Top Brands\", \"schema\": \"pcv\", \"database_name\": \"examples\", \"import_time\": 1577340210}",
-                            "slice_name": "Top Brands",
-                            "viz_type": "dist_bar"
-                        }
-                    },
-                    {
-                        "__Slice__": {
-                            "cache_timeout": null,
                             "datasource_name": "pcv.Average Gap Between Orders",
                             "datasource_type": "table",
                             "id": 12,
@@ -149,6 +127,17 @@
                             "params": "{\"adhoc_filters\": [], \"color_picker\": {\"a\": 1, \"b\": 135, \"g\": 122, \"r\": 0}, \"compare_lag\": 7, \"datasource\": \"8__table\", \"granularity_sqla\": \"loaddate\", \"header_font_size\": 0.4, \"metric\": {\"aggregate\": \"SUM\", \"column\": {\"column_name\": \"avgordervalue\", \"description\": null, \"expression\": null, \"filterable\": true, \"groupby\": true, \"id\": 511, \"is_dttm\": false, \"optionName\": \"_col_avgordervalue\", \"python_date_format\": null, \"type\": \"INT\", \"verbose_name\": null}, \"expressionType\": \"SIMPLE\", \"fromFormData\": false, \"hasCustomLabel\": false, \"label\": \"SUM(avgordervalue)\", \"optionName\": \"metric_m9xvozb965q_8uekn2vashd\", \"sqlExpression\": null}, \"show_trend_line\": false, \"slice_id\": 13, \"start_y_axis_at_zero\": true, \"subheader_font_size\": 0.3, \"time_grain_sqla\": null, \"time_range\": \"No filter\", \"url_params\": {}, \"viz_type\": \"big_number\", \"y_axis_format\": \"SMART_NUMBER\", \"remote_id\": 13, \"datasource_name\": \"Average Order Value\", \"schema\": \"pcv\", \"database_name\": \"examples\"}",
                             "slice_name": "Average Order Value",
                             "viz_type": "big_number"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "pcv.Top Products",
+                            "datasource_type": "table",
+                            "id": 14,
+                            "params": "{\"adhoc_filters\": [], \"bar_stacked\": false, \"bottom_margin\": \"auto\", \"color_scheme\": \"bnbColors\", \"columns\": [], \"contribution\": false, \"datasource\": \"19__table\", \"granularity_sqla\": null, \"groupby\": [\"associationvalue\"], \"label_colors\": {\"#Customers(At Risk)\": \"#d0021b\", \"#Customers(Brand)\": \"#f5a623\", \"#Customers(Engagement)\": \"#265fe5\", \"#Customers(Gender)\": \"#b587ff\", \"#Customers(In Market)\": \"#417505\", \"#Customers(Location)\": \"#7ed321\", \"#Customers(Next Transaction)\": \"#265fe5\", \"#Customers(Product)\": \"#f5a623\", \"COUNT(atrisk)\": \"#d0021b\", \"COUNT(engagement)\": \"#265fe5\", \"COUNT(gender)\": \"#b587ff\", \"COUNT(location)\": \"#7ed321\", \"COUNT(predinmarket)\": \"#417505\", \"COUNT(transaction)\": \"#265fe5\", \"No. of Customers\": \"#f5a623\"}, \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"#Customers(Product)\", \"optionName\": \"metric_h1yn9vcw58f_kn0y4tbqi0h\", \"sqlExpression\": \"SUM(user_count)\"}], \"order_bars\": false, \"reduce_x_ticks\": false, \"row_limit\": null, \"show_bar_value\": false, \"show_controls\": false, \"show_legend\": false, \"slice_id\": 14, \"time_grain_sqla\": null, \"time_range\": \"Last week\", \"url_params\": {}, \"viz_type\": \"dist_bar\", \"x_axis_label\": \"Product\", \"x_ticks_layout\": \"staggered\", \"y_axis_format\": \"SMART_NUMBER\", \"y_axis_label\": \"\", \"remote_id\": 14, \"datasource_name\": \"Top Products\", \"schema\": \"pcv\", \"database_name\": \"examples\"}",
+                            "slice_name": "Top Products",
+                            "viz_type": "dist_bar"
                         }
                     },
                     {
@@ -214,6 +203,17 @@
                             "id": 6,
                             "params": "{\"adhoc_filters\": [], \"bar_stacked\": false, \"bottom_margin\": \"auto\", \"color_scheme\": \"bnbColors\", \"columns\": [], \"contribution\": false, \"datasource\": \"17__table\", \"granularity_sqla\": null, \"groupby\": [\"predchurnrisk\"], \"label_colors\": {\"#Customers(At Risk)\": \"#d0021b\", \"#Customers(Brand)\": \"#f5a623\", \"#Customers(Engagement)\": \"#265fe5\", \"#Customers(Gender)\": \"#b587ff\", \"#Customers(In Market)\": \"#417505\", \"#Customers(Location)\": \"#7ed321\", \"#Customers(Next Transaction)\": \"#265fe5\", \"#Customers(Product)\": \"#f5a623\", \"COUNT(atrisk)\": \"#d0021b\", \"COUNT(engagement)\": \"#265fe5\", \"COUNT(gender)\": \"#b587ff\", \"COUNT(location)\": \"#7ed321\", \"COUNT(predinmarket)\": \"#417505\", \"COUNT(transaction)\": \"#265fe5\", \"No. of Customers\": \"#f5a623\"}, \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"#Customers(At Risk)\", \"optionName\": \"metric_clapdl1o6gp_3ggp4twhr1x\", \"sqlExpression\": \"COUNT(atrisk)\"}], \"order_bars\": true, \"reduce_x_ticks\": false, \"row_limit\": null, \"show_bar_value\": false, \"show_controls\": false, \"show_legend\": false, \"slice_id\": 6, \"time_grain_sqla\": null, \"time_range\": \"Last week\", \"url_params\": {}, \"viz_type\": \"dist_bar\", \"x_axis_label\": \"Propensity\", \"x_ticks_layout\": \"flat\", \"y_axis_format\": \"SMART_NUMBER\", \"y_axis_label\": \"\", \"remote_id\": 6, \"datasource_name\": \"At Risk Customers Breakdown\", \"schema\": \"pcv\", \"database_name\": \"examples\"}",
                             "slice_name": "At Risk Customers",
+                            "viz_type": "dist_bar"
+                        }
+                    },
+                    {
+                        "__Slice__": {
+                            "cache_timeout": null,
+                            "datasource_name": "pcv.Top Brands",
+                            "datasource_type": "table",
+                            "id": 17,
+                            "params": "{\"adhoc_filters\": [], \"bar_stacked\": false, \"bottom_margin\": \"auto\", \"color_scheme\": \"bnbColors\", \"columns\": [], \"contribution\": false, \"datasource\": \"18__table\", \"granularity_sqla\": null, \"groupby\": [\"associationvalue\"], \"label_colors\": {\"#Customers(At Risk)\": \"#d0021b\", \"#Customers(Brand)\": \"#f5a623\", \"#Customers(Engagement)\": \"#265fe5\", \"#Customers(Gender)\": \"#b587ff\", \"#Customers(In Market)\": \"#417505\", \"#Customers(Location)\": \"#7ed321\", \"#Customers(Next Transaction)\": \"#265fe5\", \"#Customers(Product)\": \"#f5a623\", \"COUNT(atrisk)\": \"#d0021b\", \"COUNT(engagement)\": \"#265fe5\", \"COUNT(gender)\": \"#b587ff\", \"COUNT(location)\": \"#7ed321\", \"COUNT(predinmarket)\": \"#417505\", \"COUNT(transaction)\": \"#265fe5\", \"No. of Customers\": \"#f5a623\"}, \"metrics\": [{\"aggregate\": null, \"column\": null, \"expressionType\": \"SQL\", \"fromFormData\": true, \"hasCustomLabel\": true, \"label\": \"#Customers(Brand)\", \"optionName\": \"metric_cjynmjfddcw_t29xvsfxrf\", \"sqlExpression\": \"SUM(user_count)\"}], \"order_bars\": false, \"reduce_x_ticks\": false, \"row_limit\": null, \"show_bar_value\": false, \"show_controls\": false, \"show_legend\": false, \"slice_id\": 17, \"time_grain_sqla\": null, \"time_range\": \"Last week\", \"url_params\": {}, \"viz_type\": \"dist_bar\", \"x_axis_label\": \"Brand\", \"x_ticks_layout\": \"staggered\", \"y_axis_format\": \"SMART_NUMBER\", \"y_axis_label\": \"\", \"remote_id\": 17, \"datasource_name\": \"Top Brands\", \"schema\": \"pcv\", \"database_name\": \"examples\"}",
+                            "slice_name": "Top Brands",
                             "viz_type": "dist_bar"
                         }
                     }
@@ -398,7 +398,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 11, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "select COALESCE(avgordergapcnt,0) avgordergapcnt  , loaddate from customerai.aggregatedcustomerdata\nwhere loaddate = (select max(loaddate) from customerai.aggregatedcustomerdata)  ",
+                "sql": "select COALESCE(avgordergapcnt,0) avgordergapcnt  , loaddate from customerai.aggregatedcustomerdata",
                 "table_name": "Average Gap Between Orders",
                 "template_params": "{}"
             }
@@ -488,7 +488,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 4, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "select singleordercnt, loaddate from customerai.aggregatedcustomerdata \nwhere loaddate = (select max(loaddate) from customerai.aggregatedcustomerdata)\n",
+                "sql": "select singleordercnt, loaddate from customerai.aggregatedcustomerdata",
                 "table_name": "Single Order Customers",
                 "template_params": "{}"
             }
@@ -716,7 +716,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 17, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "SELECT Case predchurnrisk\n        when 'Very High' then '    Very High'\n        when 'High' Then '   High'\n        When 'Medium' Then '  Medium'\n        When 'Low' Then ' Low'\nend as predchurnrisk, userid as atrisk\nfrom customerai.customer_attributes where ispeakrowdelete is null ORDER BY predchurnrisk ASC",
+                "sql": "SELECT Case lower(predchurnrisk)\n        when 'very high' then '    Very High'\n        when 'high' Then '   High'\n        When 'medium' Then '  Medium'\n        When 'low' Then ' Low'\nend as predchurnrisk, userid as atrisk\nfrom customerai.customer_attributes where ispeakrowdelete is null ORDER BY predchurnrisk ASC",
                 "table_name": "At Risk Customers Breakdown",
                 "template_params": "{}"
             }
@@ -854,7 +854,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 10, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "SELECT Case predinmarket\n        when 'Very High' then '    Very High'\n        when 'High' Then '   High'\n        When 'Medium' Then '  Medium'\n        When 'Low' Then ' Low'\nend as predinmarket, userid as userid\nfrom customerai.customer_attributes where ispeakrowdelete is null ORDER BY predinmarket ASC",
+                "sql": "SELECT Case lower(predinmarket)\n        when 'very high' then '    Very High'\n        when 'high' Then '   High'\n        When 'medium' Then '  Medium'\n        When 'low' Then ' Low'\nend as predinmarket, userid as userid\nfrom customerai.customer_attributes where ispeakrowdelete is null ORDER BY predinmarket ASC",
                 "table_name": "In Market Customers Breakdown",
                 "template_params": "{}"
             }
@@ -867,7 +867,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T14:04:06"
                             },
                             "column_name": "associationtype",
                             "created_by_fk": 1,
@@ -879,7 +879,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 49,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 19,
@@ -891,7 +891,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T14:04:06"
                             },
                             "column_name": "userid",
                             "created_by_fk": 1,
@@ -903,7 +903,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 50,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 19,
@@ -915,7 +915,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T14:04:06"
                             },
                             "column_name": "associationrank",
                             "created_by_fk": 1,
@@ -927,7 +927,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 51,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 19,
@@ -939,7 +939,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T14:04:06"
                             },
                             "column_name": "associationvalue",
                             "created_by_fk": 1,
@@ -951,7 +951,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 52,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 19,
@@ -963,7 +963,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T14:04:06"
                             },
                             "column_name": "userstatus",
                             "created_by_fk": 1,
@@ -975,7 +975,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 53,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 19,
@@ -1016,7 +1016,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 19, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "select   associationvalue , count(*) as user_count , associationrank from customerai.customer_preferences   where associationtype  = 'Product Recommendation' and ispeakrowdelete is  null group by associationvalue, associationrank ORDER by associationrank asc limit 10",
+                "sql": "select   associationvalue , \ncount(*) as user_count \nfrom customerai.customer_preferences  \nwhere \nlower(associationtype)  = 'product recommendation' \nand ispeakrowdelete is  null \ngroup by associationvalue \norder by user_count desc,associationvalue desc  limit 10\n\n",
                 "table_name": "Top Products",
                 "template_params": "{}"
             }
@@ -1437,7 +1437,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T13:57:42"
                             },
                             "column_name": "associationtype",
                             "created_by_fk": 1,
@@ -1449,7 +1449,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 45,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 18,
@@ -1461,7 +1461,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T13:57:42"
                             },
                             "column_name": "associationrank",
                             "created_by_fk": 1,
@@ -1473,7 +1473,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 46,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 18,
@@ -1485,7 +1485,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T13:57:42"
                             },
                             "column_name": "associationvalue",
                             "created_by_fk": 1,
@@ -1497,7 +1497,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 47,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 18,
@@ -1509,7 +1509,7 @@
                         "__TableColumn__": {
                             "changed_by_fk": 1,
                             "changed_on": {
-                                "__datetime__": "2019-12-26T06:03:31"
+                                "__datetime__": "2020-02-12T13:57:42"
                             },
                             "column_name": "userstatus",
                             "created_by_fk": 1,
@@ -1521,7 +1521,7 @@
                             "filterable": true,
                             "groupby": true,
                             "id": 48,
-                            "is_active": true,
+                            "is_active": null,
                             "is_dttm": false,
                             "python_date_format": null,
                             "table_id": 18,
@@ -1562,7 +1562,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 18, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "select   associationvalue , count(*) as user_count , associationrank from customerai.customer_preferences   where associationtype  = 'Brand' and ispeakrowdelete is  null group by associationvalue, associationrank\nORDER by associationrank asc limit 10",
+                "sql": "select   associationvalue , count(*) as user_count\nfrom customerai.customer_preferences   \nwhere lower(associationtype)  = 'brand' \nand ispeakrowdelete is  null \ngroup by associationvalue\nORDER by  user_count desc, associationvalue desc limit 10",
                 "table_name": "Top Brands",
                 "template_params": "{}"
             }
@@ -1652,7 +1652,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 13, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "select repeatordercnt , loaddate from customerai.aggregatedcustomerdata\nwhere loaddate =(select max(loaddate) from customerai.aggregatedcustomerdata)",
+                "sql": "select repeatordercnt , loaddate from customerai.aggregatedcustomerdata",
                 "table_name": "Repeat Order Customers",
                 "template_params": "{}"
             }
@@ -1832,7 +1832,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 8, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "select COALESCE(avgordervalue,0) avgordervalue    , loaddate from customerai.aggregatedcustomerdata\n where loaddate = (select max(loaddate) from customerai.aggregatedcustomerdata)  ",
+                "sql": "select COALESCE(avgordervalue,0) avgordervalue    , loaddate from customerai.aggregatedcustomerdata",
                 "table_name": "Average Order Value",
                 "template_params": "{}"
             }
@@ -1970,7 +1970,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 1, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "SELECT Case prednexttranswindow\nwhen '1-15days' Then '    1-15days'\n              When '16-30days' Then '   16-30days'\n              When '>90days' Then '  >90days'\n\t      When 'Not in Market' Then ' Not in Market'\nend as prednexttranswindow, userid as transaction\nfrom customerai.customer_attributes where ispeakrowdelete is null ORDER BY prednexttranswindow ASC",
+                "sql": "SELECT Case lower(prednexttranswindow)\nwhen '1-15days' Then '    1-15Days'\n              When '16-30days' Then '   16-30Days'\n              When '>90days' Then '  >90Days'\n\t      When 'not in market' Then ' Not in Market'\nend as prednexttranswindow, userid as transaction\nfrom customerai.customer_attributes where ispeakrowdelete is null ORDER BY prednexttranswindow ASC",
                 "table_name": "Next Transaction Window",
                 "template_params": "{}"
             }
@@ -2198,7 +2198,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 16, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "SELECT Case predengagement\n        when 'Very High' then '    Very High'\n        when 'High' Then '   High'\n        When 'Medium' Then '  Medium'\n        When 'Low' Then ' Low'\nend as predengagement, userid as engagement\nfrom customerai.customer_attributes where ispeakrowdelete is null ORDER BY predengagement ASC",
+                "sql": "SELECT Case lower(predengagement)\n        when 'very high' then '    Very High'\n        when 'high' Then '   High'\n        When 'medium' Then '  Medium'\n        When 'low' Then ' Low'\nend as predengagement, userid as engagement\nfrom customerai.customer_attributes where ispeakrowdelete is null ORDER BY predengagement ASC",
                 "table_name": "Predictive Engagement",
                 "template_params": "{}"
             }
@@ -2288,7 +2288,7 @@
                 "offset": 0,
                 "params": "{\"remote_id\": 9, \"database_name\": \"examples\", \"import_time\": 1577340210}",
                 "schema": "pcv",
-                "sql": "select COALESCE(avgbasketsize,0)  avgbasketsize , loaddate from customerai.aggregatedcustomerdata\n where loaddate = (select max(loaddate) from customerai.aggregatedcustomerdata)  ",
+                "sql": "select COALESCE(avgbasketsize,0)  avgbasketsize , loaddate from customerai.aggregatedcustomerdata",
                 "table_name": "Average Basket Size",
                 "template_params": "{}"
             }
