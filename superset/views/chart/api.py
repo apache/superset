@@ -174,6 +174,3 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "owners": ("first_name", "asc"),
     }
     filter_rel_fields_field = {"owners": "first_name", "dashboards": "dashboard_title"}
-
-
-appbuilder.add_api(ChartRestApi)
