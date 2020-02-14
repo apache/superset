@@ -860,6 +860,15 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
         self.assertIn("gender", resp)
 
+    def test_get_select_star_not_allowed(self):
+        """
+            Database API: Test get select star not allowed
+        """
+        self.login(username="gamma")
+        example_db = utils.get_example_database()
+        resp = self.client.get(f"/superset/select_star/{example_db.id}/birth_names")
+        self.assertEqual(resp.status_code, 404)
+
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
     @mock.patch("superset.views.core.results_backend")
     @mock.patch("superset.views.core.db")
