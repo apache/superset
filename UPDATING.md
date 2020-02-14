@@ -25,7 +25,7 @@ assists people when migrating to a new version.
 * [9120](https://github.com/apache/incubator-superset/pull/9120): Changes the default behavior of ad-hoc sharing of
 queries in SQLLab to one that links to the saved query rather than one that copies the query data into the KVStore
 model and links to the record there. This is a security-related change that makes SQLLab query
-sharing respect the existing RBAC. Should you wish to retain the existing behavior, set two feature flags:
+sharing respect the existing role-based access controls. Should you wish to retain the existing behavior, set two feature flags:
 `"KV_STORE": True` will re-enable the `/kv/` and `/kv/store/` endpoints, and `"SHARE_QUERIES_VIA_KV_STORE": True`
 will tell the front-end to utilize them for query sharing.
 * [9046](https://github.com/apache/incubator-superset/pull/9046): Replaces `can_only_access_owned_queries` by
