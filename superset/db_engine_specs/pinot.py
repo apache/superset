@@ -40,7 +40,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1Y": "1:YEARS",
     }
 
-    _python_to_java_time_patterns = {
+    _python_to_java_time_patterns: Dict[str, str] = {
         "%Y": "yyyy",
         "%m": "MM",
         "%d": "dd",
@@ -65,13 +65,13 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                 today.strftime(str(pdf))
             except ValueError:
                 raise ValueError(f"Invalid column datetime format:{str(pdf)}")
-            java_pdf = str(pdf)
+            java_date_format = str(pdf)
             for (
                 python_pattern,
                 java_pattern,
             ) in cls._python_to_java_time_patterns.items():
-                java_pdf.replace(python_pattern, java_pattern)
-            tf = f"1:SECONDS:SIMPLE_DATE_FORMAT:{java_pdf}"
+                java_date_format.replace(python_pattern, java_pattern)
+            tf = f"1:SECONDS:SIMPLE_DATE_FORMAT:{java_date_format}"
         else:
             seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
             tf = f"1:{seconds_or_ms}:EPOCH"
