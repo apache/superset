@@ -45,7 +45,7 @@
     "prop-types": "^15.6.2",
     "reselect": "^4.0.0",
     "vega": "^5.8.1",
-    "vega-lite": "^4.0.0-beta.12"
+    "vega-lite": "~4.1.1"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.12.0",
