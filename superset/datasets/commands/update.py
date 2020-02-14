@@ -20,6 +20,7 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import UnmarshalResult, ValidationError
 
 from superset.commands.base import BaseCommand, CommandValidateReturn
+from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.base import populate_owners
 from superset.datasets.commands.exceptions import (
     DatabaseChangeValidationError,
@@ -29,7 +30,6 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
     DatasetUpdateFailedError,
 )
-from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
