@@ -40,6 +40,15 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1Y": "1:YEARS",
     }
 
+    _python_to_java_time_patterns = {
+        "%Y": "yyyy",
+        "%m": "MM",
+        "%d": "dd",
+        "%H": "HH",
+        "%M": "mm",
+        "%S": "ss",
+    }
+
     @classmethod
     def get_timestamp_expr(
         cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
@@ -55,18 +64,13 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                 today = datetime.datetime.today()
                 today.strftime(str(pdf))
             except ValueError:
-                raise NotImplementedError(
-                    "Pinot currently doesn't support date formate: " + str(pdf)
-                )
-            java_pdf = (
-                str(pdf)
-                .replace("%Y", "yyyy")
-                .replace("%m", "MM")
-                .replace("%d", "dd")
-                .replace("%H", "HH")
-                .replace("%M", "mm")
-                .replace("%S", "ss")
-            )
+                raise ValueError(f"Invalid column datetime format:{str(pdf)}")
+            java_pdf = str(pdf)
+            for (
+                python_pattern,
+                java_pattern,
+            ) in cls._python_to_java_time_patterns.items():
+                java_pdf.replace(python_pattern, java_pattern)
             tf = f"1:SECONDS:SIMPLE_DATE_FORMAT:{java_pdf}"
         else:
             seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
