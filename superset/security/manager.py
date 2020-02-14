@@ -310,6 +310,11 @@ class SupersetSecurityManager(SecurityManager):
 
         return conf.get("PERMISSION_INSTRUCTIONS_LINK")
 
+    def can_access_datasource(
+        self, database: "Database", table_name: str, schema: str = None
+    ) -> bool:
+        return self._datasource_access_by_name(database, table_name, schema=schema)
+
     def _datasource_access_by_name(
         self, database: "Database", table_name: str, schema: str = None
     ) -> bool:
@@ -520,7 +525,7 @@ class SupersetSecurityManager(SecurityManager):
             return [d for d in datasource_names if d in names]
         else:
             full_names = {d.full_name for d in user_datasources}
-            return [d for d in datasource_names if d in full_names]
+            return [d for d in datasource_names if f"[{database}].[{d}]" in full_names]
 
     def merge_perm(self, permission_name: str, view_menu_name: str) -> None:
         """
