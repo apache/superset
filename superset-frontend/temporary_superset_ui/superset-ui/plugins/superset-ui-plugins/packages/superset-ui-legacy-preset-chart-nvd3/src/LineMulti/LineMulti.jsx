@@ -20,6 +20,7 @@
 import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
+import { isEqual } from 'lodash';
 import { getExploreLongUrl } from '../vendor/superset/exploreUtils';
 import ReactNVD3 from '../ReactNVD3';
 import transformProps from '../transformProps';
@@ -30,6 +31,8 @@ const propTypes = {
   annotationData: PropTypes.object,
   datasource: PropTypes.object,
   formData: PropTypes.object,
+  queryData: PropTypes.object,
+  rawFormData: PropTypes.object,
   hooks: PropTypes.shape({
     onAddFilter: PropTypes.func,
     onError: PropTypes.func,
@@ -58,16 +61,26 @@ function getJson(url) {
 class LineMulti extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { queryData: [] };
+    this.state = { queryData: false };
   }
 
   componentDidMount() {
     this.loadData(this.props);
   }
 
-  // eslint-disable-next-line react/no-deprecated
-  componentWillReceiveProps(nextProps) {
-    this.loadData(nextProps);
+  shouldComponentUpdate(nextProps) {
+    const { rawFormData } = this.props;
+    const { rawFormData: nextRawFormData } = nextProps;
+    const { queryData } = this.state;
+    if (!queryData || !isEqual(rawFormData, nextRawFormData)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  componentDidUpdate() {
+    this.loadData(this.props);
   }
 
   loadData(props) {
@@ -81,8 +94,6 @@ class LineMulti extends React.Component {
       prefixMetricWithSliceName,
       timeRange,
     } = formData;
-
-    this.setState({ queryData: [] });
 
     // fetch data from all the charts
     const subslices = [
