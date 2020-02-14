@@ -1939,11 +1939,34 @@ class Superset(BaseSupersetView):
     @expose("/select_star/<database_id>/<table_name>/<schema>")
     @event_logger.log_this
     def select_star(self, database_id, table_name, schema=None):
-        mydb = db.session.query(models.Database).get(database_id)
+        logging.warning(
+            f"{self.__class__.__name__}.select_star "
+            "This API endpoint is deprecated and will be removed in version 1.0.0"
+        )
+        stats_logger.incr(f"{self.__class__.__name__}.select_star.init")
+        database = db.session.query(models.Database).get(database_id)
+        if not database:
+            stats_logger.incr(
+                f"deprecated.{self.__class__.__name__}.select_star.database_not_found"
+            )
+            return json_error_response("Not found", 404)
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
+        # Check that the user can access the datasource
+        if not self.appbuilder.sm.can_access_datasource(database, table_name, schema):
+            stats_logger.incr(
+                f"deprecated.{self.__class__.__name__}.select_star.permission_denied"
+            )
+            logging.warning(
+                f"Permission denied for user {g.user} on table: {table_name} "
+                f"schema: {schema}"
+            )
+            return json_error_response("Not found", 404)
+        stats_logger.incr(f"deprecated.{self.__class__.__name__}.select_star.success")
         return json_success(
-            mydb.select_star(table_name, schema, latest_partition=True, show_cols=True)
+            database.select_star(
+                table_name, schema, latest_partition=True, show_cols=True
+            )
         )
 
     @has_access_api
