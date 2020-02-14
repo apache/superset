@@ -93,6 +93,14 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """  # pylint: disable=pointless-string-statement
 
+    def __init__(self):
+        super().__init__()
+        self.stats_logger = None
+
+    def create_blueprint(self, appbuilder, *args, **kwargs):
+        self.stats_logger = self.appbuilder.get_app.config["STATS_LOGGER"]
+        return super().create_blueprint(appbuilder, *args, **kwargs)
+
     def _init_properties(self):
         model_id = self.datamodel.get_pk_name()
         if self.list_columns is None and not self.list_model_schema:
@@ -113,6 +121,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
                 [{"opr": "sw", "col": filter_field, "value": value}]
             )
         return filters
+
+    def incr_stats(self, action: str, func_name: str) -> None:
+        self.stats_logger.incr(f"{self.__class__.__name__}.{func_name}.{action}")
 
     @expose("/related/<column_name>", methods=["GET"])
     @protect()

@@ -18,13 +18,13 @@ from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import lazy_gettext as _
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from superset import event_logger
 from superset.models.core import Database
-from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.database.decorators import check_datasource_access
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.mixins import DatabaseMixin
 from superset.views.database.validators import sqlalchemy_uri_validator
@@ -112,9 +112,13 @@ def get_table_metadata(
 class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    include_route_methods = {"get_list", "table_metadata"}
+    include_route_methods = {"get_list", "table_metadata", "select_star"}
     class_permission_name = "DatabaseView"
-    method_permission_name = {"get_list": "list", "table_metadata": "list"}
+    method_permission_name = {
+        "get_list": "list",
+        "table_metadata": "list",
+        "select_star": "list",
+    }
     resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
@@ -143,11 +147,10 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         "/<int:pk>/table/<string:table_name>/<string:schema_name>/", methods=["GET"]
     )
     @protect()
+    @check_datasource_access
     @safe
     @event_logger.log_this
-    def table_metadata(
-        self, pk: int, table_name: str, schema_name: str
-    ):  # pylint: disable=invalid-name
+    def table_metadata(self, database: Database, table_name: str, schema_name: str):
         """ Table schema info
         ---
         get:
@@ -262,19 +265,74 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        table_name_parsed = parse_js_uri_path_item(table_name)
-        schema_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
-        # schemas can be None but not tables
-        if not table_name_parsed:
-            return self.response_422(message=_(f"Could not parse table name or schema"))
-        database: Database = self.datamodel.get(pk, self._base_filters)
-        if not database:
-            return self.response_404()
-
+        self.incr_stats("init", self.table_metadata.__name__)
         try:
-            table_info: Dict = get_table_metadata(
-                database, table_name_parsed, schema_parsed
-            )
+            table_info: Dict = get_table_metadata(database, table_name, schema_name)
         except SQLAlchemyError as e:
+            self.incr_stats("error", self.table_metadata.__name__)
             return self.response_422(error_msg_from_exception(e))
+        self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
+
+    @expose("/<int:pk>/select_star/<string:table_name>/", methods=["GET"])
+    @expose(
+        "/<int:pk>/select_star/<string:table_name>/<string:schema_name>/",
+        methods=["GET"],
+    )
+    @protect()
+    @check_datasource_access
+    @safe
+    @event_logger.log_this
+    def select_star(self, database: Database, table_name: str, schema_name: str = None):
+        """ Table schema info
+        ---
+        get:
+          description: Get database select star for table
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: path
+            schema:
+              type: string
+            name: table_name
+            description: Table name
+          - in: path
+            schema:
+              type: string
+            name: schema_name
+            description: Table schema
+          responses:
+            200:
+              description: select star for table
+              content:
+                text/plain:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: string
+                        description: SQL select star
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        self.incr_stats("init", self.select_star.__name__)
+        try:
+            result = database.select_star(
+                table_name, schema_name, latest_partition=True, show_cols=True
+            )
+        except NoSuchTableError:
+            self.incr_stats("error", self.select_star.__name__)
+            return self.response(404, message="Table not found on the database")
+        self.incr_stats("success", self.select_star.__name__)
+        return self.response(200, result=result)
