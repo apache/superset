@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
 import functools
+import logging
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -24,6 +24,7 @@ from superset.models.core import Database
 from superset.utils.core import parse_js_uri_path_item
 
 logger = logging.getLogger(__name__)
+
 
 def check_datasource_access(f):
     """
@@ -36,7 +37,7 @@ def check_datasource_access(f):
         schema_name_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
         table_name_parsed = parse_js_uri_path_item(table_name)
         if not table_name_parsed:
-            return self.response_422(message=_("Table name could not be parsed"))
+            return self.response_422(message=_("Table name undefined"))
         database: Database = self.datamodel.get(pk)
         if not database:
             self.stats_logger.incr(
