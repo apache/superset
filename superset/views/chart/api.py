@@ -22,7 +22,6 @@ from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset import appbuilder
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.models.dashboard import Dashboard
@@ -174,6 +173,3 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "owners": ("first_name", "asc"),
     }
     filter_rel_fields_field = {"owners": "first_name", "dashboards": "dashboard_title"}
-
-
-appbuilder.add_api(ChartRestApi)
