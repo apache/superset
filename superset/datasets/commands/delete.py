@@ -14,15 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional, List
 
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand, CommandValidateReturn
 from superset.datasets.commands.exceptions import (
     DatasetDeleteFailedError,
+    DatasetForbiddenError,
     DatasetNotFoundError,
 )
+from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.dao import DatasetDAO
+from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
 
 
@@ -30,12 +34,9 @@ class DeleteDatasetCommand(BaseCommand):
     def __init__(self, user: User, model_id: int):
         self._actor = user
         self._model_id = model_id
-        self._model = None
+        self._model: Optional[SqlaTable] = None
 
     def run(self):
-        self._model = DatasetDAO.find_by_id(self._model_id)
-        if not self._model:
-            raise DatasetNotFoundError()
         self.validate()
         dataset = DatasetDAO.delete(self._model)
 
@@ -44,6 +45,13 @@ class DeleteDatasetCommand(BaseCommand):
         return dataset
 
     def validate(self) -> CommandValidateReturn:
-        is_valid, exceptions = super().validate()
-        check_ownership(self._model)
-        return is_valid, exceptions
+        # Validate/populate model exists
+        self._model = DatasetDAO.find_by_id(self._model_id)
+        if not self._model:
+            raise DatasetNotFoundError()
+        # Check ownership
+        try:
+            check_ownership(self._model)
+        except SupersetSecurityException:
+            raise DatasetForbiddenError()
+        return True, []

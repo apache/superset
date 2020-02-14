@@ -30,7 +30,7 @@ class BaseCommand(ABC):
     @abstractmethod
     def run(self):
         """
-        Run executes the command
+        Run executes the command. Can raise command exceptions
         :return:
         """
         pass
@@ -38,7 +38,9 @@ class BaseCommand(ABC):
     @abstractmethod
     def validate(self) -> CommandValidateReturn:
         """
-        Validate is normally called by run to validate data
+        Validate is normally called by run to validate data.
+        Can raise command exceptions or return CommandValidateReturn type
+        on data validation issues
         :return: bool, List of marshmallow validation errors
         """
-        return True, list()
+        pass

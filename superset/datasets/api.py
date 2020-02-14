@@ -20,13 +20,13 @@ from superset.datasets.commands.delete import DeleteDatasetCommand
 from superset.datasets.commands.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
+    DatasetForbiddenError,
     DatasetInvalidError,
     DatasetNotFoundError,
     DatasetUpdateFailedError,
 )
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.schemas import DatasetPostSchema, DatasetPutSchema
-from superset.exceptions import SupersetSecurityException
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import BaseOwnedModelRestApi
 from superset.views.database.filters import DatabaseFilter
@@ -117,7 +117,7 @@ class DatasetRestApi(BaseOwnedModelRestApi):
                     type: object
                     properties:
                       id:
-                        type: string
+                        type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
             400:
@@ -136,8 +136,7 @@ class DatasetRestApi(BaseOwnedModelRestApi):
         if item.errors:
             return self.response_400(message=item.errors)
         try:
-            cmd = CreateDatasetCommand(g.user, item)
-            new_model = cmd.run()
+            new_model = CreateDatasetCommand(g.user, item).run()
             return self.response(201, id=new_model.id, result=item.data)
         except DatasetInvalidError:
             return self.response_422(message=item.errors)
@@ -176,6 +175,8 @@ class DatasetRestApi(BaseOwnedModelRestApi):
                   schema:
                     type: object
                     properties:
+                      id:
+                        type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
             400:
@@ -198,12 +199,11 @@ class DatasetRestApi(BaseOwnedModelRestApi):
         if item.errors:
             return self.response_400(message=item.errors)
         try:
-            cmd = UpdateDatasetCommand(g.user, pk, item)
-            new_model = cmd.run()
-            return self.response(200, id=new_model.id, result=item.data)
+            changed_model = UpdateDatasetCommand(g.user, pk, item).run()
+            return self.response(200, id=changed_model.id, result=item.data)
         except DatasetNotFoundError:
             return self.response_404()
-        except SupersetSecurityException:
+        except DatasetForbiddenError:
             return self.response_403()
         except DatasetInvalidError:
             return self.response_422(message=item.errors)
@@ -247,12 +247,11 @@ class DatasetRestApi(BaseOwnedModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            cmd = DeleteDatasetCommand(g.user, pk)
-            cmd.run()
+            DeleteDatasetCommand(g.user, pk).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
-        except SupersetSecurityException:
+        except DatasetForbiddenError:
             return self.response_403()
         except DatasetDeleteFailedError as e:
             logger.error(f"Error deleting model {self.__class__.__name__}: {e}")

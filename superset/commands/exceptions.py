@@ -37,3 +37,7 @@ class CreateFailedError(CommandException):
 
 class DeleteFailedError(CommandException):
     message = "Command delete failed"
+
+
+class ForbiddenError(CommandException):
+    message = "Actions is forbidden"

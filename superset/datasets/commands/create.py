@@ -49,7 +49,7 @@ class CreateDatasetCommand(BaseCommand):
         return dataset
 
     def validate(self) -> CommandValidateReturn:
-        is_valid, exceptions = super().validate()
+        is_valid, exceptions = True, list()
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", "")

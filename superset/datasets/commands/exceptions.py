@@ -21,6 +21,7 @@ from superset.commands.exceptions import (
     CommandException,
     CreateFailedError,
     DeleteFailedError,
+    ForbiddenError,
     UpdateFailedError,
 )
 from superset.views.base import get_datasource_exist_error_msg
@@ -95,3 +96,7 @@ class DatasetUpdateFailedError(UpdateFailedError):
 
 class DatasetDeleteFailedError(DeleteFailedError):
     message = _("Dataset could not be deleted.")
+
+
+class DatasetForbiddenError(ForbiddenError):
+    message = _("Changing this dataset is forbidden")
