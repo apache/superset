@@ -47,7 +47,6 @@
     "@airbnb/config-prettier": "^2.0.4",
     "@airbnb/config-typescript": "^2.1.2",
     "@airbnb/nimbus": "^2.1.3",
-    "@babel/plugin-transform-runtime": "^7.8.3",
     "@superset-ui/commit-config": "^0.0.9",
     "@types/enzyme": "^3.10.3",
     "@types/jest": "^25.1.1",
@@ -74,6 +73,12 @@
   "workspaces": [
     "./packages/*"
   ],
+  "browserslist": [
+    "last 3 chrome versions",
+    "last 3 firefox versions",
+    "last 3 safari versions",
+    "last 3 edge versions"
+  ],
   "nimbus": {
     "drivers": [
       "babel",
@@ -87,12 +92,8 @@
       "react": true,
       "next": true,
       "env": {
-        "corejs": 3,
-        "useBuiltIns": "usage"
+        "targets": false
       }
-    },
-    "babel": {
-      "plugins": [["@babel/plugin-transform-runtime", { "corejs": 3 }]]
     },
     "jest": {
       "globals": {
