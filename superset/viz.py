@@ -970,6 +970,10 @@ class BubbleViz(NVD3Viz):
         d["groupby"] = [form_data.get("entity")]
         if form_data.get("series"):
             d["groupby"].append(form_data.get("series"))
+
+        # dedup groupby if it happens to be the same
+        d["groupby"] = list(dict.fromkeys(d["groupby"]))
+
         self.x_metric = form_data.get("x")
         self.y_metric = form_data.get("y")
         self.z_metric = form_data.get("size")
