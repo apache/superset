@@ -81,9 +81,9 @@
     typescript "^3.7.5"
 
 "@airbnb/lunar-icons@^2.1.4":
-  version "2.7.1"
-  resolved "https://registry.yarnpkg.com/@airbnb/lunar-icons/-/lunar-icons-2.7.1.tgz#a6c72987b1748f511f99a8fff8bd4f47474c628f"
-  integrity sha512-FJLVt1B+OPCHryCOjhmpqfYNAiGbCzX8fAM27sTXw6pjHikm4iLr82paHXWnTIqantWOcNEj90Z7boKLfVtRbw==
+  version "2.8.1"
+  resolved "https://registry.yarnpkg.com/@airbnb/lunar-icons/-/lunar-icons-2.8.1.tgz#e5a9fc5c86152c8b7c22e7e85137beaee8cdde82"
+  integrity sha512-1VObhkpOKIlE5EcTW3xEZ4RzBNRlwPhX8MKaLFimFWDE9tztxRdQHFlf+T1DxusdXjaJqN+nNOt6CSKdCVhSbA==
   dependencies:
     "@types/react" "*"
 
