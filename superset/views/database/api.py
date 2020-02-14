@@ -14,20 +14,89 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
+from flask import g
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import event_logger
+from superset import app, event_logger, security_manager
 from superset.models.core import Database
-from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.core import (
+    DatasourceName,
+    error_msg_from_exception,
+    parse_js_uri_path_item,
+)
 from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.mixins import DatabaseMixin
 from superset.views.database.validators import sqlalchemy_uri_validator
+
+
+def get_datasource_label(ds_name: DatasourceName, schema_name: Optional[str]) -> str:
+    return ds_name.table if schema_name else f"{ds_name.schema}.{ds_name.table}"
+
+
+def get_all_object_names_in_database(
+    get_all_func: Callable,
+    database: Database,
+    schema_name: Optional[str],
+    substr: Optional[str],
+    force_refresh: bool,
+):
+    if schema_name:
+        tables_views = (
+            get_all_func(
+                schema=schema_name,
+                force=force_refresh,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            or []
+        )
+    else:
+        tables_views = database.get_all_func(
+            cache=True, force=False, cache_timeout=24 * 60 * 60
+        )
+    if substr:
+        tables_views = [
+            ds for ds in tables_views if substr in get_datasource_label(ds, schema_name)
+        ]
+    return security_manager.get_datasources_accessible_by_user(
+        database, tables_views, schema_name
+    )
+
+
+def get_all_table_names_in_database(
+    database: Database,
+    schema_name: Optional[str],
+    substr: Optional[str],
+    force_refresh: bool,
+) -> List[DatasourceName]:
+    return get_all_object_names_in_database(
+        database.get_all_table_names_in_schema,
+        database,
+        schema_name,
+        substr,
+        force_refresh,
+    )
+
+
+def get_all_view_names_in_database(
+    database: Database,
+    schema_name: Optional[str],
+    substr: Optional[str],
+    force_refresh: bool,
+) -> List[DatasourceName]:
+    return get_all_object_names_in_database(
+        database.get_all_view_names_in_schema,
+        database,
+        schema_name,
+        substr,
+        force_refresh,
+    )
 
 
 def get_foreign_keys_metadata(
@@ -112,9 +181,13 @@ def get_table_metadata(
 class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    include_route_methods = {"get_list", "table_metadata"}
+    include_route_methods = {"get_list", "table_metadata", "tables"}
     class_permission_name = "DatabaseView"
-    method_permission_name = {"get_list": "list", "table_metadata": "list"}
+    method_permission_name = {
+        "get_list": "list",
+        "table_metadata": "list",
+        "tables": "list",
+    }
     resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
@@ -278,3 +351,71 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         except SQLAlchemyError as e:
             return self.response_422(error_msg_from_exception(e))
         return self.response(200, **table_info)
+
+    @expose("/<int:pk>/tables/<string:schema_name>/<string:substr>/", methods=["GET"])
+    @expose(
+        "/<int:pk>/tables/<string:schema_name>/<string:substr>/<force_refresh>/",
+        methods=["GET"],
+    )
+    @protect()
+    @safe
+    @event_logger.log_this
+    def tables(
+        self, pk: int, schema_name: str, substr: str, force_refresh="false"
+    ):  # pylint: disable=invalid-name
+        force_refresh = force_refresh.lower() == "true"
+        schema_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
+        substr_parsed = parse_js_uri_path_item(substr, eval_undefined=True)
+        # Guarantees filtering on databases
+        database: Database = self.datamodel.get(pk, self._base_filters)
+        if not database:
+            return self.response_404()
+
+        tables = get_all_table_names_in_database(
+            database, schema_parsed, substr_parsed, force_refresh
+        )
+        views = get_all_view_names_in_database(
+            database, schema_parsed, substr_parsed, force_refresh
+        )
+
+        if not schema_parsed and database.default_schemas:
+            user_schema = g.user.email.split("@")[0]
+            valid_schemas = set(database.default_schemas + [user_schema])
+
+            tables = [tn for tn in tables if tn.schema in valid_schemas]
+            views = [vn for vn in views if vn.schema in valid_schemas]
+
+        max_items = app.config["MAX_TABLE_NAMES"] or len(tables)
+        total_items = len(tables) + len(views)
+        max_tables = len(tables)
+        max_views = len(views)
+        if total_items and substr_parsed:
+            max_tables = max_items * len(tables) // total_items
+            max_views = max_items * len(views) // total_items
+
+        table_options = [
+            {
+                "value": tn.table,
+                "schema": tn.schema,
+                "label": get_datasource_label(tn, schema_parsed),
+                "title": get_datasource_label(tn, schema_parsed),
+                "type": "table",
+            }
+            for tn in tables[:max_tables]
+        ]
+        table_options.extend(
+            [
+                {
+                    "value": vn.table,
+                    "schema": vn.schema,
+                    "label": get_datasource_label(vn, schema_parsed),
+                    "title": get_datasource_label(vn, schema_parsed),
+                    "type": "view",
+                }
+                for vn in views[:max_views]
+            ]
+        )
+        table_options.sort(key=lambda value: value["label"])
+        return self.response(
+            200, tableLength=len(tables) + len(views), options=table_options
+        )

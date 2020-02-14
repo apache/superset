@@ -1072,6 +1072,10 @@ class Superset(BaseSupersetView):
     @expose("/tables/<db_id>/<schema>/<substr>/<force_refresh>/")
     def tables(self, db_id, schema, substr, force_refresh="false"):
         """Endpoint to fetch the list of tables for given database"""
+        logger.warning(
+            "/superset/tables/ API endpoint "
+            "is deprecated and will be removed in version 1.0.0"
+        )
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == "true"
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
@@ -1688,7 +1692,8 @@ class Superset(BaseSupersetView):
     def publish(self, dashboard_id):
         """Gets and toggles published status on dashboards"""
         logger.warning(
-            "This API endpoint is deprecated and will be removed in version 1.0.0"
+            "/superset/dashboard API endpoint is deprecated "
+            "and will be removed in version 1.0.0"
         )
         session = db.session()
         Role = ab_models.Role
