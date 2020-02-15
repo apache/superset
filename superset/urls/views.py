@@ -1,0 +1,59 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+from flask import flash, redirect, request, Response
+from flask_appbuilder import expose
+from flask_appbuilder.security.decorators import has_access_api
+
+from superset import db, event_logger
+from superset.models.core import Url
+from superset.views.base import BaseSupersetView
+
+
+class R(BaseSupersetView):
+
+    """used for short urls"""
+
+    @event_logger.log_this
+    @expose("/<url_id>")
+    def index(self, url_id):
+        url = db.session.query(Url).get(url_id)
+        if url and url.url:
+            explore_url = "//superset/explore/?"
+            if url.url.startswith(explore_url):
+                explore_url += f"r={url_id}"
+                return redirect(explore_url[1:])
+            else:
+                return redirect(url.url[1:])
+        else:
+            flash("URL to nowhere...", "danger")
+            return redirect("/")
+
+    @event_logger.log_this
+    @has_access_api
+    @expose("/shortner/", methods=["POST"])
+    def shortner(self):
+        url = request.form.get("data")
+        obj = Url(url=url)
+        db.session.add(obj)
+        db.session.commit()
+        return Response(
+            "{scheme}://{request.headers[Host]}/r/{obj.id}".format(
+                scheme=request.scheme, request=request, obj=obj
+            ),
+            mimetype="text/plain",
+        )

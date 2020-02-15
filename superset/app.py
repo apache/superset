@@ -140,14 +140,9 @@ class SupersetAppInitializer:
             AnnotationModelView,
         )
         from superset.views.api import Api
-        from superset.views.core import (
-            AccessRequestsModelView,
-            KV,
-            R,
-            Superset,
-            CssTemplateModelView,
-            CssTemplateAsyncModelView,
-        )
+        from superset.views.core import KV, Superset
+        from superset.access_requests.views import AccessRequestsModelView
+        from superset.urls.views import R
         from superset.views.chart.api import ChartRestApi
         from superset.views.chart.views import SliceModelView, SliceAsync
         from superset.views.dashboard.api import DashboardRestApi
@@ -174,6 +169,8 @@ class SupersetAppInitializer:
             SqlLab,
         )
         from superset.views.tags import TagView
+        from superset.css_templates.views import CssTemplateModelView
+        from superset.css_templates.api import CssTemplateAsyncModelView
 
         #
         # Setup API views

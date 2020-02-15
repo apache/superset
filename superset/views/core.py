@@ -27,26 +27,14 @@ import msgpack
 import pandas as pd
 import pyarrow as pa
 import simplejson as json
-from flask import (
-    abort,
-    flash,
-    g,
-    Markup,
-    redirect,
-    render_template,
-    request,
-    Response,
-    url_for,
-)
+from flask import abort, flash, g, Markup, redirect, render_template, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, Integer, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
-from werkzeug.routing import BaseConverter
 from werkzeug.urls import Href
 
 import superset.models.core as models
@@ -70,7 +58,6 @@ from superset import (
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
-from superset.constants import RouteMethod
 from superset.exceptions import (
     DatabaseNotFound,
     SupersetException,
@@ -150,6 +137,21 @@ USER_MISSING_ERR = __("The user seems to have been deleted")
 FORM_DATA_KEY_BLACKLIST: List[str] = []
 if not config["ENABLE_JAVASCRIPT_CONTROLS"]:
     FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+
+
+@app.after_request
+def apply_http_headers(response: Response):
+    """Applies the configuration's http headers to all responses"""
+
+    # HTTP_HEADERS is deprecated, this provides backwards compatibility
+    response.headers.extend(
+        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
+    )
+
+    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
+        if k not in response.headers:
+            response.headers[k] = v
+    return response
 
 
 def get_database_access_error_msg(database_name):
@@ -250,28 +252,6 @@ def _deserialize_results_payload(
             return json.loads(payload)  # type: ignore
 
 
-class AccessRequestsModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(DAR)
-    include_route_methods = RouteMethod.CRUD_SET
-    list_columns = [
-        "username",
-        "user_roles",
-        "datasource_link",
-        "roles_with_datasource",
-        "created_on",
-    ]
-    order_columns = ["created_on"]
-    base_order = ("changed_on", "desc")
-    label_columns = {
-        "username": _("User"),
-        "user_roles": _("User Roles"),
-        "database": _("Database URL"),
-        "datasource_link": _("Datasource"),
-        "roles_with_datasource": _("Roles to grant"),
-        "created_on": _("Created On"),
-    }
-
-
 @talisman(force_https=False)
 @app.route("/health")
 def health():
@@ -318,41 +298,6 @@ class KV(BaseSupersetView):
         except Exception as e:
             return json_error_response(e)
         return Response(kv.value, status=200, content_type="text/plain")
-
-
-class R(BaseSupersetView):
-
-    """used for short urls"""
-
-    @event_logger.log_this
-    @expose("/<url_id>")
-    def index(self, url_id):
-        url = db.session.query(models.Url).get(url_id)
-        if url and url.url:
-            explore_url = "//superset/explore/?"
-            if url.url.startswith(explore_url):
-                explore_url += f"r={url_id}"
-                return redirect(explore_url[1:])
-            else:
-                return redirect(url.url[1:])
-        else:
-            flash("URL to nowhere...", "danger")
-            return redirect("/")
-
-    @event_logger.log_this
-    @has_access_api
-    @expose("/shortner/", methods=["POST"])
-    def shortner(self):
-        url = request.form.get("data")
-        obj = models.Url(url=url)
-        db.session.add(obj)
-        db.session.commit()
-        return Response(
-            "{scheme}://{request.headers[Host]}/r/{obj.id}".format(
-                scheme=request.scheme, request=request, obj=obj
-            ),
-            mimetype="text/plain",
-        )
 
 
 class Superset(BaseSupersetView):
@@ -2726,38 +2671,3 @@ class Superset(BaseSupersetView):
                 "Failed to fetch schemas allowed for csv upload in this database! "
                 "Please contact your Superset Admin!"
             )
-
-
-class CssTemplateModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.CssTemplate)
-    include_route_methods = RouteMethod.CRUD_SET
-
-    list_title = _("CSS Templates")
-    show_title = _("Show CSS Template")
-    add_title = _("Add CSS Template")
-    edit_title = _("Edit CSS Template")
-
-    list_columns = ["template_name"]
-    edit_columns = ["template_name", "css"]
-    add_columns = edit_columns
-    label_columns = {"template_name": _("Template Name")}
-
-
-class CssTemplateAsyncModelView(CssTemplateModelView):
-    include_route_methods = {RouteMethod.API_READ}
-    list_columns = ["template_name", "css"]
-
-
-@app.after_request
-def apply_http_headers(response: Response):
-    """Applies the configuration's http headers to all responses"""
-
-    # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(
-        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
-    )
-
-    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
-        if k not in response.headers:
-            response.headers[k] = v
-    return response
