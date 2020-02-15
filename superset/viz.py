@@ -1719,7 +1719,7 @@ class ChordViz(BaseViz):
         qry = super().query_obj()
         fd = self.form_data
         qry["groupby"] = [fd.get("groupby"), fd.get("columns")]
-        qry["metrics"] = [utils.get_metric_name(fd.get("metric"))]
+        qry["metrics"] = [fd.get("metric")]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
