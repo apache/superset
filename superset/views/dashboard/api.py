@@ -17,7 +17,7 @@
 import json
 import logging
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from flask import current_app, g, make_response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -119,7 +119,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     published = fields.Boolean()
 
     @post_load
-    def make_object(self, data: Dict, discard: List[str] = None) -> Dashboard:
+    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Dashboard:
         self.instance = super().make_object(data, [])
         for slc in self.instance.slices:
             slc.owners = list(set(self.instance.owners) | set(slc.owners))

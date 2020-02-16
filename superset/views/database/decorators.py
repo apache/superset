@@ -16,6 +16,7 @@
 # under the License.
 import functools
 import logging
+from typing import Optional
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -32,7 +33,7 @@ def check_datasource_access(f):
     """
 
     def wraps(
-        self, pk: int, table_name: str, schema_name: str = None
+        self, pk: int, table_name: str, schema_name: Optional[str] = None
     ):  # pylint: disable=invalid-name
         schema_name_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
         table_name_parsed = parse_js_uri_path_item(table_name)
