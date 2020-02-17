@@ -283,7 +283,9 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @check_datasource_access
     @safe
     @event_logger.log_this
-    def select_star(self, database: Database, table_name: str, schema_name: str = None):
+    def select_star(
+        self, database: Database, table_name: str, schema_name: Optional[str] = None
+    ):
         """ Table schema info
         ---
         get:

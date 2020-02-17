@@ -429,7 +429,7 @@ class Database(
         attribute_in_key="id",
     )
     def get_all_table_names_in_database(
-        self, cache: bool = False, cache_timeout: bool = None, force=False
+        self, cache: bool = False, cache_timeout: Optional[bool] = None, force=False
     ) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
@@ -441,7 +441,10 @@ class Database(
         attribute_in_key="id",  # type: ignore
     )
     def get_all_view_names_in_database(
-        self, cache: bool = False, cache_timeout: bool = None, force: bool = False
+        self,
+        cache: bool = False,
+        cache_timeout: Optional[bool] = None,
+        force: bool = False,
     ) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
@@ -514,7 +517,10 @@ class Database(
         key=lambda *args, **kwargs: "db:{}:schema_list", attribute_in_key="id"
     )
     def get_all_schema_names(
-        self, cache: bool = False, cache_timeout: int = None, force: bool = False
+        self,
+        cache: bool = False,
+        cache_timeout: Optional[int] = None,
+        force: bool = False,
     ) -> List[str]:
         """Parameters need to be passed as keyword arguments.
 

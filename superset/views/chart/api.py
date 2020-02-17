@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from flask import current_app
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -95,7 +95,7 @@ class ChartPostSchema(BaseOwnedSchema):
         validate_update_datasource(data)
 
     @post_load
-    def make_object(self, data: Dict, discard: List[str] = None) -> Slice:
+    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Slice:
         instance = super().make_object(data, discard=["dashboards"])
         populate_dashboards(instance, data.get("dashboards", []))
         return instance
@@ -119,7 +119,7 @@ class ChartPutSchema(BaseOwnedSchema):
         validate_update_datasource(data)
 
     @post_load
-    def make_object(self, data: Dict, discard: List[str] = None) -> Slice:
+    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Slice:
         self.instance = super().make_object(data, ["dashboards"])
         if "dashboards" in data:
             populate_dashboards(self.instance, data["dashboards"])

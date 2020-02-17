@@ -128,7 +128,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
 
     @classmethod
-    def get_allow_cost_estimate(cls, version: str = None) -> bool:
+    def get_allow_cost_estimate(cls, version: Optional[str] = None) -> bool:
         return False
 
     @classmethod
@@ -686,7 +686,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def estimate_query_cost(
-        cls, database, schema: str, sql: str, source: str = None
+        cls, database, schema: str, sql: str, source: Optional[str] = None
     ) -> List[Dict[str, str]]:
         """
         Estimate the cost of a multiple statement SQL query.

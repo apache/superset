@@ -113,7 +113,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def get_allow_cost_estimate(cls, version: str = None) -> bool:
+    def get_allow_cost_estimate(cls, version: Optional[str] = None) -> bool:
         return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
@@ -395,7 +395,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         database,
         table_name: str,
         engine: Engine,
-        schema: str = None,
+        schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,

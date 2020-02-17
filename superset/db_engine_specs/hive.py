@@ -358,7 +358,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         database,
         table_name: str,
         engine: Engine,
-        schema: str = None,
+        schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
