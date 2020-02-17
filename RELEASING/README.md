@@ -111,7 +111,7 @@ deprecations and upgrading-related topics,
 make sure to move the content now under the `Next Version` section under a new
 section for the new release.
 
-Finally bump the version number on `superset-frontend/package.json`:
+Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
 ```json
     "version": "0.35.2"
