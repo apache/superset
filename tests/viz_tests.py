@@ -169,15 +169,7 @@ class BaseVizTestCase(SupersetTestCase):
 class TableVizTestCase(SupersetTestCase):
     def test_get_data_applies_percentage(self):
         form_data = {
-            "percent_metrics": [
-                {
-                    "expressionType": "SIMPLE",
-                    "aggregate": "SUM",
-                    "label": "SUM(value1)",
-                    "column": {"column_name": "value1", "type": "DOUBLE"},
-                },
-                "avg__B",
-            ],
+            "groupby": ["groupA", "groupB"],
             "metrics": [
                 {
                     "expressionType": "SIMPLE",
@@ -188,39 +180,50 @@ class TableVizTestCase(SupersetTestCase):
                 "count",
                 "avg__C",
             ],
+            "percent_metrics": [
+                {
+                    "expressionType": "SIMPLE",
+                    "aggregate": "SUM",
+                    "label": "SUM(value1)",
+                    "column": {"column_name": "value1", "type": "DOUBLE"},
+                },
+                "avg__B",
+            ],
         }
         datasource = self.get_datasource_mock()
-        raw = {}
-        raw["SUM(value1)"] = [15, 20, 25, 40]
-        raw["avg__B"] = [10, 20, 5, 15]
-        raw["avg__C"] = [11, 22, 33, 44]
-        raw["count"] = [6, 7, 8, 9]
-        raw["groupA"] = ["A", "B", "C", "C"]
-        raw["groupB"] = ["x", "x", "y", "z"]
-        df = pd.DataFrame(raw)
+
+        df = pd.DataFrame(
+            {
+                "SUM(value1)": [15, 20, 25, 40],
+                "avg__B": [10, 20, 5, 15],
+                "avg__C": [11, 22, 33, 44],
+                "count": [6, 7, 8, 9],
+                "groupA": ["A", "B", "C", "C"],
+                "groupB": ["x", "x", "y", "z"],
+            }
+        )
+
         test_viz = viz.TableViz(datasource, form_data)
         data = test_viz.get_data(df)
         # Check method correctly transforms data and computes percents
         self.assertEqual(
-            set(
-                [
-                    "groupA",
-                    "groupB",
-                    "count",
-                    "SUM(value1)",
-                    "avg__C",
-                    "%SUM(value1)",
-                    "%avg__B",
-                ]
-            ),
-            set(data["columns"]),
+            [
+                "groupA",
+                "groupB",
+                "SUM(value1)",
+                "count",
+                "avg__C",
+                "%SUM(value1)",
+                "%avg__B",
+            ],
+            list(data["columns"]),
         )
         expected = [
             {
                 "groupA": "A",
                 "groupB": "x",
-                "count": 6,
                 "SUM(value1)": 15,
+                "count": 6,
                 "avg__C": 11,
                 "%SUM(value1)": 0.15,
                 "%avg__B": 0.2,
@@ -228,8 +231,8 @@ class TableVizTestCase(SupersetTestCase):
             {
                 "groupA": "B",
                 "groupB": "x",
-                "count": 7,
                 "SUM(value1)": 20,
+                "count": 7,
                 "avg__C": 22,
                 "%SUM(value1)": 0.2,
                 "%avg__B": 0.4,
@@ -237,8 +240,8 @@ class TableVizTestCase(SupersetTestCase):
             {
                 "groupA": "C",
                 "groupB": "y",
-                "count": 8,
                 "SUM(value1)": 25,
+                "count": 8,
                 "avg__C": 33,
                 "%SUM(value1)": 0.25,
                 "%avg__B": 0.1,
@@ -246,10 +249,10 @@ class TableVizTestCase(SupersetTestCase):
             {
                 "groupA": "C",
                 "groupB": "z",
-                "count": 9,
                 "SUM(value1)": 40,
+                "count": 9,
                 "avg__C": 44,
-                "%SUM(value1)": 0.40,
+                "%SUM(value1)": 0.4,
                 "%avg__B": 0.3,
             },
         ]
