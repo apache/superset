@@ -106,6 +106,7 @@ class SupersetResultSet:
                     pa.lib.ArrowInvalid,
                     pa.lib.ArrowTypeError,
                     pa.lib.ArrowNotImplementedError,
+                    TypeError,  # this is super hackey, https://issues.apache.org/jira/browse/ARROW-7855
                 ):
                     # attempt serialization of values as strings
                     stringified_arr = stringify_values(array[column])
