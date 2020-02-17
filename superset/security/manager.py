@@ -311,12 +311,12 @@ class SupersetSecurityManager(SecurityManager):
         return conf.get("PERMISSION_INSTRUCTIONS_LINK")
 
     def can_access_datasource(
-        self, database: "Database", table_name: str, schema: str = None
+        self, database: "Database", table_name: str, schema: Optional[str] = None
     ) -> bool:
         return self._datasource_access_by_name(database, table_name, schema=schema)
 
     def _datasource_access_by_name(
-        self, database: "Database", table_name: str, schema: str = None
+        self, database: "Database", table_name: str, schema: Optional[str] = None
     ) -> bool:
         """
         Return True if the user can access the SQL table, False otherwise.
