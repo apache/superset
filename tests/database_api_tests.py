@@ -154,6 +154,34 @@ class DatabaseApiTests(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
+    def test_get_tables_substr(self):
+        """
+            Database API: Test get tables with substr
+        """
+        example_db = get_example_database()
+        if example_db.backend != "postgresql":
+            return
+        self.login(username="admin")
+        schema_name = "public"
+        uri = f"api/v1/database/{example_db.id}/tables/{schema_name}/ab_role/"
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+
+        expeted_response = {
+            "options": [
+                {
+                    "label": "ab_role",
+                    "schema": "public",
+                    "title": "ab_role",
+                    "type": "table",
+                    "value": "ab_role",
+                }
+            ],
+            "tableLength": 1,
+        }
+        self.assertEqual(response, expeted_response)
+
     def test_get_select_star(self):
         """
             Database API: Test get select star

@@ -103,7 +103,7 @@ export default class TableSelector extends React.PureComponent {
     }
     return SupersetClient.get({
       endpoint: encodeURI(
-        `/api/v1/database/${this.props.dbId}/table/` +
+        `/api/v1/database/${this.props.dbId}/tables/` +
           `${encodeURIComponent(this.props.schema)}/${encodeURIComponent(
             input,
           )}`,

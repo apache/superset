@@ -1068,7 +1068,9 @@ class Superset(BaseSupersetView):
 
         # Guarantees database filtering by security access
         query = db.session.query(models.Database)
-        query = DatabaseFilter("id", None).apply(query, None)
+        query = DatabaseFilter("id", SQLAInterface(models.Database, db.session)).apply(
+            query, None
+        )
         database = query.filter_by(id=db_id).one()
         if not database:
             stats_logger.incr(
