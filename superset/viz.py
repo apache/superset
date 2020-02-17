@@ -1882,7 +1882,7 @@ class IFrameViz(BaseViz):
     def query_obj(self):
         return None
 
-    def get_df(self, query_obj: Dict[str, Any] = None) -> pd.DataFrame:
+    def get_df(self, query_obj: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         return pd.DataFrame()
 
     def get_data(self, df: pd.DataFrame) -> VizData:

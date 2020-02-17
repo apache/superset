@@ -166,7 +166,7 @@ def is_owner(obj, user):
 
 
 def check_datasource_perms(
-    self, datasource_type: str = None, datasource_id: int = None
+    self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
 ) -> None:
     """
     Check if user can access a cached response from explore_json.
@@ -1973,7 +1973,9 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<database_id>/", methods=["POST"])
     @expose("/estimate_query_cost/<database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
-    def estimate_query_cost(self, database_id: int, schema: str = None) -> Response:
+    def estimate_query_cost(
+        self, database_id: int, schema: Optional[str] = None
+    ) -> Response:
         mydb = db.session.query(models.Database).get(database_id)
 
         sql = json.loads(request.form.get("sql", '""'))

@@ -41,9 +41,9 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         owners: List[int],
         datasource_id: int,
         datasource_type: str = "table",
-        description: str = None,
-        viz_type: str = None,
-        params: str = None,
+        description: Optional[str] = None,
+        viz_type: Optional[str] = None,
+        params: Optional[str] = None,
         cache_timeout: Optional[int] = None,
     ) -> Slice:
         obj_owners = list()
