@@ -27,17 +27,7 @@ import msgpack
 import pandas as pd
 import pyarrow as pa
 import simplejson as json
-from flask import (
-    abort,
-    flash,
-    g,
-    Markup,
-    redirect,
-    render_template,
-    request,
-    Response,
-    url_for,
-)
+from flask import abort, flash, g, Markup, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -46,7 +36,6 @@ from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, Integer, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
-from werkzeug.routing import BaseConverter
 from werkzeug.urls import Href
 
 import superset.models.core as models
@@ -88,11 +77,9 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
-from superset.views.chart import views as chart_views
 
 from .base import (
     api,
-    BaseFilter,
     BaseSupersetView,
     check_ownership,
     common_bootstrap_payload,
@@ -107,8 +94,6 @@ from .base import (
     json_success,
     SupersetModelView,
 )
-from .dashboard import views as dash_views
-from .database import views as in_views
 from .utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
@@ -1072,15 +1057,28 @@ class Superset(BaseSupersetView):
     @expose("/tables/<db_id>/<schema>/<substr>/<force_refresh>/")
     def tables(self, db_id, schema, substr, force_refresh="false"):
         """Endpoint to fetch the list of tables for given database"""
+        from superset.views.database.filters import DatabaseFilter
+
         logger.warning(
             "/superset/tables/ API endpoint "
             "is deprecated and will be removed in version 1.0.0"
         )
+        stats_logger.incr(f"{self.__class__.__name__}.tables.init")
         db_id = int(db_id)
+
+        # Guarantees database filtering by security access
+        query = db.session.query(models.Database)
+        query = DatabaseFilter("id", None).apply(query, None)
+        database = query.filter_by(id=db_id).one()
+        if not database:
+            stats_logger.incr(
+                f"deprecated.{self.__class__.__name__}.tables.database_not_found"
+            )
+            return json_error_response("Not found", 404)
+
         force_refresh = force_refresh.lower() == "true"
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr = utils.parse_js_uri_path_item(substr, eval_undefined=True)
-        database = db.session.query(models.Database).filter_by(id=db_id).one()
 
         if schema:
             tables = (
@@ -1161,6 +1159,7 @@ class Superset(BaseSupersetView):
         )
         table_options.sort(key=lambda value: value["label"])
         payload = {"tableLength": len(tables) + len(views), "options": table_options}
+        stats_logger.incr(f"deprecated.{self.__class__.__name__}.tables.success")
         return json_success(json.dumps(payload))
 
     @api

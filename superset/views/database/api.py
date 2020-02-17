@@ -39,16 +39,17 @@ def get_datasource_label(ds_name: DatasourceName, schema_name: Optional[str]) ->
     return ds_name.table if schema_name else f"{ds_name.schema}.{ds_name.table}"
 
 
-def get_all_object_names_in_database(
-    get_all_func: Callable,
+def get_all_names_in_database(  # pylint: disable=too-many-arguments
+    get_all_in_schema_func: Callable,
+    get_all_in_database_func: Callable,
     database: Database,
     schema_name: Optional[str],
     substr: Optional[str],
     force_refresh: bool,
-):
+) -> List[DatasourceName]:
     if schema_name:
         tables_views = (
-            get_all_func(
+            get_all_in_schema_func(
                 schema=schema_name,
                 force=force_refresh,
                 cache=database.table_cache_enabled,
@@ -57,7 +58,7 @@ def get_all_object_names_in_database(
             or []
         )
     else:
-        tables_views = database.get_all_func(
+        tables_views = get_all_in_database_func(
             cache=True, force=False, cache_timeout=24 * 60 * 60
         )
     if substr:
@@ -75,8 +76,9 @@ def get_all_table_names_in_database(
     substr: Optional[str],
     force_refresh: bool,
 ) -> List[DatasourceName]:
-    return get_all_object_names_in_database(
+    return get_all_names_in_database(
         database.get_all_table_names_in_schema,
+        database.get_all_table_names_in_database,
         database,
         schema_name,
         substr,
@@ -90,8 +92,9 @@ def get_all_view_names_in_database(
     substr: Optional[str],
     force_refresh: bool,
 ) -> List[DatasourceName]:
-    return get_all_object_names_in_database(
+    return get_all_names_in_database(
         database.get_all_view_names_in_schema,
+        database.get_all_view_names_in_database,
         database,
         schema_name,
         substr,
@@ -181,7 +184,7 @@ def get_table_metadata(
 class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    include_route_methods = {"get_list", "table_metadata", "select_star"}
+    include_route_methods = {"get_list", "table_metadata", "tables", "select_star"}
     class_permission_name = "DatabaseView"
     method_permission_name = {
         "get_list": "list",
@@ -354,13 +357,77 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @event_logger.log_this
     def tables(
         self, pk: int, schema_name: str, substr: str, force_refresh="false"
-    ):  # pylint: disable=invalid-name
+    ):  # pylint: disable=invalid-name,too-many-locals
+        """ Table schema info
+        ---
+        get:
+          description: >-
+            Get a list of tables from a database/schema
+          parameters:
+          - in: path
+            name: pk
+            description: The database id
+            schema:
+              type: integer
+          - in: path
+            description: Table schema
+            name: schema
+            schema:
+              type: string
+          - in: path
+            description: Sub string
+            name: substr
+            schema:
+              type: string
+          - in: path
+            description: force cache refresh
+            name: force_refresh
+            schema:
+              type: bool
+          responses:
+            200:
+              description: Table schema info
+              content:
+                text/plain:
+                  schema:
+                    type: object
+                    properties:
+                      options:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            label:
+                              type: string
+                            schema:
+                              type: string
+                            title:
+                              type: string
+                            type:
+                              type: string
+                            value:
+                              type: string
+                      tableLength:
+                        type: number
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        self.incr_stats("init", self.tables.__name__)
         force_refresh = force_refresh.lower() == "true"
         schema_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
         substr_parsed = parse_js_uri_path_item(substr, eval_undefined=True)
         # Guarantees filtering on databases
         database: Database = self.datamodel.get(pk, self._base_filters)
         if not database:
+            self.incr_stats("error", self.tables.__name__)
             return self.response_404()
 
         tables = get_all_table_names_in_database(
@@ -408,6 +475,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             ]
         )
         table_options.sort(key=lambda value: value["label"])
+        self.incr_stats("success", self.tables.__name__)
         return self.response(
             200, tableLength=len(tables) + len(views), options=table_options
         )

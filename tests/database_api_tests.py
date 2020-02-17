@@ -144,6 +144,16 @@ class DatabaseApiTests(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    def test_get_tables(self):
+        """
+            Database API: Test get tables
+        """
+        example_db = get_example_database()
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/tables/public/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+
     def test_get_select_star(self):
         """
             Database API: Test get select star
