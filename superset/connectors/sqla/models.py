@@ -721,6 +721,9 @@ class SqlaTable(Model, BaseDatasource):
         groupby_exprs_sans_timestamp: OrderedDict = OrderedDict()
 
         if groupby:
+            # dedup columns while preserving order
+            groupby = list(dict.fromkeys(groupby))
+
             select_exprs = []
             for s in groupby:
                 if s in cols:

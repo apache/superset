@@ -90,12 +90,12 @@ GB_RESULT_SET = [
     {
         "version": "v1",
         "timestamp": "2012-01-01T00:00:00.000Z",
-        "event": {"dim1": "Canada", "dim2": "boy", "metric1": 12345678},
+        "event": {"dim1": "Canada", "dim2": "boy", "count": 12345678},
     },
     {
         "version": "v1",
         "timestamp": "2012-01-01T00:00:00.000Z",
-        "event": {"dim1": "USA", "dim2": "girl", "metric1": 12345678 / 2},
+        "event": {"dim1": "USA", "dim2": "girl", "count": 12345678 / 2},
     },
 ]
 

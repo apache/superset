@@ -15,9 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List
 import smtplib
 import ssl
+from typing import List
 
 try:
     import jinja2
@@ -39,7 +39,7 @@ PROJECT_DESCRIPTION = "Apache Superset (incubating) is a modern, enterprise-read
 def string_comma_to_list(message: str) -> List[str]:
     if not message:
         return []
-    return message.split(",")
+    return [element.strip() for element in message.split(",")]
 
 
 def send_email(

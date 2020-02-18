@@ -17,7 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-from typing import List
+from typing import List, Optional
 
 import prison
 
@@ -42,7 +42,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_title: str,
         slug: str,
         owners: List[int],
-        slices: List[Slice] = None,
+        slices: Optional[List[Slice]] = None,
         position_json: str = "",
         css: str = "",
         json_metadata: str = "",

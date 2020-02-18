@@ -282,7 +282,7 @@ class Database(
     ) -> Engine:
         extra = self.get_extra()
         sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
-        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
         effective_username = self.get_effective_user(sqlalchemy_url, user_name)
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
@@ -429,7 +429,7 @@ class Database(
         attribute_in_key="id",
     )
     def get_all_table_names_in_database(
-        self, cache: bool = False, cache_timeout: bool = None, force=False
+        self, cache: bool = False, cache_timeout: Optional[bool] = None, force=False
     ) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
@@ -441,7 +441,10 @@ class Database(
         attribute_in_key="id",  # type: ignore
     )
     def get_all_view_names_in_database(
-        self, cache: bool = False, cache_timeout: bool = None, force: bool = False
+        self,
+        cache: bool = False,
+        cache_timeout: Optional[bool] = None,
+        force: bool = False,
     ) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
@@ -514,7 +517,10 @@ class Database(
         key=lambda *args, **kwargs: "db:{}:schema_list", attribute_in_key="id"
     )
     def get_all_schema_names(
-        self, cache: bool = False, cache_timeout: int = None, force: bool = False
+        self,
+        cache: bool = False,
+        cache_timeout: Optional[int] = None,
+        force: bool = False,
     ) -> List[str]:
         """Parameters need to be passed as keyword arguments.
 
