@@ -278,10 +278,9 @@ class ImportMixin:
         d.update(kwargs)
         self.params = json.dumps(d)
 
-    def remove_params(self, param, **kwargs):
+    def remove_params(self, param_to_remove: str) -> None:
         d = self.params_dict
-        d.pop(param, None)
-        d.update(kwargs)
+        d.pop(param_to_remove, None)
         self.params = json.dumps(d)
 
     def reset_ownership(self):

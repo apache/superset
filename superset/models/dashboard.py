@@ -363,8 +363,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         if dashboard_to_import.position_json:
             alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
         dashboard_to_import.alter_params(import_time=import_time)
-        dashboard_to_import.remove_params("filter_immune_slices")
-        dashboard_to_import.remove_params("filter_immune_slice_fields")
+        dashboard_to_import.remove_params(param_to_remove="filter_immune_slices")
+        dashboard_to_import.remove_params(param_to_remove="filter_immune_slice_fields")
         if new_filter_scopes:
             dashboard_to_import.alter_params(filter_scopes=new_filter_scopes)
         if new_expanded_slices:
