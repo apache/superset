@@ -1056,7 +1056,9 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    def tables(self, db_id: int, schema: str, substr: str, force_refresh: str="false"):
+    def tables(
+        self, db_id: int, schema: str, substr: str, force_refresh: str = "false"
+    ):
         """Endpoint to fetch the list of tables for given database"""
         logger.warning(
             "/superset/tables/ API endpoint "
@@ -1075,15 +1077,15 @@ class Superset(BaseSupersetView):
             )
             return json_error_response("Not found", 404)
 
-        force_refresh = force_refresh.lower() == "true"
-        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        substr = utils.parse_js_uri_path_item(substr, eval_undefined=True)
+        force_refresh_parsed = force_refresh.lower() == "true"
+        schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
+        substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
-        if schema:
+        if schema_parsed:
             tables = (
                 database.get_all_table_names_in_schema(
-                    schema=schema,
-                    force=force_refresh,
+                    schema=schema_parsed,
+                    force=force_refresh_parsed,
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
@@ -1091,8 +1093,8 @@ class Superset(BaseSupersetView):
             )
             views = (
                 database.get_all_view_names_in_schema(
-                    schema=schema,
-                    force=force_refresh,
+                    schema=schema_parsed,
+                    force=force_refresh_parsed,
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
@@ -1106,20 +1108,22 @@ class Superset(BaseSupersetView):
                 cache=True, force=False, cache_timeout=24 * 60 * 60
             )
         tables = security_manager.get_datasources_accessible_by_user(
-            database, tables, schema
+            database, tables, schema_parsed
         )
         views = security_manager.get_datasources_accessible_by_user(
-            database, views, schema
+            database, views, schema_parsed
         )
 
         def get_datasource_label(ds_name: utils.DatasourceName) -> str:
-            return ds_name.table if schema else f"{ds_name.schema}.{ds_name.table}"
+            return (
+                ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
+            )
 
         if substr:
-            tables = [tn for tn in tables if substr in get_datasource_label(tn)]
-            views = [vn for vn in views if substr in get_datasource_label(vn)]
+            tables = [tn for tn in tables if substr_parsed in get_datasource_label(tn)]
+            views = [vn for vn in views if substr_parsed in get_datasource_label(vn)]
 
-        if not schema and database.default_schemas:
+        if not schema_parsed and database.default_schemas:
             user_schema = g.user.email.split("@")[0]
             valid_schemas = set(database.default_schemas + [user_schema])
 
@@ -1130,7 +1134,7 @@ class Superset(BaseSupersetView):
         total_items = len(tables) + len(views)
         max_tables = len(tables)
         max_views = len(views)
-        if total_items and substr:
+        if total_items and substr_parsed:
             max_tables = max_items * len(tables) // total_items
             max_views = max_items * len(views) // total_items
 

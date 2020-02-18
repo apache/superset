@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Callable, Dict, List, Optional
 
-from flask import g
+from flask import g, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
@@ -225,7 +225,9 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @check_datasource_access
     @safe
     @event_logger.log_this
-    def table_metadata(self, database: Database, table_name: str, schema_name: str):
+    def table_metadata(
+        self, database: Database, table_name: str, schema_name: str
+    ) -> Response:
         """ Table schema info
         ---
         get:
@@ -359,7 +361,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @event_logger.log_this
     def tables(
         self, pk: int, schema_name: str, substr: str, force_refresh="false"
-    ):  # pylint: disable=invalid-name,too-many-locals
+    ) -> Response:  # pylint: disable=invalid-name,too-many-locals
         """ Table schema info
         ---
         get:
@@ -491,7 +493,9 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @check_datasource_access
     @safe
     @event_logger.log_this
-    def select_star(self, database: Database, table_name: str, schema_name: str = None):
+    def select_star(
+        self, database: Database, table_name: str, schema_name: str = None
+    ) -> Response:
         """ Table schema info
         ---
         get:
