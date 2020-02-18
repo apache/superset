@@ -1064,7 +1064,7 @@ class Superset(BaseSupersetView):
             "/superset/tables/ API endpoint "
             "is deprecated and will be removed in version 1.0.0"
         )
-        stats_logger.incr(f"{self.__class__.__name__}.tables.init")
+        stats_logger.incr(f"deprecated.{self.__class__.__name__}.tables.init")
         # Guarantees database filtering by security access
         query = db.session.query(models.Database)
         query = DatabaseFilter("id", SQLAInterface(models.Database, db.session)).apply(
@@ -1119,7 +1119,7 @@ class Superset(BaseSupersetView):
                 ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
             )
 
-        if substr:
+        if substr_parsed:
             tables = [tn for tn in tables if substr_parsed in get_datasource_label(tn)]
             views = [vn for vn in views if substr_parsed in get_datasource_label(vn)]
 

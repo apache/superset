@@ -16,12 +16,12 @@
 # under the License.
 from typing import Any, Callable, Dict, List, Optional
 
-from flask import g, Response
+from flask import current_app, g, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
-from superset import app, event_logger, security_manager
+from superset import event_logger, security_manager
 from superset.models.core import Database
 from superset.utils.core import (
     DatasourceName,
@@ -448,7 +448,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             tables = [tn for tn in tables if tn.schema in valid_schemas]
             views = [vn for vn in views if vn.schema in valid_schemas]
 
-        max_items = app.config["MAX_TABLE_NAMES"] or len(tables)
+        max_items = current_app.config["MAX_TABLE_NAMES"] or len(tables)
         total_items = len(tables) + len(views)
         max_tables = len(tables)
         max_views = len(views)
