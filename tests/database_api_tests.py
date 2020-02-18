@@ -30,6 +30,16 @@ from .base_tests import SupersetTestCase
 
 
 class DatabaseApiTests(SupersetTestCase):
+
+    default_schema_backend_map = {
+        "sqlite": "main",
+        "mysql": "superset",
+        "postgresql": "public",
+    }
+
+    def get_default_backend_schema(self, database: Database) -> str:
+        return self.default_schema_backend_map[database.backend]
+
     def test_get_items(self):
         """
             Database API: Test get items
@@ -149,8 +159,9 @@ class DatabaseApiTests(SupersetTestCase):
             Database API: Test get tables
         """
         example_db = get_example_database()
+        schema_name = self.get_default_backend_schema(example_db)
         self.login(username="admin")
-        uri = f"api/v1/database/{example_db.id}/tables/public/undefined/"
+        uri = f"api/v1/database/{example_db.id}/tables/{schema_name}/undefined/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
@@ -159,10 +170,8 @@ class DatabaseApiTests(SupersetTestCase):
             Database API: Test get tables with substr
         """
         example_db = get_example_database()
-        if example_db.backend != "postgresql":
-            return
         self.login(username="admin")
-        schema_name = "public"
+        schema_name = self.get_default_backend_schema(example_db)
         uri = f"api/v1/database/{example_db.id}/tables/{schema_name}/ab_role/"
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
@@ -172,7 +181,7 @@ class DatabaseApiTests(SupersetTestCase):
             "options": [
                 {
                     "label": "ab_role",
-                    "schema": "public",
+                    "schema": schema_name,
                     "title": "ab_role",
                     "type": "table",
                     "value": "ab_role",
@@ -181,6 +190,38 @@ class DatabaseApiTests(SupersetTestCase):
             "tableLength": 1,
         }
         self.assertEqual(response, expeted_response)
+
+    def test_get_tables_not_allowed(self):
+        """
+            Database API: Test get tables not allowed database
+        """
+        example_db = get_example_database()
+        schema_name = self.get_default_backend_schema(example_db)
+        self.login(username="gamma")
+        uri = f"api/v1/database/{example_db.id}/tables/{schema_name}/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_old_tables_not_allowed(self):
+        """
+            Superset API: Test get tables not allowed database
+        """
+        example_db = get_example_database()
+        schema_name = self.get_default_backend_schema(example_db)
+        self.login(username="gamma")
+        uri = f"superset/tables/{example_db.id}/{schema_name}/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_tables_not_found(self):
+        """
+            Database API: Test get tables not found
+        """
+        max_id = db.session.query(func.max(Database.id)).scalar()
+        self.login(username="admin")
+        uri = f"api/v1/database/{max_id + 1}/table/public/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
 
     def test_get_select_star(self):
         """

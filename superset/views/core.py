@@ -77,6 +77,7 @@ from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
+from superset.views.database.filters import DatabaseFilter
 
 from .base import (
     api,
@@ -1036,7 +1037,10 @@ class Superset(BaseSupersetView):
     @expose("/schemas/<db_id>/")
     @expose("/schemas/<db_id>/<force_refresh>/")
     def schemas(self, db_id, force_refresh="false"):
-        db_id = int(db_id)
+        try:
+            db_id = int(db_id)
+        except ValueError:
+            return json_success({})
         force_refresh = force_refresh.lower() == "true"
         database = db.session.query(models.Database).get(db_id)
         if database:
@@ -1057,8 +1061,6 @@ class Superset(BaseSupersetView):
     @expose("/tables/<db_id>/<schema>/<substr>/<force_refresh>/")
     def tables(self, db_id, schema, substr, force_refresh="false"):
         """Endpoint to fetch the list of tables for given database"""
-        from superset.views.database.filters import DatabaseFilter
-
         logger.warning(
             "/superset/tables/ API endpoint "
             "is deprecated and will be removed in version 1.0.0"
@@ -1071,7 +1073,7 @@ class Superset(BaseSupersetView):
         query = DatabaseFilter("id", SQLAInterface(models.Database, db.session)).apply(
             query, None
         )
-        database = query.filter_by(id=db_id).one()
+        database = query.filter_by(id=db_id).one_or_none()
         if not database:
             stats_logger.incr(
                 f"deprecated.{self.__class__.__name__}.tables.database_not_found"
