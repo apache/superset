@@ -574,6 +574,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
         new_filter_immune_slice_fields = {}
+        new_default_filters = {}
         i_params_dict = dashboard_to_import.params_dict
         remote_id_slice_map = {
             slc.params_dict["remote_id"]: slc
@@ -594,9 +595,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             old_slc_id_str = "{}".format(slc.id)
             if (
                 "filter_immune_slices" in i_params_dict
-                and old_slc_id_str in i_params_dict["filter_immune_slices"]
+                and slc.id in i_params_dict["filter_immune_slices"]
             ):
-                new_filter_immune_slices.append(new_slc_id_str)
+                new_filter_immune_slices.append(new_slc_id)
             if (
                 "filter_immune_slice_fields" in i_params_dict
                 and old_slc_id_str in i_params_dict["filter_immune_slice_fields"]
@@ -604,6 +605,15 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                  new_filter_immune_slice_fields[new_slc_id_str] = i_params_dict["filter_immune_slice_fields"][
                     old_slc_id_str
                 ]
+            if (
+                "default_filters" in i_params_dict
+                and old_slc_id_str in i_params_dict["default_filters"]
+            ):
+                 default_filters_json = eval(i_params_dict["default_filters"])
+                 if(old_slc_id_str in default_filters_json):
+                    new_default_filters[new_slc_id_str] = default_filters_json[
+                    old_slc_id_str
+                    ]
             if (
                 "timed_refresh_immune_slices" in i_params_dict
                 and old_slc_id_str in i_params_dict["timed_refresh_immune_slices"]
@@ -616,7 +626,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 new_expanded_slices[new_slc_id_str] = i_params_dict["expanded_slices"][
                     old_slc_id_str
                 ]
-
         # override the dashboard
         existing_dashboard = None
         for dash in session.query(Dashboard).all():
@@ -647,6 +656,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         if new_timed_refresh_immune_slices:
             dashboard_to_import.alter_params(
                 timed_refresh_immune_slices=new_timed_refresh_immune_slices
+            )
+        if new_default_filters:
+            dashboard_to_import.alter_params(
+                default_filters=json.dumps(new_default_filters)
             )
 
         new_slices = (
