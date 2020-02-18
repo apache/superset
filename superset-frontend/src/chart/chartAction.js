@@ -18,6 +18,7 @@
  */
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
+import moment from 'moment';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -254,6 +255,9 @@ export function exploreJSON(
             has_extra_filters:
               formData.extra_filters && formData.extra_filters.length > 0,
             viz_type: formData.viz_type,
+            data_age: json.is_cached
+              ? moment(new Date()).diff(moment.utc(json.cached_dttm))
+              : null,
           }),
         );
         return dispatch(chartUpdateSucceeded(json, key));

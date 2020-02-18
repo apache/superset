@@ -135,7 +135,7 @@ Contributing
 ------------
 
 Interested in contributing? Casual hacking? Check out
-[Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
+[Contributing.MD](https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md)
 
 
 Who uses Apache Superset (incubating)?

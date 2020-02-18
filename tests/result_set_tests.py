@@ -200,6 +200,16 @@ class SupersetResultSetTestCase(SupersetTestCase):
             ],
         )
 
+    def test_nested_list_types(self):
+        data = [([{"TestKey": [123456, "foo"]}],)]
+        cursor_descr = [("metadata",)]
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "STRING")
+        df = results.to_pandas_df()
+        self.assertEqual(
+            df_to_records(df), [{"metadata": '[{"TestKey": [123456, "foo"]}]'}]
+        )
+
     def test_empty_datetime(self):
         data = [(None,)]
         cursor_descr = [("ds", "timestamp", None, None, None, None, True)]

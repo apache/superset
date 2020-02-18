@@ -28,6 +28,9 @@ model and links to the record there. This is a security-related change that make
 sharing respect the existing role-based access controls. Should you wish to retain the existing behavior, set two feature flags:
 `"KV_STORE": True` will re-enable the `/kv/` and `/kv/store/` endpoints, and `"SHARE_QUERIES_VIA_KV_STORE": True`
 will tell the front-end to utilize them for query sharing.
+* [9109](https://github.com/apache/incubator-superset/pull/9109): Expire `filter_immune_slices` and 
+`filter_immune_filter_fields` to favor dashboard scoped filter metadata `filter_scopes`.
+
 * [9046](https://github.com/apache/incubator-superset/pull/9046): Replaces `can_only_access_owned_queries` by
 `all_query_access` favoring a white list approach. Since a new permission is introduced use `superset init` 
 to create and associate it by default to the `Admin` role. Note that, by default, all non `Admin` users will
