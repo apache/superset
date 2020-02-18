@@ -213,6 +213,15 @@ class DatabaseApiTests(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    def test_get_old_tables_not_found(self):
+        """
+            Superset API: Test get tables not found
+        """
+        self.login(username="admin")
+        uri = f"superset/tables/invalid/public/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
     def test_get_tables_not_found(self):
         """
             Database API: Test get tables not found
@@ -220,6 +229,11 @@ class DatabaseApiTests(SupersetTestCase):
         max_id = db.session.query(func.max(Database.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/database/{max_id + 1}/table/public/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+        # Test invalid db id
+        uri = f"api/v1/database/invalid/table/public/undefined/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 

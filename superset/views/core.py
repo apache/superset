@@ -1037,10 +1037,7 @@ class Superset(BaseSupersetView):
     @expose("/schemas/<db_id>/")
     @expose("/schemas/<db_id>/<force_refresh>/")
     def schemas(self, db_id, force_refresh="false"):
-        try:
-            db_id = int(db_id)
-        except ValueError:
-            return json_success({})
+        db_id = int(db_id)
         force_refresh = force_refresh.lower() == "true"
         database = db.session.query(models.Database).get(db_id)
         if database:
@@ -1057,17 +1054,15 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/tables/<db_id>/<schema>/<substr>/")
-    @expose("/tables/<db_id>/<schema>/<substr>/<force_refresh>/")
-    def tables(self, db_id, schema, substr, force_refresh="false"):
+    @expose("/tables/<int:db_id>/<schema>/<substr>/")
+    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
+    def tables(self, db_id: int, schema: str, substr: str, force_refresh: str="false"):
         """Endpoint to fetch the list of tables for given database"""
         logger.warning(
             "/superset/tables/ API endpoint "
             "is deprecated and will be removed in version 1.0.0"
         )
         stats_logger.incr(f"{self.__class__.__name__}.tables.init")
-        db_id = int(db_id)
-
         # Guarantees database filtering by security access
         query = db.session.query(models.Database)
         query = DatabaseFilter("id", SQLAInterface(models.Database, db.session)).apply(
