@@ -20,7 +20,17 @@ import os
 import re
 from contextlib import closing
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 import pandas as pd
 import sqlparse
@@ -133,6 +143,48 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     arraysize = 0
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
+
+    # default matching patterns for identifying column types
+    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern, ...]] = {
+        utils.DbColumnType.NUMERIC: (
+            re.compile(r".*DOUBLE.*", re.IGNORECASE),
+            re.compile(r".*FLOAT.*", re.IGNORECASE),
+            re.compile(r".*INT.*", re.IGNORECASE),
+            re.compile(r".*NUMBER.*", re.IGNORECASE),
+            re.compile(r".*LONG.*", re.IGNORECASE),
+            re.compile(r".*REAL.*", re.IGNORECASE),
+            re.compile(r".*NUMERIC.*", re.IGNORECASE),
+            re.compile(r".*DECIMAL.*", re.IGNORECASE),
+            re.compile(r".*MONEY.*", re.IGNORECASE),
+        ),
+        utils.DbColumnType.STRING: (
+            re.compile(r".*CHAR.*", re.IGNORECASE),
+            re.compile(r".*STRING.*", re.IGNORECASE),
+        ),
+        utils.DbColumnType.TEMPORAL: (
+            re.compile(r".*DATE.*", re.IGNORECASE),
+            re.compile(r".*TIME.*", re.IGNORECASE),
+        ),
+    }
+
+    @classmethod
+    def is_db_column_type_match(
+        cls, db_column_type: Optional[str], target_column_type: utils.DbColumnType
+    ) -> bool:
+        """
+        Check if a column type satisfies a pattern in a collection of regexes found in
+        `db_column_types`. For example, if `db_column_type == "NVARCHAR"`,
+        it would be a match for "STRING" due to being a match for the regex ".*CHAR.*".
+
+        :param db_column_type: Column type to evaluate
+        :param target_column_type: The target type to evaluate for
+        :return: `True` if a `db_column_type` matches any pattern corresponding to
+        `target_column_type`
+        """
+        if not db_column_type:
+            return False
+        patterns = cls.db_column_types[target_column_type]
+        return any(pattern.match(db_column_type) for pattern in patterns)
 
     @classmethod
     def get_allow_cost_estimate(cls, version: Optional[str] = None) -> bool:

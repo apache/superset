@@ -387,7 +387,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         "DECIMAL",
         "MONEY",
     )
-    date_types = ("DATE", "TIME", "DATETIME")
+    date_types = ("DATE", "TIME")
     str_types = ("VARCHAR", "STRING", "CHAR")
 
     @property

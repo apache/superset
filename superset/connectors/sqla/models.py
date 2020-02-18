@@ -145,6 +145,27 @@ class TableColumn(Model, BaseColumn):
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
     export_parent = "table"
 
+    @property
+    def is_num(self) -> bool:
+        db_engine_spec = self.table.database.db_engine_spec
+        return db_engine_spec.is_db_column_type_match(
+            self.type, utils.DbColumnType.NUMERIC
+        )
+
+    @property
+    def is_string(self) -> bool:
+        db_engine_spec = self.table.database.db_engine_spec
+        return db_engine_spec.is_db_column_type_match(
+            self.type, utils.DbColumnType.STRING
+        )
+
+    @property
+    def is_time(self) -> bool:
+        db_engine_spec = self.table.database.db_engine_spec
+        return db_engine_spec.is_db_column_type_match(
+            self.type, utils.DbColumnType.TEMPORAL
+        )
+
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
         if self.expression:
@@ -1074,7 +1095,7 @@ class SqlaTable(Model, BaseDatasource):
                 logger.exception(e)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
-                dbcol = TableColumn(column_name=col.name, type=datatype)
+                dbcol = TableColumn(column_name=col.name, type=datatype, table=self)
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
