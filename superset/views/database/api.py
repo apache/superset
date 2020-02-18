@@ -359,9 +359,9 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @event_logger.log_this
-    def tables(
-        self, pk: int, schema_name: str, substr: str, force_refresh="false"
-    ) -> Response:  # pylint: disable=invalid-name,too-many-locals
+    def tables(  # pylint: disable=invalid-name,too-many-locals
+        self, pk: int, schema_name: str, substr: str, force_refresh: str = "false"
+    ) -> Response:
         """ Table schema info
         ---
         get:
@@ -425,7 +425,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         self.incr_stats("init", self.tables.__name__)
-        force_refresh = force_refresh.lower() == "true"
+        force_refresh_parsed = force_refresh.lower() == "true"
         schema_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
         substr_parsed = parse_js_uri_path_item(substr, eval_undefined=True)
         # Guarantees filtering on databases
@@ -435,10 +435,10 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             return self.response_404()
 
         tables = get_all_table_names_in_database(
-            database, schema_parsed, substr_parsed, force_refresh
+            database, schema_parsed, substr_parsed, force_refresh_parsed
         )
         views = get_all_view_names_in_database(
-            database, schema_parsed, substr_parsed, force_refresh
+            database, schema_parsed, substr_parsed, force_refresh_parsed
         )
 
         if not schema_parsed and database.default_schemas:
@@ -494,7 +494,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @safe
     @event_logger.log_this
     def select_star(
-        self, database: Database, table_name: str, schema_name: str = None
+        self, database: Database, table_name: str, schema_name: Optional[str] = None
     ) -> Response:
         """ Table schema info
         ---
