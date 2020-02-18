@@ -49,7 +49,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_all_datasource_names(
-        cls, database, datasource_type: str
+        cls, database: "Database", datasource_type: str
     ) -> List[utils.DatasourceName]:
         schemas = database.get_all_schema_names(
             cache=database.schema_cache_enabled,
