@@ -54,37 +54,6 @@ need to be done at every release.
     svn commit -m "Add PGP keys of new Superset committer"
 ```
 
-## Crafting a source release
-
-When crafting a new minor or major release we create
-a branch named with the release MAJOR.MINOR version (on this example 0.34).
-This new branch will hold all PATCH and release candidates
-that belong to the MAJOR.MINOR version.
-
-The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
-Then (if needed) apply all cherries that will make the PATCH
-
-Next update the `CHANGELOG.md` with all the changes that are included in the release. Make sure you have
-set your GITHUB_TOKEN environment variable.
-
-```bash
-# will overwrites the local CHANGELOG.md, somehow you need to merge it in
-github-changes -o apache -r incubator-superset --token $GITHUB_TOKEN --between-tags <PREVIOUS_RELEASE_TAG>...<CURRENT_RELEASE_TAG>
-```
-
-Then, in `UPDATING.md`, a file that contains a list of notifications around
-deprecations and upgrading-related topics,
-make sure to move the content now under the `Next Version` section under a new
-section for the new release.
-
-Finally bump the version number on `superset-frontend/package.json`:
-
-```json
-    "version": "0.34.1"
-```
-
-Commit the change with the version number, then git tag the version with the release candidate and push to the branch
-
 ## Setting up the release environment (do every time)
 
 As the vote process takes a minimum of 72h (community vote) + 72h (IPMC) vote,
@@ -96,25 +65,59 @@ the wrong files/using wrong names. There's a script to help you set correctly al
 necessary environment variables. Change your current directory to `superset/RELEASING`
 
 ```bash
-    # usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
-    . ./set_release_env.sh XX.YY.ZZ QQ "YOUR PGP KEY NAME"
+    # usage: . set_release_env.sh <SUPERSET_VERSION_RC> <PGP_KEY_FULLNAME>
+    # example: . set_release_env.sh 0.35.2rc1 myid@apache.org
 ```
 
-The script will output the exported variables. Here's example for 0.34.1 RC1:
+The script will output the exported variables. Here's example for 0.35.2rc2:
 
 ```
     -------------------------------
     Set Release env variables
-    SUPERSET_VERSION=0.34.1
+    SUPERSET_PGP_FULLNAME=myid@apache.org
+    SUPERSET_VERSION_RC=0.35.2rc1
+    SUPERSET_GITHUB_BRANCH=0.35
+    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.35.2
+    SUPERSET_RELEASE_RC=apache-superset-incubating-0.35.2rc1
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.35.2rc1-source.tar.gz
     SUPERSET_RC=1
-    SUPERSET_PGP_FULLNAME=You PGP Key Name
-    SUPERSET_VERSION_RC=0.34.1rc1
-    SUPERSET_RELEASE=apache-superset-incubating-0.34.1
-    SUPERSET_RELEASE_RC=apache-superset-incubating-0.34.1rc1
-    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.34.1-source.tar.gz
-    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.34.1rc1-source.tar.gz
+    SUPERSET_CONFIG_PATH=/Users/ville/superset/superset_config.py
+    SUPERSET_RELEASE=apache-superset-incubating-0.35.2
+    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.35.2-source.tar.gz
+    SUPERSET_VERSION=0.35.2
     -------------------------------
 ```
+
+## Crafting a source release
+
+When crafting a new minor or major release we create
+a branch named with the release MAJOR.MINOR version (on this example 0.35).
+This new branch will hold all PATCH and release candidates
+that belong to the MAJOR.MINOR version.
+
+The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
+Then (if needed) apply all cherries that will make the PATCH
+
+Next update the `CHANGELOG.md` with all the changes that are included in the release. Make sure you have
+set your GITHUB_TOKEN environment variable.
+
+```bash
+# will overwrites the local CHANGELOG.md, somehow you need to merge it in
+github-changes -o apache -r incubator-superset --token $GITHUB_TOKEN -b $SUPERSET_GITHUB_BRANCH
+```
+
+Then, in `UPDATING.md`, a file that contains a list of notifications around
+deprecations and upgrading-related topics,
+make sure to move the content now under the `Next Version` section under a new
+section for the new release.
+
+Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
+
+```json
+    "version": "0.35.2"
+```
+
+Commit the change with the version number, then git tag the version with the release candidate and push to the branch
 
 ## Preparing the release candidate
 
@@ -138,7 +141,7 @@ This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a di
 
 ### Build and test the created source tarball
 
-To build and run the just created tarball
+To build and run the **local copy** of the recently created tarball:
 ```bash
     # Build and run a release candidate tarball
     ./test_run_tarball.sh local
@@ -158,7 +161,7 @@ Now let's ship this RC into svn's dev folder
 
 ### Build and test from SVN source tarball
 
-To make a working build given a tarball
+To build and run the recently created tarball **from SVN**:
 ```bash
     # Build and run a release candidate tarball
     ./test_run_tarball.sh
