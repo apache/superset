@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import datetime
 from typing import Dict, List, Optional
 
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement
@@ -39,18 +40,41 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1Y": "1:YEARS",
     }
 
+    _python_to_java_time_patterns: Dict[str, str] = {
+        "%Y": "yyyy",
+        "%m": "MM",
+        "%d": "dd",
+        "%H": "HH",
+        "%M": "mm",
+        "%S": "ss",
+    }
+
     @classmethod
     def get_timestamp_expr(
         cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
     ) -> TimestampExpression:
         is_epoch = pdf in ("epoch_s", "epoch_ms")
-        if not is_epoch:
-            raise NotImplementedError("Pinot currently only supports epochs")
+
         # The DATETIMECONVERT pinot udf is documented at
         # Per https://github.com/apache/incubator-pinot/wiki/dateTimeConvert-UDF
         # We are not really converting any time units, just bucketing them.
-        seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
-        tf = f"1:{seconds_or_ms}:EPOCH"
+        tf = ""
+        if not is_epoch:
+            try:
+                today = datetime.datetime.today()
+                today.strftime(str(pdf))
+            except ValueError:
+                raise ValueError(f"Invalid column datetime format:{str(pdf)}")
+            java_date_format = str(pdf)
+            for (
+                python_pattern,
+                java_pattern,
+            ) in cls._python_to_java_time_patterns.items():
+                java_date_format.replace(python_pattern, java_pattern)
+            tf = f"1:SECONDS:SIMPLE_DATE_FORMAT:{java_date_format}"
+        else:
+            seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
+            tf = f"1:{seconds_or_ms}:EPOCH"
         granularity = cls.get_time_grain_functions().get(time_grain)
         if not granularity:
             raise NotImplementedError("No pinot grain spec for " + str(time_grain))
