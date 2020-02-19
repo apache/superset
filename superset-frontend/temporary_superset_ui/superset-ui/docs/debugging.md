@@ -13,8 +13,7 @@ npm link
 2. Link the local package to `incubator-superset`.
 
 ```sh
-cd incubator-superset
-cd superset/assets
+cd incubator-superset/superset-frontend
 npm link @superset-ui/chart \# use package name in package.json, not directory name
 ```
 
@@ -49,8 +48,8 @@ inside `incubator-superset`.
 
 2. Unlink the package from `incubator-superset`.
 
-```cd incubator-superset
-cd superset/assets
+```sh
+cd incubator-superset/superset-frontend
 npm unlink @superset-ui/chart
 ```
 
