@@ -38,12 +38,12 @@ from superset.views.base import (
     BaseSupersetView,
     DatasourceFilter,
     DeleteMixin,
-    get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes,
     SupersetModelView,
     validate_json,
     YamlExportMixin,
 )
+from superset.views.utils import get_datasource_exist_error_msg
 
 logger = logging.getLogger(__name__)
 

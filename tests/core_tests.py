@@ -39,6 +39,7 @@ import sqlalchemy as sqla
 
 from tests.test_app import app  # isort:skip
 import superset.views.utils
+from superset.utils.core import get_example_database
 from superset import (
     dataframe,
     db,
@@ -774,6 +775,72 @@ class CoreTests(SupersetTestCase):
         with open(filename, "w+") as test_file:
             for l in content:
                 test_file.write(f"{l}\n")
+
+    def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
+        # superset/explore_json case
+        self.login(username="admin")
+        slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
+        qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
+        slc_url = slc.slice_url.replace("explore", "explore_json")
+        self.get_json_resp(slc_url, {"form_data": json.dumps(slc.form_data)})
+        self.assertEqual(1, qry.count())
+
+    def test_explore_new(self):
+        self.login("admin")
+        examples_db = get_example_database()
+        examples_dbid = examples_db.id
+        table_schema = None
+        if examples_db.backend == "mysql":
+            table_schema = "superset"
+        elif examples_db.backend == "sqlite":
+            table_schema = "main"
+        elif examples_db.backend == "postgres":
+            # no schema is created for this test in postgres
+            table_schema = ""
+
+        table_name = "ab_role"
+        full_table_name = f"{table_schema}.{table_name}" if table_schema else table_name
+        resp = self.get_resp(
+            f"/superset/explore_new/{examples_dbid}/table/{full_table_name}"
+        )
+        self.assertIn(full_table_name, resp)
+
+        # ensure owner is set correctly
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(
+                database_id=examples_dbid, table_name=table_name, schema=table_schema
+            )
+            .one()
+        )
+        self.assertEqual([owner.username for owner in table.owners], ["admin"])
+
+        # ensure that you can call it twice
+        resp = self.get_resp(
+            f"/superset/explore_new/{examples_dbid}/table/{full_table_name}"
+        )
+        self.assertIn(full_table_name, resp)
+
+        db.session.delete(table)
+        db.session.commit()
+
+        # test is_sqllab_view flag
+        sqllab_resp = self.get_resp(
+            f"/superset/explore_new/{examples_dbid}/table/{full_table_name}?is_sqllab_view=true"
+        )
+        self.assertIn(full_table_name, sqllab_resp)
+
+        # ensure is_sqllab_view is set
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(
+                database_id=examples_dbid, table_name=table_name, schema=table_schema
+            )
+            .one()
+        )
+        self.assertTrue(table.is_sqllab_view)
+        db.session.delete(table)
+        db.session.commit()
 
     def enable_csv_upload(self, database: models.Database) -> None:
         """Enables csv upload in the given database."""

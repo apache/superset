@@ -46,7 +46,6 @@ from superset import (
     get_feature_flags,
     security_manager,
 )
-from superset.connectors.sqla import models
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.helpers import ImportMixin
@@ -191,42 +190,6 @@ def handle_api_exception(
             return json_error_response(utils.error_msg_from_exception(ex))
 
     return functools.update_wrapper(wraps, f)
-
-
-def get_datasource_exist_error_msg(full_name: str) -> str:
-    return __("Datasource %(name)s already exists", name=full_name)
-
-
-def validate_sqlatable(table: models.SqlaTable) -> None:
-    """Checks the table existence in the database."""
-    with db.session.no_autoflush:
-        table_query = db.session.query(models.SqlaTable).filter(
-            models.SqlaTable.table_name == table.table_name,
-            models.SqlaTable.schema == table.schema,
-            models.SqlaTable.database_id == table.database.id,
-        )
-        if db.session.query(table_query.exists()).scalar():
-            raise Exception(get_datasource_exist_error_msg(table.full_name))
-
-    # Fail before adding if the table can't be found
-    try:
-        table.get_sqla_table_object()
-    except Exception as ex:
-        logger.exception("Got an error in pre_add for %s", table.name)
-        raise Exception(
-            _(
-                "Table [%{table}s] could not be found, "
-                "please double check your "
-                "database connection, schema, and "
-                "table name, error: {}"
-            ).format(table.name, str(ex))
-        )
-
-
-def create_table_permissions(table: models.SqlaTable) -> None:
-    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
-    if table.schema:
-        security_manager.add_permission_view_menu("schema_access", table.schema_perm)
 
 
 def get_user_roles() -> List[Role]:

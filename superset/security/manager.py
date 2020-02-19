@@ -289,15 +289,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return True
 
     @staticmethod
-    def get_datasource_access_error_msg(datasource: "BaseDatasource") -> str:
+    def get_datasource_access_error_msg(datasource_name: Optional[str]) -> str:
         """
         Return the error message for the denied Superset datasource.
 
-        :param datasource: The denied Superset datasource
+        :param datasource_name: The denied Superset datasource name
         :returns: The error message
         """
 
-        return f"""This endpoint requires the datasource {datasource.name}, database or
+        return f"""This endpoint requires the datasource {datasource_name}, database or
             `all_datasource_access` permission"""
 
     @staticmethod
@@ -392,7 +392,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self.raise_for_access(database=database, table=table)
         except SupersetSecurityException:
             return False
-
         return True
 
     def get_public_role(self) -> Optional[Any]:  # Optional[self.role_model]

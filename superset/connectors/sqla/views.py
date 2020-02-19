@@ -36,14 +36,13 @@ from superset.constants import RouteMethod
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
-    create_table_permissions,
     DatasourceFilter,
     DeleteMixin,
     ListWidgetWithCheckboxes,
     SupersetModelView,
-    validate_sqlatable,
     YamlExportMixin,
 )
+from superset.views.utils import create_table_permissions, validate_sqlatable
 
 logger = logging.getLogger(__name__)
 

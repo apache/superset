@@ -26,10 +26,19 @@ import simplejson as json
 from flask import g, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as __, lazy_gettext as _
 
 import superset.models.core as models
-from superset import app, dataframe, db, is_feature_enabled, result_set
+from superset import (
+    app,
+    dataframe,
+    db,
+    is_feature_enabled,
+    result_set,
+    security_manager,
+)
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.legacy import update_time_range
@@ -492,3 +501,85 @@ def get_cta_schema_name(
     if not func:
         return None
     return func(database, user, schema, sql)
+
+
+def parse_table_full_name(full_table_name: str) -> Tuple[Optional[str], str]:
+    """Parses full table name into components like table name, schema name.
+
+    Note the table name conforms to the [[cluster.]schema.]table construct.
+    """
+    table_name_pieces = full_table_name.split(".")
+    if len(table_name_pieces) == 3:
+        return table_name_pieces[1], table_name_pieces[1]
+    if len(table_name_pieces) == 2:
+        return table_name_pieces[0], table_name_pieces[1]
+    return None, table_name_pieces[0]
+
+
+def create_table_permissions(table: SqlaTable) -> None:
+    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
+    if table.schema:
+        security_manager.add_permission_view_menu("schema_access", table.schema_perm)
+
+
+def get_datasource_exist_error_msg(full_name: str) -> str:
+    return __("Datasource %(name)s already exists", name=full_name)
+
+
+def validate_sqlatable(table: SqlaTable) -> None:
+    """Checks the table existence in the database."""
+    with db.session.no_autoflush:
+        table_query = db.session.query(SqlaTable).filter(
+            SqlaTable.table_name == table.table_name,
+            SqlaTable.schema == table.schema,
+            SqlaTable.database_id == table.database.id,
+        )
+        if db.session.query(table_query.exists()).scalar():
+            raise Exception(get_datasource_exist_error_msg(table.full_name))
+
+    # Fail before adding if the table can't be found
+    try:
+        table.get_sqla_table_object()
+    except Exception as ex:
+        logger.exception("Got an error in pre_add for %s", table.name)
+        raise Exception(
+            _(
+                "Table [%{table}s] could not be found, "
+                "please double check your "
+                "database connection, schema, and "
+                "table name, error: {}"
+            ).format(table.name, str(ex))
+        )
+
+
+def create_if_not_exists_table(
+    database_id: int,
+    schema_name: Optional[str],
+    table_name: str,
+    template_params: Optional[str] = None,
+    is_sqllab_view: bool = False,
+) -> int:
+    table = (
+        db.session.query(SqlaTable)
+        .filter_by(database_id=database_id, schema=schema_name, table_name=table_name)
+        .one_or_none()
+    )
+    if not table:
+        # Create table if doesn't exist.
+        with db.session.no_autoflush:
+            table = SqlaTable(table_name=table_name, owners=[g.user])
+            table.database_id = database_id
+            table.database = (
+                db.session.query(models.Database).filter_by(id=database_id).one()
+            )
+            table.schema = schema_name
+            table.template_params = template_params
+            table.is_sqllab_view = is_sqllab_view
+            # needed for the table validation.
+            validate_sqlatable(table)
+
+        db.session.add(table)
+        table.fetch_metadata()
+        create_table_permissions(table)
+        db.session.commit()
+    return table.id

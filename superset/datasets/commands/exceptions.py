@@ -25,7 +25,7 @@ from superset.commands.exceptions import (
     ForbiddenError,
     UpdateFailedError,
 )
-from superset.views.base import get_datasource_exist_error_msg
+from superset.views.utils import get_datasource_exist_error_msg
 
 
 class DatabaseNotFoundValidationError(ValidationError):
