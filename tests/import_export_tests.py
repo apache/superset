@@ -400,10 +400,15 @@ class ImportExportTests(SupersetTestCase):
         dash_with_2_slices.json_metadata = json.dumps(
             {
                 "remote_id": 10003,
-                "filter_immune_slices": ["{}".format(e_slc.id)],
                 "expanded_slices": {
                     "{}".format(e_slc.id): True,
                     "{}".format(b_slc.id): False,
+                },
+                # mocked filter_scope metadata
+                "filter_scopes": {
+                    str(e_slc.id): {
+                        "region": {"scope": ["ROOT_ID"], "immune": [b_slc.id]}
+                    }
                 },
             }
         )
@@ -421,7 +426,11 @@ class ImportExportTests(SupersetTestCase):
         expected_json_metadata = {
             "remote_id": 10003,
             "import_time": 1991,
-            "filter_immune_slices": ["{}".format(i_e_slc.id)],
+            "filter_scopes": {
+                str(i_e_slc.id): {
+                    "region": {"scope": ["ROOT_ID"], "immune": [i_b_slc.id]}
+                }
+            },
             "expanded_slices": {
                 "{}".format(i_e_slc.id): True,
                 "{}".format(i_b_slc.id): False,
