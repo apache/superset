@@ -73,6 +73,13 @@ const markdownPlaceHolder = `# ✨Markdown
 
 Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
+function isSafeMarkup(node) {
+  if (node.type === 'html') {
+    return /href="(javascript|vbscript|file):.*"/gim.test(node.value) === false;
+  }
+
+  return true;
+}
 class Markdown extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -190,6 +197,7 @@ class Markdown extends React.PureComponent {
       <ReactMarkdown
         source={this.state.markdownSource || markdownPlaceHolder}
         escapeHtml={false}
+        allowNode={isSafeMarkup}
       />
     );
   }
