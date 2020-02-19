@@ -654,7 +654,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if schema:
             full_table_name = quote(schema) + "." + quote(table_name)
         else:
-            full_table_name = ".".join([quote(t) for t in table_name.split(".")])
+            full_table_name = quote(table_name)
 
         qry = select(fields).select_from(text(full_table_name))
 

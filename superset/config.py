@@ -41,7 +41,6 @@ from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 logger = logging.getLogger(__name__)
 
-# Avoid circular import
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
     from superset.models.core import Database  # pylint: disable=unused-import
