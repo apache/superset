@@ -16,7 +16,6 @@
 # under the License.
 from typing import Any, Dict, List, Optional
 
-from flask import Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
@@ -113,12 +112,11 @@ def get_table_metadata(
 class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    include_route_methods = {"get_list", "table_metadata", "tables", "select_star"}
+    include_route_methods = {"get_list", "table_metadata", "select_star"}
     class_permission_name = "DatabaseView"
     method_permission_name = {
         "get_list": "list",
         "table_metadata": "list",
-        "tables": "list",
         "select_star": "list",
     }
     resource_name = "database"
@@ -154,9 +152,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @check_datasource_access
     @safe
     @event_logger.log_this
-    def table_metadata(
-        self, database: Database, table_name: str, schema_name: str
-    ) -> Response:
+    def table_metadata(self, database: Database, table_name: str, schema_name: str):
         """ Table schema info
         ---
         get:
@@ -291,7 +287,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     @event_logger.log_this
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
-    ) -> Response:
+    ):
         """ Table schema info
         ---
         get:

@@ -1685,8 +1685,7 @@ class Superset(BaseSupersetView):
     def publish(self, dashboard_id):
         """Gets and toggles published status on dashboards"""
         logger.warning(
-            "/superset/dashboard API endpoint is deprecated "
-            "and will be removed in version 1.0.0"
+            "This API endpoint is deprecated and will be removed in version 1.0.0"
         )
         session = db.session()
         Role = ab_models.Role
