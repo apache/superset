@@ -47,9 +47,10 @@ class DashboardJSONMetadataSchema(Schema):
     expanded_slices = fields.Dict()
     refresh_frequency = fields.Integer()
     default_filters = fields.Str()
-    filter_immune_slice_fields = fields.Dict()
     stagger_refresh = fields.Boolean()
     stagger_time = fields.Integer()
+    color_scheme = fields.Str()
+    label_colors = fields.Dict()
 
 
 def validate_json(value):
