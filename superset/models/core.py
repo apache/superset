@@ -292,7 +292,7 @@ class Database(
         )
 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
-        logger.info("Database.get_sqla_engine(). Masked URL: %s", str(masked_url))
+        logger.debug("Database.get_sqla_engine(). Masked URL: %s", str(masked_url))
 
         params = extra.get("engine_params", {})
         if nullpool:
