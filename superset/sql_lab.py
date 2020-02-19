@@ -384,11 +384,9 @@ def execute_sql_statements(
         )
     query.end_time = now_as_float()
 
+    use_arrow_data = store_results and results_backend_use_msgpack
     data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
-        result_set,
-        db_engine_spec,
-        store_results and results_backend_use_msgpack,
-        expand_data,
+        result_set, db_engine_spec, use_arrow_data, expand_data
     )
 
     # TODO: data should be saved separately from metadata (likely in Parquet)
@@ -430,6 +428,24 @@ def execute_sql_statements(
     session.commit()
 
     if return_results:
+        # since we're returning results we need to create non-arrow data
+        if use_arrow_data:
+            (
+                data,
+                selected_columns,
+                all_columns,
+                expanded_columns,
+            ) = _serialize_and_expand_data(
+                result_set, db_engine_spec, False, expand_data
+            )
+            payload.update(
+                {
+                    "data": data,
+                    "columns": all_columns,
+                    "selected_columns": selected_columns,
+                    "expanded_columns": expanded_columns,
+                }
+            )
         return payload
 
     return None

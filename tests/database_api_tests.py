@@ -19,9 +19,10 @@
 import json
 
 import prison
+from sqlalchemy.sql import func
 
-import tests.test_app
-from superset import db
+from superset import db, security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 
@@ -140,5 +141,78 @@ class DatabaseApiTests(SupersetTestCase):
         self.login(username="gamma")
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/birth_names/null/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_select_star(self):
+        """
+            Database API: Test get select star
+        """
+        self.login(username="admin")
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertIn("gender", response["result"])
+
+    def test_get_select_star_not_allowed(self):
+        """
+            Database API: Test get select star not allowed
+        """
+        self.login(username="gamma")
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_select_star_datasource_access(self):
+        """
+            Database API: Test get select star with datasource access
+        """
+        session = db.session
+        table = SqlaTable(
+            schema="main", table_name="ab_permission", database=get_example_database()
+        )
+        session.add(table)
+        session.commit()
+
+        tmp_table_perm = security_manager.find_permission_view_menu(
+            "datasource_access", table.get_perm()
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        security_manager.add_permission_role(gamma_role, tmp_table_perm)
+
+        self.login(username="gamma")
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/select_star/ab_permission/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+
+        # rollback changes
+        security_manager.del_permission_role(gamma_role, tmp_table_perm)
+        db.session.delete(table)
+        db.session.commit()
+
+    def test_get_select_star_not_found_database(self):
+        """
+            Database API: Test get select star not found database
+        """
+        self.login(username="admin")
+        max_id = db.session.query(func.max(Database.id)).scalar()
+        uri = f"api/v1/database/{max_id + 1}/select_star/birth_names/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_select_star_not_found_table(self):
+        """
+            Database API: Test get select star not found database
+        """
+        self.login(username="admin")
+        example_db = get_example_database()
+        # sqllite will not raise a NoSuchTableError
+        if example_db.backend == "sqlite":
+            return
+        uri = f"api/v1/database/{example_db.id}/select_star/table_does_not_exist/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
