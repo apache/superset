@@ -48,15 +48,15 @@
     eslint-plugin-unicorn "^15.0.1"
 
 "@airbnb/config-jest@^2.1.3":
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-jest/-/config-jest-2.2.2.tgz#2d50245376e67c91e865121e523655046fdc03e7"
-  integrity sha512-Th63Swbe21AnHLb08Lz74uaSuy+4weydLOzNQuyv0SWaCtedJGMB5jdIadCwUMg80uNnpVQSuGnIRH/2TfvmqA==
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-jest/-/config-jest-2.2.3.tgz#badedaa7725d9bce70093a84a9a568e8deaa491a"
+  integrity sha512-OD2AAQMVPcFbQNggR9FnoS6WdzRlw5ishxZqz9AFw7Q5fqj3l4cwh+7X2YYablZhAW2dziSOrXNPMy8MvEQxtA==
   dependencies:
-    "@airbnb/nimbus-common" "^2.1.1"
+    "@airbnb/nimbus-common" "^2.1.2"
     "@babel/core" "^7.8.3"
-    "@beemo/core" "^1.1.1"
-    "@beemo/driver-babel" "^1.2.0"
-    "@beemo/driver-jest" "^1.1.1"
+    "@beemo/core" "^1.1.2"
+    "@beemo/driver-babel" "^1.2.1"
+    "@beemo/driver-jest" "^1.2.0"
     airbnb-js-shims "^2.2.1"
     dom-storage "^2.1.0"
     jest "^25.1.0"
@@ -1107,12 +1107,12 @@
   resolved "https://registry.yarnpkg.com/@beemo/dependency-graph/-/dependency-graph-1.1.0.tgz#5f110fe8ed148acf589bc4fddc538b07f0a4d03f"
   integrity sha512-xBPqNB99Q0icr7NgYZyxH9lmjo1UgzzozZM/gcDe1jYqKBFx2CZ4jkuOG3d7exjAN4jq/+QfWETAJrHnopdAaA==
 
-"@beemo/driver-babel@^1.2.0":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@beemo/driver-babel/-/driver-babel-1.2.1.tgz#fb8217c7787b8371f57b199be1f7033cf736ff25"
-  integrity sha512-IaEb9jQRAIaepAH4+WPxCiPrESPKeG3kXWCWm11OiC+iKYyEJu8Wcy3sSRghhFiEARJBoSPJlzUAZ8zNjioEkA==
+"@beemo/driver-babel@^1.2.0", "@beemo/driver-babel@^1.2.1":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@beemo/driver-babel/-/driver-babel-1.2.2.tgz#3ad6c61197b81ebe85819db2465422623b557ae7"
+  integrity sha512-tFObzVoC4N7TT0qPhPgPdlNpBk3T0d/EyCqEAemQCNDkwEd+BQlhDnC8YQ/13ykEtKlrUIo3rpRFlijn8apKpA==
   dependencies:
-    rimraf "^3.0.0"
+    rimraf "^3.0.2"
 
 "@beemo/driver-eslint@^1.2.0":
   version "1.2.1"
@@ -1121,12 +1121,12 @@
   dependencies:
     "@boost/event" "^1.2.1"
 
-"@beemo/driver-jest@^1.1.1":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@beemo/driver-jest/-/driver-jest-1.2.0.tgz#11927effdebe93f41426c7f12d6b4dd21fea91e9"
-  integrity sha512-SEdbSkZ5yYbrTK2uoOg0TQwvzdOv86d1sqlC84DYHxAs06w5tlB/TMbDvL8lMSgWnKMwcDPGCMd85ZFE/5sePQ==
+"@beemo/driver-jest@^1.2.0":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@beemo/driver-jest/-/driver-jest-1.2.1.tgz#47b253fac5d390bc3dc0841ee96b26f250113744"
+  integrity sha512-5P6SSUQvydn1S0wnwMTfbuQPYdiWb702LPAwtDVUTwbh9T2oRGCDGl3Sr9FQspvR2Ky9mkyHrL89KULr+qHcZw==
   dependencies:
-    "@jest/types" "^24.9.0"
+    "@jest/types" "^25.1.0"
 
 "@beemo/driver-prettier@^1.2.1":
   version "1.2.2"
