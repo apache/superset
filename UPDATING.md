@@ -22,6 +22,10 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+* [9133](https://github.com/apache/incubator-superset/pull/9133): Security list of permissions and list views has been
+disable by default. You can optionally enable them back again by setting the following config keys: 
+FAB_ADD_SECURITY_PERMISSION_VIEW, FAB_ADD_SECURITY_VIEW_MENU_VIEW, FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW to True.
+ 
 * [9109](https://github.com/apache/incubator-superset/pull/9109): Expire `filter_immune_slices` and 
 `filter_immune_filter_fields` to favor dashboard scoped filter metadata `filter_scopes`.
 
