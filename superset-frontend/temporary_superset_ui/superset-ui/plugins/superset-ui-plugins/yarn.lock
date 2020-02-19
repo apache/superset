@@ -62,13 +62,13 @@
     jest "^25.1.0"
 
 "@airbnb/config-prettier@^2.0.4":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-prettier/-/config-prettier-2.1.1.tgz#cf18b45555f92309b470634da176ddc9ebb53e81"
-  integrity sha512-lt/q40KUWK3GdQEARGbJG5aCoPaFmlLCIY/9C/0dIYsCT/MmwGBQ6c5ez7JZ5dvWaGZb5Z0eNUnz44+LzHjq/Q==
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-prettier/-/config-prettier-2.1.2.tgz#1ae163565b9406d388320d6c504e759517393a25"
+  integrity sha512-7mt4HSUmO+fmWVMs1coz+aQL66NZMkk7NGFaWSKDmgBSXfb2FcfpoSzAFKzJP288oVm4L+xkhRDLHHT4f99ddA==
   dependencies:
-    "@airbnb/nimbus-common" "^2.1.1"
-    "@beemo/core" "^1.1.1"
-    "@beemo/driver-prettier" "^1.2.0"
+    "@airbnb/nimbus-common" "^2.1.2"
+    "@beemo/core" "^1.1.2"
+    "@beemo/driver-prettier" "^1.2.1"
     prettier "^1.19.1"
 
 "@airbnb/config-typescript@^2.1.2":
@@ -1128,12 +1128,12 @@
   dependencies:
     "@jest/types" "^24.9.0"
 
-"@beemo/driver-prettier@^1.2.0":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@beemo/driver-prettier/-/driver-prettier-1.2.1.tgz#f3c2e177ff170e567bffd952a06d25d57d895438"
-  integrity sha512-TQdNcLjgfudqUO9tgRBHSbcE0xxwws8dHAhe/zM6JaeOiaXU4tspeQLtq8u70rmfQiAHbXzQqyaG5Hc5hiZgGg==
+"@beemo/driver-prettier@^1.2.1":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@beemo/driver-prettier/-/driver-prettier-1.2.2.tgz#c922dba66f20075ecd7b7051486e43684a841268"
+  integrity sha512-LJbmxdD1fRTnUMj8Zm3QXeMOSexWDW2pN6VQe9/5Ntp6lfnV3zmffntEtuvFS0GXIm9xkiX669uUBHOicKnraA==
   dependencies:
-    "@boost/event" "^1.2.1"
+    "@boost/event" "^1.3.0"
     "@types/prettier" "*"
 
 "@beemo/driver-typescript@^1.3.1":
