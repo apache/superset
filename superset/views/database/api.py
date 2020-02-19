@@ -14,92 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from flask import current_app, g, Response
+from flask import Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
-from superset import event_logger, security_manager
+from superset import event_logger
 from superset.models.core import Database
-from superset.utils.core import (
-    DatasourceName,
-    error_msg_from_exception,
-    parse_js_uri_path_item,
-)
+from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.decorators import check_datasource_access
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.mixins import DatabaseMixin
 from superset.views.database.validators import sqlalchemy_uri_validator
-
-
-def get_datasource_label(ds_name: DatasourceName, schema_name: Optional[str]) -> str:
-    return ds_name.table if schema_name else f"{ds_name.schema}.{ds_name.table}"
-
-
-def get_all_names_in_database(  # pylint: disable=too-many-arguments
-    get_all_in_schema_func: Callable,
-    get_all_in_database_func: Callable,
-    database: Database,
-    schema_name: Optional[str],
-    substr: Optional[str],
-    force_refresh: bool,
-) -> List[DatasourceName]:
-    if schema_name:
-        tables_views = (
-            get_all_in_schema_func(
-                schema=schema_name,
-                force=force_refresh,
-                cache=database.table_cache_enabled,
-                cache_timeout=database.table_cache_timeout,
-            )
-            or []
-        )
-    else:
-        tables_views = get_all_in_database_func(
-            cache=True, force=False, cache_timeout=24 * 60 * 60
-        )
-    if substr:
-        tables_views = [
-            ds for ds in tables_views if substr in get_datasource_label(ds, schema_name)
-        ]
-    return security_manager.get_datasources_accessible_by_user(
-        database, tables_views, schema_name
-    )
-
-
-def get_all_table_names_in_database(
-    database: Database,
-    schema_name: Optional[str],
-    substr: Optional[str],
-    force_refresh: bool,
-) -> List[DatasourceName]:
-    return get_all_names_in_database(
-        database.get_all_table_names_in_schema,
-        database.get_all_table_names_in_database,
-        database,
-        schema_name,
-        substr,
-        force_refresh,
-    )
-
-
-def get_all_view_names_in_database(
-    database: Database,
-    schema_name: Optional[str],
-    substr: Optional[str],
-    force_refresh: bool,
-) -> List[DatasourceName]:
-    return get_all_names_in_database(
-        database.get_all_view_names_in_schema,
-        database.get_all_view_names_in_database,
-        database,
-        schema_name,
-        substr,
-        force_refresh,
-    )
 
 
 def get_foreign_keys_metadata(
@@ -350,139 +279,6 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             return self.response_422(error_msg_from_exception(e))
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
-
-    @expose("/<int:pk>/tables/<string:schema_name>/<string:substr>/", methods=["GET"])
-    @expose(
-        "/<int:pk>/tables/<string:schema_name>/<string:substr>/<force_refresh>/",
-        methods=["GET"],
-    )
-    @protect()
-    @safe
-    @event_logger.log_this
-    def tables(  # pylint: disable=invalid-name,too-many-locals
-        self, pk: int, schema_name: str, substr: str, force_refresh: str = "false"
-    ) -> Response:
-        """ Table schema info
-        ---
-        get:
-          description: >-
-            Get a list of tables from a database/schema
-          parameters:
-          - in: path
-            name: pk
-            description: The database id
-            schema:
-              type: integer
-          - in: path
-            description: Table schema
-            name: schema
-            schema:
-              type: string
-          - in: path
-            description: Sub string
-            name: substr
-            schema:
-              type: string
-          - in: path
-            description: force cache refresh
-            name: force_refresh
-            schema:
-              type: bool
-          responses:
-            200:
-              description: Table schema info
-              content:
-                text/plain:
-                  schema:
-                    type: object
-                    properties:
-                      options:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            label:
-                              type: string
-                            schema:
-                              type: string
-                            title:
-                              type: string
-                            type:
-                              type: string
-                            value:
-                              type: string
-                      tableLength:
-                        type: number
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        self.incr_stats("init", self.tables.__name__)
-        force_refresh_parsed = force_refresh.lower() == "true"
-        schema_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
-        substr_parsed = parse_js_uri_path_item(substr, eval_undefined=True)
-        # Guarantees filtering on databases
-        database: Database = self.datamodel.get(pk, self._base_filters)
-        if not database:
-            self.incr_stats("error", self.tables.__name__)
-            return self.response_404()
-
-        tables = get_all_table_names_in_database(
-            database, schema_parsed, substr_parsed, force_refresh_parsed
-        )
-        views = get_all_view_names_in_database(
-            database, schema_parsed, substr_parsed, force_refresh_parsed
-        )
-
-        if not schema_parsed and database.default_schemas:
-            user_schema = g.user.email.split("@")[0]
-            valid_schemas = set(database.default_schemas + [user_schema])
-
-            tables = [tn for tn in tables if tn.schema in valid_schemas]
-            views = [vn for vn in views if vn.schema in valid_schemas]
-
-        max_items = current_app.config["MAX_TABLE_NAMES"] or len(tables)
-        total_items = len(tables) + len(views)
-        max_tables = len(tables)
-        max_views = len(views)
-        if total_items and substr_parsed:
-            max_tables = max_items * len(tables) // total_items
-            max_views = max_items * len(views) // total_items
-
-        table_options = [
-            {
-                "value": tn.table,
-                "schema": tn.schema,
-                "label": get_datasource_label(tn, schema_parsed),
-                "title": get_datasource_label(tn, schema_parsed),
-                "type": "table",
-            }
-            for tn in tables[:max_tables]
-        ]
-        table_options.extend(
-            [
-                {
-                    "value": vn.table,
-                    "schema": vn.schema,
-                    "label": get_datasource_label(vn, schema_parsed),
-                    "title": get_datasource_label(vn, schema_parsed),
-                    "type": "view",
-                }
-                for vn in views[:max_views]
-            ]
-        )
-        table_options.sort(key=lambda value: value["label"])
-        self.incr_stats("success", self.tables.__name__)
-        return self.response(
-            200, tableLength=len(tables) + len(views), options=table_options
-        )
 
     @expose("/<int:pk>/select_star/<string:table_name>/", methods=["GET"])
     @expose(

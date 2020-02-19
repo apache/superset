@@ -75,7 +75,7 @@ describe('TableSelector', () => {
   });
 
   describe('getTableNamesBySubStr', () => {
-    const GET_TABLE_NAMES_GLOB = 'glob:*/api/v1/database/1/tables/main/*';
+    const GET_TABLE_NAMES_GLOB = 'glob:*/superset/tables/1/main/*';
 
     afterEach(fetchMock.resetHistory);
     afterAll(fetchMock.reset);
@@ -121,7 +121,7 @@ describe('TableSelector', () => {
     });
 
     it('should escape schema and table names', () => {
-      const GET_TABLE_GLOB = 'glob:*/api/v1/database/1/tables/*/*';
+      const GET_TABLE_GLOB = 'glob:*/superset/tables/1/*/*';
       wrapper.setProps({ schema: 'slashed/schema' });
       fetchMock.get(GET_TABLE_GLOB, tables, { overwriteRoutes: true });
 
@@ -138,7 +138,7 @@ describe('TableSelector', () => {
   });
 
   describe('fetchTables', () => {
-    const FETCH_TABLES_GLOB = 'glob:*/api/v1/database/1/tables/main/*/*/';
+    const FETCH_TABLES_GLOB = 'glob:*/superset/tables/1/main/*/*/';
     afterEach(fetchMock.resetHistory);
     afterAll(fetchMock.reset);
 

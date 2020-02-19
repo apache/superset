@@ -1060,11 +1060,6 @@ class Superset(BaseSupersetView):
         self, db_id: int, schema: str, substr: str, force_refresh: str = "false"
     ):
         """Endpoint to fetch the list of tables for given database"""
-        logger.warning(
-            "/superset/tables/ API endpoint "
-            "is deprecated and will be removed in version 1.0.0"
-        )
-        stats_logger.incr(f"deprecated.{self.__class__.__name__}.tables.init")
         # Guarantees database filtering by security access
         query = db.session.query(models.Database)
         query = DatabaseFilter("id", SQLAInterface(models.Database, db.session)).apply(
@@ -1072,9 +1067,6 @@ class Superset(BaseSupersetView):
         )
         database = query.filter_by(id=db_id).one_or_none()
         if not database:
-            stats_logger.incr(
-                f"deprecated.{self.__class__.__name__}.tables.database_not_found"
-            )
             return json_error_response("Not found", 404)
 
         force_refresh_parsed = force_refresh.lower() == "true"
@@ -1162,7 +1154,6 @@ class Superset(BaseSupersetView):
         )
         table_options.sort(key=lambda value: value["label"])
         payload = {"tableLength": len(tables) + len(views), "options": table_options}
-        stats_logger.incr(f"deprecated.{self.__class__.__name__}.tables.success")
         return json_success(json.dumps(payload))
 
     @api

@@ -40,6 +40,13 @@ FAKE_DB_NAME = "fake_db_100"
 
 
 class SupersetTestCase(TestCase):
+
+    default_schema_backend_map = {
+        "sqlite": "main",
+        "mysql": "superset",
+        "postgresql": "public",
+    }
+
     def __init__(self, *args, **kwargs):
         super(SupersetTestCase, self).__init__(*args, **kwargs)
         self.maxDiff = None
