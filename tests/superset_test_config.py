@@ -29,9 +29,8 @@ if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
     SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]
 
 SQL_MAX_ROW = 666
-
+SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take affect for the CTA queries
 FEATURE_FLAGS = {"foo": "bar", "KV_STORE": True, "SHARE_QUERIES_VIA_KV_STORE": True}
-SQLLAB_CTA_NO_LIMIT = True  # SQL_MAX_ROW will not take affect for the CTA queries
 
 
 def GET_FEATURE_FLAGS_FUNC(ff):

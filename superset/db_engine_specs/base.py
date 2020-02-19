@@ -651,8 +651,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if show_cols:
             fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
+        initial_quote = engine.dialect.identifier_preparer.initial_quote
+        final_quote = engine.dialect.identifier_preparer.final_quote
         if schema:
             full_table_name = quote(schema) + "." + quote(table_name)
+        # Do not quote already quoted table names.
+        # e.g. mysql engine quote('`a`.`b`') returns '```a``.``b```' and
+        # this is not a valid table name.
+        elif (
+            initial_quote
+            and table_name.startswith(initial_quote)
+            and table_name.endswith(final_quote)
+        ):
+            full_table_name = table_name
         else:
             full_table_name = quote(table_name)
 
