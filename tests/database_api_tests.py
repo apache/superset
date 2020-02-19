@@ -30,16 +30,6 @@ from .base_tests import SupersetTestCase
 
 
 class DatabaseApiTests(SupersetTestCase):
-
-    default_schema_backend_map = {
-        "sqlite": "main",
-        "mysql": "superset",
-        "postgresql": "public",
-    }
-
-    def get_default_backend_schema(self, database: Database) -> str:
-        return self.default_schema_backend_map[database.backend]
-
     def test_get_items(self):
         """
             Database API: Test get items
