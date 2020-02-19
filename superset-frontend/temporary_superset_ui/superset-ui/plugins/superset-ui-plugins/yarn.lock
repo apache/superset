@@ -4352,6 +4352,14 @@
     "@types/d3-shape" "^1.3.1"
     d3-shape "^1.0.6"
 
+"@vx/curve@0.0.194":
+  version "0.0.194"
+  resolved "https://registry.yarnpkg.com/@vx/curve/-/curve-0.0.194.tgz#2ef25279b20eef18abdd4d1d3bcbb295f001e513"
+  integrity sha512-6B+rHxsdK+PWdO8kYhT00kwBIwl9HIzpuxE+bRndrXC/nyoJVfSA7E4cLhZiIJYt0ukwkIPE3YsSIuT1OmW+1A==
+  dependencies:
+    "@types/d3-shape" "^1.3.1"
+    d3-shape "^1.0.6"
+
 "@vx/event@0.0.140":
   version "0.0.140"
   resolved "https://registry.yarnpkg.com/@vx/event/-/event-0.0.140.tgz#658ec4de92cd61df40b883296168d4e0824015bf"
@@ -4463,6 +4471,16 @@
   version "0.0.193"
   resolved "https://registry.yarnpkg.com/@vx/group/-/group-0.0.193.tgz#b492e9e4d7dc31a002094ec95220cff5ec3ec0ea"
   integrity sha512-MNJDPgTN0PK8UiV+8XPvZqokYtswH+mfSQMHZXnANfg14jAIfVMeW/TRfDX9FRK2SVI8aOJmMXYOfNVL3y7ewA==
+  dependencies:
+    "@types/classnames" "^2.2.9"
+    "@types/react" "*"
+    classnames "^2.2.5"
+    prop-types "^15.6.2"
+
+"@vx/group@0.0.194":
+  version "0.0.194"
+  resolved "https://registry.yarnpkg.com/@vx/group/-/group-0.0.194.tgz#c53cbd47d2a50650063be3b39920c44da063b3ae"
+  integrity sha512-0TV9eo5rgBr04i42qY+T5qg3PaHp9CJ77+V3Cm+ifTS3fgNomcfNCjoKpTi5uFVIj4M2t4akvka9n9PjW4emDw==
   dependencies:
     "@types/classnames" "^2.2.9"
     "@types/react" "*"
@@ -4635,7 +4653,7 @@
     d3-shape "^1.2.0"
     prop-types "^15.5.10"
 
-"@vx/shape@0.0.193", "@vx/shape@^0.0.193":
+"@vx/shape@0.0.193":
   version "0.0.193"
   resolved "https://registry.yarnpkg.com/@vx/shape/-/shape-0.0.193.tgz#93af1ff8238912a99d97219b6c197ef821e92ca7"
   integrity sha512-Rawz7KktSO94AuFDvmJg0K7gkUXt8B9IPGGyI+Xyf99kiyQoCVxWZvdf3Z80RmxOkz8LhNFtu5c+RsJ9EIY8ew==
@@ -4672,6 +4690,22 @@
     "@vx/curve" "0.0.165"
     "@vx/group" "0.0.165"
     "@vx/point" "0.0.165"
+    classnames "^2.2.5"
+    d3-path "^1.0.5"
+    d3-shape "^1.2.0"
+    prop-types "^15.5.10"
+
+"@vx/shape@^0.0.194":
+  version "0.0.194"
+  resolved "https://registry.yarnpkg.com/@vx/shape/-/shape-0.0.194.tgz#e0651dc328c691a86968f1ad9b126f9c28f3f02c"
+  integrity sha512-1r2Ri4ulqcZ1pvFAdt0O5dXaXgx7aTPWSAsx2AsvDxwQlL0NmTIXjepFwzo651B/2mzsnsfCOqzwYGv69+fAKA==
+  dependencies:
+    "@types/classnames" "^2.2.9"
+    "@types/d3-path" "^1.0.8"
+    "@types/d3-shape" "^1.3.1"
+    "@types/react" "*"
+    "@vx/curve" "0.0.194"
+    "@vx/group" "0.0.194"
     classnames "^2.2.5"
     d3-path "^1.0.5"
     d3-shape "^1.2.0"
