@@ -1264,7 +1264,7 @@ class Superset(BaseSupersetView):
         if "timed_refresh_immune_slices" not in md:
             md["timed_refresh_immune_slices"] = []
         if "filter_scopes" in data:
-            md["filter_scopes"] = json.loads(data.get("filter_scopes", "{}"))
+            md["filter_scopes"] = json.loads(data["filter_scopes"] or "{}")
         md["expanded_slices"] = data["expanded_slices"]
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         default_filters_data = json.loads(data.get("default_filters", "{}"))
