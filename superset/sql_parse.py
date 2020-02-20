@@ -151,20 +151,28 @@ class ParsedQuery:
             self._alias_names.add(token_list.tokens[0].value)
         self.__extract_from_token(token_list)
 
-    def as_create_table(self, table_name: str, overwrite: bool = False) -> str:
+    def as_create_table(
+        self,
+        table_name: str,
+        schema_name: Optional[str] = None,
+        overwrite: bool = False,
+    ) -> str:
         """Reformats the query into the create table as query.
 
         Works only for the single select SQL statements, in all other cases
         the sql query is not modified.
-        :param table_name: Table that will contain the results of the query execution
+        :param table_name: table that will contain the results of the query execution
+        :param schema_name: schema name for the target table
         :param overwrite: table_name will be dropped if true
         :return: Create table as query
         """
         exec_sql = ""
         sql = self.stripped()
+        # TODO(bkyryliuk): quote full_table_name
+        full_table_name = f"{schema_name}.{table_name}" if schema_name else table_name
         if overwrite:
-            exec_sql = f"DROP TABLE IF EXISTS {table_name};\n"
-        exec_sql += f"CREATE TABLE {table_name} AS \n{sql}"
+            exec_sql = f"DROP TABLE IF EXISTS {full_table_name};\n"
+        exec_sql += f"CREATE TABLE {full_table_name} AS \n{sql}"
         return exec_sql
 
     def __extract_from_token(self, token: Token):  # pylint: disable=too-many-branches

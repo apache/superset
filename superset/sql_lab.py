@@ -208,7 +208,9 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor, log_
             query.tmp_table_name = "tmp_{}_table_{}".format(
                 query.user_id, start_dttm.strftime("%Y_%m_%d_%H_%M_%S")
             )
-        sql = parsed_query.as_create_table(query.tmp_table_name)
+        sql = parsed_query.as_create_table(
+            query.tmp_table_name, schema_name=query.tmp_schema_name
+        )
         query.select_as_cta_used = True
 
     # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
@@ -393,6 +395,7 @@ def execute_sql_statements(
     if query.select_as_cta:
         query.select_sql = database.select_star(
             query.tmp_table_name,
+            schema=query.tmp_schema_name,
             limit=query.limit,
             show_cols=False,
             latest_partition=False,

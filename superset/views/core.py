@@ -2346,24 +2346,16 @@ class Superset(BaseSupersetView):
         if not mydb:
             return json_error_response(f"Database with id {database_id} is missing.")
 
-        # Set tmp_table_name for CTA
-        # Quote function quotes optionally, where as quote_identifier does it always.
-        quote = mydb.get_sqla_engine().dialect.identifier_preparer.quote_identifier
+        # Set tmp_schema_name for CTA
+        # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from tmp_table_name if user enters
+        # <schema_name>.<table_name>
+        tmp_schema_name = schema  # type: Optional[str]
         if select_as_cta and mydb.force_ctas_schema:
-            # TODO(bkyryliuk): find a better way to pass the schema to the celery workers.
-            # There are 2 schemas, 1 for the cta table creation and another one that is the
-            # execution context. Those are not always equal.
-            tmp_table_name = f"{quote(mydb.force_ctas_schema)}.{quote(tmp_table_name)}"
+            tmp_schema_name = mydb.force_ctas_schema
         elif select_as_cta:
-            dest_schema_name = get_cta_schema_name(mydb, g.user, schema, sql)
-            tmp_table_name = (
-                f"{quote(dest_schema_name)}.{quote(tmp_table_name)}"
-                if dest_schema_name
-                else quote(tmp_table_name)
-            )
+            tmp_schema_name = get_cta_schema_name(mydb, g.user, schema, sql)
 
         # Save current query
-        # TODO(bkyryliuk): consider quoting schema and tmp_table_name as well.
         query = Query(
             database_id=database_id,
             sql=sql,
@@ -2374,6 +2366,7 @@ class Superset(BaseSupersetView):
             status=status,
             sql_editor_id=sql_editor_id,
             tmp_table_name=tmp_table_name,
+            tmp_schema_name=tmp_schema_name,
             user_id=g.user.get_id() if g.user else None,
             client_id=client_id,
         )
