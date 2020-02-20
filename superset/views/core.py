@@ -1336,7 +1336,7 @@ class Superset(BaseSupersetView):
                 conn.scalar(select([1]))
                 return json_success('"OK"')
         except NoSuchModuleError as e:
-            logger.info(f"Invalid driver {e}")
+            logger.info("Invalid driver %s", e)
             driver_name = make_url(uri).drivername
             return json_error_response(
                 _(
