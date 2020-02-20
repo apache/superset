@@ -278,6 +278,11 @@ class ImportMixin:
         d.update(kwargs)
         self.params = json.dumps(d)
 
+    def remove_params(self, param_to_remove: str) -> None:
+        d = self.params_dict
+        d.pop(param_to_remove, None)
+        self.params = json.dumps(d)
+
     def reset_ownership(self):
         """ object will belong to the user the current user """
         # make sure the object doesn't have relations to a user

@@ -101,9 +101,6 @@ export default function(bootstrapData) {
   let newSlicesContainer;
   let newSlicesContainerWidth = 0;
 
-  const filterImmuneSliceFields =
-    dashboard.metadata.filter_immune_slice_fields || {};
-  const filterImmuneSlices = dashboard.metadata.filter_immune_slices || [];
   const filterScopes = dashboard.metadata.filter_scopes || {};
 
   const chartQueries = {};
@@ -188,8 +185,6 @@ export default function(bootstrapData) {
           });
         }
 
-        // backward compatible:
-        // merge scoped filter settings with old global immune settings
         const scopesByChartId = Object.keys(columns).reduce((map, column) => {
           const scopeSettings = {
             ...filterScopes[key],
@@ -198,20 +193,12 @@ export default function(bootstrapData) {
             ...DASHBOARD_FILTER_SCOPE_GLOBAL,
             ...scopeSettings[column],
           };
-          const immuneChartIds = new Set(filterImmuneSlices);
-          Object.keys(filterImmuneSliceFields)
-            .filter(strChartId =>
-              filterImmuneSliceFields[strChartId].includes(column),
-            )
-            .forEach(strChartId => {
-              immuneChartIds.add(parseInt(strChartId, 10));
-            });
 
           return {
             ...map,
             [column]: {
               scope,
-              immune: [...immuneChartIds].concat(immune),
+              immune,
             },
           };
         }, {});

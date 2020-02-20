@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Button from '../../components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';
@@ -34,6 +35,7 @@ const propTypes = {
     schema: PropTypes.string,
     autorun: PropTypes.bool,
     sql: PropTypes.string,
+    remoteId: PropTypes.number,
   }).isRequired,
   addDangerToast: PropTypes.func.isRequired,
 };
@@ -48,6 +50,14 @@ class ShareSqlLabQuery extends React.Component {
   }
 
   getCopyUrl() {
+    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
+      return this.getCopyUrlForKvStore();
+    }
+
+    return this.getCopyUrlForSavedQuery();
+  }
+
+  getCopyUrlForKvStore() {
     const { dbId, title, schema, autorun, sql } = this.props.queryEditor;
     const sharedQuery = { dbId, title, schema, autorun, sql };
 
@@ -61,6 +71,21 @@ class ShareSqlLabQuery extends React.Component {
           this.setState({ shortUrl: t('Error') });
         });
       });
+  }
+
+  getCopyUrlForSavedQuery() {
+    let savedQueryToastContent;
+
+    if (this.props.queryEditor.remoteId) {
+      savedQueryToastContent =
+        window.location.origin +
+        window.location.pathname +
+        `?savedQueryId=${this.props.queryEditor.remoteId}`;
+      this.setState({ shortUrl: savedQueryToastContent });
+    } else {
+      savedQueryToastContent = t('Please save the query to enable sharing');
+      this.setState({ shortUrl: savedQueryToastContent });
+    }
   }
 
   renderPopover() {

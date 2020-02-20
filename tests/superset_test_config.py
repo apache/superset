@@ -30,7 +30,7 @@ if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
 
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
-FEATURE_FLAGS = {"foo": "bar"}
+FEATURE_FLAGS = {"foo": "bar", "KV_STORE": True, "SHARE_QUERIES_VIA_KV_STORE": True}
 
 
 def GET_FEATURE_FLAGS_FUNC(ff):
