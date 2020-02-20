@@ -1978,7 +1978,7 @@ class Superset(BaseSupersetView):
         try:
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 cost = mydb.db_engine_spec.estimate_query_cost(
-                    mydb, schema, sql, utils.sources.get("sql_lab")
+                    mydb, schema, sql, utils.QuerySource.SQL_LAB
                 )
         except SupersetTimeoutException as e:
             logger.exception(e)

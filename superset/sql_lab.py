@@ -45,7 +45,12 @@ from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import json_iso_dttm_ser, QueryStatus, sources, zlib_compress
+from superset.utils.core import (
+    json_iso_dttm_ser,
+    QuerySource,
+    QueryStatus,
+    zlib_compress,
+)
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 
@@ -341,7 +346,7 @@ def execute_sql_statements(
         schema=query.schema,
         nullpool=True,
         user_name=user_name,
-        source=sources.get("sql_lab", None),
+        source=QuerySource.SQL_LAB,
     )
     # Sharing a single connection and cursor across the
     # execution of all statements (if many)
