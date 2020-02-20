@@ -1346,20 +1346,20 @@ class Superset(BaseSupersetView):
                 400,
             )
         except ArgumentError as e:
-            logger.info(f"Invalid URI {e}")
+            logger.info("Invalid URI %s", e)
             return json_error_response(
                 _(
-                    "Invalid connnection string, a valid string follows: \n"
-                    " 'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
+                    "Invalid connection string, a valid string usually follows: \n"
+                    "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
                 )
             )
         except OperationalError as e:
-            logger.warning(f"Connection failed {e}")
+            logger.warning("Connection failed %s", e)
             return json_error_response(
                 _("Connection failed, please check your connection settings."), 400
             )
         except Exception as e:
-            logger.error(f"Unexpected error {e}")
+            logger.error("Unexpected error %s", e)
             return json_error_response(_("Unexpected error occurred."), 400)
 
     @api

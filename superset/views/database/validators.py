@@ -36,7 +36,7 @@ def sqlalchemy_uri_validator(
     except (ArgumentError, AttributeError):
         raise exception(
             _(
-                "Invalid connnection string, a valid string follows: "
+                "Invalid connection string, a valid string usually follows: "
                 " 'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
                 " <p>Example:'postgresql://user:password@your-postgres-db/database'</p>"
             )
