@@ -31,10 +31,10 @@ export function safeStringify(object: any): string {
         // We've seen this object before
         try {
           // Quick deep copy to duplicate if this is a repeat rather than a circle.
-         return JSON.parse(JSON.stringify(value));
+          return JSON.parse(JSON.stringify(value));
         } catch (err) {
           // Discard key if value cannot be duplicated.
-         return;
+          return; // eslint-disable-line consistent-return
         }
       }
       // Store the value in our cache.

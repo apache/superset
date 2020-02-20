@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import cx from 'classnames';
 import { Cell, HeaderGroup, Row } from 'react-table';
 
 interface Props<D extends object = {}> {
@@ -37,23 +38,24 @@ export default function TableCollection({
   loading,
 }: Props<any>) {
   return (
-    <table {...getTableProps()} className='table table-hover'>
+    <table {...getTableProps()} className="table table-hover">
       <thead>
-        {headerGroups.map((headerGroup) => (
+        {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map((column: any) => (
-              <th {...column.getHeaderProps(column.getSortByToggleProps())} data-test='sort-header'>
+              <th
+                {...column.getHeaderProps(column.getSortByToggleProps())}
+                data-test="sort-header"
+              >
                 {column.render('Header')}
                 {'  '}
                 {column.sortable && (
                   <i
-                    className={`text-primary fa fa-${
-                      column.isSorted
-                        ? column.isSortedDesc
-                          ? 'sort-down'
-                          : 'sort-up'
-                        : 'sort'
-                      }`}
+                    className={cx('text-primary fa', {
+                      'fa-sort': !column.isSorted,
+                      'fa-sort-down': column.isSorted && column.isSortedDesc,
+                      'fa-sort-up': column.isSorted && !column.isSortedDesc,
+                    })}
                   />
                 )}
               </th>
@@ -62,7 +64,7 @@ export default function TableCollection({
         ))}
       </thead>
       <tbody {...getTableBodyProps()}>
-        {rows.map((row) => {
+        {rows.map(row => {
           prepareRow(row);
           const loadingProps = loading ? { className: 'table-row-loader' } : {};
           return (
@@ -70,7 +72,9 @@ export default function TableCollection({
               {...row.getRowProps()}
               {...loadingProps}
               onMouseEnter={() => row.setState && row.setState({ hover: true })}
-              onMouseLeave={() => row.setState && row.setState({ hover: false })}
+              onMouseLeave={() =>
+                row.setState && row.setState({ hover: false })
+              }
             >
               {row.cells.map((cell: Cell<any>) => {
                 const columnCellProps = cell.column.cellProps || {};

@@ -22,7 +22,7 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
 // @ts-ignore
-import { Button, Modal, Panel } from 'react-bootstrap';
+import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
 import { FetchDataConfig, FilterTypeMap } from 'src/components/ListView/types';
@@ -55,20 +55,11 @@ interface Chart {
 }
 
 class ChartList extends React.PureComponent<Props, State> {
-
-  get canEdit() {
-    return this.hasPerm('can_edit');
-  }
-
-  get canDelete() {
-    return this.hasPerm('can_delete');
-  }
-
-  public static propTypes = {
+  static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
   };
 
-  public state: State = {
+  state: State = {
     chartCount: 0,
     charts: [],
     filterTypes: {},
@@ -78,15 +69,34 @@ class ChartList extends React.PureComponent<Props, State> {
     permissions: [],
   };
 
-  public initialSort = [{ id: 'changed_on', desc: true }];
+  componentDidMount() {
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/_info`,
+    }).then(({ json = {} }) => {
+      this.setState({
+        filterTypes: json.filters,
+        permissions: json.permissions,
+      });
+    });
+  }
 
-  public columns = [
+  get canEdit() {
+    return this.hasPerm('can_edit');
+  }
+
+  get canDelete() {
+    return this.hasPerm('can_delete');
+  }
+
+  initialSort = [{ id: 'changed_on', desc: true }];
+
+  columns = [
     {
       Cell: ({
         row: {
-          original: { url, slice_name },
+          original: { url, slice_name: sliceName },
         },
-      }: any) => <a href={url}>{slice_name}</a>,
+      }: any) => <a href={url}>{sliceName}</a>,
       Header: t('Chart'),
       accessor: 'slice_name',
       filterable: true,
@@ -95,9 +105,9 @@ class ChartList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: { viz_type },
+          original: { viz_type: vizType },
         },
-      }: any) => viz_type,
+      }: any) => vizType,
       Header: t('Visualization Type'),
       accessor: 'viz_type',
       sortable: true,
@@ -105,9 +115,12 @@ class ChartList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: { datasource_name_text, datasource_link },
+          original: {
+            datasource_name_text: dsNameTxt,
+            datasource_link: dsLink,
+          },
         },
-      }: any) => <a href={datasource_link}>{datasource_name_text}</a>,
+      }: any) => <a href={dsLink}>{dsNameTxt}</a>,
       Header: t('Datasource'),
       accessor: 'datasource_name_text',
       sortable: true,
@@ -115,9 +128,12 @@ class ChartList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: { changed_by_name, changed_by_url },
+          original: {
+            changed_by_name: changedByName,
+            changed_by_url: changedByUrl,
+          },
         },
-      }: any) => <a href={changed_by_url}>{changed_by_name}</a>,
+      }: any) => <a href={changedByName}>{changedByUrl}</a>,
       Header: t('Creator'),
       accessor: 'creator',
       sortable: true,
@@ -125,11 +141,9 @@ class ChartList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: { changed_on },
+          original: { changed_on: changedOn },
         },
-      }: any) => (
-          <span className='no-wrap'>{moment(changed_on).fromNow()}</span>
-        ),
+      }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
       Header: t('Last Modified'),
       accessor: 'changed_on',
       sortable: true,
@@ -143,31 +157,40 @@ class ChartList extends React.PureComponent<Props, State> {
         }
 
         return (
-          <span className={`actions ${state && state.hover ? '' : 'invisible'}`}>
+          <span
+            className={`actions ${state && state.hover ? '' : 'invisible'}`}
+          >
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
-                description={<>{t('Are you sure you want to delete')} <b>{original.slice_name}</b>?</>}
+                description={
+                  <>
+                    {t('Are you sure you want to delete')}{' '}
+                    <b>{original.slice_name}</b>?
+                  </>
+                }
                 onConfirm={handleDelete}
               >
-                {(confirmDelete) => (
+                {confirmDelete => (
                   <span
-                    role='button'
-                    className='action-button'
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
                     onClick={confirmDelete}
                   >
-                    <i className='fa fa-trash' />
+                    <i className="fa fa-trash" />
                   </span>
                 )}
               </ConfirmStatusChange>
             )}
             {this.canEdit && (
               <span
-                role='button'
-                className='action-button'
+                role="button"
+                tabIndex={0}
+                className="action-button"
                 onClick={handleEdit}
               >
-                <i className='fa fa-pencil' />
+                <i className="fa fa-pencil" />
               </span>
             )}
           </span>
@@ -178,37 +201,42 @@ class ChartList extends React.PureComponent<Props, State> {
     },
   ];
 
-  public hasPerm = (perm: string) => {
+  hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
     }
 
-    return this.state.permissions.some((p) => p === perm);
-  }
+    return this.state.permissions.some(p => p === perm);
+  };
 
-  public handleChartEdit = ({ id }: { id: number }) => {
+  handleChartEdit = ({ id }: { id: number }) => {
     window.location.assign(`/chart/edit/${id}`);
-  }
+  };
 
-  public handleChartDelete = ({ id, slice_name }: Chart) => {
+  handleChartDelete = ({ id, slice_name: sliceName }: Chart) => {
     SupersetClient.delete({
       endpoint: `/api/v1/chart/${id}`,
     }).then(
-      (resp) => {
+      () => {
         const { lastFetchDataConfig } = this.state;
         if (lastFetchDataConfig) {
           this.fetchData(lastFetchDataConfig);
         }
-        this.props.addSuccessToast(t('Deleted: %(slice_name)', slice_name));
+        this.props.addSuccessToast(t('Deleted: %(slice_name)', sliceName));
       },
-      (err: any) => {
-        this.props.addDangerToast(t('There was an issue deleting: %(slice_name)', slice_name));
+      () => {
+        this.props.addDangerToast(
+          t('There was an issue deleting: %(slice_name)', sliceName),
+        );
       },
     );
-  }
-  public handleBulkDashboardDelete = (charts: Chart[]) => {
+  };
+
+  handleBulkDashboardDelete = (charts: Chart[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/?q=!(${charts.map(({ id }) => id).join(',')})`,
+      endpoint: `/api/v1/dashboard/?q=!(${charts
+        .map(({ id }) => id)
+        .join(',')})`,
     }).then(
       ({ json = {} }) => {
         const { lastFetchDataConfig } = this.state;
@@ -219,19 +247,16 @@ class ChartList extends React.PureComponent<Props, State> {
       },
       (err: any) => {
         console.error(err);
-        this.props.addDangerToast(t('There was an issue deleting the selected dashboards'));
+        this.props.addDangerToast(
+          t('There was an issue deleting the selected dashboards'),
+        );
       },
     );
-  }
+  };
 
-  public fetchData = ({
-    pageIndex,
-    pageSize,
-    sortBy,
-    filters,
-  }: FetchDataConfig) => {
+  fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
     this.setState({ loading: true });
-    const filterExps = Object.keys(filters).map((fk) => ({
+    const filterExps = Object.keys(filters).map(fk => ({
       col: fk,
       opr: filters[fk].filterId,
       value: filters[fk].filterValue,
@@ -249,50 +274,48 @@ class ChartList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/chart/?q=${queryParams}`,
     })
       .then(({ json = {} }) => {
-        this.setState({ charts: json.result, chartCount: json.count, labelColumns: json.label_columns });
+        this.setState({
+          charts: json.result,
+          chartCount: json.count,
+          labelColumns: json.label_columns,
+        });
       })
       .catch(() => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching Charts'),
-        );
+        this.props.addDangerToast(t('An error occurred while fetching Charts'));
       })
       .finally(() => {
         this.setState({ loading: false });
       });
-  }
+  };
 
-  public componentDidMount() {
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/_info`,
-    })
-      .then(({ json = {} }) => {
-        this.setState({ filterTypes: json.filters, permissions: json.permissions });
-      });
-  }
-
-  public render() {
+  render() {
     const { charts, chartCount, loading, filterTypes } = this.state;
     return (
-      <div className='container welcome'>
+      <div className="container welcome">
         <Panel>
-
           <ConfirmStatusChange
             title={t('Please confirm')}
-            description={t('Are you sure you want to delete the selected charts?')}
+            description={t(
+              'Are you sure you want to delete the selected charts?',
+            )}
             onConfirm={this.handleBulkDashboardDelete}
           >
-            {(confirmDelete) => {
+            {confirmDelete => {
               const bulkActions = [];
               if (this.canDelete) {
                 bulkActions.push({
                   key: 'delete',
-                  name: <><i className='fa fa-trash' /> Delete</>,
+                  name: (
+                    <>
+                      <i className="fa fa-trash" /> Delete
+                    </>
+                  ),
                   onSelect: confirmDelete,
                 });
               }
               return (
                 <ListView
-                  className='chart-list-view'
+                  className="chart-list-view"
                   title={'Charts'}
                   columns={this.columns}
                   data={charts}
@@ -308,7 +331,7 @@ class ChartList extends React.PureComponent<Props, State> {
             }}
           </ConfirmStatusChange>
         </Panel>
-      </div >
+      </div>
     );
   }
 }
