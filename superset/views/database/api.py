@@ -143,6 +143,8 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     max_page_size = -1
     validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
+    openapi_spec_tag = "Database"
+
     @expose(
         "/<int:pk>/table/<string:table_name>/<string:schema_name>/", methods=["GET"]
     )
