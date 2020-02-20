@@ -249,7 +249,7 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor, log_
             "after {} seconds.".format(SQLLAB_TIMEOUT)
         )
     except Exception as e:
-        logger.error(f"Query {query.id}")
+        logger.error(f"Query {query.id}: {type(e)}")
         logger.debug(f"Query {query.id}: {e}")
         raise SqlLabException(db_engine_spec.extract_error_message(e))
 
