@@ -95,7 +95,7 @@ const SQL_DATA_TYPES = [
 
 const allKeywords = SQL_KEYWORDS.concat(SQL_DATA_TYPES);
 
-const sqlKeywords = allKeywords.map((keyword) => ({
+const sqlKeywords = allKeywords.map(keyword => ({
   meta: 'sql',
   name: keyword,
   score: SQL_KEYWORD_AUTOCOMPLETE_SCORE,
