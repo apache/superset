@@ -22,17 +22,18 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+* [9173](https://github.com/apache/incubator-superset/pull/9173): Changes the encoding of the query source from an int to an enum.
 * [9120](https://github.com/apache/incubator-superset/pull/9120): Changes the default behavior of ad-hoc sharing of
 queries in SQLLab to one that links to the saved query rather than one that copies the query data into the KVStore
 model and links to the record there. This is a security-related change that makes SQLLab query
 sharing respect the existing role-based access controls. Should you wish to retain the existing behavior, set two feature flags:
 `"KV_STORE": True` will re-enable the `/kv/` and `/kv/store/` endpoints, and `"SHARE_QUERIES_VIA_KV_STORE": True`
 will tell the front-end to utilize them for query sharing.
-* [9109](https://github.com/apache/incubator-superset/pull/9109): Expire `filter_immune_slices` and 
+* [9109](https://github.com/apache/incubator-superset/pull/9109): Expire `filter_immune_slices` and
 `filter_immune_filter_fields` to favor dashboard scoped filter metadata `filter_scopes`.
 
 * [9046](https://github.com/apache/incubator-superset/pull/9046): Replaces `can_only_access_owned_queries` by
-`all_query_access` favoring a white list approach. Since a new permission is introduced use `superset init` 
+`all_query_access` favoring a white list approach. Since a new permission is introduced use `superset init`
 to create and associate it by default to the `Admin` role. Note that, by default, all non `Admin` users will
 not be able to access queries they do not own.
 

@@ -72,8 +72,6 @@ ADHOC_METRIC_EXPRESSION_TYPES = {"SIMPLE": "SIMPLE", "SQL": "SQL"}
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
-sources = {"chart": 0, "dashboard": 1, "sql_lab": 2}
-
 try:
     # Having might not have been imported.
     class DimSelector(Having):
@@ -1235,3 +1233,13 @@ class ReservedUrlParameters(Enum):
 
     STANDALONE = "standalone"
     EDIT_MODE = "edit"
+
+
+class QuerySource(Enum):
+    """
+    The source of a SQL query.
+    """
+
+    CHART = 0
+    DASHBOARD = 1
+    SQL_LAB = 2
