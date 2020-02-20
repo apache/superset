@@ -52,7 +52,7 @@ const Link = ({
   if (tooltip) {
     return (
       <OverlayTrigger
-        overlay={<Tooltip id='tooltip'>{tooltip}</Tooltip>}
+        overlay={<Tooltip id="tooltip">{tooltip}</Tooltip>}
         placement={placement}
         delayShow={300}
         delayHide={150}
