@@ -26,3 +26,4 @@ vendor/*
 docs/*
 src/dashboard/deprecated/*
 **/node_modules
+*.d.ts
