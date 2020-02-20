@@ -25,7 +25,7 @@ from flask import g
 from superset import app, security_manager
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
-from superset.utils.core import sources
+from superset.utils.core import QuerySource
 
 MAX_ERROR_ROWS = 10
 
@@ -160,7 +160,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             schema=schema,
             nullpool=True,
             user_name=user_name,
-            source=sources.get("sql_lab", None),
+            source=QuerySource.SQL_LAB,
         )
         # Sharing a single connection and cursor across the
         # execution of all statements (if many)
