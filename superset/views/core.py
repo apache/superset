@@ -35,7 +35,12 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, Integer, or_, select
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import ArgumentError, NoSuchModuleError, SQLAlchemyError
+from sqlalchemy.exc import (
+    ArgumentError,
+    NoSuchModuleError,
+    OperationalError,
+    SQLAlchemyError,
+)
 from sqlalchemy.orm.session import Session
 from werkzeug.urls import Href
 
@@ -1331,6 +1336,7 @@ class Superset(BaseSupersetView):
                 conn.scalar(select([1]))
                 return json_success('"OK"')
         except NoSuchModuleError as e:
+            logger.info(f"Invalid driver {e}")
             driver_name = make_url(uri).drivername
             return json_error_response(
                 _(
@@ -1340,17 +1346,21 @@ class Superset(BaseSupersetView):
                 400,
             )
         except ArgumentError as e:
+            logger.info(f"Invalid URI {e}")
             return json_error_response(
                 _(
                     "Invalid connnection string, a valid string follows: \n"
                     " 'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
                 )
             )
-        except Exception as e:
-            logger.error(f"Connection failed {e} {type(e)}")
+        except OperationalError as e:
+            logger.warning(f"Connection failed {e}")
             return json_error_response(
                 _("Connection failed, please check your connection settings."), 400
             )
+        except Exception as e:
+            logger.error(f"Unexpected error {e}")
+            return json_error_response(_("Unexpected error occurred."), 400)
 
     @api
     @has_access_api
