@@ -33,7 +33,7 @@
     "@data-ui/xy-chart": "^0.0.84",
     "@types/d3-scale": "^2.1.1",
     "@vx/axis": "^0.0.193",
-    "@vx/group": "^0.0.193",
+    "@vx/group": "^0.0.194",
     "@vx/legend": "^0.0.193",
     "@vx/responsive": "^0.0.194",
     "@vx/scale": "^0.0.192",
