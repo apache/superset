@@ -4563,10 +4563,10 @@
     prop-types "^15.6.1"
     resize-observer-polyfill "1.5.0"
 
-"@vx/responsive@^0.0.193":
-  version "0.0.193"
-  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.193.tgz#bde9756dbe0423014120e1e5db7df2d08563de4f"
-  integrity sha512-Dw3v/tZFOxVXIjWVIX7eSHSyr+67gTTphtWoZitGxAKj3xEweTsTZiGhuC3Kqi/Ux1y1/sm0vbOSgzahglPD1g==
+"@vx/responsive@^0.0.194":
+  version "0.0.194"
+  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.194.tgz#6f291a270ccf5fd10b5764f55d088eb5aaaeed08"
+  integrity sha512-ZeOG+AqvZAq5wh2R+DOcpMavLHIiyTYgAMrTtfqfXvD0sOrF1lrQBBF4OrPhdiXV9TL5qze7OnTbm+Hoe0XHFQ==
   dependencies:
     "@types/lodash" "^4.14.146"
     "@types/react" "*"
