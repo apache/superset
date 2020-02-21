@@ -88,31 +88,10 @@ Superset provides:
 Database Support
 ----------------
 
-Superset speaks many SQL dialects through SQLAlchemy, a Python
-ORM that is compatible with
-[most common databases](https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html).
-
-A list of currently supported SQL databases can be found
+Superset speaks many SQL dialects through SQLAlchemy - a Python
+SQL toolkit that is compatible with most databases. A list of
+supported databases can be found
 [here](https://superset.incubator.apache.org/#databases).
-
-Apache Druid (Incubating)!
-------
-
-On top of having the ability to query your relational databases,
-Superset ships with deep integration with Druid (a real time distributed
-column-store). When querying Druid,
-Superset can query humongous amounts of data on top of real time dataset.
-Note that Superset does not require Druid in any way to function, it's simply
-another database backend that it can query.
-
-Here's a description of Druid from the http://druid.io website:
-
-*Druid is an open-source analytics data store designed for
-business intelligence (OLAP) queries on event data. Druid provides low
-latency (real-time) data ingestion, flexible data exploration,
-and fast data aggregation. Existing Druid deployments have scaled to
-trillions of events and petabytes of data. Druid is best used to
-power analytic dashboards and applications.*
 
 
 Installation & Configuration
@@ -128,14 +107,13 @@ Resources
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 * [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
 * [Join our Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
-* [DEPRECATED Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
 
 
 Contributing
 ------------
 
 Interested in contributing? Casual hacking? Check out
-[Contributing.MD](https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md)
+[Contributing.MD](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)
 
 
 Who uses Apache Superset (incubating)?
