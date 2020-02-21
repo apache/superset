@@ -723,6 +723,9 @@ TALISMAN_CONFIG = {
     "force_https_permanent": False,
 }
 
+# Do you want to enable Row Level Security?
+ENABLE_ROW_LEVEL_SECURITY = False
+
 #
 # Flask session cookie options
 #
