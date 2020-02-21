@@ -17,14 +17,14 @@
 """add_role_level_security
 
 Revision ID: 0a6f12f60c73
-Revises: e96dbf2cfef0
+Revises: 3325d4caccc8
 Create Date: 2019-12-04 17:07:54.390805
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "0a6f12f60c73"
-down_revision = "e96dbf2cfef0"
+down_revision = "3325d4caccc8"
 
 import sqlalchemy as sa
 from alembic import op
