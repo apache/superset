@@ -55,7 +55,7 @@ function updateInList(list: any[], index: number, update: any): any[] {
 export function convertFilters(fts: FilterToggle[]) {
   return fts
     .filter((ft: FilterToggle) => ft.value)
-    .map((ft) => ({ value: null, filterId: ft.filterId || 'sw', ...ft }));
+    .map(ft => ({ value: null, filterId: ft.filterId || 'sw', ...ft }));
 }
 
 interface UseListViewConfig {

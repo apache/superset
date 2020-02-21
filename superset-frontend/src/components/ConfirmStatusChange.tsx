@@ -34,7 +34,6 @@ interface State {
   open: boolean;
 }
 export default class ConfirmStatusChange extends React.Component<Props, State> {
-
   public state = {
     callbackArgs: [],
     open: false,
@@ -42,33 +41,33 @@ export default class ConfirmStatusChange extends React.Component<Props, State> {
 
   public showConfirm = (...callbackArgs: any[]) => {
     // check if any args are DOM events, if so, call persist
-    callbackArgs.forEach((arg) => arg && typeof arg.persist === 'function' && arg.persist());
+    callbackArgs.forEach(
+      arg => arg && typeof arg.persist === 'function' && arg.persist(),
+    );
 
     this.setState({
       callbackArgs,
       open: true,
     });
-  }
+  };
 
   public hide = () => this.setState({ open: false, callbackArgs: [] });
 
   public confirm = () => {
     this.props.onConfirm(...this.state.callbackArgs);
     this.hide();
-  }
+  };
 
   public render() {
     return (
       <>
         {this.props.children && this.props.children(this.showConfirm)}
         <Modal show={this.state.open} onHide={this.hide}>
-          <Modal.Header closeButton={true} >{this.props.title}</Modal.Header>
-          <Modal.Body>
-            {this.props.description}
-          </Modal.Body>
+          <Modal.Header closeButton>{this.props.title}</Modal.Header>
+          <Modal.Body>{this.props.description}</Modal.Body>
           <Modal.Footer>
             <Button onClick={this.hide}>{t('Cancel')}</Button>
-            <Button bsStyle='danger' onClick={this.confirm}>
+            <Button bsStyle="danger" onClick={this.confirm}>
               {t('OK')}
             </Button>
           </Modal.Footer>

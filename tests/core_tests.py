@@ -165,6 +165,43 @@ class CoreTests(SupersetTestCase):
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
 
+    def test_get_superset_tables_not_allowed(self):
+        example_db = utils.get_example_database()
+        schema_name = self.default_schema_backend_map[example_db.backend]
+        self.login(username="gamma")
+        uri = f"superset/tables/{example_db.id}/{schema_name}/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_superset_tables_substr(self):
+        example_db = utils.get_example_database()
+        self.login(username="admin")
+        schema_name = self.default_schema_backend_map[example_db.backend]
+        uri = f"superset/tables/{example_db.id}/{schema_name}/ab_role/"
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+
+        expeted_response = {
+            "options": [
+                {
+                    "label": "ab_role",
+                    "schema": schema_name,
+                    "title": "ab_role",
+                    "type": "table",
+                    "value": "ab_role",
+                }
+            ],
+            "tableLength": 1,
+        }
+        self.assertEqual(response, expeted_response)
+
+    def test_get_superset_tables_not_found(self):
+        self.login(username="admin")
+        uri = f"superset/tables/invalid/public/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
     def test_api_v1_query_endpoint(self):
         self.login(username="admin")
         qc_dict = self._get_query_context_dict()
