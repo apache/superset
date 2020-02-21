@@ -4575,11 +4575,12 @@
   dependencies:
     d3-scale "^2.0.0"
 
-"@vx/scale@^0.0.192":
-  version "0.0.192"
-  resolved "https://registry.yarnpkg.com/@vx/scale/-/scale-0.0.192.tgz#4e13b6eea852de37cd3c95a7c91ed744f63f5692"
-  integrity sha512-jcRtgHzNI1YgQStxn87xgmRUD5RRAalIlswlMgcs6PnJlU4AhJIbvyzOOogWUi+Va/GY6omIVEdK9WpRqsxQPg==
+"@vx/scale@^0.0.194":
+  version "0.0.194"
+  resolved "https://registry.yarnpkg.com/@vx/scale/-/scale-0.0.194.tgz#b056cf3f46bd2123664755088a5572cfeda35647"
+  integrity sha512-FKWFbBaHeqc/xNi5RIzZQBVJsypYQFfiYE4U9aYjrlgrxPrZG3+7jBA9bTdnTfhhmA9R9kWW2fKDpCEMDlEbwQ==
   dependencies:
+    "@types/d3-scale" "^2.1.1"
     d3-scale "^2.2.2"
 
 "@vx/shape@0.0.140":
