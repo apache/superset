@@ -1349,7 +1349,7 @@ class Superset(BaseSupersetView):
             logger.info("Invalid URI %s", e)
             return json_error_response(
                 _(
-                    "Invalid connection string, a valid string usually follows: \n"
+                    "Invalid connection string, a valid string usually follows:\n"
                     "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
                 )
             )
