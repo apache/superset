@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import json
 import unittest
 from unittest.mock import Mock
 
+import tests.test_app
 import superset.connectors.druid.models as models
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.exceptions import SupersetException

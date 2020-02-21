@@ -37,9 +37,9 @@ mkdir -p "${HOME}/${SUPERSET_VERSION_RC}"
 cd incubator-superset && \
 
 # Check RC version
-if ! jq -e --arg SUPERSET_VERSION $SUPERSET_VERSION '.version == $SUPERSET_VERSION' superset/assets/package.json
+if ! jq -e --arg SUPERSET_VERSION $SUPERSET_VERSION '.version == $SUPERSET_VERSION' superset-frontend/package.json
 then
-  SOURCE_VERSION=$(jq '.version' superset/assets/package.json)
+  SOURCE_VERSION=$(jq '.version' superset-frontend/package.json)
   echo "Source package.json version is wrong, found: ${SOURCE_VERSION} should be: ${SUPERSET_VERSION}"
   exit 1
 fi

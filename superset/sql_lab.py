@@ -45,7 +45,12 @@ from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import json_iso_dttm_ser, QueryStatus, sources, zlib_compress
+from superset.utils.core import (
+    json_iso_dttm_ser,
+    QuerySource,
+    QueryStatus,
+    zlib_compress,
+)
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 
@@ -341,7 +346,7 @@ def execute_sql_statements(
         schema=query.schema,
         nullpool=True,
         user_name=user_name,
-        source=sources.get("sql_lab", None),
+        source=QuerySource.SQL_LAB,
     )
     # Sharing a single connection and cursor across the
     # execution of all statements (if many)
@@ -384,11 +389,9 @@ def execute_sql_statements(
         )
     query.end_time = now_as_float()
 
+    use_arrow_data = store_results and results_backend_use_msgpack
     data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
-        result_set,
-        db_engine_spec,
-        store_results and results_backend_use_msgpack,
-        expand_data,
+        result_set, db_engine_spec, use_arrow_data, expand_data
     )
 
     # TODO: data should be saved separately from metadata (likely in Parquet)
@@ -430,6 +433,24 @@ def execute_sql_statements(
     session.commit()
 
     if return_results:
+        # since we're returning results we need to create non-arrow data
+        if use_arrow_data:
+            (
+                data,
+                selected_columns,
+                all_columns,
+                expanded_columns,
+            ) = _serialize_and_expand_data(
+                result_set, db_engine_spec, False, expand_data
+            )
+            payload.update(
+                {
+                    "data": data,
+                    "columns": all_columns,
+                    "selected_columns": selected_columns,
+                    "expanded_columns": expanded_columns,
+                }
+            )
         return payload
 
     return None

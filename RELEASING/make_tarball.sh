@@ -22,8 +22,8 @@ usage() {
 }
 
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-  if [ -z "${SUPERSET_VERSION}" ] || [ -z "${SUPERSET_RC}" ] || [ -z "${SUPERSET_PGP_FULLNAME}" ]; then
-    echo "No parameters found an no required environment variables set"
+  if [ -z "${SUPERSET_VERSION}" ] || [ -z "${SUPERSET_RC}" ] || [ -z "${SUPERSET_PGP_FULLNAME}" ] || [ -z "${SUPERSET_RELEASE_RC_TARBALL}" ]; then
+    echo "No parameters found and no required environment variables set"
     echo "usage: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_RC> <PGP_KEY_FULLBANE>"
     usage;
     exit 1
@@ -32,6 +32,7 @@ else
   SUPERSET_VERSION="${1}"
   SUPERSET_RC="${2}"
   SUPERSET_PGP_FULLNAME="${3}"
+  SUPERSET_RELEASE_RC_TARBALL="apache-superset-incubating-${SUPERSET_VERSION_RC}-source.tar.gz"
 fi
 
 SUPERSET_VERSION_RC="${SUPERSET_VERSION}rc${SUPERSET_RC}"

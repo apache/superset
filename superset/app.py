@@ -275,7 +275,10 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
-        appbuilder.add_view_no_menu(KV)
+
+        if feature_flag_manager.is_feature_enabled("KV_STORE"):
+            appbuilder.add_view_no_menu(KV)
+
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
@@ -287,7 +290,9 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
-        appbuilder.add_view_no_menu(TagView)
+
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            appbuilder.add_view_no_menu(TagView)
 
         #
         # Add links

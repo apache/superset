@@ -73,7 +73,7 @@ class UIManifestProcessor:
     def __init__(self, app_dir: str) -> None:
         self.app = None
         self.manifest: dict = {}
-        self.manifest_file = f"{app_dir}/static/assets/dist/manifest.json"
+        self.manifest_file = f"{app_dir}/static/assets/manifest.json"
 
     def init_app(self, app):
         self.app = app

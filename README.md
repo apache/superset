@@ -25,7 +25,7 @@ Superset
 [![PyPI](https://img.shields.io/pypi/pyversions/apache-superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/apache-superset)
 [![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.incubator.apache.org)
-[![dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset/assets)](https://david-dm.org/apache/incubator-superset?path=superset/assets)
+[![dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/incubator-superset?path=superset-frontend)
 
 <img
   src="https://cloud.githubusercontent.com/assets/130878/20946612/49a8a25c-bbc0-11e6-8314-10bef902af51.png"
@@ -42,23 +42,23 @@ Screenshots & Gifs
 
 **View Dashboards**
 
-<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/bank_dash.png"></kbd><br/>
+<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/bank_dash.png"></kbd><br/>
 
 **Slice & dice your data**
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/explore.png"></kbd><br/>
+<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/explore.png"></kbd><br/>
 
 **Query and visualize your data with SQL Lab**
 
-<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/sqllab.png"></kbd><br/>
+<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/sqllab.png"></kbd><br/>
 
 **Visualize geospatial data with deck.gl**
 
-<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/deckgl_dash.png"></kbd><br/>
+<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/deckgl_dash.png"></kbd><br/>
 
 **Choose from a wide array of visualizations**
 
-<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/visualizations.png"></kbd><br/>
+<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
 
 Apache Superset
 ---------------
@@ -135,7 +135,7 @@ Contributing
 ------------
 
 Interested in contributing? Casual hacking? Check out
-[Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
+[Contributing.MD](https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md)
 
 
 Who uses Apache Superset (incubating)?
@@ -164,6 +164,7 @@ the world know they are using Superset. Join our growing community!
  1. [Dial Once](https://www.dial-once.com/en/)
  1. [Digit Game Studios](https://www.digitgaming.com/)
  1. [Douban](https://www.douban.com/)
+ 1. [Dragonpass](https://www.dragonpass.com.cn/)
  1. [Endress+Hauser](http://www.endress.com/)
  1. [Faasos](http://faasos.com/)
  1. [Fanatics](https://www.fanatics.com)
@@ -186,8 +187,10 @@ the world know they are using Superset. Join our growing community!
  1. [Myra Labs](http://www.myralabs.com/)
  1. [Now](https://www.now.vn/)
  1. [Ona](https://ona.io)
+ 1. [Peak AI](https://www.peak.ai/)
  1. [PeopleDoc](https://www.people-doc.com)
  1. [Popoko VM Games Studio](https://popoko.live)
+ 1. [Preset, Inc.](https://preset.io)
  1. [Pronto Tools](http://www.prontotools.io)
  1. [QPID Health](http://www.qpidhealth.com/)
  1. [Qunar](https://www.qunar.com/)
@@ -203,6 +206,7 @@ the world know they are using Superset. Join our growing community!
  1. [Tails.com](https://tails.com)
  1. [Tenable](https://www.tenable.com)
  1. [THE ICONIC](http://theiconic.com.au/)
+ 1. [timbr.ai](https://timbr.ai/)
  1. [TME QQMUSIC/WESING](https://www.tencentmusic.com/)
  1. [Tobii](http://www.tobii.com/)
  1. [Tooploox](https://www.tooploox.com/)
@@ -212,7 +216,6 @@ the world know they are using Superset. Join our growing community!
  1. [VIPKID](https://www.vipkid.com.cn/)
  1. [WeSure](https://www.wesure.cn/)
  1. [Windsor.ai](https://www.windsor.ai/)
- 1. [WP-Semantix](https://wpsemantix.com/)
  1. [Yahoo!](https://yahoo.com/)
  1. [Zaihang](http://www.zaih.com/)
  1. [Zalando](https://www.zalando.com)

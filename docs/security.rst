@@ -87,7 +87,7 @@ sure the users with limited access have [only] the Gamma role assigned to
 them. Second, create a new role (``Menu -> Security -> List Roles``) and
 click the ``+`` sign.
 
-.. image:: images/create_role.png
+.. image:: _static/images/create_role.png
    :scale: 50 %
 
 This new window allows you to give this new role a name, attribute it to users

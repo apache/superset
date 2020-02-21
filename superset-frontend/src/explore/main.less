@@ -1,0 +1,294 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+@import '../../stylesheets/less/variables.less';
+
+.scrollbar-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.scrollbar-content {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  overflow-y: auto;
+  margin-right: 0px;
+  margin-bottom: 40px;
+}
+
+.fave-unfave-icon,
+.edit-desc-icon {
+  padding: 0 0 0 0.5em;
+  font-size: @font-size-m;
+}
+
+.checkbox {
+  float: left;
+  margin-top: 0px;
+  margin-right: 3px;
+}
+
+.control-panel-section {
+  margin-bottom: 0;
+  box-shadow: none;
+
+  &:last-child {
+    padding-bottom: 40px;
+  }
+
+  .Select-multi-value-wrapper .Select-input > input {
+    width: 100px;
+  }
+
+  .metrics-select .Select-multi-value-wrapper .Select-input > input {
+    width: 300px;
+  }
+}
+
+.background-transparent {
+  background-color: transparent !important;
+}
+
+.color-scheme-container {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+
+  li {
+    flex-basis: 9px;
+    height: 10px;
+    margin: 9px 1px;
+  }
+}
+
+.control-panel-section {
+  .panel-body {
+    margin-left: 15px;
+    padding-bottom: 0px;
+  }
+
+  .control-label {
+    margin-bottom: 0px;
+  }
+
+  span.label {
+    display: inline-block;
+  }
+}
+
+.fa.expander {
+  width: 15px;
+}
+
+.input-inline {
+  float: left;
+  padding-right: 3px;
+
+  .Select-control {
+    display: flex;
+
+    .Select-arrow-zone {
+      width: auto;
+      position: absolute;
+      right: 0;
+      top: 12px;
+    }
+  }
+}
+
+.save-modal-selector {
+  margin: 10px 0;
+}
+
+.list-group {
+  margin-bottom: 10px;
+}
+
+.color-popover.popover {
+  border: none;
+  background-color: transparent;
+}
+
+.color-popover .popover-content {
+  padding: 0;
+  background-color: transparent;
+}
+
+.type-label {
+  margin-right: 8px;
+  width: 30px;
+  display: inline-block;
+  text-align: center;
+  font-weight: @font-weight-bold;
+}
+
+.datasource-container {
+  overflow: auto;
+}
+
+.adhoc-metric-edit-tabs > .nav-tabs {
+  margin-bottom: 6px;
+
+  & > li > a {
+    padding: 4px 4px 4px 4px;
+  }
+}
+
+.adhoc-filter-edit-tabs > .nav-tabs {
+  margin-bottom: 8px;
+
+  & > li > a {
+    padding: 4px;
+  }
+}
+
+.edit-popover-resize {
+  transform: scaleX(-1);
+  -moz-transform: scaleX(-1);
+  -webkit-transform: scaleX(-1);
+  -ms-transform: scaleX(-1);
+  float: right;
+  margin-top: 18px;
+  margin-right: -10px;
+  cursor: nwse-resize;
+}
+
+#metrics-edit-popover {
+  max-width: none;
+
+  .inline-editable {
+    line-height: 30px; // hand-tweaked to match the height of the input
+  }
+}
+
+#filter-edit-popover {
+  max-width: none;
+}
+
+.filter-edit-clause-dropdown {
+  width: 120px;
+  margin-right: 5px;
+}
+
+.filter-edit-clause-info {
+  font-size: @font-size-xs;
+  padding-left: 5px;
+}
+
+.filter-edit-clause-section {
+  display: inline-flex;
+}
+
+.adhoc-filter-option {
+  cursor: pointer;
+}
+
+.adhoc-filter-sql-editor {
+  border: @gray-light solid thin;
+}
+
+.label-default {
+  background-color: @gray;
+  font-weight: @font-weight-normal;
+}
+
+.btn.label-btn {
+  background-color: @gray;
+  font-weight: @font-weight-normal;
+  color: @lightest;
+  padding: 5px 4px 4px;
+  border: 0;
+}
+
+.label-dropdown ul.dropdown-menu {
+  position: fixed;
+  top: auto;
+  left: auto;
+  margin: 20px 0 0;
+}
+
+.label-btn:hover,
+.label-btn-label:hover {
+  background-color: @gray-dark;
+  color: @lightest;
+}
+
+.label-btn-label {
+  cursor: pointer;
+}
+
+.adhoc-filter-simple-column-dropdown {
+  margin-top: 20px;
+}
+
+.adhoc-label-arrow {
+  font-size: @font-size-xxs;
+  margin-left: 3px;
+  position: static;
+}
+
+.time-filter-tabs > .nav-tabs {
+  margin-bottom: 8px;
+
+  & > li > a {
+    padding: 4px;
+  }
+}
+
+.custom-sql-disabled-message {
+  color: @gray;
+  font-size: @font-size-xs;
+  text-align: center;
+  margin-top: 60px;
+}
+
+h1.section-header {
+  font-size: @font-size-m;
+  font-weight: @font-weight-bold;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-bottom: 5px;
+  margin-left: -16px;
+}
+
+h2.section-header {
+  font-size: @font-size-s;
+  font-weight: @font-weight-bold;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-bottom: 5px;
+}
+
+.panel-spreaded,
+.panel-spreaded .panel-body {
+  padding: 0;
+  margin: 0;
+}
+
+.panel-spreaded .well {
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding: 8px;
+}

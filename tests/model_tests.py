@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import textwrap
 import unittest
 
 import pandas
 from sqlalchemy.engine.url import make_url
 
+import tests.test_app
 from superset import app
 from superset.models.core import Database
 from superset.utils.core import get_example_database, QueryStatus

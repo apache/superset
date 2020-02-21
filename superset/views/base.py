@@ -39,6 +39,8 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 
+from .utils import bootstrap_user_data
+
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
@@ -49,6 +51,7 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "DISPLAY_MAX_ROW",
 )
+logger = logging.getLogger(__name__)
 
 
 def get_error_msg():
@@ -63,12 +66,9 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
+def json_error_response(msg=None, status=500, payload=None, link=None):
     if not payload:
         payload = {"error": "{}".format(msg)}
-    if not stacktrace:
-        stacktrace = utils.get_stacktrace()
-    payload["stacktrace"] = stacktrace
     if link:
         payload["link"] = link
 
@@ -105,7 +105,7 @@ def api(f):
         try:
             return f(self, *args, **kwargs)
         except Exception as e:  # pylint: disable=broad-except
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(get_error_msg())
 
     return functools.update_wrapper(wraps, f)
@@ -122,32 +122,21 @@ def handle_api_exception(f):
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(
-                utils.error_msg_from_exception(e),
-                status=e.status,
-                stacktrace=utils.get_stacktrace(),
-                link=e.link,
+                utils.error_msg_from_exception(e), status=e.status, link=e.link
             )
         except SupersetException as e:
-            logging.exception(e)
+            logger.exception(e)
             return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=utils.get_stacktrace(),
-                status=e.status,
+                utils.error_msg_from_exception(e), status=e.status
             )
         except HTTPException as e:
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc(),
-                status=e.code,
-            )
+            logger.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e), status=e.code)
         except Exception as e:  # pylint: disable=broad-except
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e), stacktrace=utils.get_stacktrace()
-            )
+            logger.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e))
 
     return functools.update_wrapper(wraps, f)
 
@@ -185,7 +174,7 @@ def menu_data():
             )
         # when user object has no username
         except NameError as e:
-            logging.exception(e)
+            logger.exception(e)
 
         if logo_target_path.startswith("/"):
             root_path = f"/superset{logo_target_path}"
@@ -244,6 +233,19 @@ class SupersetModelView(ModelView):
     page_size = 100
     list_widget = SupersetListWidget
 
+    def render_app_template(self):
+        payload = {
+            "user": bootstrap_user_data(g.user),
+            "common": common_bootstrap_payload(),
+        }
+        return self.render_template(
+            "superset/welcome.html",
+            entry="welcome",
+            bootstrap_data=json.dumps(
+                payload, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
+
 
 class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-methods
     """An alternative to list view that renders Boolean fields as checkboxes
@@ -257,7 +259,7 @@ def validate_json(_form, field):
     try:
         json.loads(field.data)
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
         raise Exception(_("json isn't valid"))
 
 

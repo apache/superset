@@ -25,16 +25,20 @@ from distutils.version import StrictVersion
 from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib import parse
 
+import pandas as pd
 import simplejson as json
 from sqlalchemy import Column, literal_column
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
+from sqlalchemy.engine.url import URL
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import app, is_feature_enabled, security_manager
+from superset import app, cache, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
+from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
@@ -45,6 +49,7 @@ if TYPE_CHECKING:
 
 QueryStatus = utils.QueryStatus
 config = app.config
+logger = logging.getLogger(__name__)
 
 
 def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
@@ -112,7 +117,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def get_allow_cost_estimate(cls, version: str = None) -> bool:
+    def get_allow_cost_estimate(cls, version: Optional[str] = None) -> bool:
         return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
@@ -334,7 +339,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 else:  # otherwise column is a basic data type
                     column_type = presto_type_map[column.Type]()
             except KeyError:
-                logging.info(
+                logger.info(
                     "Did not recognize type {} of column {}".format(  # pylint: disable=logging-format-interpolation
                         column.Type, column.Column
                     )
@@ -391,10 +396,10 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
-        database,
+        database: "Database",
         table_name: str,
         engine: Engine,
-        schema: str = None,
+        schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -427,7 +432,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def estimate_statement_cost(  # pylint: disable=too-many-locals
-        cls, statement: str, database, cursor, user_name: str
+        cls, statement: str, database: "Database", cursor: Any, user_name: str
     ) -> Dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
@@ -509,7 +514,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return cost
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema=None):
+    def adjust_database_uri(
+        cls, uri: URL, selected_schema: Optional[str] = None
+    ) -> None:
         database = uri.database
         if selected_schema and database:
             selected_schema = parse.quote(selected_schema, safe="")
@@ -518,7 +525,6 @@ class PrestoEngineSpec(BaseEngineSpec):
             else:
                 database += "/" + selected_schema
             uri.database = database
-        return uri
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
@@ -535,7 +541,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_all_datasource_names(
-        cls, database, datasource_type: str
+        cls, database: "Database", datasource_type: str
     ) -> List[utils.DatasourceName]:
         datasource_df = database.get_df(
             "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
@@ -655,7 +661,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def extra_table_metadata(
-        cls, database, table_name: str, schema_name: str
+        cls, database: "Database", table_name: str, schema_name: str
     ) -> Dict[str, Any]:
         metadata = {}
 
@@ -669,10 +675,12 @@ class PrestoEngineSpec(BaseEngineSpec):
             col_names, latest_parts = cls.latest_partition(
                 table_name, schema_name, database, show_first=True
             )
-            latest_parts = latest_parts or tuple([None] * len(col_names))
+
+            if not latest_parts:
+                latest_parts = tuple([None] * len(col_names))  # type: ignore
             metadata["partitions"] = {
                 "cols": cols,
-                "latest": dict(zip(col_names, latest_parts)),
+                "latest": dict(zip(col_names, latest_parts)),  # type: ignore
                 "partitionQuery": pql,
             }
 
@@ -684,7 +692,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return metadata
 
     @classmethod
-    def get_create_view(cls, database, schema: str, table: str) -> Optional[str]:
+    def get_create_view(
+        cls, database: "Database", schema: str, table: str
+    ) -> Optional[str]:
         """
         Return a CREATE VIEW statement, or `None` if not a view.
 
@@ -711,10 +721,10 @@ class PrestoEngineSpec(BaseEngineSpec):
         return rows[0][0]
 
     @classmethod
-    def handle_cursor(cls, cursor, query, session):
+    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
         """Updates progress information"""
         query_id = query.id
-        logging.info(f"Query {query_id}: Polling the cursor for progress")
+        logger.info(f"Query {query_id}: Polling the cursor for progress")
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -740,7 +750,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 total_splits = float(stats.get("totalSplits"))
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
-                    logging.info(
+                    logger.info(
                         "Query {} progress: {} / {} "  # pylint: disable=logging-format-interpolation
                         "splits".format(query_id, completed_splits, total_splits)
                     )
@@ -748,17 +758,17 @@ class PrestoEngineSpec(BaseEngineSpec):
                         query.progress = progress
                     session.commit()
             time.sleep(1)
-            logging.info(f"Query {query_id}: Polling the cursor for progress")
+            logger.info(f"Query {query_id}: Polling the cursor for progress")
             polled = cursor.poll()
 
     @classmethod
-    def _extract_error_message(cls, e):
+    def _extract_error_message(cls, e: Exception) -> Optional[str]:
         if (
             hasattr(e, "orig")
-            and type(e.orig).__name__ == "DatabaseError"
-            and isinstance(e.orig[0], dict)
+            and type(e.orig).__name__ == "DatabaseError"  # type: ignore
+            and isinstance(e.orig[0], dict)  # type: ignore
         ):
-            error_dict = e.orig[0]
+            error_dict = e.orig[0]  # type: ignore
             return "{} at {}: {}".format(
                 error_dict.get("errorName"),
                 error_dict.get("errorLocation"),
@@ -771,8 +781,13 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
-        cls, table_name, database, limit=0, order_by=None, filters=None
-    ):
+        cls,
+        table_name: str,
+        database: "Database",
+        limit: int = 0,
+        order_by: Optional[List[Tuple[str, bool]]] = None,
+        filters: Optional[Dict[Any, Any]] = None,
+    ) -> str:
         """Returns a partition query
 
         :param table_name: the name of the table to get partitions from
@@ -826,7 +841,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         cls,
         table_name: str,
         schema: Optional[str],
-        database,
+        database: "Database",
         query: Select,
         columns: Optional[List] = None,
     ) -> Optional[Select]:
@@ -849,7 +864,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _latest_partition_from_df(  # pylint: disable=invalid-name
-        cls, df
+        cls, df: pd.DataFrame
     ) -> Optional[List[str]]:
         if not df.empty:
             return df.to_records(index=False)[0].item()
@@ -857,8 +872,12 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def latest_partition(
-        cls, table_name: str, schema: Optional[str], database, show_first: bool = False
-    ):
+        cls,
+        table_name: str,
+        schema: Optional[str],
+        database: "Database",
+        show_first: bool = False,
+    ) -> Tuple[List[str], Optional[List[str]]]:
         """Returns col name and the latest (max) partition value for a table
 
         :param table_name: the name of the table
@@ -896,7 +915,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         return column_names, cls._latest_partition_from_df(df)
 
     @classmethod
-    def latest_sub_partition(cls, table_name, schema, database, **kwargs):
+    def latest_sub_partition(
+        cls, table_name: str, schema: Optional[str], database: "Database", **kwargs: Any
+    ) -> Any:
         """Returns the latest (max) partition value for a table
 
         A filtering criteria should be passed for all fields that are
@@ -945,3 +966,15 @@ class PrestoEngineSpec(BaseEngineSpec):
         if df.empty:
             return ""
         return df.to_dict()[field_to_return][0]
+
+    @classmethod
+    @cache.memoize()
+    def get_function_names(cls, database: "Database") -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()

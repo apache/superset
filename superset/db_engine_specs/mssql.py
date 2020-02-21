@@ -16,7 +16,7 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String, TypeEngine, UnicodeText
@@ -46,7 +46,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def epoch_to_dttm(cls):
+    def epoch_to_dttm(cls) -> str:
         return "dateadd(S, {col}, '1970-01-01')"
 
     @classmethod
@@ -61,7 +61,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
         data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)

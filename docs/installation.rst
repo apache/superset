@@ -372,6 +372,8 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | ClickHouse       | ``pip install sqlalchemy-clickhouse`` |                                                 |
 +------------------+---------------------------------------+-------------------------------------------------+
+| CockroachDB      | ``pip install cockroachdb``           | ``cockroachdb://``                              |
++------------------+---------------------------------------+-------------------------------------------------+
 | Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://user:pwd@host:31010/``               |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                       |
@@ -646,7 +648,7 @@ It is possible to tweak the database connection information using the
 parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
 find an ``extra`` field as a ``JSON`` blob.
 
-.. image:: images/tutorial/add_db.png
+.. image:: _static/images/tutorial/add_db.png
    :scale: 30 %
 
 This JSON string contains extra configuration elements. The ``engine_params``

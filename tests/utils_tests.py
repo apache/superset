@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
@@ -25,6 +26,7 @@ from flask import Flask
 from flask_caching import Cache
 from sqlalchemy.exc import ArgumentError
 
+import tests.test_app
 from superset import app, db, security_manager
 from superset.exceptions import SupersetException
 from superset.models.core import Database
@@ -822,15 +824,10 @@ class UtilsTestCase(SupersetTestCase):
         self.assertIsNone(parse_js_uri_path_item(None))
         self.assertIsNotNone(parse_js_uri_path_item("item"))
 
-    def test_setup_cache_no_config(self):
-        app = Flask(__name__)
-        cache_config = None
-        self.assertIsNone(CacheManager._setup_cache(app, cache_config))
-
     def test_setup_cache_null_config(self):
         app = Flask(__name__)
         cache_config = {"CACHE_TYPE": "null"}
-        self.assertIsNone(CacheManager._setup_cache(app, cache_config))
+        assert isinstance(CacheManager._setup_cache(app, cache_config), Cache)
 
     def test_setup_cache_standard_config(self):
         app = Flask(__name__)
