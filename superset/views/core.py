@@ -1195,6 +1195,20 @@ class Superset(BaseSupersetView):
                     old_id = "{}".format(value.get("meta").get("chartId"))
                     new_id = int(old_to_new_sliceids[old_id])
                     value["meta"]["chartId"] = new_id
+
+            if "filter_scopes" in data:
+                old_filter_scopes = json.loads(data["filter_scopes"] or "{}")
+                new_filter_scopes = {}
+                # replace filter_id and immune ids from old slice id to new slice id:
+                for (slice_id, scopes) in old_filter_scopes.items():
+                    new_filter_key = old_to_new_sliceids[slice_id]
+                    new_filter_scopes[new_filter_key] = scopes
+                    for scope in scopes.values():
+                        scope["immune"] = [
+                            int(old_to_new_sliceids[str(slice_id)])
+                            for slice_id in scope.get("immune")
+                        ]
+                data["filter_scopes"] = json.dumps(new_filter_scopes)
         else:
             dash.slices = original_dash.slices
         dash.params = original_dash.params
