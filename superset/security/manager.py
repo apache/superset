@@ -120,6 +120,7 @@ class SupersetSecurityManager(SecurityManager):
         "RoleModelView",
         "LogModelView",
         "Security",
+        "RowLevelSecurityFiltersModelView",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV"}
@@ -891,3 +892,48 @@ class SupersetSecurityManager(SecurityManager):
         """
 
         self.assert_datasource_permission(viz.datasource)
+
+    def get_rls_filters(self, table: "BaseDatasource"):
+        """
+        Retrieves the appropriate row level security filters for the current user and the passed table.
+
+        :param table: The table to check against
+        :returns: A list of filters.
+        """
+        if hasattr(g, "user") and hasattr(g.user, "id"):
+            from superset import db
+            from superset.connectors.sqla.models import (
+                RLSFilterRoles,
+                RowLevelSecurityFilter,
+            )
+
+            user_roles = (
+                db.session.query(assoc_user_role.c.role_id)
+                .filter(assoc_user_role.c.user_id == g.user.id)
+                .subquery()
+            )
+            filter_roles = (
+                db.session.query(RLSFilterRoles.c.id)
+                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+                .subquery()
+            )
+            query = (
+                db.session.query(
+                    RowLevelSecurityFilter.id, RowLevelSecurityFilter.clause
+                )
+                .filter(RowLevelSecurityFilter.table_id == table.id)
+                .filter(RowLevelSecurityFilter.id.in_(filter_roles))
+            )
+            return query.all()
+        return []
+
+    def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
+        """
+        Retrieves the appropriate row level security filters IDs for the current user and the passed table.
+
+        :param table: The table to check against
+        :returns: A list of IDs.
+        """
+        ids = [f.id for f in self.get_rls_filters(table)]
+        ids.sort()  # Combinations rather than permutations
+        return ids

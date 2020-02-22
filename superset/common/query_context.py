@@ -22,7 +22,7 @@ from typing import Any, ClassVar, Dict, List, Optional
 import numpy as np
 import pandas as pd
 
-from superset import app, cache, db
+from superset import app, cache, db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.stats_logger import BaseStatsLogger
@@ -163,6 +163,7 @@ class QueryContext:
             query_obj.cache_key(
                 datasource=self.datasource.uid,
                 extra_cache_keys=extra_cache_keys,
+                rls=security_manager.get_rls_ids(self.datasource),
                 changed_on=self.datasource.changed_on,
                 **kwargs
             )

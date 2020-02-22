@@ -57,7 +57,7 @@ from superset.exceptions import DatabaseNotFound
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import QueryResult
+from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.utils import core as utils, import_datasource
 
 config = app.config
@@ -646,6 +646,19 @@ class SqlaTable(Model, BaseDatasource):
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
+    def _get_sqla_row_level_filters(self, template_processor) -> List[str]:
+        """
+        Return the appropriate row level security filters for this table and the current user.
+
+        :param BaseTemplateProcessor template_processor: The template processor to apply to the filters.
+        :returns: A list of SQL clauses to be ANDed together.
+        :rtype: List[str]
+        """
+        return [
+            text("({})".format(template_processor.process_template(f.clause)))
+            for f in security_manager.get_rls_filters(self)
+        ]
+
     def get_sqla_query(  # sqla
         self,
         groupby,
@@ -827,6 +840,8 @@ class SqlaTable(Model, BaseDatasource):
                         where_clause_and.append(col_obj.get_sqla_col() == None)
                     elif op == "IS NOT NULL":
                         where_clause_and.append(col_obj.get_sqla_col() != None)
+
+        where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:
@@ -944,7 +959,6 @@ class SqlaTable(Model, BaseDatasource):
                     result.df, dimensions, groupby_exprs_sans_timestamp
                 )
                 qry = qry.where(top_groups)
-
         return SqlaQuery(
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
@@ -1188,3 +1202,30 @@ class SqlaTable(Model, BaseDatasource):
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
+
+
+RLSFilterRoles = Table(
+    "rls_filter_roles",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
+    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+)
+
+
+class RowLevelSecurityFilter(Model, AuditMixinNullable):
+    """
+    Custom where clauses attached to Tables and Roles.
+    """
+
+    __tablename__ = "row_level_security_filters"
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    roles = relationship(
+        security_manager.role_model,
+        secondary=RLSFilterRoles,
+        backref="row_level_security_filters",
+    )
+
+    table_id = Column(Integer, ForeignKey("tables.id"), nullable=False)
+    table = relationship(SqlaTable, backref="row_level_security_filters")
+    clause = Column(Text, nullable=False)
