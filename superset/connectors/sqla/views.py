@@ -225,6 +225,38 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
+class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.RowLevelSecurityFilter)
+
+    list_title = _("Row level security filter")
+    show_title = _("Show Row level security filter")
+    add_title = _("Add Row level security filter")
+    edit_title = _("Edit Row level security filter")
+
+    list_columns = ["table.table_name", "roles", "clause", "creator", "modified"]
+    order_columns = ["table.table_name", "clause", "modified"]
+    edit_columns = ["table", "roles", "clause"]
+    show_columns = edit_columns
+    search_columns = ("table", "roles", "clause")
+    add_columns = edit_columns
+    base_order = ("changed_on", "desc")
+    description_columns = {
+        "table": _("This is the table this filter will be applied to."),
+        "roles": _("These are the roles this filter will be applied to."),
+        "clause": _(
+            "This is the condition that will be added to the WHERE clause. "
+            "For example, to only return rows for a particular client, you might put in: client_id = 9"
+        ),
+    }
+    label_columns = {
+        "table": _("Table"),
+        "roles": _("Roles"),
+        "clause": _("Clause"),
+        "creator": _("Creator"),
+        "modified": _("Modified"),
+    }
+
+
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
     include_route_methods = RouteMethod.CRUD_SET
@@ -255,7 +287,11 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
-    related_views = [TableColumnInlineView, SqlMetricInlineView]
+    related_views = [
+        TableColumnInlineView,
+        SqlMetricInlineView,
+        RowLevelSecurityFiltersModelView,
+    ]
     base_order = ("changed_on", "desc")
     search_columns = ("database", "schema", "table_name", "owners", "is_sqllab_view")
     description_columns = {

@@ -42,6 +42,11 @@ timestamp has been added to the query object's cache key to ensure updates to
 datasources are always reflected in associated query results. As a consequence all
 previously cached results will be invalidated when updating to the next version.
 
+* [8699](https://github.com/apache/incubator-superset/pull/8699): A `row_level_security_filters` 
+table has been added, which is many-to-many with `tables` and `ab_roles`.  The applicable filters 
+are added to the sqla query, and the RLS ids are added to the query cache keys. If RLS is enabled in config.py (`ENABLE_ROW_LEVEL_SECURITY = True`; by default, it is disabled), they can be 
+accessed through the `Security` menu, or when editting a table.
+
 * [8732](https://github.com/apache/incubator-superset/pull/8732): Swagger user interface is now enabled by default.
 A new permission `show on SwaggerView` is created by `superset init` and given to the `Admin` Role. To disable the UI,
 set `FAB_API_SWAGGER_UI = False` on config.
