@@ -261,6 +261,8 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.SqlaTable)
     include_route_methods = RouteMethod.CRUD_SET
 
+    edit_template = "superset/models/table/edit.html"
+
     list_title = _("Tables")
     show_title = _("Show Table")
     add_title = _("Import a table definition")
