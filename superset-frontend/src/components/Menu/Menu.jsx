@@ -72,13 +72,21 @@ export default function Menu({
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
           {navbarRight.documentation_url && (
-            <NavItem href={navbarRight.documentation_url} title="Documentation">
+            <NavItem
+              href={navbarRight.documentation_url}
+              target="_blank"
+              title="Documentation"
+            >
               <i className="fa fa-question" />
               &nbsp;
             </NavItem>
           )}
           {navbarRight.bug_report_url && (
-            <NavItem href={navbarRight.bug_report_url} title="Report a Bug">
+            <NavItem
+              href={navbarRight.bug_report_url}
+              target="_blank"
+              title="Report a Bug"
+            >
               <i className="fa fa-bug" />
               &nbsp;
             </NavItem>
