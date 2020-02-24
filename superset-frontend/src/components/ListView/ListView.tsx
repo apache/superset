@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import React, { FunctionComponent, useMemo } from 'react';
+import React, { FunctionComponent } from 'react';
 import {
   Button,
   Col,
@@ -28,17 +28,26 @@ import {
   Row,
   // @ts-ignore
 } from 'react-bootstrap';
+// @ts-ignore
+import SelectComponent from 'react-select';
+// @ts-ignore
+import VirtualizedSelect from 'react-virtualized-select';
 import IndeterminateCheckbox from '../IndeterminateCheckbox';
 import './ListViewStyles.less';
 import TableCollection from './TableCollection';
 import {
   FetchDataConfig,
-  FilterToggle,
-  FilterType,
-  FilterTypeMap,
+  Filters,
+  InternalFilter,
+  Select,
   SortColumn,
 } from './types';
-import { convertFilters, removeFromList, useListViewState } from './utils';
+import {
+  convertFilters,
+  extractInputValue,
+  removeFromList,
+  useListViewState,
+} from './utils';
 
 interface Props {
   columns: any[];
@@ -50,7 +59,7 @@ interface Props {
   className?: string;
   title?: string;
   initialSort?: SortColumn[];
-  filterTypes?: FilterTypeMap;
+  filters?: Filters;
   bulkActions?: Array<{
     key?: string;
     name: React.ReactNode;
@@ -82,7 +91,7 @@ const ListView: FunctionComponent<Props> = ({
   initialSort = [],
   className = '',
   title = '',
-  filterTypes = {},
+  filters = [],
   bulkActions = [],
 }) => {
   const {
@@ -96,12 +105,12 @@ const ListView: FunctionComponent<Props> = ({
     pageCount = 1,
     gotoPage,
     setAllFilters,
-    setFilterToggles,
-    updateFilterToggle,
+    setInternalFilters,
+    updateInternalFilter,
     applyFilters,
     filtersApplied,
     selectedFlatRows,
-    state: { pageIndex, pageSize, filterToggles },
+    state: { pageIndex, pageSize, internalFilters },
   } = useListViewState({
     bulkSelectColumnConfig,
     bulkSelectMode: Boolean(bulkActions.length),
@@ -112,14 +121,11 @@ const ListView: FunctionComponent<Props> = ({
     initialPageSize,
     initialSort,
   });
-  const filterableColumns = useMemo(() => columns.filter(c => c.filterable), [
-    columns,
-  ]);
-  const filterable = Boolean(columns.length);
+  const filterable = Boolean(filters.length);
 
   const removeFilterAndApply = (index: number) => {
-    const updated = removeFromList(filterToggles, index);
-    setFilterToggles(updated);
+    const updated = removeFromList(internalFilters, index);
+    setInternalFilters(updated);
     setAllFilters(convertFilters(updated));
   };
 
@@ -147,17 +153,17 @@ const ListView: FunctionComponent<Props> = ({
                       </>
                     }
                   >
-                    {filterableColumns
-                      .map(({ id, accessor, Header }) => ({
+                    {filters
+                      .map(({ id, Header }) => ({
                         Header,
-                        id: id || accessor,
+                        id,
                       }))
-                      .map((ft: FilterToggle) => (
+                      .map((ft: InternalFilter) => (
                         <MenuItem
                           key={ft.id}
                           eventKey={ft}
-                          onSelect={(fltr: FilterToggle) =>
-                            setFilterToggles([...filterToggles, fltr])
+                          onSelect={(fltr: InternalFilter) =>
+                            setInternalFilters([...internalFilters, fltr])
                           }
                         >
                           {ft.Header}
@@ -169,62 +175,89 @@ const ListView: FunctionComponent<Props> = ({
             )}
           </Row>
           <hr />
-          {filterToggles.map((ft, i) => (
-            <div key={`${ft.Header}-${i}`} className="filter-inputs">
-              <Row>
-                <Col className="text-center filter-column" md={2}>
-                  <span>{ft.Header}</span>
-                </Col>
-                <Col md={2}>
-                  <FormControl
-                    componentClass="select"
-                    bsSize="small"
-                    value={ft.filterId}
-                    placeholder={
-                      filterTypes[ft.id] ? filterTypes[ft.id][0].name : ''
-                    }
-                    onChange={(e: React.MouseEvent<HTMLInputElement>) =>
-                      updateFilterToggle(i, { filterId: e.currentTarget.value })
-                    }
-                  >
-                    {filterTypes[ft.id] &&
-                      filterTypes[ft.id].map(
-                        ({ name, operator }: FilterType) => (
-                          <option key={name} value={operator}>
-                            {name}
-                          </option>
-                        ),
-                      )}
-                  </FormControl>
-                </Col>
-                <Col md={1} />
-                <Col md={4}>
-                  <FormControl
-                    type="text"
-                    bsSize="small"
-                    value={ft.value || ''}
-                    onChange={(e: React.KeyboardEvent<HTMLInputElement>) =>
-                      updateFilterToggle(i, {
-                        value: e.currentTarget.value,
-                      })
-                    }
-                  />
-                </Col>
-                <Col md={1}>
-                  <div
-                    className="filter-close"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => removeFilterAndApply(i)}
-                  >
-                    <i className="fa fa-close text-primary" />
-                  </div>
-                </Col>
-              </Row>
-              <br />
-            </div>
-          ))}
-          {filterToggles.length > 0 && (
+          {internalFilters.map((ft, i) => {
+            const filter = filters.find(f => f.id === ft.id);
+            if (!filter) {
+              console.error(`could not find filter for ${ft.id}`);
+              return null;
+            }
+            return (
+              <div key={`${ft.Header}-${i}`} className="filter-inputs">
+                <Row>
+                  <Col className="text-center filter-column" md={2}>
+                    <span>{ft.Header}</span>
+                  </Col>
+                  <Col md={2}>
+                    <FormControl
+                      componentClass="select"
+                      bsSize="small"
+                      value={ft.operator}
+                      placeholder={filter ? filter.operators[0] : ''}
+                      onChange={(e: React.MouseEvent<HTMLInputElement>) => {
+                        updateInternalFilter(i, {
+                          operator: e.currentTarget.value,
+                        });
+                      }}
+                    >
+                      {filter.operators.map(({ label, value }: Select) => (
+                        <option key={label} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </FormControl>
+                  </Col>
+                  <Col md={1} />
+                  <Col md={4}>
+                    {filter.input === 'select' && (
+                      <VirtualizedSelect
+                        autoFocus
+                        multi
+                        searchable
+                        name={`filter-${filter.id}-select`}
+                        options={filter.selects}
+                        placeholder="Select Value"
+                        value={ft.value}
+                        selectComponent={SelectComponent}
+                        onChange={(e: Select[] | null) => {
+                          updateInternalFilter(i, {
+                            operator: ft.operator || filter.operators[0].value,
+                            value: e ? e.map(s => s.value) : e,
+                          });
+                        }}
+                      />
+                    )}
+                    {filter.input !== 'select' && (
+                      <FormControl
+                        type={filter.input ? filter.input : 'text'}
+                        bsSize="small"
+                        value={ft.value || ''}
+                        checked={Boolean(ft.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          e.persist();
+                          updateInternalFilter(i, {
+                            operator: ft.operator || filter.operators[0].value,
+                            value: extractInputValue(filter.input, e),
+                          });
+                        }}
+                      />
+                    )}
+                  </Col>
+                  <Col md={1}>
+                    <div
+                      className="filter-close"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => removeFilterAndApply(i)}
+                    >
+                      <i className="fa fa-close text-primary" />
+                    </div>
+                  </Col>
+                </Row>
+                <br />
+              </div>
+            );
+          })}
+          {internalFilters.length > 0 && (
             <>
               <Row>
                 <Col md={10} />
