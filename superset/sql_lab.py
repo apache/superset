@@ -175,7 +175,8 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 log_params=log_params,
             )
         except Exception as e:  # pylint: disable=broad-except
-            logger.exception(f"Query {query_id}: {e}")
+            logger.error("Query %d", query_id)
+            logger.debug("Query %d: %s", query_id, e)
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
             return handle_query_error(str(e), query, session)
@@ -232,9 +233,9 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor, log_
         query.executed_sql = sql
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            logger.info(f"Query {query.id}: Running query: \n{sql}")
+            logger.debug("Query %d: Running query: %s", query.id, sql)
             db_engine_spec.execute(cursor, sql, async_=True)
-            logger.info(f"Query {query.id}: Handling cursor")
+            logger.debug("Query %d: Handling cursor", query.id)
             db_engine_spec.handle_cursor(cursor, query, session)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
@@ -246,16 +247,18 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor, log_
             data = db_engine_spec.fetch_data(cursor, query.limit)
 
     except SoftTimeLimitExceeded as e:
-        logger.exception(f"Query {query.id}: {e}")
+        logger.error("Query %d: Time limit exceeded", query.id)
+        logger.debug("Query %d: %s", query.id, e)
         raise SqlLabTimeoutException(
             "SQL Lab timeout. This environment's policy is to kill queries "
             "after {} seconds.".format(SQLLAB_TIMEOUT)
         )
     except Exception as e:
-        logger.exception(f"Query {query.id}: {e}")
+        logger.error("Query %d: %s", query.id, type(e))
+        logger.debug("Query %d: %s", query.id, e)
         raise SqlLabException(db_engine_spec.extract_error_message(e))
 
-    logger.debug(f"Query {query.id}: Fetching cursor description")
+    logger.debug("Query %d: Fetching cursor description", query.id)
     cursor_description = cursor.description
     return SupersetResultSet(data, cursor_description, db_engine_spec)
 
