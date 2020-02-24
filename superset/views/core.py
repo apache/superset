@@ -34,7 +34,13 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, Integer, or_, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import (
+    ArgumentError,
+    NoSuchModuleError,
+    OperationalError,
+    SQLAlchemyError,
+)
 from sqlalchemy.orm.session import Session
 from werkzeug.urls import Href
 
@@ -1298,10 +1304,9 @@ class Superset(BaseSupersetView):
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(self):
         """Tests a sqla connection"""
+        db_name = request.json.get("name")
+        uri = request.json.get("uri")
         try:
-            db_name = request.json.get("name")
-            uri = request.json.get("uri")
-
             # if the database already exists in the database, only its safe (password-masked) URI
             # would be shown in the UI and would be passed in the form data.
             # so if the database already exists and the form was submitted with the safe URI,
@@ -1330,11 +1335,32 @@ class Superset(BaseSupersetView):
             with closing(engine.connect()) as conn:
                 conn.scalar(select([1]))
                 return json_success('"OK"')
-        except Exception as e:
-            logger.exception(e)
+        except NoSuchModuleError as e:
+            logger.info("Invalid driver %s", e)
+            driver_name = make_url(uri).drivername
             return json_error_response(
-                "Connection failed!\n\n" f"The error message returned was:\n{e}", 400
+                _(
+                    "Could not load database driver: %(driver_name)s",
+                    driver_name=driver_name,
+                ),
+                400,
             )
+        except ArgumentError as e:
+            logger.info("Invalid URI %s", e)
+            return json_error_response(
+                _(
+                    "Invalid connection string, a valid string usually follows:\n"
+                    "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
+                )
+            )
+        except OperationalError as e:
+            logger.warning("Connection failed %s", e)
+            return json_error_response(
+                _("Connection failed, please check your connection settings."), 400
+            )
+        except Exception as e:
+            logger.error("Unexpected error %s", e)
+            return json_error_response(_("Unexpected error occurred."), 400)
 
     @api
     @has_access_api

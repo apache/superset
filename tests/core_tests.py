@@ -476,9 +476,7 @@ class CoreTests(SupersetTestCase):
         assert response.status_code == 400
         assert response.headers["Content-Type"] == "application/json"
         response_body = json.loads(response.data.decode("utf-8"))
-        expected_body = {
-            "error": "Connection failed!\n\nThe error message returned was:\nCan't load plugin: sqlalchemy.dialects:broken"
-        }
+        expected_body = {"error": "Could not load database driver: broken"}
         assert response_body == expected_body, "%s != %s" % (
             response_body,
             expected_body,
