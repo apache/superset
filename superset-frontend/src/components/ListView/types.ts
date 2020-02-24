@@ -23,31 +23,50 @@ export interface SortColumn {
 
 export type SortColumns = SortColumn[];
 
+export interface Select {
+  label: string;
+  value: any;
+}
+
 export interface Filter {
+  Header: string;
   id: string;
-  filterId?: string;
-  value: string;
+  operators: Select[];
+  input?: 'text' | 'textarea' | 'select' | 'checkbox';
+  selects?: Select[];
 }
 
-export interface FilterType {
-  name: string;
-  operator: any;
-}
+export type Filters = Filter[];
 
-export interface FilterTypeMap {
-  [columnId: string]: FilterType[];
+export interface FilterValue {
+  id: string;
+  operator?: string;
+  value: string | boolean | number;
 }
 
 export interface FetchDataConfig {
   pageIndex: number;
   pageSize: number;
   sortBy: SortColumns;
-  filters: Filter[];
+  filters: FilterValue[];
 }
 
-export interface FilterToggle {
-  id: string;
+export interface InternalFilter extends FilterValue {
   Header: string;
-  filterId?: number;
-  value?: string;
+}
+
+export interface FilterOperatorMap {
+  [columnId: string]: Array<{
+    name: string;
+    operator:
+      | 'sw'
+      | 'ew'
+      | 'ct'
+      | 'eq'
+      | 'nsw'
+      | 'new'
+      | 'nct'
+      | 'neq'
+      | 'rel_m_m';
+  }>;
 }
