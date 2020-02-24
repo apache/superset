@@ -30,6 +30,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const dashboardsInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
+const dashboardOwnersEndpoint = 'glob:*/api/v1/dashboard/related/owners*';
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 
 const mockDashboards = [...new Array(3)].map((_, i) => ({
@@ -45,7 +46,15 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(dashboardsInfoEndpoint, {
   permissions: ['can_list', 'can_edit'],
-  filters: [],
+  filters: {
+    dashboard_title: [],
+    slug: [],
+    owners: [],
+    published: [],
+  },
+});
+fetchMock.get(dashboardOwnersEndpoint, {
+  result: [],
 });
 fetchMock.get(dashboardsEndpoint, {
   result: mockDashboards,
@@ -69,6 +78,11 @@ describe('DashboardList', () => {
   it('fetches info', () => {
     const callsI = fetchMock.calls(/dashboard\/_info/);
     expect(callsI).toHaveLength(1);
+  });
+
+  it('fetches owners', () => {
+    const callsO = fetchMock.calls(/dashboard\/related\/owners/);
+    expect(callsO).toHaveLength(1);
   });
 
   it('fetches data', () => {

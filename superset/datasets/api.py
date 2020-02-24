@@ -52,11 +52,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED}
 
     list_columns = [
-        "database_name",
+        "changed_by_name",
+        "changed_by_url",
         "changed_by.username",
         "changed_on",
-        "table_name",
+        "database_name",
+        "explore_url",
+        "id",
         "schema",
+        "table_name",
     ]
     show_columns = [
         "database.database_name",
