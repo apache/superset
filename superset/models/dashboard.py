@@ -44,7 +44,10 @@ from superset.models.slice import Slice as Slice
 from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import core as utils
-from superset.utils.dashboard_filter_scopes_converter import convert_filter_scopes
+from superset.utils.dashboard_filter_scopes_converter import (
+    convert_filter_scopes,
+    copy_filter_scopes,
+)
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -288,10 +291,10 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
         old_json_metadata = json.loads(dashboard_to_import.json_metadata or "{}")
-        old_to_new_slc_id_dict = {}
+        old_to_new_slc_id_dict: Dict[int, int] = {}
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
-        new_filter_scopes = {}
+        new_filter_scopes: Dict[str, Dict] = {}
         i_params_dict = dashboard_to_import.params_dict
         remote_id_slice_map = {
             slc.params_dict["remote_id"]: slc
@@ -338,13 +341,11 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             filter_scopes = old_json_metadata.get("filter_scopes")
 
         # then replace old slice id to new slice id:
-        for (slice_id, scopes) in filter_scopes.items():
-            new_filter_key = old_to_new_slc_id_dict[int(slice_id)]
-            new_filter_scopes[str(new_filter_key)] = scopes
-            for scope in scopes.values():
-                scope["immune"] = [
-                    old_to_new_slc_id_dict[slice_id] for slice_id in scope.get("immune")
-                ]
+        if filter_scopes:
+            new_filter_scopes = copy_filter_scopes(
+                old_to_new_slc_id_dict=old_to_new_slc_id_dict,
+                old_filter_scopes=filter_scopes,
+            )
 
         # override the dashboard
         existing_dashboard = None

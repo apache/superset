@@ -81,6 +81,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
+from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
 from superset.views.database.filters import DatabaseFilter
@@ -1177,27 +1178,33 @@ class Superset(BaseSupersetView):
 
         if data["duplicate_slices"]:
             # Duplicating slices as well, mapping old ids to new ones
-            old_to_new_sliceids = {}
+            old_to_new_sliceids: Dict[int, int] = {}
             for slc in original_dash.slices:
                 new_slice = slc.clone()
                 new_slice.owners = [g.user] if g.user else []
                 session.add(new_slice)
                 session.flush()
                 new_slice.dashboards.append(dash)
-                old_to_new_sliceids["{}".format(slc.id)] = "{}".format(new_slice.id)
+                old_to_new_sliceids[slc.id] = new_slice.id
 
             # update chartId of layout entities
-            # in v2_dash positions json data, chartId should be integer,
-            # while in older version slice_id is string type
             for value in data["positions"].values():
                 if (
                     isinstance(value, dict)
                     and value.get("meta")
                     and value.get("meta").get("chartId")
                 ):
-                    old_id = "{}".format(value.get("meta").get("chartId"))
-                    new_id = int(old_to_new_sliceids[old_id])
+                    old_id = value.get("meta").get("chartId")
+                    new_id = old_to_new_sliceids[old_id]
                     value["meta"]["chartId"] = new_id
+
+            # replace filter_id and immune ids from old slice id to new slice id:
+            if "filter_scopes" in data:
+                new_filter_scopes = copy_filter_scopes(
+                    old_to_new_slc_id_dict=old_to_new_sliceids,
+                    old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
+                )
+                data["filter_scopes"] = json.dumps(new_filter_scopes)
         else:
             dash.slices = original_dash.slices
         dash.params = original_dash.params
