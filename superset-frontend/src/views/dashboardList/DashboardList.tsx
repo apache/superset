@@ -25,7 +25,11 @@ import React from 'react';
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
-import { FetchDataConfig, FilterTypeMap } from 'src/components/ListView/types';
+import {
+  FetchDataConfig,
+  FilterOperatorMap,
+  Filters,
+} from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const PAGE_SIZE = 25;
@@ -39,9 +43,10 @@ interface State {
   dashboards: any[];
   dashboardCount: number;
   loading: boolean;
-  filterTypes: FilterTypeMap;
+  filterOperators: FilterOperatorMap;
+  filters: Filters;
+  owners: Array<{ text: string; value: number }>;
   permissions: string[];
-  labelColumns: { [key: string]: string };
   lastFetchDataConfig: FetchDataConfig | null;
 }
 
@@ -64,22 +69,45 @@ class DashboardList extends React.PureComponent<Props, State> {
   state: State = {
     dashboardCount: 0,
     dashboards: [],
-    filterTypes: {},
-    labelColumns: {},
+    filterOperators: {},
+    filters: [],
     lastFetchDataConfig: null,
     loading: false,
+    owners: [],
     permissions: [],
   };
 
   componentDidMount() {
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/_info`,
-    }).then(({ json = {} }) => {
-      this.setState({
-        filterTypes: json.filters,
-        permissions: json.permissions,
-      });
-    });
+    Promise.all([
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/_info`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/related/owners`,
+      }),
+    ]).then(
+      ([{ json: infoJson = {} }, { json: ownersJson = {} }]) => {
+        this.setState(
+          {
+            filterOperators: infoJson.filters,
+            owners: ownersJson.result,
+            permissions: infoJson.permissions,
+          },
+          this.updateFilters,
+        );
+      },
+      ([e1, e2]) => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching Dashboards'),
+        );
+        if (e1) {
+          console.error(e1);
+        }
+        if (e2) {
+          console.error(e2);
+        }
+      },
+    );
   }
 
   get canEdit() {
@@ -105,7 +133,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       }: any) => <a href={url}>{dashboardTitle}</a>,
       Header: t('Title'),
       accessor: 'dashboard_title',
-      filterable: true,
       sortable: true,
     },
     {
@@ -117,7 +144,7 @@ class DashboardList extends React.PureComponent<Props, State> {
           },
         },
       }: any) => <a href={changedByUrl}>{changedByName}</a>,
-      Header: t('Changed By Name'),
+      Header: t('Creator'),
       accessor: 'changed_by_fk',
       sortable: true,
     },
@@ -141,9 +168,15 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { changed_on: changedOn },
         },
       }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
-      Header: t('Changed On'),
+      Header: t('Modified'),
       accessor: 'changed_on',
       sortable: true,
+    },
+    {
+      accessor: 'slug',
+    },
+    {
+      accessor: 'owners',
     },
     {
       Cell: ({ row: { state, original } }: any) => {
@@ -265,9 +298,11 @@ class DashboardList extends React.PureComponent<Props, State> {
   };
 
   handleBulkDashboardExport = (dashboards: Dashboard[]) => {
-    window.location.href = `/api/v1/dashboard/export/?q=!(${dashboards
-      .map(({ id }) => id)
-      .join(',')})`;
+    return window.location.assign(
+      `/api/v1/dashboard/export/?q=!(${dashboards
+        .map(({ id }) => id)
+        .join(',')})`,
+    );
   };
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
@@ -281,9 +316,9 @@ class DashboardList extends React.PureComponent<Props, State> {
       },
       loading: true,
     });
-    const filterExps = filters.map(({ id, filterId, value }) => ({
-      col: id,
-      opr: filterId,
+    const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
+      col,
+      opr,
       value,
     }));
 
@@ -299,11 +334,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
       .then(({ json = {} }) => {
-        this.setState({
-          dashboards: json.result,
-          dashboardCount: json.count,
-          labelColumns: json.label_columns,
-        });
+        this.setState({ dashboards: json.result, dashboardCount: json.count });
       })
       .catch(() => {
         this.props.addDangerToast(
@@ -315,8 +346,48 @@ class DashboardList extends React.PureComponent<Props, State> {
       });
   };
 
+  updateFilters = () => {
+    const { filterOperators, owners } = this.state;
+    const convertFilter = ({
+      name: label,
+      operator,
+    }: {
+      name: string;
+      operator: string;
+    }) => ({ label, value: operator });
+
+    this.setState({
+      filters: [
+        {
+          Header: 'Dashboard',
+          id: 'dashboard_title',
+          operators: filterOperators.dashboard_title.map(convertFilter),
+        },
+        {
+          Header: 'Slug',
+          id: 'slug',
+          operators: filterOperators.slug.map(convertFilter),
+        },
+        {
+          Header: 'Owners',
+          id: 'owners',
+          input: 'select',
+          operators: filterOperators.owners.map(convertFilter),
+          selects: owners.map(({ text: label, value }) => ({ label, value })),
+        },
+        {
+          Header: 'Published',
+          id: 'published',
+          input: 'checkbox',
+          operators: filterOperators.published.map(convertFilter),
+        },
+      ],
+    });
+  };
+
   render() {
-    const { dashboards, dashboardCount, loading, filterTypes } = this.state;
+    const { dashboards, dashboardCount, loading, filters } = this.state;
+
     return (
       <div className="container welcome">
         <Panel>
@@ -362,7 +433,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                   fetchData={this.fetchData}
                   loading={loading}
                   initialSort={this.initialSort}
-                  filterTypes={filterTypes}
+                  filters={filters}
                   bulkActions={bulkActions}
                 />
               );

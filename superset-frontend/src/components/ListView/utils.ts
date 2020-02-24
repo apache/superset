@@ -33,7 +33,7 @@ import {
   useQueryParams,
 } from 'use-query-params';
 
-import { FetchDataConfig, FilterToggle, SortColumn } from './types';
+import { FetchDataConfig, InternalFilter, SortColumn } from './types';
 
 // removes element from a list, returns new list
 export function removeFromList(list: any[], index: number): any[] {
@@ -52,10 +52,24 @@ function updateInList(list: any[], index: number, update: any): any[] {
 }
 
 // convert filters from UI objects to data objects
-export function convertFilters(fts: FilterToggle[]) {
+export function convertFilters(fts: InternalFilter[]) {
   return fts
-    .filter((ft: FilterToggle) => ft.value)
-    .map(ft => ({ value: null, filterId: ft.filterId || 'sw', ...ft }));
+    .filter((ft: InternalFilter) => ft.value)
+    .map(ft => ({ operator: ft.operator, ...ft }));
+}
+
+export function extractInputValue(
+  inputType: 'text' | 'textarea' | 'checkbox' | 'select' | undefined,
+  event: any,
+) {
+  if (!inputType || inputType === 'text') {
+    return event.currentTarget.value;
+  }
+  if (inputType === 'checkbox') {
+    return event.currentTarget.checked;
+  }
+
+  return null;
 }
 
 interface UseListViewConfig {
@@ -128,6 +142,7 @@ export function useListViewState({
       columns: columnsWithSelect,
       count,
       data,
+      disableFilters: true,
       disableSortRemove: true,
       initialState,
       manualFilters: true,
@@ -142,13 +157,13 @@ export function useListViewState({
     useRowSelect,
   );
 
-  const [filterToggles, setFilterToggles] = useState<FilterToggle[]>(
+  const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
     query.filters || [],
   );
 
   useEffect(() => {
     const queryParams: any = {
-      filters: filterToggles,
+      filters: internalFilters,
       pageIndex,
     };
     if (sortBy[0]) {
@@ -160,18 +175,18 @@ export function useListViewState({
     fetchData({ pageIndex, pageSize, sortBy, filters });
   }, [fetchData, pageIndex, pageSize, sortBy, filters]);
 
-  const filtersApplied = filterToggles.every(
-    ({ id, value, filterId }, index) =>
+  const filtersApplied = internalFilters.every(
+    ({ id, value, operator }, index) =>
       id &&
       filters[index] &&
       filters[index].id === id &&
       filters[index].value === value &&
       // @ts-ignore
-      filters[index].filterId === filterId,
+      filters[index].operator === operator,
   );
 
   return {
-    applyFilters: () => setAllFilters(convertFilters(filterToggles)),
+    applyFilters: () => setAllFilters(convertFilters(internalFilters)),
     canNextPage,
     canPreviousPage,
     filtersApplied,
@@ -184,9 +199,9 @@ export function useListViewState({
     rows,
     selectedFlatRows,
     setAllFilters,
-    setFilterToggles,
-    state: { pageIndex, pageSize, sortBy, filters, filterToggles },
-    updateFilterToggle: (index: number, update: object) =>
-      setFilterToggles(updateInList(filterToggles, index, update)),
+    setInternalFilters,
+    state: { pageIndex, pageSize, sortBy, filters, internalFilters },
+    updateInternalFilter: (index: number, update: object) =>
+      setInternalFilters(updateInList(internalFilters, index, update)),
   };
 }

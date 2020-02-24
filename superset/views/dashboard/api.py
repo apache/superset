@@ -142,27 +142,28 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
 
     class_permission_name = "DashboardModelView"
     show_columns = [
+        "charts",
+        "css",
         "dashboard_title",
-        "slug",
+        "json_metadata",
         "owners.id",
         "owners.username",
         "position_json",
-        "css",
-        "json_metadata",
         "published",
+        "slug",
         "table_names",
-        "charts",
     ]
     order_columns = ["dashboard_title", "changed_on", "published", "changed_by_fk"]
     list_columns = [
-        "id",
-        "dashboard_title",
-        "url",
-        "published",
-        "changed_by.username",
         "changed_by_name",
         "changed_by_url",
+        "changed_by.username",
         "changed_on",
+        "dashboard_title",
+        "id",
+        "published",
+        "slug",
+        "url",
     ]
 
     add_model_schema = DashboardPostSchema()
