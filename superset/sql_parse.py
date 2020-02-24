@@ -57,7 +57,7 @@ class ParsedQuery:
         self._alias_names: Set[str] = set()
         self._limit: Optional[int] = None
 
-        logger.info("Parsing with sqlparse statement %s", self.sql)
+        logger.debug("Parsing with sqlparse statement: %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
             self.__extract_from_token(statement)
