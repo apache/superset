@@ -718,16 +718,9 @@ parameter ::
 Druid
 -----
 
-* From the UI, enter the information about your clusters in the
-  `Sources -> Druid Clusters` menu by hitting the + sign.
-
-* Once the Druid cluster connection information is entered, hit the
-  `Sources -> Refresh Druid Metadata` menu item to populate
-
-* Navigate to your datasources
-
-Note that you can run the ``superset refresh_druid`` command to refresh the
-metadata from your Druid cluster(s)
+The native Druid connector (behind the ``DRUID_IS_ACTIVE`` feature flag)
+is slowly getting deprecated in favor of the SQLAlchemy/DBAPI connector made
+available in the ``pydruid`` library.
 
 Dremio
 ------
