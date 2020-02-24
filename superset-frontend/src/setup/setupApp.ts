@@ -21,7 +21,7 @@ import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from '../utils/getClientErrorObject';
 
-function showApiMessage(resp) {
+function showApiMessage(resp: { severity?: string; message: string }) {
   const template =
     '<div class="alert"> ' +
     '<button type="button" class="close" ' +
@@ -33,9 +33,11 @@ function showApiMessage(resp) {
     .appendTo($('#alert-container'));
 }
 
-function toggleCheckbox(apiUrlPrefix, selector) {
-  SupersetClient.get({ endpoint: apiUrlPrefix + $(selector)[0].checked })
-    .then(() => {})
+function toggleCheckbox(apiUrlPrefix: string, selector: string) {
+  SupersetClient.get({
+    endpoint: apiUrlPrefix + ($(selector)[0] as HTMLInputElement).checked,
+  })
+    .then(() => undefined)
     .catch(response =>
       getClientErrorObject(response).then(parsedResp => {
         if (parsedResp && parsedResp.message) {
@@ -55,10 +57,17 @@ export default function setupApp() {
     });
 
     // for language picker dropdown
-    $('#language-picker a').click(function(ev) {
+    $('#language-picker a').click(function(
+      ev: JQuery.ClickEvent<
+        HTMLLinkElement,
+        null,
+        HTMLLinkElement,
+        HTMLLinkElement
+      >,
+    ) {
       ev.preventDefault();
       SupersetClient.get({
-        endpoint: ev.currentTarget.getAttribute('href'),
+        endpoint: ev.currentTarget.href,
         parseMethod: null,
       }).then(() => {
         location.reload();
@@ -68,7 +77,9 @@ export default function setupApp() {
 
   // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
+  // @ts-ignore
   window.$ = $;
+  // @ts-ignore
   window.jQuery = $;
   require('bootstrap');
 }
