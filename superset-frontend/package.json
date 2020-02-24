@@ -161,6 +161,7 @@
     "@babel/preset-react": "^7.0.0",
     "@babel/register": "^7.5.5",
     "@types/jest": "^23.3.5",
+    "@types/jquery": "^3.3.32",
     "@types/react": "^16.4.18",
     "@types/react-dom": "^16.0.9",
     "@types/react-json-tree": "^0.6.11",
