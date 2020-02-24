@@ -24,37 +24,76 @@ little bit helps, and credit will always be given.
 
 ## Table of Contents
 
-- [Orientation](#orientation)
-- [Types of Contributions](#types-of-contributions)
-  - [Report Bugs](#report-bugs)
-  - [Submit Ideas or Feature Requests](#submit-ideas-or-feature-requests)
-  - [Ask Questions](#ask-questions)
-  - [Fix Bugs](#fix-bugs)
-  - [Implement Features](#implement-features)
-  - [Improve Documentation](#improve-documentation)
-  - [Add Translations](#add-translations)
-- [Pull Request Guidelines](#pull-request-guidelines)
-  - [Protocol](#protocol)
-- [Managing Issues and PRs](#managing-issues-and-prs)
-- [Revert Guidelines](#revert-guidelines)
-- [Setup Local Environment for Development](#setup-local-environment-for-development)
-  - [Documentation](#documentation)
-  - [Flask server](#flask-server)
-  - [Frontend assets](#frontend-assets)
-- [Testing](#testing)
-  - [JavaScript testing](#javascript-testing)
-  - [Integration testing](#integration-testing)
+- [Contributing](#contributing)
+  - [Table of Contents](#table-of-contents)
+  - [Orientation](#orientation)
+  - [Types of Contributions](#types-of-contributions)
+    - [Report Bug](#report-bug)
+    - [Submit Ideas or Feature Requests](#submit-ideas-or-feature-requests)
+    - [Fix Bugs](#fix-bugs)
+    - [Implement Features](#implement-features)
+    - [Improve Documentation](#improve-documentation)
+    - [Add Translations](#add-translations)
+    - [Ask Questions](#ask-questions)
+  - [Pull Request Guidelines](#pull-request-guidelines)
+    - [Protocol](#protocol)
+      - [Authoring](#authoring)
+      - [Reviewing](#reviewing)
+      - [Merging](#merging)
+      - [Post-merge Responsibility](#post-merge-responsibility)
+  - [Managing Issues and PRs](#managing-issues-and-prs)
+  - [Revert Guidelines](#revert-guidelines)
+  - [Setup Local Environment for Development](#setup-local-environment-for-development)
+    - [Documentation](#documentation)
+      - [Images](#images)
+      - [API documentation](#api-documentation)
+    - [Flask server](#flask-server)
+      - [OS Dependencies](#os-dependencies)
+      - [Logging to the browser console](#logging-to-the-browser-console)
+    - [Frontend Assets](#frontend-assets)
+      - [nvm and node](#nvm-and-node)
+      - [Prerequisite](#prerequisite)
+      - [Installing Dependencies](#installing-dependencies)
+      - [Building](#building)
+      - [Docker (docker-compose)](#docker-docker-compose)
+      - [Updating NPM packages](#updating-npm-packages)
+      - [Feature flags](#feature-flags)
+  - [Git Hooks](#git-hooks)
   - [Linting](#linting)
-- [Translating](#translating)
-  - [Enabling language selection](#enabling-language-selection)
-  - [Extracting new strings for translation](#extracting-new-strings-for-translation)
-  - [Creating a new language dictionary](#creating-a-new-language-dictionary)
-- [Tips](#tips)
-  - [Adding a new datasource](#adding-a-new-datasource)
-  - [Creating a new visualization type](#creating-a-new-visualization-type)
-  - [Adding a DB migration](#adding-a-db-migration)
-  - [Merging DB migrations](#merging-db-migrations)
-  - [SQL Lab Async](#sql-lab-async)
+  - [Conventions](#conventions)
+    - [Python](#python)
+  - [Typing](#typing)
+    - [Python](#python-1)
+    - [TypeScript](#typescript)
+  - [Testing](#testing)
+    - [Python Testing](#python-testing)
+    - [Frontend Testing](#frontend-testing)
+    - [Integration Testing](#integration-testing)
+  - [Translating](#translating)
+    - [Enabling language selection](#enabling-language-selection)
+    - [Extracting new strings for translation](#extracting-new-strings-for-translation)
+    - [Creating a new language dictionary](#creating-a-new-language-dictionary)
+  - [Tips](#tips)
+    - [Adding a new datasource](#adding-a-new-datasource)
+    - [Creating a new visualization type](#creating-a-new-visualization-type)
+    - [Adding a DB migration](#adding-a-db-migration)
+    - [Merging DB migrations](#merging-db-migrations)
+    - [SQL Lab Async](#sql-lab-async)
+  - [Chart Parameters](#chart-parameters)
+    - [Datasource & Chart Type](#datasource--chart-type)
+    - [Time](#time)
+    - [GROUP BY](#group-by)
+    - [NOT GROUPED BY](#not-grouped-by)
+    - [Y Axis 1](#y-axis-1)
+    - [Y Axis 2](#y-axis-2)
+    - [Query](#query)
+    - [Filters Configuration](#filters-configuration)
+    - [Options](#options)
+    - [Chart Options](#chart-options)
+    - [X Axis](#x-axis)
+    - [Y Axis](#y-axis)
+    - [Other](#other)
+    - [Unclassified](#unclassified)
 
 ## Orientation
 
@@ -64,7 +103,7 @@ Here's a list of repositories that contain Superset-related packages:
   is the main repository containing the `apache-superset` Python package
   distributed on
   [pypi](https://pypi.org/project/apache-superset/). This repository
-  also includes Superset's main Javascript bundles and react apps under
+  also includes Superset's main TypeScript/JavaScript bundles and react apps under
   the [superset-frontend](https://github.com/apache/incubator-superset/tree/master/superset-frontend)
   folder.
 - [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
@@ -165,7 +204,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
   - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
 - **Dependencies:** Be careful about adding new dependency and avoid unnecessary dependencies.
   - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
-  - For Javascript, include new libraries in `package.json`
+  - For TypeScript/JavaScript, include new libraries in `package.json`
 - **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
 - **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
 - **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists. After the CI fix has been deployed to `master`, please rebase your PR.
@@ -239,6 +278,7 @@ Reverting changes that are causing issues in the master branch is a normal and e
 - **Difficulty of crafting a fix:** In the case of issues with a clear solution, it may be preferable to implement and merge a fix rather than a revert.
 
 Should you decide that reverting is desirable, it is the responsibility of the Contributor performing the revert to:
+
 - **Contact the interested parties:** The PR's author and the engineer who merged the work should both be contacted and informed of the revert.
 - **Provide concise reproduction steps:** Ensure that the issue can be clearly understood and duplicated by the original author of the PR.
 - **Put the revert through code review:** The revert must be approved by another committer.
@@ -418,7 +458,7 @@ app.logger.info(form_data)
 
 ### Frontend Assets
 
-Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset-frontend` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
+Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset-frontend` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
 
 #### nvm and node
 
@@ -464,7 +504,7 @@ Alternatively you can use one of the following commands.
 # Start a watcher that recompiles your assets as you modify them (but have to manually reload your browser to see changes.)
 npm run dev
 
-# Compile the Javascript and CSS in production/optimized mode for official releases
+# Compile the TypeScript/JavaScript and CSS in production/optimized mode for official releases
 npm run prod
 ```
 
@@ -523,7 +563,7 @@ Lint the project with:
 # for python
 tox -e flake8
 
-# for javascript
+# for frontend
 cd superset-frontend
 npm ci
 npm run lint
@@ -549,6 +589,39 @@ blueprints = app.config.get("BLUEPRINTS")
 ```
 
 or similar as the later will cause typing issues. The former is of type `List[Callable]` whereas the later is of type `Optional[List[Callable]]`.
+
+## Typing
+
+### Python
+
+To ensure clarity, consistency, all readability, _all_ new functions should use
+[type hints](https://docs.python.org/3/library/typing.html) and include a
+docstring using Sphinx documentation.
+
+Note per [PEP-484](https://www.python.org/dev/peps/pep-0484/#exceptions) no
+syntax for listing explicitly raised exceptions is proposed and thus the
+recommendation is to put this information in a docstring, i.e.,
+
+```python
+import math
+from typing import Union
+
+
+def sqrt(x: Union[float, int]) -> Union[float, int]:
+    """
+    Return the square root of x.
+
+    :param x: A number
+    :returns: The square root of the given number
+    :raises ValueError: If the number is negative
+    """
+
+    return math.sqrt(x)
+```
+
+### TypeScript
+
+TypeScript is fully supported and is the recommended language for writing all new frontend components. When modifying existing functions/components, migrating to TypeScript is appreciated, but not required. Examples of migrating functions/components to TypeScript can be found in [#9162](https://github.com/apache/incubator-superset/pull/9162) and [#9180](https://github.com/apache/incubator-superset/pull/9180).
 
 ## Testing
 
@@ -584,36 +657,9 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
-#### Typing
+### Frontend Testing
 
-To ensure clarity, consistency, all readability, _all_ new functions should use
-[type hints](https://docs.python.org/3/library/typing.html) and include a
-docstring using Sphinx documentation.
-
-Note per [PEP-484](https://www.python.org/dev/peps/pep-0484/#exceptions) no
-syntax for listing explicitly raised exceptions is proposed and thus the
-recommendation is to put this information in a docstring, i.e.,
-
-```python
-import math
-from typing import Union
-
-
-def sqrt(x: Union[float, int]) -> Union[float, int]:
-    """
-    Return the square root of x.
-
-    :param x: A number
-    :returns: The square root of the given number
-    :raises ValueError: If the number is negative
-    """
-
-    return math.sqrt(x)
-```
-
-### JavaScript Testing
-
-We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
 
 ```bash
 cd superset-frontend
@@ -672,7 +718,7 @@ At runtime, the `_` function will return the translation of the given
 string for the current language, or the given string itself
 if no translation is available.
 
-In JavaScript, the technique is similar:
+In TypeScript/JavaScript, the technique is similar:
 we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
@@ -956,7 +1002,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                          |
 | `timeseries_limit_metric`                                                                              | _object_                                          | The **Sort By** widget                            |
 
-The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` JavaScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` JavaScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names.
+The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` TypeScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` TypeScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names.
 
 ### Filters Configuration
 
