@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from flask import current_app, Response
 from flask_appbuilder.api import expose, protect, safe
@@ -90,7 +90,7 @@ class ChartPostSchema(BaseOwnedSchema):
     viz_type = fields.String(allow_none=True, validate=Length(0, 250))
     owners = fields.List(fields.Integer(validate=validate_owner))
     params = fields.String(allow_none=True, validate=validate_json)
-    cache_timeout = fields.Integer()
+    cache_timeout = fields.Integer(allow_none=True)
     datasource_id = fields.Integer(required=True)
     datasource_type = fields.String(required=True)
     datasource_name = fields.String(allow_none=True)
@@ -101,7 +101,7 @@ class ChartPostSchema(BaseOwnedSchema):
         validate_update_datasource(data)
 
     @post_load
-    def make_object(self, data: Dict, discard: List[str] = None) -> Slice:
+    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Slice:
         instance = super().make_object(data, discard=["dashboards"])
         populate_dashboards(instance, data.get("dashboards", []))
         return instance
@@ -115,7 +115,7 @@ class ChartPutSchema(BaseOwnedSchema):
     viz_type = fields.String(allow_none=True, validate=Length(0, 250))
     owners = fields.List(fields.Integer(validate=validate_owner))
     params = fields.String(allow_none=True)
-    cache_timeout = fields.Integer()
+    cache_timeout = fields.Integer(allow_none=True)
     datasource_id = fields.Integer(allow_none=True)
     datasource_type = fields.String(allow_none=True)
     dashboards = fields.List(fields.Integer(validate=validate_dashboard))
@@ -125,7 +125,7 @@ class ChartPutSchema(BaseOwnedSchema):
         validate_update_datasource(data)
 
     @post_load
-    def make_object(self, data: Dict, discard: List[str] = None) -> Slice:
+    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Slice:
         self.instance = super().make_object(data, ["dashboards"])
         if "dashboards" in data:
             populate_dashboards(self.instance, data["dashboards"])
@@ -152,11 +152,16 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "cache_timeout",
     ]
     list_columns = [
+        "id",
         "slice_name",
+        "url",
         "description",
         "changed_by.username",
         "changed_by_name",
+        "changed_by_url",
         "changed_on",
+        "datasource_name_text",
+        "datasource_link",
         "viz_type",
         "params",
         "cache_timeout",
@@ -228,6 +233,3 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
-
-
-appbuilder.add_api(ChartRestApi)

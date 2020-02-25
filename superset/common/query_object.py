@@ -81,7 +81,14 @@ class QueryObject:
         self.time_shift = utils.parse_human_timedelta(time_shift)
         self.groupby = groupby or []
 
-        self.metrics = [utils.get_metric_name(metric) for metric in metrics]
+        # Temporal solution for backward compatability issue due the new format of
+        # non-ad-hoc metric which needs to adhere to superset-ui per
+        # https://git.io/Jvm7P.
+        self.metrics = [
+            metric if "expressionType" in metric else metric["label"]  # type: ignore
+            for metric in metrics
+        ]
+
         self.row_limit = row_limit
         self.filter = filters or []
         self.timeseries_limit = timeseries_limit

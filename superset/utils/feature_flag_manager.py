@@ -34,6 +34,6 @@ class FeatureFlagManager:
 
         return self._feature_flags
 
-    def is_feature_enabled(self, feature):
+    def is_feature_enabled(self, feature) -> bool:
         """Utility function for checking whether a feature is turned on"""
         return self.get_feature_flags().get(feature)

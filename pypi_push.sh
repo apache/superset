@@ -18,8 +18,8 @@
 # and are on the correct branch
 cd ${SUPERSET_REPO_DIR}
 git branch
-rm superset/assets/dist/*
-cd superset/assets/
+rm superset/static/assets/*
+cd superset-frontend/
 npm ci && npm run build
 cd ../..
 python setup.py sdist

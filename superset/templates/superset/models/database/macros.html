@@ -60,8 +60,8 @@
       }).fail(function(error) {
           var respJSON = error.responseJSON;
           var errorMsg = error.responseText;
-          if (respJSON && respJSON.message) {
-              errorMsg = respJSON.message;
+          if (respJSON && respJSON.error) {
+              errorMsg = respJSON.error;
           }
           alert("ERROR: " + errorMsg);
       });

@@ -134,6 +134,7 @@ class SupersetAppInitializer:
             TableColumnInlineView,
             SqlMetricInlineView,
             TableModelView,
+            RowLevelSecurityFiltersModelView,
         )
         from superset.views.annotations import (
             AnnotationLayerModelView,
@@ -255,6 +256,15 @@ class SupersetAppInitializer:
             category_label=__("Manage"),
             icon="fa-search",
         )
+        if self.config["ENABLE_ROW_LEVEL_SECURITY"]:
+            appbuilder.add_view(
+                RowLevelSecurityFiltersModelView,
+                "Row Level Security Filters",
+                label=__("Row level security filters"),
+                category="Security",
+                category_label=__("Security"),
+                icon="fa-lock",
+            )
 
         #
         # Setup views with no menu
@@ -265,7 +275,10 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
-        appbuilder.add_view_no_menu(KV)
+
+        if feature_flag_manager.is_feature_enabled("KV_STORE"):
+            appbuilder.add_view_no_menu(KV)
+
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
@@ -277,7 +290,9 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
-        appbuilder.add_view_no_menu(TagView)
+
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            appbuilder.add_view_no_menu(TagView)
 
         #
         # Add links

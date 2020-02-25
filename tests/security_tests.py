@@ -14,15 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 import inspect
 import unittest
 from unittest.mock import Mock, patch
 
 import prison
+from flask import g
 
+import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
@@ -470,7 +473,7 @@ class RolePermissionTests(SupersetTestCase):
 
     def test_gamma_user_schema_access_to_charts(self):
         self.login(username="gamma")
-        data = str(self.client.get("chart/list/").data)
+        data = str(self.client.get("api/v1/chart/").data)
         self.assertIn(
             "Life Expectancy VS Rural %", data
         )  # wb_health_population slice, has access
@@ -813,3 +816,71 @@ class SecurityManagerTests(SupersetTestCase):
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.assert_viz_permission(test_viz)
+
+
+class RowLevelSecurityTests(SupersetTestCase):
+    """
+    Testing Row Level Security
+    """
+
+    rls_entry = None
+
+    def setUp(self):
+        session = db.session
+
+        # Create the RowLevelSecurityFilter
+        self.rls_entry = RowLevelSecurityFilter()
+        self.rls_entry.table = (
+            session.query(SqlaTable).filter_by(table_name="birth_names").first()
+        )
+        self.rls_entry.clause = "gender = 'male'"
+        self.rls_entry.roles.append(
+            security_manager.find_role("Gamma")
+        )  # db.session.query(Role).filter_by(name="Gamma").first())
+        db.session.add(self.rls_entry)
+
+        db.session.commit()
+
+    def tearDown(self):
+        session = db.session
+        session.delete(self.rls_entry)
+        session.commit()
+
+    # Do another test to make sure it doesn't alter another query
+    def test_rls_filter_alters_query(self):
+        g.user = self.get_user(
+            username="gamma"
+        )  # self.login() doesn't actually set the user
+        tbl = self.get_table_by_name("birth_names")
+        query_obj = dict(
+            groupby=[],
+            metrics=[],
+            filter=[],
+            is_timeseries=False,
+            columns=["name"],
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+        sql = tbl.get_query_str(query_obj)
+        self.assertIn("gender = 'male'", sql)
+
+    def test_rls_filter_doesnt_alter_query(self):
+        g.user = self.get_user(
+            username="admin"
+        )  # self.login() doesn't actually set the user
+        tbl = self.get_table_by_name("birth_names")
+        query_obj = dict(
+            groupby=[],
+            metrics=[],
+            filter=[],
+            is_timeseries=False,
+            columns=["name"],
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+        sql = tbl.get_query_str(query_obj)
+        self.assertNotIn("gender = 'male'", sql)

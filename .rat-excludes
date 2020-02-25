@@ -1,5 +1,6 @@
 .gitignore
 .gitattributes
+.gitkeep
 .coverage
 .coveragerc
 .codecov.yml
@@ -18,6 +19,7 @@ node_modules/*
 rat-results.txt
 babel-node
 dist
+superset/static/*
 build
 superset.egg-info
 apache_superset.egg-info
@@ -32,6 +34,7 @@ apache_superset.egg-info
 env/*
 docs/_build/*
 docs/_modules/*
+docs/_static/*
 _build/*
 _static/*
 .buildinfo

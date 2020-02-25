@@ -51,6 +51,8 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.viz import BaseViz
 
+logger = logging.getLogger(__name__)
+
 
 class SupersetSecurityListWidget(ListWidget):
     """
@@ -105,6 +107,7 @@ class SupersetSecurityManager(SecurityManager):
         "DruidColumnInlineView",
         "DruidDatasourceModelView",
         "DruidMetricInlineView",
+        "Datasource",
     } | READ_ONLY_MODEL_VIEWS
 
     ADMIN_ONLY_VIEW_MENUS = {
@@ -117,6 +120,7 @@ class SupersetSecurityManager(SecurityManager):
         "RoleModelView",
         "LogModelView",
         "Security",
+        "RowLevelSecurityFiltersModelView",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV"}
@@ -128,9 +132,10 @@ class SupersetSecurityManager(SecurityManager):
         "can_override_role_permissions",
         "can_approve",
         "can_update_role",
+        "all_query_access",
     }
 
-    READ_ONLY_PERMISSION = {"can_show", "can_list"}
+    READ_ONLY_PERMISSION = {"can_show", "can_list", "can_get", "can_external_metadata"}
 
     ALPHA_ONLY_PERMISSIONS = {
         "muldelete",
@@ -143,7 +148,6 @@ class SupersetSecurityManager(SecurityManager):
         "schema_access",
         "datasource_access",
         "metric_access",
-        "can_only_access_owned_queries",
     }
 
     ACCESSIBLE_PERMS = {"can_userinfo"}
@@ -188,15 +192,13 @@ class SupersetSecurityManager(SecurityManager):
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
 
-    def can_only_access_owned_queries(self) -> bool:
+    def can_access_all_queries(self) -> bool:
         """
-        Return True if the user can only access owned queries, False otherwise.
+        Return True if the user can access all queries, False otherwise.
 
-        :returns: Whether the use can only access owned queries
+        :returns: Whether the user can access all queries
         """
-        return self.can_access(
-            "can_only_access_owned_queries", "can_only_access_owned_queries"
-        )
+        return self.can_access("all_query_access", "all_query_access")
 
     def all_datasource_access(self) -> bool:
         """
@@ -309,8 +311,13 @@ class SupersetSecurityManager(SecurityManager):
 
         return conf.get("PERMISSION_INSTRUCTIONS_LINK")
 
+    def can_access_datasource(
+        self, database: "Database", table_name: str, schema: Optional[str] = None
+    ) -> bool:
+        return self._datasource_access_by_name(database, table_name, schema=schema)
+
     def _datasource_access_by_name(
-        self, database: "Database", table_name: str, schema: str = None
+        self, database: "Database", table_name: str, schema: Optional[str] = None
     ) -> bool:
         """
         Return True if the user can access the SQL table, False otherwise.
@@ -519,7 +526,7 @@ class SupersetSecurityManager(SecurityManager):
             return [d for d in datasource_names if d in names]
         else:
             full_names = {d.full_name for d in user_datasources}
-            return [d for d in datasource_names if d in full_names]
+            return [d for d in datasource_names if f"[{database}].[{d}]" in full_names]
 
     def merge_perm(self, permission_name: str, view_menu_name: str) -> None:
         """
@@ -530,7 +537,7 @@ class SupersetSecurityManager(SecurityManager):
         :see: SecurityManager.add_permission_view_menu
         """
 
-        logging.warning(
+        logger.warning(
             "This method 'merge_perm' is deprecated use add_permission_view_menu"
         )
         self.add_permission_view_menu(permission_name, view_menu_name)
@@ -549,12 +556,9 @@ class SupersetSecurityManager(SecurityManager):
         """
         Create custom FAB permissions.
         """
-
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
-        self.add_permission_view_menu(
-            "can_only_access_owned_queries", "can_only_access_owned_queries"
-        )
+        self.add_permission_view_menu("all_query_access", "all_query_access")
 
     def create_missing_perms(self) -> None:
         """
@@ -565,7 +569,7 @@ class SupersetSecurityManager(SecurityManager):
         from superset.connectors.base.models import BaseMetric
         from superset.models import core as models
 
-        logging.info("Fetching a set of all perms to lookup which ones are missing")
+        logger.info("Fetching a set of all perms to lookup which ones are missing")
         all_pvs = set()
         for pv in self.get_session.query(self.permissionview_model).all():
             if pv.permission and pv.view_menu:
@@ -576,18 +580,18 @@ class SupersetSecurityManager(SecurityManager):
             if view_menu and perm and (view_menu, perm) not in all_pvs:
                 self.add_permission_view_menu(view_menu, perm)
 
-        logging.info("Creating missing datasource permissions.")
+        logger.info("Creating missing datasource permissions.")
         datasources = ConnectorRegistry.get_all_datasources(db.session)
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
 
-        logging.info("Creating missing database permissions.")
+        logger.info("Creating missing database permissions.")
         databases = db.session.query(models.Database).all()
         for database in databases:
             merge_pv("database_access", database.perm)
 
-        logging.info("Creating missing metrics permissions")
+        logger.info("Creating missing metrics permissions")
         metrics: List[BaseMetric] = []
         for datasource_class in ConnectorRegistry.sources.values():
             metrics += list(db.session.query(datasource_class.metric_class).all())
@@ -597,7 +601,7 @@ class SupersetSecurityManager(SecurityManager):
         Clean up the FAB faulty permissions.
         """
 
-        logging.info("Cleaning faulty perms")
+        logger.info("Cleaning faulty perms")
         sesh = self.get_session
         pvms = sesh.query(ab_models.PermissionView).filter(
             or_(
@@ -608,7 +612,7 @@ class SupersetSecurityManager(SecurityManager):
         deleted_count = pvms.delete()
         sesh.commit()
         if deleted_count:
-            logging.info("Deleted {} faulty permissions".format(deleted_count))
+            logger.info("Deleted {} faulty permissions".format(deleted_count))
 
     def sync_role_definitions(self) -> None:
         """
@@ -617,7 +621,7 @@ class SupersetSecurityManager(SecurityManager):
 
         from superset import conf
 
-        logging.info("Syncing role definition")
+        logger.info("Syncing role definition")
 
         self.create_custom_permissions()
 
@@ -645,7 +649,7 @@ class SupersetSecurityManager(SecurityManager):
         :param pvm_check: The FAB permission/view check
         """
 
-        logging.info("Syncing {} perms".format(role_name))
+        logger.info("Syncing {} perms".format(role_name))
         sesh = self.get_session
         pvms = sesh.query(ab_models.PermissionView).all()
         pvms = [p for p in pvms if p.permission and p.view_menu]
@@ -888,3 +892,48 @@ class SupersetSecurityManager(SecurityManager):
         """
 
         self.assert_datasource_permission(viz.datasource)
+
+    def get_rls_filters(self, table: "BaseDatasource"):
+        """
+        Retrieves the appropriate row level security filters for the current user and the passed table.
+
+        :param table: The table to check against
+        :returns: A list of filters.
+        """
+        if hasattr(g, "user") and hasattr(g.user, "id"):
+            from superset import db
+            from superset.connectors.sqla.models import (
+                RLSFilterRoles,
+                RowLevelSecurityFilter,
+            )
+
+            user_roles = (
+                db.session.query(assoc_user_role.c.role_id)
+                .filter(assoc_user_role.c.user_id == g.user.id)
+                .subquery()
+            )
+            filter_roles = (
+                db.session.query(RLSFilterRoles.c.id)
+                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+                .subquery()
+            )
+            query = (
+                db.session.query(
+                    RowLevelSecurityFilter.id, RowLevelSecurityFilter.clause
+                )
+                .filter(RowLevelSecurityFilter.table_id == table.id)
+                .filter(RowLevelSecurityFilter.id.in_(filter_roles))
+            )
+            return query.all()
+        return []
+
+    def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
+        """
+        Retrieves the appropriate row level security filters IDs for the current user and the passed table.
+
+        :param table: The table to check against
+        :returns: A list of IDs.
+        """
+        ids = [f.id for f in self.get_rls_filters(table)]
+        ids.sort()  # Combinations rather than permutations
+        return ids

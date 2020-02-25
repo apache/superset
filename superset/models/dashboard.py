@@ -44,6 +44,10 @@ from superset.models.slice import Slice as Slice
 from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import core as utils
+from superset.utils.dashboard_filter_scopes_converter import (
+    convert_filter_scopes,
+    copy_filter_scopes,
+)
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -51,6 +55,7 @@ if TYPE_CHECKING:
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
+logger = logging.getLogger(__name__)
 
 
 def copy_dashboard(mapper, connection, target):
@@ -298,19 +303,19 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                         value["meta"]["chartId"] = old_to_new_slc_id_dict[old_slice_id]
             dashboard.position_json = json.dumps(position_data)
 
-        logging.info(
+        logger.info(
             "Started import of the dashboard: %s", dashboard_to_import.to_json()
         )
         session = db.session
-        logging.info("Dashboard has %d slices", len(dashboard_to_import.slices))
+        logger.info("Dashboard has %d slices", len(dashboard_to_import.slices))
         # copy slices object as Slice.import_slice will mutate the slice
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
-        old_to_new_slc_id_dict = {}
-        new_filter_immune_slices = []
-        new_filter_immune_slice_fields = {}
+        old_json_metadata = json.loads(dashboard_to_import.json_metadata or "{}")
+        old_to_new_slc_id_dict: Dict[int, int] = {}
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
+        new_filter_scopes: Dict[str, Dict] = {}
         i_params_dict = dashboard_to_import.params_dict
         remote_id_slice_map = {
             slc.params_dict["remote_id"]: slc
@@ -318,7 +323,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             if "remote_id" in slc.params_dict
         }
         for slc in slices:
-            logging.info(
+            logger.info(
                 "Importing slice %s from the dashboard: %s",
                 slc.to_json(),
                 dashboard_to_import.dashboard_title,
@@ -329,18 +334,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             # update json metadata that deals with slice ids
             new_slc_id_str = "{}".format(new_slc_id)
             old_slc_id_str = "{}".format(slc.id)
-            if (
-                "filter_immune_slices" in i_params_dict
-                and old_slc_id_str in i_params_dict["filter_immune_slices"]
-            ):
-                new_filter_immune_slices.append(new_slc_id_str)
-            if (
-                "filter_immune_slice_fields" in i_params_dict
-                and old_slc_id_str in i_params_dict["filter_immune_slice_fields"]
-            ):
-                new_filter_immune_slice_fields[new_slc_id_str] = i_params_dict[
-                    "filter_immune_slice_fields"
-                ][old_slc_id_str]
             if (
                 "timed_refresh_immune_slices" in i_params_dict
                 and old_slc_id_str in i_params_dict["timed_refresh_immune_slices"]
@@ -353,6 +346,27 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                 new_expanded_slices[new_slc_id_str] = i_params_dict["expanded_slices"][
                     old_slc_id_str
                 ]
+
+        # since PR #9109, filter_immune_slices and filter_immune_slice_fields
+        # are converted to filter_scopes
+        # but dashboard create from import may still have old dashboard filter metadata
+        # here we convert them to new filter_scopes metadata first
+        filter_scopes: Dict = {}
+        if (
+            "filter_immune_slices" in i_params_dict
+            or "filter_immune_slice_fields" in i_params_dict
+        ):
+            filter_scopes = convert_filter_scopes(old_json_metadata, slices)
+
+        if "filter_scopes" in i_params_dict:
+            filter_scopes = old_json_metadata.get("filter_scopes")
+
+        # then replace old slice id to new slice id:
+        if filter_scopes:
+            new_filter_scopes = copy_filter_scopes(
+                old_to_new_slc_id_dict=old_to_new_slc_id_dict,
+                old_filter_scopes=filter_scopes,
+            )
 
         # override the dashboard
         existing_dashboard = None
@@ -371,16 +385,12 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         if dashboard_to_import.position_json:
             alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
         dashboard_to_import.alter_params(import_time=import_time)
+        dashboard_to_import.remove_params(param_to_remove="filter_immune_slices")
+        dashboard_to_import.remove_params(param_to_remove="filter_immune_slice_fields")
+        if new_filter_scopes:
+            dashboard_to_import.alter_params(filter_scopes=new_filter_scopes)
         if new_expanded_slices:
             dashboard_to_import.alter_params(expanded_slices=new_expanded_slices)
-        if new_filter_immune_slices:
-            dashboard_to_import.alter_params(
-                filter_immune_slices=new_filter_immune_slices
-            )
-        if new_filter_immune_slice_fields:
-            dashboard_to_import.alter_params(
-                filter_immune_slice_fields=new_filter_immune_slice_fields
-            )
         if new_timed_refresh_immune_slices:
             dashboard_to_import.alter_params(
                 timed_refresh_immune_slices=new_timed_refresh_immune_slices

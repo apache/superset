@@ -30,7 +30,6 @@ import re
 import uuid
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
-from functools import reduce
 from itertools import product
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
@@ -46,7 +45,7 @@ from geopy.point import Point
 from markdown import markdown
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, cache, get_css_manifest_files
+from superset import app, cache, get_css_manifest_files, security_manager
 from superset.constants import NULL_STRING
 from superset.exceptions import NullValueException, SpatialException
 from superset.models.helpers import QueryResult
@@ -66,6 +65,7 @@ config = app.config
 stats_logger = config["STATS_LOGGER"]
 relative_start = config["DEFAULT_RELATIVE_START_TIME"]
 relative_end = config["DEFAULT_RELATIVE_END_TIME"]
+logger = logging.getLogger(__name__)
 
 METRIC_KEYS = [
     "metric",
@@ -371,6 +371,7 @@ class BaseViz:
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
+        cache_dict["rls"] = security_manager.get_rls_ids(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
@@ -395,7 +396,7 @@ class BaseViz:
         if not query_obj:
             query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
-        logging.info("Cache key: {}".format(cache_key))
+        logger.info("Cache key: {}".format(cache_key))
         is_loaded = False
         stacktrace = None
         df = None
@@ -403,7 +404,7 @@ class BaseViz:
         if cache_key and cache and not self.force:
             cache_value = cache.get(cache_key)
             if cache_value:
-                stats_logger.incr("loaded_from_cache")
+                stats_logger.incr("loading_from_cache")
                 try:
                     cache_value = pkl.loads(cache_value)
                     df = cache_value["df"]
@@ -412,12 +413,13 @@ class BaseViz:
                     self._any_cache_key = cache_key
                     self.status = utils.QueryStatus.SUCCESS
                     is_loaded = True
+                    stats_logger.incr("loaded_from_cache")
                 except Exception as e:
-                    logging.exception(e)
-                    logging.error(
+                    logger.exception(e)
+                    logger.error(
                         "Error reading cache: " + utils.error_msg_from_exception(e)
                     )
-                logging.info("Serving from cache")
+                logger.info("Serving from cache")
 
         if query_obj and not is_loaded:
             try:
@@ -426,7 +428,7 @@ class BaseViz:
                     stats_logger.incr("loaded_from_source")
                     is_loaded = True
             except Exception as e:
-                logging.exception(e)
+                logger.exception(e)
                 if not self.error_message:
                     self.error_message = "{}".format(e)
                 self.status = utils.QueryStatus.FAILED
@@ -442,7 +444,7 @@ class BaseViz:
                     cache_value = dict(dttm=cached_dttm, df=df, query=self.query)
                     cache_value = pkl.dumps(cache_value, protocol=pkl.HIGHEST_PROTOCOL)
 
-                    logging.info(
+                    logger.info(
                         "Caching {} chars at key {}".format(len(cache_value), cache_key)
                     )
 
@@ -451,8 +453,8 @@ class BaseViz:
                 except Exception as e:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
-                    logging.warning("Could not cache key {}".format(cache_key))
-                    logging.exception(e)
+                    logger.warning("Could not cache key {}".format(cache_key))
+                    logger.exception(e)
                     cache.delete(cache_key)
         return {
             "cache_key": self._any_cache_key,
@@ -530,11 +532,13 @@ class TableViz(BaseViz):
         d = super().query_obj()
         fd = self.form_data
 
-        if fd.get("all_columns") and (fd.get("groupby") or fd.get("metrics")):
+        if fd.get("all_columns") and (
+            fd.get("groupby") or fd.get("metrics") or fd.get("percent_metrics")
+        ):
             raise Exception(
                 _(
-                    "Choose either fields to [Group By] and [Metrics] or "
-                    "[Columns], not both"
+                    "Choose either fields to [Group By] and [Metrics] and/or "
+                    "[Percentage Metrics], or [Columns], not both"
                 )
             )
 
@@ -552,46 +556,50 @@ class TableViz(BaseViz):
 
         # Add all percent metrics that are not already in the list
         if "percent_metrics" in fd:
-            d["metrics"] = d["metrics"] + list(
-                filter(lambda m: m not in d["metrics"], fd["percent_metrics"] or [])
+            d["metrics"].extend(
+                m for m in fd["percent_metrics"] or [] if m not in d["metrics"]
             )
 
         d["is_timeseries"] = self.should_be_timeseries()
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
-        fd = self.form_data
-        if not self.should_be_timeseries() and df is not None and DTTM_ALIAS in df:
+        """
+        Transform the query result to the table representation.
+
+        :param df: The interim dataframe
+        :returns: The table visualization data
+
+        The interim dataframe comprises of the group-by and non-group-by columns and
+        the union of the metrics representing the non-percent and percent metrics. Note
+        the percent metrics have yet to be transformed.
+        """
+
+        if not self.should_be_timeseries() and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
 
-        # Sum up and compute percentages for all percent metrics
-        percent_metrics = fd.get("percent_metrics") or []
-        percent_metrics = [utils.get_metric_name(m) for m in percent_metrics]
+        # Transform the data frame to adhere to the UI ordering of the columns and
+        # metrics whilst simultaneously computing the percentages (via normalization)
+        # for the percent metrics.
+        non_percent_metric_columns = (
+            self.form_data.get("all_columns") or self.form_data.get("groupby") or []
+        ) + utils.get_metric_names(self.form_data.get("metrics") or [])
 
-        if len(percent_metrics):
-            percent_metrics = list(filter(lambda m: m in df, percent_metrics))
-            metric_sums = {
-                m: reduce(lambda a, b: a + b, df[m]) for m in percent_metrics
-            }
-            metric_percents = {
-                m: list(
-                    map(
-                        lambda a: None if metric_sums[m] == 0 else a / metric_sums[m],
-                        df[m],
-                    )
-                )
-                for m in percent_metrics
-            }
-            for m in percent_metrics:
-                m_name = "%" + m
-                df[m_name] = pd.Series(metric_percents[m], name=m_name)
-            # Remove metrics that are not in the main metrics list
-            metrics = fd.get("metrics") or []
-            metrics = [utils.get_metric_name(m) for m in metrics]
-            for m in filter(
-                lambda m: m not in metrics and m in df.columns, percent_metrics
-            ):
-                del df[m]
+        percent_metric_columns = utils.get_metric_names(
+            self.form_data.get("percent_metrics") or []
+        )
+
+        df = pd.concat(
+            [
+                df[non_percent_metric_columns],
+                (
+                    df[percent_metric_columns]
+                    .div(df[percent_metric_columns].sum())
+                    .add_prefix("%")
+                ),
+            ],
+            axis=1,
+        )
 
         data = self.handle_js_int_overflow(
             dict(records=df.to_dict(orient="records"), columns=list(df.columns))
@@ -676,7 +684,7 @@ class PivotTableViz(BaseViz):
             )
         if not metrics:
             raise Exception(_("Please choose at least one metric"))
-        if any(v in groupby for v in columns) or any(v in columns for v in groupby):
+        if set(groupby) & set(columns):
             raise Exception(_("Group By' and 'Columns' can't overlap"))
         return d
 
@@ -694,15 +702,18 @@ class PivotTableViz(BaseViz):
         columns = self.form_data.get("columns")
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
+        metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
         df = df.pivot_table(
             index=groupby,
             columns=columns,
-            values=[
-                utils.get_metric_name(m) for m in self.form_data.get("metrics", [])
-            ],
+            values=metrics,
             aggfunc=aggfunc,
             margins=self.form_data.get("pivot_margins"),
         )
+
+        # Re-order the columns adhering to the metric ordering.
+        df = df[metrics]
+
         # Display metrics side by side with each column
         if self.form_data.get("combine_metric"):
             df = df.stack(0).unstack()
@@ -965,6 +976,10 @@ class BubbleViz(NVD3Viz):
         d["groupby"] = [form_data.get("entity")]
         if form_data.get("series"):
             d["groupby"].append(form_data.get("series"))
+
+        # dedup groupby if it happens to be the same
+        d["groupby"] = list(dict.fromkeys(d["groupby"]))
+
         self.x_metric = form_data.get("x")
         self.y_metric = form_data.get("y")
         self.z_metric = form_data.get("size")
@@ -1710,7 +1725,7 @@ class ChordViz(BaseViz):
         qry = super().query_obj()
         fd = self.form_data
         qry["groupby"] = [fd.get("groupby"), fd.get("columns")]
-        qry["metrics"] = [utils.get_metric_name(fd.get("metric"))]
+        qry["metrics"] = [fd.get("metric")]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1873,7 +1888,7 @@ class IFrameViz(BaseViz):
     def query_obj(self):
         return None
 
-    def get_df(self, query_obj: Dict[str, Any] = None) -> pd.DataFrame:
+    def get_df(self, query_obj: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         return pd.DataFrame()
 
     def get_data(self, df: pd.DataFrame) -> VizData:

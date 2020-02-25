@@ -18,6 +18,8 @@ import logging
 
 from sqlalchemy.orm.session import make_transient
 
+logger = logging.getLogger(__name__)
+
 
 def import_datasource(
     session, i_datasource, lookup_database, lookup_datasource, import_time
@@ -29,7 +31,7 @@ def import_datasource(
      superset instances. Audit metadata isn't copies over.
     """
     make_transient(i_datasource)
-    logging.info("Started import of the datasource: %s", i_datasource.to_json())
+    logger.info("Started import of the datasource: %s", i_datasource.to_json())
 
     i_datasource.id = None
     i_datasource.database_id = lookup_database(i_datasource).id
@@ -49,7 +51,7 @@ def import_datasource(
     for metric in i_datasource.metrics:
         new_m = metric.copy()
         new_m.table_id = datasource.id
-        logging.info(
+        logger.info(
             "Importing metric %s from the datasource: %s",
             new_m.to_json(),
             i_datasource.full_name,
@@ -61,7 +63,7 @@ def import_datasource(
     for column in i_datasource.columns:
         new_c = column.copy()
         new_c.table_id = datasource.id
-        logging.info(
+        logger.info(
             "Importing column %s from the datasource: %s",
             new_c.to_json(),
             i_datasource.full_name,

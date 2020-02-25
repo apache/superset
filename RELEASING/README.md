@@ -54,37 +54,6 @@ need to be done at every release.
     svn commit -m "Add PGP keys of new Superset committer"
 ```
 
-## Crafting a source release
-
-When crafting a new minor or major release we create 
-a branch named with the release MAJOR.MINOR version (on this example 0.34).
-This new branch will hold all PATCH and release candidates 
-that belong to the MAJOR.MINOR version.
-
-The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
-Then (if needed) apply all cherries that will make the PATCH
-
-Next update the `CHANGELOG.md` with all the changes that are included in the release. Make sure you have
-set your GITHUB_TOKEN environment variable.
-
-```bash
-# will overwrites the local CHANGELOG.md, somehow you need to merge it in
-github-changes -o apache -r incubator-superset --token $GITHUB_TOKEN --between-tags <PREVIOUS_RELEASE_TAG>...<CURRENT_RELEASE_TAG>
-```
-
-Then, in `UPDATING.md`, a file that contains a list of notifications around
-deprecations and upgrading-related topics,
-make sure to move the content now under the `Next Version` section under a new
-section for the new release.
-
-Finally bump the version number on `superset/static/assets/package.json`:
-
-```json
-    "version": "0.34.1"
-```
-
-Commit the change with the version number, then git tag the version with the release candidate and push to the branch
-
 ## Setting up the release environment (do every time)
 
 As the vote process takes a minimum of 72h (community vote) + 72h (IPMC) vote,
@@ -96,31 +65,65 @@ the wrong files/using wrong names. There's a script to help you set correctly al
 necessary environment variables. Change your current directory to `superset/RELEASING`
 
 ```bash
-    # usage: set_release_env.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
-    . ./set_release_env.sh XX.YY.ZZ QQ "YOUR PGP KEY NAME"
+    # usage: . set_release_env.sh <SUPERSET_VERSION_RC> <PGP_KEY_FULLNAME>
+    # example: . set_release_env.sh 0.35.2rc1 myid@apache.org
 ```
 
-The script will output the exported variables. Here's example for 0.34.1 RC1:
+The script will output the exported variables. Here's example for 0.35.2rc2:
 
 ```
     -------------------------------
     Set Release env variables
-    SUPERSET_VERSION=0.34.1
+    SUPERSET_PGP_FULLNAME=myid@apache.org
+    SUPERSET_VERSION_RC=0.35.2rc1
+    SUPERSET_GITHUB_BRANCH=0.35
+    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.35.2
+    SUPERSET_RELEASE_RC=apache-superset-incubating-0.35.2rc1
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.35.2rc1-source.tar.gz
     SUPERSET_RC=1
-    SUPERSET_PGP_FULLNAME=You PGP Key Name
-    SUPERSET_VERSION_RC=0.34.1rc1
-    SUPERSET_RELEASE=apache-superset-incubating-0.34.1
-    SUPERSET_RELEASE_RC=apache-superset-incubating-0.34.1rc1
-    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.34.1-source.tar.gz
-    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.34.1rc1-source.tar.gz
+    SUPERSET_CONFIG_PATH=/Users/ville/superset/superset_config.py
+    SUPERSET_RELEASE=apache-superset-incubating-0.35.2
+    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.35.2-source.tar.gz
+    SUPERSET_VERSION=0.35.2
     -------------------------------
 ```
+
+## Crafting a source release
+
+When crafting a new minor or major release we create
+a branch named with the release MAJOR.MINOR version (on this example 0.35).
+This new branch will hold all PATCH and release candidates
+that belong to the MAJOR.MINOR version.
+
+The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
+Then (if needed) apply all cherries that will make the PATCH
+
+Next update the `CHANGELOG.md` with all the changes that are included in the release. Make sure you have
+set your GITHUB_TOKEN environment variable.
+
+```bash
+# will overwrites the local CHANGELOG.md, somehow you need to merge it in
+github-changes -o apache -r incubator-superset --token $GITHUB_TOKEN -b $SUPERSET_GITHUB_BRANCH
+```
+
+Then, in `UPDATING.md`, a file that contains a list of notifications around
+deprecations and upgrading-related topics,
+make sure to move the content now under the `Next Version` section under a new
+section for the new release.
+
+Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
+
+```json
+    "version": "0.35.2"
+```
+
+Commit the change with the version number, then git tag the version with the release candidate and push to the branch
 
 ## Preparing the release candidate
 
 The first step of preparing an Apache Release is packaging a release candidate
 to be voted on. Make sure you have correctly prepared and tagged the ready to ship
-release on Superset's repo (MAJOR.MINOR branch), the following script will clone 
+release on Superset's repo (MAJOR.MINOR branch), the following script will clone
 the tag and create a signed source tarball from it:
 
 ```bash
@@ -131,14 +134,14 @@ the tag and create a signed source tarball from it:
 
 Note that `make_tarball.sh`:
 
-- By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`. 
-This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory 
+- By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
+This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
 
 ### Build and test the created source tarball
 
-To build and run the just created tarball 
+To build and run the **local copy** of the recently created tarball:
 ```bash
     # Build and run a release candidate tarball
     ./test_run_tarball.sh local
@@ -158,7 +161,7 @@ Now let's ship this RC into svn's dev folder
 
 ### Build and test from SVN source tarball
 
-To make a working build given a tarball
+To build and run the recently created tarball **from SVN**:
 ```bash
     # Build and run a release candidate tarball
     ./test_run_tarball.sh
@@ -174,12 +177,12 @@ https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fb
 To easily send a voting request to Superset community, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv 
+    # Note: use Superset's virtualenv
     (venv)$ python send_email.py vote_pmc
 ```
 
 The script will interactively ask for extra information so it can authenticate on the Apache Email Relay.
-The release version and release candidate number are fetched from the previously set environment variables. 
+The release version and release candidate number are fetched from the previously set environment variables.
 
 ```bash
     Sender email (ex: user@apache.org): your_apache_email@apache.org
@@ -194,12 +197,12 @@ https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71
 To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv 
+    # Note: use Superset's virtualenv
     (venv)$ python send_email.py result_pmc
 ```
 
 The script will interactively ask for extra information needed to fill out the email template. Based on the
-voting description, it will generate a passing, non passing or non conclusive email. 
+voting description, it will generate a passing, non passing or non conclusive email.
 here's an example:
 
 ```bash
@@ -217,7 +220,7 @@ started at general@incubator.apache.org.
 To easily send the voting request to Apache community, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv 
+    # Note: use Superset's virtualenv
     (venv)$ python send_email.py vote_ipmc
 ```
 
@@ -227,12 +230,12 @@ least 72 hours have past, you can post a [RESULT] thread
 To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv 
+    # Note: use Superset's virtualenv
     (venv)$ python send_email.py result_ipmc
 ```
 
 Again, the script will interactively ask for extra information needed to fill out the email template. Based on the
-voting description, it will generate a passing, non passing or non conclusive email. 
+voting description, it will generate a passing, non passing or non conclusive email.
 here's an example:
 
 ```bash
@@ -291,7 +294,7 @@ while requesting access to push packages.
 Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
 
 ```bash
-    # Note use Superset's virtualenv 
+    # Note use Superset's virtualenv
     (venv)$ python send_email.py announce
 ```
 

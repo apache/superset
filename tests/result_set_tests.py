@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
 
+import tests.test_app
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.result_set import dedup, SupersetResultSet
@@ -122,6 +124,90 @@ class SupersetResultSetTestCase(SupersetTestCase):
                 {"is_test": None},
                 {"is_test": None},
             ],
+        )
+
+    def test_nested_types(self):
+        data = [
+            (
+                4,
+                [{"table_name": "unicode_test", "database_id": 1}],
+                [1, 2, 3],
+                {"chart_name": "scatter"},
+            ),
+            (
+                3,
+                [{"table_name": "birth_names", "database_id": 1}],
+                [4, 5, 6],
+                {"chart_name": "plot"},
+            ),
+        ]
+        cursor_descr = [("id",), ("dict_arr",), ("num_arr",), ("map_col",)]
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "INT")
+        self.assertEqual(results.columns[1]["type"], "STRING")
+        self.assertEqual(results.columns[2]["type"], "STRING")
+        self.assertEqual(results.columns[3]["type"], "STRING")
+        df = results.to_pandas_df()
+        self.assertEqual(
+            df_to_records(df),
+            [
+                {
+                    "id": 4,
+                    "dict_arr": '[{"table_name": "unicode_test", "database_id": 1}]',
+                    "num_arr": "[1, 2, 3]",
+                    "map_col": '{"chart_name": "scatter"}',
+                },
+                {
+                    "id": 3,
+                    "dict_arr": '[{"table_name": "birth_names", "database_id": 1}]',
+                    "num_arr": "[4, 5, 6]",
+                    "map_col": '{"chart_name": "plot"}',
+                },
+            ],
+        )
+
+    def test_single_column_multidim_nested_types(self):
+        data = [
+            (
+                [
+                    "test",
+                    [
+                        [
+                            "foo",
+                            123456,
+                            [
+                                [["test"], 3432546, 7657658766],
+                                [["fake"], 656756765, 324324324324],
+                            ],
+                        ]
+                    ],
+                    ["test2", 43, 765765765],
+                    None,
+                    None,
+                ],
+            )
+        ]
+        cursor_descr = [("metadata",)]
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "STRING")
+        df = results.to_pandas_df()
+        self.assertEqual(
+            df_to_records(df),
+            [
+                {
+                    "metadata": '["test", [["foo", 123456, [[["test"], 3432546, 7657658766], [["fake"], 656756765, 324324324324]]]], ["test2", 43, 765765765], null, null]'
+                }
+            ],
+        )
+
+    def test_nested_list_types(self):
+        data = [([{"TestKey": [123456, "foo"]}],)]
+        cursor_descr = [("metadata",)]
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        self.assertEqual(results.columns[0]["type"], "STRING")
+        df = results.to_pandas_df()
+        self.assertEqual(
+            df_to_records(df), [{"metadata": '[{"TestKey": [123456, "foo"]}]'}]
         )
 
     def test_empty_datetime(self):

@@ -17,7 +17,7 @@
 import json
 import logging
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from flask import current_app, g, make_response, Response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -51,9 +51,10 @@ class DashboardJSONMetadataSchema(Schema):
     expanded_slices = fields.Dict()
     refresh_frequency = fields.Integer()
     default_filters = fields.Str()
-    filter_immune_slice_fields = fields.Dict()
     stagger_refresh = fields.Boolean()
     stagger_time = fields.Integer()
+    color_scheme = fields.Str()
+    label_colors = fields.Dict()
 
 
 def validate_json(value):
@@ -123,7 +124,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     published = fields.Boolean()
 
     @post_load
-    def make_object(self, data: Dict, discard: List[str] = None) -> Dashboard:
+    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Dashboard:
         self.instance = super().make_object(data, [])
         for slc in self.instance.slices:
             slc.owners = list(set(self.instance.owners) | set(slc.owners))
@@ -145,27 +146,28 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
 
     class_permission_name = "DashboardModelView"
     show_columns = [
+        "charts",
+        "css",
         "dashboard_title",
-        "slug",
+        "json_metadata",
         "owners.id",
         "owners.username",
         "position_json",
-        "css",
-        "json_metadata",
         "published",
+        "slug",
         "table_names",
-        "charts",
     ]
     order_columns = ["dashboard_title", "changed_on", "published", "changed_by_fk"]
     list_columns = [
-        "id",
-        "dashboard_title",
-        "url",
-        "published",
-        "changed_by.username",
         "changed_by_name",
         "changed_by_url",
+        "changed_by.username",
         "changed_on",
+        "dashboard_title",
+        "id",
+        "published",
+        "slug",
+        "url",
     ]
 
     add_model_schema = DashboardPostSchema()

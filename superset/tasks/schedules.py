@@ -49,7 +49,8 @@ from superset.utils.core import get_email_address_list, send_email_smtp
 
 # Globals
 config = app.config
-logging.getLogger("tasks.email_reports").setLevel(logging.INFO)
+logger = logging.getLogger("tasks.email_reports")
+logger.setLevel(logging.INFO)
 
 # Time in seconds, we will wait for the page to load and render
 PAGE_RENDER_WAIT = 30
@@ -359,7 +360,7 @@ def schedule_email_report(
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:
-        logging.info("Ignoring deactivated schedule")
+        logger.info("Ignoring deactivated schedule")
         return
 
     # TODO: Detach the schedule object from the db session
@@ -420,7 +421,7 @@ def schedule_hourly():
     """ Celery beat job meant to be invoked hourly """
 
     if not config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
-        logging.info("Scheduled email reports not enabled in config")
+        logger.info("Scheduled email reports not enabled in config")
         return
 
     resolution = config["EMAIL_REPORTS_CRON_RESOLUTION"] * 60
