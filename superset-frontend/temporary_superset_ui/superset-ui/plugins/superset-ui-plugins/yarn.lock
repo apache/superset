@@ -3971,7 +3971,14 @@
   resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.4.tgz#38fd73ddfd9b55abb1e1b2ed578cb55bd7b7d339"
   integrity sha512-8+KAKzEvSUdeo+kmqnKrqgeE+LcA0tjYWFY7RPProVYwnqDjukzO+3b6dLD56rYX5TdWejnEOLJYOIeh4CXKuA==
 
-"@types/lodash@*", "@types/lodash@4.14.149", "@types/lodash@^4.14.146", "@types/lodash@^4.14.148":
+"@types/lodash-es@^4.17.3":
+  version "4.17.3"
+  resolved "https://registry.yarnpkg.com/@types/lodash-es/-/lodash-es-4.17.3.tgz#87eb0b3673b076b8ee655f1890260a136af09a2d"
+  integrity sha512-iHI0i7ZAL1qepz1Y7f3EKg/zUMDwDfTzitx+AlHhJJvXwenP682ZyGbgPSc5Ej3eEAKVbNWKFuwOadCj5vBbYQ==
+  dependencies:
+    "@types/lodash" "*"
+
+"@types/lodash@*", "@types/lodash@4.14.149", "@types/lodash@^4.14.146":
   version "4.14.149"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.149.tgz#1342d63d948c6062838fbf961012f74d4e638440"
   integrity sha512-ijGqzZt/b7BfzcK9vTrS6MFljQRPn5BFWOx8oE0GYxribu6uV+aA9zZuXI1zc/etK9E8nrgdoF2+LgUw7+9tJQ==
@@ -8411,23 +8418,23 @@ emotion-theming@^10.0.19:
     hoist-non-react-statics "^3.3.0"
 
 encodable@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/encodable/-/encodable-0.2.0.tgz#9e831a1cc7e730f7049cc1d9843086afc0677333"
-  integrity sha512-QgKI7Xo4BLntvzsrxI9opzgIeq4y4Ugm+svJTuUblgYOYwv28OdNy0CafdtbHtKcNefNlq+ya18nKvmXy4GP2A==
+  version "0.2.6"
+  resolved "https://registry.yarnpkg.com/encodable/-/encodable-0.2.6.tgz#5ecb7097764fc88fb6640fa284b73a5f141b2f5b"
+  integrity sha512-HQEaLGm6e/Z+u5zOh9/7DfDpn8FeMbmSVsgA6lbBuIE+SKd7og5Z6aELvK3HCkL/G8V6XBKwawqNG+qsB7GAew==
   dependencies:
     "@types/d3-array" "^2.0.0"
     "@types/d3-interpolate" "^1.3.1"
     "@types/d3-scale" "^2.1.1"
     "@types/d3-time" "^1.0.10"
-    "@types/lodash" "^4.14.148"
+    "@types/lodash-es" "^4.17.3"
     d3-array "^2.3.1"
     d3-interpolate "^1.3.2"
     d3-scale "^3.0.1"
     d3-time "^1.0.11"
-    lodash "^4.17.15"
+    lodash-es "^4.17.15"
     reselect "^4.0.0"
-    vega "^5.8.1"
-    vega-lite "^4.0.0-beta.12"
+    vega "^5.9.1"
+    vega-lite "~4.1.0"
 
 encodeurl@~1.0.2:
   version "1.0.2"
@@ -9249,11 +9256,6 @@ fast-json-stable-stringify@2.x, fast-json-stable-stringify@^2.0.0, fast-json-sta
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/fast-json-stable-stringify/-/fast-json-stable-stringify-2.1.0.tgz#874bf69c6f404c2b5d99c481341399fd55892633"
   integrity sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==
-
-fast-json-stable-stringify@~2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/fast-json-stable-stringify/-/fast-json-stable-stringify-2.0.0.tgz#d5142c0caee6b1189f87d3a76111064f86c8bbf2"
-  integrity sha1-1RQsDK7msRifh9OnYREGT4bIu/I=
 
 fast-levenshtein@~2.0.6:
   version "2.0.6"
@@ -12232,6 +12234,11 @@ locate-path@^5.0.0:
   integrity sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==
   dependencies:
     p-locate "^4.1.0"
+
+lodash-es@^4.17.15:
+  version "4.17.15"
+  resolved "https://registry.yarnpkg.com/lodash-es/-/lodash-es-4.17.15.tgz#21bd96839354412f23d7a10340e5eac6ee455d78"
+  integrity sha512-rlrc3yU3+JNOpZ9zj5pQtxnx2THmvRykwL4Xlxoa8I9lHBlVbbyPhgyPMioxVZ4NqyxaVVtaJnzsyOidQIhyyQ==
 
 lodash._reinterpolate@^3.0.0:
   version "3.0.0"
@@ -17746,26 +17753,7 @@ vega-hierarchy@4.0.3:
     vega-dataflow "^5.4.0"
     vega-util "^1.11.0"
 
-vega-lite@^4.0.0-beta.12:
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/vega-lite/-/vega-lite-4.0.2.tgz#0984b6a368fe0ae8713f28dca5923b60888d9533"
-  integrity sha512-J74ThSBg2l6cjSDOw7Sjc2YP2ETZxEdyz8lSkjnZsTKbuvy4wbvrrbqdiGo34ffxvTdGSVz+SuXLSxGEwKdxAg==
-  dependencies:
-    "@types/clone" "~0.1.30"
-    "@types/fast-json-stable-stringify" "^2.0.0"
-    array-flat-polyfill "^1.0.1"
-    clone "~2.1.2"
-    fast-deep-equal "~3.1.1"
-    fast-json-stable-stringify "~2.0.0"
-    json-stringify-pretty-compact "~2.0.0"
-    tslib "~1.10.0"
-    vega-event-selector "~2.0.2"
-    vega-expression "~2.6.3"
-    vega-typings "~0.12.0"
-    vega-util "~1.12.1"
-    yargs "~15.0.2"
-
-vega-lite@~4.1.1:
+vega-lite@~4.1.0, vega-lite@~4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/vega-lite/-/vega-lite-4.1.1.tgz#f6e6cae4e0518c66afd0298fb544b6a35290437b"
   integrity sha512-D2seO6ZbY8aZQ8+ZQfU+5NYwot3ryIDyvdQdcVoupMSgJ/oGv4QqEwL3rmu8abdSG6NhFiac0trsI+wBb0F6vQ==
@@ -17897,7 +17885,7 @@ vega-typings@0.12.0, vega-typings@~0.12.0:
   dependencies:
     vega-util "^1.12.1"
 
-vega-util@1.12.2, vega-util@^1.11.0, vega-util@^1.12.0, vega-util@^1.12.1, vega-util@^1.12.2, vega-util@^1.8.0, vega-util@~1.12.1, vega-util@~1.12.2:
+vega-util@1.12.2, vega-util@^1.11.0, vega-util@^1.12.0, vega-util@^1.12.1, vega-util@^1.12.2, vega-util@^1.8.0, vega-util@~1.12.2:
   version "1.12.2"
   resolved "https://registry.yarnpkg.com/vega-util/-/vega-util-1.12.2.tgz#4997a50e56fa4be05046966568aed72246a40e27"
   integrity sha512-p02+oQ/XU/gzY9S/CTZinym2NKWEMIneLc+FYdUeJZZnDGa3DvcNgUDlVR90JlwLcYZNs5dBdfYLfdRHsKZKiw==
@@ -17944,7 +17932,7 @@ vega-wordcloud@4.0.4:
     vega-statistics "^1.7.1"
     vega-util "^1.12.1"
 
-vega@^5.8.1:
+vega@^5.8.1, vega@^5.9.1:
   version "5.9.1"
   resolved "https://registry.yarnpkg.com/vega/-/vega-5.9.1.tgz#8c4cd23630ba6b4422342a4825234a7d1e0a9957"
   integrity sha512-Wd5WAfaXPGuHk5cSFqiFNkkw5DXRSZcl+q4x351VUbmV5/IRipyGZx05EbBP5D9B40Xb/Tt2I+JQBBdxuYYIxQ==
@@ -18517,23 +18505,6 @@ yargs@^15.0.0, yargs@^15.1.0, yargs@~15.1.0:
   version "15.1.0"
   resolved "https://registry.yarnpkg.com/yargs/-/yargs-15.1.0.tgz#e111381f5830e863a89550bd4b136bb6a5f37219"
   integrity sha512-T39FNN1b6hCW4SOIk1XyTOWxtXdcen0t+XYrysQmChzSipvhBO8Bj0nK1ozAasdk24dNWuMZvr4k24nz+8HHLg==
-  dependencies:
-    cliui "^6.0.0"
-    decamelize "^1.2.0"
-    find-up "^4.1.0"
-    get-caller-file "^2.0.1"
-    require-directory "^2.1.1"
-    require-main-filename "^2.0.0"
-    set-blocking "^2.0.0"
-    string-width "^4.2.0"
-    which-module "^2.0.0"
-    y18n "^4.0.0"
-    yargs-parser "^16.1.0"
-
-yargs@~15.0.2:
-  version "15.0.2"
-  resolved "https://registry.yarnpkg.com/yargs/-/yargs-15.0.2.tgz#4248bf218ef050385c4f7e14ebdf425653d13bd3"
-  integrity sha512-GH/X/hYt+x5hOat4LMnCqMd8r5Cv78heOMIJn1hr7QPPBqfeC6p89Y78+WB9yGDvfpCvgasfmWLzNzEioOUD9Q==
   dependencies:
     cliui "^6.0.0"
     decamelize "^1.2.0"
