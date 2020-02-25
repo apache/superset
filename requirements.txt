@@ -55,7 +55,6 @@ numpy==1.18.1             # via pandas, pyarrow
 pandas==0.25.3
 parsedatetime==2.5
 pathlib2==2.3.5
-pillow==7.0.0
 polyline==1.4.0
 prison==0.1.2             # via flask-appbuilder
 py==1.8.1                 # via retry

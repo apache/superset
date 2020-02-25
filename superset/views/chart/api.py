@@ -24,7 +24,7 @@ from marshmallow.validate import Length
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.wsgi import FileWrapper
 
-from superset import appbuilder, is_feature_enabled, thumbnail_cache
+from superset import is_feature_enabled, thumbnail_cache
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetException
@@ -227,6 +227,7 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
             return self.response_404()
         # fetch the chart screenshot using the current user and cache if set
         screenshot = ChartScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        # If not screenshot then send request to compute thumb to celery
         if not screenshot:
             cache_chart_thumbnail.delay(chart.id, force=True)
             return self.response(202, message="OK Async")

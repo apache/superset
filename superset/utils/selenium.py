@@ -31,7 +31,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
 
-from PIL import Image
+logger = logging.getLogger(__name__)
+
+try:
+    from PIL import Image
+except ModuleNotFoundError:
+    logger.info("No PIL instalation found")
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -93,7 +98,10 @@ def get_url_path(view: str, **kwargs) -> str:
 
 class AuthWebDriverProxy:
     def __init__(
-        self, driver_type: str, window: WindowSize = None, auth_func: Callable = None
+        self,
+        driver_type: str,
+        window: Optional[WindowSize] = None,
+        auth_func: Optional[Callable] = None,
     ):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
@@ -117,7 +125,7 @@ class AuthWebDriverProxy:
         options.add_argument("--headless")
         kwargs: Dict = dict(options=options)
         kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
-        logging.info("Init selenium driver")
+        logger.info("Init selenium driver")
         return driver_class(**kwargs)
 
     def auth(self, user: "User") -> WebDriver:
@@ -147,23 +155,23 @@ class AuthWebDriverProxy:
         driver.set_window_size(*self._window)
         driver.get(url)
         img: Optional[bytes] = None
-        logging.debug(f"Sleeping for {SELENIUM_HEADSTART} seconds")
+        logger.debug(f"Sleeping for {SELENIUM_HEADSTART} seconds")
         time.sleep(SELENIUM_HEADSTART)
         try:
-            logging.debug(f"Wait for the presence of {element_name}")
+            logger.debug(f"Wait for the presence of {element_name}")
             element = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CLASS_NAME, element_name))
             )
-            logging.debug(f"Wait for .loading to be done")
+            logger.debug(f"Wait for .loading to be done")
             WebDriverWait(driver, 60).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
-            logging.info("Taking a PNG screenshot")
+            logger.info("Taking a PNG screenshot")
             img = element.screenshot_as_png
         except TimeoutException:
-            logging.error("Selenium timed out")
+            logger.error("Selenium timed out")
         except WebDriverException as e:
-            logging.exception(e)
+            logger.error(e)
             # Some webdrivers do not support screenshots for elements.
             # In such cases, take a screenshot of the entire page.
             img = driver.screenshot()  # pylint: disable=no-member
@@ -197,7 +205,10 @@ class BaseScreenshot:
         return self.screenshot
 
     def get(
-        self, user: "User" = None, cache: "Cache" = None, thumb_size: WindowSize = None
+        self,
+        user: "User" = None,
+        cache: "Cache" = None,
+        thumb_size: Optional[WindowSize] = None,
     ) -> Optional[BytesIO]:
         """
             Get thumbnail screenshot has BytesIO from cache or fetch
@@ -215,7 +226,7 @@ class BaseScreenshot:
                 user=user, thumb_size=thumb_size, cache=cache
             )
         else:
-            logging.info(f"Loaded thumbnail from cache: {self.cache_key}")
+            logger.info(f"Loaded thumbnail from cache: {self.cache_key}")
         if payload:
             return BytesIO(payload)
         return None
@@ -229,7 +240,7 @@ class BaseScreenshot:
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
         user: "User" = None,
-        thumb_size: WindowSize = None,
+        thumb_size: Optional[WindowSize] = None,
         cache: "Cache" = None,
         force: bool = True,
     ) -> Optional[bytes]:
@@ -245,10 +256,10 @@ class BaseScreenshot:
         """
         cache_key = self.cache_key
         if not force and cache and cache.get(cache_key):
-            logging.info("Thumb already cached, skipping...")
+            logger.info("Thumb already cached, skipping...")
             return None
         thumb_size = thumb_size or self.thumb_size
-        logging.info(f"Processing url for thumbnail: {cache_key}")
+        logger.info(f"Processing url for thumbnail: {cache_key}")
 
         payload = None
 
@@ -256,19 +267,17 @@ class BaseScreenshot:
         try:
             payload = self.get_screenshot(user=user)
         except Exception as e:  # pylint: disable=broad-except
-            logging.error("Failed at generating thumbnail")
-            logging.exception(e)
+            logger.error("Failed at generating thumbnail %s", e)
 
         if payload and self.window_size != thumb_size:
             try:
-                payload = self.resize_image(payload, size=thumb_size)
+                payload = self.resize_image(payload, thumb_size=thumb_size)
             except Exception as e:  # pylint: disable=broad-except
-                logging.error("Failed at resizing thumbnail")
-                logging.exception(e)
+                logger.error("Failed at resizing thumbnail %s", e)
                 payload = None
 
         if payload and cache:
-            logging.info(f"Caching thumbnail: {cache_key} {cache}")
+            logger.info(f"Caching thumbnail: {cache_key} {cache}")
             cache.set(cache_key, payload)
         return payload
 
@@ -277,19 +286,19 @@ class BaseScreenshot:
         cls,
         img_bytes: bytes,
         output: str = "png",
-        size: WindowSize = None,
+        thumb_size: Optional[WindowSize] = None,
         crop: bool = True,
     ) -> bytes:
-        size = size or cls.thumb_size
+        thumb_size = thumb_size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
-        logging.debug(f"Selenium image size: {img.size}")
+        logger.debug(f"Selenium image size: {img.size}")
         if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
-            logging.debug(f"Cropping to: {img.size[0]}*{desired_width}")
+            logger.debug(f"Cropping to: {img.size[0]}*{desired_width}")
             img = img.crop((0, 0, img.size[0], desired_width))
-        logging.debug(f"Resizing to {size}")
-        img = img.resize(size, Image.ANTIALIAS)
+        logger.debug(f"Resizing to {thumb_size}")
+        img = img.resize(thumb_size, Image.ANTIALIAS)
         new_img = BytesIO()
         if output != "png":
             img = img.convert("RGB")

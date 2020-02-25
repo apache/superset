@@ -24,13 +24,10 @@ from .base_tests import SupersetTestCase
 
 
 class ThumbnailsTests(SupersetTestCase):
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"THUMBNAILS": True},
-        clear=True,
-    )
+
     def test_simple_get_screenshot(self):
         """
             Thumbnails: Simple get screen shot
         """
-        self.assertTrue(is_feature_enabled("THUMBNAILS"))
+        if is_feature_enabled("THUMBNAILS"):
+            self.assertTrue(False)
