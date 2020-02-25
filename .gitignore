@@ -58,9 +58,6 @@ rat-results.txt
 *.js.map
 node_modules
 npm-debug.log*
-superset-frontend/coverage/*
-superset-frontend/cypress/screenshots
-superset-frontend/cypress/videos
 superset/static/assets
 superset/static/version_info.json
 yarn-error.log

@@ -220,7 +220,7 @@
     "ts-jest": "^24.0.2",
     "ts-loader": "^5.4.5",
     "tslib": "^1.10.0",
-    "typescript": "^3.5.3",
+    "typescript": "^3.8.2",
     "url-loader": "^1.0.1",
     "webpack": "^4.19.0",
     "webpack-assets-manifest": "^3.0.1",
