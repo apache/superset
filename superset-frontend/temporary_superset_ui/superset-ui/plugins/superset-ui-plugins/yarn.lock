@@ -25,13 +25,13 @@
     babel-plugin-typescript-to-proptypes "^1.1.0"
 
 "@airbnb/config-eslint@^2.1.3":
-  version "2.5.1"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-eslint/-/config-eslint-2.5.1.tgz#c4d58c53bcdc5ba3982b136265872e7392b7439e"
-  integrity sha512-k8rToPOUwoG30uEenbKrE/bg7QCxlIEtVEbPFtZZuCQ0x8M5zQrbeRrsSA69FCUbnicm8vtQ+odti+Yd4kQqeA==
+  version "2.5.2"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-eslint/-/config-eslint-2.5.2.tgz#963621524ac93329a9d3857c9462a7c73da100f7"
+  integrity sha512-hmlzJmYfF1S1wx9ZNZNDBDFTC21MWKdTmjVNsWeOL8VFY3FHtch7gg4lV9edAmiIicOS6Tr5aAufTAiFRNsT7Q==
   dependencies:
-    "@airbnb/nimbus-common" "^2.1.1"
-    "@beemo/core" "^1.1.1"
-    "@beemo/driver-eslint" "^1.2.0"
+    "@airbnb/nimbus-common" "^2.1.2"
+    "@beemo/core" "^1.1.2"
+    "@beemo/driver-eslint" "^1.2.1"
     "@typescript-eslint/eslint-plugin" "^2.17.0"
     "@typescript-eslint/parser" "^2.17.0"
     babel-eslint "^10.0.3"
@@ -1114,12 +1114,12 @@
   dependencies:
     rimraf "^3.0.2"
 
-"@beemo/driver-eslint@^1.2.0":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@beemo/driver-eslint/-/driver-eslint-1.2.1.tgz#05d3d70718fbccda27c79b7ce1a4d3e9b06cbcd8"
-  integrity sha512-AH2k9ueLONTwUVEYgfZqDJY7gx+z2CmEP5wfHzQguotPYdWjocqYLy96x897vpl9vkkZZABKu9RNxwz6O2+rdQ==
+"@beemo/driver-eslint@^1.2.1":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@beemo/driver-eslint/-/driver-eslint-1.2.2.tgz#c6ae690c713b8259525df988907c24ae96640f8e"
+  integrity sha512-ltV09kvhCKTI3lurkGxPrAeJZRxElGPzT9t/rpYU1B8QJqbcUOIhKWk7W+21lCHGov4Ez+L7+TOXTkUl80JIqA==
   dependencies:
-    "@boost/event" "^1.2.1"
+    "@boost/event" "^1.3.0"
 
 "@beemo/driver-jest@^1.2.0":
   version "1.2.1"
@@ -1195,27 +1195,12 @@
     execa "^3.4.0"
     fast-glob "^3.1.1"
 
-"@boost/event@^1.2.1":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@boost/event/-/event-1.2.1.tgz#949f603f07a860d01dbbc297904f218930ab342c"
-  integrity sha512-/gfQHWApt0TKk7y+ESllwx4k1TLbxhHNNtSTaB5Z7CE26sGddrDzMFu4hpJKqquxRW4MhWlao5ZpNgacWkvJbA==
-  dependencies:
-    "@boost/internal" "^1.0.3"
-
 "@boost/event@^1.3.0":
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/@boost/event/-/event-1.3.0.tgz#7bc989098aa6e2b819ed1904170056eb288396af"
   integrity sha512-EszQ+bSw2lfobsE5pGEnFROXMcxqClXnJIohM/INO/8xjKvFeAVVpQKUEnYVbOcCWYVnwsJ7nBapXLA6Z6Zv7w==
   dependencies:
     "@boost/internal" "^1.1.0"
-
-"@boost/internal@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@boost/internal/-/internal-1.0.3.tgz#b2a1e66e68f829e06d3b1c1565e03bbe5e3ff602"
-  integrity sha512-xVUgtVO1V3+vLZc5EwQjg0uwj2zO1JASPiisfc74dKCu9Z47kgh/Dk+NSS/j+bZJvkno0so1s5jLkYFpmzFHyQ==
-  dependencies:
-    chalk "^3.0.0"
-    debug "^4.1.1"
 
 "@boost/internal@^1.1.0":
   version "1.1.0"
