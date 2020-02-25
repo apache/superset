@@ -9222,15 +9222,16 @@ fast-glob@^2.0.2, fast-glob@^2.2.6:
     micromatch "^3.1.10"
 
 fast-glob@^3.0.1, fast-glob@^3.0.4, fast-glob@^3.1.1:
-  version "3.1.1"
-  resolved "https://registry.yarnpkg.com/fast-glob/-/fast-glob-3.1.1.tgz#87ee30e9e9f3eb40d6f254a7997655da753d7c82"
-  integrity sha512-nTCREpBY8w8r+boyFYAx21iL6faSsQynliPHM4Uf56SbkyohCNxpVPEH9xrF5TXKy+IsjkPUHDKiUkzBVRXn9g==
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/fast-glob/-/fast-glob-3.2.2.tgz#ade1a9d91148965d4bf7c51f72e1ca662d32e63d"
+  integrity sha512-UDV82o4uQyljznxwMxyVRJgZZt3O5wENYojjzbaGEGZgeOxkLFf+V4cnUD+krzb2F72E18RhamkMZ7AdeggF7A==
   dependencies:
     "@nodelib/fs.stat" "^2.0.2"
     "@nodelib/fs.walk" "^1.2.3"
     glob-parent "^5.1.0"
     merge2 "^1.3.0"
     micromatch "^4.0.2"
+    picomatch "^2.2.1"
 
 fast-json-parse@^1.0.0:
   version "1.0.3"
@@ -14075,7 +14076,7 @@ performance-now@^2.1.0:
   resolved "https://registry.yarnpkg.com/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
   integrity sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=
 
-picomatch@^2.0.4, picomatch@^2.0.5:
+picomatch@^2.0.4, picomatch@^2.0.5, picomatch@^2.2.1:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.2.1.tgz#21bac888b6ed8601f831ce7816e335bc779f0a4a"
   integrity sha512-ISBaA8xQNmwELC7eOjqFKMESB2VIqt4PPDD0nsS95b/9dZXvVKOlz9keMSnoGGKcOHXfTvDD6WMaRoSc9UuhRA==
