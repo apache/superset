@@ -1,0 +1,37 @@
+{
+  "name": "@superset-ui/time-format",
+  "version": "0.12.5",
+  "description": "Superset UI time-format",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@types/d3-time": "^1.0.9",
+    "@types/d3-time-format": "^2.1.0",
+    "d3-time": "^1.0.10",
+    "d3-time-format": "^2.2.0"
+  },
+  "peerDependencies": {
+    "@superset-ui/core": "^0.12.0"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@superset-ui/core",
+  "version": "0.12.5",
+  "description": "Superset UI core",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "jest-mock-console": "^1.0.0"
+  },
+  "dependencies": {
+    "@types/lodash": "4.14.149",
+    "lodash": "^4.17.11"
+  }
+}

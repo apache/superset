@@ -1,0 +1,44 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-histogram",
+  "version": "0.11.13",
+  "description": "Superset Legacy Chart - Histogram",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-plugins/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@data-ui/histogram": "^0.0.84",
+    "@data-ui/theme": "^0.0.84",
+    "@vx/legend": "^0.0.193",
+    "@vx/responsive": "^0.0.194",
+    "@vx/scale": "^0.0.194",
+    "prop-types": "^15.6.2"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart": "^0.12.0",
+    "@superset-ui/color": "^0.12.0",
+    "@superset-ui/translation": "^0.12.0",
+    "react": "^15 || ^16"
+  }
+}

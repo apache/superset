@@ -1,0 +1,35 @@
+{
+  "name": "@superset-ui/color",
+  "version": "0.12.5",
+  "description": "Superset UI color",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@types/d3-scale": "^2.1.1",
+    "d3-scale": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@superset-ui/core": "^0.12.0"
+  }
+}

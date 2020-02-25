@@ -1,0 +1,43 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-map-box",
+  "version": "0.11.12",
+  "description": "Superset Legacy Chart - MapBox",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-plugins/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "immutable": "^3.8.2",
+    "mapbox-gl": "^0.53.0",
+    "prop-types": "^15.6.2",
+    "react-map-gl": "^4.0.10",
+    "supercluster": "^4.1.1",
+    "viewport-mercator-project": "^6.1.1"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart": "^0.12.0",
+    "@superset-ui/translation": "^0.12.0",
+    "react": "^15 || ^16"
+  }
+}

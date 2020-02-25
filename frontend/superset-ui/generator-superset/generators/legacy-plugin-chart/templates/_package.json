@@ -1,0 +1,39 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-<%= packageName %>",
+  "version": "0.0.0",
+  "description": "Superset Legacy Chart - <%= description %>",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-legacy.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-legacy/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-legacy#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "prop-types": "^15.6.2"
+  },
+  "devDependencies": {
+    "@superset-ui/chart": "latest",
+    "@superset-ui/translation": "latest"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart": "latest",
+    "@superset-ui/translation": "latest"
+  }
+}

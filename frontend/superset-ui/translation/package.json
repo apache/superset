@@ -1,0 +1,34 @@
+{
+  "name": "@superset-ui/translation",
+  "version": "0.12.5",
+  "description": "Superset UI translation",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib",
+    "types"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset",
+    "client",
+    "translation"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "dependencies": {
+    "jed": "^1.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

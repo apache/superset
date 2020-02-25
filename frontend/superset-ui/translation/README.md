@@ -1,0 +1,57 @@
+## @superset-ui/translation
+
+[![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)
+[![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fsuperset-ui-translation&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/superset-ui-translation)
+
+`i18n` locales and translation for Superset
+
+### SupersetTranslation
+
+#### Example usage
+
+```js
+import { configure, t, tn } from '@superset-ui/translation';
+
+configure({
+  languagePack: {...},
+});
+
+console.log(t('text to be translated'));
+console.log(tn('singular text', 'plural text', value));
+```
+
+#### API
+
+`configure({ [languagePack] })`
+
+- Initialize the translator
+- Initialize with the default language if no `languagePack` is specified.
+
+`t(text[, args])`
+
+- Translate `text`.
+- If `args` is provided, substitute `args` into the `sprintf` placeholders specified within `text` translation.
+
+For example
+
+```js
+t('Hello %(name)s', user);
+```
+
+See [sprintf-js](https://github.com/alexei/sprintf.js) for more details on how to define placeholders.
+
+`tn(singular, plural, num, [, args])`
+
+- Translate and choose between `singular` and `plural` based on `num`.
+- If `args` is provided, substitute `args` into the `sprintf` placeholders specified within `singular` or `plural` translations.
+
+For example
+
+```js
+tn('%d duck', '%d ducks', 2, 2);
+```
+
+### Development
+
+`@data-ui/build-config` is used to manage the build configuration for this package including babel
+builds, jest testing, eslint, and prettier.
