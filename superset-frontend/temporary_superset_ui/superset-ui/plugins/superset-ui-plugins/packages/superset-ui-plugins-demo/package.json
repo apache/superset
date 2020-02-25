@@ -48,7 +48,7 @@
     "@babel/plugin-syntax-dynamic-import": "^7.2.0",
     "babel-loader": "^8.0.5",
     "gh-pages": "^2.0.1",
-    "terser-webpack-plugin": "2.3.4"
+    "terser-webpack-plugin": "2.3.5"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.12.0",
