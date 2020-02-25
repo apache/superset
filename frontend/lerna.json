@@ -1,0 +1,8 @@
+{
+  "packages": [
+    "packages/*",
+    "superset-ui/*",
+    "superset-ui-plugins/*"
+  ],
+  "version": "independent"
+}
