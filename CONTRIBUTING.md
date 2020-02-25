@@ -528,7 +528,7 @@ best practices.
 
 Superset supports a server-wide feature flag system, which eases the incremental development of features. To add a new feature flag, simply modify `superset_config.py` with something like the following:
 
-```
+```python
 FEATURE_FLAGS = {
     'SCOPED_FILTER': True,
 }
@@ -536,7 +536,7 @@ FEATURE_FLAGS = {
 
 If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset-frontend/src/featureFlags.ts`. For example,
 
-```
+```typescript
 export enum FeatureFlag {
   SCOPED_FILTER = 'SCOPED_FILTER',
 }

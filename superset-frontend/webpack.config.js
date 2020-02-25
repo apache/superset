@@ -281,7 +281,7 @@ const config = {
     hot: true,
     index: '', // This line is needed to enable root proxying
     inline: true,
-    stats: { colors: true },
+    stats: 'minimal',
     overlay: true,
     port: devserverPort,
     // Only serves bundled files from webpack-dev-server
