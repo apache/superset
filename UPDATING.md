@@ -22,13 +22,20 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+
+* [9133](https://github.com/apache/incubator-superset/pull/9133): Security list of permissions and list views has been
+disable by default. You can optionally enable them back again by setting the following config keys: 
+FAB_ADD_SECURITY_PERMISSION_VIEW, FAB_ADD_SECURITY_VIEW_MENU_VIEW, FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW to True.
+ 
 * [9173](https://github.com/apache/incubator-superset/pull/9173): Changes the encoding of the query source from an int to an enum.
+
 * [9120](https://github.com/apache/incubator-superset/pull/9120): Changes the default behavior of ad-hoc sharing of
 queries in SQLLab to one that links to the saved query rather than one that copies the query data into the KVStore
 model and links to the record there. This is a security-related change that makes SQLLab query
 sharing respect the existing role-based access controls. Should you wish to retain the existing behavior, set two feature flags:
 `"KV_STORE": True` will re-enable the `/kv/` and `/kv/store/` endpoints, and `"SHARE_QUERIES_VIA_KV_STORE": True`
 will tell the front-end to utilize them for query sharing.
+
 * [9109](https://github.com/apache/incubator-superset/pull/9109): Expire `filter_immune_slices` and
 `filter_immune_filter_fields` to favor dashboard scoped filter metadata `filter_scopes`.
 
