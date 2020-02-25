@@ -88,9 +88,9 @@
     "@types/react" "*"
 
 "@airbnb/lunar@^2.35.0":
-  version "2.63.1"
-  resolved "https://registry.yarnpkg.com/@airbnb/lunar/-/lunar-2.63.1.tgz#491873ccd2335e8348a86fe03727f3d98de20646"
-  integrity sha512-M3qqTkMA40KjV6pDfmSKZzK0OatMVoiMOq8t0RnYNIqSlIFzE4vuXGK4/RF0CBs2fcPEN3Az/798vxy/woWUrA==
+  version "2.64.0"
+  resolved "https://registry.yarnpkg.com/@airbnb/lunar/-/lunar-2.64.0.tgz#434de958c121e132633e93cb93707b34659b449f"
+  integrity sha512-jErmo+ihQb30/gp+d99x7N2rt5YnTJIfYHi/QrEVaGF4y4+GIMceA47MKcbLqdUqrgxQPrrfQ6TsiqumfoVGyQ==
   dependencies:
     "@types/airbnb-prop-types" "*"
     "@types/hoist-non-react-statics" "*"
