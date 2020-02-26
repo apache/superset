@@ -25,5 +25,6 @@ stylesheets/*
 vendor/*
 docs/*
 src/dashboard/deprecated/*
+src/temp/*
 **/node_modules
 *.d.ts
