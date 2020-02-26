@@ -589,7 +589,9 @@ class TableViz(BaseViz):
             self.form_data.get("all_columns") or self.form_data.get("groupby") or []
         )
 
-        non_percent_metric_columns.extend(utils.get_metric_names(self.form_data.get("metrics") or []))
+        non_percent_metric_columns.extend(
+            utils.get_metric_names(self.form_data.get("metrics") or [])
+        )
 
         timeseries_limit_metric = utils.get_metric_name(
             self.form_data.get("timeseries_limit_metric")
