@@ -23,6 +23,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [9238](https://github.com/apache/incubator-superset/pull/9238): the config option `TIME_GRAIN_FUNCTIONS` has been renamed to `TIME_GRAIN_EXPRESSIONS` to better reflect the content of the dictionary.
+
 * [9218](https://github.com/apache/incubator-superset/pull/9218): SQLite connections have been disabled by default
 for analytics databases. You can optionally enable SQLite by setting `PREVENT_UNSAFE_DB_CONNECTIONS` to `False`.
 It is not recommended to change this setting, as arbitrary SQLite connections can lead to security vulnerabilities.

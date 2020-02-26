@@ -360,13 +360,14 @@ TIME_GRAIN_BLACKLIST: List[str] = []
 TIME_GRAIN_ADDONS: Dict[str, str] = {}
 
 # Implementation of additional time grains per engine.
+# The column to be truncated is denoted `{col}` in the expression.
 # For example: To implement 2 second time grain on clickhouse engine:
-# TIME_GRAIN_ADDON_FUNCTIONS = {
+# TIME_GRAIN_ADDON_EXPRESSIONS = {
 #     'clickhouse': {
 #         'PT2S': 'toDateTime(intDiv(toUInt32(toDateTime({col})), 2)*2)'
 #     }
 # }
-TIME_GRAIN_ADDON_FUNCTIONS: Dict[str, Dict[str, str]] = {}
+TIME_GRAIN_ADDON_EXPRESSIONS: Dict[str, Dict[str, str]] = {}
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
