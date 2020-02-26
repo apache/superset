@@ -17,16 +17,24 @@
  * under the License.
  */
 
+ @font-face {
+  font-family: 'Fira Mono';
+  src: url('eot/FiraMono-Regular.eot');
+  src: local('Fira Mono'),
+       url('eot/FiraMono-Regular.eot') format('embedded-opentype'),
+       url('woff/FiraMono-Regular.woff') format('woff'),
+       url('ttf/FiraMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
 
-/*************************************************************************/
-/* USAGE NOTES                                                           */
-/* Each typeface used in Superset should have local webfont files.       */
-/* Maintain separate specimen sheets so it's easier to add/remove fonts. */
-/* NOTE: Add font all licenses to LICENSE.text                           */
-/*************************************************************************/
-
-/******************************* Inter UI ********************************/
-@import '../fonts/InterUI/specimen.less';
-
-/******************************* Fira Mono ********************************/
-@import '../fonts/FiraMono/specimen.less';
+@font-face {
+  font-family: 'Fira Mono';
+  src: url('eot/FiraMono-Bold.eot');
+  src: local('Fira Mono Bold'),
+       url('eot/FiraMono-Bold.eot') format('embedded-opentype'),
+       url('woff/FiraMono-Bold.woff') format('woff'),
+       url('ttf/FiraMono-Bold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
