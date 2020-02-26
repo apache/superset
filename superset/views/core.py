@@ -1233,6 +1233,12 @@ class Superset(BaseSupersetView):
         dash = session.query(Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get("data"))
+        if "filter_scopes" in data:
+            new_filter_scopes = copy_filter_scopes(
+                old_to_new_slc_id_dict={slc.id: slc.id for slc in dash.slices},
+                old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
+            )
+            data["filter_scopes"] = json.dumps(new_filter_scopes)
         self._set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
