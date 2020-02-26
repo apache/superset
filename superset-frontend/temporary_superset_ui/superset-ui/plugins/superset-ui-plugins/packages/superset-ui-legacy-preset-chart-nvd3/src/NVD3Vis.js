@@ -972,7 +972,10 @@ function nvd3Vis(element, props) {
                 .attr('class', `nv-event-annotation-layer-${index}`);
               const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
 
-              const tip = tipFactory(e);
+              const tip = tipFactory({
+                ...e,
+                annotationTipClass: `arrow-down nv-event-annotation-layer-${config.sourceType}`,
+              });
               const records = (annotationData[e.name].records || [])
                 .map(r => {
                   const timeValue = new Date(moment.utc(r[e.timeColumn]));

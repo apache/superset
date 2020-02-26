@@ -295,7 +295,7 @@ export function wrapTooltip(chart, maxWidth) {
 
 export function tipFactory(layer) {
   return d3tip()
-    .attr('class', 'd3-tip')
+    .attr('class', `d3-tip ${layer.annotationTipClass || ''}`)
     .direction('n')
     .offset([-5, 0])
     .html(d => {
