@@ -123,10 +123,16 @@ class ChartHolder extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if(this.state.resizeEvent){
-      this.setState(() => ({ resizeEvent: false }));
-    }
+    this.finishResizeEvent();
     this.hideOutline(prevState, this.state);
+  }
+
+  finishResizeEvent() {
+    setTimeout(() => {
+      if (this.state.resizeEvent) {
+        this.setState(() => ({ resizeEvent: false }));
+      }
+    }, 200);
   }
 
   hideOutline(prevState, state) {
@@ -165,9 +171,9 @@ class ChartHolder extends React.Component {
       },
     });
   }
-  
+
   handleFullSize() {
-    var flag = !this.state.isFullSize;
+    const flag = !this.state.isFullSize;
     this.setState(() => ({ isFullSize: flag, resizeEvent: true }));
   }
 
@@ -196,27 +202,27 @@ class ChartHolder extends React.Component {
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
-    var fullStyle = {};
-    var w = 0;
-    var h = 0;
+    let fullStyle = {};
+    let w = 0;
+    let h = 0;
 
-    if( this.state.isFullSize ){
-      fullStyle = {position: 'fixed', zIndex : '1000', left: '0px', top: '0px'};
-      //w = '100%';
-      //h = '100%';
+    if (this.state.isFullSize) {
+      fullStyle = {
+        position: 'fixed',
+        zIndex: '1000',
+        left: '0px',
+        top: '0px',
+      };
       w = document.body.clientWidth - PADDING;
       h = document.body.clientHeight - PADDING;
-    }
-    else {
+    } else {
       fullStyle = {};
       w = Math.floor(
         widthMultiple * columnWidth +
           (widthMultiple - 1) * GRID_GUTTER_SIZE -
           CHART_MARGIN,
-      )
-      h = Math.floor(
-        component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
       );
+      h = Math.floor(component.meta.height * GRID_BASE_UNIT - CHART_MARGIN);
     }
 
     return (

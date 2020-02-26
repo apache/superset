@@ -71,6 +71,7 @@ const propTypes = {
 const defaultProps = {
   isCached: false,
   isComponentVisible: true,
+  resizeEvent: false,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -119,7 +120,7 @@ class Chart extends React.Component {
         return true;
       }
 
-      if( nextProps.resizeEvent ){
+      if (nextProps.resizeEvent) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
         return false;

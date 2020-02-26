@@ -173,11 +173,7 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          {(
-            <MenuItem onClick={this.handleFullSize}>
-              {t(resizeLabel)}
-            </MenuItem>
-          )}
+          {<MenuItem onClick={this.handleFullSize}>{t(resizeLabel)}</MenuItem>}
 
           <URLShortLinkModal
             url={getDashboardUrl(
