@@ -153,3 +153,22 @@
   font-size: 14px;
   font-weight: normal;
 }
+
+.d3-tip.nv-event-annotation-layer-table {
+  width: 200px;
+  border-radius: 2px;
+  background-color: #484848;
+  fill-opacity: 0.6;
+  margin: 8px;
+  padding: 8px;
+  color: #fff;
+}
+
+.d3-tip.nv-event-annotation-layer-table::after {
+  content: '\25BC';
+  font-size: 14px;
+  color: #484848;
+  position: absolute;
+  bottom: -14px;
+  left: 94px;
+}
