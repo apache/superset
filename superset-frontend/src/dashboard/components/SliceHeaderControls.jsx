@@ -77,6 +77,8 @@ class SliceHeaderControls extends React.PureComponent {
       this.props.slice.slice_id,
     );
 
+    this.handleFullSize = this.handleFullSize.bind(this);
+
     this.state = {
       showControls: false,
     };
@@ -105,6 +107,10 @@ class SliceHeaderControls extends React.PureComponent {
     });
   }
 
+  handleFullSize() {
+    this.props.handleFullSize();
+  }
+
   render() {
     const {
       slice,
@@ -113,12 +119,14 @@ class SliceHeaderControls extends React.PureComponent {
       updatedDttm,
       componentId,
       addDangerToast,
+      isFullSize,
     } = this.props;
     const cachedWhen = moment.utc(cachedDttm).fromNow();
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
     const refreshTooltip = isCached
       ? t('Cached %s', cachedWhen)
       : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
+    const resizeLabel = isFullSize ? 'Minimize' : 'Maximize';
 
     return (
       <Dropdown
@@ -162,6 +170,12 @@ class SliceHeaderControls extends React.PureComponent {
           {this.props.supersetCanExplore && (
             <MenuItem onClick={this.exploreChart}>
               {t('Explore chart')}
+            </MenuItem>
+          )}
+
+          {(
+            <MenuItem onClick={this.handleFullSize}>
+              {t(resizeLabel)}
             </MenuItem>
           )}
 
