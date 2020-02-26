@@ -152,11 +152,16 @@
 @line-height-normal: @line-height-base;
 @line-height-loose: 2;
 
+// ****************************** Features *******************************
+@use-ligatures: true;
+
 // ****************************** Families ******************************
 @font-family-sans-serif: "Inter", Helvetica, Arial;
 @font-family-serif: Georgia, 'Times New Roman', Times, serif;
-// @font-family-monospace: 'Fira Mono', 'Courier New', monospace;
-@font-family-monospace: 'Fira Code', 'Courier New', monospace;
+.set-monospace-family(@use-ligatures); 
+.set-monospace-family(true) {@mono-face: 'Fira Code'}
+.set-monospace-family(false) {@mono-face: 'Fira Mono'}
+@font-family-monospace: @mono-face, 'Courier New', monospace;
 @font-family-base: @font-family-sans-serif;
 
 /************************************************************************/
