@@ -427,7 +427,7 @@ class TableVizTestCase(SupersetTestCase):
             "order_desc": False,
         }
 
-        df = pd.DataFrame({"SUM(value1)": [15], "sum_value": [15],})
+        df = pd.DataFrame({"SUM(value1)": [15], "sum_value": [15]})
         datasource = self.get_datasource_mock()
         test_viz = viz.TableViz(datasource, form_data)
         data = test_viz.get_data(df)
