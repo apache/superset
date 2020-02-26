@@ -580,10 +580,11 @@ class TableViz(BaseViz):
         # metrics whilst simultaneously computing the percentages (via normalization)
         # for the percent metrics.
 
-        if not self.should_be_timeseries() and DTTM_ALIAS in df:
-            del df[DTTM_ALIAS]
-        elif self.should_be_timeseries() and DTTM_ALIAS in df:
-            non_percent_metric_columns.append(DTTM_ALIAS)
+        if DTTM_ALIAS in df:
+            if self.should_be_timeseries():
+                non_percent_metric_columns.append(DTTM_ALIAS)
+            else:
+                del df[DTTM_ALIAS]
 
         non_percent_metric_columns.extend(
             self.form_data.get("all_columns") or self.form_data.get("groupby") or []
