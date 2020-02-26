@@ -174,9 +174,11 @@ class DashboardList extends React.PureComponent<Props, State> {
     },
     {
       accessor: 'slug',
+      Cell: () => null,
     },
     {
       accessor: 'owners',
+      Cell: () => null,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
