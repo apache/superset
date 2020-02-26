@@ -548,10 +548,9 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTA_SCHEMA_NAME_FUNC = (
-    None
-)  # type: Optional[Callable[["Database", "models.User", str, str], str]]
-
+SQLLAB_CTA_SCHEMA_NAME_FUNC: Optional[
+    Callable[["Database", "models.User", str, str], str]
+] = None
 
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries

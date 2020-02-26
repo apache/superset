@@ -247,9 +247,7 @@ def _deserialize_results_payload(
 def get_cta_schema_name(
     database: Database, user: ab_models.User, schema: str, sql: str
 ) -> Optional[str]:
-    func = config.get(
-        "SQLLAB_CTA_SCHEMA_NAME_FUNC"
-    )  # type: Optional[Callable[[Database, ab_models.User, str, str], str]]
+    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = config["SQLLAB_CTA_SCHEMA_NAME_FUNC"]
     if not func:
         return None
     return func(database, user, schema, sql)
@@ -2349,7 +2347,7 @@ class Superset(BaseSupersetView):
         # Set tmp_schema_name for CTA
         # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from tmp_table_name if user enters
         # <schema_name>.<table_name>
-        tmp_schema_name = schema  # type: Optional[str]
+        tmp_schema_name: Optional[str] = schema
         if select_as_cta and mydb.force_ctas_schema:
             tmp_schema_name = mydb.force_ctas_schema
         elif select_as_cta:
