@@ -575,15 +575,30 @@ class TableViz(BaseViz):
         the percent metrics have yet to be transformed.
         """
 
-        if not self.should_be_timeseries() and DTTM_ALIAS in df:
-            del df[DTTM_ALIAS]
-
+        non_percent_metric_columns = []
         # Transform the data frame to adhere to the UI ordering of the columns and
         # metrics whilst simultaneously computing the percentages (via normalization)
         # for the percent metrics.
-        non_percent_metric_columns = (
+
+        if DTTM_ALIAS in df:
+            if self.should_be_timeseries():
+                non_percent_metric_columns.append(DTTM_ALIAS)
+            else:
+                del df[DTTM_ALIAS]
+
+        non_percent_metric_columns.extend(
             self.form_data.get("all_columns") or self.form_data.get("groupby") or []
-        ) + utils.get_metric_names(self.form_data.get("metrics") or [])
+        )
+
+        non_percent_metric_columns.extend(
+            utils.get_metric_names(self.form_data.get("metrics") or [])
+        )
+
+        timeseries_limit_metric = utils.get_metric_name(
+            self.form_data.get("timeseries_limit_metric")
+        )
+        if timeseries_limit_metric:
+            non_percent_metric_columns.append(timeseries_limit_metric)
 
         percent_metric_columns = utils.get_metric_names(
             self.form_data.get("percent_metrics") or []
