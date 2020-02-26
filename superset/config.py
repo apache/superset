@@ -534,7 +534,7 @@ SQLLAB_CTAS_NO_LIMIT = False
 # Database `CTAS Schema` has a precedence over this setting.
 # Example below returns a username and CTA queries will write tables into the schema
 # name `username`
-# SQLLAB_CTA_SCHEMA_NAME_FUNC = lambda database, user, schema, sql: user.username
+# SQLLAB_CTAS_SCHEMA_NAME_FUNC = lambda database, user, schema, sql: user.username
 # This is move involved example where depending on the database you can leverage data
 # available to assign schema for the CTA query:
 # def compute_schema_name(database: Database, user: User, schema: str, sql: str) -> str:
@@ -548,7 +548,7 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTA_SCHEMA_NAME_FUNC: Optional[
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
     Callable[["Database", "models.User", str, str], str]
 ] = None
 
