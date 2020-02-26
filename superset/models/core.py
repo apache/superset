@@ -56,7 +56,6 @@ from superset.db_engine_specs.base import TimeGrain
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import DashboardUpdater, FavStarUpdater
-from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import cache as cache_util, core as utils
 
 config = app.config
@@ -682,11 +681,3 @@ if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
     sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
     sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
-
-
-def event_after_dashboard_changed(mapper, connection, target):
-    cache_dashboard_thumbnail.delay(target.id, force=True)
-
-
-sqla.event.listen(Dashboard, "after_insert", event_after_dashboard_changed)
-sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)

@@ -30,6 +30,7 @@ from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater
+from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
 from superset.viz import BaseViz, viz_types
 
@@ -313,6 +314,12 @@ def set_related_perm(mapper, connection, target):
             target.schema_perm = ds.schema_perm
 
 
+def event_after_dashboard_changed(  # pylint: disable=unused-argument
+    mapper, connection, target
+):
+    cache_chart_thumbnail.delay(target.id, force=True)
+
+
 sqla.event.listen(Slice, "before_insert", set_related_perm)
 sqla.event.listen(Slice, "before_update", set_related_perm)
 
@@ -321,3 +328,8 @@ if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
     sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
     sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
+
+# events for updating tags
+if is_feature_enabled("THUMBNAILS"):
+    sqla.event.listen(Slice, "after_insert", event_after_dashboard_changed)
+    sqla.event.listen(Slice, "after_update", event_after_dashboard_changed)

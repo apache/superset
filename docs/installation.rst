@@ -643,7 +643,17 @@ For other strategies, check the `superset/tasks/cache.py` file.
 Caching Thumbnails
 ------------------
 
-Thumbnails are store on cache, an example config could be:
+This is an optional feature that can be turned on by activating it's feature flag on config:
+
+.. code-block:: python
+
+    FEATURE_FLAGS = {"THUMBNAILS": True}
+
+
+For this feature you will need a cache system and celery workers. All thumbnails are store on cache and are processed
+asynchronously by the workers.
+
+An example config could be:
 
 .. code-block:: python
 
@@ -681,8 +691,8 @@ You can override the base URL for selenium using:
 
 Additional selenium web drive config can be set using `WEBDRIVER_CONFIGURATION`
 
-You can implement a custom function to authenticate selenium by default will use flask-login session cookie.
-Your custom function signature:
+You can implement a custom function to authenticate selenium, the default uses flask-login session cookie.
+An example of a custom function signature:
 
 .. code-block:: python
 

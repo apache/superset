@@ -26,12 +26,14 @@ from superset import app, security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.utils.selenium import ChartScreenshot, DashboardScreenshot
 
+logger = logging.getLogger(__name__)
+
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
 def cache_chart_thumbnail(chart_id: int, force: bool = False):
     with app.app_context():
         if not thumbnail_cache:
-            logging.warning("No cache set, refusing to compute")
+            logger.warning("No cache set, refusing to compute")
             return None
         logging.info(f"Caching chart {chart_id}")
         screenshot = ChartScreenshot(model_id=chart_id)
@@ -45,7 +47,7 @@ def cache_dashboard_thumbnail(dashboard_id: int, force: bool = False):
         if not thumbnail_cache:
             logging.warning("No cache set, refusing to compute")
             return None
-        logging.info(f"Caching dashboard {dashboard_id}")
+        logger.info(f"Caching dashboard {dashboard_id}")
         screenshot = DashboardScreenshot(model_id=dashboard_id)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)

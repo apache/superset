@@ -16,18 +16,37 @@
 # under the License.
 # from superset import db
 # from superset.models.dashboard import Dashboard
-from unittest.mock import patch
+import subprocess
+from unittest import skipUnless
 
-from superset import is_feature_enabled
+from superset import app, is_feature_enabled
+from tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
 
 class ThumbnailsTests(SupersetTestCase):
+    @classmethod
+    def setUpClass(cls):
+        with app.app_context():
 
+            base_dir = app.config["BASE_DIR"]
+            worker_command = base_dir + "/bin/superset worker -w 2"
+            subprocess.Popen(worker_command, shell=True, stdout=subprocess.PIPE)
+
+    @classmethod
+    def tearDownClass(cls):
+        subprocess.call(
+            "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9", shell=True
+        )
+        subprocess.call(
+            "ps auxww | grep 'superset worker' | awk '{print $2}' | xargs kill -9",
+            shell=True,
+        )
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_simple_get_screenshot(self):
         """
             Thumbnails: Simple get screen shot
         """
-        if is_feature_enabled("THUMBNAILS"):
-            self.assertTrue(False)
+        pass

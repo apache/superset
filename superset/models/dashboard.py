@@ -43,6 +43,7 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.slice import Slice as Slice
 from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
+from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
@@ -473,8 +474,20 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         )
 
 
+def event_after_dashboard_changed(  # pylint: disable=unused-argument
+    mapper, connection, target
+):
+    cache_dashboard_thumbnail.delay(target.id, force=True)
+
+
 # events for updating tags
 if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
     sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
     sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
+
+
+# events for updating tags
+if is_feature_enabled("THUMBNAILS"):
+    sqla.event.listen(Dashboard, "after_insert", event_after_dashboard_changed)
+    sqla.event.listen(Dashboard, "after_update", event_after_dashboard_changed)
