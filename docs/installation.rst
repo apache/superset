@@ -68,6 +68,8 @@ initialize development environment: ::
     cd incubator-superset
     # you can run this command everytime you need to start superset now:
     docker-compose up
+    # when the 'up' command is ready, run the following command once to inititalise the default admin:admin user
+    docker-compose exec superset bash /app/docker-init.sh
 
 After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
