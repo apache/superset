@@ -407,6 +407,32 @@ class TableVizTestCase(SupersetTestCase):
         with self.assertRaises(Exception):
             test_viz.should_be_timeseries()
 
+    def test_adhoc_metric_with_sortby(self):
+        metrics = [
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "label": "sum_value",
+                "column": {"column_name": "value1", "type": "DOUBLE"},
+            }
+        ]
+        form_data = {
+            "metrics": metrics,
+            "timeseries_limit_metric": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "label": "SUM(value1)",
+                "column": {"column_name": "value1", "type": "DOUBLE"},
+            },
+            "order_desc": False,
+        }
+
+        df = pd.DataFrame({"SUM(value1)": [15], "sum_value": [15]})
+        datasource = self.get_datasource_mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        self.assertEqual(["sum_value", "SUM(value1)"], data["columns"])
+
 
 class DistBarVizTestCase(SupersetTestCase):
     def test_groupby_nulls(self):
