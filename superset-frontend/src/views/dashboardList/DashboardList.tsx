@@ -31,6 +31,7 @@ import {
   Filters,
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
 const PAGE_SIZE = 25;
 
@@ -48,6 +49,7 @@ interface State {
   owners: Array<{ text: string; value: number }>;
   permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
+  dashboardToEdit: Dashboard | null;
 }
 
 interface Dashboard {
@@ -75,6 +77,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     loading: false,
     owners: [],
     permissions: [],
+    dashboardToEdit: null,
   };
 
   componentDidMount() {
@@ -176,12 +179,9 @@ class DashboardList extends React.PureComponent<Props, State> {
       accessor: 'slug',
     },
     {
-      accessor: 'owners',
-    },
-    {
       Cell: ({ row: { state, original } }: any) => {
         const handleDelete = () => this.handleDashboardDelete(original);
-        const handleEdit = () => this.handleDashboardEdit(original);
+        const handleEdit = () => this.openDashboardEditModal(original);
         const handleExport = () => this.handleBulkDashboardExport([original]);
         if (!this.canEdit && !this.canDelete && !this.canExport) {
           return null;
@@ -249,9 +249,34 @@ class DashboardList extends React.PureComponent<Props, State> {
     return Boolean(this.state.permissions.find(p => p === perm));
   };
 
-  handleDashboardEdit = ({ id }: { id: number }) => {
-    window.location.assign(`/dashboard/edit/${id}`);
-  };
+  openDashboardEditModal = (dashboard: Dashboard) => {
+    this.setState({
+      dashboardToEdit: dashboard,
+    });
+  }
+
+  handleDashboardEdit = (edits: any, original: Dashboard) => {
+    this.setState({ loading: true });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard/${original.id}`,
+    })
+    .then(({ json = {}}) => {
+      this.setState({
+        dashboards: this.state.dashboards.map(dashboard => {
+          if (dashboard.id === json.id) {
+            return json.result;
+          }
+          return dashboard;
+        }),
+        loading: false,
+      })
+    })
+    .catch(() => {
+      this.props.addDangerToast(
+        t('An error occurred while fetching Dashboards'),
+      );
+    });
+  }
 
   handleDashboardDelete = ({
     id,
@@ -386,7 +411,7 @@ class DashboardList extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const { dashboards, dashboardCount, loading, filters } = this.state;
+    const { dashboards, dashboardCount, loading, filters, dashboardToEdit } = this.state;
 
     return (
       <div className="container welcome">
@@ -423,19 +448,30 @@ class DashboardList extends React.PureComponent<Props, State> {
                 });
               }
               return (
-                <ListView
-                  className="dashboard-list-view"
-                  title={'Dashboards'}
-                  columns={this.columns}
-                  data={dashboards}
-                  count={dashboardCount}
-                  pageSize={PAGE_SIZE}
-                  fetchData={this.fetchData}
-                  loading={loading}
-                  initialSort={this.initialSort}
-                  filters={filters}
-                  bulkActions={bulkActions}
-                />
+                <>
+                  {dashboardToEdit && (
+                    <PropertiesModal
+                      show
+                      dashboardTitle={dashboardToEdit.dashboard_title}
+                      dashboardInfo={dashboardToEdit}
+                      onHide={() => this.setState({ dashboardToEdit: null })}
+                      onDashboardSave={this.handleDashboardEdit}
+                    />
+                  )}
+                  <ListView
+                    className="dashboard-list-view"
+                    title={'Dashboards'}
+                    columns={this.columns}
+                    data={dashboards}
+                    count={dashboardCount}
+                    pageSize={PAGE_SIZE}
+                    fetchData={this.fetchData}
+                    loading={loading}
+                    initialSort={this.initialSort}
+                    filters={filters}
+                    bulkActions={bulkActions}
+                  />
+                </>
               );
             }}
           </ConfirmStatusChange>

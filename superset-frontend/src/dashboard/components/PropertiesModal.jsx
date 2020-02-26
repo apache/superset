@@ -24,6 +24,7 @@ import Select from 'react-select';
 import AceEditor from 'react-ace';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import '../stylesheets/buttons.less';
 
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
@@ -31,7 +32,6 @@ import withToasts from '../../messageToasts/enhancers/withToasts';
 const propTypes = {
   dashboardTitle: PropTypes.string,
   dashboardInfo: PropTypes.object,
-  owners: PropTypes.arrayOf(PropTypes.object),
   show: PropTypes.bool.isRequired,
   onHide: PropTypes.func,
   onDashboardSave: PropTypes.func,
@@ -41,7 +41,6 @@ const propTypes = {
 const defaultProps = {
   dashboardInfo: {},
   dashboardTitle: '[dashboard name]',
-  owners: [],
   onHide: () => {},
   onDashboardSave: () => {},
   show: false,
@@ -50,18 +49,17 @@ const defaultProps = {
 class PropertiesModal extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.defaultMetadataValue = JSON.stringify(
-      props.dashboardInfo.metadata,
-      null,
-      2,
-    );
+    const { dashboardInfo } = props;
+    this.initialMetadataValue =
+      dashboardInfo.json_metadata ||
+      JSON.stringify(dashboardInfo.metadata, null, 2);
     this.state = {
       errors: [],
       values: {
         dashboard_title: props.dashboardTitle,
-        slug: props.dashboardInfo.slug,
-        owners: props.owners || [],
-        json_metadata: this.defaultMetadataValue,
+        slug: dashboardInfo.slug,
+        owners: [],
+        json_metadata: this.initialMetadataValue,
       },
       isOwnersLoaded: false,
       userOptions: null,
@@ -75,6 +73,13 @@ class PropertiesModal extends React.PureComponent {
   }
 
   componentDidMount() {
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/${this.props.dashboardInfo.id}`,
+    }).then(response => {
+      this.setState({
+        originalOwners: response.json.result.owners,
+      });
+    });
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/related/owners`,
     }).then(response => {
@@ -140,12 +145,15 @@ class PropertiesModal extends React.PureComponent {
     })
       .then(({ json }) => {
         this.props.addSuccessToast(t('The dashboard has been saved'));
-        this.props.onDashboardSave({
-          title: json.result.dashboard_title,
-          slug: json.result.slug,
-          jsonMetadata: json.result.json_metadata,
-          ownerIds: json.result.owners,
-        });
+        this.props.onDashboardSave(
+          {
+            title: json.result.dashboard_title,
+            slug: json.result.slug,
+            jsonMetadata: json.result.json_metadata,
+            ownerIds: json.result.owners,
+          },
+          this.props.dashboardInfo,
+        );
         this.props.onHide();
       })
       .catch(response =>
