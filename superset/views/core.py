@@ -247,7 +247,9 @@ def _deserialize_results_payload(
 def get_cta_schema_name(
     database: Database, user: ab_models.User, schema: str, sql: str
 ) -> Optional[str]:
-    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = config["SQLLAB_CTAS_SCHEMA_NAME_FUNC"]
+    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = config[
+        "SQLLAB_CTAS_SCHEMA_NAME_FUNC"
+    ]
     if not func:
         return None
     return func(database, user, schema, sql)
