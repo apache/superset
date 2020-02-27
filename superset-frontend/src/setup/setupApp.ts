@@ -67,7 +67,7 @@ export default function setupApp() {
     ) {
       ev.preventDefault();
       SupersetClient.get({
-        endpoint: ev.currentTarget.href,
+        url: ev.currentTarget.href,
         parseMethod: null,
       }).then(() => {
         location.reload();
