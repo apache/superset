@@ -76,11 +76,14 @@ def copy_filter_scopes(
     old_to_new_slc_id_dict: Dict[int, int], old_filter_scopes: Dict[str, Dict]
 ) -> Dict:
     new_filter_scopes = {}
-    for (slice_id, scopes) in old_filter_scopes.items():
-        new_filter_key = old_to_new_slc_id_dict[int(slice_id)]
-        new_filter_scopes[str(new_filter_key)] = scopes
-        for scope in scopes.values():
-            scope["immune"] = [
-                old_to_new_slc_id_dict[slice_id] for slice_id in scope.get("immune")
-            ]
+    for (filter_id, scopes) in old_filter_scopes.items():
+        new_filter_key = old_to_new_slc_id_dict.get(int(filter_id))
+        if new_filter_key:
+            new_filter_scopes[str(new_filter_key)] = scopes
+            for scope in scopes.values():
+                scope["immune"] = [
+                    old_to_new_slc_id_dict[int(slice_id)]
+                    for slice_id in scope.get("immune", [])
+                    if int(slice_id) in old_to_new_slc_id_dict
+                ]
     return new_filter_scopes
