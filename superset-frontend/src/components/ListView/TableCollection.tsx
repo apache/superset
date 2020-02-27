@@ -28,7 +28,6 @@ interface Props {
   rows: TableInstance['rows'];
   loading: boolean;
 }
-/* tslint:disable:jsx-key */
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
