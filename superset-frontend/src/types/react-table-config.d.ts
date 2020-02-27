@@ -116,6 +116,8 @@ declare module 'react-table' {
       UseGroupByColumnOptions<D>,
       UseResizeColumnsColumnOptions<D>,
       UseSortByColumnOptions<D> {
+    hidden?: boolean;
+    sortable?: boolean;
     cellProps?: any;
   }
 
