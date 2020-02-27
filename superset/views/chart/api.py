@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Dict, List, Optional
 
 from flask import current_app, Response
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length
@@ -36,6 +37,13 @@ from superset.utils.selenium import ChartScreenshot
 from superset.views.base_api import BaseOwnedModelRestApi
 from superset.views.base_schemas import BaseOwnedSchema, validate_owner
 from superset.views.chart.mixin import SliceMixin
+
+logger = logging.getLogger(__name__)
+
+thumbnail_query_schema = {
+    "type": "object",
+    "properties": {"force": {"type": "boolean"}},
+}
 
 
 def validate_json(value):
@@ -165,6 +173,7 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "viz_type",
         "params",
         "cache_timeout",
+        "thumbnail_url",
     ]
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]
@@ -186,10 +195,11 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
             self.include_route_methods = self.include_route_methods | {"thumbnail"}
         super().__init__(*args, **kwargs)
 
-    @expose("/<pk>/thumbnail/<sha>/", methods=["GET"])
+    @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
     @protect()
+    @rison(thumbnail_query_schema)
     @safe
-    def thumbnail(self, pk, sha):  # pylint: disable=invalid-name
+    def thumbnail(self, pk, digest, **kwargs):  # pylint: disable=invalid-name
         """Get Chart thumbnail
         ---
         get:
@@ -220,17 +230,21 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        print(sha)
-        query = self.datamodel.session.query(Slice)
-        chart = self._base_filters.apply_all(query).get(pk)
+        chart = self.datamodel.get(pk, self._base_filters)
         if not chart:
             return self.response_404()
+        if kwargs["rison"].get("force", False):
+            cache_chart_thumbnail.delay(chart.id, force=True)
+            return self.response(202, message="OK Async")
         # fetch the chart screenshot using the current user and cache if set
         screenshot = ChartScreenshot(pk).get_from_cache(cache=thumbnail_cache)
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
             cache_chart_thumbnail.delay(chart.id, force=True)
             return self.response(202, message="OK Async")
+        # If digests
+        if chart.unique_value != digest:
+            logger.info("Requested thumbnail digest differs from actual digest")
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )

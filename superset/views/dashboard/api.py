@@ -42,7 +42,13 @@ from superset.views.base_schemas import BaseOwnedSchema, validate_owner
 from .mixin import DashboardMixin
 
 logger = logging.getLogger(__name__)
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
+bulk_delete_query_schema = {"type": "array", "items": {"type": "integer"}}
+thumbnail_query_schema = {
+    "type": "object",
+    "properties": {"force": {"type": "boolean"}},
+}
+export_query_schema = {"type": "array", "items": {"type": "integer"}}
 
 
 class DashboardJSONMetadataSchema(Schema):
@@ -131,9 +137,6 @@ class DashboardPutSchema(BaseDashboardSchema):
         return self.instance
 
 
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
-
-
 class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
     datamodel = SQLAInterface(Dashboard)
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
@@ -168,6 +171,7 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         "published",
         "slug",
         "url",
+        "thumbnail_url",
     ]
 
     add_model_schema = DashboardPostSchema()
@@ -186,8 +190,8 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
 
     @expose("/", methods=["DELETE"])
     @protect()
+    @rison(bulk_delete_query_schema)
     @safe
-    @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs):  # pylint: disable=arguments-differ
         """Delete bulk Dashboards
         ---
@@ -271,68 +275,10 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
             ),
         )
 
-    @expose("/<pk>/thumbnail/<sha>/", methods=["GET"])
-    @protect()
-    @safe
-    def thumbnail(self, pk, sha):  # pylint: disable=invalid-name
-        """Get Dashboard thumbnail
-        ---
-        get:
-          description: >-
-            Compute async or get already computed dashboard thumbnail from cache
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          - in: path
-            schema:
-              type: string
-            name: sha
-          responses:
-            200:
-              description: Dashboard thumbnail image
-              content:
-               image/*:
-                 schema:
-                   type: string
-                   format: binary
-            202:
-              description: Thumbnail does not exist on cache, fired async to compute
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        print(sha)
-        query = self.datamodel.session.query(Dashboard)
-        dashboard = self._base_filters.apply_all(query).get(pk)
-        if not dashboard:
-            return self.response_404()
-        # fetch the dashboard screenshot using the current user and cache if set
-        screenshot = DashboardScreenshot(pk).get_from_cache(cache=thumbnail_cache)
-        if not screenshot:
-            cache_dashboard_thumbnail.delay(dashboard.id, force=True)
-            return self.response(202, message="OK Async")
-        return Response(
-            FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
-        )
-
     @expose("/export/", methods=["GET"])
     @protect()
+    @rison(export_query_schema)
     @safe
-    @rison(get_export_ids_schema)
     def export(self, **kwargs):
         """Export dashboards
         ---
@@ -377,3 +323,79 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
             "Content-Disposition"
         ]
         return resp
+
+    @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
+    @protect()
+    @safe
+    @rison(thumbnail_query_schema)
+    def thumbnail(self, pk, digest, **kwargs):  # pylint: disable=invalid-name
+        """Get Dashboard thumbnail
+        ---
+        get:
+          description: >-
+            Compute async or get already computed dashboard thumbnail from cache
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: path
+            name: digest
+            description: A hex digest that makes this dashboard unique
+            schema:
+              type: string
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    force:
+                      type: boolean
+                      default: false
+          responses:
+            200:
+              description: Dashboard thumbnail image
+              content:
+               image/*:
+                 schema:
+                   type: string
+                   format: binary
+            202:
+              description: Thumbnail does not exist on cache, fired async to compute
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dashboard = self.datamodel.get(pk, self._base_filters)
+        if not dashboard:
+            return self.response_404()
+        # If force, request a screenshot from the workers
+        if kwargs["rison"].get("force", False):
+            cache_dashboard_thumbnail.delay(dashboard.id, force=True)
+            return self.response(202, message="OK Async")
+        # fetch the dashboard screenshot using the current user and cache if set
+        screenshot = DashboardScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        # If the screenshot does not exist, request one from the workers
+        if not screenshot:
+            cache_dashboard_thumbnail.delay(dashboard.id, force=True)
+            return self.response(202, message="OK Async")
+        # If digests
+        if dashboard.unique_value != digest:
+            logger.info("Requested thumbnail digest differs from actual digest")
+        return Response(
+            FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
+        )

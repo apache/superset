@@ -165,6 +165,21 @@ class Slice(
         }
 
     @property
+    def unique_value(self) -> str:
+        """
+            Returns a MD5 HEX digest that makes this dashboard unique
+        """
+        return utils.md5_hex(self.params)
+
+    @property
+    def thumbnail_url(self) -> str:
+        """
+            Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
+            if the dashboard has changed
+        """
+        return f"/api/v1/chart/{self.id}/thumbnail/{self.unique_value}/"
+
+    @property
     def json_data(self) -> str:
         return json.dumps(self.data)
 
@@ -314,7 +329,7 @@ def set_related_perm(mapper, connection, target):
             target.schema_perm = ds.schema_perm
 
 
-def event_after_dashboard_changed(  # pylint: disable=unused-argument
+def event_after_chart_changed(  # pylint: disable=unused-argument
     mapper, connection, target
 ):
     cache_chart_thumbnail.delay(target.id, force=True)
@@ -330,6 +345,6 @@ if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
 
 # events for updating tags
-if is_feature_enabled("THUMBNAILS"):
-    sqla.event.listen(Slice, "after_insert", event_after_dashboard_changed)
-    sqla.event.listen(Slice, "after_update", event_after_dashboard_changed)
+if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
+    sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
+    sqla.event.listen(Slice, "after_update", event_after_chart_changed)

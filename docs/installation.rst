@@ -673,14 +673,14 @@ An example config could be:
     CELERY_CONFIG = CeleryConfig
 
     def init_thumbnail_cache(app: Flask) -> RedisCache:
-        return RedisCache(host='localhost', port=6379, key_prefix='superset_thumbnails_')
+        return RedisCache(host='localhost', port=6379, key_prefix='superset_')
 
 
     THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
     # Async selenium thumbnail task will use the following user
     THUMBNAIL_SELENIUM_USER = "Admin"
 
-Using the above example cache keys for dashboards will be `superset_thumbnails_thumb__dashboard__{ID}`
+Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`
 
 You can override the base URL for selenium using:
 

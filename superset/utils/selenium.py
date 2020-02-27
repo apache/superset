@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 try:
     from PIL import Image
 except ModuleNotFoundError:
-    logger.info("No PIL instalation found")
+    logger.info("No PIL installation found")
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import

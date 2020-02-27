@@ -59,7 +59,13 @@ class CeleryConfig(object):
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"THUMBNAILS": True}
+FEATURE_FLAGS = {
+    "foo": "bar",
+    "KV_STORE": False,
+    "SHARE_QUERIES_VIA_KV_STORE": False,
+    "THUMBNAILS": True,
+    "THUMBNAILS_SQLA_LISTENERS": False,
+}
 
 
 def init_thumbnail_cache(app: Flask) -> RedisCache:

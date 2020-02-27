@@ -19,6 +19,7 @@
 import decimal
 import errno
 import functools
+import hashlib
 import json
 import logging
 import os
@@ -248,6 +249,10 @@ def parse_human_datetime(s):
 
 def dttm_from_timetuple(d: struct_time) -> datetime:
     return datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
+
+
+def md5_hex(data: str) -> str:
+    return hashlib.md5(data.encode()).hexdigest()
 
 
 class DashboardEncoder(json.JSONEncoder):

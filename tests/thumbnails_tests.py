@@ -17,22 +17,56 @@
 # from superset import db
 # from superset.models.dashboard import Dashboard
 import subprocess
+import urllib.request
 from unittest import skipUnless
+from unittest.mock import patch
 
-from superset import app, is_feature_enabled
+from flask_testing import LiveServerTestCase
+from sqlalchemy.sql import func
+
+from superset import db, is_feature_enabled, security_manager, thumbnail_cache
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils.selenium import (
+    ChartScreenshot,
+    DashboardScreenshot,
+    get_auth_cookies,
+)
 from tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
 
-class ThumbnailsTests(SupersetTestCase):
+class CeleryStartMixin:
     @classmethod
     def setUpClass(cls):
         with app.app_context():
+            from werkzeug.contrib.cache import RedisCache
+
+            class CeleryConfig(object):
+                BROKER_URL = "redis://localhost"
+                CELERY_IMPORTS = ("superset.tasks.thumbnails",)
+                CONCURRENCY = 1
+
+            app.config["CELERY_CONFIG"] = CeleryConfig
+
+            def init_thumbnail_cache(app) -> RedisCache:
+                return RedisCache(
+                    host="localhost",
+                    key_prefix="superset_thumbnails_",
+                    default_timeout=10000,
+                )
+
+            app.config["THUMBNAIL_CACHE_CONFIG"] = init_thumbnail_cache
 
             base_dir = app.config["BASE_DIR"]
             worker_command = base_dir + "/bin/superset worker -w 2"
-            subprocess.Popen(worker_command, shell=True, stdout=subprocess.PIPE)
+            subprocess.Popen(
+                worker_command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
 
     @classmethod
     def tearDownClass(cls):
@@ -44,9 +78,151 @@ class ThumbnailsTests(SupersetTestCase):
             shell=True,
         )
 
+
+class ThumbnailsSeleniumLive(CeleryStartMixin, LiveServerTestCase):
+    def create_app(self):
+        return app
+
+    def url_open_auth(self, username: str, url: str):
+        admin_user = security_manager.find_user(username=username)
+        cookies = {}
+        for cookie in get_auth_cookies(admin_user):
+            cookies["session"] = cookie
+
+        opener = urllib.request.build_opener()
+        opener.addheaders.append(("Cookie", f"session={cookies['session']}"))
+        return opener.open(f"{self.get_server_url()}/{url}")
+
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
-    def test_simple_get_screenshot(self):
+    def test_get_async_dashboard_screenshot(self):
         """
-            Thumbnails: Simple get screen shot
+            Thumbnails: Simple get async dashboard screenshot
         """
-        pass
+        dashboard_id = db.session.query(Dashboard).all()[0].id
+        with patch("superset.views.dashboard.api.DashboardRestApi.get") as mock_get:
+            response = self.url_open_auth(
+                "admin", f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+            )
+            self.assertEqual(response.getcode(), 202)
+
+
+class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
+
+    mock_image = b"bytes mock image"
+
+    def test_dashboard_thumbnail_disabled(self):
+        """
+            Thumbnails: Dashboard thumbnail disabled
+        """
+        if is_feature_enabled("THUMBNAILS"):
+            return
+        dashboard_id = db.session.query(Dashboard).all()[0].id
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_chart_thumbnail_disabled(self):
+        """
+            Thumbnails: Chart thumbnail disabled
+        """
+        if is_feature_enabled("THUMBNAILS"):
+            return
+        chart_id = db.session.query(Slice).all()[0].id
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_async_dashboard_screenshot(self):
+        """
+            Thumbnails: Simple get async dashboard screenshot
+        """
+        dashboard_id = db.session.query(Dashboard).all()[0].id
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+        with patch(
+            "superset.tasks.thumbnails.cache_dashboard_thumbnail.delay"
+        ) as mock_task:
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 202)
+            mock_task.assert_called_with(dashboard_id, force=True)
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_async_dashboard_notfound(self):
+        """
+            Thumbnails: Simple get async dashboard not found
+        """
+        max_id = db.session.query(func.max(Dashboard.id)).scalar()
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{max_id + 1}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_async_dashboard_not_allowed(self):
+        """
+            Thumbnails: Simple get async dashboard not allowed
+        """
+        dashboard_id = db.session.query(Dashboard).all()[0].id
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_async_chart_screenshot(self):
+        """
+            Thumbnails: Simple get async chart screenshot
+        """
+        chart_id = db.session.query(Slice).all()[0].id
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}/thumbnail/1234/"
+        with patch(
+            "superset.tasks.thumbnails.cache_chart_thumbnail.delay"
+        ) as mock_task:
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 202)
+            mock_task.assert_called_with(chart_id, force=True)
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_async_chart_notfound(self):
+        """
+            Thumbnails: Simple get async chart not found
+        """
+        max_id = db.session.query(func.max(Slice.id)).scalar()
+        self.login(username="admin")
+        uri = f"api/v1/chart/{max_id + 1}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_cached_dashboard_screenshot(self):
+        """
+            Thumbnails: Simple get cached dashboard screenshot
+        """
+        dashboard_id = db.session.query(Dashboard).all()[0].id
+        # Cache a test "image"
+        screenshot = DashboardScreenshot(model_id=dashboard_id)
+        thumbnail_cache.set(screenshot.cache_key, self.mock_image)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.data, self.mock_image)
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_cached_chart_screenshot(self):
+        """
+            Thumbnails: Simple get cached chart screenshot
+        """
+        chart_id = db.session.query(Slice).all()[0].id
+        # Cache a test "image"
+        screenshot = ChartScreenshot(model_id=chart_id)
+        thumbnail_cache.set(screenshot.cache_key, self.mock_image)
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.data, self.mock_image)
