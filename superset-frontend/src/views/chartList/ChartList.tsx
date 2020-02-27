@@ -158,7 +158,7 @@ class ChartList extends React.PureComponent<Props, State> {
             changed_by_url: changedByUrl,
           },
         },
-      }: any) => <a href={changedByName}>{changedByUrl}</a>,
+      }: any) => <a href={changedByUrl}>{changedByName}</a>,
       Header: t('Creator'),
       accessor: 'changed_by_fk',
       sortable: true,
@@ -175,11 +175,11 @@ class ChartList extends React.PureComponent<Props, State> {
     },
     {
       accessor: 'description',
-      Cell: () => null,
+      hidden: true,
     },
     {
       accessor: 'owners',
-      Cell: () => null,
+      hidden: true,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
