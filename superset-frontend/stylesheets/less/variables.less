@@ -155,13 +155,15 @@
 // ****************************** Features *******************************
 @use-ligatures: false;
 
+// setting up OTF settings based on @use-ligatures:
+.set-otf-options(@use-ligatures); 
+.set-otf-options(true) {@font-feature-settings: "liga" on, "calt" on}
+.set-otf-options(false) {@font-feature-settings: "liga" off, "calt" off}
+
 // ****************************** Families ******************************
 @font-family-sans-serif: "Inter", Helvetica, Arial;
 @font-family-serif: Georgia, 'Times New Roman', Times, serif;
-.set-monospace-family(@use-ligatures); 
-.set-monospace-family(true) {@mono-face: 'Fira Code'}
-.set-monospace-family(false) {@mono-face: 'Fira Mono'}
-@font-family-monospace: @mono-face, 'Courier New', monospace;
+@font-family-monospace: 'Fira Code', 'Courier New', monospace;
 @font-family-base: @font-family-sans-serif;
 
 /************************************************************************/
