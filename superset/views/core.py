@@ -1318,7 +1318,7 @@ class Superset(BaseSupersetView):
         db_name = request.json.get("name")
         uri = request.json.get("uri")
         try:
-            if app.config.get("PREVENT_UNSAFE_DB_CONNECTIONS"):
+            if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
                 check_sqlalchemy_uri(uri)
             # if the database already exists in the database, only its safe (password-masked) URI
             # would be shown in the UI and would be passed in the form data.
@@ -1373,7 +1373,7 @@ class Superset(BaseSupersetView):
             )
         except DBSecurityException as e:
             logger.warning("Stopped an unsafe database connection. %s", e)
-            return json_error_response(_(str(e)))
+            return json_error_response(_(str(e)), 400)
         except Exception as e:
             logger.error("Unexpected error %s", e)
             return json_error_response(_("Unexpected error occurred."), 400)

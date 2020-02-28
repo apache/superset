@@ -192,7 +192,7 @@ class DatabaseMixin:
     }
 
     def _pre_add_update(self, database):
-        if app.config.get("PREVENT_UNSAFE_DB_CONNECTIONS"):
+        if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
             check_sqlalchemy_uri(database.sqlalchemy_uri)
         self.check_extra(database)
         self.check_encrypted_extra(database)
