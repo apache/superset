@@ -253,30 +253,30 @@ class DashboardList extends React.PureComponent<Props, State> {
     this.setState({
       dashboardToEdit: dashboard,
     });
-  }
+  };
 
   handleDashboardEdit = (edits: any, original: Dashboard) => {
     this.setState({ loading: true });
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/${original.id}`,
     })
-    .then(({ json = {}}) => {
-      this.setState({
-        dashboards: this.state.dashboards.map(dashboard => {
-          if (dashboard.id === json.id) {
-            return json.result;
-          }
-          return dashboard;
-        }),
-        loading: false,
+      .then(({ json = {} }) => {
+        this.setState({
+          dashboards: this.state.dashboards.map(dashboard => {
+            if (dashboard.id === json.id) {
+              return json.result;
+            }
+            return dashboard;
+          }),
+          loading: false,
+        });
       })
-    })
-    .catch(() => {
-      this.props.addDangerToast(
-        t('An error occurred while fetching Dashboards'),
-      );
-    });
-  }
+      .catch(() => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching Dashboards'),
+        );
+      });
+  };
 
   handleDashboardDelete = ({
     id,
@@ -411,7 +411,13 @@ class DashboardList extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const { dashboards, dashboardCount, loading, filters, dashboardToEdit } = this.state;
+    const {
+      dashboards,
+      dashboardCount,
+      loading,
+      filters,
+      dashboardToEdit,
+    } = this.state;
 
     return (
       <div className="container welcome">
