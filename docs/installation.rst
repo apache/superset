@@ -647,7 +647,10 @@ This is an optional feature that can be turned on by activating it's feature fla
 
 .. code-block:: python
 
-    FEATURE_FLAGS = {"THUMBNAILS": True}
+    FEATURE_FLAGS = {
+        "THUMBNAILS": True,
+        "THUMBNAILS_SQLA_LISTENERS": True,
+    }
 
 
 For this feature you will need a cache system and celery workers. All thumbnails are store on cache and are processed
