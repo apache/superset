@@ -1176,7 +1176,7 @@ class Superset(BaseSupersetView):
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
 
-        old_to_new_sliceids: Dict[int, int] = {}
+        old_to_new_slice_ids: Dict[int, int] = {}
         if data["duplicate_slices"]:
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
@@ -1185,7 +1185,7 @@ class Superset(BaseSupersetView):
                 session.add(new_slice)
                 session.flush()
                 new_slice.dashboards.append(dash)
-                old_to_new_sliceids[slc.id] = new_slice.id
+                old_to_new_slice_ids[slc.id] = new_slice.id
 
             # update chartId of layout entities
             for value in data["positions"].values():
@@ -1195,14 +1195,14 @@ class Superset(BaseSupersetView):
                     and value.get("meta").get("chartId")
                 ):
                     old_id = value.get("meta").get("chartId")
-                    new_id = old_to_new_sliceids[old_id]
+                    new_id = old_to_new_slice_ids[old_id]
                     value["meta"]["chartId"] = new_id
         else:
             dash.slices = original_dash.slices
 
         dash.params = original_dash.params
 
-        self._set_dash_metadata(dash, data, old_to_new_sliceids)
+        self._set_dash_metadata(dash, data, old_to_new_slice_ids)
         session.add(dash)
         session.commit()
         dash_json = json.dumps(dash.data)
@@ -1226,8 +1226,9 @@ class Superset(BaseSupersetView):
 
     @staticmethod
     def _set_dash_metadata(
-        dashboard, data, old_to_new_sliceids: Dict[int, int] = {}
-    ) -> None:
+        dashboard, data, old_to_new_slice_ids: Optional[Dict[int, int]] = None
+    ):
+        old_to_new_slice_ids = old_to_new_slice_ids or {}
         positions = data["positions"]
         # find slices in the position data
         slice_ids = []
@@ -1274,8 +1275,7 @@ class Superset(BaseSupersetView):
             # and remove slice ids that are not in dash anymore
             new_filter_scopes = copy_filter_scopes(
                 old_to_new_slc_id_dict={
-                    sid: old_to_new_sliceids[sid] if sid in old_to_new_sliceids else sid
-                    for sid in slice_ids
+                    sid: old_to_new_slice_ids.get(sid, sid) for sid in slice_ids
                 },
                 old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
             )
