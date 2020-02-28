@@ -75,7 +75,7 @@ def convert_filter_scopes(json_metadata: Dict, filters: List[Slice]):
 def copy_filter_scopes(
     old_to_new_slc_id_dict: Dict[int, int], old_filter_scopes: Dict[str, Dict]
 ) -> Dict:
-    new_filter_scopes = {}
+    new_filter_scopes: Dict[str, Dict] = {}
     for (filter_id, scopes) in old_filter_scopes.items():
         new_filter_key = old_to_new_slc_id_dict.get(int(filter_id))
         if new_filter_key:

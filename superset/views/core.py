@@ -1176,9 +1176,9 @@ class Superset(BaseSupersetView):
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data["dashboard_title"]
 
+        old_to_new_sliceids: Dict[int, int] = {}
         if data["duplicate_slices"]:
             # Duplicating slices as well, mapping old ids to new ones
-            old_to_new_sliceids: Dict[int, int] = {}
             for slc in original_dash.slices:
                 new_slice = slc.clone()
                 new_slice.owners = [g.user] if g.user else []
@@ -1197,27 +1197,12 @@ class Superset(BaseSupersetView):
                     old_id = value.get("meta").get("chartId")
                     new_id = old_to_new_sliceids[old_id]
                     value["meta"]["chartId"] = new_id
-
-            # replace filter_id and immune ids from old slice id to new slice id:
-            if "filter_scopes" in data:
-                new_filter_scopes = copy_filter_scopes(
-                    old_to_new_slc_id_dict=old_to_new_sliceids,
-                    old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
-                )
-                data["filter_scopes"] = json.dumps(new_filter_scopes)
         else:
             dash.slices = original_dash.slices
-            # remove slice id from filter_scopes metadata if slice is removed from dashboard
-            if "filter_scopes" in data:
-                new_filter_scopes = copy_filter_scopes(
-                    old_to_new_slc_id_dict={slc.id: slc.id for slc in dash.slices},
-                    old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
-                )
-                data["filter_scopes"] = json.dumps(new_filter_scopes)
 
         dash.params = original_dash.params
 
-        self._set_dash_metadata(dash, data)
+        self._set_dash_metadata(dash, data, old_to_new_sliceids)
         session.add(dash)
         session.commit()
         dash_json = json.dumps(dash.data)
@@ -1233,12 +1218,6 @@ class Superset(BaseSupersetView):
         dash = session.query(Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get("data"))
-        if "filter_scopes" in data:
-            new_filter_scopes = copy_filter_scopes(
-                old_to_new_slc_id_dict={slc.id: slc.id for slc in dash.slices},
-                old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
-            )
-            data["filter_scopes"] = json.dumps(new_filter_scopes)
         self._set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
@@ -1246,7 +1225,9 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps({"status": "SUCCESS"}))
 
     @staticmethod
-    def _set_dash_metadata(dashboard, data):
+    def _set_dash_metadata(
+        dashboard, data, old_to_new_sliceids: Dict[int, int] = {}
+    ) -> None:
         positions = data["positions"]
         # find slices in the position data
         slice_ids = []
@@ -1287,9 +1268,22 @@ class Superset(BaseSupersetView):
 
         if "timed_refresh_immune_slices" not in md:
             md["timed_refresh_immune_slices"] = []
+        new_filter_scopes: Dict[str, Dict] = {}
         if "filter_scopes" in data:
-            md["filter_scopes"] = json.loads(data["filter_scopes"] or "{}")
-        md["expanded_slices"] = data["expanded_slices"]
+            # replace filter_id and immune ids from old slice id to new slice id:
+            # and remove slice ids that are not in dash anymore
+            new_filter_scopes = copy_filter_scopes(
+                old_to_new_slc_id_dict={
+                    sid: old_to_new_sliceids[sid] if sid in old_to_new_sliceids else sid
+                    for sid in slice_ids
+                },
+                old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
+            )
+        if new_filter_scopes:
+            md["filter_scopes"] = new_filter_scopes
+        else:
+            md.pop("filter_scopes", None)
+        md["expanded_slices"] = data.get("expanded_slices", {})
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         default_filters_data = json.loads(data.get("default_filters", "{}"))
         applicable_filters = {
