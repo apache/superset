@@ -1,7 +1,7 @@
 import React from 'react';
 import { text, select } from '@storybook/addon-knobs';
 
-import { SuperChart, ChartDataProvider, ChartProps } from '@superset-ui/chart';
+import { SuperChart, ChartDataProvider } from '@superset-ui/chart';
 import { SupersetClient } from '@superset-ui/connection';
 import { BigNumberChartPlugin as LegacyBigNumberPlugin } from '@superset-ui/legacy-preset-chart-big-number';
 import LegacySankeyPlugin from '@superset-ui/legacy-plugin-chart-sankey';
@@ -68,18 +68,16 @@ export default [
                       <>
                         <SuperChart
                           chartType={visType}
-                          chartProps={
-                            new ChartProps({
-                              formData: payload.formData,
-                              height: Number(height),
-                              // @TODO fix typing
-                              // all vis's now expect objects but api/v1/ returns an array
-                              payload: Array.isArray(payload.queryData)
-                                ? payload.queryData[0]
-                                : payload.queryData,
-                              width: Number(width),
-                            })
+                          formData={payload.formData}
+                          height={Number(height)}
+                          // @TODO fix typing
+                          // all vis's now expect objects but api/v1/ returns an array
+                          queryData={
+                            Array.isArray(payload.queryData)
+                              ? payload.queryData[0]
+                              : payload.queryData
                           }
+                          width={Number(width)}
                         />
                         <br />
                         <Expandable expandableWhat="payload">
