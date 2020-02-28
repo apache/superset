@@ -147,7 +147,7 @@ class ChartList extends React.PureComponent<Props, State> {
         },
       }: any) => <a href={dsLink}>{dsNameTxt}</a>,
       Header: t('Datasource'),
-      accessor: 'datasource_name_text',
+      accessor: 'datasource_name',
       sortable: true,
     },
     {
@@ -158,9 +158,9 @@ class ChartList extends React.PureComponent<Props, State> {
             changed_by_url: changedByUrl,
           },
         },
-      }: any) => <a href={changedByName}>{changedByUrl}</a>,
+      }: any) => <a href={changedByUrl}>{changedByName}</a>,
       Header: t('Creator'),
-      accessor: 'creator',
+      accessor: 'changed_by_fk',
       sortable: true,
     },
     {
@@ -172,6 +172,14 @@ class ChartList extends React.PureComponent<Props, State> {
       Header: t('Last Modified'),
       accessor: 'changed_on',
       sortable: true,
+    },
+    {
+      accessor: 'description',
+      hidden: true,
+    },
+    {
+      accessor: 'owners',
+      hidden: true,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
@@ -280,11 +288,20 @@ class ChartList extends React.PureComponent<Props, State> {
   };
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
-    this.setState({ loading: true });
-    const filterExps = Object.keys(filters).map(fk => ({
-      col: fk,
-      opr: filters[fk].filterId,
-      value: filters[fk].filterValue,
+    // set loading state, cache the last config for fetching data in this component.
+    this.setState({
+      lastFetchDataConfig: {
+        filters,
+        pageIndex,
+        pageSize,
+        sortBy,
+      },
+      loading: true,
+    });
+    const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
+      col,
+      opr,
+      value,
     }));
 
     const queryParams = JSON.stringify({
@@ -329,7 +346,6 @@ class ChartList extends React.PureComponent<Props, State> {
         {
           Header: 'Description',
           id: 'description',
-          input: 'textarea',
           operators: filterOperators.slice_name.map(convertFilter),
         },
         {

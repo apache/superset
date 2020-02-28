@@ -18,17 +18,16 @@
  */
 import React from 'react';
 import cx from 'classnames';
-import { Cell, HeaderGroup, Row } from 'react-table';
+import { TableInstance } from 'react-table';
 
-interface Props<D extends object = {}> {
+interface Props {
   getTableProps: (userProps?: any) => any;
   getTableBodyProps: (userProps?: any) => any;
-  prepareRow: (row: Row<D>) => any;
-  headerGroups: Array<HeaderGroup<D>>;
-  rows: Array<Row<D>>;
+  prepareRow: TableInstance['prepareRow'];
+  headerGroups: TableInstance['headerGroups'];
+  rows: TableInstance['rows'];
   loading: boolean;
 }
-/* tslint:disable:jsx-key */
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -36,30 +35,32 @@ export default function TableCollection({
   headerGroups,
   rows,
   loading,
-}: Props<any>) {
+}: Props) {
   return (
     <table {...getTableProps()} className="table table-hover">
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column: any) => (
-              <th
-                {...column.getHeaderProps(column.getSortByToggleProps())}
-                data-test="sort-header"
-              >
-                {column.render('Header')}
-                {'  '}
-                {column.sortable && (
-                  <i
-                    className={cx('text-primary fa', {
-                      'fa-sort': !column.isSorted,
-                      'fa-sort-down': column.isSorted && column.isSortedDesc,
-                      'fa-sort-up': column.isSorted && !column.isSortedDesc,
-                    })}
-                  />
-                )}
-              </th>
-            ))}
+            {headerGroup.headers.map(column =>
+              column.hidden ? null : (
+                <th
+                  {...column.getHeaderProps(column.getSortByToggleProps())}
+                  data-test="sort-header"
+                >
+                  {column.render('Header')}
+                  {'  '}
+                  {column.sortable && (
+                    <i
+                      className={cx('text-primary fa', {
+                        'fa-sort': !column.isSorted,
+                        'fa-sort-down': column.isSorted && column.isSortedDesc,
+                        'fa-sort-up': column.isSorted && !column.isSortedDesc,
+                      })}
+                    />
+                  )}
+                </th>
+              ),
+            )}
           </tr>
         ))}
       </thead>
@@ -76,7 +77,9 @@ export default function TableCollection({
                 row.setState && row.setState({ hover: false })
               }
             >
-              {row.cells.map((cell: Cell<any>) => {
+              {row.cells.map(cell => {
+                if (cell.column.hidden) return null;
+
                 const columnCellProps = cell.column.cellProps || {};
 
                 return (
