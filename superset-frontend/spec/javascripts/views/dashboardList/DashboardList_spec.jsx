@@ -32,6 +32,7 @@ const store = mockStore({});
 
 const dashboardsInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
+const dashboardsOwnersEndpoint = 'glob:*/api/v1/dashboard/related/owners*';
 
 const mockDashboards = [...new Array(3)].map((_, i) => ({
   id: i,
@@ -46,11 +47,19 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(dashboardsInfoEndpoint, {
   permissions: ['can_list', 'can_edit'],
-  filters: [],
+  filters: {
+    dashboard_title: [],
+    slug: [],
+    owners: [],
+    published: [],
+  },
 });
 fetchMock.get(dashboardsEndpoint, {
   result: mockDashboards,
   dashboard_count: 3,
+});
+fetchMock.get(dashboardsOwnersEndpoint, {
+  result: [],
 });
 
 describe('DashboardList', () => {
@@ -81,7 +90,7 @@ describe('DashboardList', () => {
     );
   });
 
-  it('edits', () => {
+  it('edits', async () => {
     expect(wrapper.find(PropertiesModal)).toHaveLength(0);
     wrapper
       .find('.fa-pencil')
