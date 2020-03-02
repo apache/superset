@@ -78,6 +78,10 @@ from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
+from superset.security.analytics_db_safety import (
+    check_sqlalchemy_uri,
+    DBSecurityException,
+)
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
@@ -1322,6 +1326,8 @@ class Superset(BaseSupersetView):
         db_name = request.json.get("name")
         uri = request.json.get("uri")
         try:
+            if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
+                check_sqlalchemy_uri(uri)
             # if the database already exists in the database, only its safe (password-masked) URI
             # would be shown in the UI and would be passed in the form data.
             # so if the database already exists and the form was submitted with the safe URI,
@@ -1373,6 +1379,9 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 _("Connection failed, please check your connection settings."), 400
             )
+        except DBSecurityException as e:
+            logger.warning("Stopped an unsafe database connection. %s", e)
+            return json_error_response(_(str(e)), 400)
         except Exception as e:
             logger.error("Unexpected error %s", e)
             return json_error_response(_("Unexpected error occurred."), 400)

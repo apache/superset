@@ -75,9 +75,11 @@ class CoreTests(SupersetTestCase):
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }
+        self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
 
     def tearDown(self):
         db.session.query(Query).delete()
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
 
     def test_login(self):
         resp = self.get_resp("/login/", data=dict(username="admin", password="general"))
@@ -444,9 +446,10 @@ class CoreTests(SupersetTestCase):
         assert self.get_resp("/ping") == "OK"
 
     def test_testconn(self, username="admin"):
+        # need to temporarily allow sqlite dbs, teardown will undo this
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
         self.login(username=username)
         database = utils.get_example_database()
-
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps(
             {
@@ -492,6 +495,28 @@ class CoreTests(SupersetTestCase):
             response_body,
             expected_body,
         )
+
+    def test_testconn_unsafe_uri(self, username="admin"):
+        self.login(username=username)
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+
+        response = self.client.post(
+            "/superset/testconn",
+            data=json.dumps(
+                {
+                    "uri": "sqlite:///home/superset/unsafe.db",
+                    "name": "unsafe",
+                    "impersonate_user": False,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(400, response.status_code)
+        response_body = json.loads(response.data.decode("utf-8"))
+        expected_body = {
+            "error": "SQLite database cannot be used as a data source for security reasons."
+        }
+        self.assertEqual(expected_body, response_body)
 
     def test_custom_password_store(self):
         database = utils.get_example_database()
