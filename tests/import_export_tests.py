@@ -360,7 +360,7 @@ class ImportExportTests(SupersetTestCase):
         dash_with_1_slice.position_json = """
             {{"DASHBOARD_VERSION_KEY": "v2",
               "DASHBOARD_CHART_TYPE-{0}": {{
-                "type": "DASHBOARD_CHART_TYPE",
+                "type": "CHART",
                 "id": {0},
                 "children": [],
                 "meta": {{
@@ -540,7 +540,7 @@ class ImportExportTests(SupersetTestCase):
         dash_with_1_slice.position_json = """
                 {{"DASHBOARD_VERSION_KEY": "v2",
                 "DASHBOARD_CHART_TYPE-{0}": {{
-                    "type": "DASHBOARD_CHART_TYPE",
+                    "type": "CHART",
                     "id": {0},
                     "children": [],
                     "meta": {{
