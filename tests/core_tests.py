@@ -165,6 +165,17 @@ class CoreTests(SupersetTestCase):
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
 
+    def test_query_context_time_range_endpoints(self):
+        query_context = QueryContext(**self._get_query_context_dict())
+        query_object = query_context.queries[0]
+        extras = query_object.to_dict()["extras"]
+        self.assertTrue("time_range_endpoints" in extras)
+
+        self.assertEquals(
+            extras["time_range_endpoints"],
+            (utils.TimeRangeEndpoint.INCLUSIVE, utils.TimeRangeEndpoint.EXCLUSIVE),
+        )
+
     def test_get_superset_tables_not_allowed(self):
         example_db = utils.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
@@ -973,7 +984,12 @@ class CoreTests(SupersetTestCase):
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": utils.QueryStatus.PENDING,
         }
-        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(
             results, db_engine_spec, use_new_deserialization
         )
         payload = {
@@ -1016,7 +1032,12 @@ class CoreTests(SupersetTestCase):
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": utils.QueryStatus.PENDING,
         }
-        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(
             results, db_engine_spec, use_new_deserialization
         )
         payload = {
