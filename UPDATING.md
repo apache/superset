@@ -23,10 +23,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [9218](https://github.com/apache/incubator-superset/pull/9218): SQLite connections have been disabled by default
+for analytics databases. You can optionally enable SQLite by setting `PREVENT_UNSAFE_DB_CONNECTIONS` to `False`.
+It is not recommended to change this setting, as arbitrary SQLite connections can lead to security vulnerabilities.
+
 * [9133](https://github.com/apache/incubator-superset/pull/9133): Security list of permissions and list views has been
-disable by default. You can optionally enable them back again by setting the following config keys: 
-FAB_ADD_SECURITY_PERMISSION_VIEW, FAB_ADD_SECURITY_VIEW_MENU_VIEW, FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW to True.
- 
+disable by default. You can optionally enable them back again by setting the following config keys:
+`FAB_ADD_SECURITY_PERMISSION_VIEW`, `FAB_ADD_SECURITY_VIEW_MENU_VIEW`, `FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW` to `True`.
+
 * [9173](https://github.com/apache/incubator-superset/pull/9173): Changes the encoding of the query source from an int to an enum.
 
 * [9120](https://github.com/apache/incubator-superset/pull/9120): Changes the default behavior of ad-hoc sharing of
@@ -49,9 +53,9 @@ timestamp has been added to the query object's cache key to ensure updates to
 datasources are always reflected in associated query results. As a consequence all
 previously cached results will be invalidated when updating to the next version.
 
-* [8699](https://github.com/apache/incubator-superset/pull/8699): A `row_level_security_filters` 
-table has been added, which is many-to-many with `tables` and `ab_roles`.  The applicable filters 
-are added to the sqla query, and the RLS ids are added to the query cache keys. If RLS is enabled in config.py (`ENABLE_ROW_LEVEL_SECURITY = True`; by default, it is disabled), they can be 
+* [8699](https://github.com/apache/incubator-superset/pull/8699): A `row_level_security_filters`
+table has been added, which is many-to-many with `tables` and `ab_roles`.  The applicable filters
+are added to the sqla query, and the RLS ids are added to the query cache keys. If RLS is enabled in config.py (`ENABLE_ROW_LEVEL_SECURITY = True`; by default, it is disabled), they can be
 accessed through the `Security` menu, or when editting a table.
 
 * [8732](https://github.com/apache/incubator-superset/pull/8732): Swagger user interface is now enabled by default.
