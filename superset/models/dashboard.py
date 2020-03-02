@@ -257,7 +257,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                     "children": ["DASHBOARD_CHART_TYPE-2"]
                 },
                 "DASHBOARD_CHART_TYPE-2": {
-                    "type": "DASHBOARD_CHART_TYPE",
+                    "type": "CHART",
                     "id": "DASHBOARD_CHART_TYPE-2",
                     "children": [],
                     "meta": {
