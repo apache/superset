@@ -126,7 +126,7 @@ class SliceHeaderControls extends React.PureComponent {
     const refreshTooltip = isCached
       ? t('Cached %s', cachedWhen)
       : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
-    const resizeLabel = isFullSize ? 'Minimize' : 'Maximize';
+    const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');
 
     return (
       <Dropdown
