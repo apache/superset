@@ -23,6 +23,7 @@ import simplejson as json
 
 from superset import app
 from superset.utils import core as utils
+from superset.views.utils import get_time_range_endpoints
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 # https://github.com/python/mypy/issues/5288
@@ -95,6 +96,10 @@ class QueryObject:
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
         self.extras = extras or {}
+
+        if app.config["SIP_15_ENABLED"] and "time_range_endpoints" not in self.extras:
+            self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
+
         self.columns = columns or []
         self.orderby = orderby or []
 
