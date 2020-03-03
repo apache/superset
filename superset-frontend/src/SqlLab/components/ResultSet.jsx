@@ -64,6 +64,11 @@ export default class ResultSet extends React.PureComponent {
       showExploreResultsButton: false,
       data: null,
     };
+
+    this.changeSearch = this.changeSearch.bind(this);
+    this.fetchResults = this.fetchResults.bind(this);
+    this.popSelectStar = this.popSelectStar.bind(this);
+    this.reFetchQueryResults = this.reFetchQueryResults.bind(this);
     this.toggleExploreResultsButton = this.toggleExploreResultsButton.bind(
       this,
     );
@@ -171,7 +176,7 @@ export default class ResultSet extends React.PureComponent {
               {this.props.search && (
                 <input
                   type="text"
-                  onChange={this.changeSearch.bind(this)}
+                  onChange={this.changeSearch}
                   value={this.state.searchText}
                   className="form-control input-sm"
                   placeholder={t('Filter Results')}
@@ -219,7 +224,7 @@ export default class ResultSet extends React.PureComponent {
             <Button
               bsSize="small"
               className="m-r-5"
-              onClick={this.popSelectStar.bind(this)}
+              onClick={this.popSelectStar}
             >
               {t('Query in a new tab')}
             </Button>
@@ -240,7 +245,7 @@ export default class ResultSet extends React.PureComponent {
           : [];
         return (
           <>
-            {this.renderControls.bind(this)()}
+            {this.renderControls()}
             {sql}
             <FilterableTable
               data={data}
@@ -258,19 +263,34 @@ export default class ResultSet extends React.PureComponent {
       }
     }
     if (query.cached || (query.state === 'success' && !query.results)) {
-      return (
-        <Button
-          bsSize="sm"
-          className="fetch"
-          bsStyle="primary"
-          onClick={this.reFetchQueryResults.bind(this, {
-            ...query,
-            isDataPreview: true,
-          })}
-        >
-          {t('Fetch data preview')}
-        </Button>
-      );
+      if (query.isDataPreview) {
+        return (
+          <Button
+            bsSize="sm"
+            className="fetch"
+            bsStyle="primary"
+            onClick={() =>
+              this.reFetchQueryResults({
+                ...query,
+                isDataPreview: true,
+              })
+            }
+          >
+            {t('Fetch data preview')}
+          </Button>
+        );
+      } else if (query.resultsKey) {
+        return (
+          <Button
+            bsSize="sm"
+            className="fetch"
+            bsStyle="primary"
+            onClick={() => this.fetchResults(query)}
+          >
+            {t('Refetch Results')}
+          </Button>
+        );
+      }
     }
     let progressBar;
     let trackingUrl;
