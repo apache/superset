@@ -136,7 +136,7 @@ class DatasetRestApi(BaseOwnedModelRestApi):
         if item.errors:
             return self.response_400(message=item.errors)
         try:
-            new_model = CreateDatasetCommand(g.user, item).run()
+            new_model = CreateDatasetCommand(g.user, item.data).run()
             return self.response(201, id=new_model.id, result=item.data)
         except DatasetInvalidError as e:
             return self.response_422(message=e.normalized_messages())
@@ -199,7 +199,7 @@ class DatasetRestApi(BaseOwnedModelRestApi):
         if item.errors:
             return self.response_400(message=item.errors)
         try:
-            changed_model = UpdateDatasetCommand(g.user, pk, item).run()
+            changed_model = UpdateDatasetCommand(g.user, pk, item.data).run()
             return self.response(200, id=changed_model.id, result=item.data)
         except DatasetNotFoundError:
             return self.response_404()
