@@ -229,22 +229,27 @@ class SupersetTestCase(TestCase):
         query_limit=None,
         database_name="examples",
         sql_editor_id=None,
+        select_as_cta=False,
+        tmp_table_name=None,
     ):
         if user_name:
             self.logout()
             self.login(username=(user_name or "admin"))
         dbid = self._get_database_by_name(database_name).id
+        json_payload = {
+            "database_id": dbid,
+            "sql": sql,
+            "client_id": client_id,
+            "queryLimit": query_limit,
+            "sql_editor_id": sql_editor_id,
+        }
+        if tmp_table_name:
+            json_payload["tmp_table_name"] = tmp_table_name
+        if select_as_cta:
+            json_payload["select_as_cta"] = select_as_cta
+
         resp = self.get_json_resp(
-            "/superset/sql_json/",
-            raise_on_error=False,
-            json_=dict(
-                database_id=dbid,
-                sql=sql,
-                select_as_create_as=False,
-                client_id=client_id,
-                queryLimit=query_limit,
-                sql_editor_id=sql_editor_id,
-            ),
+            "/superset/sql_json/", raise_on_error=False, json_=json_payload
         )
         if raise_on_error and "error" in resp:
             raise Exception("run_sql failed")
