@@ -10,6 +10,8 @@ import {
 new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }).register();
 new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }).register();
 
+const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
+
 export default [
   {
     renderStory: () => {
@@ -21,6 +23,7 @@ export default [
           chartType={ChartKeys.DILIGENT}
           width={width}
           height={height}
+          queryData={DEFAULT_QUERY_DATA}
           formData={{ hi: 1 }}
         />
       );
@@ -38,6 +41,7 @@ export default [
           chartType={ChartKeys.DILIGENT}
           width={width}
           height={height}
+          queryData={DEFAULT_QUERY_DATA}
           formData={{ hi: 1 }}
         />
       );
@@ -50,7 +54,14 @@ export default [
       const width = text('Vis width', '500');
       const height = text('Vis height', '300');
 
-      return <SuperChart chartType={ChartKeys.DILIGENT} height={height} width={width} />;
+      return (
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          height={height}
+          width={width}
+          queryData={DEFAULT_QUERY_DATA}
+        />
+      );
     },
     storyName: 'fixed dimension',
     storyPath: '@superset-ui/chart|SuperChart',
@@ -60,7 +71,14 @@ export default [
       const width = text('Vis width', '500');
       const height = text('Vis height', '100%');
 
-      return <SuperChart chartType={ChartKeys.DILIGENT} height={height} width={width} />;
+      return (
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          height={height}
+          width={width}
+          queryData={DEFAULT_QUERY_DATA}
+        />
+      );
     },
     storyName: 'fixed width, 100% height',
     storyPath: '@superset-ui/chart|SuperChart',
@@ -70,7 +88,14 @@ export default [
       const width = text('Vis width', '100%');
       const height = text('Vis height', '300');
 
-      return <SuperChart chartType={ChartKeys.DILIGENT} height={height} width={width} />;
+      return (
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          height={height}
+          width={width}
+          queryData={DEFAULT_QUERY_DATA}
+        />
+      );
     },
     storyName: 'fixed height, 100% width',
     storyPath: '@superset-ui/chart|SuperChart',
@@ -80,7 +105,14 @@ export default [
       const width = text('Vis width', '500');
       const height = text('Vis height', '300');
 
-      return <SuperChart chartType={ChartKeys.BUGGY} height={height} width={width} />;
+      return (
+        <SuperChart
+          chartType={ChartKeys.BUGGY}
+          height={height}
+          width={width}
+          queryData={DEFAULT_QUERY_DATA}
+        />
+      );
     },
     storyName: 'With error boundary',
     storyPath: '@superset-ui/chart|SuperChart',
@@ -95,6 +127,7 @@ export default [
           chartType={ChartKeys.DILIGENT}
           width={width}
           height={height}
+          queryData={DEFAULT_QUERY_DATA}
           Wrapper={({ children }) => (
             <div>
               <div style={{ margin: 10, position: 'fixed' }}>With wrapper!</div>
@@ -105,6 +138,26 @@ export default [
       );
     },
     storyName: 'With Wrapper',
+    storyPath: '@superset-ui/chart|SuperChart',
+  },
+  {
+    renderStory: () => {
+      const width = text('Vis width', '100%');
+      const height = text('Vis height', '100%');
+
+      return <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />;
+    },
+    storyName: 'With no results',
+    storyPath: '@superset-ui/chart|SuperChart',
+  },
+  {
+    renderStory: () => {
+      const width = text('Vis width', '400');
+      const height = text('Vis height', '300');
+
+      return <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />;
+    },
+    storyName: 'With no results and small',
     storyPath: '@superset-ui/chart|SuperChart',
   },
 ];

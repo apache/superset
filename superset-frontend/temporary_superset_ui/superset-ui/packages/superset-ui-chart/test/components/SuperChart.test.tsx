@@ -12,6 +12,9 @@ import { promiseTimeout } from '@superset-ui/core';
 import { SuperChart } from '../../src';
 import RealSuperChart, { WrapperProps } from '../../src/components/SuperChart';
 import { ChartKeys, DiligentChartPlugin, BuggyChartPlugin } from './MockChartPlugins';
+import NoResultsComponent from '../../src/components/NoResultsComponent';
+
+const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
 
 function expectDimension(renderedWrapper: Cheerio, width: number, height: number) {
   expect(renderedWrapper.find('.dimension').text()).toEqual([width, height].join('x'));
@@ -69,7 +72,14 @@ describe('SuperChart', () => {
     it('renders default FallbackComponent', () => {
       expectedErrors = 1;
       jest.spyOn(RealSuperChart.defaultProps, 'FallbackComponent');
-      const wrapper = mount(<SuperChart chartType={ChartKeys.BUGGY} width="200" height="200" />);
+      const wrapper = mount(
+        <SuperChart
+          chartType={ChartKeys.BUGGY}
+          queryData={DEFAULT_QUERY_DATA}
+          width="200"
+          height="200"
+        />,
+      );
       const renderedWrapper = wrapper.render();
 
       return promiseTimeout(() => {
@@ -83,6 +93,7 @@ describe('SuperChart', () => {
       const wrapper = mount(
         <SuperChart
           chartType={ChartKeys.BUGGY}
+          queryData={DEFAULT_QUERY_DATA}
           width="200"
           height="200"
           FallbackComponent={CustomFallbackComponent}
@@ -100,6 +111,7 @@ describe('SuperChart', () => {
       mount(
         <SuperChart
           chartType={ChartKeys.BUGGY}
+          queryData={DEFAULT_QUERY_DATA}
           width="200"
           height="200"
           onErrorBoundary={handleError}
@@ -119,6 +131,7 @@ describe('SuperChart', () => {
           <SuperChart
             disableErrorBoundary
             chartType={ChartKeys.BUGGY}
+            queryData={DEFAULT_QUERY_DATA}
             width="200"
             height="200"
             onErrorBoundary={inactiveErrorHandler}
@@ -135,7 +148,13 @@ describe('SuperChart', () => {
 
   it('passes the props to renderer correctly', () => {
     const wrapper = mount(
-      <SuperChart chartType={ChartKeys.DILIGENT} width={101} height={118} formData={{ abc: 1 }} />,
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        queryData={DEFAULT_QUERY_DATA}
+        width={101}
+        height={118}
+        formData={{ abc: 1 }}
+      />,
     );
 
     return promiseTimeout(() => {
@@ -145,9 +164,50 @@ describe('SuperChart', () => {
     });
   });
 
+  describe('supports NoResultsComponent', () => {
+    it('renders NoResultsComponent when queryData is missing', () => {
+      const wrapper = mount(<SuperChart chartType={ChartKeys.DILIGENT} width="200" height="200" />);
+
+      expect(wrapper.find(NoResultsComponent)).toHaveLength(1);
+    });
+
+    it('renders NoResultsComponent when queryData data is null', () => {
+      const wrapper = mount(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={{ data: null }}
+          width="200"
+          height="200"
+        />,
+      );
+
+      expect(wrapper.find(NoResultsComponent)).toHaveLength(1);
+    });
+
+    it('renders NoResultsComponent when queryData data is empty', () => {
+      const wrapper = mount(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={{ data: [] }}
+          width="200"
+          height="200"
+        />,
+      );
+
+      expect(wrapper.find(NoResultsComponent)).toHaveLength(1);
+    });
+  });
+
   describe('supports dynamic width and/or height', () => {
     it('works with width and height that are numbers', () => {
-      const wrapper = mount(<SuperChart chartType={ChartKeys.DILIGENT} width={100} height={100} />);
+      const wrapper = mount(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={DEFAULT_QUERY_DATA}
+          width={100}
+          height={100}
+        />,
+      );
 
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
@@ -157,7 +217,13 @@ describe('SuperChart', () => {
     });
     it('works when width and height are percent', () => {
       const wrapper = mount(
-        <SuperChart chartType={ChartKeys.DILIGENT} debounceTime={1} width="100%" height="100%" />,
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={DEFAULT_QUERY_DATA}
+          debounceTime={1}
+          width="100%"
+          height="100%"
+        />,
       );
       triggerResizeObserver();
 
@@ -169,7 +235,13 @@ describe('SuperChart', () => {
     });
     it('works when only width is percent', () => {
       const wrapper = mount(
-        <SuperChart chartType={ChartKeys.DILIGENT} debounceTime={1} width="50%" height="125" />,
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={DEFAULT_QUERY_DATA}
+          debounceTime={1}
+          width="50%"
+          height="125"
+        />,
       );
       triggerResizeObserver([{ contentRect: { height: 125, width: 150 } }]);
 
@@ -188,7 +260,13 @@ describe('SuperChart', () => {
     });
     it('works when only height is percent', () => {
       const wrapper = mount(
-        <SuperChart chartType={ChartKeys.DILIGENT} debounceTime={1} width="50" height="25%" />,
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={DEFAULT_QUERY_DATA}
+          debounceTime={1}
+          width="50"
+          height="25%"
+        />,
       );
       triggerResizeObserver([{ contentRect: { height: 75, width: 50 } }]);
 
@@ -206,7 +284,13 @@ describe('SuperChart', () => {
       }, 100);
     });
     it('works when width and height are not specified', () => {
-      const wrapper = mount(<SuperChart chartType={ChartKeys.DILIGENT} debounceTime={1} />);
+      const wrapper = mount(
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={DEFAULT_QUERY_DATA}
+          debounceTime={1}
+        />,
+      );
       triggerResizeObserver();
 
       return promiseTimeout(() => {
@@ -231,7 +315,13 @@ describe('SuperChart', () => {
 
     it('works with width and height that are numbers', () => {
       const wrapper = mount(
-        <SuperChart chartType={ChartKeys.DILIGENT} width={100} height={100} Wrapper={MyWrapper} />,
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          queryData={DEFAULT_QUERY_DATA}
+          width={100}
+          height={100}
+          Wrapper={MyWrapper}
+        />,
       );
 
       return promiseTimeout(() => {
@@ -247,6 +337,7 @@ describe('SuperChart', () => {
       const wrapper = mount(
         <SuperChart
           chartType={ChartKeys.DILIGENT}
+          queryData={DEFAULT_QUERY_DATA}
           debounceTime={1}
           width="100%"
           height="100%"
