@@ -82,9 +82,9 @@ PermissionModelView.list_widget = SupersetSecurityListWidget
 
 # Limiting routes on FAB model views
 UserModelView.include_route_methods = RouteMethod.CRUD_SET | {
+    RouteMethod.ACTION,
+    RouteMethod.ACTION_POST,
     "userinfo",
-    "action_post",
-    "action",
 }
 RoleModelView.include_route_methods = RouteMethod.CRUD_SET
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
