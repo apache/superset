@@ -6,6 +6,7 @@ import { createSelector } from 'reselect';
 import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
 import DefaultFallbackComponent from './FallbackComponent';
 import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
+import NoResultsComponent from './NoResultsComponent';
 
 const defaultProps = {
   FallbackComponent: DefaultFallbackComponent,
@@ -110,35 +111,48 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       FallbackComponent,
       onErrorBoundary,
       Wrapper,
+      queryData,
       ...rest
     } = this.props as PropsWithDefault;
 
-    const chartWithoutWrapper = (
-      <SuperChartCore
-        ref={this.setRef}
-        id={id}
-        className={className}
-        chartType={chartType}
-        chartProps={this.createChartProps({
-          ...rest,
-          height,
-          width,
-        })}
-        preTransformProps={preTransformProps}
-        overrideTransformProps={overrideTransformProps}
-        postTransformProps={postTransformProps}
-        onRenderSuccess={onRenderSuccess}
-        onRenderFailure={onRenderFailure}
-      />
-    );
-    const chart = Wrapper ? (
-      <Wrapper width={width} height={height}>
-        {chartWithoutWrapper}
-      </Wrapper>
-    ) : (
-      chartWithoutWrapper
-    );
+    const chartProps = this.createChartProps({
+      ...rest,
+      queryData,
+      height,
+      width,
+    });
 
+    let chart;
+    // Render the no results component if the query data is null or empty
+    if (
+      queryData == null ||
+      queryData.data === null ||
+      (Array.isArray(queryData.data) && queryData.data.length === 0)
+    ) {
+      chart = <NoResultsComponent id={id} className={className} height={height} width={width} />;
+    } else {
+      const chartWithoutWrapper = (
+        <SuperChartCore
+          ref={this.setRef}
+          id={id}
+          className={className}
+          chartType={chartType}
+          chartProps={chartProps}
+          preTransformProps={preTransformProps}
+          overrideTransformProps={overrideTransformProps}
+          postTransformProps={postTransformProps}
+          onRenderSuccess={onRenderSuccess}
+          onRenderFailure={onRenderFailure}
+        />
+      );
+      chart = Wrapper ? (
+        <Wrapper width={width} height={height}>
+          {chartWithoutWrapper}
+        </Wrapper>
+      ) : (
+        chartWithoutWrapper
+      );
+    }
     // Include the error boundary by default unless it is specifically disabled.
     return disableErrorBoundary === true ? (
       chart
