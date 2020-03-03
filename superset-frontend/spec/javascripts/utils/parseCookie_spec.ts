@@ -16,24 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint no-console: 0 */
-import { SupersetClient } from '@superset-ui/connection';
 import parseCookie from 'src/utils/parseCookie';
 
-export default function setupClient() {
-  const csrfNode = document.querySelector('#csrf_token');
-  const csrfToken = csrfNode ? csrfNode.value : null;
+describe('parseCookie', () => {
+  let cookieVal = '';
+  Object.defineProperty(document, 'cookie', {
+    get: jest.fn().mockImplementation(() => {
+      return cookieVal;
+    }),
+  });
+  it('parses cookie strings', () => {
+    cookieVal = 'val1=foo; val2=bar';
+    expect(parseCookie()).toEqual({ val1: 'foo', val2: 'bar' });
+  });
 
-  // when using flask-jwt-extended csrf is set in cookies
-  const cookieCSRFToken = parseCookie().csrf_access_token || '';
+  it('parses empty cookie strings', () => {
+    cookieVal = '';
+    expect(parseCookie()).toEqual({});
+  });
 
-  SupersetClient.configure({
-    protocol: (window.location && window.location.protocol) || '',
-    host: (window.location && window.location.host) || '',
-    csrfToken: csrfToken || cookieCSRFToken,
-  })
-    .init()
-    .catch(error => {
-      console.warn('Error initializing SupersetClient', error);
-    });
-}
+  it('accepts an arg', () => {
+    expect(parseCookie('val=foo')).toEqual({ val: 'foo' });
+  });
+});
