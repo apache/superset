@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
+from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
@@ -22,7 +22,7 @@ from superset.datasets.commands.exceptions import OwnersNotFoundValidationError
 from superset.datasets.dao import DatasetDAO
 
 
-def populate_owners(user: User, owners_ids: List[int] = None) -> List[User]:
+def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[User]:
     """
     Helper function for commands, will fetch all users from owners id's
     Can raise ValidationError

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict
+from typing import Dict, List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
@@ -49,6 +49,7 @@ class CreateDatasetCommand(BaseCommand):
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", "")
+        owner_ids: Optional[List[int]] = self._properties.get("owners")
 
         # Validate uniqueness
         if not DatasetDAO.validate_uniqueness(database_id, table_name):
@@ -67,7 +68,7 @@ class CreateDatasetCommand(BaseCommand):
             exceptions.append(TableNotFoundValidationError(table_name))
 
         try:
-            owners = populate_owners(self._actor, self._properties.get("owners"))
+            owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as e:
             exceptions.append(e)

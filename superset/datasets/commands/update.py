@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
@@ -52,6 +52,7 @@ class UpdateDatasetCommand(BaseCommand):
 
     def validate(self) -> None:
         exceptions = list()
+        owner_ids: Optional[List[int]] = self._properties.get("owners")
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
         if not self._model:
@@ -74,7 +75,7 @@ class UpdateDatasetCommand(BaseCommand):
             exceptions.append(DatabaseChangeValidationError())
         # Validate/Populate owner
         try:
-            owners = populate_owners(self._actor, self._properties.get("owners"))
+            owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as e:
             exceptions.append(e)
