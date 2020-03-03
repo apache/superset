@@ -15,9 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC, abstractmethod
-from typing import List, Tuple
-
-from marshmallow.validate import ValidationError
 
 
 class BaseCommand(ABC):

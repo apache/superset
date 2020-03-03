@@ -81,13 +81,14 @@ class DatasetDAO:
         return query.filter_by(id=model_id).one_or_none()
 
     @staticmethod
-    def create(properties: Dict) -> Optional[SqlaTable]:
+    def create(properties: Dict, commit=True) -> Optional[SqlaTable]:
         model = SqlaTable()
         for key, value in properties.items():
             setattr(model, key, value)
         try:
             db.session.add(model)
-            db.session.commit()
+            if commit:
+                db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Failed to create dataset: {e}")
             db.session.rollback()
@@ -95,12 +96,13 @@ class DatasetDAO:
         return model
 
     @staticmethod
-    def update(model: SqlaTable, properties: Dict) -> Optional[SqlaTable]:
+    def update(model: SqlaTable, properties: Dict, commit=True) -> Optional[SqlaTable]:
         for key, value in properties.items():
             setattr(model, key, value)
         try:
             db.session.merge(model)
-            db.session.commit()
+            if commit:
+                db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Failed to update dataset: {e}")
             db.session.rollback()
@@ -108,10 +110,11 @@ class DatasetDAO:
         return model
 
     @staticmethod
-    def delete(model: SqlaTable):
+    def delete(model: SqlaTable, commit=True):
         try:
             db.session.delete(model)
-            db.session.commit()
+            if commit:
+                db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Failed to delete dataset: {e}")
             db.session.rollback()

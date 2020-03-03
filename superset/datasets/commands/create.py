@@ -17,7 +17,7 @@
 from typing import Dict
 
 from flask_appbuilder.security.sqla.models import User
-from marshmallow import UnmarshalResult, ValidationError
+from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.datasets.commands.base import populate_owners
