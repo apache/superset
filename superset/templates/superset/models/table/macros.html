@@ -18,8 +18,8 @@
 #}
 {% macro testsql() %}
   <script>
-    $("#TableColumnInlineView").find("#expression").parent().append('<button id="TableColumnInlineViewtestsql" class="btn btn-sm btn-primary">{{ _("Test SQL Expression") }}</button>');
-    $("#SqlMetricInlineView").find("#expression").parent().append('<button id="SqlMetricInlineViewtestsql" class="btn btn-sm btn-primary">{{ _("Test SQL Expression") }}</button>');
+    $("#TableColumnInlineView").find("#expression").parent().append('<button id="TableColumnInlineViewtestsql" class="btn btn-sm btn-primary">{{ _("Run SQL Expression") }}</button>');
+    $("#SqlMetricInlineView").find("#expression").parent().append('<button id="SqlMetricInlineViewtestsql" class="btn btn-sm btn-primary">{{ _("Run SQL Expression") }}</button>');
 
     function testsqlquery(e) {
       e.preventDefault();
@@ -60,5 +60,8 @@
     }
     $("#TableColumnInlineViewtestsql").click(testsqlquery);
     $("#SqlMetricInlineViewtestsql").click(testsqlquery);
+
+    $("#TableColumnInlineViewtestsql").attr('title', "{{ _('This will run the query to test it') }}");
+    $("#SqlMetricInlineViewtestsql").attr('title', "{{ _('This will run the query to test it') }}");
   </script>
 {% endmacro %}
