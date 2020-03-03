@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Dict
+
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import UnmarshalResult, ValidationError
 
-from superset.commands.base import BaseCommand, CommandValidateReturn
+from superset.commands.base import BaseCommand
 from superset.datasets.commands.base import populate_owners
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -30,26 +32,20 @@ from superset.datasets.dao import DatasetDAO
 
 
 class CreateDatasetCommand(BaseCommand):
-    def __init__(self, user: User, unmarshal: UnmarshalResult):
+    def __init__(self, user: User, data: Dict):
         self._actor = user
-        self._properties = unmarshal.data.copy()
-        self._errors = unmarshal.errors
+        self._properties = data.copy()
 
     def run(self):
-        is_valid, exceptions = self.validate()
-        if not is_valid:
-            for exception in exceptions:
-                self._errors.update(exception.normalized_messages())
-            raise DatasetInvalidError()
-
+        self.validate()
         dataset = DatasetDAO.create(self._properties)
 
         if not dataset:
             raise DatasetCreateFailedError()
         return dataset
 
-    def validate(self) -> CommandValidateReturn:
-        is_valid, exceptions = True, list()
+    def validate(self) -> None:
+        exceptions = list()
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", "")
@@ -57,13 +53,11 @@ class CreateDatasetCommand(BaseCommand):
         # Validate uniqueness
         if not DatasetDAO.validate_uniqueness(database_id, table_name):
             exceptions.append(DatasetExistsValidationError(table_name))
-            is_valid = False
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
         if not database:
             exceptions.append(DatabaseNotFoundValidationError())
-            is_valid = False
         self._properties["database"] = database
 
         # Validate table exists on dataset
@@ -71,12 +65,13 @@ class CreateDatasetCommand(BaseCommand):
             database, table_name, schema
         ):
             exceptions.append(TableNotFoundValidationError(table_name))
-            is_valid = False
 
         try:
             owners = populate_owners(self._actor, self._properties.get("owners"))
             self._properties["owners"] = owners
         except ValidationError as e:
             exceptions.append(e)
-            is_valid = False
-        return is_valid, exceptions
+        if exceptions:
+            exception = DatasetInvalidError()
+            exception.add_list(exceptions)
+            raise exception

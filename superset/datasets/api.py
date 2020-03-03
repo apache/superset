@@ -138,8 +138,8 @@ class DatasetRestApi(BaseOwnedModelRestApi):
         try:
             new_model = CreateDatasetCommand(g.user, item).run()
             return self.response(201, id=new_model.id, result=item.data)
-        except DatasetInvalidError:
-            return self.response_422(message=item.errors)
+        except DatasetInvalidError as e:
+            return self.response_422(message=e.normalized_messages())
         except DatasetCreateFailedError as e:
             logger.error(f"Error creating model {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))
@@ -205,8 +205,8 @@ class DatasetRestApi(BaseOwnedModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
-        except DatasetInvalidError:
-            return self.response_422(message=item.errors)
+        except DatasetInvalidError as e:
+            return self.response_422(message=e.normalized_messages())
         except DatasetUpdateFailedError as e:
             logger.error(f"Error updating model {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))

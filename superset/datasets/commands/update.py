@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
+from typing import Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import UnmarshalResult, ValidationError
 
-from superset.commands.base import BaseCommand, CommandValidateReturn
+from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.base import populate_owners
 from superset.datasets.commands.exceptions import (
@@ -36,27 +36,22 @@ from superset.views.base import check_ownership
 
 
 class UpdateDatasetCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int, unmarshal: UnmarshalResult):
+    def __init__(self, user: User, model_id: int, data: Dict):
         self._actor = user
         self._model_id = model_id
-        self._properties = unmarshal.data.copy()
-        self._errors = unmarshal.errors
+        self._properties = data.copy()
         self._model: Optional[SqlaTable] = None
 
     def run(self):
-        valid, exceptions = self.validate()
-        if not valid:
-            for exception in exceptions:
-                self._errors.update(exception.normalized_messages())
-            raise DatasetInvalidError()
+        self.validate()
         dataset = DatasetDAO.update(self._model, self._properties)
 
         if not dataset:
             raise DatasetUpdateFailedError()
         return dataset
 
-    def validate(self) -> CommandValidateReturn:
-        is_valid, exceptions = True, list()
+    def validate(self) -> None:
+        exceptions = list()
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
         if not self._model:
@@ -74,16 +69,16 @@ class UpdateDatasetCommand(BaseCommand):
             self._model.database_id, self._model_id, table_name
         ):
             exceptions.append(DatasetExistsValidationError(table_name))
-            is_valid = False
         # Validate/Populate database not allowed to change
         if database_id and database_id != self._model:
             exceptions.append(DatabaseChangeValidationError())
-            is_valid = False
         # Validate/Populate owner
         try:
             owners = populate_owners(self._actor, self._properties.get("owners"))
             self._properties["owners"] = owners
         except ValidationError as e:
             exceptions.append(e)
-            is_valid = False
-        return is_valid, exceptions
+        if exceptions:
+            exception = DatasetInvalidError()
+            exception.add_list(exceptions)
+            raise exception

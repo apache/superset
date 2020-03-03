@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import List
+from marshmallow import ValidationError
 
 
 class CommandException(Exception):
@@ -25,6 +27,26 @@ class CommandException(Exception):
         if message:
             self.message = message
         super().__init__(self.message)
+
+
+class CommandInvalidError(CommandException):
+    """ Common base class for Command Invalid errors. """
+
+    def __init__(self, message=""):
+        self._invalid_exceptions = list()
+        super().__init__(self.message)
+
+    def add(self, exception: ValidationError):
+        self._invalid_exceptions.append(exception)
+
+    def add_list(self, exceptions: List[ValidationError]):
+        self._invalid_exceptions.extend(exceptions)
+
+    def normalized_messages(self):
+        errors = {}
+        for exception in self._invalid_exceptions:
+            errors.update(exception.normalized_messages())
+        return errors
 
 
 class UpdateFailedError(CommandException):

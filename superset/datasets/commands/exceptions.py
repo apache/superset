@@ -19,6 +19,7 @@ from marshmallow.validate import ValidationError
 
 from superset.commands.exceptions import (
     CommandException,
+    CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
     ForbiddenError,
@@ -82,7 +83,7 @@ class DatasetNotFoundError(CommandException):
     message = "Dataset not found."
 
 
-class DatasetInvalidError(CommandException):
+class DatasetInvalidError(CommandInvalidError):
     message = _("Dataset parameters are invalid.")
 
 

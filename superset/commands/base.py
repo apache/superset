@@ -19,8 +19,6 @@ from typing import List, Tuple
 
 from marshmallow.validate import ValidationError
 
-CommandValidateReturn = Tuple[bool, List[ValidationError]]
-
 
 class BaseCommand(ABC):
     """
@@ -36,11 +34,9 @@ class BaseCommand(ABC):
         pass
 
     @abstractmethod
-    def validate(self) -> CommandValidateReturn:
+    def validate(self) -> None:
         """
         Validate is normally called by run to validate data.
-        Can raise command exceptions or return CommandValidateReturn type
-        on data validation issues
-        :return: bool, List of marshmallow validation errors
+        Will raise exception if validation fails
         """
         pass

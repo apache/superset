@@ -21,8 +21,8 @@ from flask import current_app
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import db
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db
 from superset.models.core import Database
 from superset.views.base import DatasourceFilter
 

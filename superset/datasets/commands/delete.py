@@ -18,7 +18,7 @@ from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.commands.base import BaseCommand, CommandValidateReturn
+from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import (
     DatasetDeleteFailedError,
@@ -44,7 +44,7 @@ class DeleteDatasetCommand(BaseCommand):
             raise DatasetDeleteFailedError()
         return dataset
 
-    def validate(self) -> CommandValidateReturn:
+    def validate(self) -> None:
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
         if not self._model:
@@ -54,4 +54,3 @@ class DeleteDatasetCommand(BaseCommand):
             check_ownership(self._model)
         except SupersetSecurityException:
             raise DatasetForbiddenError()
-        return True, []
