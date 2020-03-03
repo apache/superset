@@ -16,24 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint no-console: 0 */
-import { SupersetClient } from '@superset-ui/connection';
-import parseCookie from 'src/utils/parseCookie';
 
-export default function setupClient() {
-  const csrfNode = document.querySelector('#csrf_token');
-  const csrfToken = csrfNode ? csrfNode.value : null;
+type CookieMap = { [cookieId: string]: string };
 
-  // when using flask-jwt-extended csrf is set in cookies
-  const cookieCSRFToken = parseCookie().csrf_access_token || '';
-
-  SupersetClient.configure({
-    protocol: (window.location && window.location.protocol) || '',
-    host: (window.location && window.location.host) || '',
-    csrfToken: csrfToken || cookieCSRFToken,
-  })
-    .init()
-    .catch(error => {
-      console.warn('Error initializing SupersetClient', error);
-    });
+export default function parseCookie(cookie = document.cookie): CookieMap {
+  return Object.fromEntries(
+    cookie
+      .split('; ')
+      .filter(x => x)
+      .map(x => x.split('=')),
+  );
 }

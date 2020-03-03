@@ -63,6 +63,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     Extends FAB's ModelResApi to implement specific superset generic functionality
     """
 
+    csrf_exempt = False
     method_permission_name = {
         "get_list": "list",
         "get": "show",
