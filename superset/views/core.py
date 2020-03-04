@@ -48,7 +48,6 @@ import superset.models.core as models
 from superset import (
     app,
     appbuilder,
-    cache,
     conf,
     dataframe,
     db,
