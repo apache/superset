@@ -77,7 +77,7 @@ class SliceHeaderControls extends React.PureComponent {
       this.props.slice.slice_id,
     );
 
-    this.handleFullSize = this.handleFullSize.bind(this);
+    this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
 
     this.state = {
       showControls: false,
@@ -107,8 +107,8 @@ class SliceHeaderControls extends React.PureComponent {
     });
   }
 
-  handleFullSize() {
-    this.props.handleFullSize();
+  handleToggleFullSize() {
+    this.props.handleToggleFullSize();
   }
 
   render() {
@@ -173,7 +173,7 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          {<MenuItem onClick={this.handleFullSize}>{t(resizeLabel)}</MenuItem>}
+          <MenuItem onClick={this.handleToggleFullSize}>{resizeLabel}</MenuItem>
 
           <URLShortLinkModal
             url={getDashboardUrl(
