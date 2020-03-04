@@ -58,7 +58,11 @@ class CacheWarmUpTests(SupersetTestCase):
         dashboard = MagicMock()
         dashboard.json_metadata = json.dumps(
             {
-                "filter_immune_slices": [chart_id],
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "name": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
+                },
                 "default_filters": json.dumps(
                     {str(filter_box_id): {"name": ["Alice", "Bob"]}}
                 ),
@@ -90,7 +94,11 @@ class CacheWarmUpTests(SupersetTestCase):
                         }
                     }
                 ),
-                "filter_immune_slice_fields": {chart_id: ["__time_range"]},
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "__time_range": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
+                },
             }
         )
         result = get_form_data(chart_id, dashboard)
@@ -109,7 +117,11 @@ class CacheWarmUpTests(SupersetTestCase):
                 "default_filters": json.dumps(
                     {str(filter_box_id): {"__time_range": "100 years ago : today"}}
                 ),
-                "filter_immune_slice_fields": {chart_id: ["__time_range"]},
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "__time_range": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
+                },
             }
         )
         result = get_form_data(chart_id, dashboard)

@@ -50,18 +50,32 @@ def get_form_data(chart_id, dashboard=None):
         return form_data
 
     json_metadata = json.loads(dashboard.json_metadata)
-
-    # do not apply filters if chart is immune to them
-    if chart_id in json_metadata.get("filter_immune_slices", []):
-        return form_data
-
     default_filters = json.loads(json_metadata.get("default_filters", "null"))
     if not default_filters:
         return form_data
 
-    # are some of the fields in the chart immune to filters?
-    filter_immune_slice_fields = json_metadata.get("filter_immune_slice_fields", {})
-    immune_fields = filter_immune_slice_fields.get(str(chart_id), [])
+    # do not apply filters if chart is immune to them
+    immune_fields = []
+    filter_scopes = json_metadata.get("filter_scopes", {})
+    if filter_scopes:
+        for scopes in filter_scopes.values():
+            # for example: scopes = {
+            #   "dim_region": {
+            #     "scope": [
+            #       "ROOT_ID"
+            #     ],
+            #     "immune": [1, 2, 3]
+            #   },
+            #   "dim_is_tier_1_locale": {
+            #     "scope": [
+            #       "ROOT_ID"
+            #     ],
+            #     "immune": [1, 5, 6]
+            #   }
+            # }
+            for (field, scope) in scopes.items():
+                if chart_id in scope.get("immune", []):
+                    immune_fields.append(field)
 
     extra_filters = []
     for filters in default_filters.values():
