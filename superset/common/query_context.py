@@ -123,7 +123,7 @@ class QueryContext:
 
     @staticmethod
     def get_data(  # pylint: disable=invalid-name,no-self-use
-        df: pd.DataFrame
+        df: pd.DataFrame,
     ) -> List[Dict]:
         return df.to_dict(orient="records")
 
