@@ -24,6 +24,7 @@
     "prerelease": "yarn build",
     "pretest": "yarn lint",
     "release": "yarn prepare-release && lerna publish --exact && yarn postrelease",
+    "force-release": "lerna publish --force-publish --exact && yarn postrelease",
     "postrelease": "lerna run deploy-demo"
   },
   "repository": "https://github.com/apache-superset/superset-ui.git",
