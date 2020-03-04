@@ -5,10 +5,10 @@ const getInstance = makeSingleton(TimeFormatterRegistry);
 
 export default getInstance;
 
-export function getTimeFormatter(formatId: string) {
+export function getTimeFormatter(formatId?: string) {
   return getInstance().get(formatId);
 }
 
-export function formatTime(formatId: string, value: Date | null | undefined) {
+export function formatTime(formatId: string | undefined, value: Date | null | undefined) {
   return getInstance().format(formatId, value);
 }

@@ -23,7 +23,11 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
   }
 
   get(formatterId?: string) {
-    const targetFormat = `${formatterId ?? this.defaultKey}`.trim();
+    const targetFormat = `${
+      formatterId === null || typeof formatterId === 'undefined' || formatterId === ''
+        ? this.defaultKey
+        : formatterId
+    }`.trim();
 
     if (this.has(targetFormat)) {
       return super.get(targetFormat) as NumberFormatter;
