@@ -22,6 +22,22 @@ describe('TimeFormatterRegistry', () => {
       const formatter = registry.get();
       expect(formatter.format(PREVIEW_TIME)).toEqual('14/02/2017');
     });
+    it('falls back to default format if format is null', () => {
+      registry.setDefaultKey(TimeFormats.INTERNATIONAL_DATE);
+      // @ts-ignore
+      const formatter = registry.get(null);
+      expect(formatter.format(PREVIEW_TIME)).toEqual('14/02/2017');
+    });
+    it('falls back to default format if format is undefined', () => {
+      registry.setDefaultKey(TimeFormats.INTERNATIONAL_DATE);
+      const formatter = registry.get(undefined);
+      expect(formatter.format(PREVIEW_TIME)).toEqual('14/02/2017');
+    });
+    it('falls back to default format if format is empty string', () => {
+      registry.setDefaultKey(TimeFormats.INTERNATIONAL_DATE);
+      const formatter = registry.get('');
+      expect(formatter.format(PREVIEW_TIME)).toEqual('14/02/2017');
+    });
     it('removes leading and trailing spaces from format', () => {
       const formatter = registry.get(' %Y ');
       expect(formatter).toBeInstanceOf(TimeFormatter);

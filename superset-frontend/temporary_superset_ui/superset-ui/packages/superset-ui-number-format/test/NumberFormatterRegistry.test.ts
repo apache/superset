@@ -26,6 +26,22 @@ describe('NumberFormatterRegistry', () => {
       const formatter = registry.get();
       expect(formatter.format(100)).toEqual('100.0');
     });
+    it('falls back to default format if format is null', () => {
+      registry.setDefaultKey('.1f');
+      // @ts-ignore
+      const formatter = registry.get(null);
+      expect(formatter.format(100)).toEqual('100.0');
+    });
+    it('falls back to default format if format is undefined', () => {
+      registry.setDefaultKey('.1f');
+      const formatter = registry.get(undefined);
+      expect(formatter.format(100)).toEqual('100.0');
+    });
+    it('falls back to default format if format is empty string', () => {
+      registry.setDefaultKey('.1f');
+      const formatter = registry.get('');
+      expect(formatter.format(100)).toEqual('100.0');
+    });
     it('removes leading and trailing spaces from format', () => {
       const formatter = registry.get(' .2f');
       expect(formatter).toBeInstanceOf(NumberFormatter);
