@@ -38,7 +38,7 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
     return formatter;
   }
 
-  format(formatterId: string, value: number | null | undefined): string {
+  format(formatterId: string | undefined, value: number | null | undefined): string {
     return this.get(formatterId)(value);
   }
 }
