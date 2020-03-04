@@ -45,6 +45,11 @@ class OracleTestCase(DbEngineSpecTestCase):
         )
 
         self.assertEqual(
+            OracleEngineSpec.convert_dttm("DATETIME", dttm),
+            """TO_DATE('2019-01-02T03:04:05', 'YYYY-MM-DD"T"HH24:MI:SS')""",
+        )
+
+        self.assertEqual(
             OracleEngineSpec.convert_dttm("TIMESTAMP", dttm),
             """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
         )
