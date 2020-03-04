@@ -173,7 +173,7 @@ class SupersetResultSet:
     def first_nonempty(items: List) -> Any:
         return next((i for i in items if i), None)
 
-    def is_date(self, db_type_str: Optional[str]) -> bool:
+    def is_temporal(self, db_type_str: Optional[str]) -> bool:
         return self.db_engine_spec.is_db_column_type_match(
             db_type_str, utils.DbColumnType.TEMPORAL
         )
@@ -212,7 +212,7 @@ class SupersetResultSet:
             column = {
                 "name": col.name,
                 "type": db_type_str,
-                "is_date": self.is_date(db_type_str),
+                "is_date": self.is_temporal(db_type_str),
             }
             columns.append(column)
 

@@ -88,13 +88,13 @@ class SupersetResultSetTestCase(SupersetTestCase):
         data = [("a", 1), ("a", 2)]
         cursor_descr = (("a", "string"), ("a", "string"))
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
-        self.assertEqual(results.is_date("DATE"), True)
-        self.assertEqual(results.is_date("DATETIME"), True)
-        self.assertEqual(results.is_date("TIME"), True)
-        self.assertEqual(results.is_date("TIMESTAMP"), True)
-        self.assertEqual(results.is_date("STRING"), False)
-        self.assertEqual(results.is_date(""), False)
-        self.assertEqual(results.is_date(None), False)
+        self.assertEqual(results.is_temporal("DATE"), True)
+        self.assertEqual(results.is_temporal("DATETIME"), True)
+        self.assertEqual(results.is_temporal("TIME"), True)
+        self.assertEqual(results.is_temporal("TIMESTAMP"), True)
+        self.assertEqual(results.is_temporal("STRING"), False)
+        self.assertEqual(results.is_temporal(""), False)
+        self.assertEqual(results.is_temporal(None), False)
 
     def test_dedup_with_data(self):
         data = [("a", 1), ("a", 2)]

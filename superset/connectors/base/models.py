@@ -391,11 +391,11 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     str_types = ("VARCHAR", "STRING", "CHAR")
 
     @property
-    def is_num(self) -> bool:
+    def is_numeric(self) -> bool:
         return self.type and any(map(lambda t: t in self.type.upper(), self.num_types))
 
     @property
-    def is_time(self) -> bool:
+    def is_temporal(self) -> bool:
         return self.type and any(map(lambda t: t in self.type.upper(), self.date_types))
 
     @property

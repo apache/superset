@@ -37,7 +37,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEqual(col.is_dttm, True)
 
         col = TableColumn(column_name="__not_time", type="INTEGER", table=tbl)
-        self.assertEqual(col.is_time, False)
+        self.assertEqual(col.is_temporal, False)
 
     def test_db_column_types(self):
         test_cases: Dict[str, DbColumnType] = {
@@ -62,8 +62,8 @@ class DatabaseModelTestCase(SupersetTestCase):
         tbl = SqlaTable(table_name="col_type_test_tbl", database=get_example_database())
         for str_type, db_col_type in test_cases.items():
             col = TableColumn(column_name="foo", type=str_type, table=tbl)
-            self.assertEqual(col.is_time, db_col_type == DbColumnType.TEMPORAL)
-            self.assertEqual(col.is_num, db_col_type == DbColumnType.NUMERIC)
+            self.assertEqual(col.is_temporal, db_col_type == DbColumnType.TEMPORAL)
+            self.assertEqual(col.is_numeric, db_col_type == DbColumnType.NUMERIC)
             self.assertEqual(col.is_string, db_col_type == DbColumnType.STRING)
 
     def test_has_extra_cache_keys(self):
