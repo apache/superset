@@ -2110,8 +2110,8 @@ class MapboxViz(BaseViz):
         }
 
         x_series, y_series = df[fd.get("all_columns_x")], df[fd.get("all_columns_y")]
-        south_west = [x_series.min(), y_series.min()]
-        north_east = [x_series.max(), y_series.max()]
+        south_west = [math.floor(x_series.min()), math.floor(y_series.min())]
+        north_east = [math.ceil(x_series.max()), math.ceil(y_series.max())]
 
         return {
             "geoJSON": geo_json,
