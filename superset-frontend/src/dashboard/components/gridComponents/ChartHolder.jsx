@@ -168,7 +168,6 @@ class ChartHolder extends React.Component {
 
   render() {
     const { isFocused } = this.state;
-    
     const {
       component,
       parentComponent,
@@ -211,7 +210,9 @@ class ChartHolder extends React.Component {
           (widthMultiple - 1) * GRID_GUTTER_SIZE -
           CHART_MARGIN,
       );
-      chartHeight = Math.floor(component.meta.height * GRID_BASE_UNIT - CHART_MARGIN);
+      chartHeight = Math.floor(
+        component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
+      );
     }
 
     return (
