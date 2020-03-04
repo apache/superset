@@ -42,7 +42,6 @@ const propTypes = {
   updateSliceName: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool,
   handleFullSize: PropTypes.func.isRequired,
-  resizeEvent: PropTypes.bool,
 
   // from redux
   chart: chartPropShape.isRequired,
@@ -71,14 +70,13 @@ const propTypes = {
 const defaultProps = {
   isCached: false,
   isComponentVisible: true,
-  resizeEvent: false,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
 // resizing across all slices on a dashboard on every update
 const RESIZE_TIMEOUT = 350;
 const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
-  prop => prop !== 'width' && prop !== 'height' && prop !== 'resizeEvent',
+  prop => prop !== 'width' && prop !== 'height',
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
@@ -120,7 +118,7 @@ class Chart extends React.Component {
         return true;
       }
 
-      if (nextProps.resizeEvent) {
+      if (nextProps.isFullSize !== this.props.isFullSize) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
         return false;

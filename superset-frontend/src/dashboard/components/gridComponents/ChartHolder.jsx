@@ -109,7 +109,6 @@ class ChartHolder extends React.Component {
       outlinedColumnName: null,
       directPathLastUpdated: 0,
       isFullSize: false,
-      resizeEvent: false,
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -123,16 +122,7 @@ class ChartHolder extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    this.finishResizeEvent();
     this.hideOutline(prevState, this.state);
-  }
-
-  finishResizeEvent() {
-    setTimeout(() => {
-      if (this.state.resizeEvent) {
-        this.setState(() => ({ resizeEvent: false }));
-      }
-    }, 200);
   }
 
   hideOutline(prevState, state) {
@@ -174,7 +164,7 @@ class ChartHolder extends React.Component {
 
   handleFullSize() {
     const flag = !this.state.isFullSize;
-    this.setState(() => ({ isFullSize: flag, resizeEvent: true }));
+    this.setState(() => ({ isFullSize: flag }));
   }
 
   render() {
@@ -278,7 +268,6 @@ class ChartHolder extends React.Component {
                 updateSliceName={this.handleUpdateSliceName}
                 isComponentVisible={isComponentVisible}
                 handleFullSize={this.handleFullSize}
-                resizeEvent={this.state.resizeEvent}
                 isFullSize={this.state.isFullSize}
               />
               {!editMode && (
