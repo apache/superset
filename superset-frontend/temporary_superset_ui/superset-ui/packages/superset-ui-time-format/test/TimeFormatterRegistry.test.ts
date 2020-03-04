@@ -33,5 +33,8 @@ describe('TimeFormatterRegistry', () => {
       expect(registry.format(TimeFormats.US_DATE, PREVIEW_TIME)).toEqual('02/14/2017');
       expect(registry.format(TimeFormats.TIME, PREVIEW_TIME)).toEqual('11:22:33');
     });
+    it('falls back to the default formatter if the format is undefined', () => {
+      expect(registry.format(undefined, PREVIEW_TIME)).toEqual('2017-02-14 11:22:33');
+    });
   });
 });
