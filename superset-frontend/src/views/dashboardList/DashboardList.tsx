@@ -256,10 +256,10 @@ class DashboardList extends React.PureComponent<Props, State> {
     });
   };
 
-  handleDashboardEdit = (edits: any, original: Dashboard) => {
+  handleDashboardEdit = (edits: any) => {
     this.setState({ loading: true });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${original.id}`,
+      endpoint: `/api/v1/dashboard/${edits.id}`,
     })
       .then(({ json = {} }) => {
         this.setState({
@@ -459,8 +459,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                   {dashboardToEdit && (
                     <PropertiesModal
                       show
-                      dashboardTitle={dashboardToEdit.dashboard_title}
-                      dashboardInfo={dashboardToEdit}
+                      dashboardId={dashboardToEdit.id}
                       onHide={() => this.setState({ dashboardToEdit: null })}
                       onDashboardSave={this.handleDashboardEdit}
                     />
