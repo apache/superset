@@ -16,76 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fitBounds } from 'viewport-mercator-project';
 import * as d3array from 'd3-array';
 import sandboxedEval from '../utils/sandbox';
-
-const PADDING = 0.25;
-const GEO_BOUNDS = {
-  LAT_MAX: 90,
-  LAT_MIN: -90,
-  LNG_MAX: 180,
-  LNG_MIN: -180,
-};
-
-/**
- * Get the latitude bounds if latitude is a single coordinate
- * @param latExt Latitude range
- */
-function getLatBoundsForSingleCoordinate(latExt) {
-  const latMin =
-    latExt[0] - PADDING < GEO_BOUNDS.LAT_MIN ? GEO_BOUNDS.LAT_MIN : latExt[0] - PADDING;
-  const latMax =
-    latExt[1] + PADDING > GEO_BOUNDS.LAT_MAX ? GEO_BOUNDS.LAT_MAX : latExt[1] + PADDING;
-
-  return [latMin, latMax];
-}
-
-/**
- * Get the longitude bounds if longitude is a single coordinate
- * @param lngExt Longitude range
- */
-function getLngBoundsForSingleCoordinate(lngExt) {
-  const lngMin =
-    lngExt[0] - PADDING < GEO_BOUNDS.LNG_MIN ? GEO_BOUNDS.LNG_MIN : lngExt[0] - PADDING;
-  const lngMax =
-    lngExt[1] + PADDING > GEO_BOUNDS.LNG_MAX ? GEO_BOUNDS.LNG_MAX : lngExt[1] + PADDING;
-
-  return [lngMin, lngMax];
-}
-
-export function getBounds(points) {
-  const latExt = d3array.extent(points, d => d[1]);
-  const lngExt = d3array.extent(points, d => d[0]);
-  const latBounds = latExt[0] === latExt[1] ? getLatBoundsForSingleCoordinate(latExt) : latExt;
-  const lngBounds = lngExt[0] === lngExt[1] ? getLngBoundsForSingleCoordinate(lngExt) : lngExt;
-
-  return [
-    [lngBounds[0], latBounds[0]],
-    [lngBounds[1], latBounds[1]],
-  ];
-}
-
-export function fitViewport(viewport, points, padding = 10) {
-  try {
-    const bounds = getBounds(points);
-
-    return {
-      ...viewport,
-      ...fitBounds({
-        bounds,
-        height: viewport.height,
-        padding,
-        width: viewport.width,
-      }),
-    };
-  } catch (error) {
-    /* eslint no-console: 0 */
-    console.error('Could not auto zoom', error);
-
-    return viewport;
-  }
-}
 
 export function commonLayerProps(formData, setTooltip, setTooltipContent, onSelect) {
   const fd = formData;
