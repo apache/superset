@@ -2,10 +2,11 @@
 const fg = require('fast-glob');
 const fs = require('fs-extra');
 
-const packages = fg.sync(['packages/*'], {
+const packages = fg.sync([`packages/${process.argv[2] || '*'}`], {
   onlyDirectories: true,
 });
 
+console.log('Copying asset files from `src` to {lib,esm}...');
 packages.forEach(pkg => {
   const assets = fg.sync([`${pkg}/src/**/*.{png,gif,jpg,css,geojson}`]);
   assets.forEach(filePath => {
@@ -15,9 +16,13 @@ packages.forEach(pkg => {
         if (err) {
           console.error(err);
         }
-        console.log(`Copy ${filePath}`);
-        console.log(`=> to ${p}`);
       });
     });
   });
+  console.log(
+    `  Copied ${assets.length.toString().padStart(2)} asset files for ${pkg.replace(
+      'packages/superset-ui-',
+      '',
+    )}`,
+  );
 });

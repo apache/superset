@@ -18,6 +18,7 @@
     "noUnusedLocals": true,
     "pretty": true,
     "removeComments": false,
+    "resolveJsonModule": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "skipLibCheck": true,
