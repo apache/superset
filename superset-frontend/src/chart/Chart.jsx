@@ -34,6 +34,8 @@ const propTypes = {
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
   datasource: PropTypes.object.isRequired,
+  // current chart is included by dashboard
+  dashboardId: PropTypes.number,
   // original selected values for FilterBox viz
   // so that FilterBox can pre-populate selected values
   // only affect UI control
@@ -71,6 +73,7 @@ const defaultProps = {
   initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,
+  dashboardId: null,
 };
 
 class Chart extends React.PureComponent {
@@ -101,6 +104,7 @@ class Chart extends React.PureComponent {
         false,
         this.props.timeout,
         this.props.chartId,
+        this.props.dashboardId,
       );
     } else {
       // Create chart with POST request
@@ -109,6 +113,7 @@ class Chart extends React.PureComponent {
         false,
         this.props.timeout,
         this.props.chartId,
+        this.props.dashboardId,
       );
     }
   }
