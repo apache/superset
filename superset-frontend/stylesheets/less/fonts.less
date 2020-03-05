@@ -16,34 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Index .less, any imports here will be included in the final css build
 
-@import '~bootstrap/less/bootstrap.less';
-@import './fonts.less';
-@import './variables.less';
-@import './cosmo/bootswatch.less';
 
-html,
-body {
-  font-size: @font-size-base;
-  line-height: @line-height-base;
-}
+/*************************************************************************/
+/* USAGE NOTES                                                           */
+/* Each typeface used in Superset should have local webfont files.       */
+/* Maintain separate specimen sheets so it's easier to add/remove fonts. */
+/* NOTE: Add font all licenses to LICENSE.text                           */
+/*************************************************************************/
 
-body {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-}
+/******************************* Inter UI ********************************/
+@import '../fonts/InterUI/specimen.less';
 
-header {
-  flex: 0 1 auto;
-}
-
-#app {
-  flex: 1 1 auto;
-  position: relative;
-}
+/******************************* Fira Code ********************************/
+@import '../fonts/FiraCode/specimen.less';
