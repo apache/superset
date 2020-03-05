@@ -190,21 +190,13 @@ class ChartHolder extends React.Component {
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
-    let fullStyle = {};
     let chartWidth = 0;
     let chartHeight = 0;
 
     if (this.state.isFullSize) {
-      fullStyle = {
-        position: 'fixed',
-        zIndex: '1000',
-        left: '0px',
-        top: '0px',
-      };
       chartWidth = document.body.clientWidth - CHART_MARGIN;
       chartHeight = document.body.clientHeight - CHART_MARGIN;
     } else {
-      fullStyle = {};
       chartWidth = Math.floor(
         widthMultiple * columnWidth +
           (widthMultiple - 1) * GRID_GUTTER_SIZE -
@@ -247,8 +239,7 @@ class ChartHolder extends React.Component {
               ref={dragSourceRef}
               className={`dashboard-component dashboard-component-chart-holder ${
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
-              }`}
-              style={fullStyle}
+              } ${this.state.isFullSize ? 'full-size-style' : ''}`}
             >
               {!editMode && (
                 <AnchorLink
