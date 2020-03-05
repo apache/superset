@@ -22,6 +22,7 @@ export default () =>
   describe('dashboard url params', () => {
     const urlParams = { param1: '123', param2: 'abc' };
     let sliceIds = [];
+    let dashboardId;
 
     beforeEach(() => {
       cy.server();
@@ -32,6 +33,7 @@ export default () =>
       cy.get('#app').then(data => {
         const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
         const dashboard = bootstrapData.dashboard_data;
+        dashboardId = dashboard.id;
         sliceIds = dashboard.slices.map(slice => slice.slice_id);
       });
     });
@@ -43,7 +45,7 @@ export default () =>
         aliases.push(`@${alias}`);
         cy.route(
           'POST',
-          `/superset/explore_json/?form_data={"slice_id":${id}}`,
+          `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboardId}`,
         ).as(alias);
       });
 
