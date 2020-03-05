@@ -22,7 +22,7 @@
 
 @datasource-sql-expression-width: 450px;
 
-.alert.alert-danger > .debugger {
+.alert.alert-danger>.debugger {
   color: @danger;
 }
 
@@ -123,7 +123,7 @@ span.title-block {
 
 .nvtooltip {
   table td {
-    font-size: @font-size-s !important;
+    font-size: @font-size-s  !important;
   }
 }
 
@@ -142,6 +142,7 @@ div.navbar {
 
 .datasource {
   form {
+
     div.form-control,
     input.form-control {
       margin-bottom: 5px !important;
@@ -356,22 +357,27 @@ table.table-no-hover tr:hover {
 }
 
 .Select-menu-outer {
-  z-index: @z-index-dropdown !important;
+  z-index: @z-index-dropdown  !important;
 }
 
 /** not found record **/
-.panel b {
-  display: inline-block;
-  width: 98%;
-  padding: 2rem;
-  margin: 0 1% 20px 1%;
-  background: @gray-bg;
+.panel {
+  :not(.select2 > *) {
+    b {
+      display: inline-block;
+      width: 98%;
+      padding: 2rem;
+      margin: 0 1% 20px 1%;
+      background: @gray-bg;
+    }
+  }
 }
 
 /** table on both sides of the gap **/
 .panel .table-responsive {
   padding: 0 1%;
 }
+
 @media screen and (max-width: 767px) {
   .panel .table-responsive {
     width: 98%;
@@ -552,8 +558,10 @@ tr.reactable-column-header th.reactable-header-sortable {
 }
 
 .fave-unfave-icon {
+
   .fa-star-o,
   .fa-star {
+
     &,
     &:hover,
     &:active {
