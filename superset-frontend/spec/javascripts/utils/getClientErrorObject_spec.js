@@ -21,7 +21,7 @@ import getClientErrorObject from '../../../src/utils/getClientErrorObject';
 describe('getClientErrorObject()', () => {
   it('Returns a Promise', () => {
     const response = getClientErrorObject('error');
-    expect(response.constructor === Promise).toBe(true);
+    expect(response instanceof Promise).toBe(true);
   });
 
   it('Returns a Promise that resolves to an object with an error key', () => {
