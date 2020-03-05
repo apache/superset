@@ -32,7 +32,8 @@ import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import { getPlaySliderParams } from './utils/time';
 import sandboxedEval from './utils/sandbox';
-import { fitViewport } from './layers/common';
+// eslint-disable-next-line import/extensions
+import fitViewport from './utils/fitViewport';
 
 const { getScale } = CategoricalColorNamespace;
 
@@ -119,9 +120,15 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
 
     const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, granularity);
 
-    const viewport = props.formData.autozoom
-      ? fitViewport(props.viewport, props.getPoints(features))
-      : props.viewport;
+    const { width, height, formData } = props;
+    let { viewport } = props;
+    if (formData.autozoom) {
+      viewport = fitViewport(viewport, {
+        width,
+        height,
+        points: props.getPoints(features),
+      });
+    }
 
     return {
       start,

@@ -3,6 +3,7 @@
 import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
 import payload from './payload';
+import geojsonPayload from './geojsonPayload';
 import dummyDatasource from '../../../shared/dummyDatasource';
 
 export default [
@@ -70,6 +71,54 @@ export default [
       />
     ),
     storyName: 'Basic',
+    storyPath: 'legacy-|preset-chart-deckgl|PolygonChartPlugin',
+  },
+  {
+    renderStory: () => (
+      <SuperChart
+        chartType="deck_polygon"
+        width={400}
+        height={400}
+        datasource={dummyDatasource}
+        queryData={geojsonPayload}
+        formData={{
+          datasource: '9__table',
+          viz_type: 'deck_polygon',
+          time_range: '+:+',
+          line_column: 'contour',
+          line_type: 'json',
+          adhoc_filters: [],
+          metric: 'count',
+          point_radius_fixed: { type: 'fix', value: 1000 },
+          row_limit: 10000,
+          reverse_long_lat: false,
+          filter_nulls: true,
+          mapbox_style: 'mapbox://styles/mapbox/light-v9',
+          viewport: {
+            longitude: 6.85236157047845,
+            latitude: 31.222656842808707,
+            zoom: 1,
+            bearing: 0,
+            pitch: 0,
+          },
+          autozoom: true,
+          fill_color_picker: { a: 1, b: 73, g: 65, r: 3 },
+          stroke_color_picker: { a: 1, b: 135, g: 122, r: 0 },
+          filled: true,
+          stroked: false,
+          extruded: true,
+          multiplier: 1,
+          line_width: 10,
+          linear_color_scheme: 'blue_white_yellow',
+          opacity: 80,
+          num_buckets: 5,
+          table_filter: false,
+          toggle_polygons: true,
+          legend_position: 'tr',
+        }}
+      />
+    ),
+    storyName: 'Single Polygon in geojson format',
     storyPath: 'legacy-|preset-chart-deckgl|PolygonChartPlugin',
   },
 ];
