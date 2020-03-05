@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Dict, List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
+from superset.commands.exceptions import UpdateFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.base import populate_owners
 from superset.datasets.commands.exceptions import (
@@ -34,6 +36,8 @@ from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
 
+logger = logging.getLogger(__name__)
+
 
 class UpdateDatasetCommand(BaseCommand):
     def __init__(self, user: User, model_id: int, data: Dict):
@@ -44,9 +48,10 @@ class UpdateDatasetCommand(BaseCommand):
 
     def run(self):
         self.validate()
-        dataset = DatasetDAO.update(self._model, self._properties)
-
-        if not dataset:
+        try:
+            dataset = DatasetDAO.update(self._model, self._properties)
+        except UpdateFailedError as e:
+            logger.exception(e.exception)
             raise DatasetUpdateFailedError()
         return dataset
 

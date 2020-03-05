@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Dict, List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
+from superset.commands.exceptions import CreateFailedError
 from superset.datasets.commands.base import populate_owners
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -30,6 +32,8 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 
+logger = logging.getLogger(__name__)
+
 
 class CreateDatasetCommand(BaseCommand):
     def __init__(self, user: User, data: Dict):
@@ -38,9 +42,10 @@ class CreateDatasetCommand(BaseCommand):
 
     def run(self):
         self.validate()
-        dataset = DatasetDAO.create(self._properties)
-
-        if not dataset:
+        try:
+            dataset = DatasetDAO.create(self._properties)
+        except CreateFailedError as e:
+            logger.exception(e.exception)
             raise DatasetCreateFailedError()
         return dataset
 

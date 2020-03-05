@@ -21,6 +21,11 @@ from flask import current_app
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.commands.exceptions import (
+    CreateFailedError,
+    DeleteFailedError,
+    UpdateFailedError,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
 from superset.models.core import Database
@@ -90,9 +95,8 @@ class DatasetDAO:
             if commit:
                 db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
-            logger.error(f"Failed to create dataset: {e}")
             db.session.rollback()
-            return None
+            raise CreateFailedError(exception=e)
         return model
 
     @staticmethod
@@ -104,9 +108,8 @@ class DatasetDAO:
             if commit:
                 db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
-            logger.error(f"Failed to update dataset: {e}")
             db.session.rollback()
-            return None
+            raise UpdateFailedError(exception=e)
         return model
 
     @staticmethod
@@ -118,5 +121,5 @@ class DatasetDAO:
         except SQLAlchemyError as e:  # pragma: no cover
             logger.error(f"Failed to delete dataset: {e}")
             db.session.rollback()
-            return None
+            raise DeleteFailedError(exception=e)
         return model

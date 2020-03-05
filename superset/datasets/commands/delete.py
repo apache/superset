@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand
+from superset.commands.exceptions import DeleteFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import (
     DatasetDeleteFailedError,
@@ -29,6 +31,8 @@ from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
 
+logger = logging.getLogger(__name__)
+
 
 class DeleteDatasetCommand(BaseCommand):
     def __init__(self, user: User, model_id: int):
@@ -38,9 +42,10 @@ class DeleteDatasetCommand(BaseCommand):
 
     def run(self):
         self.validate()
-        dataset = DatasetDAO.delete(self._model)
-
-        if not dataset:
+        try:
+            dataset = DatasetDAO.delete(self._model)
+        except DeleteFailedError as e:
+            logger.exception(e.exception)
             raise DatasetDeleteFailedError()
         return dataset
 

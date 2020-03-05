@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
+from typing import List, Optional
 
 from marshmallow import ValidationError
 
@@ -24,10 +24,15 @@ class CommandException(Exception):
 
     message = ""
 
-    def __init__(self, message=""):
+    def __init__(self, message: str = "", exception: Optional[Exception] = None):
         if message:
             self.message = message
+        self._exception = exception
         super().__init__(self.message)
+
+    @property
+    def exception(self):
+        return self._exception
 
 
 class CommandInvalidError(CommandException):
@@ -63,4 +68,4 @@ class DeleteFailedError(CommandException):
 
 
 class ForbiddenError(CommandException):
-    message = "Actions is forbidden"
+    message = "Action is forbidden"
