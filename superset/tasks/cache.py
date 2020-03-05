@@ -59,20 +59,6 @@ def get_form_data(chart_id, dashboard=None):
     filter_scopes = json_metadata.get("filter_scopes", {})
     if filter_scopes:
         for scopes in filter_scopes.values():
-            # for example: scopes = {
-            #   "dim_region": {
-            #     "scope": [
-            #       "ROOT_ID"
-            #     ],
-            #     "immune": [1, 2, 3]
-            #   },
-            #   "dim_is_tier_1_locale": {
-            #     "scope": [
-            #       "ROOT_ID"
-            #     ],
-            #     "immune": [1, 5, 6]
-            #   }
-            # }
             for (field, scope) in scopes.items():
                 if chart_id in scope.get("immune", []):
                     immune_fields.append(field)
