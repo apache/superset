@@ -228,7 +228,9 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression)
         else:
             col = column(self.column_name)
-        time_expr = db.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
+        time_expr = db.db_engine_spec.get_timestamp_expr(
+            col, pdf, time_grain, self.type
+        )
         return self.table.make_sqla_column_compatible(time_expr, label)
 
     @classmethod
