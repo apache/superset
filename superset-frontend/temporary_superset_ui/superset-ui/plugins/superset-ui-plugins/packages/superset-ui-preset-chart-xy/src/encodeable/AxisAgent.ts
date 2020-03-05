@@ -96,8 +96,8 @@ export default class AxisAgent<Def extends ChannelDef> {
       const { scale } = this.channelEncoder.scale;
       if (typeof scale !== 'undefined' && !(scale instanceof CategoricalColorScale)) {
         return ('ticks' in scale && typeof scale.ticks !== 'undefined'
-          ? scale.ticks(tickCount)
-          : scale.domain()
+          ? (scale.ticks(tickCount) as number[])
+          : (scale.domain() as number[])
         ).map(format);
       }
     }
@@ -133,7 +133,7 @@ export default class AxisAgent<Def extends ChannelDef> {
 
     const { labelOverlap, labelPadding, orient } = this.config;
 
-    const maxWidth = Math.max(...tickLabelDimensions.map(d => d.width), 0);
+    const maxWidth = Math.max(...tickLabelDimensions.map((d: Dimension) => d.width), 0);
 
     // TODO: Add other strategies: stagger, chop, wrap.
     let strategyForLabelOverlap = labelOverlap;

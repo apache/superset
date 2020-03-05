@@ -76,6 +76,12 @@ Please read the
 which include development environment setup and other things you should know about coding in this
 repo.
 
+To build only selected plugins,
+
+```bash
+node scripts/build.js "*legacy-plugin-chart-table"
+```
+
 ### License
 
 Apache-2.0

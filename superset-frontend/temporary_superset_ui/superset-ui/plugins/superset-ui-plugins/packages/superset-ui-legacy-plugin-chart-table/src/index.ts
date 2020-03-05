@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
 export default class TableChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactTable.js'),
+      loadChart: () => import('./ReactDataTable'),
       metadata,
       transformProps,
     });
