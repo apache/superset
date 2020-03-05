@@ -49,16 +49,23 @@ class BigQueryEngineSpec(BaseEngineSpec):
     """
     arraysize = 5000
 
-    _time_grain_functions = {
+    _date_trunc_functions = {
+        "DATE": "DATE_TRUNC",
+        "DATETIME": "DATETIME_TRUNC",
+        "TIME": "TIME_TRUNC",
+        "TIMESTAMP": "TIMESTAMP_TRUNC",
+    }
+
+    _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "TIMESTAMP_TRUNC({col}, SECOND)",
-        "PT1M": "TIMESTAMP_TRUNC({col}, MINUTE)",
-        "PT1H": "TIMESTAMP_TRUNC({col}, HOUR)",
-        "P1D": "TIMESTAMP_TRUNC({col}, DAY)",
-        "P1W": "TIMESTAMP_TRUNC({col}, WEEK)",
-        "P1M": "TIMESTAMP_TRUNC({col}, MONTH)",
-        "P0.25Y": "TIMESTAMP_TRUNC({col}, QUARTER)",
-        "P1Y": "TIMESTAMP_TRUNC({col}, YEAR)",
+        "PT1S": "{func}({col}, SECOND)",
+        "PT1M": "{func}({col}, MINUTE)",
+        "PT1H": "{func}({col}, HOUR)",
+        "P1D": "{func}({col}, DAY)",
+        "P1W": "{func}({col}, WEEK)",
+        "P1M": "{func}({col}, MONTH)",
+        "P0.25Y": "{func}({col}, QUARTER)",
+        "P1Y": "{func}({col}, YEAR)",
     }
 
     @classmethod
@@ -68,13 +75,15 @@ class BigQueryEngineSpec(BaseEngineSpec):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if tt == "DATETIME":
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
+        if tt == "TIME":
+            return f"""CAST('{dttm.strftime("%H:%M:%S.%f")}' AS TIME)"""
         if tt == "TIMESTAMP":
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
         return None
 
     @classmethod
     def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
-        data = super(BigQueryEngineSpec, cls).fetch_data(cursor, limit)
+        data = super().fetch_data(cursor, limit)
         if data and type(data[0]).__name__ == "Row":
             data = [r.values() for r in data]  # type: ignore
         return data

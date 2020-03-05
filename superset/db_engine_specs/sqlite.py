@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
         "PT1M": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",

@@ -27,7 +27,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_joins = False
     allows_subqueries = True
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "HISTOGRAM({col}, INTERVAL 1 SECOND)",
         "PT1M": "HISTOGRAM({col}, INTERVAL 1 MINUTE)",

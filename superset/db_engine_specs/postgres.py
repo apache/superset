@@ -38,7 +38,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATE_TRUNC('second', {col})",
         "PT1M": "DATE_TRUNC('minute', {col})",
