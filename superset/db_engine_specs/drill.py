@@ -28,7 +28,7 @@ class DrillEngineSpec(BaseEngineSpec):
 
     engine = "drill"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "NEARESTDATE({col}, 'SECOND')",
         "PT1M": "NEARESTDATE({col}, 'MINUTE')",
