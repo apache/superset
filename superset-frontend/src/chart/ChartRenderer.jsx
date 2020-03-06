@@ -227,9 +227,8 @@ class ChartRenderer extends React.Component {
     // container. It may cause css conflicts as in the case of table chart.
     // When migrating legacy chart types, we should gradually add the prefix
     // `superset-chart-` to each one of them.
-    if (vizType === 'table') {
-      chartClassName = `superset-chart-${chartClassName}`;
-    }
+    chartClassName =
+      vizType === 'table' ? `superset-chart-${chartClassName}` : chartClassName;
 
     return (
       <>
