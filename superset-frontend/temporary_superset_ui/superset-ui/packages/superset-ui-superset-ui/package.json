@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/superset-ui",
-  "version": "0.12.10",
+  "version": "0.12.11",
   "description": "One stop install for all superset-ui packages",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart": "0.12.8",
+    "@superset-ui/chart": "0.12.11",
     "@superset-ui/chart-composition": "0.12.8",
     "@superset-ui/color": "0.12.8",
     "@superset-ui/connection": "0.12.8",
