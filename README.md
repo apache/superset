@@ -170,6 +170,7 @@ the world know they are using Superset. Join our growing community!
  1. [Popoko VM Games Studio](https://popoko.live)
  1. [Preset, Inc.](https://preset.io)
  1. [Pronto Tools](http://www.prontotools.io)
+ 1. [PubNub](https://pubnub.com)
  1. [QPID Health](http://www.qpidhealth.com/)
  1. [Qunar](https://www.qunar.com/)
  1. [Reward Gateway](https://www.rewardgateway.com)
