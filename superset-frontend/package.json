@@ -81,7 +81,7 @@
     "@superset-ui/legacy-plugin-chart-word-cloud": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-world-map": "^0.11.15",
     "@superset-ui/legacy-preset-chart-big-number": "^0.11.15",
-    "@superset-ui/legacy-preset-chart-deckgl": "^0.2.0",
+    "@superset-ui/legacy-preset-chart-deckgl": "^0.2.1",
     "@superset-ui/legacy-preset-chart-nvd3": "^0.11.15",
     "@superset-ui/number-format": "^0.12.10",
     "@superset-ui/plugin-chart-table": "^0.11.15",
