@@ -157,6 +157,16 @@ export default [
 
       return <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />;
     },
+    storyName: 'With no results and medium',
+    storyPath: '@superset-ui/chart|SuperChart',
+  },
+  {
+    renderStory: () => {
+      const width = text('Vis width', '150');
+      const height = text('Vis height', '200');
+
+      return <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />;
+    },
     storyName: 'With no results and small',
     storyPath: '@superset-ui/chart|SuperChart',
   },
