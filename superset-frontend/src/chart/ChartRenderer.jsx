@@ -222,13 +222,15 @@ class ChartRenderer extends React.Component {
       queryResponse,
     } = this.props;
 
-    let chartClassName = snakeCase(vizType);
     // It's bad practice to use unprefixed `vizType` as classnames for chart
-    // container. It may cause css conflicts as in the case of table chart.
-    // When migrating legacy chart types, we should gradually add the prefix
-    // `superset-chart-` to each one of them.
-    chartClassName =
-      vizType === 'table' ? `superset-chart-${chartClassName}` : chartClassName;
+    // container. It may cause css conflicts as in the case of legacy table chart.
+    // When migrating charts, we should gradually add a `superset-chart-` prefix
+    // to each one of them.
+    const snakeCaseVizType = snakeCase(vizType);
+    const chartClassName =
+      vizType === 'table'
+        ? `superset-chart-${snakeCaseVizType}`
+        : snakeCaseVizType;
 
     return (
       <>
