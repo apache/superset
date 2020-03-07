@@ -745,6 +745,7 @@ class Superset(BaseSupersetView):
             try:
                 dashboard_import_export.import_dashboards(db.session, f.stream)
             except DatabaseNotFound as e:
+                logger.exception(e)
                 flash(
                     _(
                         "Cannot import dashboard: %(db_error)s.\n"

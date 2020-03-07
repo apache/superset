@@ -44,9 +44,11 @@ class Datasource(BaseSupersetView):
         datasource = json.loads(data)
         datasource_id = datasource.get("id")
         datasource_type = datasource.get("type")
+        database_id = datasource.get("database").get("id")
         orm_datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
+        orm_datasource.database_id = database_id
 
         if "owners" in datasource and orm_datasource.owner_class is not None:
             datasource["owners"] = (
@@ -66,7 +68,6 @@ class Datasource(BaseSupersetView):
             return json_error_response(
                 f"Duplicate column name(s): {','.join(duplicates)}", status="409"
             )
-
         orm_datasource.update_from_object(datasource)
         data = orm_datasource.data
         db.session.commit()
