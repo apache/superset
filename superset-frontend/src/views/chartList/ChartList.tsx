@@ -140,12 +140,9 @@ class ChartList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: {
-            datasource_name_text: dsNameTxt,
-            datasource_link: dsLink,
-          },
+          original: { datasource_name_text: dsNameTxt, datasource_url: dsUrl },
         },
-      }: any) => <a href={dsLink}>{dsNameTxt}</a>,
+      }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
       Header: t('Datasource'),
       accessor: 'datasource_name',
       sortable: true,

@@ -154,7 +154,7 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "changed_by_url",
         "changed_on",
         "datasource_name_text",
-        "datasource_link",
+        "datasource_url",
         "viz_type",
         "params",
         "cache_timeout",
