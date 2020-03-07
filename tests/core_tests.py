@@ -875,7 +875,7 @@ class CoreTests(SupersetTestCase):
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
-    def test_slice_payload_no_data(self):
+    def test_slice_payload_no_results(self):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
         json_endpoint = "/superset/explore_json/"
@@ -895,7 +895,7 @@ class CoreTests(SupersetTestCase):
         )
         data = self.get_json_resp(json_endpoint, {"form_data": json.dumps(form_data)})
         self.assertEqual(data["status"], utils.QueryStatus.SUCCESS)
-        self.assertEqual(data["error"], "No data")
+        self.assertEqual(data["error"], None)
 
     def test_slice_payload_invalid_query(self):
         self.login(username="admin")
