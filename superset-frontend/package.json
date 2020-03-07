@@ -52,7 +52,7 @@
   "dependencies": {
     "@babel/runtime-corejs3": "^7.8.4",
     "@data-ui/sparkline": "^0.0.54",
-    "@superset-ui/chart": "^0.12.8",
+    "@superset-ui/chart": "^0.12.11",
     "@superset-ui/chart-composition": "^0.12.8",
     "@superset-ui/color": "^0.12.8",
     "@superset-ui/connection": "^0.12.8",

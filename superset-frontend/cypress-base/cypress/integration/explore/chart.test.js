@@ -19,14 +19,14 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 import readResponseBlob from '../../utils/readResponseBlob';
 
-describe('Error', () => {
+describe('No Results', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
-  it('No data error message shows up', () => {
+  it('No results  message shows up', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
       metrics: [NUM_METRIC],
@@ -46,14 +46,8 @@ describe('Error', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.wait('@getJson').then(async xhr => {
-      expect(xhr.status).to.eq(400);
-
-      const responseBody = await readResponseBlob(xhr.response.body);
-
-      if (responseBody.error) {
-        expect(responseBody.error).to.eq('No data');
-      }
+      expect(xhr.status).to.eq(200);
     });
-    cy.get('div.alert').contains('No data');
+    cy.get('div.chart-container').contains('No Results');
   });
 });
