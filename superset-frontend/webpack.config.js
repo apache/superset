@@ -77,11 +77,14 @@ const plugins = [
     checkSyntacticErrors: true,
   }),
 
-  new CopyPlugin([
-    'package.json',
-    { from: 'images', to: 'images' },
-    { from: 'stylesheets', to: 'stylesheets' },
-  ]),
+  new CopyPlugin(
+    [
+      'package.json',
+      { from: 'images', to: 'images' },
+      { from: 'stylesheets', to: 'stylesheets' },
+    ],
+    { copyUnmodified: true },
+  ),
 ];
 
 if (isDevMode) {
