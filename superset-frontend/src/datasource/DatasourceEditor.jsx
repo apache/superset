@@ -32,7 +32,6 @@ import TextControl from '../explore/components/controls/TextControl';
 import SelectControl from '../explore/components/controls/SelectControl';
 import TextAreaControl from '../explore/components/controls/TextAreaControl';
 import SelectAsyncControl from '../explore/components/controls/SelectAsyncControl';
-import SpatialControl from '../explore/components/controls/SpatialControl';
 import CollectionTable from '../CRUD/CollectionTable';
 import EditableTitle from '../components/EditableTitle';
 import Fieldset from '../CRUD/Fieldset';
@@ -516,38 +515,6 @@ export class DatasourceEditor extends React.PureComponent {
     );
   }
 
-  renderSpatialTab() {
-    const { datasource } = this.state;
-    const { spatials, all_cols: allCols } = datasource;
-    return (
-      <Tab
-        title={
-          <CollectionTabTitle collection={spatials} title={t('Spatial')} />
-        }
-        eventKey={4}
-      >
-        <CollectionTable
-          tableColumns={['name', 'config']}
-          onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
-          itemGenerator={() => ({
-            name: '<new spatial>',
-            type: '<no type>',
-            config: null,
-          })}
-          collection={spatials}
-          allowDeletes
-          itemRenderers={{
-            name: (d, onChange) => (
-              <EditableTitle canEdit title={d} onSaveTitle={onChange} />
-            ),
-            config: (v, onChange) => (
-              <SpatialControl value={v} onChange={onChange} choices={allCols} />
-            ),
-          }}
-        />
-      </Tab>
-    );
-  }
 
   renderErrors() {
     if (this.state.errors.length > 0) {
@@ -650,18 +617,26 @@ export class DatasourceEditor extends React.PureComponent {
         <Tabs
           id="table-tabs"
           onSelect={this.handleTabSelect}
-          defaultActiveKey={activeTabKey}
         >
-          <Tab
-            title={
-              <CollectionTabTitle
-                collection={datasource.metrics}
-                title={t('Metrics')}
-              />
-            }
-            eventKey={1}
-          >
-            {activeTabKey === 1 && this.renderMetricCollection()}
+          <Tab eventKey={1} title={t('Settings')}>
+            {activeTabKey === 1 && (
+              <div>
+                <div className="m-t-10">
+                  <Alert bsStyle="warning">
+                    <span className="bold">{t('Be careful.')} </span>
+                    {t(
+                      'Changing these settings will affect all charts using this datasource, including charts owned by other people.',
+                    )}
+                  </Alert>
+                </div>
+                <Col md={6}>
+                  <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
+                </Col>
+                <Col md={6}>
+                  <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
+                </Col>
+              </div>
+            )}
           </Tab>
           <Tab
             title={
@@ -700,13 +675,24 @@ export class DatasourceEditor extends React.PureComponent {
           <Tab
             title={
               <CollectionTabTitle
-                collection={this.state.calculatedColumns}
-                title={t('Calculated Columns')}
+                collection={datasource.metrics}
+                title={t('Metrics')}
               />
             }
             eventKey={3}
           >
-            {activeTabKey === 3 && (
+            {activeTabKey === 3 && this.renderMetricCollection()}
+          </Tab>
+          <Tab
+            title={
+              <CollectionTabTitle
+                collection={this.state.calculatedColumns}
+                title={t('Calculated Columns')}
+              />
+            }
+            eventKey={4}
+          >
+            {activeTabKey === 4 && (
               <ColumnCollectionTable
                 columns={this.state.calculatedColumns}
                 onChange={calculatedColumns =>
@@ -724,24 +710,6 @@ export class DatasourceEditor extends React.PureComponent {
                   __expanded: true,
                 })}
               />
-            )}
-          </Tab>
-          <Tab eventKey={4} title={t('Settings')}>
-            {activeTabKey === 4 && (
-              <div>
-                <div className="change-warning well">
-                  <span className="bold">{t('Be careful.')} </span>
-                  {t(
-                    'Changing these settings will affect all charts using this datasource, including charts owned by other people.',
-                  )}
-                </div>
-                <Col md={6}>
-                  <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
-                </Col>
-                <Col md={6}>
-                  <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
-                </Col>
-              </div>
             )}
           </Tab>
         </Tabs>
