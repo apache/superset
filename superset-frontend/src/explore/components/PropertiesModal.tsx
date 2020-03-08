@@ -17,8 +17,6 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
 import {
   Button,
   Modal,
@@ -27,15 +25,33 @@ import {
   FormControl,
   FormGroup,
 } from 'react-bootstrap';
+// @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import Select from 'react-select';
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient, Json } from '@superset-ui/connection';
 
-import { sliceUpdated } from '../actions/exploreActions';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
-function PropertiesModalWrapper({ show, onHide, animation, slice, onSave }) {
+export type Slice = {
+  slice_id: number,
+  slice_name: string,
+  description: string | null,
+  cache_timeout: number | null,
+}
+
+type InternalProps = {
+  slice: Slice,
+  onHide: () => void,
+  onSave: (slice: Slice) => void,
+}
+
+export type Props = InternalProps & {
+  show: boolean,
+  animation: any, // animation for the modal
+}
+
+export default function PropertiesModalWrapper({ show, onHide, animation, slice, onSave }: Props) {
   // The wrapper is a separate component so that hooks only run when the modal opens
   return (
     <Modal show={show} onHide={onHide} animation={animation} bsSize="large">
@@ -44,9 +60,9 @@ function PropertiesModalWrapper({ show, onHide, animation, slice, onSave }) {
   );
 }
 
-function PropertiesModal({ slice, onHide, onSave }) {
+function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   const [submitting, setSubmitting] = useState(false);
-  const errorDialog = useRef();
+  const errorDialog = useRef<any>(null);
   const [ownerOptions, setOwnerOptions] = useState(null);
 
   // values of form inputs
@@ -55,9 +71,9 @@ function PropertiesModal({ slice, onHide, onSave }) {
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [owners, setOwners] = useState(null);
+  const [owners, setOwners] = useState<any[] | null>(null);
 
-  function showError({ error, statusText }) {
+  function showError({ error, statusText }: any) {
     errorDialog.current.show({
       title: 'Error',
       bsSize: 'medium',
@@ -72,8 +88,9 @@ function PropertiesModal({ slice, onHide, onSave }) {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
       });
+      const chart = (response.json as Json).result;
       setOwners(
-        response.json.result.owners.map(owner => ({
+        chart.owners.map((owner: any) => ({
           value: owner.id,
           label: owner.username,
         })),
@@ -94,8 +111,9 @@ function PropertiesModal({ slice, onHide, onSave }) {
     SupersetClient.get({
       endpoint: `/api/v1/chart/related/owners`,
     }).then(res => {
+      const owners = (res.json as Json).result;
       setOwnerOptions(
-        res.json.result.map(item => ({
+        owners.map((item: any) => ({
           value: item.value,
           label: item.text,
         })),
@@ -103,7 +121,7 @@ function PropertiesModal({ slice, onHide, onSave }) {
     });
   }, []);
 
-  const onSubmit = async event => {
+  const onSubmit = async (event: React.FormEvent) => {
     event.stopPropagation();
     event.preventDefault();
     setSubmitting(true);
@@ -111,7 +129,7 @@ function PropertiesModal({ slice, onHide, onSave }) {
       slice_name: name || null,
       description: description || null,
       cache_timeout: cacheTimeout || null,
-      owners: owners.map(o => o.value),
+      owners: owners!.map(o => o.value),
     };
     try {
       const res = await SupersetClient.put({
@@ -120,7 +138,7 @@ function PropertiesModal({ slice, onHide, onSave }) {
         body: JSON.stringify(payload),
       });
       // update the redux state
-      onSave(res.json.result);
+      onSave((res.json as Json).result);
       onHide();
     } catch (res) {
       const clientError = await getClientErrorObject(res);
@@ -147,7 +165,7 @@ function PropertiesModal({ slice, onHide, onSave }) {
                 type="text"
                 bsSize="sm"
                 value={name}
-                onChange={event => setName(event.target.value)}
+                onChange={event => setName((event.target as HTMLInputElement).value)}
               />
             </FormGroup>
             <FormGroup>
@@ -160,7 +178,7 @@ function PropertiesModal({ slice, onHide, onSave }) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
-                onChange={event => setDescription(event.target.value)}
+                onChange={event => setDescription((event.target as HTMLInputElement).value)}
                 style={{ maxWidth: '100%' }}
               />
               <p className="help-block">
@@ -182,7 +200,7 @@ function PropertiesModal({ slice, onHide, onSave }) {
                 bsSize="sm"
                 value={cacheTimeout}
                 onChange={event =>
-                  setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
+                  setCacheTimeout((event.target as HTMLInputElement).value.replace(/[^0-9]/, ''))
                 }
               />
               <p className="help-block">
@@ -218,7 +236,7 @@ function PropertiesModal({ slice, onHide, onSave }) {
           bsSize="sm"
           bsStyle="primary"
           className="m-r-5"
-          disabled={submitting}
+          disabled={!owners || submitting}
         >
           {t('Save')}
         </Button>
@@ -230,10 +248,3 @@ function PropertiesModal({ slice, onHide, onSave }) {
     </form>
   );
 }
-
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators({ onSave: sliceUpdated }, dispatch);
-}
-
-export { PropertiesModalWrapper };
-export default connect(null, mapDispatchToProps)(PropertiesModalWrapper);

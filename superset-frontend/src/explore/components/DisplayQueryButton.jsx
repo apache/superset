@@ -17,6 +17,8 @@
  * under the License.
  */
 import React from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import SyntaxHighlighter, {
   registerLanguage,
@@ -47,6 +49,7 @@ import Button from '../../components/Button';
 import RowCountLabel from './RowCountLabel';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
 import PropertiesModal from './PropertiesModal';
+import { sliceUpdated } from '../actions/exploreActions';
 
 registerLanguage('markdown', markdownSyntax);
 registerLanguage('html', htmlSyntax);
@@ -65,7 +68,7 @@ const defaultProps = {
   animation: true,
 };
 
-export default class DisplayQueryButton extends React.PureComponent {
+class DisplayQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
     const { datasource } = props.latestQueryFormData;
@@ -242,6 +245,7 @@ export default class DisplayQueryButton extends React.PureComponent {
               slice={this.props.slice}
               show={this.state.isPropertiesModalOpen}
               onHide={this.closePropertiesModal}
+              onSave={this.props.sliceUpdated}
               animation={this.props.animation}
             />
           </>
@@ -285,3 +289,9 @@ export default class DisplayQueryButton extends React.PureComponent {
 
 DisplayQueryButton.propTypes = propTypes;
 DisplayQueryButton.defaultProps = defaultProps;
+
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators({ sliceUpdated }, dispatch);
+}
+
+export default connect(null, mapDispatchToProps)(DisplayQueryButton);
