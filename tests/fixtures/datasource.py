@@ -18,6 +18,7 @@
 datasource_post = {
     "id": None,
     "column_formats": {"ratio": ".2%"},
+    "database": {"id": 1},
     "description": "Adding a DESCRip",
     "default_endpoint": "",
     "filter_select_enabled": True,
