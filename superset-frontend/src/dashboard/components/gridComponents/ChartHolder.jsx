@@ -239,7 +239,7 @@ class ChartHolder extends React.Component {
               ref={dragSourceRef}
               className={`dashboard-component dashboard-component-chart-holder ${
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
-              } ${this.state.isFullSize ? 'full-size-style' : ''}`}
+              } ${this.state.isFullSize ? 'full-size' : ''}`}
             >
               {!editMode && (
                 <AnchorLink
