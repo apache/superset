@@ -173,6 +173,7 @@ the world know they are using Superset. Join our growing community!
  1. [PubNub](https://pubnub.com)
  1. [QPID Health](http://www.qpidhealth.com/)
  1. [Qunar](https://www.qunar.com/)
+ 1. [Rakuten Viki](https://www.viki.com)
  1. [Reward Gateway](https://www.rewardgateway.com)
  1. [Safaricom](https://www.safaricom.co.ke/)
  1. [Scoot](https://scoot.co/)
