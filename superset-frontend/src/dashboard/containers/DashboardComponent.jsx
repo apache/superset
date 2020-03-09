@@ -46,6 +46,7 @@ const propTypes = {
   logEvent: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
+  dashboardId: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -55,7 +56,7 @@ const defaultProps = {
 };
 
 function mapStateToProps(
-  { dashboardLayout: undoableLayout, dashboardState },
+  { dashboardLayout: undoableLayout, dashboardState, dashboardInfo },
   ownProps,
 ) {
   const dashboardLayout = undoableLayout.present;
@@ -68,6 +69,7 @@ function mapStateToProps(
     filters: getActiveFilters(),
     directPathToChild: dashboardState.directPathToChild,
     directPathLastUpdated: dashboardState.directPathLastUpdated,
+    dashboardId: dashboardInfo.id,
     filterFieldOnFocus:
       dashboardState.focusedFilterField.length === 0
         ? {}

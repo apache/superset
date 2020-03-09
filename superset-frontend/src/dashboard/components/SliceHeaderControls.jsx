@@ -28,6 +28,7 @@ import { getActiveFilters } from '../util/activeDashboardFilters';
 const propTypes = {
   slice: PropTypes.object.isRequired,
   componentId: PropTypes.string.isRequired,
+  dashboardId: PropTypes.number.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   isCached: PropTypes.bool,
   isExpanded: PropTypes.bool,
@@ -91,7 +92,10 @@ class SliceHeaderControls extends React.PureComponent {
 
   refreshChart() {
     if (this.props.updatedDttm) {
-      this.props.forceRefresh(this.props.slice.slice_id);
+      this.props.forceRefresh(
+        this.props.slice.slice_id,
+        this.props.dashboardId,
+      );
     }
   }
 
