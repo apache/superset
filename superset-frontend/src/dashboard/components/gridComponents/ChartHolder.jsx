@@ -42,6 +42,7 @@ const CHART_MARGIN = 32;
 const propTypes = {
   id: PropTypes.string.isRequired,
   parentId: PropTypes.string.isRequired,
+  dashboardId: PropTypes.number.isRequired,
   component: componentShape.isRequired,
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
@@ -175,6 +176,7 @@ class ChartHolder extends React.Component {
       handleComponentDrop,
       editMode,
       isComponentVisible,
+      dashboardId,
     } = this.props;
 
     // inherit the size of parent columns
@@ -228,6 +230,7 @@ class ChartHolder extends React.Component {
               <Chart
                 componentId={component.id}
                 id={component.meta.chartId}
+                dashboardId={dashboardId}
                 width={Math.floor(
                   widthMultiple * columnWidth +
                     (widthMultiple - 1) * GRID_GUTTER_SIZE -
