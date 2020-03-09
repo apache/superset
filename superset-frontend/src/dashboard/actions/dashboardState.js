@@ -218,10 +218,17 @@ export function saveDashboardRequest(data, id, saveType) {
   };
 }
 
-export function fetchCharts(chartList = [], force = false, interval = 0) {
+export function fetchCharts(
+  chartList = [],
+  force = false,
+  interval = 0,
+  dashboardId,
+) {
   return (dispatch, getState) => {
     if (!interval) {
-      chartList.forEach(chartKey => dispatch(refreshChart(chartKey, force)));
+      chartList.forEach(chartKey =>
+        dispatch(refreshChart(chartKey, force, dashboardId)),
+      );
       return;
     }
 
@@ -237,7 +244,10 @@ export function fetchCharts(chartList = [], force = false, interval = 0) {
       ? refreshTime / (chartList.length - 1)
       : 0;
     chartList.forEach((chartKey, i) => {
-      setTimeout(() => dispatch(refreshChart(chartKey, force)), delay * i);
+      setTimeout(
+        () => dispatch(refreshChart(chartKey, force, dashboardId)),
+        delay * i,
+      );
     });
   };
 }

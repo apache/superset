@@ -22,6 +22,7 @@ export default () =>
   describe('dashboard filter', () => {
     let sliceIds = [];
     let filterId;
+    let dashboardId;
 
     beforeEach(() => {
       cy.server();
@@ -32,6 +33,7 @@ export default () =>
       cy.get('#app').then(data => {
         const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
         const dashboard = bootstrapData.dashboard_data;
+        dashboardId = dashboard.id;
         sliceIds = dashboard.slices.map(slice => slice.slice_id);
         filterId = dashboard.slices.find(
           slice => slice.form_data.viz_type === 'filter_box',
@@ -43,7 +45,7 @@ export default () =>
       const aliases = [];
 
       const formData = `{"slice_id":${filterId}}`;
-      const filterRoute = `/superset/explore_json/?form_data=${formData}`;
+      const filterRoute = `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`;
       cy.route('POST', filterRoute).as('fetchFilter');
       cy.wait('@fetchFilter');
       sliceIds
@@ -54,7 +56,7 @@ export default () =>
 
           cy.route(
             'POST',
-            `/superset/explore_json/?form_data={"slice_id":${id}}`,
+            `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboardId}`,
           ).as(alias);
         });
 

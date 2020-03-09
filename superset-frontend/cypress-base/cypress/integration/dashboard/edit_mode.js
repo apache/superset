@@ -28,11 +28,12 @@ export default () =>
       cy.get('#app').then(data => {
         const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
         const dashboard = bootstrapData.dashboard_data;
+        const dashboardId = dashboard.id;
         const boxplotChartId = dashboard.slices.find(
           slice => slice.form_data.viz_type === 'box_plot',
         ).slice_id;
         const formData = `{"slice_id":${boxplotChartId}}`;
-        const boxplotRequest = `/superset/explore_json/?form_data=${formData}`;
+        const boxplotRequest = `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`;
         cy.route('POST', boxplotRequest).as('boxplotRequest');
       });
 
