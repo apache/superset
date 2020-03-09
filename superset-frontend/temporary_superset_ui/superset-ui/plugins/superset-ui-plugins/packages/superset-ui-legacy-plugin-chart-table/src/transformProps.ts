@@ -78,9 +78,11 @@ export default function transformProps(chartProps: ChartProps): DataTableProps {
   } = formData;
   const { columnFormats, verboseMap } = datasource;
   const { records, columns: columns_ } = queryData.data;
-  const metrics = metrics_.map(consolidateMetricShape);
+  const metrics = (metrics_ ?? []).map(consolidateMetricShape);
   // percent metrics always starts with a '%' sign.
-  const percentMetrics = percentMetrics_.map(consolidateMetricShape).map((x: string) => `%${x}`);
+  const percentMetrics = (percentMetrics_ ?? [])
+    .map(consolidateMetricShape)
+    .map((x: string) => `%${x}`);
   const columns = columns_.map((key: string) => {
     let label = verboseMap[key] || key;
 
