@@ -53,7 +53,7 @@ const propTypes = {
   chart: chartPropShape,
 };
 
-class ExploreChartHeader extends React.PureComponent {
+export class ExploreChartHeader extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -115,7 +115,7 @@ class ExploreChartHeader extends React.PureComponent {
   closePropertiesModal() {
     this.setState({
       isPropertiesModalOpen: false,
-    })
+    });
   }
 
   renderChartTitle() {

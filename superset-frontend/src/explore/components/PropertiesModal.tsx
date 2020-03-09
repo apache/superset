@@ -30,28 +30,34 @@ import Dialog from 'react-bootstrap-dialog';
 import Select from 'react-select';
 import { t } from '@superset-ui/translation';
 import { SupersetClient, Json } from '@superset-ui/connection';
-
 import getClientErrorObject from '../../utils/getClientErrorObject';
+import Chart from 'src/types/Chart';
 
 export type Slice = {
-  slice_id: number,
-  slice_name: string,
-  description: string | null,
-  cache_timeout: number | null,
-}
+  slice_id: number;
+  slice_name: string;
+  description: string | null;
+  cache_timeout: number | null;
+};
 
 type InternalProps = {
-  slice: Slice,
-  onHide: () => void,
-  onSave: (slice: Slice) => void,
-}
+  slice: Slice;
+  onHide: () => void;
+  onSave: (chart: Chart) => void;
+};
 
-export type Props = InternalProps & {
-  show: boolean,
-  animation: any, // animation for the modal
-}
+export type WrapperProps = InternalProps & {
+  show: boolean;
+  animation?: boolean; // for the modal
+};
 
-export default function PropertiesModalWrapper({ show, onHide, animation, slice, onSave }: Props) {
+export default function PropertiesModalWrapper({
+  show,
+  onHide,
+  animation,
+  slice,
+  onSave,
+}: WrapperProps) {
   // The wrapper is a separate component so that hooks only run when the modal opens
   return (
     <Modal show={show} onHide={onHide} animation={animation} bsSize="large">
@@ -138,7 +144,11 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
         body: JSON.stringify(payload),
       });
       // update the redux state
-      onSave((res.json as Json).result);
+      const updatedChart = {
+        ...(res.json as Json).result,
+        id: slice.slice_id,
+      };
+      onSave(updatedChart);
       onHide();
     } catch (res) {
       const clientError = await getClientErrorObject(res);
@@ -165,7 +175,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
-                onChange={event => setName((event.target as HTMLInputElement).value)}
+                onChange={event =>
+                  setName((event.target as HTMLInputElement).value)
+                }
               />
             </FormGroup>
             <FormGroup>
@@ -178,7 +190,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
-                onChange={event => setDescription((event.target as HTMLInputElement).value)}
+                onChange={event =>
+                  setDescription((event.target as HTMLInputElement).value)
+                }
                 style={{ maxWidth: '100%' }}
               />
               <p className="help-block">
@@ -200,7 +214,12 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 bsSize="sm"
                 value={cacheTimeout}
                 onChange={event =>
-                  setCacheTimeout((event.target as HTMLInputElement).value.replace(/[^0-9]/, ''))
+                  setCacheTimeout(
+                    (event.target as HTMLInputElement).value.replace(
+                      /[^0-9]/,
+                      '',
+                    ),
+                  )
                 }
               />
               <p className="help-block">

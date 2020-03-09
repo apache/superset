@@ -68,7 +68,7 @@ const defaultProps = {
   animation: true,
 };
 
-class DisplayQueryButton extends React.PureComponent {
+export class DisplayQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
     const { datasource } = props.latestQueryFormData;
@@ -223,6 +223,7 @@ class DisplayQueryButton extends React.PureComponent {
     return null;
   }
   render() {
+    const { animation, slice } = this.props;
     return (
       <DropdownButton
         noCaret
@@ -236,23 +237,23 @@ class DisplayQueryButton extends React.PureComponent {
         pullRight
         id="query"
       >
-        {this.props.slice && (
+        {slice && (
           <>
             <MenuItem onClick={this.openPropertiesModal}>
               {t('Edit properties')}
             </MenuItem>
             <PropertiesModal
-              slice={this.props.slice}
+              slice={slice}
               show={this.state.isPropertiesModalOpen}
               onHide={this.closePropertiesModal}
               onSave={this.props.sliceUpdated}
-              animation={this.props.animation}
+              animation={animation}
             />
           </>
         )}
         <ModalTrigger
           isMenuItem
-          animation={this.props.animation}
+          animation={animation}
           triggerNode={<span>{t('View query')}</span>}
           modalTitle={t('View query')}
           bsSize="large"
@@ -261,7 +262,7 @@ class DisplayQueryButton extends React.PureComponent {
         />
         <ModalTrigger
           isMenuItem
-          animation={this.props.animation}
+          animation={animation}
           triggerNode={<span>{t('View results')}</span>}
           modalTitle={t('View results')}
           bsSize="large"
@@ -270,7 +271,7 @@ class DisplayQueryButton extends React.PureComponent {
         />
         <ModalTrigger
           isMenuItem
-          animation={this.props.animation}
+          animation={animation}
           triggerNode={<span>{t('View samples')}</span>}
           modalTitle={t('View samples')}
           bsSize="large"

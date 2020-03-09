@@ -147,6 +147,7 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
     list_columns = [
         "id",
         "slice_name",
+        "description",
         "url",
         "description",
         "changed_by.username",
