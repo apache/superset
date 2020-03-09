@@ -73,15 +73,17 @@ class PropertiesModal extends React.PureComponent {
   fetchOwnerOptions() {
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/related/owners`,
-    }).then(response => {
-      const options = response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      }));
-      this.setState({
-        ownerOptions: options,
-      });
-    }).catch(err => console.error(err))
+    })
+      .then(response => {
+        const options = response.json.result.map(item => ({
+          value: item.value,
+          label: item.text,
+        }));
+        this.setState({
+          ownerOptions: options,
+        });
+      })
+      .catch(err => console.error(err));
   }
 
   fetchDashboardDetails() {
@@ -91,23 +93,25 @@ class PropertiesModal extends React.PureComponent {
     // datamodel, the dashboard could probably just be passed as a prop.
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
-    }).then(response => {
-      const dashboard = response.json.result;
-      this.setState((state) => ({
-        isDashboardLoaded: true,
-        values: {
-          ...state.values,
-          dashboard_title: dashboard.dashboard_title || '',
-          slug: dashboard.slug || '',
-          json_metadata: dashboard.json_metadata || '',
-        },
-      }));
-      const initialSelectedValues = dashboard.owners.map(owner => ({
-        value: owner.id,
-        label: owner.username,
-      }));
-      this.onOwnersChange(initialSelectedValues);
-    }).catch(err => console.error(err));
+    })
+      .then(response => {
+        const dashboard = response.json.result;
+        this.setState(state => ({
+          isDashboardLoaded: true,
+          values: {
+            ...state.values,
+            dashboard_title: dashboard.dashboard_title || '',
+            slug: dashboard.slug || '',
+            json_metadata: dashboard.json_metadata || '',
+          },
+        }));
+        const initialSelectedValues = dashboard.owners.map(owner => ({
+          value: owner.id,
+          label: owner.username,
+        }));
+        this.onOwnersChange(initialSelectedValues);
+      })
+      .catch(err => console.error(err));
   }
 
   onOwnersChange(value) {
@@ -156,15 +160,13 @@ class PropertiesModal extends React.PureComponent {
     })
       .then(({ json }) => {
         this.props.addSuccessToast(t('The dashboard has been saved'));
-        this.props.onDashboardSave(
-          {
-            id: this.props.dashboardId,
-            title: json.result.dashboard_title,
-            slug: json.result.slug,
-            jsonMetadata: json.result.json_metadata,
-            ownerIds: json.result.owners,
-          },
-        );
+        this.props.onDashboardSave({
+          id: this.props.dashboardId,
+          title: json.result.dashboard_title,
+          slug: json.result.slug,
+          jsonMetadata: json.result.json_metadata,
+          ownerIds: json.result.owners,
+        });
         this.props.onHide();
       })
       .catch(response =>
@@ -181,7 +183,12 @@ class PropertiesModal extends React.PureComponent {
   }
 
   render() {
-    const { ownerOptions, values, isDashboardLoaded, isAdvancedOpen } = this.state;
+    const {
+      ownerOptions,
+      values,
+      isDashboardLoaded,
+      isAdvancedOpen,
+    } = this.state;
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <form onSubmit={this.save}>
