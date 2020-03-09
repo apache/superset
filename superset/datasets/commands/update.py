@@ -30,7 +30,9 @@ from superset.datasets.commands.exceptions import (
     DatasetForbiddenError,
     DatasetInvalidError,
     DatasetNotFoundError,
+    DatasetUpdateColumnNotFoundValidationError,
     DatasetUpdateFailedError,
+    DatasetUpdateMetricNotFoundValidationError,
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
@@ -84,6 +86,21 @@ class UpdateDatasetCommand(BaseCommand):
             self._properties["owners"] = owners
         except ValidationError as e:
             exceptions.append(e)
+
+        # Validate if columns for update exist
+        columns = self._properties.get("columns")
+        if columns:
+            columns_ids = [column.get("id") for column in columns if "id" in column]
+            if not DatasetDAO.validate_columns_exist(self._model_id, columns_ids):
+                exceptions.append(DatasetUpdateColumnNotFoundValidationError())
+
+        # Validate if metrics for update exist
+        metrics = self._properties.get("metrics")
+        if metrics:
+            metrics_ids = [metric.get("id") for metric in metrics if "id" in metric]
+            if not DatasetDAO.validate_metrics_exist(self._model_id, metrics_ids):
+                exceptions.append(DatasetUpdateMetricNotFoundValidationError())
+
         if exceptions:
             exception = DatasetInvalidError()
             exception.add_list(exceptions)

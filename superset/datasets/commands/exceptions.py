@@ -57,6 +57,32 @@ class DatasetExistsValidationError(ValidationError):
         )
 
 
+class DatasetUpdateColumnNotFoundValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset column for update does not exist
+    """
+
+    def __init__(self):
+        super().__init__(
+            super().__init__(
+                _("One or more columns do not exist"), field_names=["columns"]
+            )
+        )
+
+
+class DatasetUpdateMetricNotFoundValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset metric for update does not exist
+    """
+
+    def __init__(self):
+        super().__init__(
+            super().__init__(
+                _("One or more metrics do not exist"), field_names=["metrics"]
+            )
+        )
+
+
 class TableNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error when a table does not exist on the database
@@ -97,6 +123,10 @@ class DatasetUpdateFailedError(UpdateFailedError):
 
 class DatasetDeleteFailedError(DeleteFailedError):
     message = _("Dataset could not be deleted.")
+
+
+class DatasetRefreshFailedError(UpdateFailedError):
+    message = _("Dataset could not be updated.")
 
 
 class DatasetForbiddenError(ForbiddenError):
