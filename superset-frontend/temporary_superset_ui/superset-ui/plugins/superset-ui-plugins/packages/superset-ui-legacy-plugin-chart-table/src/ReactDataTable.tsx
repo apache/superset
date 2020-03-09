@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import React, { useEffect, createRef } from 'react';
+import ReactDOMServer from 'react-dom/server';
 import { formatNumber, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatter } from '@superset-ui/time-format';
 import { filterXSS } from 'xss';
@@ -202,49 +203,58 @@ export default function ReactDataTable(props: DataTableProps) {
     };
   });
 
-  return (
-    <div ref={rootElem} className="superset-legacy-chart-table">
-      <table className="table table-striped table-condensed table-hover">
-        <thead>
-          <tr>
-            {columns.map(col => (
-              // by default all columns will have sorting
-              <th key={col.key} className="sorting" title={col.label}>
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((record, i) => (
-            // hide rows after first page makes the initial render faster (less layout computation)
-            // eslint-disable-next-line react/no-array-index-key
-            <tr key={i} style={{ display: pageLength > 0 && i >= pageLength ? 'none' : undefined }}>
-              {columns.map(({ key, format }) => {
-                const val = record[key];
-                const keyIsMetric = metricsSet.has(key);
-                const text = cellText(key, format, val);
-                const isHtml = !keyIsMetric && isProbablyHTML(text);
-                return (
-                  <td
-                    key={key}
-                    // only set innerHTML for actual html content, this saves time
-                    dangerouslySetInnerHTML={isHtml ? { __html: text } : undefined}
-                    data-sort={val}
-                    className={keyIsMetric ? 'text-right' : ''}
-                    style={{
-                      backgroundImage: keyIsMetric ? cellBar(key, val as number) : undefined,
-                    }}
-                    title={keyIsMetric || percentMetricsSet.has(key) ? (val as string) : ''}
-                  >
-                    {isHtml ? null : text}
-                  </td>
-                );
-              })}
-            </tr>
+  const tableElement = (
+    <table className="table table-striped table-condensed table-hover">
+      <thead>
+        <tr>
+          {columns.map(col => (
+            // by default all columns will have sorting
+            <th key={col.key} className="sorting" title={col.label}>
+              {col.label}
+            </th>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((record, i) => (
+          <tr
+            // eslint-disable-next-line react/no-array-index-key
+            key={i}
+            // hide rows after first page makes the initial render faster (less layout computation)
+            style={{ display: pageLength > 0 && i >= pageLength ? 'none' : undefined }}
+          >
+            {columns.map(({ key, format }) => {
+              const val = record[key];
+              const keyIsMetric = metricsSet.has(key);
+              const text = cellText(key, format, val);
+              const isHtml = !keyIsMetric && isProbablyHTML(text);
+              return (
+                <td
+                  key={key}
+                  // only set innerHTML for actual html content, this saves time
+                  dangerouslySetInnerHTML={isHtml ? { __html: text } : undefined}
+                  data-sort={val}
+                  className={keyIsMetric ? 'text-right' : ''}
+                  style={{
+                    backgroundImage: keyIsMetric ? cellBar(key, val as number) : undefined,
+                  }}
+                  title={keyIsMetric || percentMetricsSet.has(key) ? (val as string) : ''}
+                >
+                  {isHtml ? null : text}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  return (
+    <div
+      dangerouslySetInnerHTML={{ __html: ReactDOMServer.renderToStaticMarkup(tableElement) }}
+      ref={rootElem}
+      className="superset-legacy-chart-table"
+    />
   );
 }
