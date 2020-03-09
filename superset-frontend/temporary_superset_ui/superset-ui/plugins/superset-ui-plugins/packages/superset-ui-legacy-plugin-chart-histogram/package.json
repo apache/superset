@@ -32,7 +32,7 @@
     "@data-ui/theme": "^0.0.84",
     "@vx/legend": "^0.0.194",
     "@vx/responsive": "^0.0.195",
-    "@vx/scale": "^0.0.194",
+    "@vx/scale": "^0.0.195",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
