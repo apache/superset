@@ -62,6 +62,7 @@
     "fast-glob": "^3.0.1",
     "fs-extra": "^8.0.1",
     "husky": "^4.2.1",
+    "identity-obj-proxy": "^3.0.0",
     "jest-mock-console": "^1.0.0",
     "lerna": "^3.15.0",
     "lint-staged": "^10.0.7",
@@ -102,7 +103,8 @@
     "jest": {
       "timers": "real",
       "setupFilesAfterEnv": [
-        "@airbnb/config-jest/enzyme"
+        "@airbnb/config-jest/enzyme",
+        "./scripts/setupJest.js"
       ],
       "coverageThreshold": {
         "global": {
@@ -111,6 +113,10 @@
           "lines": 1,
           "statements": 1
         }
+      },
+      "moduleNameMapper": {
+        "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js",
+        "\\.(css|less)$": "identity-obj-proxy"
       }
     },
     "eslint": {

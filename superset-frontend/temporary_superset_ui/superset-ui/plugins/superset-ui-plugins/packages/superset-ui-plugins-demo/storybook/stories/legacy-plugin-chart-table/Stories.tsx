@@ -25,13 +25,32 @@ function paginated(props: SuperChartProps, pageSize = 50) {
   };
 }
 
+function adjustNumCols(props: SuperChartProps, numCols = 7) {
+  const newProps = { ...props };
+  if (props.queryData) {
+    const { columns } = props.queryData.data;
+    const curSize = columns.length;
+    const newColumns = [...Array(numCols)].map((_, i) => {
+      return columns[i % curSize];
+    });
+    newProps.queryData = {
+      ...props.queryData,
+      data: {
+        ...props.queryData.data,
+        columns: newColumns,
+      },
+    };
+  }
+  return newProps;
+}
+
 /**
  * Load sample data for testing
  * @param props the original props passed to SuperChart
  * @param pageSize number of records perpage
  * @param targetSize the target total number of records
  */
-function loadData(props: SuperChartProps, pageSize = 50, targetSize = 10042) {
+function loadData(props: SuperChartProps, pageSize = 50, targetSize = 5042) {
   if (!props.queryData) return props;
   const data = props.queryData && props.queryData.data;
   if (data.records.length > 0) {
@@ -67,7 +86,7 @@ export default [
           metrics: ['sum__num'],
           orderDesc: true,
           pageLength: 0,
-          percentMetrics: [],
+          percentMetrics: null,
           tableFilter: false,
           tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
           timeseriesLimitMetric: null,
@@ -79,27 +98,51 @@ export default [
   },
   {
     renderStory() {
-      const [chartProps, setChartProps] = useState(loadData(birthNames));
+      const initialProps = loadData(birthNames);
+      const [chartProps, setChartProps] = useState(initialProps);
+
       const updatePageSize = (size: number) => {
-        setChartProps(paginated(chartProps, size));
+        setChartProps(paginated(initialProps, size));
       };
+      const updateNumCols = (numCols: number) => {
+        setChartProps(adjustNumCols(initialProps, numCols));
+      };
+
       return (
         <div className="superset-body">
           <div className="panel">
             <div className="panel-heading form-inline">
-              Initial page size:{' '}
-              <div className="btn-group">
-                {[10, 25, 40, 50, 100, -1].map(pageSize => {
-                  return (
-                    <button
-                      key={pageSize}
-                      className="btn btn-default"
-                      onClick={() => updatePageSize(pageSize)}
-                    >
-                      {pageSize > 0 ? pageSize : 'All'}
-                    </button>
-                  );
-                })}
+              <div className="form-group">
+                Initial page size:{' '}
+                <div className="btn-group btn-group-sm">
+                  {[10, 25, 40, 50, 100, -1].map(pageSize => {
+                    return (
+                      <button
+                        key={pageSize}
+                        className="btn btn-default"
+                        onClick={() => updatePageSize(pageSize)}
+                      >
+                        {pageSize > 0 ? pageSize : 'All'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="form-group" style={{ marginLeft: 20 }}>
+                Number of columns:{' '}
+                <div className="btn-group btn-group-sm">
+                  {[1, 3, 5, 7, 9].map(numCols => {
+                    return (
+                      <button
+                        key={numCols}
+                        className="btn btn-default"
+                        onClick={() => updateNumCols(numCols)}
+                      >
+                        {numCols}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
             <div className="panel-body">
