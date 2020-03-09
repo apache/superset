@@ -115,6 +115,14 @@ Contributing
 Interested in contributing? Casual hacking? Check out
 [Contributing.MD](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)
 
+Attributions
+------------
+
+Superset includes binaries subject to third party licenses. As per [Apache Software Foundation policies](https://www.apache.org/legal/resolved.html), we'd like to mention those here, in addition to the `LICENSE.txt` file within this repositoriy.
+
+* [The Inter font family](https://github.com/rsms/inter) (SIL OPEN FONT LICENSE Version 1.1)
+* [The Fira Code font family](https://github.com/tonsky/FiraCode) (SIL OPEN FONT LICENSE Version 1.1)
+
 
 Who uses Apache Superset (incubating)?
 --------------------------------------
