@@ -178,6 +178,26 @@ class BaseViz:
         """
         pass
 
+    def apply_rolling(self, df):
+        fd = self.form_data
+        rolling_type = fd.get("rolling_type")
+        rolling_periods = int(fd.get("rolling_periods") or 0)
+        min_periods = int(fd.get("min_periods") or 0)
+
+        if rolling_type in ("mean", "std", "sum") and rolling_periods:
+            kwargs = dict(window=rolling_periods, min_periods=min_periods)
+            if rolling_type == "mean":
+                df = df.rolling(**kwargs).mean()
+            elif rolling_type == "std":
+                df = df.rolling(**kwargs).std()
+            elif rolling_type == "sum":
+                df = df.rolling(**kwargs).sum()
+        elif rolling_type == "cumsum":
+            df = df.cumsum()
+        if min_periods:
+            df = df[min_periods:]
+        return df
+
     def get_samples(self):
         query_obj = self.query_obj()
         query_obj.update(
@@ -1101,6 +1121,18 @@ class BigNumberViz(BaseViz):
         self.form_data["metric"] = metric
         return d
 
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            columns=[],
+            values=self.metric_labels,
+            fill_value=0,
+            aggfunc=sum,
+        )
+        df = self.apply_rolling(df)
+        df[DTTM_ALIAS] = df.index
+        return super().get_data(df)
+
 
 class BigNumberTotalViz(BaseViz):
 
@@ -1225,23 +1257,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dfs.sort_values(ascending=False, inplace=True)
             df = df[dfs.index]
 
-        rolling_type = fd.get("rolling_type")
-        rolling_periods = int(fd.get("rolling_periods") or 0)
-        min_periods = int(fd.get("min_periods") or 0)
-
-        if rolling_type in ("mean", "std", "sum") and rolling_periods:
-            kwargs = dict(window=rolling_periods, min_periods=min_periods)
-            if rolling_type == "mean":
-                df = df.rolling(**kwargs).mean()
-            elif rolling_type == "std":
-                df = df.rolling(**kwargs).std()
-            elif rolling_type == "sum":
-                df = df.rolling(**kwargs).sum()
-        elif rolling_type == "cumsum":
-            df = df.cumsum()
-        if min_periods:
-            df = df[min_periods:]
-
+        df = self.apply_rolling(df)
         if fd.get("contribution"):
             dft = df.T
             df = (dft / dft.sum()).T
