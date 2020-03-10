@@ -70,7 +70,10 @@ initialize development environment: ::
     docker-compose up
 
 After several minutes for superset initialization to finish, you can open
-a browser and view `http://localhost:8088` to start your journey.
+a browser and view `http://localhost:8088` to start your journey. By default
+the system configures an admin user with the username of `admin` and a password
+of `admin` - if you are in a non-local environment it is highly recommended to
+change this username and password at your earliest convenience.
 
 From there, the container server will reload on modification of the superset python
 and javascript source code.
