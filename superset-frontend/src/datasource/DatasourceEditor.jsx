@@ -729,11 +729,13 @@ export class DatasourceEditor extends React.PureComponent {
           <Tab eventKey={4} title={t('Settings')}>
             {activeTabKey === 4 && (
               <div>
-                <div className="change-warning well">
-                  <span className="bold">{t('Be careful.')} </span>
-                  {t(
-                    'Changing these settings will affect all charts using this datasource, including charts owned by other people.',
-                  )}
+                <div className="m-t-10">
+                  <Alert bsStyle="warning">
+                    <span className="bold">{t('Be careful.')} </span>
+                    {t(
+                      'Changing these settings will affect all charts using this datasource, including charts owned by other people.',
+                    )}
+                  </Alert>
                 </div>
                 <Col md={6}>
                   <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
