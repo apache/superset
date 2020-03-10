@@ -274,18 +274,17 @@ class DashboardTests(SupersetTestCase):
         positions.pop(removed_component[0], None)
 
         data.update({"positions": positions})
-        old_to_new_sliceids = {slc.id: slc.id + 10 for slc in dash.slices}
-        views.Superset._set_dash_metadata(dash, data, old_to_new_sliceids)
+        views.Superset._set_dash_metadata(dash, data)
         updated_metadata = json.loads(dash.json_metadata)
-        updated_filter_scopes = {
-            str(filter_slice.id + 10): {
+        expected_filter_scopes = {
+            str(filter_slice.id): {
                 "region": {
                     "scope": ["ROOT_ID"],
-                    "immune": [slc.id + 10 for slc in immune_slices],
+                    "immune": [slc.id for slc in immune_slices],
                 }
             }
         }
-        self.assertEqual(updated_metadata["filter_scopes"], updated_filter_scopes)
+        self.assertEqual(updated_metadata["filter_scopes"], expected_filter_scopes)
 
         # reset dash to original data
         views.Superset._set_dash_metadata(dash, original_data)
