@@ -18,6 +18,8 @@
 import json
 from copy import deepcopy
 
+from superset.utils.core import get_or_create_db
+
 from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
 
@@ -61,8 +63,34 @@ class DatasourceTests(SupersetTestCase):
                 self.compare_lists(datasource_post[k], resp[k], "column_name")
             elif k == "metrics":
                 self.compare_lists(datasource_post[k], resp[k], "metric_name")
+            elif k == "database":
+                self.assertEqual(resp[k]["id"], datasource_post[k]["id"])
             else:
                 self.assertEqual(resp[k], datasource_post[k])
+
+    def save_datasource_from_dict(self, datasource_dict):
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.get_json_resp("/datasource/save/", data)
+        return resp
+
+    def test_change_database(self):
+        self.login(username="admin")
+        tbl = self.get_table_by_name("birth_names")
+        tbl_id = tbl.id
+        db_id = tbl.database_id
+        datasource_post["id"] = tbl_id
+
+        new_db = self.create_fake_db()
+
+        datasource_post["database"]["id"] = new_db.id
+        resp = self.save_datasource_from_dict(datasource_post)
+        self.assertEquals(resp["database"]["id"], new_db.id)
+
+        datasource_post["database"]["id"] = db_id
+        resp = self.save_datasource_from_dict(datasource_post)
+        self.assertEquals(resp["database"]["id"], db_id)
+
+        self.delete_fake_db()
 
     def test_save_duplicate_key(self):
         self.login(username="admin")
