@@ -54,9 +54,9 @@ class DatasetColumnsPutSchema(Schema):
 
 class DatasetMetricsPutSchema(Schema):
     id = fields.Integer()  # pylint: disable=invalid-name
-    expression = fields.String()
+    expression = fields.String(required=True)
     description = fields.String(allow_none=True)
-    metric_name = fields.String(validate=Length(1, 255))
+    metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
     warning_text = fields.String(allow_none=True)

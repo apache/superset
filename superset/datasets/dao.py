@@ -84,6 +84,16 @@ class DatasetDAO:
         return len(columns_ids) == len(dataset_query)
 
     @staticmethod
+    def validate_columns_uniqueness(dataset_id: int, columns_names: List[str]) -> bool:
+        dataset_query = (
+            db.session.query(TableColumn.id).filter(
+                TableColumn.table_id == dataset_id,
+                TableColumn.column_name.in_(columns_names),
+            )
+        ).all()
+        return len(dataset_query) == 0
+
+    @staticmethod
     def validate_metrics_exist(dataset_id: int, metrics_ids: List[int]) -> bool:
         dataset_query = (
             db.session.query(SqlMetric.id).filter(
@@ -91,6 +101,16 @@ class DatasetDAO:
             )
         ).all()
         return len(metrics_ids) == len(dataset_query)
+
+    @staticmethod
+    def validate_metrics_uniqueness(dataset_id: int, metrics_names: List[str]) -> bool:
+        dataset_query = (
+            db.session.query(SqlMetric.id).filter(
+                SqlMetric.table_id == dataset_id,
+                SqlMetric.metric_name.in_(metrics_names),
+            )
+        ).all()
+        return len(dataset_query) == 0
 
     @staticmethod
     def find_by_id(model_id: int) -> SqlaTable:

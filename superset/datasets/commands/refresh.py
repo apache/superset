@@ -43,7 +43,7 @@ class RefreshDatasetCommand(BaseCommand):
         self.validate()
         try:
             # Updates columns and metrics from the dataset
-            self._model.fetch_metadata(commit=False)
+            self._model.fetch_metadata()
         except Exception as e:
             logger.exception(e)
             raise DatasetRefreshFailedError()
