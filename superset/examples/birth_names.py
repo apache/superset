@@ -154,7 +154,7 @@ def load_birth_names(only_metadata=False, force=False):
             datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults, viz_type="pie", groupby=["gender"], metrics=metrics
+                defaults, viz_type="pie", groupby=["gender"], metric=metric
             ),
         ),
         Slice(
