@@ -168,6 +168,7 @@ export class ExploreChartHeader extends React.PureComponent {
             >
               <span
                 role="button"
+                tabIndex={0}
                 className="edit-desc-icon"
                 onClick={this.openProperiesModal}
               >

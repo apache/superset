@@ -30,8 +30,8 @@ import Dialog from 'react-bootstrap-dialog';
 import Select from 'react-select';
 import { t } from '@superset-ui/translation';
 import { SupersetClient, Json } from '@superset-ui/connection';
-import getClientErrorObject from '../../utils/getClientErrorObject';
 import Chart from 'src/types/Chart';
+import getClientErrorObject from '../../utils/getClientErrorObject';
 
 export type Slice = {
   slice_id: number;
@@ -117,9 +117,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
     SupersetClient.get({
       endpoint: `/api/v1/chart/related/owners`,
     }).then(res => {
-      const owners = (res.json as Json).result;
+      const { result } = res.json as Json;
       setOwnerOptions(
-        owners.map((item: any) => ({
+        result.map((item: any) => ({
           value: item.value,
           label: item.text,
         })),
