@@ -1360,6 +1360,7 @@ class Superset(BaseSupersetView):
                 encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
             )
             database.set_sqlalchemy_uri(uri)
+            database.db_engine_spec.mutate_database_for_connection_testing(database)
 
             username = g.user.username if g.user is not None else None
             engine = database.get_sqla_engine(user_name=username)
@@ -1395,7 +1396,9 @@ class Superset(BaseSupersetView):
             return json_error_response(_(str(e)), 400)
         except Exception as e:
             logger.error("Unexpected error %s", e)
-            return json_error_response(_("Unexpected error occurred."), 400)
+            return json_error_response(
+                _("Unexpected error occurred, please check your logs for details"), 400
+            )
 
     @api
     @has_access_api
