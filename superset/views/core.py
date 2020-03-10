@@ -1244,7 +1244,6 @@ class Superset(BaseSupersetView):
     def _set_dash_metadata(
         dashboard, data, old_to_new_slice_ids: Optional[Dict[int, int]] = None
     ):
-        old_to_new_slice_ids = old_to_new_slice_ids or {}
         positions = data["positions"]
         # find slices in the position data
         slice_ids = []
@@ -1289,10 +1288,17 @@ class Superset(BaseSupersetView):
         if "filter_scopes" in data:
             # replace filter_id and immune ids from old slice id to new slice id:
             # and remove slice ids that are not in dash anymore
+            slc_id_dict: Dict[int, int] = {}
+            if old_to_new_slice_ids:
+                slc_id_dict = {
+                    old: new
+                    for old, new in old_to_new_slice_ids.items()
+                    if new in slice_ids
+                }
+            else:
+                slc_id_dict = {sid: sid for sid in slice_ids}
             new_filter_scopes = copy_filter_scopes(
-                old_to_new_slc_id_dict={
-                    sid: old_to_new_slice_ids.get(sid, sid) for sid in slice_ids
-                },
+                old_to_new_slc_id_dict=slc_id_dict,
                 old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
             )
         if new_filter_scopes:
