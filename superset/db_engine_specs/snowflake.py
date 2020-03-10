@@ -83,7 +83,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return None
 
     @staticmethod
-    def mutate_database_for_connection_testing(database: "Database") -> None:
+    def mutate_db_for_connection_test(database: "Database") -> None:
         """
         By default, snowflake doesn't validate if the user/role has access to the chosen
         database.

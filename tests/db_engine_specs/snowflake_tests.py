@@ -36,8 +36,8 @@ class SnowflakeTestCase(DbEngineSpecTestCase):
 
     def test_database_connection_test_mutator(self):
         database = Database(sqlalchemy_uri="snowflake://abc")
-        SnowflakeEngineSpec.mutate_database_for_connection_testing(database)
-        engine_params = json.loads(database.extra or {})
+        SnowflakeEngineSpec.mutate_db_for_connection_test(database)
+        engine_params = json.loads(database.extra or "{}")
 
         self.assertDictEqual(
             {"engine_params": {"connect_args": {"validate_default_parameters": True}}},

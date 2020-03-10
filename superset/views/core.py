@@ -1360,7 +1360,7 @@ class Superset(BaseSupersetView):
                 encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
             )
             database.set_sqlalchemy_uri(uri)
-            database.db_engine_spec.mutate_database_for_connection_testing(database)
+            database.db_engine_spec.mutate_db_for_connection_test(database)
 
             username = g.user.username if g.user is not None else None
             engine = database.get_sqla_engine(user_name=username)

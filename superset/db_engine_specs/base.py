@@ -944,7 +944,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return data
 
     @staticmethod
-    def mutate_database_for_connection_testing(database: "Database") -> None:
+    def mutate_db_for_connection_test(database: "Database") -> None:
         """
         Some databases require passing additional parameters for validating database
         connections. This method makes it possible to mutate the database instance prior
