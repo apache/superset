@@ -30,7 +30,6 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['metric'],
         ['ranges', 'range_labels'],
         ['markers', 'marker_labels'],
         ['marker_lines', 'marker_line_labels'],
