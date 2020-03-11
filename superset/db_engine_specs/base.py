@@ -942,3 +942,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if data and type(data[0]).__name__ == "Row":
             data = [tuple(row) for row in data]
         return data
+
+    @staticmethod
+    def mutate_db_for_connection_test(database: "Database") -> None:
+        """
+        Some databases require passing additional parameters for validating database
+        connections. This method makes it possible to mutate the database instance prior
+        to testing if a connection is ok.
+
+        :param database: instance to be mutated
+        """
+        return None
