@@ -76,7 +76,7 @@
     "@superset-ui/legacy-plugin-chart-rose": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-sankey": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-sunburst": "^0.11.15",
-    "@superset-ui/legacy-plugin-chart-table": "^0.11.18",
+    "@superset-ui/legacy-plugin-chart-table": "^0.11.20",
     "@superset-ui/legacy-plugin-chart-treemap": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-word-cloud": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-world-map": "^0.11.15",
