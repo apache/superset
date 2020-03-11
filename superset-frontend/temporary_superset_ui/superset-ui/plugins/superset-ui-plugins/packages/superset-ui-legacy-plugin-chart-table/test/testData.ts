@@ -102,7 +102,19 @@ const advanced: ChartProps = {
   },
 };
 
+const empty = {
+  ...advanced,
+  queryData: {
+    ...advanced.queryData,
+    data: {
+      ...advanced.queryData.data,
+      records: [],
+    },
+  },
+};
+
 export default {
   basic,
   advanced,
+  empty,
 };

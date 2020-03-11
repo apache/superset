@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { mount, CommonWrapper } from 'enzyme';
 import ReactDataTable from '../src/ReactDataTable';
 import transformProps from '../src/transformProps';
 import testData from './testData';
@@ -27,7 +27,7 @@ describe('legacy-table', () => {
   describe('transformProps', () => {});
 
   describe('ReactDataTable', () => {
-    let wrap: any; // the ReactDataTable wraper
+    let wrap: CommonWrapper; // the ReactDataTable wraper
 
     it('render basic data', () => {
       wrap = mount(<ReactDataTable {...transformProps(testData.basic)} />);
@@ -52,6 +52,12 @@ describe('legacy-table', () => {
       ).toEqual('Sum of Num');
       expect(cells.eq(2).text()).toEqual('12.346%');
       expect(cells.eq(4).text()).toEqual('2.47k');
+    });
+
+    it('render empty data', () => {
+      wrap.setProps(transformProps(testData.empty));
+      const tree = wrap.render();
+      expect(tree.text()).toContain('No data available in table');
     });
   });
 });
