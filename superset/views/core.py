@@ -37,6 +37,7 @@ from sqlalchemy import and_, Integer, or_, select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import (
     ArgumentError,
+    DataError,
     NoSuchModuleError,
     OperationalError,
     SQLAlchemyError,
@@ -2704,13 +2705,18 @@ class Superset(BaseSupersetView):
                 }
                 for database in db.session.query(models.Database).all()
             }
-            # return all user queries associated with existing SQL editors
-            user_queries = (
-                db.session.query(Query)
-                .filter_by(user_id=user_id)
-                .filter(Query.sql_editor_id.cast(Integer).in_(tab_state_ids))
-                .all()
-            )
+            try:
+                # return all user queries associated with existing SQL editors
+                user_queries = (
+                    db.session.query(Query)
+                    .filter_by(user_id=user_id)
+                    .filter(Query.sql_editor_id.cast(Integer).in_(tab_state_ids))
+                    .all()
+                )
+            except DataError as e:
+                logger.error(e, exc_info=True)
+                user_queries = []
+
             queries = {
                 query.client_id: {k: v for k, v in query.to_dict().items()}
                 for query in user_queries
