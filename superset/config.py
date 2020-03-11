@@ -284,6 +284,7 @@ DEFAULT_FEATURE_FLAGS = {
     "PRESTO_EXPAND_DATA": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
+    "SQLLAB_BACKEND_PERSISTENCE": False,
 }
 
 # This is merely a default.
