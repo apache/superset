@@ -158,6 +158,18 @@ class DatasetList extends React.PureComponent<Props, State> {
       sortable: true,
     },
     {
+      accessor: 'schema',
+      hidden: true
+    },
+    {
+      accessor: 'owners',
+      hidden: true
+    },
+    {
+      accessor: 'is_sqllab_view',
+      hidden: true
+    },
+    {
       Cell: ({ row: { state, original } }: any) => {
         const handleDelete = () => this.handleDashboardDelete(original);
         const handleEdit = () => this.handleDashboardEdit(original);
