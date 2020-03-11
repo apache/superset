@@ -70,20 +70,17 @@ class PropertiesModal extends React.PureComponent {
     this.fetchDashboardDetails();
   }
 
-  fetchOwnerOptions() {
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/related/owners`,
-    })
-      .then(response => {
-        const options = response.json.result.map(item => ({
-          value: item.value,
-          label: item.text,
-        }));
-        this.setState({
-          ownerOptions: options,
-        });
-      })
-      .catch(err => console.error(err));
+  onOwnersChange(value) {
+    this.updateFormState('owners', value);
+  }
+
+  onMetadataChange(metadata) {
+    this.updateFormState('json_metadata', metadata);
+  }
+
+  onChange(e) {
+    const { name, value } = e.target;
+    this.updateFormState(name, value);
   }
 
   fetchDashboardDetails() {
@@ -114,17 +111,20 @@ class PropertiesModal extends React.PureComponent {
       .catch(err => console.error(err));
   }
 
-  onOwnersChange(value) {
-    this.updateFormState('owners', value);
-  }
-
-  onMetadataChange(metadata) {
-    this.updateFormState('json_metadata', metadata);
-  }
-
-  onChange(e) {
-    const { name, value } = e.target;
-    this.updateFormState(name, value);
+  fetchOwnerOptions() {
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/related/owners`,
+    })
+      .then(response => {
+        const options = response.json.result.map(item => ({
+          value: item.value,
+          label: item.text,
+        }));
+        this.setState({
+          ownerOptions: options,
+        });
+      })
+      .catch(err => console.error(err));
   }
 
   updateFormState(name, value) {
