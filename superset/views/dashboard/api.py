@@ -173,7 +173,8 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
+    filter_rel_fields_field = {"owners": "first_name"}
+    allowed_rel_fields = {"owners"}
 
     @expose("/", methods=["DELETE"])
     @protect()
