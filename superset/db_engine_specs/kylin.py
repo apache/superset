@@ -14,8 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import hashlib
+import re
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
+
+from sqlalchemy.sql import quoted_name
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
@@ -47,3 +51,23 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt == "TIMESTAMP":
             return f"""CAST('{dttm.isoformat(sep=" ", timespec="seconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
         return None
+
+    @classmethod
+    def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:
+        label_mutated = cls._mutate_label(label)
+        # explicitly disable quotes
+        label_mutated = quoted_name(label_mutated, False)
+        return label_mutated
+
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        label_hashed = "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
+        label_mutated = label.lower()
+
+        # replace non-alphanumeric characters with underscores
+        label_mutated = re.sub(r"[^\w]+", "_", label_mutated)
+        if label_mutated != label:
+            # add first 5 chars from md5 hash to label to avoid possible collisions
+            label_mutated += label_hashed[:6]
+
+        return label_mutated
