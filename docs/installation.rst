@@ -529,7 +529,11 @@ The role and warehouse can be omitted if defaults are defined for the user, i.e.
 
 Make sure the user has privileges to access and use all required
 databases/schemas/tables/views/warehouses, as the Snowflake SQLAlchemy engine does
-not test for user rights during engine creation.
+not test for user/role rights during engine creation by default. However, when
+pressing the "Test Connection" button in the Create or Edit Database dialog,
+user/role credentials are validated by passing `"validate_default_parameters": True`
+to the `connect()` method during engine creation. If the user/role is not authorized
+to access the database, an error is recorded in the Superset logs.
 
 See `Snowflake SQLAlchemy <https://github.com/snowflakedb/snowflake-sqlalchemy>`_.
 
