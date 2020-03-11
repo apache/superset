@@ -32,10 +32,11 @@
   margin-top: 0.5em;
 }
 
-.superset-legacy-chart-table thead th.sorting:after,
-table.table thead th.sorting_asc:after,
-table.table thead th.sorting_desc:after {
-  top: 0px;
+.superset-legacy-chart-table table.table thead th.sorting:after,
+.superset-legacy-chart-table table.table thead th.sorting_asc:after,
+.superset-legacy-chart-table table.table thead th.sorting_desc:after {
+  top: auto;
+  bottom: 6px;
 }
 .superset-legacy-chart-table td {
   white-space: pre-wrap;
