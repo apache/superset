@@ -2715,6 +2715,7 @@ class Superset(BaseSupersetView):
                 )
             except DataError as e:
                 logger.error(e, exc_info=True)
+                db.session.rollback()
                 user_queries = []
 
             queries = {
