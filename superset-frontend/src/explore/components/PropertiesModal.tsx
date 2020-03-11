@@ -24,6 +24,7 @@ import {
   Col,
   FormControl,
   FormGroup,
+  // @ts-ignore
 } from 'react-bootstrap';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
@@ -175,8 +176,8 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
-                onChange={event =>
-                  setName((event.target as HTMLInputElement).value)
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setName(event.target.value)
                 }
               />
             </FormGroup>
@@ -190,8 +191,8 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
-                onChange={event =>
-                  setDescription((event.target as HTMLInputElement).value)
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setDescription(event.target.value)
                 }
                 style={{ maxWidth: '100%' }}
               />
@@ -213,9 +214,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
-                onChange={event =>
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setCacheTimeout(
-                    (event.target as HTMLInputElement).value.replace(
+                    event.target.value.replace(
                       /[^0-9]/,
                       '',
                     ),
