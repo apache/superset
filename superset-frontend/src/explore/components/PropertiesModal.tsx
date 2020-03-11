@@ -215,12 +215,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 bsSize="sm"
                 value={cacheTimeout}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setCacheTimeout(
-                    event.target.value.replace(
-                      /[^0-9]/,
-                      '',
-                    ),
-                  )
+                  setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
                 }
               />
               <p className="help-block">
