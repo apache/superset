@@ -16,7 +16,7 @@
 # under the License.
 import functools
 import logging
-from typing import Set, Dict, Tuple
+from typing import Dict, Set, Tuple
 
 from flask import request
 from flask_appbuilder import ModelRestApi
