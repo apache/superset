@@ -46,6 +46,7 @@ interface State {
   filterOperators: FilterOperatorMap;
   filters: Filters;
   owners: Array<{ text: string; value: number }>;
+  databases: Array<{ text: string; value: number }>;
   permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
 }
@@ -75,6 +76,7 @@ class DatasetList extends React.PureComponent<Props, State> {
     lastFetchDataConfig: null,
     loading: false,
     owners: [],
+    databases: [],
     permissions: [],
   };
 
@@ -86,12 +88,16 @@ class DatasetList extends React.PureComponent<Props, State> {
       SupersetClient.get({
         endpoint: `/api/v1/dataset/related/owners`,
       }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/related/database`,
+      }),
     ]).then(
-      ([{ json: infoJson = {} }, { json: ownersJson = {} }]) => {
+      ([{ json: infoJson = {} }, { json: ownersJson = {} }, { json: databasesJson = {} }]) => {
         this.setState(
           {
             filterOperators: infoJson.filters,
             owners: ownersJson.result,
+            databases: databasesJson.result,
             permissions: infoJson.permissions,
           },
           this.updateFilters,
@@ -156,6 +162,10 @@ class DatasetList extends React.PureComponent<Props, State> {
       Header: t('Modified'),
       accessor: 'changed_on',
       sortable: true,
+    },
+    {
+      accessor: 'database',
+      hidden: true
     },
     {
       accessor: 'schema',
@@ -316,7 +326,7 @@ class DatasetList extends React.PureComponent<Props, State> {
   };
 
   updateFilters = () => {
-    const { filterOperators, owners } = this.state;
+    const { filterOperators, owners, databases } = this.state;
     const convertFilter = ({
       name: label,
       operator,
@@ -330,7 +340,9 @@ class DatasetList extends React.PureComponent<Props, State> {
         {
           Header: 'Database',
           id: 'database',
+          input: 'select',
           operators: filterOperators.database.map(convertFilter),
+          selects: databases.map(({ text: label, value }) => ({ label, value })),
         },
         {
           Header: 'Schema',

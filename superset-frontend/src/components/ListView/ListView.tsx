@@ -124,14 +124,17 @@ const ListView: FunctionComponent<Props> = ({
   });
   const filterable = Boolean(filters.length);
   if (filterable) {
-    const columnAccessors = columns.reduce((acc, col) => ({ ...acc, [col.accessor || col.id]: true }), {})
+    const columnAccessors = columns.reduce(
+      (acc, col) => ({ ...acc, [col.accessor || col.id]: true }),
+      {},
+    );
     filters.forEach(f => {
       if (!columnAccessors[f.id]) {
         throw new ListViewError(
           `Invalid filter config, ${f.id} is not present in columns`,
         );
       }
-    })
+    });
   }
 
   const removeFilterAndApply = (index: number) => {
