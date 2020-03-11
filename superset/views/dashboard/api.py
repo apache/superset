@@ -88,12 +88,10 @@ class BaseDashboardSchema(BaseOwnedSchema):
     @pre_load
     def pre_load(self, data):  # pylint: disable=no-self-use
         super().pre_load(data)
-        if "slug" in data:
-            data["slug"] = data.get("slug")
-            if data["slug"]:
-                data["slug"] = data["slug"].strip()
-                data["slug"] = data["slug"].replace(" ", "-")
-                data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
+        if data.get("slug"):
+            data["slug"] = data["slug"].strip()
+            data["slug"] = data["slug"].replace(" ", "-")
+            data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
         if "owners" in data:
             data["owners"] = data.get("owners", [])
 
