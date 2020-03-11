@@ -66,7 +66,7 @@ export default function ReactDataTable(props: DataTableProps) {
   const metrics = (aggMetrics || [])
     .concat(percentMetrics || [])
     // actual records must be of numeric types as well
-    .filter(m => typeof data[0][m] === 'number');
+    .filter(m => data[0] && typeof data[0][m] === 'number');
 
   // check whethere a key is a metric
   const metricsSet = new Set(aggMetrics);
