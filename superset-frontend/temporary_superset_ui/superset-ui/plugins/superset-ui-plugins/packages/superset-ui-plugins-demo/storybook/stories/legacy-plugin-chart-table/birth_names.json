@@ -168,7 +168,7 @@
       "gender": "gender",
       "name": "name",
       "num": "num",
-      "state": "state",
+      "state": "state (this is a very very very long column)",
       "sum_boys": "sum_boys",
       "sum_girls": "sum_girls"
     },
