@@ -1211,6 +1211,17 @@ def split(
     yield s[i:]
 
 
+def get_iterable(x: Any) -> List:
+    """
+    Get an iterable (list) representation of the object.
+
+    :param x: The object
+    :returns: An iterable representation
+    """
+
+    return x if isinstance(x, list) else [x]
+
+
 class TimeRangeEndpoint(str, Enum):
     """
     The time range endpoint types which represent inclusive, exclusive, or unknown.

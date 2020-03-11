@@ -27,6 +27,28 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.models.slice import Slice
 from superset.utils import core as utils
 
+METRIC_FORM_DATA_PARAMS = [
+    "metric",
+    "metrics",
+    "metric_2",
+    "percent_metrics",
+    "secondary_metric",
+    "size",
+    "timeseries_limit_metric",
+    "x",
+    "y",
+]
+
+COLUMN_FORM_DATA_PARAMS = [
+    "all_columns",
+    "all_columns_x",
+    "columns",
+    "entity",
+    "groupby",
+    "order_by_cols",
+    "series",
+]
+
 
 class BaseDatasource(
     AuditMixinNullable, ImportMixin
@@ -213,6 +235,70 @@ class BaseDatasource(
             "select_star": self.select_star,
         }
 
+    def data_for_slices(self, slices: List[Slice]) -> Dict[str, Any]:
+        """
+        The representation of the datasource containing only the required data
+        to render the provided slices.
+
+        Used to reduce the payload when loading a dashboard.
+        """
+        data = self.data
+        metric_names = set()
+        column_names = set()
+        for slc in slices:
+            form_data = slc.form_data
+
+            # pull out all required metrics from the form_data
+            for param in METRIC_FORM_DATA_PARAMS:
+                for metric in utils.get_iterable(form_data.get(param) or []):
+                    metric_names.add(utils.get_metric_name(metric))
+
+                    if utils.is_adhoc_metric(metric):
+                        column_names.add(
+                            (metric.get("column") or {}).get("column_name")
+                        )
+
+            # pull out all required columns from the form_data
+            for filter_ in form_data.get("adhoc_filters") or []:
+                if filter_["clause"] == "WHERE" and filter_.get("subject"):
+                    column_names.add(filter_.get("subject"))
+
+            for param in COLUMN_FORM_DATA_PARAMS:
+                for column in utils.get_iterable(form_data.get(param) or []):
+                    column_names.add(column)
+
+        filtered_metrics = [
+            metric
+            for metric in data["metrics"]
+            if metric["metric_name"] in metric_names
+        ]
+
+        filtered_columns = [
+            column
+            for column in data["columns"]
+            if column["column_name"] in column_names
+        ]
+
+        del data["description"]
+        data.update({"metrics": filtered_metrics})
+        data.update({"columns": filtered_columns})
+        verbose_map = {"__timestamp": "Time"}
+        verbose_map.update(
+            {
+                metric["metric_name"]: metric["verbose_name"] or metric["metric_name"]
+                for metric in filtered_metrics
+            }
+        )
+        verbose_map.update(
+            {
+                column["column_name"]: column["verbose_name"] or column["column_name"]
+                for column in filtered_columns
+            }
+        )
+        data["verbose_map"] = verbose_map
+
+        return data
+
     @staticmethod
     def filter_values_handler(
         values, target_column_is_numeric=False, is_list_target=False
@@ -352,6 +438,14 @@ class BaseDatasource(
         :return: list of keys
         """
         return []
+
+    def __hash__(self) -> int:
+        return hash(self.uid)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BaseDatasource):
+            return NotImplemented
+        return self.uid == other.uid
 
 
 class BaseColumn(AuditMixinNullable, ImportMixin):
