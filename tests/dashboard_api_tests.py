@@ -477,6 +477,28 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_published(self):
+        """
+            Dashboard API: Test update published patch
+        """
+        admin = self.get_user("admin")
+        gamma = self.get_user("gamma")
+
+        dashboard = self.insert_dashboard("title1", "slug1", [admin.id, gamma.id])
+        dashboard_data = {"published": True}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        model = db.session.query(models.Dashboard).get(dashboard.id)
+        self.assertEqual(model.published, True)
+        self.assertEqual(model.slug, "slug1")
+        self.assertIn(admin, model.owners)
+        self.assertIn(gamma, model.owners)
+        db.session.delete(model)
+        db.session.commit()
+
     def test_update_dashboard_not_owned(self):
         """
             Dashboard API: Test update dashboard not owned
