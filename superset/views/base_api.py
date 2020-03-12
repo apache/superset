@@ -16,7 +16,7 @@
 # under the License.
 import functools
 import logging
-from typing import Dict, Tuple
+from typing import Dict, Set, Tuple
 
 from flask import request
 from flask_appbuilder import ModelRestApi
@@ -101,6 +101,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
             "<RELATED_FIELD>": "<FILTER>")
         }
     """  # pylint: disable=pointless-string-statement
+    allowed_rel_fields: Set[str] = set()
 
     def __init__(self):
         super().__init__()
@@ -191,6 +192,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if column_name not in self.allowed_rel_fields:
+            return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination
         page, page_size = self._handle_page_args(args)

@@ -98,6 +98,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     filter_rel_fields_field = {"owners": "first_name", "database": "database_name"}
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
+    allowed_rel_fields = {"database", "owners"}
 
     @expose("/", methods=["POST"])
     @protect()
