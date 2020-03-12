@@ -92,8 +92,8 @@ class BaseDashboardSchema(BaseOwnedSchema):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")
             data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
-        if "owners" in data:
-            data["owners"] = data.get("owners", [])
+        if "owners" in data and data["owners"] is None:
+            data["owners"] = []
 
 
 class DashboardPostSchema(BaseDashboardSchema):
