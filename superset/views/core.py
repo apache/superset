@@ -37,7 +37,6 @@ from sqlalchemy import and_, Integer, or_, select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import (
     ArgumentError,
-    DataError,
     NoSuchModuleError,
     OperationalError,
     SQLAlchemyError,
