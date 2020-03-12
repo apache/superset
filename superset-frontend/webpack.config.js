@@ -225,6 +225,39 @@ const config = {
         ],
       },
       {
+        // handle symlinked modules
+        // for debugging @superset-ui packages via npm link
+        test: /\.jsx?$/,
+        include: /node_modules\/[@]apenga.+\/src/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                'airbnb',
+                '@babel/preset-react',
+                [
+                  '@babel/preset-env',
+                  {
+                    useBuiltIns: 'usage',
+                    corejs: 3,
+                    loose: true,
+                    modules: false,
+                    shippedProposals: true,
+                  },
+                ],
+              ],
+              plugins: [
+                'lodash',
+                '@babel/plugin-syntax-dynamic-import',
+                'react-hot-loader/babel',
+                ['@babel/plugin-transform-runtime', { corejs: 3 }],
+              ],
+            },
+          },
+        ],
+      },
+      {
         test: /\.css$/,
         include: [APP_DIR, /superset[-]ui.+\/src/],
         use: [
