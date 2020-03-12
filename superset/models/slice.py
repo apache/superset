@@ -165,7 +165,7 @@ class Slice(
         }
 
     @property
-    def unique_value(self) -> str:
+    def digest(self) -> str:
         """
             Returns a MD5 HEX digest that makes this dashboard unique
         """
@@ -177,7 +177,7 @@ class Slice(
             Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
             if the dashboard has changed
         """
-        return f"/api/v1/chart/{self.id}/thumbnail/{self.unique_value}/"
+        return f"/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
 
     @property
     def json_data(self) -> str:

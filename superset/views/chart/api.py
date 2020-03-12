@@ -243,8 +243,9 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
             cache_chart_thumbnail.delay(chart.id, force=True)
             return self.response(202, message="OK Async")
         # If digests
-        if chart.unique_value != digest:
+        if chart.digest != digest:
             logger.info("Requested thumbnail digest differs from actual digest")
+            return self.response(304, message="Digest differs")
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )

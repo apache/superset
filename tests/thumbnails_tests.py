@@ -98,10 +98,11 @@ class ThumbnailsSeleniumLive(CeleryStartMixin, LiveServerTestCase):
         """
             Thumbnails: Simple get async dashboard screenshot
         """
-        dashboard_id = db.session.query(Dashboard).all()[0].id
+        dashboard = db.session.query(Dashboard).all()[0]
         with patch("superset.views.dashboard.api.DashboardRestApi.get") as mock_get:
             response = self.url_open_auth(
-                "admin", f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+                "admin",
+                f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/",
             )
             self.assertEqual(response.getcode(), 202)
 
@@ -116,9 +117,9 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         """
         if is_feature_enabled("THUMBNAILS"):
             return
-        dashboard_id = db.session.query(Dashboard).all()[0].id
+        dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -128,9 +129,9 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         """
         if is_feature_enabled("THUMBNAILS"):
             return
-        chart_id = db.session.query(Slice).all()[0].id
+        chart = db.session.query(Slice).all()[0]
         self.login(username="admin")
-        uri = f"api/v1/chart/{chart_id}/thumbnail/1234/"
+        uri = f"api/v1/chart/{chart}/thumbnail/{chart.digest}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -139,9 +140,9 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         """
             Thumbnails: Simple get async dashboard screenshot
         """
-        dashboard_id = db.session.query(Dashboard).all()[0].id
+        dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
         with patch(
             "superset.tasks.thumbnails.cache_dashboard_thumbnail.delay"
         ) as mock_task:
@@ -165,9 +166,9 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         """
             Thumbnails: Simple get async dashboard not allowed
         """
-        dashboard_id = db.session.query(Dashboard).all()[0].id
+        dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="gamma")
-        uri = f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -176,15 +177,15 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         """
             Thumbnails: Simple get async chart screenshot
         """
-        chart_id = db.session.query(Slice).all()[0].id
+        chart = db.session.query(Slice).all()[0]
         self.login(username="admin")
-        uri = f"api/v1/chart/{chart_id}/thumbnail/1234/"
+        uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
         with patch(
             "superset.tasks.thumbnails.cache_chart_thumbnail.delay"
         ) as mock_task:
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 202)
-            mock_task.assert_called_with(chart_id, force=True)
+            mock_task.assert_called_with(chart.id, force=True)
 
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_chart_notfound(self):
@@ -202,12 +203,12 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         """
             Thumbnails: Simple get cached dashboard screenshot
         """
-        dashboard_id = db.session.query(Dashboard).all()[0].id
+        dashboard = db.session.query(Dashboard).all()[0]
         # Cache a test "image"
-        screenshot = DashboardScreenshot(model_id=dashboard_id)
+        screenshot = DashboardScreenshot(model_id=dashboard.id)
         thumbnail_cache.set(screenshot.cache_key, self.mock_image)
         self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard_id}/thumbnail/1234/"
+        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.data, self.mock_image)
@@ -217,12 +218,12 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         """
             Thumbnails: Simple get cached chart screenshot
         """
-        chart_id = db.session.query(Slice).all()[0].id
+        chart = db.session.query(Slice).all()[0]
         # Cache a test "image"
-        screenshot = ChartScreenshot(model_id=chart_id)
+        screenshot = ChartScreenshot(model_id=chart.id)
         thumbnail_cache.set(screenshot.cache_key, self.mock_image)
         self.login(username="admin")
-        uri = f"api/v1/chart/{chart_id}/thumbnail/1234/"
+        uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.data, self.mock_image)

@@ -394,8 +394,9 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
             cache_dashboard_thumbnail.delay(dashboard.id, force=True)
             return self.response(202, message="OK Async")
         # If digests
-        if dashboard.unique_value != digest:
+        if dashboard.digest != digest:
             logger.info("Requested thumbnail digest differs from actual digest")
+            return self.response(304, message="Digest differs")
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
