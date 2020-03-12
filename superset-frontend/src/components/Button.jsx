@@ -26,8 +26,13 @@ import {
 } from 'react-bootstrap';
 
 const propTypes = {
+  children: PropTypes.node,
   tooltip: PropTypes.node,
   placement: PropTypes.string,
+  onClick: PropTypes.func,
+  disabled: PropTypes.bool,
+  bsSize: PropTypes.string,
+  btnStyles: PropTypes.string,
 };
 const defaultProps = {
   bsSize: 'sm',
