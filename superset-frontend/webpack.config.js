@@ -70,7 +70,7 @@ if (isDevMode) {
       // first get a set of every plugin package name
       // eslint-disable-next-line import/no-dynamic-require, global-require
       dir => require(path.join(PACKAGES_ROOT, dir.name, 'package.json')).name,
-    ),
+    ).filter((packageName) => !pluginDevmode.unlinkablePackages.includes(packageName))
   );
 
   // now check which packages in node_modules are symlinks

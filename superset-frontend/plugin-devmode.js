@@ -27,10 +27,48 @@ const PLUGINS_REPO =
   process.env.SUPERSET_UI_PLUGINS_PATH ||
   path.resolve('../../superset-ui-plugins');
 
+console.log('looking for plugins in ', PLUGINS_REPO);
+
 const PACKAGES_ROOT = path.join(PLUGINS_REPO, 'packages');
+
+// TODO refactor these troublesome packages so they can work with a symlink to their `src` directory
+const unlinkablePackages = [
+  '@superset-ui/legacy-preset-chart-nvd3',
+  '@superset-ui/preset-chart-xy',
+  '@superset-ui/legacy-plugin-chart-calendar',
+  '@superset-ui/legacy-plugin-chart-chord',
+  '@superset-ui/legacy-plugin-chart-country-map',
+  '@superset-ui/legacy-plugin-chart-event-flow',
+  '@superset-ui/legacy-plugin-chart-force-directed',
+  '@superset-ui/legacy-plugin-chart-heatmap',
+  '@superset-ui/legacy-plugin-chart-histogram',
+  '@superset-ui/legacy-plugin-chart-horizon',
+  '@superset-ui/legacy-plugin-chart-iframe',
+  '@superset-ui/legacy-plugin-chart-map-box',
+  '@superset-ui/legacy-plugin-chart-markup',
+  '@superset-ui/legacy-plugin-chart-paired-t-test',
+  '@superset-ui/legacy-plugin-chart-parallel-coordinates',
+  '@superset-ui/legacy-plugin-chart-partition',
+  '@superset-ui/legacy-plugin-chart-pivot-table',
+  '@superset-ui/legacy-plugin-chart-rose',
+  '@superset-ui/legacy-plugin-chart-sankey',
+  '@superset-ui/legacy-plugin-chart-sankey-loop',
+  '@superset-ui/legacy-plugin-chart-sunburst',
+  '@superset-ui/legacy-plugin-chart-table',
+  // '@superset-ui/legacy-plugin-chart-treemap',
+  '@superset-ui/legacy-plugin-chart-word-cloud',
+  '@superset-ui/legacy-plugin-chart-world-map',
+  '@superset-ui/legacy-preset-chart-big-number',
+  '@superset-ui/plugin-chart-icicle-event',
+  '@superset-ui/plugin-chart-table',
+  '@superset-ui/plugin-chart-word-cloud',
+  '@superset-ui/plugins-demo',
+
+]
 
 function findPackages() {
   if (!fs.existsSync(PACKAGES_ROOT)) {
+    console.warn('Package root not found!');
     return [];
   }
   return fs
@@ -46,13 +84,18 @@ function linkPackages(packageDirs) {
     // eslint-disable-next-line import/no-dynamic-require, global-require
     const packageName = require(path.join(directoryPath, 'package.json')).name;
     console.log(`[${i + 1}/${packageDirs.length}] ${packageName}`);
-    execSync('npm link --loglevel error', {
-      cwd: directoryPath,
-      stdio: 'inherit',
-    });
-    execSync(`npm link ${packageName} --loglevel error`, {
-      stdio: 'inherit',
-    });
+    if(unlinkablePackages.includes(packageName)){
+      console.log(`Not linking this package!`);
+    }
+    else{
+      execSync('npm link --loglevel error', {
+        cwd: directoryPath,
+        stdio: 'inherit',
+      });
+      execSync(`npm link ${packageName} --loglevel error`, {
+        stdio: 'inherit',
+      });
+    }
   });
 }
 
@@ -67,4 +110,5 @@ if (require.main === module) {
 module.exports = {
   findPackages,
   PACKAGES_ROOT,
+  unlinkablePackages,
 };
