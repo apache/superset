@@ -92,7 +92,11 @@ class DatasetList extends React.PureComponent<Props, State> {
         endpoint: `/api/v1/dataset/related/database`,
       }),
     ]).then(
-      ([{ json: infoJson = {} }, { json: ownersJson = {} }, { json: databasesJson = {} }]) => {
+      ([
+        { json: infoJson = {} },
+        { json: ownersJson = {} },
+        { json: databasesJson = {} },
+      ]) => {
         this.setState(
           {
             filterOperators: infoJson.filters,
@@ -165,24 +169,24 @@ class DatasetList extends React.PureComponent<Props, State> {
     },
     {
       accessor: 'database',
-      hidden: true
+      hidden: true,
     },
     {
       accessor: 'schema',
-      hidden: true
+      hidden: true,
     },
     {
       accessor: 'owners',
-      hidden: true
+      hidden: true,
     },
     {
       accessor: 'is_sqllab_view',
-      hidden: true
+      hidden: true,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
-        const handleDelete = () => this.handleDashboardDelete(original);
-        const handleEdit = () => this.handleDashboardEdit(original);
+        const handleDelete = () => this.handleDatasetDelete(original);
+        const handleEdit = () => this.handleDatasetEdit(original);
         if (!this.canEdit && !this.canDelete) {
           return null;
         }
@@ -195,8 +199,8 @@ class DatasetList extends React.PureComponent<Props, State> {
                 title={t('Please Confirm')}
                 description={
                   <>
-                    {t('Are you sure you want to delete')}{' '}
-                    <b>{original.dashboard_title}</b>?
+                    {t('Are you sure you want to delete ')}{' '}
+                    <b>{original.table_name}</b>?
                   </>
                 }
                 onConfirm={handleDelete}
@@ -239,32 +243,32 @@ class DatasetList extends React.PureComponent<Props, State> {
     return Boolean(this.state.permissions.find(p => p === perm));
   };
 
-  handleDashboardEdit = ({ id }: { id: number }) => {
+  handleDatasetEdit = ({ id }: { id: number }) => {
     window.location.assign(`/tablemodelview/edit/${id}`);
   };
 
-  handleDashboardDelete = ({ id, table_name: tableName }: Dataset) =>
+  handleDatasetDelete = ({ id, table_name: tableName }: Dataset) =>
     SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/${id}`,
+      endpoint: `/api/v1/dataset/${id}`,
     }).then(
       () => {
         const { lastFetchDataConfig } = this.state;
         if (lastFetchDataConfig) {
           this.fetchData(lastFetchDataConfig);
         }
-        this.props.addSuccessToast(t('Deleted: %(table_name)', tableName));
+        this.props.addSuccessToast(t('Deleted: %s', tableName));
       },
       (err: any) => {
         console.error(err);
         this.props.addDangerToast(
-          t('There was an issue deleting %(table_name)', tableName),
+          t('There was an issue deleting %s', tableName),
         );
       },
     );
 
-  handleBulkDashboardDelete = (dashboards: Dataset[]) => {
+  handleBulkDatasetDelete = (datasets: Dataset[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/?q=!(${dashboards
+      endpoint: `/api/v1/dataset/?q=!(${datasets
         .map(({ id }) => id)
         .join(',')})`,
     }).then(
@@ -278,7 +282,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       (err: any) => {
         console.error(err);
         this.props.addDangerToast(
-          t('There was an issue deleting the selected dashboards'),
+          t('There was an issue deleting the selected datasets'),
         );
       },
     );
@@ -342,7 +346,10 @@ class DatasetList extends React.PureComponent<Props, State> {
           id: 'database',
           input: 'select',
           operators: filterOperators.database.map(convertFilter),
-          selects: databases.map(({ text: label, value }) => ({ label, value })),
+          selects: databases.map(({ text: label, value }) => ({
+            label,
+            value,
+          })),
         },
         {
           Header: 'Schema',
@@ -382,7 +389,7 @@ class DatasetList extends React.PureComponent<Props, State> {
             description={t(
               'Are you sure you want to delete the selected datasets?',
             )}
-            onConfirm={this.handleBulkDashboardDelete}
+            onConfirm={this.handleBulkDatasetDelete}
           >
             {confirmDelete => {
               const bulkActions = [];
@@ -399,7 +406,7 @@ class DatasetList extends React.PureComponent<Props, State> {
               }
               return (
                 <ListView
-                  className="dashboard-list-view"
+                  className="dataset-list-view"
                   title={'Datasets'}
                   columns={this.columns}
                   data={datasets}
