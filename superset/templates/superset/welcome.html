@@ -22,7 +22,5 @@
 {% endblock %}
 
 {% block tail_js %}
-  {% with filename="welcome" %}
-    {% include "superset/partials/_script_tag.html" %}
-  {% endwith %}
+  {{ js_bundle("welcome") }}
 {% endblock %}

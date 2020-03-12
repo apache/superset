@@ -496,6 +496,10 @@ npm run dev-server -- --devserverPort=9001
 
 # Run the dev server proxying to a Flask server on a non-default port
 npm run dev-server -- --supersetPort=8081
+
+# Or proxy it to a remote backend so you can test frontend changes without
+# starting the backend locally
+npm run dev-server -- --superset=https://superset-dev.example.com
 ```
 
 Alternatively you can use one of the following commands.
