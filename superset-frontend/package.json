@@ -174,6 +174,8 @@
     "@types/react": "^16.4.18",
     "@types/react-dom": "^16.0.9",
     "@types/react-json-tree": "^0.6.11",
+    "@types/react-redux": "^7.1.7",
+    "@types/react-select": "^3.0.10",
     "@types/react-table": "^7.0.2",
     "@typescript-eslint/eslint-plugin": "^2.20.0",
     "@typescript-eslint/parser": "^2.20.0",

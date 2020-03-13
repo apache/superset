@@ -17,6 +17,8 @@
  * under the License.
  */
 import React from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 
@@ -29,6 +31,8 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
+import PropertiesModal from './PropertiesModal';
+import { sliceUpdated } from '../actions/exploreActions';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -49,7 +53,16 @@ const propTypes = {
   chart: chartPropShape,
 };
 
-class ExploreChartHeader extends React.PureComponent {
+export class ExploreChartHeader extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isPropertiesModalOpen: false,
+    };
+    this.openProperiesModal = this.openProperiesModal.bind(this);
+    this.closePropertiesModal = this.closePropertiesModal.bind(this);
+  }
+
   postChartFormData() {
     this.props.actions.postChartFormData(
       this.props.form_data,
@@ -93,6 +106,18 @@ class ExploreChartHeader extends React.PureComponent {
     });
   }
 
+  openProperiesModal() {
+    this.setState({
+      isPropertiesModalOpen: true,
+    });
+  }
+
+  closePropertiesModal() {
+    this.setState({
+      isPropertiesModalOpen: false,
+    });
+  }
+
   renderChartTitle() {
     let title;
     if (this.props.slice) {
@@ -131,17 +156,24 @@ class ExploreChartHeader extends React.PureComponent {
               saveFaveStar={this.props.actions.saveFaveStar}
               isStarred={this.props.isStarred}
             />
-
+            <PropertiesModal
+              show={this.state.isPropertiesModalOpen}
+              onHide={this.closePropertiesModal}
+              onSave={this.props.sliceUpdated}
+              slice={this.props.slice}
+            />
             <TooltipWrapper
               label="edit-desc"
               tooltip={t('Edit chart properties')}
             >
-              <a
+              <span
+                role="button"
+                tabIndex={0}
                 className="edit-desc-icon"
-                href={`/chart/edit/${this.props.slice.slice_id}`}
+                onClick={this.openProperiesModal}
               >
                 <i className="fa fa-edit" />
-              </a>
+              </span>
             </TooltipWrapper>
           </span>
         )}
@@ -187,4 +219,8 @@ class ExploreChartHeader extends React.PureComponent {
 
 ExploreChartHeader.propTypes = propTypes;
 
-export default ExploreChartHeader;
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators({ sliceUpdated }, dispatch);
+}
+
+export default connect(null, mapDispatchToProps)(ExploreChartHeader);
