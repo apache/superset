@@ -17,6 +17,8 @@
  * under the License.
  */
 import React from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import SyntaxHighlighter, {
   registerLanguage,
@@ -47,6 +49,7 @@ import Button from '../../components/Button';
 import RowCountLabel from './RowCountLabel';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
 import PropertiesModal from './PropertiesModal';
+import { sliceUpdated } from '../actions/exploreActions';
 
 registerLanguage('markdown', markdownSyntax);
 registerLanguage('html', htmlSyntax);
@@ -65,7 +68,7 @@ const defaultProps = {
   animation: true,
 };
 
-export default class DisplayQueryButton extends React.PureComponent {
+export class DisplayQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
     const { datasource } = props.latestQueryFormData;
@@ -220,6 +223,7 @@ export default class DisplayQueryButton extends React.PureComponent {
     return null;
   }
   render() {
+    const { animation, slice } = this.props;
     return (
       <DropdownButton
         noCaret
@@ -233,22 +237,23 @@ export default class DisplayQueryButton extends React.PureComponent {
         pullRight
         id="query"
       >
-        {this.props.slice && (
+        {slice && (
           <>
             <MenuItem onClick={this.openPropertiesModal}>
               {t('Edit properties')}
             </MenuItem>
             <PropertiesModal
-              slice={this.props.slice}
+              slice={slice}
               show={this.state.isPropertiesModalOpen}
               onHide={this.closePropertiesModal}
-              animation={this.props.animation}
+              onSave={this.props.sliceUpdated}
+              animation={animation}
             />
           </>
         )}
         <ModalTrigger
           isMenuItem
-          animation={this.props.animation}
+          animation={animation}
           triggerNode={<span>{t('View query')}</span>}
           modalTitle={t('View query')}
           bsSize="large"
@@ -257,7 +262,7 @@ export default class DisplayQueryButton extends React.PureComponent {
         />
         <ModalTrigger
           isMenuItem
-          animation={this.props.animation}
+          animation={animation}
           triggerNode={<span>{t('View results')}</span>}
           modalTitle={t('View results')}
           bsSize="large"
@@ -266,7 +271,7 @@ export default class DisplayQueryButton extends React.PureComponent {
         />
         <ModalTrigger
           isMenuItem
-          animation={this.props.animation}
+          animation={animation}
           triggerNode={<span>{t('View samples')}</span>}
           modalTitle={t('View samples')}
           bsSize="large"
@@ -285,3 +290,9 @@ export default class DisplayQueryButton extends React.PureComponent {
 
 DisplayQueryButton.propTypes = propTypes;
 DisplayQueryButton.defaultProps = defaultProps;
+
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators({ sliceUpdated }, dispatch);
+}
+
+export default connect(null, mapDispatchToProps)(DisplayQueryButton);
