@@ -22,8 +22,9 @@ import pandas
 from sqlalchemy.engine.url import make_url
 
 import tests.test_app
-from superset import app
+from superset import app, db as metadata_db
 from superset.models.core import Database
+from superset.models.slice import Slice
 from superset.utils.core import get_example_database, QueryStatus
 
 from .base_tests import SupersetTestCase
@@ -318,3 +319,16 @@ class SqlaTableModelTestCase(SupersetTestCase):
             tbl.get_query_str(query_obj)
 
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
+
+    def test_data_for_slices(self):
+        tbl = self.get_table_by_name("birth_names")
+        slc = (
+            metadata_db.session.query(Slice)
+            .filter_by(datasource_id=tbl.id, datasource_type=tbl.type)
+            .first()
+        )
+
+        data_for_slices = tbl.data_for_slices([slc])
+        self.assertEquals(len(data_for_slices["columns"]), 0)
+        self.assertEquals(len(data_for_slices["metrics"]), 1)
+        self.assertEquals(len(data_for_slices["verbose_map"].keys()), 2)
