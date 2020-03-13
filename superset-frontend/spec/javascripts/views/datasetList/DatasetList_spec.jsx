@@ -22,52 +22,55 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 
-import ChartList from 'src/views/chartList/ChartList';
+import DatasetList from 'src/views/datasetList/DatasetList';
 import ListView from 'src/components/ListView/ListView';
 
-// store needed for withToasts(ChartTable)
+// store needed for withToasts(datasetTable)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
-const chartssOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
-const chartsEndpoint = 'glob:*/api/v1/chart/?*';
+const datasetsInfoEndpoint = 'glob:*/api/v1/dataset/_info*';
+const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
+const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 
-const mockCharts = [...new Array(3)].map((_, i) => ({
+const mockdatasets = [...new Array(3)].map((_, i) => ({
+  changed_by_name: 'user',
+  changed_by_url: 'changed_by_url',
+  changed_by: 'user',
   changed_on: new Date().toISOString(),
-  creator: 'super user',
+  database_name: `db ${i}`,
+  explore_url: `/explore/table/${i}`,
   id: i,
-  slice_name: `cool chart ${i}`,
-  url: 'url',
-  viz_type: 'bar',
+  schema: `schema ${i}`,
+  table_name: `coolest table ${i}`,
 }));
 
-fetchMock.get(chartsInfoEndpoint, {
+fetchMock.get(datasetsInfoEndpoint, {
   permissions: ['can_list', 'can_edit'],
   filters: {
-    slice_name: [],
-    description: [],
-    viz_type: [],
-    datasource_name: [],
+    database: [],
+    schema: [],
+    table_name: [],
     owners: [],
+    is_sqllab_view: [],
   },
 });
-fetchMock.get(chartssOwnersEndpoint, {
+fetchMock.get(datasetsOwnersEndpoint, {
   result: [],
 });
-fetchMock.get(chartsEndpoint, {
-  result: mockCharts,
-  chart_count: 3,
+fetchMock.get(datasetsEndpoint, {
+  result: mockdatasets,
+  dataset_count: 3,
 });
 
-describe('ChartList', () => {
+describe('DatasetList', () => {
   const mockedProps = {};
-  const wrapper = mount(<ChartList {...mockedProps} />, {
+  const wrapper = mount(<DatasetList {...mockedProps} />, {
     context: { store },
   });
 
   it('renders', () => {
-    expect(wrapper.find(ChartList)).toHaveLength(1);
+    expect(wrapper.find(DatasetList)).toHaveLength(1);
   });
 
   it('renders a ListView', () => {
@@ -75,21 +78,21 @@ describe('ChartList', () => {
   });
 
   it('fetches info', () => {
-    const callsI = fetchMock.calls(/chart\/_info/);
+    const callsI = fetchMock.calls(/dataset\/_info/);
     expect(callsI).toHaveLength(1);
   });
 
   it('fetches owners', () => {
-    const callsO = fetchMock.calls(/chart\/related\/owners/);
+    const callsO = fetchMock.calls(/dataset\/related\/owners/);
     expect(callsO).toHaveLength(1);
   });
 
   it('fetches data', () => {
     wrapper.update();
-    const callsD = fetchMock.calls(/chart\/\?q/);
+    const callsD = fetchMock.calls(/dataset\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"/http//localhost/api/v1/chart/?q={%22order_column%22:%22changed_on%22,%22order_direction%22:%22desc%22,%22page%22:0,%22page_size%22:25}"`,
+      `"/http//localhost/api/v1/dataset/?q={%22order_column%22:%22changed_on%22,%22order_direction%22:%22desc%22,%22page%22:0,%22page_size%22:25}"`,
     );
   });
 });

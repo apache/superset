@@ -252,11 +252,11 @@ class ChartList extends React.PureComponent<Props, State> {
         if (lastFetchDataConfig) {
           this.fetchData(lastFetchDataConfig);
         }
-        this.props.addSuccessToast(t('Deleted: %(slice_name)', sliceName));
+        this.props.addSuccessToast(t('Deleted: %s', sliceName));
       },
       () => {
         this.props.addDangerToast(
-          t('There was an issue deleting: %(slice_name)', sliceName),
+          t('There was an issue deleting: %s', sliceName),
         );
       },
     );

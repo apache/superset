@@ -35,6 +35,10 @@ import {
 
 import { FetchDataConfig, InternalFilter, SortColumn } from './types';
 
+export class ListViewError extends Error {
+  name = 'ListViewError';
+}
+
 // removes element from a list, returns new list
 export function removeFromList(list: any[], index: number): any[] {
   return list.filter((_, i) => index !== i);
