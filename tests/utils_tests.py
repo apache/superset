@@ -36,6 +36,7 @@ from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     datetime_f,
     format_timedelta,
+    get_iterable,
     get_or_create_db,
     get_since_until,
     get_stacktrace,
@@ -950,3 +951,8 @@ class UtilsTestCase(SupersetTestCase):
                 get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
                 (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
             )
+
+    def test_get_iterable(self):
+        self.assertListEqual(get_iterable(123), [123])
+        self.assertListEqual(get_iterable([123]), [123])
+        self.assertListEqual(get_iterable("foo"), ["foo"])
