@@ -70,7 +70,7 @@ setup(
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
         "celery>=4.3.0, <5.0.0",
-        "click>=6.0, <7.0.0",  # `click`>=7 forces "-" instead of "_"
+        "click<8",
         "colorama",
         "contextlib2",
         "croniter>=0.3.28",
