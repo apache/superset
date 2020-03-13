@@ -14,7 +14,7 @@ billiard==3.6.3.0         # via celery
 bleach==3.1.0             # via apache-superset (setup.py)
 celery==4.4.1             # via apache-superset (setup.py)
 cffi==1.13.2              # via cryptography
-click==6.7                # via apache-superset (setup.py), flask, flask-appbuilder
+click==7.1.1              # via apache-superset (setup.py), flask, flask-appbuilder
 colorama==0.4.3           # via apache-superset (setup.py), flask-appbuilder
 contextlib2==0.6.0.post1  # via apache-superset (setup.py)
 croniter==0.3.31          # via apache-superset (setup.py)
