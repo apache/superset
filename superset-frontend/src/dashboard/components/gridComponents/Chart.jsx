@@ -36,6 +36,7 @@ import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
 const propTypes = {
   id: PropTypes.number.isRequired,
   componentId: PropTypes.string.isRequired,
+  dashboardId: PropTypes.number.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
@@ -205,13 +206,18 @@ class Chart extends React.Component {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
-    return this.props.refreshChart(this.props.chart.id, true);
+    return this.props.refreshChart(
+      this.props.chart.id,
+      true,
+      this.props.dashboardId,
+    );
   }
 
   render() {
     const {
       id,
       componentId,
+      dashboardId,
       chart,
       slice,
       datasource,
@@ -269,6 +275,7 @@ class Chart extends React.Component {
           supersetCanCSV={supersetCanCSV}
           sliceCanEdit={sliceCanEdit}
           componentId={componentId}
+          dashboardId={dashboardId}
           filters={filters}
           addDangerToast={addDangerToast}
         />
@@ -306,6 +313,7 @@ class Chart extends React.Component {
             chartId={id}
             chartStatus={chart.chartStatus}
             datasource={datasource}
+            dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
             queryResponse={chart.queryResponse}

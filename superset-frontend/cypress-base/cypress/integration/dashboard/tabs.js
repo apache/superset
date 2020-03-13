@@ -24,6 +24,7 @@ export default () =>
     let treemapId;
     let linechartId;
     let boxplotId;
+    let dashboardId;
 
     // cypress can not handle window.scrollTo
     // https://github.com/cypress-io/cypress/issues/2761
@@ -43,6 +44,7 @@ export default () =>
       cy.get('#app').then(data => {
         const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
         const dashboard = bootstrapData.dashboard_data;
+        dashboardId = dashboard.id;
         filterId = dashboard.slices.find(
           slice => slice.form_data.viz_type === 'filter_box',
         ).slice_id;
@@ -61,7 +63,7 @@ export default () =>
         };
         const filterRequest = `/superset/explore_json/?form_data=${JSON.stringify(
           filterFormdata,
-        )}`;
+        )}&dashboard_id=${dashboardId}`;
         cy.route('POST', filterRequest).as('filterRequest');
 
         const treemapFormdata = {
@@ -69,7 +71,7 @@ export default () =>
         };
         const treemapRequest = `/superset/explore_json/?form_data=${JSON.stringify(
           treemapFormdata,
-        )}`;
+        )}&dashboard_id=${dashboardId}`;
         cy.route('POST', treemapRequest).as('treemapRequest');
 
         const linechartFormdata = {
@@ -77,7 +79,7 @@ export default () =>
         };
         const linechartRequest = `/superset/explore_json/?form_data=${JSON.stringify(
           linechartFormdata,
-        )}`;
+        )}&dashboard_id=${dashboardId}`;
         cy.route('POST', linechartRequest).as('linechartRequest');
 
         const boxplotFormdata = {
@@ -85,7 +87,7 @@ export default () =>
         };
         const boxplotRequest = `/superset/explore_json/?form_data=${JSON.stringify(
           boxplotFormdata,
-        )}`;
+        )}&dashboard_id=${dashboardId}`;
         cy.route('POST', boxplotRequest).as('boxplotRequest');
       });
     });

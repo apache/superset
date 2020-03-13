@@ -19,11 +19,12 @@
 import json
 from datetime import datetime, timedelta
 from random import random
+from unittest import mock
 
 import prison
 
 import tests.test_app
-from superset import db, security_manager
+from superset import config, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
@@ -66,6 +67,39 @@ class SqlLabTests(SupersetTestCase):
 
         data = self.run_sql("SELECT * FROM unexistant_table", "2")
         self.assertLess(0, len(data["error"]))
+
+    @mock.patch(
+        "superset.views.core.get_cta_schema_name",
+        lambda d, u, s, sql: f"{u.username}_database",
+    )
+    def test_sql_json_cta_dynamic_db(self):
+        main_db = get_example_database()
+        if main_db.backend == "sqlite":
+            # sqlite doesn't support database creation
+            return
+
+        old_allow_ctas = main_db.allow_ctas
+        main_db.allow_ctas = True  # enable cta
+
+        self.login("admin")
+        self.run_sql(
+            "SELECT * FROM birth_names",
+            "1",
+            database_name="examples",
+            tmp_table_name="test_target",
+            select_as_cta=True,
+        )
+
+        # assertions
+        data = db.session.execute("SELECT * FROM admin_database.test_target").fetchall()
+        self.assertEqual(
+            75691, len(data)
+        )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
+
+        # cleanup
+        db.session.execute("DROP TABLE admin_database.test_target")
+        main_db.allow_ctas = old_allow_ctas
+        db.session.commit()
 
     def test_multi_sql(self):
         self.login("admin")

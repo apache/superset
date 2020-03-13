@@ -100,7 +100,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
 class PrestoEngineSpec(BaseEngineSpec):
     engine = "presto"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
         "PT1M": "date_trunc('minute', CAST({col} AS TIMESTAMP))",

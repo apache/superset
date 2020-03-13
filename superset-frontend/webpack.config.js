@@ -77,11 +77,14 @@ const plugins = [
     checkSyntacticErrors: true,
   }),
 
-  new CopyPlugin([
-    'package.json',
-    { from: 'images', to: 'images' },
-    { from: 'stylesheets', to: 'stylesheets' },
-  ]),
+  new CopyPlugin(
+    [
+      'package.json',
+      { from: 'images', to: 'images' },
+      { from: 'stylesheets', to: 'stylesheets' },
+    ],
+    { copyUnmodified: true },
+  ),
 ];
 
 if (isDevMode) {
@@ -200,11 +203,25 @@ const config = {
           {
             loader: 'babel-loader',
             options: {
-              presets: ['airbnb', '@babel/preset-react', '@babel/preset-env'],
+              presets: [
+                'airbnb',
+                '@babel/preset-react',
+                [
+                  '@babel/preset-env',
+                  {
+                    useBuiltIns: 'usage',
+                    corejs: 3,
+                    loose: true,
+                    modules: false,
+                    shippedProposals: true,
+                  },
+                ],
+              ],
               plugins: [
                 'lodash',
                 '@babel/plugin-syntax-dynamic-import',
                 'react-hot-loader/babel',
+                ['@babel/plugin-transform-runtime', { corejs: 3 }],
               ],
             },
           },

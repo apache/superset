@@ -154,13 +154,13 @@ class DbEngineSpecsTests(DbEngineSpecTestCase):
     def test_time_grain_blacklist(self):
         with app.app_context():
             app.config["TIME_GRAIN_BLACKLIST"] = ["PT1M"]
-            time_grain_functions = SqliteEngineSpec.get_time_grain_functions()
+            time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
             self.assertNotIn("PT1M", time_grain_functions)
 
     def test_time_grain_addons(self):
         with app.app_context():
             app.config["TIME_GRAIN_ADDONS"] = {"PTXM": "x seconds"}
-            app.config["TIME_GRAIN_ADDON_FUNCTIONS"] = {
+            app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
                 "sqlite": {"PTXM": "ABC({col})"}
             }
             time_grains = SqliteEngineSpec.get_time_grains()
@@ -174,7 +174,7 @@ class DbEngineSpecsTests(DbEngineSpecTestCase):
         for engine in engines.values():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
-                self.assertGreater(len(engine.get_time_grain_functions()), 0)
+                self.assertGreater(len(engine.get_time_grain_expressions()), 0)
                 # make sure all defined time grains are supported
                 defined_grains = {grain.duration for grain in engine.get_time_grains()}
                 intersection = time_grains.intersection(defined_grains)

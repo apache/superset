@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import tests.test_app
+from typing import Dict
+
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
-from superset.utils.core import get_example_database
+from superset.models.core import Database
+from superset.utils.core import DbColumnType, get_example_database
 
 from .base_tests import SupersetTestCase
 
@@ -26,23 +28,43 @@ from .base_tests import SupersetTestCase
 class DatabaseModelTestCase(SupersetTestCase):
     def test_is_time_druid_time_col(self):
         """Druid has a special __time column"""
-        col = TableColumn(column_name="__time", type="INTEGER")
+
+        database = Database(database_name="druid_db", sqlalchemy_uri="druid://db")
+        tbl = SqlaTable(table_name="druid_tbl", database=database)
+        col = TableColumn(column_name="__time", type="INTEGER", table=tbl)
         self.assertEqual(col.is_dttm, None)
         DruidEngineSpec.alter_new_orm_column(col)
         self.assertEqual(col.is_dttm, True)
 
-        col = TableColumn(column_name="__not_time", type="INTEGER")
-        self.assertEqual(col.is_time, False)
+        col = TableColumn(column_name="__not_time", type="INTEGER", table=tbl)
+        self.assertEqual(col.is_temporal, False)
 
-    def test_is_time_by_type(self):
-        col = TableColumn(column_name="foo", type="DATE")
-        self.assertEqual(col.is_time, True)
+    def test_db_column_types(self):
+        test_cases: Dict[str, DbColumnType] = {
+            # string
+            "CHAR": DbColumnType.STRING,
+            "VARCHAR": DbColumnType.STRING,
+            "NVARCHAR": DbColumnType.STRING,
+            "STRING": DbColumnType.STRING,
+            # numeric
+            "INT": DbColumnType.NUMERIC,
+            "BIGINT": DbColumnType.NUMERIC,
+            "FLOAT": DbColumnType.NUMERIC,
+            "DECIMAL": DbColumnType.NUMERIC,
+            "MONEY": DbColumnType.NUMERIC,
+            # temporal
+            "DATE": DbColumnType.TEMPORAL,
+            "DATETIME": DbColumnType.TEMPORAL,
+            "TIME": DbColumnType.TEMPORAL,
+            "TIMESTAMP": DbColumnType.TEMPORAL,
+        }
 
-        col = TableColumn(column_name="foo", type="DATETIME")
-        self.assertEqual(col.is_time, True)
-
-        col = TableColumn(column_name="foo", type="STRING")
-        self.assertEqual(col.is_time, False)
+        tbl = SqlaTable(table_name="col_type_test_tbl", database=get_example_database())
+        for str_type, db_col_type in test_cases.items():
+            col = TableColumn(column_name="foo", type=str_type, table=tbl)
+            self.assertEqual(col.is_temporal, db_col_type == DbColumnType.TEMPORAL)
+            self.assertEqual(col.is_numeric, db_col_type == DbColumnType.NUMERIC)
+            self.assertEqual(col.is_string, db_col_type == DbColumnType.STRING)
 
     def test_has_extra_cache_keys(self):
         query = "SELECT '{{ cache_key_wrapper('user_1') }}' as user"

@@ -180,6 +180,10 @@ class DashboardList extends React.PureComponent<Props, State> {
       hidden: true,
     },
     {
+      accessor: 'owners',
+      hidden: true,
+    },
+    {
       Cell: ({ row: { state, original } }: any) => {
         const handleDelete = () => this.handleDashboardDelete(original);
         const handleEdit = () => this.openDashboardEditModal(original);
@@ -291,12 +295,12 @@ class DashboardList extends React.PureComponent<Props, State> {
         if (lastFetchDataConfig) {
           this.fetchData(lastFetchDataConfig);
         }
-        this.props.addSuccessToast(`${t('Deleted')} ${dashboardTitle}`);
+        this.props.addSuccessToast(t('Deleted: %s', dashboardTitle));
       },
       (err: any) => {
         console.error(err);
         this.props.addDangerToast(
-          `${t('There was an issue deleting')}${dashboardTitle}`,
+          t('There was an issue deleting %s', dashboardTitle),
         );
       },
     );

@@ -145,6 +145,27 @@ class TableColumn(Model, BaseColumn):
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
     export_parent = "table"
 
+    @property
+    def is_numeric(self) -> bool:
+        db_engine_spec = self.table.database.db_engine_spec
+        return db_engine_spec.is_db_column_type_match(
+            self.type, utils.DbColumnType.NUMERIC
+        )
+
+    @property
+    def is_string(self) -> bool:
+        db_engine_spec = self.table.database.db_engine_spec
+        return db_engine_spec.is_db_column_type_match(
+            self.type, utils.DbColumnType.STRING
+        )
+
+    @property
+    def is_temporal(self) -> bool:
+        db_engine_spec = self.table.database.db_engine_spec
+        return db_engine_spec.is_db_column_type_match(
+            self.type, utils.DbColumnType.TEMPORAL
+        )
+
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
         if self.expression:
@@ -207,7 +228,9 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression)
         else:
             col = column(self.column_name)
-        time_expr = db.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
+        time_expr = db.db_engine_spec.get_timestamp_expr(
+            col, pdf, time_grain, self.type
+        )
         return self.table.make_sqla_column_compatible(time_expr, label)
 
     @classmethod
@@ -418,6 +441,18 @@ class SqlaTable(Model, BaseDatasource):
         return self.name
 
     @property
+    def changed_by_name(self) -> str:
+        if not self.changed_by:
+            return ""
+        return str(self.changed_by)
+
+    @property
+    def changed_by_url(self) -> str:
+        if not self.changed_by:
+            return ""
+        return f"/superset/profile/{self.changed_by.username}"
+
+    @property
     def connection(self) -> str:
         return str(self.database)
 
@@ -489,7 +524,7 @@ class SqlaTable(Model, BaseDatasource):
 
     @property
     def num_cols(self) -> List:
-        return [c.column_name for c in self.columns if c.is_num]
+        return [c.column_name for c in self.columns if c.is_numeric]
 
     @property
     def any_dttm_col(self) -> Optional[str]:
@@ -809,7 +844,7 @@ class SqlaTable(Model, BaseDatasource):
                 is_list_target = op in ("in", "not in")
                 eq = self.filter_values_handler(
                     flt.get("val"),
-                    target_column_is_numeric=col_obj.is_num,
+                    target_column_is_numeric=col_obj.is_numeric,
                     is_list_target=is_list_target,
                 )
                 if op in ("in", "not in"):
@@ -820,7 +855,7 @@ class SqlaTable(Model, BaseDatasource):
                         cond = ~cond
                     where_clause_and.append(cond)
                 else:
-                    if col_obj.is_num:
+                    if col_obj.is_numeric:
                         eq = utils.string_to_num(flt["val"])
                     if op == "==":
                         where_clause_and.append(col_obj.get_sqla_col() == eq)
@@ -1074,17 +1109,17 @@ class SqlaTable(Model, BaseDatasource):
                 logger.exception(e)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
-                dbcol = TableColumn(column_name=col.name, type=datatype)
-                dbcol.sum = dbcol.is_num
-                dbcol.avg = dbcol.is_num
-                dbcol.is_dttm = dbcol.is_time
+                dbcol = TableColumn(column_name=col.name, type=datatype, table=self)
+                dbcol.sum = dbcol.is_numeric
+                dbcol.avg = dbcol.is_numeric
+                dbcol.is_dttm = dbcol.is_temporal
                 db_engine_spec.alter_new_orm_column(dbcol)
             else:
                 dbcol.type = datatype
             dbcol.groupby = True
             dbcol.filterable = True
             self.columns.append(dbcol)
-            if not any_date_col and dbcol.is_time:
+            if not any_date_col and dbcol.is_temporal:
                 any_date_col = col.name
 
         metrics.append(

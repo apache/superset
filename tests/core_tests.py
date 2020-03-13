@@ -75,9 +75,11 @@ class CoreTests(SupersetTestCase):
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }
+        self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
 
     def tearDown(self):
         db.session.query(Query).delete()
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
 
     def test_login(self):
         resp = self.get_resp("/login/", data=dict(username="admin", password="general"))
@@ -164,6 +166,17 @@ class CoreTests(SupersetTestCase):
 
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
+
+    def test_query_context_time_range_endpoints(self):
+        query_context = QueryContext(**self._get_query_context_dict())
+        query_object = query_context.queries[0]
+        extras = query_object.to_dict()["extras"]
+        self.assertTrue("time_range_endpoints" in extras)
+
+        self.assertEquals(
+            extras["time_range_endpoints"],
+            (utils.TimeRangeEndpoint.INCLUSIVE, utils.TimeRangeEndpoint.EXCLUSIVE),
+        )
 
     def test_get_superset_tables_not_allowed(self):
         example_db = utils.get_example_database()
@@ -433,9 +446,10 @@ class CoreTests(SupersetTestCase):
         assert self.get_resp("/ping") == "OK"
 
     def test_testconn(self, username="admin"):
+        # need to temporarily allow sqlite dbs, teardown will undo this
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
         self.login(username=username)
         database = utils.get_example_database()
-
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps(
             {
@@ -481,6 +495,28 @@ class CoreTests(SupersetTestCase):
             response_body,
             expected_body,
         )
+
+    def test_testconn_unsafe_uri(self, username="admin"):
+        self.login(username=username)
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+
+        response = self.client.post(
+            "/superset/testconn",
+            data=json.dumps(
+                {
+                    "uri": "sqlite:///home/superset/unsafe.db",
+                    "name": "unsafe",
+                    "impersonate_user": False,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(400, response.status_code)
+        response_body = json.loads(response.data.decode("utf-8"))
+        expected_body = {
+            "error": "SQLite database cannot be used as a data source for security reasons."
+        }
+        self.assertEqual(expected_body, response_body)
 
     def test_custom_password_store(self):
         database = utils.get_example_database()
@@ -839,7 +875,7 @@ class CoreTests(SupersetTestCase):
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
-    def test_slice_payload_no_data(self):
+    def test_slice_payload_no_results(self):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
         json_endpoint = "/superset/explore_json/"
@@ -859,7 +895,7 @@ class CoreTests(SupersetTestCase):
         )
         data = self.get_json_resp(json_endpoint, {"form_data": json.dumps(form_data)})
         self.assertEqual(data["status"], utils.QueryStatus.SUCCESS)
-        self.assertEqual(data["error"], "No data")
+        self.assertEqual(data["error"], None)
 
     def test_slice_payload_invalid_query(self):
         self.login(username="admin")
@@ -973,7 +1009,12 @@ class CoreTests(SupersetTestCase):
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": utils.QueryStatus.PENDING,
         }
-        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(
             results, db_engine_spec, use_new_deserialization
         )
         payload = {
@@ -1016,7 +1057,12 @@ class CoreTests(SupersetTestCase):
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": utils.QueryStatus.PENDING,
         }
-        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(
             results, db_engine_spec, use_new_deserialization
         )
         payload = {

@@ -36,7 +36,24 @@ from superset.utils import core as utils
 logger = logging.getLogger(__name__)
 
 
-@click.group(cls=FlaskGroup, create_app=create_app)
+def normalize_token(token_name: str) -> str:
+    """
+    As of click>=7, underscores in function names are replaced by dashes.
+    To avoid the need to rename all cli functions, e.g. load_examples to
+    load-examples, this function is used to convert dashes back to
+    underscores.
+
+    :param token_name: token name possibly containing dashes
+    :return: token name where dashes are replaced with underscores
+    """
+    return token_name.replace("_", "-")
+
+
+@click.group(
+    cls=FlaskGroup,
+    create_app=create_app,
+    context_settings={"token_normalize_func": normalize_token},
+)
 @with_appcontext
 def superset():
     """This is a management script for the Superset application."""

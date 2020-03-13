@@ -26,7 +26,7 @@ import github from 'react-syntax-highlighter/dist/styles/hljs/github';
 
 import { t } from '@superset-ui/translation';
 
-import Link from './Link';
+import Link from '../../components/Link';
 import ModalTrigger from '../../components/ModalTrigger';
 
 registerLanguage('sql', sql);

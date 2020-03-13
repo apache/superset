@@ -22,6 +22,7 @@ import functools
 import json
 import logging
 import os
+import re
 import signal
 import smtplib
 import traceback
@@ -922,6 +923,7 @@ def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     database = (
         db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
+
     if not database:
         logger.info(f"Creating database reference for {database_name}")
         database = models.Database(database_name=database_name, *args, **kwargs)
@@ -1209,6 +1211,17 @@ def split(
     yield s[i:]
 
 
+def get_iterable(x: Any) -> List:
+    """
+    Get an iterable (list) representation of the object.
+
+    :param x: The object
+    :returns: An iterable representation
+    """
+
+    return x if isinstance(x, list) else [x]
+
+
 class TimeRangeEndpoint(str, Enum):
     """
     The time range endpoint types which represent inclusive, exclusive, or unknown.
@@ -1225,7 +1238,7 @@ class TimeRangeEndpoint(str, Enum):
     UNKNOWN = "unknown"
 
 
-class ReservedUrlParameters(Enum):
+class ReservedUrlParameters(str, Enum):
     """
     Reserved URL parameters that are used internally by Superset. These will not be
     passed to chart queries, as they control the behavior of the UI.
@@ -1243,3 +1256,13 @@ class QuerySource(Enum):
     CHART = 0
     DASHBOARD = 1
     SQL_LAB = 2
+
+
+class DbColumnType(Enum):
+    """
+    Generic database column type
+    """
+
+    NUMERIC = 0
+    STRING = 1
+    TEMPORAL = 2

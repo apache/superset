@@ -44,7 +44,9 @@ export default function TableCollection({
             {headerGroup.headers.map(column =>
               column.hidden ? null : (
                 <th
-                  {...column.getHeaderProps(column.getSortByToggleProps())}
+                  {...column.getHeaderProps(
+                    column.sortable ? column.getSortByToggleProps() : {},
+                  )}
                   data-test="sort-header"
                 >
                   {column.render('Header')}

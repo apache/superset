@@ -113,6 +113,12 @@ class Slice(
         datasource = self.datasource
         return datasource.link if datasource else None
 
+    @renders("datasource_url")
+    def datasource_url(self) -> Optional[str]:
+        # pylint: disable=no-member
+        datasource = self.datasource
+        return datasource.explore_url if datasource else None
+
     def datasource_name_text(self) -> Optional[str]:
         # pylint: disable=no-member
         datasource = self.datasource

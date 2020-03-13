@@ -151,20 +151,28 @@ class ParsedQuery:
             self._alias_names.add(token_list.tokens[0].value)
         self.__extract_from_token(token_list)
 
-    def as_create_table(self, table_name: str, overwrite: bool = False) -> str:
+    def as_create_table(
+        self,
+        table_name: str,
+        schema_name: Optional[str] = None,
+        overwrite: bool = False,
+    ) -> str:
         """Reformats the query into the create table as query.
 
         Works only for the single select SQL statements, in all other cases
         the sql query is not modified.
-        :param table_name: Table that will contain the results of the query execution
+        :param table_name: table that will contain the results of the query execution
+        :param schema_name: schema name for the target table
         :param overwrite: table_name will be dropped if true
         :return: Create table as query
         """
         exec_sql = ""
         sql = self.stripped()
+        # TODO(bkyryliuk): quote full_table_name
+        full_table_name = f"{schema_name}.{table_name}" if schema_name else table_name
         if overwrite:
-            exec_sql = f"DROP TABLE IF EXISTS {table_name};\n"
-        exec_sql += f"CREATE TABLE {table_name} AS \n{sql}"
+            exec_sql = f"DROP TABLE IF EXISTS {full_table_name};\n"
+        exec_sql += f"CREATE TABLE {full_table_name} AS \n{sql}"
         return exec_sql
 
     def __extract_from_token(self, token: Token):  # pylint: disable=too-many-branches
@@ -205,10 +213,12 @@ class ParsedQuery:
                     if not self.__is_identifier(token2):
                         self.__extract_from_token(item)
 
-    def get_query_with_new_limit(self, new_limit: int) -> str:
-        """
-        returns the query with the specified limit.
-        Does not change the underlying query
+    def set_or_update_query_limit(self, new_limit: int) -> str:
+        """Returns the query with the specified limit.
+
+        Does not change the underlying query if user did not apply the limit,
+        otherwise replaces the limit with the lower value between existing limit
+        in the query and new_limit.
 
         :param new_limit: Limit to be incorporated into returned query
         :return: The original query with new limit
@@ -223,7 +233,10 @@ class ParsedQuery:
                 limit_pos = pos
                 break
         _, limit = statement.token_next(idx=limit_pos)
-        if limit.ttype == sqlparse.tokens.Literal.Number.Integer:
+        # Override the limit only when it exceeds the configured value.
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and new_limit < int(
+            limit.value
+        ):
             limit.value = new_limit
         elif limit.is_group:
             limit.value = f"{next(limit.get_identifiers())}, {new_limit}"

@@ -29,7 +29,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_column_aliases = False
 
     # Pinot does its own conversion below
-    _time_grain_functions: Dict[Optional[str], str] = {
+    _time_grain_expressions: Dict[Optional[str], str] = {
         "PT1S": "1:SECONDS",
         "PT1M": "1:MINUTES",
         "PT1H": "1:HOURS",
@@ -51,7 +51,11 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def get_timestamp_expr(
-        cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
+        cls,
+        col: ColumnClause,
+        pdf: Optional[str],
+        time_grain: Optional[str],
+        type_: Optional[str] = None,
     ) -> TimestampExpression:
         is_epoch = pdf in ("epoch_s", "epoch_ms")
 
@@ -75,7 +79,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         else:
             seconds_or_ms = "MILLISECONDS" if pdf == "epoch_ms" else "SECONDS"
             tf = f"1:{seconds_or_ms}:EPOCH"
-        granularity = cls.get_time_grain_functions().get(time_grain)
+        granularity = cls.get_time_grain_expressions().get(time_grain)
         if not granularity:
             raise NotImplementedError("No pinot grain spec for " + str(time_grain))
         # In pinot the output is a string since there is no timestamp column like pg

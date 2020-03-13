@@ -75,7 +75,7 @@ export const NVD3TimeSeries = [
         'of query results',
     ),
     controlSetRows: [
-      [<h1 className="section-header">{t('Moving Average')}</h1>],
+      [<h1 className="section-header">{t('Rolling Window')}</h1>],
       ['rolling_type', 'rolling_periods', 'min_periods'],
       [<h1 className="section-header">{t('Time Comparison')}</h1>],
       ['time_compare', 'comparison_type'],

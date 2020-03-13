@@ -20,7 +20,17 @@ import os
 import re
 from contextlib import closing
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 import pandas as pd
 import sqlparse
@@ -122,7 +132,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations"""
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
-    _time_grain_functions: Dict[Optional[str], str] = {}
+    _date_trunc_functions: Dict[str, str] = {}
+    _time_grain_expressions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -133,6 +144,48 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     arraysize = 0
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
+
+    # default matching patterns for identifying column types
+    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern, ...]] = {
+        utils.DbColumnType.NUMERIC: (
+            re.compile(r".*DOUBLE.*", re.IGNORECASE),
+            re.compile(r".*FLOAT.*", re.IGNORECASE),
+            re.compile(r".*INT.*", re.IGNORECASE),
+            re.compile(r".*NUMBER.*", re.IGNORECASE),
+            re.compile(r".*LONG.*", re.IGNORECASE),
+            re.compile(r".*REAL.*", re.IGNORECASE),
+            re.compile(r".*NUMERIC.*", re.IGNORECASE),
+            re.compile(r".*DECIMAL.*", re.IGNORECASE),
+            re.compile(r".*MONEY.*", re.IGNORECASE),
+        ),
+        utils.DbColumnType.STRING: (
+            re.compile(r".*CHAR.*", re.IGNORECASE),
+            re.compile(r".*STRING.*", re.IGNORECASE),
+        ),
+        utils.DbColumnType.TEMPORAL: (
+            re.compile(r".*DATE.*", re.IGNORECASE),
+            re.compile(r".*TIME.*", re.IGNORECASE),
+        ),
+    }
+
+    @classmethod
+    def is_db_column_type_match(
+        cls, db_column_type: Optional[str], target_column_type: utils.DbColumnType
+    ) -> bool:
+        """
+        Check if a column type satisfies a pattern in a collection of regexes found in
+        `db_column_types`. For example, if `db_column_type == "NVARCHAR"`,
+        it would be a match for "STRING" due to being a match for the regex ".*CHAR.*".
+
+        :param db_column_type: Column type to evaluate
+        :param target_column_type: The target type to evaluate for
+        :return: `True` if a `db_column_type` matches any pattern corresponding to
+        `target_column_type`
+        """
+        if not db_column_type:
+            return False
+        patterns = cls.db_column_types[target_column_type]
+        return any(pattern.match(db_column_type) for pattern in patterns)
 
     @classmethod
     def get_allow_cost_estimate(cls, version: Optional[str] = None) -> bool:
@@ -152,7 +205,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_timestamp_expr(
-        cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
+        cls,
+        col: ColumnClause,
+        pdf: Optional[str],
+        time_grain: Optional[str],
+        type_: Optional[str] = None,
     ) -> TimestampExpression:
         """
         Construct a TimestampExpression to be used in a SQLAlchemy query.
@@ -160,14 +217,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
+        :param type_: the source column type
         :return: TimestampExpression object
         """
         if time_grain:
-            time_expr = cls.get_time_grain_functions().get(time_grain)
+            time_expr = cls.get_time_grain_expressions().get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
                     f"No grain spec for {time_grain} for database {cls.engine}"
                 )
+            if type_ and "{func}" in time_expr:
+                date_trunc_function = cls._date_trunc_functions.get(type_)
+                if date_trunc_function:
+                    time_expr = time_expr.replace("{func}", date_trunc_function)
         else:
             time_expr = "{col}"
 
@@ -188,31 +250,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         ret_list = []
-        time_grain_functions = cls.get_time_grain_functions()
         time_grains = builtin_time_grains.copy()
         time_grains.update(config["TIME_GRAIN_ADDONS"])
-        for duration, func in time_grain_functions.items():
+        for duration, func in cls.get_time_grain_expressions().items():
             if duration in time_grains:
                 name = time_grains[duration]
                 ret_list.append(TimeGrain(name, _(name), func, duration))
         return tuple(ret_list)
 
     @classmethod
-    def get_time_grain_functions(cls) -> Dict[Optional[str], str]:
+    def get_time_grain_expressions(cls) -> Dict[Optional[str], str]:
         """
         Return a dict of all supported time grains including any potential added grains
         but excluding any potentially blacklisted grains in the config file.
 
-        :return: All time grain functions supported by the engine
+        :return: All time grain expressions supported by the engine
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
-        time_grain_functions = cls._time_grain_functions.copy()
-        grain_addon_functions = config["TIME_GRAIN_ADDON_FUNCTIONS"]
-        time_grain_functions.update(grain_addon_functions.get(cls.engine, {}))
+        time_grain_expressions = cls._time_grain_expressions.copy()
+        grain_addon_expressions = config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
         blacklist: List[str] = config["TIME_GRAIN_BLACKLIST"]
         for key in blacklist:
-            time_grain_functions.pop(key)
-        return time_grain_functions
+            time_grain_expressions.pop(key)
+        return time_grain_expressions
 
     @classmethod
     def make_select_compatible(
@@ -336,7 +397,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
-            sql = parsed_query.get_query_with_new_limit(limit)
+            sql = parsed_query.set_or_update_query_limit(limit)
         return sql
 
     @classmethod
@@ -351,7 +412,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.limit
 
     @classmethod
-    def get_query_with_new_limit(cls, sql: str, limit: int) -> str:
+    def set_or_update_query_limit(cls, sql: str, limit: int) -> str:
         """
         Create a query based on original query but with new limit clause
 
@@ -360,7 +421,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: Query with new limit
         """
         parsed_query = sql_parse.ParsedQuery(sql)
-        return parsed_query.get_query_with_new_limit(limit)
+        return parsed_query.set_or_update_query_limit(limit)
 
     @staticmethod
     def csv_to_df(**kwargs: Any) -> pd.DataFrame:
@@ -632,10 +693,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
 
+        WARNING: expects only unquoted table and schema names.
+
         :param database: Database instance
-        :param table_name: Table name
+        :param table_name: Table name, unquoted
         :param engine: SqlALchemy Engine instance
-        :param schema: Schema
+        :param schema: Schema, unquoted
         :param limit: limit to impose on query
         :param show_cols: Show columns in query; otherwise use "*"
         :param indent: Add indentation to query
@@ -879,3 +942,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if data and type(data[0]).__name__ == "Row":
             data = [tuple(row) for row in data]
         return data
+
+    @staticmethod
+    def mutate_db_for_connection_test(database: "Database") -> None:
+        """
+        Some databases require passing additional parameters for validating database
+        connections. This method makes it possible to mutate the database instance prior
+        to testing if a connection is ok.
+
+        :param database: instance to be mutated
+        """
+        return None

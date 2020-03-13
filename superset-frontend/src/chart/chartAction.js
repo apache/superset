@@ -207,6 +207,7 @@ export function exploreJSON(
   timeout = 60,
   key,
   method,
+  dashboardId,
 ) {
   return dispatch => {
     const { url, payload } = getExploreUrlAndPayload({
@@ -215,6 +216,7 @@ export function exploreJSON(
       force,
       allowDomainSharding,
       method,
+      requestParams: dashboardId ? { dashboard_id: dashboardId } : {},
     });
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
@@ -308,7 +310,13 @@ export function exploreJSON(
 }
 
 export const GET_SAVED_CHART = 'GET_SAVED_CHART';
-export function getSavedChart(formData, force = false, timeout = 60, key) {
+export function getSavedChart(
+  formData,
+  force = false,
+  timeout = 60,
+  key,
+  dashboardId,
+) {
   /*
    * Perform a GET request to `/explore_json`.
    *
@@ -319,18 +327,24 @@ export function getSavedChart(formData, force = false, timeout = 60, key) {
    *  GET  /explore_json?{"chart_id":1,"extra_filters":"..."}
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'GET');
+  return exploreJSON(formData, force, timeout, key, 'GET', dashboardId);
 }
 
 export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
-export function postChartFormData(formData, force = false, timeout = 60, key) {
+export function postChartFormData(
+  formData,
+  force = false,
+  timeout = 60,
+  key,
+  dashboardId,
+) {
   /*
    * Perform a POST request to `/explore_json`.
    *
    * This will post the form data to the endpoint, returning a new chart.
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'POST');
+  return exploreJSON(formData, force, timeout, key, 'POST', dashboardId);
 }
 
 export function redirectSQLLab(formData) {
@@ -359,7 +373,7 @@ export function redirectSQLLab(formData) {
   };
 }
 
-export function refreshChart(chartKey, force) {
+export function refreshChart(chartKey, force, dashboardId) {
   return (dispatch, getState) => {
     const chart = (getState().charts || {})[chartKey];
     const timeout = getState().dashboardInfo.common.conf
@@ -372,7 +386,13 @@ export function refreshChart(chartKey, force) {
       return;
     }
     dispatch(
-      postChartFormData(chart.latestQueryFormData, force, timeout, chart.id),
+      postChartFormData(
+        chart.latestQueryFormData,
+        force,
+        timeout,
+        chart.id,
+        dashboardId,
+      ),
     );
   };
 }

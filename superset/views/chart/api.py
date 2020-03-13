@@ -154,7 +154,7 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "changed_by_url",
         "changed_on",
         "datasource_name_text",
-        "datasource_link",
+        "datasource_url",
         "viz_type",
         "params",
         "cache_timeout",
@@ -178,4 +178,5 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name", "dashboards": "dashboard_title"}
+    filter_rel_fields_field = {"owners": "first_name"}
+    allowed_rel_fields = {"owners"}

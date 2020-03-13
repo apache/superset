@@ -30,6 +30,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
+const chartssOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 
 const mockCharts = [...new Array(3)].map((_, i) => ({
@@ -43,7 +44,16 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_list', 'can_edit'],
-  filters: [],
+  filters: {
+    slice_name: [],
+    description: [],
+    viz_type: [],
+    datasource_name: [],
+    owners: [],
+  },
+});
+fetchMock.get(chartssOwnersEndpoint, {
+  result: [],
 });
 fetchMock.get(chartsEndpoint, {
   result: mockCharts,
@@ -67,6 +77,11 @@ describe('ChartList', () => {
   it('fetches info', () => {
     const callsI = fetchMock.calls(/chart\/_info/);
     expect(callsI).toHaveLength(1);
+  });
+
+  it('fetches owners', () => {
+    const callsO = fetchMock.calls(/chart\/related\/owners/);
+    expect(callsO).toHaveLength(1);
   });
 
   it('fetches data', () => {
