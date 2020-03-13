@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 import logging
 import re
+from collections import defaultdict
 from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Dict, List, Optional, Union
@@ -1791,11 +1792,12 @@ class Superset(BaseSupersetView):
         dash = qry.one_or_none()
         if not dash:
             abort(404)
-        datasources = set()
+
+        datasources = defaultdict(list)
         for slc in dash.slices:
             datasource = slc.datasource
             if datasource:
-                datasources.add(datasource)
+                datasources[datasource].append(slc)
 
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in datasources:
@@ -1809,6 +1811,14 @@ class Superset(BaseSupersetView):
                     return redirect(
                         "superset/request_access/?" f"dashboard_id={dash.id}&"
                     )
+
+        # Filter out unneeded fields from the datasource payload
+        datasources_payload = {
+            datasource.uid: datasource.data_for_slices(slices)
+            if is_feature_enabled("REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD")
+            else datasource.data
+            for datasource, slices in datasources.items()
+        }
 
         dash_edit_perm = check_ownership(
             dash, raise_if_false=False
@@ -1857,7 +1867,7 @@ class Superset(BaseSupersetView):
         bootstrap_data = {
             "user_id": g.user.get_id(),
             "dashboard_data": dashboard_data,
-            "datasources": {ds.uid: ds.data for ds in datasources},
+            "datasources": datasources_payload,
             "common": common_bootstrap_payload(),
             "editMode": edit_mode,
             "urlParams": url_params,
