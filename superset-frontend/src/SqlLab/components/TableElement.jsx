@@ -23,7 +23,7 @@ import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
 import CopyToClipboard from '../../components/CopyToClipboard';
-import Link from './Link';
+import Link from '../../components/Link';
 import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
