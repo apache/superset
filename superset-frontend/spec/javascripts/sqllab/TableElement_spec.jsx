@@ -19,7 +19,7 @@
 import React from 'react';
 import { mount, shallow } from 'enzyme';
 
-import Link from '../../../src/SqlLab/components/Link';
+import Link from '../../../src/components/Link';
 import TableElement from '../../../src/SqlLab/components/TableElement';
 import ColumnElement from '../../../src/SqlLab/components/ColumnElement';
 import { mockedActions, table } from './fixtures';
