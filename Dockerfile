@@ -99,6 +99,10 @@ RUN cd /app \
 
 COPY ./docker/docker-entrypoint.sh /usr/bin/
 
+RUN git clone https://github.com/JohnOmernik/sqlalchemy-drill
+RUN cd sqlalchemy-drill \
+        && python3 setup.py install
+
 WORKDIR /app
 
 USER superset
