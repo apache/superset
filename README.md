@@ -69,7 +69,7 @@ Superset provides:
     create interactive dashboards.
 * A wide array of beautiful visualizations to showcase your data.
 * Easy, code-free, user flows to drill down and slice and dice the data
-    underlying exposed dashboards. The dashboards and charts acts as a starting
+    underlying exposed dashboards. The dashboards and charts act as a starting
     point for deeper analysis.
 * A state of the art SQL editor/IDE exposing a rich metadata browser, and
     an easy workflow to create visualizations out of any result set.
@@ -119,7 +119,7 @@ Interested in contributing? Casual hacking? Check out
 Who uses Apache Superset (incubating)?
 --------------------------------------
 
-Here's a list of organizations who have taken the time to send a PR to let
+Here's a list of organizations that have taken the time to send a PR to let
 the world know they are using Superset. Join our growing community!
 
  1. [6play](https://www.6play.fr)
@@ -158,6 +158,7 @@ the world know they are using Superset. Join our growing community!
  1. [komoot](https://www.komoot.com/)
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)
+ 1. [Let's Roam](https://www.letsroam.com/)
  1. [Lime](https://www.limebike.com/)
  1. [Living Goods](https://www.livinggoods.org)
  1. [Lyft](https://www.lyft.com/)
