@@ -54,6 +54,6 @@ export default [
   },
   {
     __timestamp: 978307200000.0,
-    sum__SP_POP_TOTL: 6173339411.0,
+    sum__SP_POP_TOTL: 617333941.0,
   },
 ];
