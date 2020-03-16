@@ -106,23 +106,22 @@ def load_birth_names(only_metadata=False, force=False):
     obj.fetch_metadata()
     tbl = obj
 
-    metrics = [
-        {
-            "expressionType": "SIMPLE",
-            "column": {"column_name": "num", "type": "BIGINT"},
-            "aggregate": "SUM",
-            "label": "Births",
-            "optionName": "metric_11",
-        }
-    ]
-    metric = "sum__num"
-
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
         "granularity_sqla": "ds",
         "groupby": [],
+        "metric": "sum__num",
+        "metrics": [
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "num", "type": "BIGINT"},
+                "aggregate": "SUM",
+                "label": "Births",
+                "optionName": "metric_11",
+            }
+        ],
         "row_limit": config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
@@ -145,7 +144,6 @@ def load_birth_names(only_metadata=False, force=False):
                 granularity_sqla="ds",
                 compare_lag="5",
                 compare_suffix="over 5Y",
-                metric=metric,
             ),
         ),
         Slice(
@@ -153,9 +151,7 @@ def load_birth_names(only_metadata=False, force=False):
             viz_type="pie",
             datasource_type="table",
             datasource_id=tbl.id,
-            params=get_slice_json(
-                defaults, viz_type="pie", groupby=["gender"], metric=metric
-            ),
+            params=get_slice_json(defaults, viz_type="pie", groupby=["gender"]),
         ),
         Slice(
             slice_name="Trends",
@@ -169,7 +165,6 @@ def load_birth_names(only_metadata=False, force=False):
                 granularity_sqla="ds",
                 rich_tooltip=True,
                 show_legend=True,
-                metrics=metrics,
             ),
         ),
         Slice(
@@ -220,7 +215,6 @@ def load_birth_names(only_metadata=False, force=False):
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
                 timeseries_limit_metric="sum__num",
-                metrics=metrics,
             ),
         ),
         Slice(
@@ -237,7 +231,6 @@ def load_birth_names(only_metadata=False, force=False):
                 rotation="square",
                 limit="100",
                 adhoc_filters=[gen_filter("gender", "girl")],
-                metric=metric,
             ),
         ),
         Slice(
@@ -250,7 +243,6 @@ def load_birth_names(only_metadata=False, force=False):
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
-                metrics=metrics,
             ),
         ),
         Slice(
@@ -267,7 +259,6 @@ def load_birth_names(only_metadata=False, force=False):
                 rotation="square",
                 limit="100",
                 adhoc_filters=[gen_filter("gender", "boy")],
-                metric=metric,
             ),
         ),
         Slice(
@@ -285,7 +276,6 @@ def load_birth_names(only_metadata=False, force=False):
                 time_grain_sqla="P1D",
                 viz_type="area",
                 x_axis_forma="smart_date",
-                metrics=metrics,
             ),
         ),
         Slice(
@@ -303,7 +293,6 @@ def load_birth_names(only_metadata=False, force=False):
                 time_grain_sqla="P1D",
                 viz_type="area",
                 x_axis_forma="smart_date",
-                metrics=metrics,
             ),
         ),
     ]
@@ -325,7 +314,6 @@ def load_birth_names(only_metadata=False, force=False):
                 },
                 metric_2="sum__num",
                 granularity_sqla="ds",
-                metrics=metrics,
             ),
         ),
         Slice(
@@ -333,7 +321,7 @@ def load_birth_names(only_metadata=False, force=False):
             viz_type="line",
             datasource_type="table",
             datasource_id=tbl.id,
-            params=get_slice_json(defaults, viz_type="line", metrics=metrics),
+            params=get_slice_json(defaults, viz_type="line"),
         ),
         Slice(
             slice_name="Daily Totals",
@@ -347,7 +335,6 @@ def load_birth_names(only_metadata=False, force=False):
                 since="40 years ago",
                 until="now",
                 viz_type="table",
-                metrics=metrics,
             ),
         ),
         Slice(
@@ -410,7 +397,6 @@ def load_birth_names(only_metadata=False, force=False):
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                metrics=metrics,
                 groupby=["name"],
                 row_limit=50,
                 timeseries_limit_metric={
@@ -431,7 +417,6 @@ def load_birth_names(only_metadata=False, force=False):
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                metric=metric,
                 viz_type="big_number_total",
                 granularity_sqla="ds",
                 adhoc_filters=[gen_filter("gender", "girl")],
@@ -444,11 +429,7 @@ def load_birth_names(only_metadata=False, force=False):
             datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
-                viz_type="pivot_table",
-                groupby=["name"],
-                columns=["state"],
-                metrics=metrics,
+                defaults, viz_type="pivot_table", groupby=["name"], columns=["state"]
             ),
         ),
     ]

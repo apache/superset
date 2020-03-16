@@ -97,32 +97,31 @@ def load_world_bank_health_n_pop(
     db.session.commit()
     tbl.fetch_metadata()
 
-    metric = "sum__SP_POP_TOTL"
-    metrics = ["sum__SP_POP_TOTL"]
-    secondary_metric = {
-        "aggregate": "SUM",
-        "column": {
-            "column_name": "SP_RUR_TOTL",
-            "optionName": "_col_SP_RUR_TOTL",
-            "type": "DOUBLE",
-        },
-        "expressionType": "SIMPLE",
-        "hasCustomLabel": True,
-        "label": "Rural Population",
-    }
-
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
         "granularity_sqla": "year",
         "groupby": [],
+        "metric": "sum__SP_POP_TOTL",
+        "metrics": ["sum__SP_POP_TOTL"],
         "row_limit": config["ROW_LIMIT"],
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
+        "secondary_metric": {
+            "aggregate": "SUM",
+            "column": {
+                "column_name": "SP_RUR_TOTL",
+                "optionName": "_col_SP_RUR_TOTL",
+                "type": "DOUBLE",
+            },
+            "expressionType": "SIMPLE",
+            "hasCustomLabel": True,
+            "label": "Rural Population",
+        },
         "entity": "country_code",
         "show_bubbles": True,
     }
@@ -208,7 +207,6 @@ def load_world_bank_health_n_pop(
                 viz_type="world_map",
                 metric="sum__SP_RUR_TOTL_ZS",
                 num_period_compare="10",
-                secondary_metric=secondary_metric,
             ),
         ),
         Slice(
@@ -266,8 +264,6 @@ def load_world_bank_health_n_pop(
                 groupby=["region", "country_name"],
                 since="2011-01-01",
                 until="2011-01-01",
-                metric=metric,
-                secondary_metric=secondary_metric,
             ),
         ),
         Slice(
@@ -281,7 +277,6 @@ def load_world_bank_health_n_pop(
                 until="now",
                 viz_type="area",
                 groupby=["region"],
-                metrics=metrics,
             ),
         ),
         Slice(
@@ -297,7 +292,6 @@ def load_world_bank_health_n_pop(
                 x_ticks_layout="staggered",
                 viz_type="box_plot",
                 groupby=["region"],
-                metrics=metrics,
             ),
         ),
         Slice(
