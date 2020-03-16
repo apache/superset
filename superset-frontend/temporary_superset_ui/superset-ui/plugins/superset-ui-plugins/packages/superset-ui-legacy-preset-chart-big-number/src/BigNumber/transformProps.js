@@ -18,9 +18,44 @@
  */
 import * as color from 'd3-color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
+import { getTimeFormatter, TimeFormats, smartDateVerboseFormatter } from '@superset-ui/time-format';
 import { renderTooltipFactory } from './BigNumber';
 
 const TIME_COLUMN = '__timestamp';
+
+function getTimeFormatterForGranularity(granularity) {
+  // Translate time granularity to d3-format
+  const MINUTE = '%Y-%m-%d %H:%M';
+  const SUNDAY_BASED_WEEK = '%Y W%U';
+  const MONDAY_BASED_WEEK = '%Y W%W';
+  const { DATABASE_DATE, DATABASE_DATETIME } = TimeFormats;
+
+  // search for `builtin_time_grains` in incubator-superset/superset/db_engine_specs/base.py
+  const formats = {
+    date: DATABASE_DATE,
+    PT1S: DATABASE_DATETIME, // second
+    PT1M: MINUTE, // minute
+    PT5M: MINUTE, // 5 minute
+    PT10M: MINUTE, // 10 minute
+    PT15M: MINUTE, // 15 minute
+    'PT0.5H': MINUTE, // half hour
+    PT1H: '%Y-%m-%d %H:00', // hour
+    P1D: DATABASE_DATE, // day
+    P1W: SUNDAY_BASED_WEEK, // week
+    P1M: 'smart_date_verbose', // month
+    'P0.25Y': '%Y Q%q', // quarter
+    P1Y: '%Y', // year
+    // d3-time-format weeks does not support weeks start on Sunday
+    '1969-12-28T00:00:00Z/P1W': SUNDAY_BASED_WEEK, // 'week_start_sunday'
+    '1969-12-29T00:00:00Z/P1W': MONDAY_BASED_WEEK, // 'week_start_monday'
+    'P1W/1970-01-03T00:00:00Z': SUNDAY_BASED_WEEK, // 'week_ending_saturday'
+    'P1W/1970-01-04T00:00:00Z': MONDAY_BASED_WEEK, // 'week_ending_sunday'
+  };
+
+  return granularity in formats
+    ? getTimeFormatter(formats[granularity])
+    : smartDateVerboseFormatter;
+}
 
 export default function transformProps(chartProps) {
   const { width, height, formData, queryData } = chartProps;
@@ -36,6 +71,7 @@ export default function transformProps(chartProps) {
     subheader = '',
     vizType,
   } = formData;
+  const granularity = formData.timeGrainSqla;
   let { yAxisFormat } = formData;
   const { data } = queryData;
 
@@ -47,7 +83,7 @@ export default function transformProps(chartProps) {
 
   let bigNumber;
   let trendLineData;
-  const metricName = metric && metric.label ? metric.label : metric;
+  const metricName = metric?.label ? metric.label : metric;
   const compareLag = Number(compareLagInput) || 0;
   const supportTrendLine = vizType === 'big_number';
   const supportAndShowTrendLine = supportTrendLine && showTrendLine;
@@ -92,6 +128,7 @@ export default function transformProps(chartProps) {
     });
   }
 
+  const formatDate = getTimeFormatterForGranularity(granularity);
   const formatValue = getNumberFormatter(yAxisFormat);
 
   return {
@@ -103,7 +140,7 @@ export default function transformProps(chartProps) {
     headerFontSize,
     subheaderFontSize,
     mainColor,
-    renderTooltip: renderTooltipFactory(formatValue),
+    renderTooltip: renderTooltipFactory(formatDate, formatValue),
     showTrendLine: supportAndShowTrendLine,
     startYAxisAtZero,
     subheader: formattedSubheader,
