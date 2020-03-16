@@ -97,6 +97,9 @@ export default class FixedOrMetricControl extends React.Component {
     const columns = this.props.datasource
       ? this.props.datasource.columns
       : null;
+    const metrics = this.props.datasource
+      ? this.props.datasource.metrics
+      : null;
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -145,6 +148,7 @@ export default class FixedOrMetricControl extends React.Component {
               <MetricsControl
                 name="metric"
                 columns={columns}
+                savedMetrics={metrics}
                 multi={false}
                 onFocus={() => {
                   this.setType(controlTypes.metric);
