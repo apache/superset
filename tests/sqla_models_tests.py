@@ -46,6 +46,8 @@ class DatabaseModelTestCase(SupersetTestCase):
             "VARCHAR": DbColumnType.STRING,
             "NVARCHAR": DbColumnType.STRING,
             "STRING": DbColumnType.STRING,
+            "TEXT": DbColumnType.STRING,
+            "NTEXT": DbColumnType.STRING,
             # numeric
             "INT": DbColumnType.NUMERIC,
             "BIGINT": DbColumnType.NUMERIC,

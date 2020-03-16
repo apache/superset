@@ -161,6 +161,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         utils.DbColumnType.STRING: (
             re.compile(r".*CHAR.*", re.IGNORECASE),
             re.compile(r".*STRING.*", re.IGNORECASE),
+            re.compile(r".*TEXT.*", re.IGNORECASE),
         ),
         utils.DbColumnType.TEMPORAL: (
             re.compile(r".*DATE.*", re.IGNORECASE),
@@ -905,20 +906,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             label = label[: cls.max_column_name_length]
         return label
 
+    datatype_truncate_pattern = re.compile(r"\s(CHARACTER SET|COLLATE)\s.*")
+
     @classmethod
     def column_datatype_to_string(
         cls, sqla_column_type: TypeEngine, dialect: Dialect
     ) -> str:
         """
         Convert sqlalchemy column type to string representation.
-        Can be overridden to remove unnecessary details, especially
-        collation info (see mysql, mssql).
+        By default removes collation and character encoding info to avoid unnecessarily long datatypes.
 
         :param sqla_column_type: SqlAlchemy column type
         :param dialect: Sqlalchemy dialect
         :return: Compiled column type
         """
-        return sqla_column_type.compile(dialect=dialect).upper()
+        datatype = sqla_column_type.compile(dialect=dialect).upper()
+        return cls.datatype_truncate_pattern.sub("", datatype)
 
     @classmethod
     def get_function_names(cls, database: "Database") -> List[str]:
