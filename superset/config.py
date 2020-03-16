@@ -285,6 +285,7 @@ DEFAULT_FEATURE_FLAGS = {
     "REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
+    "SQLLAB_BACKEND_PERSISTENCE": False,
 }
 
 # This is merely a default.
