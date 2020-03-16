@@ -16,6 +16,7 @@
 # under the License.
 from typing import List, Optional
 
+from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 
 
@@ -69,3 +70,8 @@ class DeleteFailedError(CommandException):
 
 class ForbiddenError(CommandException):
     message = "Action is forbidden"
+
+
+class OwnersNotFoundValidationError(ValidationError):
+    def __init__(self):
+        super().__init__(_("Owners are invalid"), field_names=["owners"])

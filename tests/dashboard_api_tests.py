@@ -250,7 +250,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "No dashboards deleted"}
+        expected_response = {"message": "Forbidden"}
         self.assertEqual(response, expected_response)
 
         # nothing is delete in bulk with a list of owned and not owned dashboards
@@ -259,7 +259,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "No dashboards deleted"}
+        expected_response = {"message": "Forbidden"}
         self.assertEqual(response, expected_response)
 
         for dashboard in dashboards:
@@ -338,7 +338,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
             "message": {"dashboard_title": ["Length must be between 0 and 500."]}
@@ -366,7 +366,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_data = {"dashboard_title": "title2", "slug": "a" * 256}
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": {"slug": ["Length must be between 1 and 255."]}}
         self.assertEqual(response, expected_response)
@@ -384,7 +384,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": {"owners": {"0": ["User 1000 does not exist"]}}}
+        expected_response = {"message": {"owners": ["Owners are invalid"]}}
         self.assertEqual(response, expected_response)
 
     def test_create_dashboard_validate_json(self):
@@ -395,13 +395,13 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(rv.status_code, 400)
 
         dashboard_data = {"dashboard_title": "title1", "json_metadata": '{"A:"a"}'}
         self.login(username="admin")
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(rv.status_code, 400)
 
         dashboard_data = {
             "dashboard_title": "title1",
@@ -410,7 +410,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(rv.status_code, 400)
 
     def test_update_dashboard(self):
         """
@@ -552,7 +552,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_export_not_allowed(self):
         """
-            Dashboard API: Test dashboard export not not allowed
+            Dashboard API: Test dashboard export not allowed
         """
         admin_id = self.get_user("admin").id
         dashboard = self.insert_dashboard("title", "slug1", [admin_id], published=False)
