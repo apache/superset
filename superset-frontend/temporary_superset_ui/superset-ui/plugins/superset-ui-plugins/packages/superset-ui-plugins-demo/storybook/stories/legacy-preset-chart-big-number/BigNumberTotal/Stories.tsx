@@ -37,7 +37,7 @@ export default [
         }}
       />
     ),
-    storyName: 'No Data',
+    storyName: 'Basic No Data',
     storyPath: 'legacy-|preset-chart-big-number|BigNumberTotalChartPlugin',
   },
 ];
