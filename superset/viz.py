@@ -1126,8 +1126,8 @@ class BigNumberViz(BaseViz):
             index=DTTM_ALIAS,
             columns=[],
             values=self.metric_labels,
-            fill_value=0,
-            aggfunc=sum,
+            dropna=False,
+            aggfunc=np.min,  # looking for any (only) value, preserving `None`
         )
         df = self.apply_rolling(df)
         df[DTTM_ALIAS] = df.index
