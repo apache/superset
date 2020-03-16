@@ -24,7 +24,6 @@ import PropTypes from 'prop-types';
 import shortid from 'shortid';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
 import { BRAND_COLOR } from '@superset-ui/color';
-import { smartDateVerboseFormatter } from '@superset-ui/time-format';
 import { computeMaxFontSize } from '@superset-ui/dimension';
 
 import './BigNumber.css';
@@ -42,10 +41,10 @@ const PROPORTION = {
   TRENDLINE: 0.3,
 };
 
-export function renderTooltipFactory(formatValue) {
+export function renderTooltipFactory(formatDate, formatValue) {
   function renderTooltip({ datum }) {
     const { x: rawDate, y: rawValue } = datum;
-    const formattedDate = smartDateVerboseFormatter(rawDate);
+    const formattedDate = formatDate(rawDate);
     const value = formatValue(rawValue);
 
     return (
@@ -96,7 +95,7 @@ const defaultProps = {
   startYAxisAtZero: true,
   trendLineData: null,
   mainColor: BRAND_COLOR,
-  renderTooltip: renderTooltipFactory(identity),
+  renderTooltip: renderTooltipFactory(identity, identity),
 };
 
 class BigNumberVis extends React.PureComponent {
