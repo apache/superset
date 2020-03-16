@@ -27,6 +27,7 @@ from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.legacy import update_time_range
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import QueryStatus, TimeRangeEndpoint
 
@@ -262,3 +263,89 @@ def get_time_range_endpoints(
         return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
     return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
+
+
+CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
+
+
+def get_dashboard_extra_filters(
+    slice_id: int, dashboard_id: int
+) -> List[Dict[str, Any]]:
+    session = db.session()
+    slc = session.query(Slice).filter_by(id=slice_id).one_or_none()
+    dashboard = session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+
+    # is chart in this dashboard?
+    if (
+        dashboard is None
+        or not dashboard.json_metadata
+        or not dashboard.slices
+        or slc not in dashboard.slices
+    ):
+        return []
+
+    # is this dashboard has default filters?
+    json_metadata = json.loads(dashboard.json_metadata)
+    default_filters = json.loads(json_metadata.get("default_filters", "null"))
+    if not default_filters:
+        return []
+
+    # is default filters applicable to the given slice?
+    filter_scopes = json_metadata.get("filter_scopes", {})
+    layout = json.loads(dashboard.position_json or "{}")
+
+    return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
+
+
+def build_extra_filters(
+    layout: Dict,
+    filter_scopes: Dict,
+    default_filters: Dict[str, Dict[str, List]],
+    slice_id: int,
+) -> List[Dict[str, Any]]:
+    extra_filters = []
+
+    # do not apply filters if chart if chart not in filter's scope or
+    # chart is immune to the filter
+    for filter_id, columns in default_filters.items():
+        scopes_by_filter_field = filter_scopes.get(filter_id, {})
+        for col, val in columns.items():
+            current_field_scopes = scopes_by_filter_field.get(col, {})
+            # scope is list of container ids
+            scope = current_field_scopes.get("scope", ["ROOT_ID"])
+            # immune is list of slice ids
+            immune = current_field_scopes.get("immune", [])
+
+            for container_id in scope:
+                if slice_id not in immune and is_slice_in_container(
+                    layout, container_id, slice_id
+                ):
+                    extra_filters.append({"col": col, "op": "in", "val": val})
+
+    return extra_filters
+
+
+def is_slice_in_container(layout: Dict, container_id: str, slice_id: int) -> bool:
+    if container_id == "ROOT_ID":
+        return True
+
+    node = layout[container_id]
+    node_type = node.get("type")
+    if (
+        node_type == "CHART"
+        and node.get("meta")
+        and node.get("meta").get("chartId", 0) == slice_id
+    ):
+        return True
+
+    if node_type in CONTAINER_TYPES:
+        children = node.get("children", [])
+        if children:
+            # for child_id in children_ids:
+            if any(
+                is_slice_in_container(layout, child_id, slice_id)
+                for child_id in children
+            ):
+                return True
+
+    return False
