@@ -147,7 +147,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       accessor: 'table_name',
     },
     {
-      Header: t('Databse'),
+      Header: t('Database'),
       accessor: 'database_name',
     },
     {
