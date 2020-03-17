@@ -16,8 +16,20 @@
   specific language governing permissions and limitations
   under the License.
 #}
-{% block partial_js %}
-  {% for entry in get_unloaded_chunks(js_manifest(filename), loaded_chunks) %}
+{% macro js_bundle(filename) %}
+  {# HTML comment is needed for webpack-dev-server to replace assets
+     with development version #}
+  <!-- Bundle js {{ filename }} START -->
+  {% for entry in js_manifest(filename) %}
     <script src="{{ entry }}"></script>
   {% endfor %}
-{% endblock %}
+  <!-- Bundle js {{ filename }} END -->
+{% endmacro %}
+
+{% macro css_bundle(filename) %}
+  <!-- Bundle css {{ filename }} START -->
+  {% for entry in css_manifest(filename) %}
+    <link rel="stylesheet" type="text/css" href="{{ entry }}" />
+  {% endfor %}
+  <!-- Bundle css {{ filename }} END -->
+{% endmacro %}

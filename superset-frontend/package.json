@@ -177,6 +177,7 @@
     "@types/react-redux": "^7.1.7",
     "@types/react-select": "^3.0.10",
     "@types/react-table": "^7.0.2",
+    "@types/yargs": "12 - 15",
     "@typescript-eslint/eslint-plugin": "^2.20.0",
     "@typescript-eslint/parser": "^2.20.0",
     "babel-core": "^7.0.0-bridge.0",
@@ -216,7 +217,6 @@
     "less": "^3.9.0",
     "less-loader": "^5.0.0",
     "mini-css-extract-plugin": "^0.4.0",
-    "minimist": "^1.2.0",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
     "po2json": "^0.4.5",
     "prettier": "^1.19.1",
@@ -238,7 +238,8 @@
     "webpack-bundle-analyzer": "^3.4.1",
     "webpack-cli": "^3.1.1",
     "webpack-dev-server": "^3.1.14",
-    "webpack-sources": "^1.1.0"
+    "webpack-sources": "^1.1.0",
+    "yargs": "12 - 15"
   },
   "optionalDependencies": {
     "fsevents": "^2.0.7"
