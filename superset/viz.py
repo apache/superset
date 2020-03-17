@@ -45,7 +45,7 @@ from geopy.point import Point
 from markdown import markdown
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, cache, get_css_manifest_files, security_manager
+from superset import app, cache, get_manifest_files, security_manager
 from superset.constants import NULL_STRING
 from superset.exceptions import NullValueException, SpatialException
 from superset.models.helpers import QueryResult
@@ -786,7 +786,7 @@ class MarkupViz(BaseViz):
         code = self.form_data.get("code", "")
         if markup_type == "markdown":
             code = markdown(code)
-        return dict(html=code, theme_css=get_css_manifest_files("theme"))
+        return dict(html=code, theme_css=get_manifest_files("theme", "css"))
 
 
 class SeparatorViz(MarkupViz):

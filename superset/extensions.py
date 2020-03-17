@@ -82,11 +82,18 @@ class UIManifestProcessor:
 
         @app.context_processor
         def get_manifest():  # pylint: disable=unused-variable
+            loaded_chunks = set()
+
+            def get_files(bundle, asset_type="js"):
+                files = self.get_manifest_files(bundle, asset_type)
+                filtered_files = [f for f in files if f not in loaded_chunks]
+                for f in filtered_files:
+                    loaded_chunks.add(f)
+                return filtered_files
+
             return dict(
-                loaded_chunks=set(),
-                get_unloaded_chunks=self.get_unloaded_chunks,
-                js_manifest=self.get_js_manifest_files,
-                css_manifest=self.get_css_manifest_files,
+                js_manifest=lambda bundle: get_files(bundle, "js"),
+                css_manifest=lambda bundle: get_files(bundle, "css"),
             )
 
     def parse_manifest_json(self):
@@ -99,28 +106,13 @@ class UIManifestProcessor:
         except Exception:  # pylint: disable=broad-except
             pass
 
-    def get_js_manifest_files(self, filename):
+    def get_manifest_files(self, bundle, asset_type):
         if self.app.debug:
             self.parse_manifest_json()
-        entry_files = self.manifest.get(filename, {})
-        return entry_files.get("js", [])
-
-    def get_css_manifest_files(self, filename):
-        if self.app.debug:
-            self.parse_manifest_json()
-        entry_files = self.manifest.get(filename, {})
-        return entry_files.get("css", [])
-
-    @staticmethod
-    def get_unloaded_chunks(files, loaded_chunks):
-        filtered_files = [f for f in files if f not in loaded_chunks]
-        for f in filtered_files:
-            loaded_chunks.add(f)
-        return filtered_files
+        return self.manifest.get(bundle, {}).get(asset_type, [])
 
 
 APP_DIR = os.path.dirname(__file__)
-
 appbuilder = AppBuilder(update_perms=False)
 cache_manager = CacheManager()
 celery_app = celery.Celery()
