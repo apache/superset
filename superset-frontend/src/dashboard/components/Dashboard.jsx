@@ -34,6 +34,7 @@ import OmniContainer from '../../components/OmniContainer';
 import { areObjectsEqual } from '../../reduxUtils';
 
 import '../stylesheets/index.less';
+import getLocationHash from '../util/getLocationHash';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -83,7 +84,12 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD);
+    const eventData = {};
+    const directLinkComponentId = getLocationHash();
+    if (directLinkComponentId) {
+      eventData.target_id = directLinkComponentId;
+    }
+    this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD, eventData);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {

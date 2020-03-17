@@ -55,6 +55,7 @@ class Query(Model, ExtraJSONMixin):
 
     # Store the tmp table into the DB only if the user asks for it.
     tmp_table_name = Column(String(256))
+    tmp_schema_name = Column(String(256))
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
     tab_name = Column(String(256))

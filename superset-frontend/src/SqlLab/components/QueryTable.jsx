@@ -23,7 +23,7 @@ import { Table } from 'reactable-arc';
 import { Label, ProgressBar, Well } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
-import Link from './Link';
+import Link from '../../components/Link';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';

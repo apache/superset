@@ -70,7 +70,7 @@ setup(
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
         "celery>=4.3.0, <5.0.0",
-        "click>=6.0, <7.0.0",  # `click`>=7 forces "-" instead of "_"
+        "click<8",
         "colorama",
         "contextlib2",
         "croniter>=0.3.28",
@@ -95,7 +95,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=0.15.1, <0.16.0",
+        "pyarrow>=0.16.0, <0.17.0",
         "pyyaml>=5.1",
         "retry>=0.9.2",
         "selenium>=3.141.0",

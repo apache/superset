@@ -19,7 +19,7 @@
 import { safeStringify } from '../../../src/utils/safeStringify';
 
 class Noise {
-  public next: Noise;
+  public next?: Noise;
 }
 
 describe('Stringify utility testing', () => {

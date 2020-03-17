@@ -98,12 +98,12 @@ class BaseDashboardSchema(BaseOwnedSchema):
     @pre_load
     def pre_load(self, data):  # pylint: disable=no-self-use
         super().pre_load(data)
-        data["slug"] = data.get("slug")
-        data["owners"] = data.get("owners", [])
-        if data["slug"]:
+        if data.get("slug"):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")
             data["slug"] = re.sub(r"[^\w\-]+", "", data["slug"])
+        if "owners" in data and data["owners"] is None:
+            data["owners"] = []
 
 
 class DashboardPostSchema(BaseDashboardSchema):
@@ -181,7 +181,8 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name", "slices": "slice_name"}
+    filter_rel_fields_field = {"owners": "first_name"}
+    allowed_rel_fields = {"owners"}
 
     def __init__(self, *args, **kwargs):
         if is_feature_enabled("THUMBNAILS"):

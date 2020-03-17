@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "sourceMaps": true,
-  "retainLines": true,
-  "presets": ["airbnb", "@babel/preset-react", "@babel/preset-env"],
-  "plugins": [
-    "lodash",
-    "@babel/plugin-syntax-dynamic-import",
-    "@babel/plugin-proposal-class-properties",
-    "react-hot-loader/babel"
-  ],
-  "env": {
-    "test": {
-      "plugins": ["babel-plugin-dynamic-import-node"]
-    }
-  }
-}
+import parseCookie from 'src/utils/parseCookie';
+
+describe('parseCookie', () => {
+  let cookieVal = '';
+  Object.defineProperty(document, 'cookie', {
+    get: jest.fn().mockImplementation(() => {
+      return cookieVal;
+    }),
+  });
+  it('parses cookie strings', () => {
+    cookieVal = 'val1=foo; val2=bar';
+    expect(parseCookie()).toEqual({ val1: 'foo', val2: 'bar' });
+  });
+
+  it('parses empty cookie strings', () => {
+    cookieVal = '';
+    expect(parseCookie()).toEqual({});
+  });
+
+  it('accepts an arg', () => {
+    expect(parseCookie('val=foo')).toEqual({ val: 'foo' });
+  });
+});

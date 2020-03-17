@@ -31,6 +31,8 @@ import {
   Filters,
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
+import Chart from 'src/types/Chart';
 
 const PAGE_SIZE = 25;
 
@@ -48,15 +50,9 @@ interface State {
   owners: Array<{ text: string; value: number }>;
   lastFetchDataConfig: FetchDataConfig | null;
   permissions: string[];
-}
-
-interface Chart {
-  changed_on: string;
-  creator: string;
-  id: number;
-  slice_name: string;
-  url: string;
-  viz_type: string;
+  // for now we need to use the Slice type defined in PropertiesModal.
+  // In future it would be better to have a unified Chart entity.
+  sliceCurrentlyEditing: Slice | null;
 }
 
 class ChartList extends React.PureComponent<Props, State> {
@@ -73,6 +69,7 @@ class ChartList extends React.PureComponent<Props, State> {
     loading: false,
     owners: [],
     permissions: [],
+    sliceCurrentlyEditing: null,
   };
 
   componentDidMount() {
@@ -140,14 +137,11 @@ class ChartList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: {
-            datasource_name_text: dsNameTxt,
-            datasource_link: dsLink,
-          },
+          original: { datasource_name_text: dsNameTxt, datasource_url: dsUrl },
         },
-      }: any) => <a href={dsLink}>{dsNameTxt}</a>,
+      }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
       Header: t('Datasource'),
-      accessor: 'datasource_name_text',
+      accessor: 'datasource_name',
       sortable: true,
     },
     {
@@ -158,9 +152,9 @@ class ChartList extends React.PureComponent<Props, State> {
             changed_by_url: changedByUrl,
           },
         },
-      }: any) => <a href={changedByName}>{changedByUrl}</a>,
+      }: any) => <a href={changedByUrl}>{changedByName}</a>,
       Header: t('Creator'),
-      accessor: 'creator',
+      accessor: 'changed_by_fk',
       sortable: true,
     },
     {
@@ -174,9 +168,17 @@ class ChartList extends React.PureComponent<Props, State> {
       sortable: true,
     },
     {
+      accessor: 'description',
+      hidden: true,
+    },
+    {
+      accessor: 'owners',
+      hidden: true,
+    },
+    {
       Cell: ({ row: { state, original } }: any) => {
         const handleDelete = () => this.handleChartDelete(original);
-        const handleEdit = () => this.handleChartEdit(original);
+        const openEditModal = () => this.openChartEditModal(original);
         if (!this.canEdit && !this.canDelete) {
           return null;
         }
@@ -213,7 +215,7 @@ class ChartList extends React.PureComponent<Props, State> {
                 role="button"
                 tabIndex={0}
                 className="action-button"
-                onClick={handleEdit}
+                onClick={openEditModal}
               >
                 <i className="fa fa-pencil" />
               </span>
@@ -234,8 +236,29 @@ class ChartList extends React.PureComponent<Props, State> {
     return this.state.permissions.some(p => p === perm);
   };
 
-  handleChartEdit = ({ id }: { id: number }) => {
-    window.location.assign(`/chart/edit/${id}`);
+  openChartEditModal = (chart: Chart) => {
+    this.setState({
+      sliceCurrentlyEditing: {
+        slice_id: chart.id,
+        slice_name: chart.slice_name,
+        description: chart.description,
+        cache_timeout: chart.cache_timeout,
+      },
+    });
+  };
+
+  closeChartEditModal = () => {
+    this.setState({ sliceCurrentlyEditing: null });
+  };
+
+  handleChartUpdated = (edits: Chart) => {
+    // update the chart in our state with the edited info
+    const newCharts = this.state.charts.map(chart =>
+      chart.id === edits.id ? { ...chart, ...edits } : chart,
+    );
+    this.setState({
+      charts: newCharts,
+    });
   };
 
   handleChartDelete = ({ id, slice_name: sliceName }: Chart) => {
@@ -247,11 +270,11 @@ class ChartList extends React.PureComponent<Props, State> {
         if (lastFetchDataConfig) {
           this.fetchData(lastFetchDataConfig);
         }
-        this.props.addSuccessToast(t('Deleted: %(slice_name)', sliceName));
+        this.props.addSuccessToast(t('Deleted: %s', sliceName));
       },
       () => {
         this.props.addDangerToast(
-          t('There was an issue deleting: %(slice_name)', sliceName),
+          t('There was an issue deleting: %s', sliceName),
         );
       },
     );
@@ -280,11 +303,20 @@ class ChartList extends React.PureComponent<Props, State> {
   };
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
-    this.setState({ loading: true });
-    const filterExps = Object.keys(filters).map(fk => ({
-      col: fk,
-      opr: filters[fk].filterId,
-      value: filters[fk].filterValue,
+    // set loading state, cache the last config for fetching data in this component.
+    this.setState({
+      lastFetchDataConfig: {
+        filters,
+        pageIndex,
+        pageSize,
+        sortBy,
+      },
+      loading: true,
+    });
+    const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
+      col,
+      opr,
+      value,
     }));
 
     const queryParams = JSON.stringify({
@@ -329,7 +361,6 @@ class ChartList extends React.PureComponent<Props, State> {
         {
           Header: 'Description',
           id: 'description',
-          input: 'textarea',
           operators: filterOperators.slice_name.map(convertFilter),
         },
         {
@@ -354,10 +385,24 @@ class ChartList extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const { charts, chartCount, loading, filters } = this.state;
+    const {
+      charts,
+      chartCount,
+      loading,
+      filters,
+      sliceCurrentlyEditing,
+    } = this.state;
     return (
       <div className="container welcome">
         <Panel>
+          {sliceCurrentlyEditing && (
+            <PropertiesModal
+              show
+              onHide={this.closeChartEditModal}
+              onSave={this.handleChartUpdated}
+              slice={sliceCurrentlyEditing}
+            />
+          )}
           <ConfirmStatusChange
             title={t('Please confirm')}
             description={t(

@@ -44,6 +44,7 @@ const propTypes = {
   supersetCanCSV: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
   componentId: PropTypes.string.isRequired,
+  dashboardId: PropTypes.number.isRequired,
   filters: PropTypes.object.isRequired,
   addDangerToast: PropTypes.func.isRequired,
 };
@@ -94,6 +95,7 @@ class SliceHeader extends React.PureComponent {
       annotationQuery,
       annotationError,
       componentId,
+      dashboardId,
       addDangerToast,
     } = this.props;
 
@@ -145,6 +147,7 @@ class SliceHeader extends React.PureComponent {
               supersetCanCSV={supersetCanCSV}
               sliceCanEdit={sliceCanEdit}
               componentId={componentId}
+              dashboardId={dashboardId}
               addDangerToast={addDangerToast}
             />
           )}

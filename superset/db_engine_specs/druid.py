@@ -31,7 +31,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = False
     allows_subqueries = True
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "FLOOR({col} TO SECOND)",
         "PT1M": "FLOOR({col} TO MINUTE)",

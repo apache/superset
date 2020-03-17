@@ -407,6 +407,32 @@ class TableVizTestCase(SupersetTestCase):
         with self.assertRaises(Exception):
             test_viz.should_be_timeseries()
 
+    def test_adhoc_metric_with_sortby(self):
+        metrics = [
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "label": "sum_value",
+                "column": {"column_name": "value1", "type": "DOUBLE"},
+            }
+        ]
+        form_data = {
+            "metrics": metrics,
+            "timeseries_limit_metric": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "label": "SUM(value1)",
+                "column": {"column_name": "value1", "type": "DOUBLE"},
+            },
+            "order_desc": False,
+        }
+
+        df = pd.DataFrame({"SUM(value1)": [15], "sum_value": [15]})
+        datasource = self.get_datasource_mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        self.assertEqual(["sum_value", "SUM(value1)"], data["columns"])
+
 
 class DistBarVizTestCase(SupersetTestCase):
     def test_groupby_nulls(self):
@@ -1166,3 +1192,82 @@ class TimeSeriesVizTestCase(SupersetTestCase):
             .tolist(),
             [1.0, 2.0, np.nan, np.nan, 5.0, np.nan, 7.0],
         )
+
+    def test_apply_rolling(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            index=pd.to_datetime(
+                ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+            ),
+            data={"y": [1.0, 2.0, 3.0, 4.0]},
+        )
+        self.assertEqual(
+            viz.BigNumberViz(
+                datasource,
+                {
+                    "metrics": ["y"],
+                    "rolling_type": "cumsum",
+                    "rolling_periods": 0,
+                    "min_periods": 0,
+                },
+            )
+            .apply_rolling(df)["y"]
+            .tolist(),
+            [1.0, 3.0, 6.0, 10.0],
+        )
+        self.assertEqual(
+            viz.BigNumberViz(
+                datasource,
+                {
+                    "metrics": ["y"],
+                    "rolling_type": "sum",
+                    "rolling_periods": 2,
+                    "min_periods": 0,
+                },
+            )
+            .apply_rolling(df)["y"]
+            .tolist(),
+            [1.0, 3.0, 5.0, 7.0],
+        )
+        self.assertEqual(
+            viz.BigNumberViz(
+                datasource,
+                {
+                    "metrics": ["y"],
+                    "rolling_type": "mean",
+                    "rolling_periods": 10,
+                    "min_periods": 0,
+                },
+            )
+            .apply_rolling(df)["y"]
+            .tolist(),
+            [1.0, 1.5, 2.0, 2.5],
+        )
+
+
+class BigNumberVizTestCase(SupersetTestCase):
+    def test_get_data(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            data={
+                DTTM_ALIAS: pd.to_datetime(
+                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+                ),
+                "y": [1.0, 2.0, 3.0, 4.0],
+            }
+        )
+        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
+        self.assertEqual(data[2], {DTTM_ALIAS: pd.Timestamp("2019-01-05"), "y": 3})
+
+    def test_get_data_with_none(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            data={
+                DTTM_ALIAS: pd.to_datetime(
+                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+                ),
+                "y": [1.0, 2.0, None, 4.0],
+            }
+        )
+        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
+        assert np.isnan(data[2]["y"])

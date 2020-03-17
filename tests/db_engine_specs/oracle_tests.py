@@ -16,6 +16,7 @@
 # under the License.
 from sqlalchemy import column
 from sqlalchemy.dialects import oracle
+from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
 
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
@@ -39,12 +40,31 @@ class OracleTestCase(DbEngineSpecTestCase):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 
-        self.assertEqual(
-            OracleEngineSpec.convert_dttm("DATE", dttm),
-            "TO_DATE('2019-01-02', 'YYYY-MM-DD')",
+        test_cases = (
+            (
+                OracleEngineSpec.convert_dttm("DATE", dttm),
+                "TO_DATE('2019-01-02', 'YYYY-MM-DD')",
+            ),
+            (
+                OracleEngineSpec.convert_dttm("DATETIME", dttm),
+                """TO_DATE('2019-01-02T03:04:05', 'YYYY-MM-DD"T"HH24:MI:SS')""",
+            ),
+            (
+                OracleEngineSpec.convert_dttm("TIMESTAMP", dttm),
+                """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
+            ),
         )
 
-        self.assertEqual(
-            OracleEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
+    def test_column_datatype_to_string(self):
+        test_cases = (
+            (DATE(), "DATE"),
+            (VARCHAR(length=255), "VARCHAR(255 CHAR)"),
+            (VARCHAR(length=255, collation="utf8"), "VARCHAR(255 CHAR)"),
+            (NVARCHAR(length=128), "NVARCHAR2(128)"),
         )
+
+        for original, expected in test_cases:
+            actual = OracleEngineSpec.column_datatype_to_string(
+                original, oracle.dialect()
+            )
+            self.assertEqual(actual, expected)

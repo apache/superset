@@ -178,6 +178,26 @@ class BaseViz:
         """
         pass
 
+    def apply_rolling(self, df):
+        fd = self.form_data
+        rolling_type = fd.get("rolling_type")
+        rolling_periods = int(fd.get("rolling_periods") or 0)
+        min_periods = int(fd.get("min_periods") or 0)
+
+        if rolling_type in ("mean", "std", "sum") and rolling_periods:
+            kwargs = dict(window=rolling_periods, min_periods=min_periods)
+            if rolling_type == "mean":
+                df = df.rolling(**kwargs).mean()
+            elif rolling_type == "std":
+                df = df.rolling(**kwargs).std()
+            elif rolling_type == "sum":
+                df = df.rolling(**kwargs).sum()
+        elif rolling_type == "cumsum":
+            df = df.cumsum()
+        if min_periods:
+            df = df[min_periods:]
+        return df
+
     def get_samples(self):
         query_obj = self.query_obj()
         query_obj.update(
@@ -383,10 +403,7 @@ class BaseViz:
 
         df = payload.get("df")
         if self.status != utils.QueryStatus.FAILED:
-            if df is not None and df.empty:
-                payload["error"] = "No data"
-            else:
-                payload["data"] = self.get_data(df)
+            payload["data"] = self.get_data(df)
         if "df" in payload:
             del payload["df"]
         return payload
@@ -575,15 +592,30 @@ class TableViz(BaseViz):
         the percent metrics have yet to be transformed.
         """
 
-        if not self.should_be_timeseries() and DTTM_ALIAS in df:
-            del df[DTTM_ALIAS]
-
+        non_percent_metric_columns = []
         # Transform the data frame to adhere to the UI ordering of the columns and
         # metrics whilst simultaneously computing the percentages (via normalization)
         # for the percent metrics.
-        non_percent_metric_columns = (
+
+        if DTTM_ALIAS in df:
+            if self.should_be_timeseries():
+                non_percent_metric_columns.append(DTTM_ALIAS)
+            else:
+                del df[DTTM_ALIAS]
+
+        non_percent_metric_columns.extend(
             self.form_data.get("all_columns") or self.form_data.get("groupby") or []
-        ) + utils.get_metric_names(self.form_data.get("metrics") or [])
+        )
+
+        non_percent_metric_columns.extend(
+            utils.get_metric_names(self.form_data.get("metrics") or [])
+        )
+
+        timeseries_limit_metric = utils.get_metric_name(
+            self.form_data.get("timeseries_limit_metric")
+        )
+        if timeseries_limit_metric:
+            non_percent_metric_columns.append(timeseries_limit_metric)
 
         percent_metric_columns = utils.get_metric_names(
             self.form_data.get("percent_metrics") or []
@@ -636,6 +668,9 @@ class TimeTableViz(BaseViz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         fd = self.form_data
         columns = None
         values = self.metric_labels
@@ -689,6 +724,9 @@ class PivotTableViz(BaseViz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         if self.form_data.get("granularity") == "all" and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
 
@@ -798,6 +836,9 @@ class TreemapViz(BaseViz):
         return result
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         df = df.set_index(self.form_data.get("groupby"))
         chart_data = [
             {"name": metric, "children": self._nest(metric, df)}
@@ -908,6 +949,9 @@ class BoxPlotViz(NVD3Viz):
         return chart_data
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         form_data = self.form_data
 
         # conform to NVD3 names
@@ -995,6 +1039,9 @@ class BubbleViz(NVD3Viz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         df["x"] = df[[utils.get_metric_name(self.x_metric)]]
         df["y"] = df[[utils.get_metric_name(self.y_metric)]]
         df["size"] = df[[utils.get_metric_name(self.z_metric)]]
@@ -1073,6 +1120,18 @@ class BigNumberViz(BaseViz):
         d["metrics"] = [self.form_data.get("metric")]
         self.form_data["metric"] = metric
         return d
+
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            columns=[],
+            values=self.metric_labels,
+            dropna=False,
+            aggfunc=np.min,  # looking for any (only) value, preserving `None`
+        )
+        df = self.apply_rolling(df)
+        df[DTTM_ALIAS] = df.index
+        return super().get_data(df)
 
 
 class BigNumberTotalViz(BaseViz):
@@ -1163,7 +1222,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             chart_data.append(d)
         return chart_data
 
-    def process_data(self, df, aggregate=False):
+    def process_data(self, df: pd.DataFrame, aggregate: bool = False) -> VizData:
         fd = self.form_data
         if fd.get("granularity") == "all":
             raise Exception(_("Pick a time granularity for your time series"))
@@ -1198,23 +1257,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dfs.sort_values(ascending=False, inplace=True)
             df = df[dfs.index]
 
-        rolling_type = fd.get("rolling_type")
-        rolling_periods = int(fd.get("rolling_periods") or 0)
-        min_periods = int(fd.get("min_periods") or 0)
-
-        if rolling_type in ("mean", "std", "sum") and rolling_periods:
-            kwargs = dict(window=rolling_periods, min_periods=min_periods)
-            if rolling_type == "mean":
-                df = df.rolling(**kwargs).mean()
-            elif rolling_type == "std":
-                df = df.rolling(**kwargs).std()
-            elif rolling_type == "sum":
-                df = df.rolling(**kwargs).sum()
-        elif rolling_type == "cumsum":
-            df = df.cumsum()
-        if min_periods:
-            df = df[min_periods:]
-
+        df = self.apply_rolling(df)
         if fd.get("contribution"):
             dft = df.T
             df = (dft / dft.sum()).T
@@ -1388,6 +1431,9 @@ class NVD3DualLineViz(NVD3Viz):
         return chart_data
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         fd = self.form_data
 
         if self.form_data.get("granularity") == "all":
@@ -1424,6 +1470,9 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         fd = self.form_data
         df = self.process_data(df)
         freq = to_offset(fd.get("freq"))
@@ -1482,6 +1531,8 @@ class DistributionPieViz(NVD3Viz):
     is_timeseries = False
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         metric = self.metric_labels[0]
         df = df.pivot_table(index=self.groupby, values=[metric])
         df.sort_values(by=metric, ascending=False, inplace=True)
@@ -1523,6 +1574,9 @@ class HistogramViz(BaseViz):
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         """Returns the chart data"""
+        if df.empty:
+            return None
+
         chart_data = []
         if len(self.groupby) > 0:
             groups = df.groupby(self.groupby)
@@ -1563,6 +1617,9 @@ class DistributionBarViz(DistributionPieViz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         fd = self.form_data
         metrics = self.metric_labels
         columns = fd.get("columns") or []
@@ -1729,6 +1786,9 @@ class ChordViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         df.columns = ["source", "target", "value"]
 
         # Preparing a symetrical matrix like d3.chords calls for
@@ -1892,7 +1952,7 @@ class IFrameViz(BaseViz):
         return pd.DataFrame()
 
     def get_data(self, df: pd.DataFrame) -> VizData:
-        return {}
+        return {"iframe": True}
 
 
 class ParallelCoordinatesViz(BaseViz):
@@ -1941,6 +2001,9 @@ class HeatmapViz(BaseViz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         fd = self.form_data
         x = fd.get("all_columns_x")
         y = fd.get("all_columns_y")
@@ -2050,6 +2113,7 @@ class MapboxViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
+
         fd = self.form_data
         label_col = fd.get("mapbox_label")
         has_custom_metric = label_col is not None and len(label_col) > 0
@@ -2531,6 +2595,9 @@ class DeckArc(BaseDeckGLViz):
         }
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         d = super().get_data(df)
 
         return {
@@ -2592,6 +2659,10 @@ class PairedTTestViz(BaseViz):
             ], ...
         }
         """
+
+        if df.empty:
+            return None
+
         fd = self.form_data
         groups = fd.get("groupby")
         metrics = self.metric_labels
@@ -2632,6 +2703,9 @@ class RoseViz(NVD3TimeSeriesViz):
     is_timeseries = True
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         data = super().get_data(df)
         result: Dict = {}
         for datum in data:  # type: ignore

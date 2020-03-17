@@ -29,7 +29,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
-from superset import appbuilder, db, security_manager
+from superset import app, appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.constants import RouteMethod
 from superset.utils import core as utils
@@ -461,3 +461,11 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
             flash(failure_msg, "danger")
 
         return redirect("/tablemodelview/list/")
+
+    @expose("/list/")
+    @has_access
+    def list(self):
+        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+            return super().list()
+
+        return super().render_app_template()

@@ -222,13 +222,23 @@ class ChartRenderer extends React.Component {
       queryResponse,
     } = this.props;
 
+    // It's bad practice to use unprefixed `vizType` as classnames for chart
+    // container. It may cause css conflicts as in the case of legacy table chart.
+    // When migrating charts, we should gradually add a `superset-chart-` prefix
+    // to each one of them.
+    const snakeCaseVizType = snakeCase(vizType);
+    const chartClassName =
+      vizType === 'table'
+        ? `superset-chart-${snakeCaseVizType}`
+        : snakeCaseVizType;
+
     return (
       <>
         {this.renderTooltip()}
         <SuperChart
           disableErrorBoundary
           id={`chart-id-${chartId}`}
-          className={`${snakeCase(vizType)}`}
+          className={chartClassName}
           chartType={vizType}
           width={width}
           height={height}

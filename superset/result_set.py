@@ -20,7 +20,6 @@
 import datetime
 import json
 import logging
-import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 import numpy as np
@@ -75,6 +74,7 @@ class SupersetResultSet:
         cursor_description: Tuple[Any, ...],
         db_engine_spec: Type[db_engine_specs.BaseEngineSpec],
     ):
+        self.db_engine_spec = db_engine_spec
         data = data or []
         column_names: List[str] = []
         pa_data: List[pa.Array] = []
@@ -173,9 +173,10 @@ class SupersetResultSet:
     def first_nonempty(items: List) -> Any:
         return next((i for i in items if i), None)
 
-    @staticmethod
-    def is_date(db_type_str: Optional[str]) -> bool:
-        return db_type_str in ("DATETIME", "TIMESTAMP")
+    def is_temporal(self, db_type_str: Optional[str]) -> bool:
+        return self.db_engine_spec.is_db_column_type_match(
+            db_type_str, utils.DbColumnType.TEMPORAL
+        )
 
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""
@@ -211,7 +212,7 @@ class SupersetResultSet:
             column = {
                 "name": col.name,
                 "type": db_type_str,
-                "is_date": self.is_date(db_type_str),
+                "is_date": self.is_temporal(db_type_str),
             }
             columns.append(column)
 
