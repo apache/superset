@@ -4,7 +4,7 @@ RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 
 # Configure environment
 ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+  LC_ALL=C.UTF-8
 
 RUN apt-get update -y
 
@@ -15,7 +15,7 @@ RUN apt-get install -y apt-transport-https apt-utils
 # Install superset dependencies
 # https://superset.incubator.apache.org/installation.html#os-dependencies
 RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
+  libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
 
 # Install extra useful tool for development
 RUN apt-get install -y vim less postgresql-client redis-tools
@@ -24,7 +24,7 @@ RUN apt-get install -y vim less postgresql-client redis-tools
 # https://superset.incubator.apache.org/installation.html#making-your-own-build
 # https://nodejs.org/en/download/package-manager/
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
-    && apt-get install -y nodejs
+  && apt-get install -y nodejs
 
 
 ARG SUPERSET_ENV=$SUPERSET_ENV
@@ -38,6 +38,7 @@ ARG ADMIN_PASSWORD=$ADMIN_PASSWORD
 ARG GUEST_EMAIL=$GUEST_EMAIL
 ARG GUEST_PASSWORD=$GUEST_PASSWORD
 ARG AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+ARG COMMON_CONFIG_DATA_BUCKET=$COMMON_CONFIG_DATA_BUCKET
 
 ENV SUPERSET_ENV=${SUPERSET_ENV} \
   SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI} \
@@ -49,7 +50,8 @@ ENV SUPERSET_ENV=${SUPERSET_ENV} \
   ADMIN_PASSWORD=${ADMIN_PASSWORD} \
   GUEST_EMAIL=${GUEST_EMAIL} \
   GUEST_PASSWORD=${GUEST_PASSWORD} \
-  AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+  AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} \
+  COMMON_CONFIG_DATA_BUCKET=${COMMON_CONFIG_DATA_BUCKET}
 
 WORKDIR /home/superset
 

@@ -15,20 +15,26 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
-from flask import request
+from flask import request, make_response, jsonify
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 import simplejson as json
 
 from superset import appbuilder, db, event_logger, security_manager
+from superset.custom_auth import CustomAuthDBView
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 import superset.models.core as models
-from superset.utils import core as utils
-from .base import api, BaseSupersetView, handle_api_exception
+from superset.utils import core as utils, s3_utils, dashboard_import_export
+from .base import api, BaseSupersetView, handle_api_exception, json_error_response, json_success
+from os import environ
+from superset import app
+import asyncio
+import logging
 
 
 class Api(BaseSupersetView):
+
     @event_logger.log_this
     @api
     @handle_api_exception
@@ -68,5 +74,43 @@ class Api(BaseSupersetView):
 
         return json.dumps(form_data)
 
+    @CustomAuthDBView.login_api
+    @api
+    @event_logger.log_this
+    @handle_api_exception
+    @expose("/v1/dashboard_import/", methods=["POST"])
+    def import_dashboard(self):
+        """
+         It checks if there is any dashboard of that slug name in the common bucket of s3. If yes, it pulls that file.
+
+        """
+        slug = request.get_json()["slug"]
+        isPublished = request.get_json()["isPublished"]
+        if slug:
+            #get file from common bucket
+            file_name = slug+".json"
+            s3_utils.get_file_data(environ['COMMON_CONFIG_DATA_BUCKET'], app.config["DASHBOARD_OBJECT_PATH"] + slug + ".json", file_name)
+            try:
+              with open(file_name, 'r') as data_stream:
+              #call import dashboard function
+                dashboard_ids = dashboard_import_export.import_dashboards(db.session, data_stream)
+                if isPublished:
+                  if dashboard_ids and len(dashboard_ids) > 0:
+                    for dashboard_id in dashboard_ids:
+                      session = db.session()
+                      Dashboard = models.Dashboard
+                      dash = (session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none())
+                      dash.published = True
+                      session.commit()
+                return json_success(json.dumps({"dashboard_imported": True}))
+            except Exception as e:
+                logging.error("Error when importing dashboard from file %s", file_name)
+                logging.error(e)
+                return json_error_response(
+                    "ERROR: cannot import from {0} file".format(file_name), status=500
+                )
+        return json_error_response(
+              "ERROR: cannot find slug name", status=404
+          )
 
 appbuilder.add_view_no_menu(Api)

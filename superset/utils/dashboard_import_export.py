@@ -32,8 +32,10 @@ def import_dashboards(session, data_stream, import_time=None):
     for table in data["datasources"]:
         type(table).import_obj(table, import_time=import_time)
     session.commit()
+    dashboard_ids = []
     for dashboard in data["dashboards"]:
-        Dashboard.import_obj(dashboard, import_time=import_time)
+        dashboard_ids.append(Dashboard.import_obj(dashboard, import_time=import_time))
+    return dashboard_ids
     session.commit()
 
 
