@@ -18,7 +18,6 @@ import re
 from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
-from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
@@ -66,10 +65,10 @@ class MssqlEngineSpec(BaseEngineSpec):
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)
 
-    column_types = [
+    column_types = (
         (String(), re.compile(r"^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)", re.IGNORECASE)),
         (UnicodeText(), re.compile(r"^N((VAR){0,1}CHAR|TEXT)", re.IGNORECASE)),
-    ]
+    )
 
     @classmethod
     def get_sqla_column_type(cls, type_: str) -> Optional[TypeEngine]:
@@ -77,16 +76,3 @@ class MssqlEngineSpec(BaseEngineSpec):
             if regex.match(type_):
                 return sqla_type
         return None
-
-    @classmethod
-    def column_datatype_to_string(
-        cls, sqla_column_type: TypeEngine, dialect: Dialect
-    ) -> str:
-        datatype = super().column_datatype_to_string(sqla_column_type, dialect)
-        # MSSQL returns long overflowing datatype
-        # as in 'VARCHAR(255) COLLATE SQL_LATIN1_GENERAL_CP1_CI_AS'
-        # and we don't need the verbose collation type
-        str_cutoff = " COLLATE "
-        if str_cutoff in datatype:
-            datatype = datatype.split(str_cutoff)[0]
-        return datatype

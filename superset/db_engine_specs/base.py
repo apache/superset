@@ -906,8 +906,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             label = label[: cls.max_column_name_length]
         return label
 
-    datatype_truncate_pattern = re.compile(r"\s(CHARACTER SET|COLLATE)\s.*")
-
     @classmethod
     def column_datatype_to_string(
         cls, sqla_column_type: TypeEngine, dialect: Dialect
@@ -921,8 +919,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param dialect: Sqlalchemy dialect
         :return: Compiled column type
         """
-        datatype = sqla_column_type.compile(dialect=dialect).upper()
-        return cls.datatype_truncate_pattern.sub("", datatype)
+        sqla_column_type = sqla_column_type.copy()
+        if hasattr(sqla_column_type, "collation"):
+            sqla_column_type.collation = None
+        if hasattr(sqla_column_type, "charset"):
+            sqla_column_type.charset = None
+        return sqla_column_type.compile(dialect=dialect).upper()
 
     @classmethod
     def get_function_names(cls, database: "Database") -> List[str]:
