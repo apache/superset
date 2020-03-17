@@ -21,13 +21,13 @@ import React, { ReactNode } from 'react';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 interface Props {
-  children: ReactNode;
-  className: string;
-  href: string;
-  onClick: () => void;
-  placement: string;
-  style: object;
-  tooltip: string | null;
+  children?: ReactNode;
+  className?: string;
+  href?: string;
+  onClick?: () => void;
+  placement?: string;
+  style?: object;
+  tooltip?: string | null;
 }
 
 const Link = ({

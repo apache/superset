@@ -17,11 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import { act } from 'react-dom/test-utils';
 import { MenuItem, Pagination } from 'react-bootstrap';
 
 import ListView from 'src/components/ListView/ListView';
+import { areArraysShallowEqual } from 'src/reduxUtils';
 
 describe('ListView', () => {
   const mockedProps = {
@@ -53,10 +54,6 @@ describe('ListView', () => {
     pageSize: 1,
     fetchData: jest.fn(() => []),
     loading: false,
-    filterTypes: {
-      id: [],
-      name: [{ name: 'sw', label: 'Starts With' }],
-    },
     bulkActions: [{ name: 'do something', onSelect: jest.fn() }],
   };
   const wrapper = mount(<ListView {...mockedProps} />);
@@ -71,15 +68,15 @@ describe('ListView', () => {
   it('calls fetchData on mount', () => {
     expect(wrapper.find(ListView)).toHaveLength(1);
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-                                          Array [
-                                            Object {
-                                              "filters": Array [],
-                                              "pageIndex": 0,
-                                              "pageSize": 1,
-                                              "sortBy": Array [],
-                                            },
-                                          ]
-                            `);
+                                                      Array [
+                                                        Object {
+                                                          "filters": Array [],
+                                                          "pageIndex": 0,
+                                                          "pageSize": 1,
+                                                          "sortBy": Array [],
+                                                        },
+                                                      ]
+                                    `);
   });
 
   it('calls fetchData on sort', () => {
@@ -90,20 +87,20 @@ describe('ListView', () => {
 
     expect(mockedProps.fetchData).toHaveBeenCalled();
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-                                          Array [
-                                            Object {
-                                              "filters": Array [],
-                                              "pageIndex": 0,
-                                              "pageSize": 1,
-                                              "sortBy": Array [
-                                                Object {
-                                                  "desc": false,
-                                                  "id": "id",
-                                                },
-                                              ],
-                                            },
-                                          ]
-                            `);
+                                                      Array [
+                                                        Object {
+                                                          "filters": Array [],
+                                                          "pageIndex": 0,
+                                                          "pageSize": 1,
+                                                          "sortBy": Array [
+                                                            Object {
+                                                              "desc": false,
+                                                              "id": "id",
+                                                            },
+                                                          ],
+                                                        },
+                                                      ]
+                                    `);
   });
 
   it('calls fetchData on filter', () => {
@@ -140,27 +137,27 @@ describe('ListView', () => {
     wrapper.update();
 
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "filters": Array [
-            Object {
-              "Header": "name",
-              "id": "name",
-              "operator": "sw",
-              "value": "foo",
-            },
-          ],
-          "pageIndex": 0,
-          "pageSize": 1,
-          "sortBy": Array [
-            Object {
-              "desc": false,
-              "id": "id",
-            },
-          ],
-        },
-      ]
-    `);
+                  Array [
+                    Object {
+                      "filters": Array [
+                        Object {
+                          "Header": "name",
+                          "id": "name",
+                          "operator": "sw",
+                          "value": "foo",
+                        },
+                      ],
+                      "pageIndex": 0,
+                      "pageSize": 1,
+                      "sortBy": Array [
+                        Object {
+                          "desc": false,
+                          "id": "id",
+                        },
+                      ],
+                    },
+                  ]
+            `);
   });
 
   it('calls fetchData on page change', () => {
@@ -170,32 +167,65 @@ describe('ListView', () => {
     wrapper.update();
 
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "filters": Array [
-            Object {
-              "Header": "name",
-              "id": "name",
-              "operator": "sw",
-              "value": "foo",
-            },
-          ],
-          "pageIndex": 1,
-          "pageSize": 1,
-          "sortBy": Array [
-            Object {
-              "desc": false,
-              "id": "id",
-            },
-          ],
-        },
-      ]
-    `);
+                  Array [
+                    Object {
+                      "filters": Array [
+                        Object {
+                          "Header": "name",
+                          "id": "name",
+                          "operator": "sw",
+                          "value": "foo",
+                        },
+                      ],
+                      "pageIndex": 1,
+                      "pageSize": 1,
+                      "sortBy": Array [
+                        Object {
+                          "desc": false,
+                          "id": "id",
+                        },
+                      ],
+                    },
+                  ]
+            `);
   });
   it('handles bulk actions on 1 row', () => {
     act(() => {
       wrapper
         .find('input[title="Toggle Row Selected"]')
+        .at(0)
+        .prop('onChange')({ target: { value: 'on' } });
+
+      wrapper
+        .find('.dropdown-toggle')
+        .children('button')
+        .at(1)
+        .props()
+        .onClick();
+    });
+    wrapper.update();
+    const bulkActionsProps = wrapper
+      .find(MenuItem)
+      .last()
+      .props();
+
+    bulkActionsProps.onSelect(bulkActionsProps.eventKey);
+    expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
+      .toMatchInlineSnapshot(`
+                                    Array [
+                                      Array [
+                                        Object {
+                                          "id": 1,
+                                          "name": "data 1",
+                                        },
+                                      ],
+                                    ]
+                        `);
+  });
+  it('handles bulk actions on all rows', () => {
+    act(() => {
+      wrapper
+        .find('input[title="Toggle All Rows Selected"]')
         .at(0)
         .prop('onChange')({ target: { value: 'on' } });
 
@@ -221,45 +251,26 @@ describe('ListView', () => {
                               "id": 1,
                               "name": "data 1",
                             },
+                            Object {
+                              "id": 2,
+                              "name": "data 2",
+                            },
                           ],
                         ]
                 `);
   });
-  it('handles bulk actions on all rows', () => {
-    act(() => {
-      wrapper
-        .find('input[title="Toggle All Rows Selected"]')
-        .at(0)
-        .prop('onChange')({ target: { value: 'on' } });
-
-      wrapper
-        .find('.dropdown-toggle')
-        .children('button')
-        .at(1)
-        .props()
-        .onClick();
-    });
-    wrapper.update();
-    const bulkActionsProps = wrapper
-      .find(MenuItem)
-      .last()
-      .props();
-
-    bulkActionsProps.onSelect(bulkActionsProps.eventKey);
-    expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
-      .toMatchInlineSnapshot(`
-            Array [
-              Array [
-                Object {
-                  "id": 1,
-                  "name": "data 1",
-                },
-                Object {
-                  "id": 2,
-                  "name": "data 2",
-                },
-              ],
-            ]
-        `);
+  it('Throws an exception if filter missing in columns', () => {
+    expect.assertions(1);
+    const props = {
+      ...mockedProps,
+      filters: [...mockedProps.filters, { id: 'some_column' }],
+    };
+    try {
+      shallow(<ListView {...props} />);
+    } catch (e) {
+      expect(e).toMatchInlineSnapshot(
+        `[ListViewError: Invalid filter config, some_column is not present in columns]`,
+      );
+    }
   });
 });

@@ -57,10 +57,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     list_columns = [
         "database.database_name",
+        "changed_by_name",
+        "changed_by_url",
         "changed_by.username",
         "changed_on",
-        "table_name",
+        "database_name",
+        "explore_url",
+        "id",
         "schema",
+        "table_name",
     ]
     show_columns = [
         "database.database_name",
@@ -106,6 +111,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     filter_rel_fields_field = {"owners": "first_name", "database": "database_name"}
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
+    allowed_rel_fields = {"database", "owners"}
 
     @expose("/", methods=["POST"])
     @protect()

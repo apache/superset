@@ -20,7 +20,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 import ModalTrigger from './../../../../src/components/ModalTrigger';
 
-import DisplayQueryButton from '../../../../src/explore/components/DisplayQueryButton';
+import { DisplayQueryButton } from '../../../../src/explore/components/DisplayQueryButton';
 
 describe('DisplayQueryButton', () => {
   const defaultProps = {

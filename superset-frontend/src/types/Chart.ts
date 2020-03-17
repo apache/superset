@@ -16,24 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
 
-import Link from '../../../src/components/Link';
+/**
+ * The Chart model as returned from the API
+ */
 
-describe('Link', () => {
-  const mockedProps = {
-    tooltip: 'This is a tooltip',
-    href: 'https://www.airbnb.com',
-  };
-  it('renders', () => {
-    expect(React.isValidElement(<Link>TEST</Link>)).toBe(true);
-  });
-  it('renders with props', () => {
-    expect(React.isValidElement(<Link {...mockedProps}>TEST</Link>)).toBe(true);
-  });
-  it('renders an anchor tag', () => {
-    const wrapper = shallow(<Link {...mockedProps}>TEST</Link>);
-    expect(wrapper.find('a')).toHaveLength(1);
-  });
-});
+export default interface Chart {
+  id: number;
+  url: string;
+  viz_type: string;
+  slice_name: string;
+  creator: string;
+  changed_on: string;
+  description: string | null;
+  cache_timeout: number | null;
+}
