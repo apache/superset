@@ -56,7 +56,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     )
 
     list_columns = [
-        "database.database_name",
+        "database_name",
         "changed_by_name",
         "changed_by_url",
         "changed_by.username",
