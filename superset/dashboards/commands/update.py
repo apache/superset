@@ -61,8 +61,6 @@ class UpdateDashboardCommand(BaseCommand):
 
         # Validate/populate model exists
         self._model = DashboardDAO.find_by_id(self._model_id)
-        if owner_ids is None:
-            owner_ids = [owner.id for owner in self._model.owners]
         if not self._model:
             raise DashboardNotFoundError()
         # Check ownership
@@ -76,6 +74,8 @@ class UpdateDashboardCommand(BaseCommand):
             exceptions.append(DashboardSlugExistsValidationError())
 
         # Validate/Populate owner
+        if owner_ids is None:
+            owner_ids = [owner.id for owner in self._model.owners]
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
