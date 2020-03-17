@@ -18,7 +18,7 @@ import unittest.mock as mock
 
 from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
-from sqlalchemy.dialects.mssql import DATE, TEXT, VARCHAR, NVARCHAR, NTEXT
+from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
 from sqlalchemy.sql import select
 from sqlalchemy.types import String, UnicodeText
 

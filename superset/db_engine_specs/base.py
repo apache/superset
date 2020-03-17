@@ -914,7 +914,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str:
         """
         Convert sqlalchemy column type to string representation.
-        By default removes collation and character encoding info to avoid unnecessarily long datatypes.
+        By default removes collation and character encoding info to avoid unnecessarily
+        long datatypes.
 
         :param sqla_column_type: SqlAlchemy column type
         :param dialect: Sqlalchemy dialect
