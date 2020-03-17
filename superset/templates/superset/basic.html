@@ -18,6 +18,7 @@
 #}
 
 {% import 'appbuilder/general/lib.html' as lib %}
+{% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
 
 {% set favicons = appbuilder.app.config['FAVICONS'] %}
 
@@ -45,22 +46,15 @@
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
 
-      {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
-        <link rel="stylesheet" type="text/css" href="{{ entry }}" />
-      {% endfor %}
+      {{ css_bundle("theme") }}
 
       {% if entry %}
-        {% set entry_files = css_manifest(entry) %}
-        {% for entry in get_unloaded_chunks(entry_files, loaded_chunks) %}
-          <link rel="stylesheet" type="text/css" href="{{ entry }}" />
-        {% endfor %}
+        {{ css_bundle(entry) }}
       {% endif %}
 
     {% endblock %}
 
-    {% with filename="theme" %}
-      {% include "superset/partials/_script_tag.html" %}
-    {% endwith %}
+    {{ js_bundle("theme") }}
 
     <input
       type="hidden"
@@ -105,9 +99,7 @@
     </div>
     {% block tail_js %}
       {% if entry %}
-        {% with filename=entry %}
-          {% include "superset/partials/_script_tag.html" %}
-        {% endwith %}
+        {{ js_bundle(entry) }}
       {% endif %}
     {% endblock %}
   </body>
