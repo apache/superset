@@ -285,17 +285,27 @@ def get_dashboard_extra_filters(
     ):
         return []
 
-    # does this dashboard have default filters?
-    json_metadata = json.loads(dashboard.json_metadata)
-    default_filters = json.loads(json_metadata.get("default_filters", "null"))
-    if not default_filters:
-        return []
+    try:
+        # does this dashboard have default filters?
+        json_metadata = json.loads(dashboard.json_metadata)
+        default_filters = json.loads(json_metadata.get("default_filters", "null"))
+        if not default_filters:
+            return []
 
-    # are default filters applicable to the given slice?
-    filter_scopes = json_metadata.get("filter_scopes", {})
-    layout = json.loads(dashboard.position_json or "{}")
+        # are default filters applicable to the given slice?
+        filter_scopes = json_metadata.get("filter_scopes", {})
+        layout = json.loads(dashboard.position_json or "{}")
 
-    return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
+        if (
+            isinstance(layout, dict)
+            and isinstance(filter_scopes, dict)
+            and isinstance(default_filters, dict)
+        ):
+            return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
+    except json.JSONDecodeError:
+        pass
+
+    return []
 
 
 def build_extra_filters(
