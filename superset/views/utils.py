@@ -281,7 +281,7 @@ def get_dashboard_extra_filters(
         dashboard is None
         or not dashboard.json_metadata
         or not dashboard.slices
-        or slice_id not in [slc.id for slc in dashboard.slices]
+        or not any([slc for slc in dashboard.slices if slc.id == slice_id])
     ):
         return []
 

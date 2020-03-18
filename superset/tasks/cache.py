@@ -58,10 +58,14 @@ def get_form_data(chart_id, dashboard=None):
 
     filter_scopes = json_metadata.get("filter_scopes", {})
     layout = json.loads(dashboard.position_json or "{}")
-    # do not apply filters if chart is immune to them
-    extra_filters = build_extra_filters(
-        layout, filter_scopes, default_filters, chart_id
-    )
+    if (
+        isinstance(layout, dict)
+        and isinstance(filter_scopes, dict)
+        and isinstance(default_filters, dict)
+    ):
+        extra_filters = build_extra_filters(
+            layout, filter_scopes, default_filters, chart_id
+        )
     if extra_filters:
         form_data["extra_filters"] = extra_filters
 
