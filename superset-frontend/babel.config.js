@@ -18,6 +18,7 @@
  */
 module.exports = {
   sourceMaps: true,
+  sourceType: 'unambiguous',
   retainLines: true,
   presets: [
     '@babel/preset-react',
@@ -28,6 +29,8 @@ module.exports = {
         corejs: 3,
         loose: true,
         shippedProposals: true,
+        modules: false,
+        targets: false,
       },
     ],
   ],

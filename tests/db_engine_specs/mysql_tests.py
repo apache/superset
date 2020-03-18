@@ -16,6 +16,9 @@
 # under the License.
 import unittest
 
+from sqlalchemy.dialects import mysql
+from sqlalchemy.dialects.mysql import DATE, NVARCHAR, TEXT, VARCHAR
+
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
@@ -41,3 +44,21 @@ class MySQLEngineSpecsTestCase(DbEngineSpecTestCase):
             MySQLEngineSpec.convert_dttm("DATETIME", dttm),
             "STR_TO_DATE('2019-01-02 03:04:05.678900', '%Y-%m-%d %H:%i:%s.%f')",
         )
+
+    def test_column_datatype_to_string(self):
+        test_cases = (
+            (DATE(), "DATE"),
+            (VARCHAR(length=255), "VARCHAR(255)"),
+            (
+                VARCHAR(length=255, charset="latin1", collation="utf8mb4_general_ci"),
+                "VARCHAR(255)",
+            ),
+            (NVARCHAR(length=128), "NATIONAL VARCHAR(128)"),
+            (TEXT(), "TEXT"),
+        )
+
+        for original, expected in test_cases:
+            actual = MySQLEngineSpec.column_datatype_to_string(
+                original, mysql.dialect()
+            )
+            self.assertEqual(actual, expected)

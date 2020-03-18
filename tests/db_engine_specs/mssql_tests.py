@@ -18,6 +18,7 @@ import unittest.mock as mock
 
 from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
+from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
 from sqlalchemy.sql import select
 from sqlalchemy.types import String, UnicodeText
 
@@ -75,21 +76,23 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
 
     def test_convert_dttm(self):
         dttm = self.get_dttm()
-
-        self.assertEqual(
-            MssqlEngineSpec.convert_dttm("DATE", dttm),
-            "CONVERT(DATE, '2019-01-02', 23)",
+        test_cases = (
+            (
+                MssqlEngineSpec.convert_dttm("DATE", dttm),
+                "CONVERT(DATE, '2019-01-02', 23)",
+            ),
+            (
+                MssqlEngineSpec.convert_dttm("DATETIME", dttm),
+                "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",
+            ),
+            (
+                MssqlEngineSpec.convert_dttm("SMALLDATETIME", dttm),
+                "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
+            ),
         )
 
-        self.assertEqual(
-            MssqlEngineSpec.convert_dttm("DATETIME", dttm),
-            "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",
-        )
-
-        self.assertEqual(
-            MssqlEngineSpec.convert_dttm("SMALLDATETIME", dttm),
-            "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
-        )
+        for actual, expected in test_cases:
+            self.assertEqual(actual, expected)
 
     @mock.patch.object(
         MssqlEngineSpec, "pyodbc_rows_to_tuples", return_value="converted"
@@ -102,3 +105,19 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
             result = MssqlEngineSpec.fetch_data(None, 0)
             mock_pyodbc_rows_to_tuples.assert_called_once_with(data)
             self.assertEqual(result, "converted")
+
+    def test_column_datatype_to_string(self):
+        test_cases = (
+            (DATE(), "DATE"),
+            (VARCHAR(length=255), "VARCHAR(255)"),
+            (VARCHAR(length=255, collation="utf8_general_ci"), "VARCHAR(255)"),
+            (NVARCHAR(length=128), "NVARCHAR(128)"),
+            (TEXT(), "TEXT"),
+            (NTEXT(collation="utf8_general_ci"), "NTEXT"),
+        )
+
+        for original, expected in test_cases:
+            actual = MssqlEngineSpec.column_datatype_to_string(
+                original, mssql.dialect()
+            )
+            self.assertEqual(actual, expected)

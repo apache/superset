@@ -17,25 +17,20 @@
   under the License.
 #}
 {% extends "appbuilder/baselayout.html" %}
+{% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
 
-  {% block head_css %}
-    {{super()}}
-    <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
-    {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
-      <link rel="stylesheet" type="text/css" href="{{ entry }}" />
-    {% endfor %}
-  {% endblock %}
+{% block head_css %}
+  {{ super() }}
+  <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+  {{ css_bundle("theme") }}
+{% endblock %}
 
-  {% block head_js %}
-    {{super()}}
-    {% with filename="theme" %}
-      {% include "superset/partials/_script_tag.html" %}
-    {% endwith %}
-  {% endblock %}
+{% block head_js %}
+  {{ super() }}
+  {{ js_bundle("theme") }}
+{% endblock %}
 
-  {% block tail_js %}
-    {{super()}}
-    {% with filename="preamble" %}
-      {% include "superset/partials/_script_tag.html" %}
-    {% endwith %}
-  {% endblock %}
+{% block tail_js %}
+  {{ super() }}
+  {{ js_bundle("preamble") }}
+{% endblock %}

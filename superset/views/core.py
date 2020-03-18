@@ -90,6 +90,7 @@ from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache, stats_timing
 from superset.views.database.filters import DatabaseFilter
+from superset.views.utils import get_dashboard_extra_filters
 
 from .base import (
     api,
@@ -1651,6 +1652,7 @@ class Superset(BaseSupersetView):
         slices = None
         session = db.session()
         slice_id = request.args.get("slice_id")
+        dashboard_id = request.args.get("dashboard_id")
         table_name = request.args.get("table_name")
         db_name = request.args.get("db_name")
 
@@ -1696,6 +1698,10 @@ class Superset(BaseSupersetView):
         for slc in slices:
             try:
                 form_data = get_form_data(slc.id, use_slice_data=True)[0]
+                if dashboard_id:
+                    form_data["extra_filters"] = get_dashboard_extra_filters(
+                        slc.id, dashboard_id
+                    )
                 obj = get_viz(
                     datasource_type=slc.datasource.type,
                     datasource_id=slc.datasource.id,
@@ -2704,7 +2710,7 @@ class Superset(BaseSupersetView):
             .filter_by(user_id=user_id)
             .all()
         )
-        tab_state_ids = [tab_state[0] for tab_state in tabs_state]
+        tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
         # return first active tab, or fallback to another one if no tab is active
         active_tab = (
             db.session.query(TabState)
@@ -2728,7 +2734,7 @@ class Superset(BaseSupersetView):
             user_queries = (
                 db.session.query(Query)
                 .filter_by(user_id=user_id)
-                .filter(Query.sql_editor_id.cast(Integer).in_(tab_state_ids))
+                .filter(Query.sql_editor_id.in_(tab_state_ids))
                 .all()
             )
             queries = {

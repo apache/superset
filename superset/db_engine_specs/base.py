@@ -161,6 +161,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         utils.DbColumnType.STRING: (
             re.compile(r".*CHAR.*", re.IGNORECASE),
             re.compile(r".*STRING.*", re.IGNORECASE),
+            re.compile(r".*TEXT.*", re.IGNORECASE),
         ),
         utils.DbColumnType.TEMPORAL: (
             re.compile(r".*DATE.*", re.IGNORECASE),
@@ -911,13 +912,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str:
         """
         Convert sqlalchemy column type to string representation.
-        Can be overridden to remove unnecessary details, especially
-        collation info (see mysql, mssql).
+        By default removes collation and character encoding info to avoid unnecessarily
+        long datatypes.
 
         :param sqla_column_type: SqlAlchemy column type
         :param dialect: Sqlalchemy dialect
         :return: Compiled column type
         """
+        sqla_column_type = sqla_column_type.copy()
+        if hasattr(sqla_column_type, "collation"):
+            sqla_column_type.collation = None
+        if hasattr(sqla_column_type, "charset"):
+            sqla_column_type.charset = None
         return sqla_column_type.compile(dialect=dialect).upper()
 
     @classmethod
