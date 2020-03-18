@@ -110,6 +110,39 @@ if (isDevMode) {
   plugins.push(new OptimizeCSSAssetsPlugin());
 }
 
+const BABEL_JAVASCRIPT_OPTIONS = {
+  presets: [
+    [
+      '@babel/preset-env',
+      {
+        useBuiltIns: 'usage',
+        corejs: 3,
+        loose: true,
+        shippedProposals: true,
+        modules: false,
+        targets: false,
+      },
+    ],
+    '@babel/preset-react',
+  ],
+  plugins: [
+    'lodash',
+    'react-hot-loader/babel',
+    '@babel/plugin-proposal-object-rest-spread',
+    '@babel/plugin-proposal-class-properties',
+    '@babel/plugin-syntax-dynamic-import',
+  ],
+};
+
+const BABEL_TYPESCRIPT_OPTIONS = {
+  presets: BABEL_JAVASCRIPT_OPTIONS.presets.concat([
+    '@babel/preset-typescript',
+  ]),
+  plugins: BABEL_JAVASCRIPT_OPTIONS.plugins.concat([
+    'babel-plugin-typescript-to-proptypes',
+  ]),
+};
+
 const PREAMBLE = ['babel-polyfill', path.join(APP_DIR, '/src/preamble.js')];
 
 function addPreamble(entry) {
@@ -198,28 +231,19 @@ const config = {
         use: [
           {
             loader: 'babel-loader',
-            options: {
-              presets: [
-                'airbnb',
-                '@babel/preset-react',
-                [
-                  '@babel/preset-env',
-                  {
-                    useBuiltIns: 'usage',
-                    corejs: 3,
-                    loose: true,
-                    modules: false,
-                    shippedProposals: true,
-                  },
-                ],
-              ],
-              plugins: [
-                'lodash',
-                '@babel/plugin-syntax-dynamic-import',
-                'react-hot-loader/babel',
-                ['@babel/plugin-transform-runtime', { corejs: 3 }],
-              ],
-            },
+            options: BABEL_JAVASCRIPT_OPTIONS,
+          },
+        ],
+      },
+      {
+        // handle symlinked modules
+        // for debugging @superset-ui packages via npm link
+        test: /\.tsx?$/,
+        include: /node_modules\/[@]superset[-]ui.+\/src/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: BABEL_TYPESCRIPT_OPTIONS,
           },
         ],
       },
