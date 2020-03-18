@@ -31,39 +31,12 @@ console.log('looking for plugins in ', PLUGINS_REPO);
 
 const PACKAGES_ROOT = path.join(PLUGINS_REPO, 'packages');
 
+// Blacklist packages that don't work from their /src folder, and thus don't support the npm-link technique.
 // TODO refactor these troublesome packages so they can work with a symlink to their `src` directory
 const unlinkablePackages = [
-  '@superset-ui/legacy-preset-chart-nvd3',
-  '@superset-ui/preset-chart-xy',
-  '@superset-ui/legacy-plugin-chart-calendar',
-  '@superset-ui/legacy-plugin-chart-chord',
-  '@superset-ui/legacy-plugin-chart-country-map',
-  '@superset-ui/legacy-plugin-chart-event-flow',
-  '@superset-ui/legacy-plugin-chart-force-directed',
-  '@superset-ui/legacy-plugin-chart-heatmap',
-  '@superset-ui/legacy-plugin-chart-histogram',
-  '@superset-ui/legacy-plugin-chart-horizon',
-  '@superset-ui/legacy-plugin-chart-iframe',
-  '@superset-ui/legacy-plugin-chart-map-box',
-  '@superset-ui/legacy-plugin-chart-markup',
-  '@superset-ui/legacy-plugin-chart-paired-t-test',
-  '@superset-ui/legacy-plugin-chart-parallel-coordinates',
-  '@superset-ui/legacy-plugin-chart-partition',
-  '@superset-ui/legacy-plugin-chart-pivot-table',
-  '@superset-ui/legacy-plugin-chart-rose',
-  '@superset-ui/legacy-plugin-chart-sankey',
-  '@superset-ui/legacy-plugin-chart-sankey-loop',
-  '@superset-ui/legacy-plugin-chart-sunburst',
-  '@superset-ui/legacy-plugin-chart-table',
-  // '@superset-ui/legacy-plugin-chart-treemap',
-  '@superset-ui/legacy-plugin-chart-word-cloud',
-  '@superset-ui/legacy-plugin-chart-world-map',
-  '@superset-ui/legacy-preset-chart-big-number',
-  '@superset-ui/plugin-chart-icicle-event',
-  '@superset-ui/plugin-chart-table',
-  '@superset-ui/plugin-chart-word-cloud',
-  '@superset-ui/plugins-demo',
-
+  '@superset-ui/legacy-preset-chart-nvd3', // doesn't work from /src folder
+  '@superset-ui/preset-chart-xy', // doesn't work from /src folder
+  '@superset-ui/legacy-plugin-chart-table', // Uncaught TypeError: Class constructor ChartPlugin cannot be invoked without 'new'
 ]
 
 function findPackages() {
