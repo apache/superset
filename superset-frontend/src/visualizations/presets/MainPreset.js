@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
+
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
@@ -41,7 +42,7 @@ import {
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3/lib';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
-
+import { BoxPlotChartPlugin } from '@superset-ui/preset-chart-xy/esm/legacy';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -49,8 +50,14 @@ export default class MainPreset extends Preset {
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
       plugins: [
+
         new BigNumberChartPlugin().configure({ key: 'big_number' }),
         new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
+        // import('../../../../../superset-ui-plugins_preset/packages/superset-ui-legacy-preset-chart-big-number/src/index').then(module => {
+        // import('@superset-ui/legacy-preset-chart-big-number').then(module => {
+        //   new module.BigNumberChartPlugin().configure({ key: 'big_number' });
+        //   new module.BigNumberTotalChartPlugin().configure({ key: 'big_number_total' });
+        // }),
 
         // NVD3 STUFF
         new AreaChartPlugin().configure({ key: 'area' }),
@@ -66,7 +73,10 @@ export default class MainPreset extends Preset {
         new TimePivotChartPlugin().configure({ key: 'time_pivot' }),
         // END NVD3 STUFF
 
-        import('@superset-ui/preset-chart-xy/esm/legacy').then(module => new module.default().configure({ key: 'box_plot' })),
+        // BOXPLOT
+        new BoxPlotChartPlugin().configure({ key: 'box_plot' }),
+
+        
         import('@superset-ui/legacy-plugin-chart-calendar').then(module => new module.default().configure({ key: 'cal_heatmap' })),
         import('../FilterBox/FilterBoxChartPlugin').then(module => new module.default().configure({ key: 'filter_box' })),
         import('@superset-ui/legacy-plugin-chart-chord').then(module => new module.default().configure({ key: 'chord' })),
@@ -88,7 +98,7 @@ export default class MainPreset extends Preset {
         import('@superset-ui/legacy-plugin-chart-sunburst').then(module => new module.default().configure({ key: 'sunburst' })),
         import('@superset-ui/legacy-plugin-chart-table').then(module => new module.default().configure({ key: 'table' })),
         import('../TimeTable/TimeTableChartPlugin').then(module => new module.default().configure({ key: 'time_table' })),
-        // import('../../../../../superset-ui-plugins_preset/packages/superset-ui-legacy-plugin-chart-treemap/src').then(module => new module.default().configure({ key: 'treemap' })),
+        // import('../../../../../superset-ui-plugins_preset/packages/superset-ui-legacy-plugin-chart-treemap/esm/').then(module => new module.default().configure({ key: 'treemap' })),
         import('@superset-ui/legacy-plugin-chart-treemap').then(module => new module.default().configure({ key: 'treemap' })),
         // import('../../../../../superset-ui-plugins_preset/packages/superset-ui-legacy-plugin-chart-word-cloud').then(module => new module.default().configure({ key: 'word_cloud' })),
         import('@superset-ui/legacy-plugin-chart-word-cloud').then(module => new module.default().configure({ key: 'word_cloud' })),
