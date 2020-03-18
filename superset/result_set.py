@@ -20,7 +20,7 @@
 import datetime
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -70,8 +70,8 @@ def stringify_values(array: np.ndarray) -> np.ndarray:
 class SupersetResultSet:
     def __init__(
         self,
-        data: List[Tuple[Any, ...]],
-        cursor_description: Tuple[Any, ...],
+        data: List[Union[List[Any], Tuple[Any, ...]]],
+        cursor_description: Union[List[Any], Tuple[Any, ...]],
         db_engine_spec: Type[db_engine_specs.BaseEngineSpec],
     ):
         self.db_engine_spec = db_engine_spec
@@ -97,7 +97,7 @@ class SupersetResultSet:
 
         # put data in a structured array so we can efficiently access each column.
         # cast `data` as list due to MySQL (others?) wrapping results with a tuple.
-        array = np.array(list(data), dtype=numpy_dtype)
+        array = np.array([tuple(row) for row in data], dtype=numpy_dtype)
         if array.size > 0:
             for column in column_names:
                 try:
