@@ -809,7 +809,7 @@ Here's an example as a Github PR with comments that describe what the
 different sections of the code do:
 https://github.com/apache/incubator-superset/pull/3013
 
-To run Superset using visualization plugins from your local machine, run `npm run plugin-devmode-on`. This will use `npm link` to connect the Superset frontend to your local copy of [superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins). This command uses the environment variable `SUPERSET_UI_PLUGINS_PATH` to determine the path, defaulting to `../superset-ui-plugins`. So, for examplem, if the path to your local `superset-ui-plugins` repo, relative to `incubator-superset`, happens to be `../../my-fork-of-superset-ui-plugins`, then run `SUPERSET_UI_PLUGINS_PATH=../../my-fork-of-superset-ui-plugins npm run plugin-devmode-on`
+To run Superset using visualization plugins from your local machine, run `npm run plugin-devmode-on`. This will use `npm link` to connect the Superset frontend to your local copy of [superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins). This command uses the environment variable `SUPERSET_UI_PLUGINS_PATH` to determine the path, defaulting to `../superset-ui-plugins`. So, for example, if the path to your local `superset-ui-plugins` repo, relative to `incubator-superset`, happens to be `../../my-fork-of-superset-ui-plugins`, then run `SUPERSET_UI_PLUGINS_PATH=../../my-fork-of-superset-ui-plugins npm run plugin-devmode-on`
 
 This `SUPERSET_UI_PLUGINS_PATH` is also required by webpack when running the frontend with symlinked vis packages, so when starting the dev server, run it with (using the above example path) `SUPERSET_UI_PLUGINS_PATH=../../my-fork-of-superset-ui-plugins npm run dev`
 
