@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +18,8 @@
  * under the License.
  */
 
+/* eslint no-console: 0 */
+
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -37,7 +38,7 @@ const unlinkablePackages = [
   '@superset-ui/legacy-preset-chart-nvd3', // doesn't work from /src folder
   '@superset-ui/preset-chart-xy', // doesn't work from /src folder
   '@superset-ui/legacy-plugin-chart-table', // Uncaught TypeError: Class constructor ChartPlugin cannot be invoked without 'new'
-]
+];
 
 function findPackages() {
   if (!fs.existsSync(PACKAGES_ROOT)) {
@@ -57,10 +58,9 @@ function linkPackages(packageDirs) {
     // eslint-disable-next-line import/no-dynamic-require, global-require
     const packageName = require(path.join(directoryPath, 'package.json')).name;
     console.log(`[${i + 1}/${packageDirs.length}] ${packageName}`);
-    if(unlinkablePackages.includes(packageName)){
+    if (unlinkablePackages.includes(packageName)) {
       console.log(`Not linking this package!`);
-    }
-    else{
+    } else {
       execSync('npm link --loglevel error', {
         cwd: directoryPath,
         stdio: 'inherit',

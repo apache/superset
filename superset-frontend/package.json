@@ -124,6 +124,7 @@
     "mousetrap": "^1.6.1",
     "mustache": "^2.2.1",
     "omnibar": "^2.1.1",
+    "path": "^0.12.7",
     "prop-types": "^15.6.0",
     "re-resizable": "^4.3.1",
     "react": "^16.9.0",
@@ -163,7 +164,8 @@
     "regenerator-runtime": "^0.13.3",
     "shortid": "^2.2.6",
     "urijs": "^1.18.10",
-    "use-query-params": "^0.4.5"
+    "use-query-params": "^0.4.5",
+    "zlib": "^1.0.5"
   },
   "devDependencies": {
     "@babel/cli": "^7.8.4",
@@ -226,6 +228,7 @@
     "less-loader": "^5.0.0",
     "mini-css-extract-plugin": "^0.4.0",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
+    "os": "^0.1.1",
     "po2json": "^0.4.5",
     "prettier": "^1.19.1",
     "react-test-renderer": "^16.9.0",

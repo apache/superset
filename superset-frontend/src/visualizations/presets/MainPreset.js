@@ -48,9 +48,19 @@ import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 // Make sure to import '@superset-ui/legacy-preset-chart-nvd3/lib'
 // Not '@superset-ui/legacy-preset-chart-nvd3',
 // which will point to '@superset-ui/legacy-preset-chart-nvd3/esm' by default
-import { AreaChartPlugin, BarChartPlugin, BubbleChartPlugin, BulletChartPlugin,
-  CompareChartPlugin, DistBarChartPlugin, DualLineChartPlugin, LineChartPlugin,
-  LineMultiChartPlugin, PieChartPlugin, TimePivotChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
+import {
+  AreaChartPlugin,
+  BarChartPlugin,
+  BubbleChartPlugin,
+  BulletChartPlugin,
+  CompareChartPlugin,
+  DistBarChartPlugin,
+  DualLineChartPlugin,
+  LineChartPlugin,
+  LineMultiChartPlugin,
+  PieChartPlugin,
+  TimePivotChartPlugin,
+} from '@superset-ui/legacy-preset-chart-nvd3';
 import { BoxPlotChartPlugin } from '@superset-ui/preset-chart-xy/esm/legacy';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 
