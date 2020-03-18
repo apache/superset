@@ -20,12 +20,7 @@ from typing import Dict, List, Optional
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.dao.base import (
-    generic_create,
-    generic_delete,
-    generic_update,
-    get_owner_by_id,
-)
+from superset.dao.base import generic_create, generic_delete, generic_update
 from superset.dashboards.filters import DashboardFilter
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
@@ -34,10 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 class DashboardDAO:
-    @staticmethod
-    def get_owner_by_id(owner_id: int) -> Optional[object]:
-        return get_owner_by_id(owner_id)
-
     @staticmethod
     def find_by_id(model_id: int) -> Dashboard:
         data_model = SQLAInterface(Dashboard, db.session)

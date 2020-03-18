@@ -22,8 +22,8 @@ from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import UpdateFailedError
+from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.base import populate_owners
 from superset.dashboards.commands.exceptions import (
     DashboardForbiddenError,
     DashboardInvalidError,

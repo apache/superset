@@ -22,8 +22,8 @@ from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import UpdateFailedError
+from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
-from superset.datasets.commands.base import populate_owners
 from superset.datasets.commands.exceptions import (
     DatabaseChangeValidationError,
     DatasetExistsValidationError,

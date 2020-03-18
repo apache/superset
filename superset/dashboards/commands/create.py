@@ -22,7 +22,7 @@ from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CreateFailedError
-from superset.dao.base import populate_owners
+from superset.commands.utils import populate_owners
 from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
     DashboardInvalidError,

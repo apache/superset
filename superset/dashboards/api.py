@@ -102,6 +102,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
+    openapi_spec_tag = "Dashboards"
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
@@ -282,6 +283,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """Delete bulk Dashboards
         ---
         delete:
+          description: >-
+            Deletes multiple Dashboards in a bulk operation
           parameters:
           - in: query
             name: q
@@ -338,6 +341,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """Export dashboards
         ---
         get:
+          description: >-
+            Exports multiple Dashboards and downloads them as YAML files
           parameters:
           - in: query
             name: q
