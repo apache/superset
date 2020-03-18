@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,6 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const webpack = require('webpack');
@@ -29,9 +31,7 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-
-// Parse command-line arguments
-const parsedArgs = require('minimist')(process.argv.slice(2));
+const parsedArgs = require('yargs').argv;
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -41,12 +41,22 @@ const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
 const {
   mode = 'development',
   devserverPort = 9000,
-  supersetPort = 8088,
   measure = false,
   analyzeBundle = false,
 } = parsedArgs;
-
 const isDevMode = mode !== 'production';
+
+const output = {
+  path: BUILD_DIR,
+  publicPath: '/static/assets/', // necessary for lazy-loaded chunks
+};
+if (isDevMode) {
+  output.filename = '[name].[hash:8].entry.js';
+  output.chunkFilename = '[name].[hash:8].chunk.js';
+} else {
+  output.filename = '[name].[chunkhash].entry.js';
+  output.chunkFilename = '[name].[chunkhash].chunk.js';
+}
 
 const plugins = [
   // creates a manifest.json mapping of name to hashed output used in template files
@@ -86,7 +96,6 @@ const plugins = [
     { copyUnmodified: true },
   ),
 ];
-
 if (isDevMode) {
   // Enable hot module replacement
   plugins.push(new webpack.HotModuleReplacementPlugin());
@@ -99,19 +108,6 @@ if (isDevMode) {
     }),
   );
   plugins.push(new OptimizeCSSAssetsPlugin());
-}
-
-const output = {
-  path: BUILD_DIR,
-  publicPath: '/static/assets/', // necessary for lazy-loaded chunks
-};
-
-if (isDevMode) {
-  output.filename = '[name].[hash:8].entry.js';
-  output.chunkFilename = '[name].[hash:8].chunk.js';
-} else {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[name].[chunkhash].chunk.js';
 }
 
 const PREAMBLE = ['babel-polyfill', path.join(APP_DIR, '/src/preamble.js')];
@@ -292,27 +288,50 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: isDevMode ? 'cheap-module-eval-source-map' : false,
-  devServer: {
+  devtool: false,
+};
+
+let proxyConfig = {};
+const requireModule = module.require;
+
+function loadProxyConfig() {
+  try {
+    delete require.cache[require.resolve('./webpack.proxy-config')];
+    proxyConfig = requireModule('./webpack.proxy-config');
+  } catch (e) {
+    if (e.code !== 'ENOENT') {
+      console.error('\n>> Error loading proxy config:');
+      console.trace(e);
+    }
+  }
+}
+
+if (isDevMode) {
+  config.devtool = 'cheap-module-eval-source-map';
+
+  config.devServer = {
+    before() {
+      loadProxyConfig();
+      // hot reloading proxy config
+      fs.watch('./webpack.proxy-config.js', loadProxyConfig);
+    },
     historyApiFallback: true,
     hot: true,
-    index: '', // This line is needed to enable root proxying
     inline: true,
     stats: 'minimal',
     overlay: true,
     port: devserverPort,
     // Only serves bundled files from webpack-dev-server
     // and proxy everything else to Superset backend
-    proxy: {
-      context: () => true,
-      '/': `http://localhost:${supersetPort}`,
-      target: `http://localhost:${supersetPort}`,
-    },
+    proxy: [
+      // functions are called for every request
+      () => {
+        return proxyConfig;
+      },
+    ],
     contentBase: path.join(process.cwd(), '../static/assets'),
-  },
-};
-
-if (!isDevMode) {
+  };
+} else {
   config.optimization.minimizer = [
     new TerserPlugin({
       cache: '.terser-plugin-cache/',
