@@ -22,7 +22,7 @@ ipdb==0.12
 isort==4.3.21
 mypy==0.670
 nose==1.3.7
-pip-tools==4.5.1
+pip-tools==3.7.0
 pre-commit==1.17.0
 psycopg2-binary==2.7.5
 pycodestyle==2.5.0
