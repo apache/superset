@@ -1243,3 +1243,31 @@ class TimeSeriesVizTestCase(SupersetTestCase):
             .tolist(),
             [1.0, 1.5, 2.0, 2.5],
         )
+
+
+class BigNumberVizTestCase(SupersetTestCase):
+    def test_get_data(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            data={
+                DTTM_ALIAS: pd.to_datetime(
+                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+                ),
+                "y": [1.0, 2.0, 3.0, 4.0],
+            }
+        )
+        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
+        self.assertEqual(data[2], {DTTM_ALIAS: pd.Timestamp("2019-01-05"), "y": 3})
+
+    def test_get_data_with_none(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            data={
+                DTTM_ALIAS: pd.to_datetime(
+                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+                ),
+                "y": [1.0, 2.0, None, 4.0],
+            }
+        )
+        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
+        assert np.isnan(data[2]["y"])

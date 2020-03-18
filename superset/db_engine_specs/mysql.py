@@ -18,9 +18,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib import parse
 
-from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import URL
-from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
@@ -97,16 +95,3 @@ class MySQLEngineSpec(BaseEngineSpec):
         except Exception:  # pylint: disable=broad-except
             pass
         return message
-
-    @classmethod
-    def column_datatype_to_string(
-        cls, sqla_column_type: TypeEngine, dialect: Dialect
-    ) -> str:
-        datatype = super().column_datatype_to_string(sqla_column_type, dialect)
-        # MySQL dialect started returning long overflowing datatype
-        # as in 'VARCHAR(255) COLLATE UTF8MB4_GENERAL_CI'
-        # and we don't need the verbose collation type
-        str_cutoff = " COLLATE "
-        if str_cutoff in datatype:
-            datatype = datatype.split(str_cutoff)[0]
-        return datatype
