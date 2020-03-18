@@ -14,10 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from flask import Flask
 from flask_caching import Cache
 
 CacheConfig = Union[Callable[[Flask], Cache], Dict[str, Any]]
+DbapiDescriptionRow = Tuple[
+    str, str, Optional[str], Optional[str], Optional[int], Optional[int], bool
+]
+DbapiDescription = Union[List[DbapiDescriptionRow], Tuple[DbapiDescriptionRow, ...]]
+DbapiResult = List[Union[List[Any], Tuple[Any, ...]]]
 VizData = Optional[Union[List[Any], Dict[Any, Any]]]

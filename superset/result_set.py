@@ -20,13 +20,14 @@
 import datetime
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 
 from superset import db_engine_specs
+from superset.typing import DbapiDescription, DbapiResult
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
@@ -70,8 +71,8 @@ def stringify_values(array: np.ndarray) -> np.ndarray:
 class SupersetResultSet:
     def __init__(
         self,
-        data: List[Union[List[Any], Tuple[Any, ...]]],
-        cursor_description: Union[List[Any], Tuple[Any, ...]],
+        data: DbapiResult,
+        cursor_description: DbapiDescription,
         db_engine_spec: Type[db_engine_specs.BaseEngineSpec],
     ):
         self.db_engine_spec = db_engine_spec
@@ -95,9 +96,10 @@ class SupersetResultSet:
             # generate numpy structured array dtype
             numpy_dtype = [(column_name, "object") for column_name in column_names]
 
-        # put data in a structured array so we can efficiently access each column.
-        # cast `data` as list due to MySQL (others?) wrapping results with a tuple.
-        array = np.array([tuple(row) for row in data], dtype=numpy_dtype)
+        # only do expensive recasting if datatype is not standard list of tuples
+        if data and (not isinstance(data, list) or not isinstance(data[0], tuple)):
+            data = [tuple(row) for row in data]
+        array = np.array(data, dtype=numpy_dtype)
         if array.size > 0:
             for column in column_names:
                 try:
