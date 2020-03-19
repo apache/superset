@@ -36,16 +36,16 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  setTooltip: PropTypes.func,
   onSelect: PropTypes.func,
 };
 const defaultProps = {
   onAddFilter() {},
-  setTooltip() {},
   onSelect() {},
 };
 
 class DeckMulti extends React.PureComponent {
+  containerRef = React.createRef();
+
   constructor(props) {
     super(props);
     this.state = { subSlicesLayers: {} };
@@ -96,7 +96,7 @@ class DeckMulti extends React.PureComponent {
             subsliceCopy.form_data,
             json,
             this.props.onAddFilter,
-            this.props.setTooltip,
+            this.setTooltip,
             [],
             this.props.onSelect,
           );
@@ -111,6 +111,13 @@ class DeckMulti extends React.PureComponent {
     });
   }
 
+  setTooltip = tooltip => {
+    const { current } = this.containerRef;
+    if (current) {
+      current.setTooltip(tooltip);
+    }
+  };
+
   render() {
     const { payload, formData, setControlValue } = this.props;
     const { subSlicesLayers } = this.state;
@@ -119,6 +126,7 @@ class DeckMulti extends React.PureComponent {
 
     return (
       <DeckGLContainer
+        ref={this.containerRef}
         mapboxApiAccessToken={payload.data.mapboxApiKey}
         viewport={this.state.viewport || this.props.viewport}
         layers={layers}

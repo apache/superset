@@ -66,7 +66,6 @@ const propTypes = {
   getPoints: PropTypes.func.isRequired,
   payload: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  setTooltip: PropTypes.func,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
 };
@@ -147,7 +146,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
 
   getLayers(values) {
-    const { getLayer, payload, formData: fd, onAddFilter, setTooltip } = this.props;
+    const { getLayer, payload, formData: fd, onAddFilter } = this.props;
     let features = payload.data.features ? [...payload.data.features] : [];
 
     // Add colors from categories or fixed color
@@ -177,7 +176,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       data: { ...payload.data, features },
     };
 
-    return [getLayer(fd, filteredPayload, onAddFilter, setTooltip)];
+    return [getLayer(fd, filteredPayload, onAddFilter, this.setTooltip)];
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -228,8 +227,9 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
 
   setTooltip = tooltip => {
-    if (this.containerRef.current) {
-      this.containerRef.current.setTooltip(tooltip);
+    const { current } = this.containerRef;
+    if (current) {
+      current.setTooltip(tooltip);
     }
   };
 
