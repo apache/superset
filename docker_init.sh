@@ -41,3 +41,7 @@ flask fab create-user \
   --lastname guest \
   --email $GUEST_EMAIL \
   --password $GUEST_PASSWORD
+
+superset set_database_uri \
+  --database_name RedshiftDB \
+  --uri $REDSHIFT_DATABASE_URI
