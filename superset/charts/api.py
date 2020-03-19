@@ -109,13 +109,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     def post(self) -> Response:
-        """Creates a new Dataset
+        """Creates a new Chart
         ---
         post:
           description: >-
-            Create a new Dataset
+            Create a new Chart
           requestBody:
-            description: Dataset schema
+            description: Chart schema
             required: true
             content:
               application/json:
@@ -123,7 +123,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
           responses:
             201:
-              description: Dataset added
+              description: Chart added
               content:
                 application/json:
                   schema:
