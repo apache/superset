@@ -26,7 +26,7 @@ export default [
           line_column: 'contour',
           line_type: 'json',
           adhoc_filters: [],
-          metric: 'count',
+          metric: 'population',
           point_radius_fixed: { type: 'fix', value: 1000 },
           row_limit: 10000,
           reverse_long_lat: false,
@@ -71,7 +71,7 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'legacy-|preset-chart-deckgl|PolygonChartPlugin',
+    storyPath: 'legacy-preset-chart-deckgl|PolygonChartPlugin',
   },
   {
     renderStory: () => (
@@ -119,6 +119,6 @@ export default [
       />
     ),
     storyName: 'Single Polygon in geojson format',
-    storyPath: 'legacy-|preset-chart-deckgl|PolygonChartPlugin',
+    storyPath: 'legacy-preset-chart-deckgl|PolygonChartPlugin',
   },
 ];

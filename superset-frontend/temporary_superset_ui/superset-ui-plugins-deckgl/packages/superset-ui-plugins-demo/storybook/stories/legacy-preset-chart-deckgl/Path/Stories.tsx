@@ -56,6 +56,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'legacy-|preset-chart-deckgl|PathChartPlugin',
+    storyPath: 'legacy-preset-chart-deckgl|PathChartPlugin',
   },
 ];
