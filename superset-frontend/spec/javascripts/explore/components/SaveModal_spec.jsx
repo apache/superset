@@ -196,12 +196,20 @@ describe('SaveModal', () => {
 
     describe('should always reload or redirect', () => {
       let wrapper;
+      let windowLocation;
+
       beforeEach(() => {
         wrapper = getWrapper();
+        windowLocation = window.location;
+        // To bypass "TypeError: Cannot redefine property: assign"
+        Object.defineProperty(window, 'location', {
+          value: { ...windowLocation, assign: () => {} },
+        });
         sinon.stub(window.location, 'assign');
       });
       afterEach(() => {
         window.location.assign.restore();
+        Object.defineProperty(window, 'location', windowLocation);
       });
 
       it('Save & go to dashboard', done => {

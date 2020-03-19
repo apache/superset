@@ -20,7 +20,7 @@ import React from 'react';
 import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
-import { hot } from 'react-hot-loader';
+import { hot } from 'react-hot-loader/root';
 
 import {
   initFeatureFlags,
@@ -112,4 +112,4 @@ const Application = () => (
   </Provider>
 );
 
-export default hot(module)(Application);
+export default hot(Application);
