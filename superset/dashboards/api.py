@@ -61,14 +61,20 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     class_permission_name = "DashboardModelView"
     show_columns = [
+        "id",
         "charts",
         "css",
         "dashboard_title",
         "json_metadata",
         "owners.id",
         "owners.username",
+        "changed_by_name",
+        "changed_by_url",
+        "changed_by.username",
+        "changed_on",
         "position_json",
         "published",
+        "url",
         "slug",
         "table_names",
     ]

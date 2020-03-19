@@ -20,7 +20,7 @@ from typing import Dict, List, Optional
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.dao.base import generic_create, generic_delete, generic_update
+from superset.dao.base import BaseDAO
 from superset.dashboards.filters import DashboardFilter
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
@@ -28,13 +28,9 @@ from superset.models.dashboard import Dashboard
 logger = logging.getLogger(__name__)
 
 
-class DashboardDAO:
-    @staticmethod
-    def find_by_id(model_id: int) -> Dashboard:
-        data_model = SQLAInterface(Dashboard, db.session)
-        query = db.session.query(Dashboard)
-        query = DashboardFilter("id", data_model).apply(query, None)
-        return query.filter_by(id=model_id).one_or_none()
+class DashboardDAO(BaseDAO):
+    model_cls = Dashboard
+    base_filter = DashboardFilter
 
     @staticmethod
     def find_by_ids(model_ids: List[int]) -> List[Dashboard]:
@@ -56,27 +52,6 @@ class DashboardDAO:
             Dashboard.slug == slug, Dashboard.id != dashboard_id
         )
         return not db.session.query(dashboard_query.exists()).scalar()
-
-    @staticmethod
-    def create(properties: Dict, commit=True) -> Optional[Dashboard]:
-        """
-        Creates a Dashboard model on the metadata DB
-        """
-        return generic_create(Dashboard, properties, commit=commit)
-
-    @staticmethod
-    def update(model: Dashboard, properties: Dict, commit=True) -> Optional[Dashboard]:
-        """
-        Update a Dashboard model on the metadata DB
-        """
-        return generic_update(model, properties, commit=commit)
-
-    @staticmethod
-    def delete(model: Dashboard, commit=True):
-        """
-        Delete a Dashboard model on the metadata DB
-        """
-        return generic_delete(model, commit=commit)
 
     @staticmethod
     def bulk_delete(models: List[Dashboard], commit=True):

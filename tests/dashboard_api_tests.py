@@ -70,7 +70,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_dashboard(self):
         """
-            Dashboard API: Test get dahsboard
+            Dashboard API: Test get dashboard
         """
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard("title", "slug1", [admin.id])
@@ -79,18 +79,27 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         expected_result = {
+            "changed_by": None,
+            "changed_by_name": "",
+            "changed_by_url": "",
             "charts": [],
+            "id": dashboard.id,
             "css": "",
             "dashboard_title": "title",
             "json_metadata": "",
             "owners": [{"id": 1, "username": "admin"}],
             "position_json": "",
             "published": False,
+            "url": f"/superset/dashboard/slug1/",
             "slug": "slug1",
             "table_names": "",
         }
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["result"], expected_result)
+        self.assertIn("changed_on", data["result"])
+        for key, value in data["result"].items():
+            # We can't assert timestamp
+            if key != "changed_on":
+                self.assertEqual(value, expected_result[key])
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()

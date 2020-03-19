@@ -16,7 +16,9 @@
 # under the License.
 from typing import Dict, Optional
 
+from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import (
@@ -27,45 +29,60 @@ from superset.commands.exceptions import (
 from superset.extensions import db
 
 
-def generic_create(model_cls: Model, properties: Dict, commit=True) -> Optional[Model]:
-    """
-        Generic for creating models
-    """
-    model = model_cls()
-    for key, value in properties.items():
-        setattr(model, key, value)
-    try:
-        db.session.add(model)
-        if commit:
-            db.session.commit()
-    except SQLAlchemyError as e:  # pragma: no cover
-        db.session.rollback()
-        raise CreateFailedError(exception=e)
-    return model
+class BaseDAO:
+    model_cls: Optional[Model] = None
+    base_filter: Optional[BaseFilter] = None
 
+    @classmethod
+    def find_by_id(cls, model_id: int) -> Model:
+        data_model = SQLAInterface(cls.model_cls, db.session)
+        query = db.session.query(cls.model_cls)
+        query = cls.base_filter("id", data_model).apply(query, None)
+        return query.filter_by(id=model_id).one_or_none()
 
-def generic_update(model: Model, properties: Dict, commit=True) -> Optional[Model]:
-    """
-        Generic update a model
-    """
-    for key, value in properties.items():
-        setattr(model, key, value)
-    try:
-        db.session.merge(model)
-        if commit:
-            db.session.commit()
-    except SQLAlchemyError as e:  # pragma: no cover
-        db.session.rollback()
-        raise UpdateFailedError(exception=e)
-    return model
+    @classmethod
+    def create(cls, properties: Dict, commit=True) -> Optional[Model]:
+        """
+            Generic for creating models
+        """
+        model = cls.model_cls()
+        for key, value in properties.items():
+            setattr(model, key, value)
+        try:
+            db.session.add(model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as e:  # pragma: no cover
+            db.session.rollback()
+            raise CreateFailedError(exception=e)
+        return model
 
+    @classmethod
+    def update(cls, model: Model, properties: Dict, commit=True) -> Optional[Model]:
+        """
+            Generic update a model
+        """
+        for key, value in properties.items():
+            setattr(model, key, value)
+        try:
+            db.session.merge(model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as e:  # pragma: no cover
+            db.session.rollback()
+            raise UpdateFailedError(exception=e)
+        return model
 
-def generic_delete(model: Model, commit=True):
-    try:
-        db.session.delete(model)
-        if commit:
-            db.session.commit()
-    except SQLAlchemyError as e:  # pragma: no cover
-        db.session.rollback()
-        raise DeleteFailedError(exception=e)
-    return model
+    @classmethod
+    def delete(cls, model: Model, commit=True):
+        """
+            Generic delete a model
+        """
+        try:
+            db.session.delete(model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as e:  # pragma: no cover
+            db.session.rollback()
+            raise DeleteFailedError(exception=e)
+        return model
