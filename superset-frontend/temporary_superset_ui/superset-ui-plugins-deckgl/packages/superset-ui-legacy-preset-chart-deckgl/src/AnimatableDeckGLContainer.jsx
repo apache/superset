@@ -55,6 +55,14 @@ const defaultProps = {
 };
 
 export default class AnimatableDeckGLContainer extends React.PureComponent {
+  containerRef = React.createRef();
+
+  setTooltip = tooltip => {
+    if (this.containerRef.current) {
+      this.containerRef.current.setTooltip(tooltip);
+    }
+  };
+
   render() {
     const {
       start,
@@ -78,6 +86,7 @@ export default class AnimatableDeckGLContainer extends React.PureComponent {
     return (
       <div>
         <DeckGLContainer
+          ref={this.containerRef}
           viewport={viewport}
           layers={layers}
           setControlValue={setControlValue}

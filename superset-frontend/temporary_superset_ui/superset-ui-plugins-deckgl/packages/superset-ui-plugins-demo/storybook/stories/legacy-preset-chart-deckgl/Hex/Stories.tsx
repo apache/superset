@@ -48,6 +48,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'legacy-|preset-chart-deckgl|HexChartPlugin',
+    storyPath: 'legacy-preset-chart-deckgl|HexChartPlugin',
   },
 ];

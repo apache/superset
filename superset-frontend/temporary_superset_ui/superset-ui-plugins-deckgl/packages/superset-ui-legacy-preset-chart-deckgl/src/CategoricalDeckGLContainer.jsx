@@ -72,6 +72,8 @@ const propTypes = {
 };
 
 export default class CategoricalDeckGLContainer extends React.PureComponent {
+  containerRef = React.createRef();
+
   /*
    * A Deck.gl container that handles categories.
    *
@@ -225,10 +227,17 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.setState({ categories });
   }
 
+  setTooltip = tooltip => {
+    if (this.containerRef.current) {
+      this.containerRef.current.setTooltip(tooltip);
+    }
+  };
+
   render() {
     return (
       <div style={{ position: 'relative' }}>
         <AnimatableDeckGLContainer
+          ref={this.containerRef}
           getLayers={this.getLayers}
           start={this.state.start}
           end={this.state.end}

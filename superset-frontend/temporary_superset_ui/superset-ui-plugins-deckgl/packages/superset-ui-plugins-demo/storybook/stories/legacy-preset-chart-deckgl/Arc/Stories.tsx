@@ -76,6 +76,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'legacy-|preset-chart-deckgl|ArcChartPlugin',
+    storyPath: 'legacy-preset-chart-deckgl|ArcChartPlugin',
   },
 ];
