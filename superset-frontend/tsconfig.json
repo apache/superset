@@ -3,10 +3,10 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
-    "esModuleInterop": true,
+    "esModuleInterop": false,
     "forceConsistentCasingInFileNames": true,
-    "importHelpers": true,
-    "jsx": "react",
+    "importHelpers": false,
+    "jsx": "preserve",
     "lib": ["dom", "esnext"],
     "module": "esnext",
     "moduleResolution": "node",
@@ -20,7 +20,13 @@
     "sourceMap": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
-    "target": "es5"
+    "target": "esnext"
   },
-  "include": ["./src/**/*", "./spec/**/*"]
+  "include": [
+    "./src/**/*",
+    "./spec/**/*",
+    "./node_modules/*superset-ui*/**/src/**/*",
+    "./node_modules/*superset-ui*/**/types/**/*",
+    "./node_modules/*superset-ui*/**/node_modules/**/*.d.ts"
+  ]
 }
