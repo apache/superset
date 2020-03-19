@@ -58,8 +58,9 @@ export default class AnimatableDeckGLContainer extends React.PureComponent {
   containerRef = React.createRef();
 
   setTooltip = tooltip => {
-    if (this.containerRef.current) {
-      this.containerRef.current.setTooltip(tooltip);
+    const { current } = this.containerRef;
+    if (current) {
+      current.setTooltip(tooltip);
     }
   };
 

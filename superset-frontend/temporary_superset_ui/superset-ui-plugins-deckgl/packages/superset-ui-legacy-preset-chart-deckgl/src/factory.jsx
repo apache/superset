@@ -35,18 +35,18 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  setTooltip: PropTypes.func,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
 };
 const defaultProps = {
   onAddFilter() {},
-  setTooltip() {},
 };
 
 export function createDeckGLComponent(getLayer, getPoints) {
   // Higher order component
   class Component extends React.PureComponent {
+    containerRef = React.createRef();
+
     constructor(props) {
       super(props);
 
@@ -80,12 +80,18 @@ export function createDeckGLComponent(getLayer, getPoints) {
       this.setState({ viewport });
     }
 
-    // eslint-disable-next-line class-methods-use-this
     computeLayer(props) {
-      const { formData, payload, onAddFilter, setTooltip } = props;
+      const { formData, payload, onAddFilter } = props;
 
-      return getLayer(formData, payload, onAddFilter, setTooltip);
+      return getLayer(formData, payload, onAddFilter, this.setTooltip);
     }
+
+    setTooltip = tooltip => {
+      const { current } = this.containerRef;
+      if (current) {
+        current.setTooltip(tooltip);
+      }
+    };
 
     render() {
       const { formData, payload, setControlValue, height, width } = this.props;
@@ -93,6 +99,7 @@ export function createDeckGLComponent(getLayer, getPoints) {
 
       return (
         <DeckGLContainer
+          ref={this.containerRef}
           mapboxApiAccessToken={payload.data.mapboxApiKey}
           viewport={viewport}
           layers={[layer]}
@@ -113,7 +120,7 @@ export function createDeckGLComponent(getLayer, getPoints) {
 
 export function createCategoricalDeckGLComponent(getLayer, getPoints) {
   function Component(props) {
-    const { formData, payload, setControlValue, setTooltip, viewport, width, height } = props;
+    const { formData, payload, setControlValue, viewport, width, height } = props;
 
     return (
       <CategoricalDeckGLContainer
@@ -123,7 +130,6 @@ export function createCategoricalDeckGLComponent(getLayer, getPoints) {
         viewport={viewport}
         getLayer={getLayer}
         payload={payload}
-        setTooltip={setTooltip}
         getPoints={getPoints}
         width={width}
         height={height}

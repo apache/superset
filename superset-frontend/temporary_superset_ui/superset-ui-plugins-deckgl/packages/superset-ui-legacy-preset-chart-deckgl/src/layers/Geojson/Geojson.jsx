@@ -136,35 +136,45 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  setTooltip: PropTypes.func,
 };
 const defaultProps = {
   onAddFilter() {},
-  setTooltip() {},
 };
 
-function deckGeoJson(props) {
-  const { formData, payload, setControlValue, onAddFilter, setTooltip, viewport } = props;
+class DeckGLGeoJson extends React.Component {
+  containerRef = React.createRef();
 
-  // TODO get this to work
-  // if (formData.autozoom) {
-  //   viewport = common.fitViewport(viewport, geojsonExtent(payload.data.features));
-  // }
+  setTooltip = tooltip => {
+    const { current } = this.containerRef;
+    if (current) {
+      current.setTooltip(tooltip);
+    }
+  };
 
-  const layer = getLayer(formData, payload, onAddFilter, setTooltip);
+  render() {
+    const { formData, payload, setControlValue, onAddFilter, viewport } = this.props;
 
-  return (
-    <DeckGLContainer
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport}
-      layers={[layer]}
-      mapStyle={formData.mapbox_style}
-      setControlValue={setControlValue}
-    />
-  );
+    // TODO get this to work
+    // if (formData.autozoom) {
+    //   viewport = common.fitViewport(viewport, geojsonExtent(payload.data.features));
+    // }
+
+    const layer = getLayer(formData, payload, onAddFilter, this.setTooltip);
+
+    return (
+      <DeckGLContainer
+        ref={this.containerRef}
+        mapboxApiAccessToken={payload.data.mapboxApiKey}
+        viewport={viewport}
+        layers={[layer]}
+        mapStyle={formData.mapbox_style}
+        setControlValue={setControlValue}
+      />
+    );
+  }
 }
 
-deckGeoJson.propTypes = propTypes;
-deckGeoJson.defaultProps = defaultProps;
+DeckGLGeoJson.propTypes = propTypes;
+DeckGLGeoJson.defaultProps = defaultProps;
 
-export default deckGeoJson;
+export default DeckGLGeoJson;

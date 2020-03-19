@@ -89,16 +89,16 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  setTooltip: PropTypes.func,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
 };
 const defaultProps = {
   onAddFilter() {},
-  setTooltip() {},
 };
 
 class DeckGLScreenGrid extends React.PureComponent {
+  containerRef = React.createRef();
+
   constructor(props) {
     super(props);
 
@@ -170,12 +170,19 @@ class DeckGLScreenGrid extends React.PureComponent {
       this.props.formData,
       this.props.payload,
       this.props.onAddFilter,
-      this.props.setTooltip,
+      this.setTooltip,
       filters,
     );
 
     return [layer];
   }
+
+  setTooltip = tooltip => {
+    const { current } = this.containerRef;
+    if (current) {
+      current.setTooltip(tooltip);
+    }
+  };
 
   render() {
     const { formData, payload, setControlValue } = this.props;
@@ -183,6 +190,7 @@ class DeckGLScreenGrid extends React.PureComponent {
     return (
       <div>
         <AnimatableDeckGLContainer
+          ref={this.containerRef}
           aggregation
           getLayers={this.getLayers}
           start={this.state.start}
