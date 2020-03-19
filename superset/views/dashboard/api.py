@@ -116,7 +116,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     owners = fields.List(fields.Integer(validate=validate_owner))
     position_json = fields.String(validate=validate_json)
     css = fields.String()
-    json_metadata = fields.String(validate=validate_json_metadata)
+    json_metadata = fields.String(allow_none=True, validate=validate_json_metadata)
     published = fields.Boolean()
 
     @post_load
@@ -142,14 +142,20 @@ class DashboardRestApi(DashboardMixin, BaseOwnedModelRestApi):
 
     class_permission_name = "DashboardModelView"
     show_columns = [
+        "id",
         "charts",
         "css",
         "dashboard_title",
         "json_metadata",
         "owners.id",
         "owners.username",
+        "changed_by_name",
+        "changed_by_url",
+        "changed_by.username",
+        "changed_on",
         "position_json",
         "published",
+        "url",
         "slug",
         "table_names",
     ]
