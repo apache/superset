@@ -613,6 +613,7 @@ export const controls = {
       'France',
       'Germany',
       'India',
+      'Iran',
       'Italy',
       'Japan',
       'Korea',

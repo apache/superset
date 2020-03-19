@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { hot } from 'react-hot-loader';
+import { hot } from 'react-hot-loader/root';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import AddSliceContainer from './AddSliceContainer';
@@ -32,4 +32,4 @@ const bootstrapData = JSON.parse(
 
 const App = () => <AddSliceContainer datasources={bootstrapData.datasources} />;
 
-export default hot(module)(App);
+export default hot(App);

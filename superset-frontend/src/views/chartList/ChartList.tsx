@@ -280,11 +280,9 @@ class ChartList extends React.PureComponent<Props, State> {
     );
   };
 
-  handleBulkDashboardDelete = (charts: Chart[]) => {
+  handleBulkChartDelete = (charts: Chart[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/?q=!(${charts
-        .map(({ id }) => id)
-        .join(',')})`,
+      endpoint: `/api/v1/chart/?q=!(${charts.map(({ id }) => id).join(',')})`,
     }).then(
       ({ json = {} }) => {
         const { lastFetchDataConfig } = this.state;
@@ -296,7 +294,7 @@ class ChartList extends React.PureComponent<Props, State> {
       (err: any) => {
         console.error(err);
         this.props.addDangerToast(
-          t('There was an issue deleting the selected dashboards'),
+          t('There was an issue deleting the selected charts'),
         );
       },
     );
@@ -408,7 +406,7 @@ class ChartList extends React.PureComponent<Props, State> {
             description={t(
               'Are you sure you want to delete the selected charts?',
             )}
-            onConfirm={this.handleBulkDashboardDelete}
+            onConfirm={this.handleBulkChartDelete}
           >
             {confirmDelete => {
               const bulkActions = [];
