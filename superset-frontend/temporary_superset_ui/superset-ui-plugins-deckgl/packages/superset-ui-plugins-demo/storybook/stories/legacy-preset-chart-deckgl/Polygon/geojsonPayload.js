@@ -82,7 +82,8 @@ export default {
   data: {
     features: [
       {
-        count: 1,
+        count: 10,
+        name: 'Test',
         polygon: {
           type: 'Feature',
           properties: {},

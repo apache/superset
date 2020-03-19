@@ -24,6 +24,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { StaticMap } from 'react-map-gl';
 import DeckGL from 'deck.gl';
+// eslint-disable-next-line import/extensions
+import Tooltip from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import './css/deckgl.css';
 
@@ -55,6 +57,7 @@ export default class DeckGLContainer extends React.Component {
     // This has to be placed after this.tick is bound to this
     this.state = {
       timer: setInterval(this.tick, TICK),
+      tooltip: null,
       viewState: props.viewport,
     };
   }
@@ -88,31 +91,38 @@ export default class DeckGLContainer extends React.Component {
     return this.props.layers;
   }
 
+  setTooltip = tooltip => {
+    this.setState({ tooltip });
+  };
+
   render() {
     const { children, bottomMargin, height, width } = this.props;
-    const { viewState } = this.state;
+    const { viewState, tooltip } = this.state;
     const adjustedHeight = height - bottomMargin;
 
     const layers = this.layers();
 
     return (
-      <div style={{ position: 'relative', width, height: adjustedHeight }}>
-        <DeckGL
-          initWebGLParameters
-          controller
-          width={width}
-          height={adjustedHeight}
-          layers={layers}
-          viewState={viewState}
-          onViewStateChange={this.onViewStateChange}
-        >
-          <StaticMap
-            mapStyle={this.props.mapStyle}
-            mapboxApiAccessToken={this.props.mapboxApiAccessToken}
-          />
-        </DeckGL>
-        {children}
-      </div>
+      <>
+        <div style={{ position: 'relative', width, height: adjustedHeight }}>
+          <DeckGL
+            initWebGLParameters
+            controller
+            width={width}
+            height={adjustedHeight}
+            layers={layers}
+            viewState={viewState}
+            onViewStateChange={this.onViewStateChange}
+          >
+            <StaticMap
+              mapStyle={this.props.mapStyle}
+              mapboxApiAccessToken={this.props.mapboxApiAccessToken}
+            />
+          </DeckGL>
+          {children}
+        </div>
+        <Tooltip tooltip={tooltip} />
+      </>
     );
   }
 }

@@ -56,10 +56,13 @@ function setTooltipContent(formData) {
 
     return (
       <div className="deckgl-tooltip">
-        <TooltipRow
-          label={`${formData.line_column}: `}
-          value={`${o.object[formData.line_column]}`}
-        />
+        {o.object.name && <TooltipRow label="name: " value={`${o.object.name}`} />}
+        {o.object[formData.line_column] && (
+          <TooltipRow
+            label={`${formData.line_column}: `}
+            value={`${o.object[formData.line_column]}`}
+          />
+        )}
         {formData.metric && (
           <TooltipRow label={`${metricLabel}: `} value={`${o.object[metricLabel]}`} />
         )}
@@ -103,8 +106,9 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, selected, o
 
     return baseColor;
   };
+
   const tooltipContentGenerator =
-    fd.line_column && fd.metric && ['geohash', 'zipcode'].includes(fd.line_type)
+    fd.line_column && fd.metric && ['json', 'geohash', 'zipcode'].includes(fd.line_type)
       ? setTooltipContent(fd)
       : undefined;
 
@@ -132,17 +136,17 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  setTooltip: PropTypes.func,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
   onAddFilter() {},
-  setTooltip() {},
 };
 
 class DeckGLPolygon extends React.Component {
+  containerRef = React.createRef();
+
   constructor(props) {
     super(props);
 
@@ -245,7 +249,7 @@ class DeckGLPolygon extends React.Component {
       this.props.formData,
       this.props.payload,
       this.props.onAddFilter,
-      this.props.setTooltip,
+      this.setTooltip,
       this.state.selected,
       this.onSelect,
       filters,
@@ -253,6 +257,12 @@ class DeckGLPolygon extends React.Component {
 
     return [layer];
   }
+
+  setTooltip = tooltip => {
+    if (this.containerRef.current) {
+      this.containerRef.current.setTooltip(tooltip);
+    }
+  };
 
   render() {
     const { payload, formData, setControlValue } = this.props;
@@ -267,6 +277,7 @@ class DeckGLPolygon extends React.Component {
     return (
       <div style={{ position: 'relative' }}>
         <AnimatableDeckGLContainer
+          ref={this.containerRef}
           aggregation
           getLayers={this.getLayers}
           start={start}

@@ -47,6 +47,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'legacy-|preset-chart-deckgl|GridChartPlugin',
+    storyPath: 'legacy-preset-chart-deckgl|GridChartPlugin',
   },
 ];

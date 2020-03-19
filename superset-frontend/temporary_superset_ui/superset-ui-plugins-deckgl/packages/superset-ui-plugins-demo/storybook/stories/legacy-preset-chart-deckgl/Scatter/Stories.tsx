@@ -55,6 +55,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'legacy-|preset-chart-deckgl|ScatterChartPlugin',
+    storyPath: 'legacy-preset-chart-deckgl|ScatterChartPlugin',
   },
 ];
