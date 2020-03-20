@@ -24,22 +24,21 @@ from superset.commands.base import BaseCommand
 from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
-from superset.datasets.commands.exceptions import (
-    DatabaseChangeValidationError,
-    DatasetExistsValidationError,
-    DatasetForbiddenError,
-    DatasetInvalidError,
-    DatasetNotFoundError,
-    DatasetUpdateFailedError,
+from superset.dashboards.commands.exceptions import (
+    DashboardForbiddenError,
+    DashboardInvalidError,
+    DashboardNotFoundError,
+    DashboardSlugExistsValidationError,
+    DashboardUpdateFailedError,
 )
-from superset.datasets.dao import DatasetDAO
+from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
-class UpdateDatasetCommand(BaseCommand):
+class UpdateDashboardCommand(BaseCommand):
     def __init__(self, user: User, model_id: int, data: Dict):
         self._actor = user
         self._model_id = model_id
@@ -49,42 +48,40 @@ class UpdateDatasetCommand(BaseCommand):
     def run(self):
         self.validate()
         try:
-            dataset = DatasetDAO.update(self._model, self._properties)
+            dashboard = DashboardDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as e:
             logger.exception(e.exception)
-            raise DatasetUpdateFailedError()
-        return dataset
+            raise DashboardUpdateFailedError()
+        return dashboard
 
     def validate(self) -> None:
-        exceptions = list()
+        exceptions: List[ValidationError] = []
         owner_ids: Optional[List[int]] = self._properties.get("owners")
+        slug: str = self._properties.get("slug", "")
+
         # Validate/populate model exists
-        self._model = DatasetDAO.find_by_id(self._model_id)
+        self._model = DashboardDAO.find_by_id(self._model_id)
         if not self._model:
-            raise DatasetNotFoundError()
+            raise DashboardNotFoundError()
         # Check ownership
         try:
             check_ownership(self._model)
         except SupersetSecurityException:
-            raise DatasetForbiddenError()
+            raise DashboardForbiddenError()
 
-        database_id = self._properties.get("database", None)
-        table_name = self._properties.get("table_name", None)
-        # Validate uniqueness
-        if not DatasetDAO.validate_update_uniqueness(
-            self._model.database_id, self._model_id, table_name
-        ):
-            exceptions.append(DatasetExistsValidationError(table_name))
-        # Validate/Populate database not allowed to change
-        if database_id and database_id != self._model:
-            exceptions.append(DatabaseChangeValidationError())
+        # Validate slug uniqueness
+        if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):
+            exceptions.append(DashboardSlugExistsValidationError())
+
         # Validate/Populate owner
+        if owner_ids is None:
+            owner_ids = [owner.id for owner in self._model.owners]
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as e:
             exceptions.append(e)
         if exceptions:
-            exception = DatasetInvalidError()
+            exception = DashboardInvalidError()
             exception.add_list(exceptions)
             raise exception

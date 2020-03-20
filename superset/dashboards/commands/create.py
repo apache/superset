@@ -23,19 +23,17 @@ from marshmallow import ValidationError
 from superset.commands.base import BaseCommand
 from superset.commands.utils import populate_owners
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.datasets.commands.exceptions import (
-    DatabaseNotFoundValidationError,
-    DatasetCreateFailedError,
-    DatasetExistsValidationError,
-    DatasetInvalidError,
-    TableNotFoundValidationError,
+from superset.dashboards.commands.exceptions import (
+    DashboardCreateFailedError,
+    DashboardInvalidError,
+    DashboardSlugExistsValidationError,
 )
-from superset.datasets.dao import DatasetDAO
+from superset.dashboards.dao import DashboardDAO
 
 logger = logging.getLogger(__name__)
 
 
-class CreateDatasetCommand(BaseCommand):
+class CreateDashboardCommand(BaseCommand):
     def __init__(self, user: User, data: Dict):
         self._actor = user
         self._properties = data.copy()
@@ -43,34 +41,20 @@ class CreateDatasetCommand(BaseCommand):
     def run(self):
         self.validate()
         try:
-            dataset = DatasetDAO.create(self._properties)
+            dashboard = DashboardDAO.create(self._properties)
         except DAOCreateFailedError as e:
             logger.exception(e.exception)
-            raise DatasetCreateFailedError()
-        return dataset
+            raise DashboardCreateFailedError()
+        return dashboard
 
     def validate(self) -> None:
         exceptions = list()
-        database_id = self._properties["database"]
-        table_name = self._properties["table_name"]
-        schema = self._properties.get("schema", "")
         owner_ids: Optional[List[int]] = self._properties.get("owners")
+        slug: str = self._properties.get("slug", "")
 
-        # Validate uniqueness
-        if not DatasetDAO.validate_uniqueness(database_id, table_name):
-            exceptions.append(DatasetExistsValidationError(table_name))
-
-        # Validate/Populate database
-        database = DatasetDAO.get_database_by_id(database_id)
-        if not database:
-            exceptions.append(DatabaseNotFoundValidationError())
-        self._properties["database"] = database
-
-        # Validate table exists on dataset
-        if database and not DatasetDAO.validate_table_exists(
-            database, table_name, schema
-        ):
-            exceptions.append(TableNotFoundValidationError(table_name))
+        # Validate slug uniqueness
+        if not DashboardDAO.validate_slug_uniqueness(slug):
+            exceptions.append(DashboardSlugExistsValidationError())
 
         try:
             owners = populate_owners(self._actor, owner_ids)
@@ -78,6 +62,6 @@ class CreateDatasetCommand(BaseCommand):
         except ValidationError as e:
             exceptions.append(e)
         if exceptions:
-            exception = DatasetInvalidError()
+            exception = DashboardInvalidError()
             exception.add_list(exceptions)
             raise exception

@@ -20,42 +20,42 @@ from typing import Optional
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand
-from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAODeleteFailedError
-from superset.datasets.commands.exceptions import (
-    DatasetDeleteFailedError,
-    DatasetForbiddenError,
-    DatasetNotFoundError,
+from superset.dashboards.commands.exceptions import (
+    DashboardDeleteFailedError,
+    DashboardForbiddenError,
+    DashboardNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
+from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
-class DeleteDatasetCommand(BaseCommand):
+class DeleteDashboardCommand(BaseCommand):
     def __init__(self, user: User, model_id: int):
         self._actor = user
         self._model_id = model_id
-        self._model: Optional[SqlaTable] = None
+        self._model: Optional[Dashboard] = None
 
     def run(self):
         self.validate()
         try:
-            dataset = DatasetDAO.delete(self._model)
+            dashboard = DashboardDAO.delete(self._model)
         except DAODeleteFailedError as e:
             logger.exception(e.exception)
-            raise DatasetDeleteFailedError()
-        return dataset
+            raise DashboardDeleteFailedError()
+        return dashboard
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = DatasetDAO.find_by_id(self._model_id)
+        self._model = DashboardDAO.find_by_id(self._model_id)
         if not self._model:
-            raise DatasetNotFoundError()
+            raise DashboardNotFoundError()
         # Check ownership
         try:
             check_ownership(self._model)
         except SupersetSecurityException:
-            raise DatasetForbiddenError()
+            raise DashboardForbiddenError()

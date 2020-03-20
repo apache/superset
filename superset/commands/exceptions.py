@@ -14,29 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List, Optional
+from typing import List
 
+from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 
+from superset.exceptions import SupersetException
 
-class CommandException(Exception):
+
+class CommandException(SupersetException):
     """ Common base class for Command exceptions. """
 
-    message = ""
-
-    def __init__(self, message: str = "", exception: Optional[Exception] = None):
-        if message:
-            self.message = message
-        self._exception = exception
-        super().__init__(self.message)
-
-    @property
-    def exception(self):
-        return self._exception
+    pass
 
 
 class CommandInvalidError(CommandException):
     """ Common base class for Command Invalid errors. """
+
+    status = 422
 
     def __init__(self, message=""):
         self._invalid_exceptions = list()
@@ -56,16 +51,27 @@ class CommandInvalidError(CommandException):
 
 
 class UpdateFailedError(CommandException):
+    status = 500
     message = "Command update failed"
 
 
 class CreateFailedError(CommandException):
+    status = 500
     message = "Command create failed"
 
 
 class DeleteFailedError(CommandException):
+    status = 500
     message = "Command delete failed"
 
 
 class ForbiddenError(CommandException):
+    status = 500
     message = "Action is forbidden"
+
+
+class OwnersNotFoundValidationError(ValidationError):
+    status = 422
+
+    def __init__(self):
+        super().__init__(_("Owners are invalid"), field_names=["owners"])

@@ -14,27 +14,44 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from abc import ABC, abstractmethod
+from superset.exceptions import SupersetException
 
 
-class BaseCommand(ABC):
+class DAOException(SupersetException):
     """
-        Base class for all Command like Superset Logic objects
+    Base DAO exception class
     """
 
-    @abstractmethod
-    def run(self):
-        """
-        Run executes the command. Can raise command exceptions
-        :raises: CommandException
-        """
-        pass
+    pass
 
-    @abstractmethod
-    def validate(self) -> None:
-        """
-        Validate is normally called by run to validate data.
-        Will raise exception if validation fails
-        :raises: CommandException
-        """
-        pass
+
+class DAOCreateFailedError(DAOException):
+    """
+    DAO Create failed
+    """
+
+    message = "Create failed"
+
+
+class DAOUpdateFailedError(DAOException):
+    """
+    DAO Update failed
+    """
+
+    message = "Updated failed"
+
+
+class DAODeleteFailedError(DAOException):
+    """
+    DAO Delete failed
+    """
+
+    message = "Delete failed"
+
+
+class DAOConfigError(DAOException):
+    """
+    DAO is miss configured
+    """
+
+    message = "DAO is not configured correctly missing model definition"

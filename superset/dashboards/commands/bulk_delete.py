@@ -15,47 +15,47 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Optional
+from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand
-from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DAODeleteFailedError
-from superset.datasets.commands.exceptions import (
-    DatasetDeleteFailedError,
-    DatasetForbiddenError,
-    DatasetNotFoundError,
+from superset.commands.exceptions import DeleteFailedError
+from superset.dashboards.commands.exceptions import (
+    DashboardBulkDeleteFailedError,
+    DashboardForbiddenError,
+    DashboardNotFoundError,
 )
-from superset.datasets.dao import DatasetDAO
+from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
-class DeleteDatasetCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int):
+class BulkDeleteDashboardCommand(BaseCommand):
+    def __init__(self, user: User, model_ids: List[int]):
         self._actor = user
-        self._model_id = model_id
-        self._model: Optional[SqlaTable] = None
+        self._model_ids = model_ids
+        self._models: Optional[List[Dashboard]] = None
 
     def run(self):
         self.validate()
         try:
-            dataset = DatasetDAO.delete(self._model)
-        except DAODeleteFailedError as e:
+            DashboardDAO.bulk_delete(self._models)
+        except DeleteFailedError as e:
             logger.exception(e.exception)
-            raise DatasetDeleteFailedError()
-        return dataset
+            raise DashboardBulkDeleteFailedError()
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = DatasetDAO.find_by_id(self._model_id)
-        if not self._model:
-            raise DatasetNotFoundError()
+        self._models = DashboardDAO.find_by_ids(self._model_ids)
+        if not self._models or len(self._models) != len(self._model_ids):
+            raise DashboardNotFoundError()
         # Check ownership
-        try:
-            check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DatasetForbiddenError()
+        for model in self._models:
+            try:
+                check_ownership(model)
+            except SupersetSecurityException:
+                raise DashboardForbiddenError()
