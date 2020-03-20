@@ -21,10 +21,11 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.commands.exceptions import (
-    CreateFailedError,
-    DeleteFailedError,
-    UpdateFailedError,
+from superset.dao.exceptions import (
+    DAOConfigError,
+    DAOCreateFailedError,
+    DAODeleteFailedError,
+    DAOUpdateFailedError,
 )
 from superset.extensions import db
 
@@ -35,9 +36,12 @@ class BaseDAO:
 
     @classmethod
     def find_by_id(cls, model_id: int) -> Model:
-        data_model = SQLAInterface(cls.model_cls, db.session)
         query = db.session.query(cls.model_cls)
-        query = cls.base_filter("id", data_model).apply(query, None)
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter("id", data_model).apply(
+                query, None
+            )  # pylint: disable=not-callable
         return query.filter_by(id=model_id).one_or_none()
 
     @classmethod
@@ -45,7 +49,9 @@ class BaseDAO:
         """
             Generic for creating models
         """
-        model = cls.model_cls()
+        if cls.model_cls is None:
+            raise DAOConfigError()
+        model = cls.model_cls()  # pylint: disable=not-callable
         for key, value in properties.items():
             setattr(model, key, value)
         try:
@@ -54,7 +60,7 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             db.session.rollback()
-            raise CreateFailedError(exception=e)
+            raise DAOCreateFailedError(exception=e)
         return model
 
     @classmethod
@@ -70,7 +76,7 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             db.session.rollback()
-            raise UpdateFailedError(exception=e)
+            raise DAOUpdateFailedError(exception=e)
         return model
 
     @classmethod
@@ -84,5 +90,5 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             db.session.rollback()
-            raise DeleteFailedError(exception=e)
+            raise DAODeleteFailedError(exception=e)
         return model

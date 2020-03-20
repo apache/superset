@@ -20,8 +20,8 @@ from typing import Optional
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import DeleteFailedError
 from superset.connectors.sqla.models import SqlaTable
+from superset.dao.exceptions import DAODeleteFailedError
 from superset.datasets.commands.exceptions import (
     DatasetDeleteFailedError,
     DatasetForbiddenError,
@@ -44,7 +44,7 @@ class DeleteDatasetCommand(BaseCommand):
         self.validate()
         try:
             dataset = DatasetDAO.delete(self._model)
-        except DeleteFailedError as e:
+        except DAODeleteFailedError as e:
             logger.exception(e.exception)
             raise DatasetDeleteFailedError()
         return dataset

@@ -28,12 +28,21 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.views.base import generate_download_headers
 
-from .base_api_tests import ApiOwnersTestCaseMixin
-from .base_tests import SupersetTestCase
+from tests.base_api_tests import ApiOwnersTestCaseMixin
+from tests.base_tests import SupersetTestCase
 
 
 class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "dashboard"
+
+    dashboard_data = {
+        "dashboard_title": "title1_changed",
+        "slug": "slug1_changed",
+        "position_json": '{"b": "B"}',
+        "css": "css_changed",
+        "json_metadata": '{"a": "A"}',
+        "published": False,
+    }
 
     def __init__(self, *args, **kwargs):
         super(DashboardApiTests, self).__init__(*args, **kwargs)
@@ -533,28 +542,50 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
             Dashboard API: Test update
         """
-        admin_id = self.get_user("admin").id
-        dashboard_id = self.insert_dashboard("title1", "slug1", [admin_id]).id
-        dashboard_data = {
-            "dashboard_title": "title1_changed",
-            "slug": "slug1_changed",
-            "owners": [admin_id],
-            "position_json": '{"b": "B"}',
-            "css": "css_changed",
-            "json_metadata": '{"a": "A"}',
-            "published": False,
-        }
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
-        rv = self.client.put(uri, json=dashboard_data)
+        rv = self.client.put(uri, json=self.dashboard_data)
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Dashboard).get(dashboard_id)
-        self.assertEqual(model.dashboard_title, "title1_changed")
-        self.assertEqual(model.slug, "slug1_changed")
-        self.assertEqual(model.position_json, '{"b": "B"}')
-        self.assertEqual(model.css, "css_changed")
-        self.assertEqual(model.json_metadata, '{"a": "A"}')
-        self.assertEqual(model.published, False)
+        self.assertEqual(model.dashboard_title, self.dashboard_data["dashboard_title"])
+        self.assertEqual(model.slug, self.dashboard_data["slug"])
+        self.assertEqual(model.position_json, self.dashboard_data["position_json"])
+        self.assertEqual(model.css, self.dashboard_data["css"])
+        self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
+        self.assertEqual(model.published, self.dashboard_data["published"])
+        self.assertEqual(model.owners, [admin])
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_partial_dashboard(self):
+        """
+            Dashboard API: Test update partial
+        """
+        admin_id = self.get_user("admin").id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin_id]).id
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.put(
+            uri, json={"json_metadata": self.dashboard_data["json_metadata"]}
+        )
+        self.assertEqual(rv.status_code, 200)
+
+        rv = self.client.put(
+            uri, json={"dashboard_title": self.dashboard_data["dashboard_title"]}
+        )
+        self.assertEqual(rv.status_code, 200)
+
+        rv = self.client.put(uri, json={"slug": self.dashboard_data["slug"]})
+        self.assertEqual(rv.status_code, 200)
+
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
+        self.assertEqual(model.dashboard_title, self.dashboard_data["dashboard_title"])
+        self.assertEqual(model.slug, self.dashboard_data["slug"])
+
         db.session.delete(model)
         db.session.commit()
 

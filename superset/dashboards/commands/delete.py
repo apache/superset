@@ -20,7 +20,7 @@ from typing import Optional
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import DeleteFailedError
+from superset.dao.exceptions import DAODeleteFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardDeleteFailedError,
     DashboardForbiddenError,
@@ -44,7 +44,7 @@ class DeleteDashboardCommand(BaseCommand):
         self.validate()
         try:
             dashboard = DashboardDAO.delete(self._model)
-        except DeleteFailedError as e:
+        except DAODeleteFailedError as e:
             logger.exception(e.exception)
             raise DashboardDeleteFailedError()
         return dashboard

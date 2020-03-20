@@ -80,8 +80,8 @@ class DashboardPostSchema(BaseDashboardSchema):
 class DashboardPutSchema(BaseDashboardSchema):
     dashboard_title = fields.String(allow_none=True, validate=Length(0, 500))
     slug = fields.String(allow_none=True, validate=Length(0, 255))
-    owners = fields.List(fields.Integer())
-    position_json = fields.String(validate=validate_json)
-    css = fields.String()
-    json_metadata = fields.String(validate=validate_json_metadata)
-    published = fields.Boolean()
+    owners = fields.List(fields.Integer(allow_none=True))
+    position_json = fields.String(allow_none=True, validate=validate_json)
+    css = fields.String(allow_none=True)
+    json_metadata = fields.String(allow_none=True, validate=validate_json_metadata)
+    published = fields.Boolean(allow_none=True)
