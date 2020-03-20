@@ -31,11 +31,24 @@ from superset.extensions import db
 
 
 class BaseDAO:
+    """
+    Base DAO, implement base CRUD sqlalchemy operations
+    """
     model_cls: Optional[Model] = None
+    """ 
+    Child classes need to state the Model class so they don't need to implement basic
+    create, update and delete methods
+    """
     base_filter: Optional[BaseFilter] = None
+    """ 
+    Child classes can register base filtering to be aplied to all filter methods
+    """
 
     @classmethod
     def find_by_id(cls, model_id: int) -> Model:
+        """
+        Retrives a model by id, if defined applies `base_filter`
+        """
         query = db.session.query(cls.model_cls)
         if cls.base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)
@@ -47,7 +60,8 @@ class BaseDAO:
     @classmethod
     def create(cls, properties: Dict, commit=True) -> Optional[Model]:
         """
-            Generic for creating models
+        Generic for creating models
+        :raises: DAOCreateFailedError
         """
         if cls.model_cls is None:
             raise DAOConfigError()
@@ -66,7 +80,8 @@ class BaseDAO:
     @classmethod
     def update(cls, model: Model, properties: Dict, commit=True) -> Optional[Model]:
         """
-            Generic update a model
+        Generic update a model
+        :raises: DAOCreateFailedError
         """
         for key, value in properties.items():
             setattr(model, key, value)
@@ -82,7 +97,8 @@ class BaseDAO:
     @classmethod
     def delete(cls, model: Model, commit=True):
         """
-            Generic delete a model
+        Generic delete a model
+        :raises: DAOCreateFailedError
         """
         try:
             db.session.delete(model)

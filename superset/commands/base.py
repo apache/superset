@@ -26,7 +26,7 @@ class BaseCommand(ABC):
     def run(self):
         """
         Run executes the command. Can raise command exceptions
-        :return:
+        :raises: CommandException
         """
         pass
 
@@ -35,5 +35,6 @@ class BaseCommand(ABC):
         """
         Validate is normally called by run to validate data.
         Will raise exception if validation fails
+        :raises: CommandException
         """
         pass
