@@ -231,10 +231,10 @@
     "typescript": "^3.8.3",
     "url-loader": "^1.0.1",
     "webpack": "^4.42.0",
-    "webpack-assets-manifest": "^3.1.1",
     "webpack-bundle-analyzer": "^3.6.1",
     "webpack-cli": "^3.3.11",
     "webpack-dev-server": "^3.10.3",
+    "webpack-manifest-plugin": "^2.2.0",
     "webpack-sources": "^1.4.3",
     "yargs": "12 - 15"
   },
