@@ -14,10 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional
 
 
 class SupersetException(Exception):
     status = 500
+    message = ""
+
+    def __init__(self, message: str = "", exception: Optional[Exception] = None):
+        if message:
+            self.message = message
+        self._exception = exception
+        super().__init__(self.message)
+
+    @property
+    def exception(self):
+        return self._exception
 
 
 class SupersetTimeoutException(SupersetException):

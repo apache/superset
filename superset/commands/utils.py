@@ -18,15 +18,14 @@ from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.datasets.commands.exceptions import OwnersNotFoundValidationError
-from superset.datasets.dao import DatasetDAO
+from superset.commands.exceptions import OwnersNotFoundValidationError
+from superset.extensions import security_manager
 
 
 def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[User]:
     """
     Helper function for commands, will fetch all users from owners id's
     Can raise ValidationError
-
     :param user: The current user
     :param owners_ids: A List of owners by id's
     """
@@ -36,7 +35,7 @@ def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[
     if user.id not in owners_ids:
         owners.append(user)
     for owner_id in owners_ids:
-        owner = DatasetDAO.get_owner_by_id(owner_id)
+        owner = security_manager.get_user_by_id(owner_id)
         if not owner:
             raise OwnersNotFoundValidationError()
         owners.append(owner)

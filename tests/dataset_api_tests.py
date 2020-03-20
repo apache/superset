@@ -22,12 +22,12 @@ from unittest.mock import patch
 import prison
 
 from superset import db, security_manager
-from superset.commands.exceptions import (
-    CreateFailedError,
-    DeleteFailedError,
-    UpdateFailedError,
-)
 from superset.connectors.sqla.models import SqlaTable
+from superset.dao.exceptions import (
+    DAOCreateFailedError,
+    DAODeleteFailedError,
+    DAOUpdateFailedError,
+)
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 
@@ -279,7 +279,7 @@ class DatasetApiTests(SupersetTestCase):
         """
             Dataset API: Test create dataset sqlalchemy error
         """
-        mock_dao_create.side_effect = CreateFailedError()
+        mock_dao_create.side_effect = DAOCreateFailedError()
         self.login(username="admin")
         example_db = get_example_database()
         dataset_data = {
@@ -379,7 +379,7 @@ class DatasetApiTests(SupersetTestCase):
         """
             Dataset API: Test update dataset sqlalchemy error
         """
-        mock_dao_update.side_effect = UpdateFailedError()
+        mock_dao_update.side_effect = DAOUpdateFailedError()
 
         table = self.insert_dataset("ab_permission", "", [], get_example_database())
         self.login(username="admin")
@@ -438,7 +438,7 @@ class DatasetApiTests(SupersetTestCase):
         """
             Dataset API: Test delete dataset sqlalchemy error
         """
-        mock_dao_delete.side_effect = DeleteFailedError()
+        mock_dao_delete.side_effect = DAODeleteFailedError()
 
         admin = self.get_user("admin")
         table = self.insert_dataset(
