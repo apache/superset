@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=R
 import hashlib
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
@@ -27,6 +28,8 @@ from superset import app
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import core as utils, pandas_postprocessing
 from superset.views.utils import get_time_range_endpoints
+
+logger = logging.getLogger(__name__)
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 #  https://github.com/python/mypy/issues/5288
@@ -85,7 +88,6 @@ class QueryObject:
         self.is_timeseries = is_timeseries
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
-        self.groupby = groupby or []
         self.post_processing = post_processing or []
 
         # Temporary solution for backward compatibility issue due the new format of
@@ -105,6 +107,14 @@ class QueryObject:
 
         if app.config["SIP_15_ENABLED"] and "time_range_endpoints" not in self.extras:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
+
+        self.columns = columns
+        if groupby:
+            self.columns += groupby
+            logger.warning(
+                f"The field groupby is deprecated. Viz plugins should "
+                f"pass all selectables via the columns field"
+            )
 
         self.columns = columns or []
         self.orderby = orderby or []

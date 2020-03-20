@@ -78,6 +78,22 @@ METRIC_KEYS = [
     "size",
 ]
 
+COLUMN_FORM_DATA_PARAMS = [
+    "all_columns",
+    "all_columns_x",
+    "all_columns_y",
+    "columns",
+    "dimension",
+    "entity",
+    "groupby",
+    "order_by_cols",
+    "series",
+    "line_column",
+    "js_columns",
+]
+
+SPATIAL_COLUMN_FORM_DATA_PARAMS = ["spatial", "start_spatial", "end_spatial"]
+
 
 class BaseViz:
 
@@ -107,7 +123,34 @@ class BaseViz:
         self.query = ""
         self.token = self.form_data.get("token", "token_" + uuid.uuid4().hex[:8])
 
-        self.groupby = self.form_data.get("groupby") or []
+        # merge all selectable columns into `columns` property
+        self.columns: List[str] = []
+        for key in COLUMN_FORM_DATA_PARAMS:
+            logger.warning(
+                f"The form field %s is deprecated. Viz plugins should "
+                f"pass all selectables via the columns field",
+                key,
+            )
+            value = self.form_data.get(key) or []
+            value_list = value if isinstance(value, list) else [value]
+            self.columns += value_list
+
+        for key in SPATIAL_COLUMN_FORM_DATA_PARAMS:
+            spatial = self.form_data.get(key)
+            if not isinstance(spatial, dict):
+                continue
+            logger.warning(
+                f"The form field %s is deprecated. Viz plugins should "
+                f"pass all selectables via the columns field",
+                key,
+            )
+            if spatial.get("type") == "latlong":
+                self.columns += [spatial["lonCol"], spatial["latCol"]]
+            elif spatial.get("type") == "delimited":
+                self.columns.append(spatial["lonlatCol"])
+            elif spatial.get("type") == "geohash":
+                self.columns.append(spatial["geohashCol"])
+
         self.time_shift = timedelta()
 
         self.status: Optional[str] = None
@@ -204,7 +247,6 @@ class BaseViz:
         query_obj = self.query_obj()
         query_obj.update(
             {
-                "groupby": [],
                 "metrics": [],
                 "row_limit": 1000,
                 "columns": [o.column_name for o in self.datasource.columns],
@@ -291,14 +333,12 @@ class BaseViz:
         """Building a query object"""
         form_data = self.form_data
         self.process_query_filters()
-        gb = form_data.get("groupby") or []
         metrics = self.all_metrics or []
-        columns = form_data.get("columns") or []
-        groupby = list(set(gb + columns))
+        columns = self.columns
 
         is_timeseries = self.is_timeseries
-        if DTTM_ALIAS in groupby:
-            groupby.remove(DTTM_ALIAS)
+        if DTTM_ALIAS in columns:
+            columns.remove(DTTM_ALIAS)
             is_timeseries = True
 
         granularity = form_data.get("granularity") or form_data.get("granularity_sqla")
@@ -342,7 +382,7 @@ class BaseViz:
             "from_dttm": from_dttm,
             "to_dttm": to_dttm,
             "is_timeseries": is_timeseries,
-            "groupby": groupby,
+            "columns": columns,
             "metrics": metrics,
             "row_limit": row_limit,
             "filter": self.form_data.get("filters", []),
@@ -567,8 +607,6 @@ class TableViz(BaseViz):
 
         sort_by = fd.get("timeseries_limit_metric")
         if fd.get("all_columns"):
-            d["columns"] = fd.get("all_columns")
-            d["groupby"] = []
             order_by_cols = fd.get("order_by_cols") or []
             d["orderby"] = [json.loads(t) for t in order_by_cols]
         elif sort_by:
@@ -816,11 +854,6 @@ class WordCloudViz(BaseViz):
     verbose_name = _("Word Cloud")
     is_timeseries = False
 
-    def query_obj(self):
-        d = super().query_obj()
-        d["groupby"] = [self.form_data.get("series")]
-        return d
-
 
 class TreemapViz(BaseViz):
 
@@ -1024,12 +1057,6 @@ class BubbleViz(NVD3Viz):
     def query_obj(self):
         form_data = self.form_data
         d = super().query_obj()
-        d["groupby"] = [form_data.get("entity")]
-        if form_data.get("series"):
-            d["groupby"].append(form_data.get("series"))
-
-        # dedup groupby if it happens to be the same
-        d["groupby"] = list(dict.fromkeys(d["groupby"]))
 
         self.x_metric = form_data.get("x")
         self.y_metric = form_data.get("y")
@@ -1240,7 +1267,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if aggregate:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
-                columns=fd.get("groupby"),
+                columns=self.columns,
                 values=self.metric_labels,
                 fill_value=0,
                 aggfunc=sum,
@@ -1248,7 +1275,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         else:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
-                columns=fd.get("groupby"),
+                columns=self.columns,
                 values=self.metric_labels,
                 fill_value=self.pivot_fill_value,
             )
@@ -1541,7 +1568,7 @@ class DistributionPieViz(NVD3Viz):
         if df.empty:
             return None
         metric = self.metric_labels[0]
-        df = df.pivot_table(index=self.groupby, values=[metric])
+        df = df.pivot_table(index=self.columns, values=[metric])
         df.sort_values(by=metric, ascending=False, inplace=True)
         df = df.reset_index()
         df.columns = ["x", "y"]
@@ -1560,13 +1587,8 @@ class HistogramViz(BaseViz):
         """Returns the query object for this visualization"""
         d = super().query_obj()
         d["row_limit"] = self.form_data.get("row_limit", int(config["VIZ_ROW_LIMIT"]))
-        numeric_columns = self.form_data.get("all_columns_x")
-        if numeric_columns is None:
+        if not self.form_data.get("all_columns_x"):
             raise Exception(_("Must have at least one numeric column specified"))
-        self.columns = numeric_columns
-        d["columns"] = numeric_columns + self.groupby
-        # override groupby entry to avoid aggregation
-        d["groupby"] = []
         return d
 
     def labelify(self, keys, column):
@@ -1613,13 +1635,9 @@ class DistributionBarViz(DistributionPieViz):
     def query_obj(self):
         d = super().query_obj()
         fd = self.form_data
-        if len(d["groupby"]) < len(fd.get("groupby") or []) + len(
-            fd.get("columns") or []
-        ):
-            raise Exception(_("Can't have overlap between Series and Breakdowns"))
-        if not fd.get("metrics"):
+        if not self.all_metrics:
             raise Exception(_("Pick at least one metric"))
-        if not fd.get("groupby"):
+        if not self.columns:
             raise Exception(_("Pick at least one field for [Series]"))
         return d
 
@@ -1630,22 +1648,22 @@ class DistributionBarViz(DistributionPieViz):
         fd = self.form_data
         metrics = self.metric_labels
         columns = fd.get("columns") or []
+        groupby = fd.get("groupby") or []
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = self.groupby + columns
-        df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
+        df[self.columns] = df[self.columns].fillna(value=NULL_STRING)
 
-        row = df.groupby(self.groupby).sum()[metrics[0]].copy()
+        row = df.groupby(self.columns).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)
-        pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
+        pt = df.pivot_table(index=groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
         chart_data = []
         for name, ys in pt.items():
-            if pt[name].dtype.kind not in "biufc" or name in self.groupby:
+            if pt[name].dtype.kind not in "biufc" or name in groupby:
                 continue
             if isinstance(name, str):
                 series_title = name
@@ -1713,13 +1731,6 @@ class SankeyViz(BaseViz):
     verbose_name = _("Sankey")
     is_timeseries = False
     credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
-
-    def query_obj(self):
-        qry = super().query_obj()
-        if len(qry["groupby"]) != 2:
-            raise Exception(_("Pick exactly 2 columns as [Source / Target]"))
-        qry["metrics"] = [self.form_data["metric"]]
-        return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         df.columns = ["source", "target", "value"]
@@ -1791,7 +1802,6 @@ class ChordViz(BaseViz):
     def query_obj(self):
         qry = super().query_obj()
         fd = self.form_data
-        qry["groupby"] = [fd.get("groupby"), fd.get("columns")]
         qry["metrics"] = [fd.get("metric")]
         return qry
 
@@ -1821,12 +1831,6 @@ class CountryMapViz(BaseViz):
     is_timeseries = False
     credits = "From bl.ocks.org By john-guerra"
 
-    def query_obj(self):
-        qry = super().query_obj()
-        qry["metrics"] = [self.form_data["metric"]]
-        qry["groupby"] = [self.form_data["entity"]]
-        return qry
-
     def get_data(self, df: pd.DataFrame) -> VizData:
         fd = self.form_data
         cols = [fd.get("entity")]
@@ -1847,11 +1851,6 @@ class WorldMapViz(BaseViz):
     verbose_name = _("World Map")
     is_timeseries = False
     credits = 'datamaps on <a href="https://www.npmjs.com/package/datamaps">npm</a>'
-
-    def query_obj(self):
-        qry = super().query_obj()
-        qry["groupby"] = [self.form_data["entity"]]
-        return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         from superset.examples import countries
@@ -1915,7 +1914,7 @@ class FilterBoxViz(BaseViz):
                 raise Exception(
                     _("Invalid filter configuration, please select a column")
                 )
-            qry["groupby"] = [col]
+            qry["columns"] = [col]
             metric = flt.get("metric")
             qry["metrics"] = [metric] if metric else []
             df = self.get_df_payload(query_obj=qry).get("df")
@@ -1981,12 +1980,6 @@ class ParallelCoordinatesViz(BaseViz):
     )
     is_timeseries = False
 
-    def query_obj(self):
-        d = super().query_obj()
-        fd = self.form_data
-        d["groupby"] = [fd.get("series")]
-        return d
-
     def get_data(self, df: pd.DataFrame) -> VizData:
         return df.to_dict(orient="records")
 
@@ -2002,13 +1995,6 @@ class HeatmapViz(BaseViz):
         'inspired from mbostock @<a href="http://bl.ocks.org/mbostock/3074470">'
         "bl.ocks.org</a>"
     )
-
-    def query_obj(self):
-        d = super().query_obj()
-        fd = self.form_data
-        d["metrics"] = [fd.get("metric")]
-        d["groupby"] = [fd.get("all_columns_x"), fd.get("all_columns_y")]
-        return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
@@ -2227,21 +2213,6 @@ class BaseDeckGLViz(BaseViz):
         self.metric = self.form_data.get("size")
         return [self.metric] if self.metric else []
 
-    def process_spatial_query_obj(self, key, group_by):
-        group_by.extend(self.get_spatial_columns(key))
-
-    def get_spatial_columns(self, key):
-        spatial = self.form_data.get(key)
-        if spatial is None:
-            raise ValueError(_("Bad spatial key"))
-
-        if spatial.get("type") == "latlong":
-            return [spatial.get("lonCol"), spatial.get("latCol")]
-        elif spatial.get("type") == "delimited":
-            return [spatial.get("lonlatCol")]
-        elif spatial.get("type") == "geohash":
-            return [spatial.get("geohashCol")]
-
     @staticmethod
     def parse_coordinates(s):
         if not s:
@@ -2296,9 +2267,6 @@ class BaseDeckGLViz(BaseViz):
     def add_null_filters(self):
         fd = self.form_data
         spatial_columns = set()
-        for key in self.spatial_control_keys:
-            for column in self.get_spatial_columns(key):
-                spatial_columns.add(column)
 
         if fd.get("adhoc_filters") is None:
             fd["adhoc_filters"] = []
@@ -2321,9 +2289,6 @@ class BaseDeckGLViz(BaseViz):
         d = super().query_obj()
         gb = []
 
-        for key in self.spatial_control_keys:
-            self.process_spatial_query_obj(key, gb)
-
         if fd.get("dimension"):
             gb += [fd.get("dimension")]
 
@@ -2332,11 +2297,7 @@ class BaseDeckGLViz(BaseViz):
         metrics = self.get_metrics()
         gb = list(set(gb))
         if metrics:
-            d["groupby"] = gb
             d["metrics"] = metrics
-            d["columns"] = []
-        else:
-            d["columns"] = gb
         return d
 
     def get_js_columns(self, d):
@@ -2488,13 +2449,10 @@ class DeckPathViz(BaseDeckGLViz):
         self.is_timeseries = fd.get("time_grain_sqla") or fd.get("granularity")
         d = super().query_obj()
         self.metric = fd.get("metric")
-        line_col = fd.get("line_column")
         if d["metrics"]:
             self.has_metrics = True
-            d["groupby"].append(line_col)
         else:
             self.has_metrics = False
-            d["columns"].append(line_col)
         return d
 
     def get_properties(self, d):
@@ -2573,7 +2531,6 @@ class DeckGeoJson(BaseDeckGLViz):
         d = super().query_obj()
         d["columns"] += [self.form_data.get("geojson")]
         d["metrics"] = []
-        d["groupby"] = []
         return d
 
     def get_properties(self, d):
