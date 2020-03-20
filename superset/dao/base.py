@@ -39,9 +39,9 @@ class BaseDAO:
         query = db.session.query(cls.model_cls)
         if cls.base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter("id", data_model).apply(
-                query, None
-            )  # pylint: disable=not-callable
+            query = cls.base_filter(  # pylint: disable=not-callable
+                "id", data_model
+            ).apply(query, None)
         return query.filter_by(id=model_id).one_or_none()
 
     @classmethod
