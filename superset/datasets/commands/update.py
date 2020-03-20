@@ -22,9 +22,9 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import UpdateFailedError
+from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
-from superset.datasets.commands.base import populate_owners
+from superset.dao.exceptions import DAOUpdateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseChangeValidationError,
     DatasetColumnNotFoundValidationError,
@@ -57,7 +57,7 @@ class UpdateDatasetCommand(BaseCommand):
         self.validate()
         try:
             dataset = DatasetDAO.update(self._model, self._properties)
-        except UpdateFailedError as e:
+        except DAOUpdateFailedError as e:
             logger.exception(e.exception)
             raise DatasetUpdateFailedError()
         return dataset

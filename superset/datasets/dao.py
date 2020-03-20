@@ -18,11 +18,10 @@ import logging
 from typing import Dict, List, Optional
 
 from flask import current_app
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dao.base import generic_create, generic_delete, generic_update
+from superset.dao.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import Database
 from superset.views.base import DatasourceFilter
@@ -30,7 +29,10 @@ from superset.views.base import DatasourceFilter
 logger = logging.getLogger(__name__)
 
 
-class DatasetDAO:
+class DatasetDAO(BaseDAO):
+    model_cls = SqlaTable
+    base_filter = DatasourceFilter
+
     @staticmethod
     def get_owner_by_id(owner_id: int) -> Optional[object]:
         return (
@@ -112,19 +114,10 @@ class DatasetDAO:
         ).all()
         return len(dataset_query) == 0
 
-    @staticmethod
-    def find_by_id(model_id: int) -> SqlaTable:
-        data_model = SQLAInterface(SqlaTable, db.session)
-        query = db.session.query(SqlaTable)
-        query = DatasourceFilter("id", data_model).apply(query, None)
-        return query.filter_by(id=model_id).one_or_none()
-
-    @staticmethod
-    def create(properties: Dict, commit=True) -> Optional[SqlaTable]:
-        return generic_create(SqlaTable, properties, commit=commit)
-
-    @staticmethod
-    def update(model: SqlaTable, properties: Dict, commit=True) -> Optional[SqlaTable]:
+    @classmethod
+    def update(
+        cls, model: SqlaTable, properties: Dict, commit=True
+    ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
         """
@@ -154,34 +147,38 @@ class DatasetDAO:
                 new_metrics.append(metric_obj)
             properties["metrics"] = new_metrics
 
-        return generic_update(model, properties, commit=commit)
+        return super().update(model, properties, commit=commit)
 
-    @staticmethod
-    def delete(model: SqlaTable, commit=True):
-        return generic_delete(model, commit=commit)
-
-    @staticmethod
+    @classmethod
     def update_column(
-        model: TableColumn, properties: Dict, commit=True
+        cls, model: TableColumn, properties: Dict, commit=True
     ) -> Optional[TableColumn]:
-        return generic_update(model, properties, commit=commit)
+        return DatasetColumnDAO.update(model, properties, commit=commit)
 
-    @staticmethod
-    def create_column(properties: Dict, commit=True) -> Optional[TableColumn]:
+    @classmethod
+    def create_column(cls, properties: Dict, commit=True) -> Optional[TableColumn]:
         """
         Creates a Dataset model on the metadata DB
         """
-        return generic_create(TableColumn, properties, commit=commit)
+        return DatasetColumnDAO.create(properties, commit=commit)
 
-    @staticmethod
+    @classmethod
     def update_metric(
-        model: SqlMetric, properties: Dict, commit=True
+        cls, model: SqlMetric, properties: Dict, commit=True
     ) -> Optional[SqlMetric]:
-        return generic_update(model, properties, commit=commit)
+        return DatasetMetricDAO.update(model, properties, commit=commit)
 
-    @staticmethod
-    def create_metric(properties: Dict, commit=True) -> Optional[SqlMetric]:
+    @classmethod
+    def create_metric(cls, properties: Dict, commit=True) -> Optional[SqlMetric]:
         """
         Creates a Dataset model on the metadata DB
         """
-        return generic_create(SqlMetric, properties, commit=commit)
+        return DatasetMetricDAO.create(properties, commit=commit)
+
+
+class DatasetColumnDAO(BaseDAO):
+    model_cls = TableColumn
+
+
+class DatasetMetricDAO(BaseDAO):
+    model_cls = SqlMetric

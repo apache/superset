@@ -22,8 +22,8 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import CreateFailedError
-from superset.datasets.commands.base import populate_owners
+from superset.commands.utils import populate_owners
+from superset.dao.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
     DatasetCreateFailedError,
@@ -59,7 +59,7 @@ class CreateDatasetCommand(BaseCommand):
                     "schema_access", dataset.schema_perm
                 )
             db.session.commit()
-        except (SQLAlchemyError, CreateFailedError) as e:
+        except (SQLAlchemyError, DAOCreateFailedError) as e:
             logger.exception(e)
             db.session.rollback()
             raise DatasetCreateFailedError()

@@ -21,8 +21,8 @@ from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import DeleteFailedError
 from superset.connectors.sqla.models import SqlaTable
+from superset.dao.exceptions import DAODeleteFailedError
 from superset.datasets.commands.exceptions import (
     DatasetDeleteFailedError,
     DatasetForbiddenError,
@@ -50,7 +50,7 @@ class DeleteDatasetCommand(BaseCommand):
                 "datasource_access", dataset.get_perm()
             )
             db.session.commit()
-        except (SQLAlchemyError, DeleteFailedError) as e:
+        except (SQLAlchemyError, DAODeleteFailedError) as e:
             logger.exception(e)
             db.session.rollback()
             raise DatasetDeleteFailedError()

@@ -23,16 +23,15 @@ import prison
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
-from superset.commands.exceptions import (
-    CreateFailedError,
-    DeleteFailedError,
-    UpdateFailedError,
-)
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.dao.exceptions import (
+    DAOCreateFailedError,
+    DAODeleteFailedError,
+    DAOUpdateFailedError,
+)
 from superset.models.core import Database
 from superset.utils.core import get_example_database
-
-from .base_tests import SupersetTestCase
+from tests.base_tests import SupersetTestCase
 
 
 class DatasetApiTests(SupersetTestCase):
@@ -314,7 +313,7 @@ class DatasetApiTests(SupersetTestCase):
         """
             Dataset API: Test create dataset sqlalchemy error
         """
-        mock_dao_create.side_effect = CreateFailedError()
+        mock_dao_create.side_effect = DAOCreateFailedError()
         self.login(username="admin")
         example_db = get_example_database()
         dataset_data = {
@@ -565,7 +564,7 @@ class DatasetApiTests(SupersetTestCase):
         """
             Dataset API: Test update dataset sqlalchemy error
         """
-        mock_dao_update.side_effect = UpdateFailedError()
+        mock_dao_update.side_effect = DAOUpdateFailedError()
 
         dataset = self.insert_default_dataset()
         self.login(username="admin")
@@ -618,7 +617,7 @@ class DatasetApiTests(SupersetTestCase):
         """
             Dataset API: Test delete dataset sqlalchemy error
         """
-        mock_dao_delete.side_effect = DeleteFailedError()
+        mock_dao_delete.side_effect = DAODeleteFailedError()
 
         dataset = self.insert_default_dataset()
         self.login(username="admin")

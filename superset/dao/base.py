@@ -16,56 +16,96 @@
 # under the License.
 from typing import Dict, Optional
 
+from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.commands.exceptions import (
-    CreateFailedError,
-    DeleteFailedError,
-    UpdateFailedError,
+from superset.dao.exceptions import (
+    DAOConfigError,
+    DAOCreateFailedError,
+    DAODeleteFailedError,
+    DAOUpdateFailedError,
 )
 from superset.extensions import db
 
 
-def generic_create(model_cls: Model, properties: Dict, commit=True) -> Optional[Model]:
+class BaseDAO:
     """
+    Base DAO, implement base CRUD sqlalchemy operations
+    """
+
+    model_cls: Optional[Model] = None
+    """
+    Child classes need to state the Model class so they don't need to implement basic
+    create, update and delete methods
+    """  # pylint: disable=pointless-string-statement
+    base_filter: Optional[BaseFilter] = None
+    """
+    Child classes can register base filtering to be aplied to all filter methods
+    """  # pylint: disable=pointless-string-statement
+
+    @classmethod
+    def find_by_id(cls, model_id: int) -> Model:
+        """
+        Retrives a model by id, if defined applies `base_filter`
+        """
+        query = db.session.query(cls.model_cls)
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                "id", data_model
+            ).apply(query, None)
+        return query.filter_by(id=model_id).one_or_none()
+
+    @classmethod
+    def create(cls, properties: Dict, commit=True) -> Optional[Model]:
+        """
         Generic for creating models
-    """
-    model = model_cls()
-    for key, value in properties.items():
-        setattr(model, key, value)
-    try:
-        db.session.add(model)
-        if commit:
-            db.session.commit()
-    except SQLAlchemyError as e:  # pragma: no cover
-        db.session.rollback()
-        raise CreateFailedError(exception=e)
-    return model
+        :raises: DAOCreateFailedError
+        """
+        if cls.model_cls is None:
+            raise DAOConfigError()
+        model = cls.model_cls()  # pylint: disable=not-callable
+        for key, value in properties.items():
+            setattr(model, key, value)
+        try:
+            db.session.add(model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as e:  # pragma: no cover
+            db.session.rollback()
+            raise DAOCreateFailedError(exception=e)
+        return model
 
-
-def generic_update(model: Model, properties: Dict, commit=True) -> Optional[Model]:
-    """
+    @classmethod
+    def update(cls, model: Model, properties: Dict, commit=True) -> Optional[Model]:
+        """
         Generic update a model
-    """
-    for key, value in properties.items():
-        setattr(model, key, value)
-    try:
-        db.session.merge(model)
-        if commit:
-            db.session.commit()
-    except SQLAlchemyError as e:  # pragma: no cover
-        db.session.rollback()
-        raise UpdateFailedError(exception=e)
-    return model
+        :raises: DAOCreateFailedError
+        """
+        for key, value in properties.items():
+            setattr(model, key, value)
+        try:
+            db.session.merge(model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as e:  # pragma: no cover
+            db.session.rollback()
+            raise DAOUpdateFailedError(exception=e)
+        return model
 
-
-def generic_delete(model: Model, commit=True):
-    try:
-        db.session.delete(model)
-        if commit:
-            db.session.commit()
-    except SQLAlchemyError as e:  # pragma: no cover
-        db.session.rollback()
-        raise DeleteFailedError(exception=e)
-    return model
+    @classmethod
+    def delete(cls, model: Model, commit=True):
+        """
+        Generic delete a model
+        :raises: DAOCreateFailedError
+        """
+        try:
+            db.session.delete(model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as e:  # pragma: no cover
+            db.session.rollback()
+            raise DAODeleteFailedError(exception=e)
+        return model
