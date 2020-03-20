@@ -28,7 +28,7 @@ import {
 } from 'react-bootstrap';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
-import Select from 'react-select';
+import { Async as SelectAsync, Option } from 'react-select';
 import { t } from '@superset-ui/translation';
 import { SupersetClient, Json } from '@superset-ui/connection';
 import Chart from 'src/types/Chart';
@@ -70,7 +70,6 @@ export default function PropertiesModalWrapper({
 function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   const [submitting, setSubmitting] = useState(false);
   const errorDialog = useRef<any>(null);
-  const [ownerOptions, setOwnerOptions] = useState(null);
 
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
@@ -78,7 +77,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [owners, setOwners] = useState<any[] | null>(null);
+  const [owners, setOwners] = useState<Option[] | null>(null);
 
   function showError({ error, statusText }: any) {
     errorDialog.current.show({
@@ -90,7 +89,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
     });
   }
 
-  async function fetchOwners() {
+  async function fetchChartData() {
     try {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -110,34 +109,39 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
 
   // get the owners of this slice
   useEffect(() => {
-    fetchOwners();
+    fetchChartData();
   }, []);
 
-  // get the list of users who can own a chart
-  useEffect(() => {
+  const loadOptions = (input = '') =>
     SupersetClient.get({
-      endpoint: `/api/v1/chart/related/owners`,
-    }).then(res => {
-      const { result } = res.json as Json;
-      setOwnerOptions(
-        result.map((item: any) => ({
+      endpoint: `/api/v1/chart/related/owners?filter=${input}`,
+    }).then(
+      response => {
+        const { result } = response.json as Json;
+        const options = result.map((item: any) => ({
           value: item.value,
           label: item.text,
-        })),
-      );
-    });
-  }, []);
+        }));
+        return { options };
+      },
+      badResponse => {
+        getClientErrorObject(badResponse).then(showError);
+        return { options: [] };
+      },
+    );
 
   const onSubmit = async (event: React.FormEvent) => {
     event.stopPropagation();
     event.preventDefault();
     setSubmitting(true);
-    const payload = {
+    const payload: { [key: string]: any } = {
       slice_name: name || null,
       description: description || null,
       cache_timeout: cacheTimeout || null,
-      owners: owners!.map(o => o.value),
     };
+    if (owners) {
+      payload.owners = owners.map(o => o.value);
+    }
     try {
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -229,14 +233,13 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
               <label className="control-label" htmlFor="owners">
                 {t('Owners')}
               </label>
-              <Select
-                name="owners"
+              <SelectAsync
                 multi
-                isLoading={!ownerOptions}
-                value={owners}
-                options={ownerOptions || []}
+                name="owners"
+                value={owners || []}
+                loadOptions={loadOptions}
                 onChange={setOwners}
-                disabled={!owners || !ownerOptions}
+                disabled={!owners}
               />
               <p className="help-block">
                 {t('A list of users who can alter the chart')}
