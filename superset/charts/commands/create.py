@@ -27,8 +27,9 @@ from superset.charts.commands.exceptions import (
 )
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import CreateFailedError
 from superset.commands.utils import get_datasource_by_id, populate_owners
+from superset.dao.exceptions import DAOCreateFailedError
+from superset.dashboards.dao import DashboardDAO
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class CreateChartCommand(BaseCommand):
         self.validate()
         try:
             chart = ChartDAO.create(self._properties)
-        except CreateFailedError as e:
+        except DAOCreateFailedError as e:
             logger.exception(e.exception)
             raise ChartCreateFailedError()
         return chart
@@ -62,7 +63,7 @@ class CreateChartCommand(BaseCommand):
             exceptions.append(e)
 
         # Validate/Populate dashboards
-        dashboards = ChartDAO.get_dashboards_by_ids(dashboard_ids)
+        dashboards = DashboardDAO.find_by_ids(dashboard_ids)
         if len(dashboards) != len(dashboard_ids):
             exceptions.append(DashboardsNotFoundValidationError())
         self._properties["dashboards"] = dashboards

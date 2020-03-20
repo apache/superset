@@ -15,12 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Dict, List, Optional
 
 from superset.charts.filters import ChartFilter
 from superset.dao.base import BaseDAO
-from superset.extensions import db
-from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
@@ -29,19 +26,3 @@ logger = logging.getLogger(__name__)
 class ChartDAO(BaseDAO):
     model_cls = Slice
     base_filter = ChartFilter
-
-    @staticmethod
-    def get_dashboards_by_ids(dashboard_ids: List[int]) -> List[Dashboard]:
-        return db.session.query(Dashboard).filter(Dashboard.id.in_(dashboard_ids)).all()
-
-    @classmethod
-    def create(cls, properties: Dict, commit=True) -> Optional[Slice]:
-        return super().create(properties, commit=commit)
-
-    @classmethod
-    def update(cls, model: Slice, properties: Dict, commit=True) -> Optional[Slice]:
-        return super().update(model, properties, commit=commit)
-
-    @classmethod
-    def delete(cls, model: Slice, commit=True):
-        super().delete(model, commit=commit)

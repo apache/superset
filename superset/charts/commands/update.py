@@ -30,9 +30,10 @@ from superset.charts.commands.exceptions import (
 )
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import UpdateFailedError
 from superset.commands.utils import get_datasource_by_id, populate_owners
 from superset.connectors.sqla.models import SqlaTable
+from superset.dao.exceptions import DAOUpdateFailedError
+from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
 
@@ -50,7 +51,7 @@ class UpdateChartCommand(BaseCommand):
         self.validate()
         try:
             chart = ChartDAO.update(self._model, self._properties)
-        except UpdateFailedError as e:
+        except DAOUpdateFailedError as e:
             logger.exception(e.exception)
             raise ChartUpdateFailedError()
         return chart
@@ -86,7 +87,7 @@ class UpdateChartCommand(BaseCommand):
                 exceptions.append(e)
 
         # Validate/Populate dashboards
-        dashboards = ChartDAO.get_dashboards_by_ids(dashboard_ids)
+        dashboards = DashboardDAO.find_by_ids(dashboard_ids)
         if len(dashboards) != len(dashboard_ids):
             exceptions.append(DashboardsNotFoundValidationError())
         self._properties["dashboards"] = dashboards

@@ -26,8 +26,8 @@ from superset.charts.commands.exceptions import (
 )
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import DeleteFailedError
 from superset.connectors.sqla.models import SqlaTable
+from superset.dao.exceptions import DAODeleteFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.views.base import check_ownership
 
@@ -44,7 +44,7 @@ class DeleteChartCommand(BaseCommand):
         self.validate()
         try:
             chart = ChartDAO.delete(self._model)
-        except DeleteFailedError as e:
+        except DAODeleteFailedError as e:
             logger.exception(e.exception)
             raise ChartDeleteFailedError()
         return chart
