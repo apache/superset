@@ -21,31 +21,52 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.commands.exceptions import (
-    CreateFailedError,
-    DeleteFailedError,
-    UpdateFailedError,
+from superset.dao.exceptions import (
+    DAOConfigError,
+    DAOCreateFailedError,
+    DAODeleteFailedError,
+    DAOUpdateFailedError,
 )
 from superset.extensions import db
 
 
 class BaseDAO:
+    """
+    Base DAO, implement base CRUD sqlalchemy operations
+    """
+
     model_cls: Optional[Model] = None
+    """
+    Child classes need to state the Model class so they don't need to implement basic
+    create, update and delete methods
+    """  # pylint: disable=pointless-string-statement
     base_filter: Optional[BaseFilter] = None
+    """
+    Child classes can register base filtering to be aplied to all filter methods
+    """  # pylint: disable=pointless-string-statement
 
     @classmethod
     def find_by_id(cls, model_id: int) -> Model:
-        data_model = SQLAInterface(cls.model_cls, db.session)
+        """
+        Retrives a model by id, if defined applies `base_filter`
+        """
         query = db.session.query(cls.model_cls)
-        query = cls.base_filter("id", data_model).apply(query, None)
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                "id", data_model
+            ).apply(query, None)
         return query.filter_by(id=model_id).one_or_none()
 
     @classmethod
     def create(cls, properties: Dict, commit=True) -> Optional[Model]:
         """
-            Generic for creating models
+        Generic for creating models
+        :raises: DAOCreateFailedError
         """
-        model = cls.model_cls()
+        if cls.model_cls is None:
+            raise DAOConfigError()
+        model = cls.model_cls()  # pylint: disable=not-callable
         for key, value in properties.items():
             setattr(model, key, value)
         try:
@@ -54,13 +75,14 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             db.session.rollback()
-            raise CreateFailedError(exception=e)
+            raise DAOCreateFailedError(exception=e)
         return model
 
     @classmethod
     def update(cls, model: Model, properties: Dict, commit=True) -> Optional[Model]:
         """
-            Generic update a model
+        Generic update a model
+        :raises: DAOCreateFailedError
         """
         for key, value in properties.items():
             setattr(model, key, value)
@@ -70,13 +92,14 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             db.session.rollback()
-            raise UpdateFailedError(exception=e)
+            raise DAOUpdateFailedError(exception=e)
         return model
 
     @classmethod
     def delete(cls, model: Model, commit=True):
         """
-            Generic delete a model
+        Generic delete a model
+        :raises: DAOCreateFailedError
         """
         try:
             db.session.delete(model)
@@ -84,5 +107,5 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as e:  # pragma: no cover
             db.session.rollback()
-            raise DeleteFailedError(exception=e)
+            raise DAODeleteFailedError(exception=e)
         return model

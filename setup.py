@@ -69,7 +69,7 @@ setup(
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
-        "celery>=4.3.0, <5.0.0",
+        "celery>=4.3.0, <5.0.0, !=4.4.1",
         "click<8",
         "colorama",
         "contextlib2",

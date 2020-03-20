@@ -109,6 +109,19 @@ class SupersetResultSetTestCase(SupersetTestCase):
         results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
         self.assertEqual(results.columns[0]["type"], "BIGINT")
 
+    def test_data_as_list_of_lists(self):
+        data = [[1, "a"], [2, "b"]]
+        cursor_descr = [
+            ("user_id", "INT", None, None, None, None, True),
+            ("username", "STRING", None, None, None, None, True),
+        ]
+        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+        df = results.to_pandas_df()
+        self.assertEqual(
+            df_to_records(df),
+            [{"user_id": 1, "username": "a"}, {"user_id": 2, "username": "b"}],
+        )
+
     def test_nullable_bool(self):
         data = [(None,), (True,), (None,), (None,), (None,), (None,)]
         cursor_descr = [("is_test", "bool", None, None, None, None, True)]

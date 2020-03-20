@@ -14,27 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from abc import ABC, abstractmethod
-
-
-class BaseCommand(ABC):
-    """
-        Base class for all Command like Superset Logic objects
-    """
-
-    @abstractmethod
-    def run(self):
-        """
-        Run executes the command. Can raise command exceptions
-        :raises: CommandException
-        """
-        pass
-
-    @abstractmethod
-    def validate(self) -> None:
-        """
-        Validate is normally called by run to validate data.
-        Will raise exception if validation fails
-        :raises: CommandException
-        """
-        pass
