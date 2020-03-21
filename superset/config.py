@@ -302,7 +302,8 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #
 # from flask import g, request
 # def GET_FEATURE_FLAGS_FUNC(feature_flags_dict):
-#     feature_flags_dict['some_feature'] = g.user and g.user.id == 5
+#     if hasattr(g, "user") and g.user.is_active:
+#         feature_flags_dict['some_feature'] = g.user and g.user.id == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC = None
 
