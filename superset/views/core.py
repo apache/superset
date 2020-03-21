@@ -2752,7 +2752,7 @@ class Superset(BaseSupersetView):
         }
 
     @has_access
-    @expose("/sqllab")
+    @expose("/sqllab", methods=["GET", "POST"])
     def sqllab(self):
         """SQL Editor"""
         payload = self._get_sqllab_payload(g.user.get_id())

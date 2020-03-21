@@ -190,17 +190,15 @@ export function getExploreUrlAndPayload({
   };
 }
 
-export function exportChart(formData, endpointType) {
-  const { url, payload } = getExploreUrlAndPayload({
-    formData,
-    endpointType,
-    allowDomainSharding: false,
-  });
+export function postForm(url, payload, target = '_blank') {
+  if (!url) {
+    return;
+  }
 
   const exploreForm = document.createElement('form');
   exploreForm.action = url;
   exploreForm.method = 'POST';
-  exploreForm.target = '_blank';
+  exploreForm.target = target;
   const token = document.createElement('input');
   token.type = 'hidden';
   token.name = 'csrf_token';
@@ -215,4 +213,13 @@ export function exportChart(formData, endpointType) {
   document.body.appendChild(exploreForm);
   exploreForm.submit();
   document.body.removeChild(exploreForm);
+}
+
+export function exportChart(formData, endpointType) {
+  const { url, payload } = getExploreUrlAndPayload({
+    formData,
+    endpointType,
+    allowDomainSharding: false,
+  });
+  postForm(url, payload);
 }
