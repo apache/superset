@@ -22,6 +22,7 @@ import { Row, Col, Button, Modal, FormControl } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
 import { Async as SelectAsync } from 'react-select';
 import AceEditor from 'react-ace';
+import rison from 'rison';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import '../stylesheets/buttons.less';
@@ -110,8 +111,9 @@ class PropertiesModal extends React.PureComponent {
   }
 
   loadOwnerOptions(input = '') {
+    const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/related/owners?filter=${input}`,
+      endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
     }).then(
       response => {
         const options = response.json.result.map(item => ({

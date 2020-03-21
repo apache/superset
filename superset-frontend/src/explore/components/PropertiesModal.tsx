@@ -29,6 +29,7 @@ import {
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { Async as SelectAsync, Option } from 'react-select';
+import rison from 'rison';
 import { t } from '@superset-ui/translation';
 import { SupersetClient, Json } from '@superset-ui/connection';
 import Chart from 'src/types/Chart';
@@ -112,9 +113,10 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
     fetchChartData();
   }, []);
 
-  const loadOptions = (input = '') =>
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/related/owners?filter=${input}`,
+  const loadOptions = (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/chart/related/owners?q=${query}`,
     }).then(
       response => {
         const { result } = response.json as Json;
@@ -129,6 +131,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
         return { options: [] };
       },
     );
+  };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.stopPropagation();
