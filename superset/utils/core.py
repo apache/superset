@@ -805,7 +805,7 @@ def to_adhoc(filt, expressionType="SIMPLE", clause="where"):
         "clause": clause.upper(),
         "expressionType": expressionType,
         "filterOptionName": str(uuid.uuid4()),
-        "isExtra": filt.get("isExtra"),
+        "isExtra": True if filt.get("isExtra") is True else False,
     }
 
     if expressionType == "SIMPLE":

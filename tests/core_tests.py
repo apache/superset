@@ -288,9 +288,10 @@ class CoreTests(SupersetTestCase):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
         slice_id = self.get_slice(slice_name, db.session).id
-        copy_name = f"Test Sankey Save_{random.random()}"
+        copy_name_prefix = "Test Sankey"
+        copy_name = f"{copy_name_prefix}[save]{random.random()}"
         tbl_id = self.table_ids.get("energy_usage")
-        new_slice_name = f"Test Sankey Overwrite_{random.random()}"
+        new_slice_name = f"{copy_name_prefix}[overwrite]{random.random()}"
 
         url = (
             "/superset/explore/table/{}/?slice_name={}&"
@@ -298,8 +299,9 @@ class CoreTests(SupersetTestCase):
         )
 
         form_data = {
+            "adhoc_filters": [],
             "viz_type": "sankey",
-            "groupby": "target",
+            "groupby": ["target"],
             "metric": "sum__value",
             "row_limit": 5000,
             "slice_id": slice_id,
@@ -319,8 +321,9 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(slc.viz.form_data, form_data)
 
         form_data = {
+            "adhoc_filters": [],
             "viz_type": "sankey",
-            "groupby": "source",
+            "groupby": ["source"],
             "metric": "sum__value",
             "row_limit": 5000,
             "slice_id": new_slice_id,
@@ -338,7 +341,13 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(slc.viz.form_data, form_data)
 
         # Cleanup
-        db.session.delete(slc)
+        slices = (
+            db.session.query(Slice)
+            .filter(Slice.slice_name.like(copy_name_prefix + "%"))
+            .all()
+        )
+        for slc in slices:
+            db.session.delete(slc)
         db.session.commit()
 
     def test_filter_endpoint(self):

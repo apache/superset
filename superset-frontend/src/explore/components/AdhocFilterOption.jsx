@@ -19,13 +19,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Label, OverlayTrigger } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
-import { t } from '@superset-ui/translation';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -95,7 +95,7 @@ export default class AdhocFilterOption extends React.PureComponent {
         onExited={this.onOverlayExited}
       >
         <div>
-          {adhocFilter.isExtra &&
+          {adhocFilter.isExtra && (
             <InfoTooltipWithTrigger
               icon="exclamation-triangle"
               placement="top"
@@ -105,7 +105,7 @@ export default class AdhocFilterOption extends React.PureComponent {
                 It won't be saved when saving the chart.
               `)}
             />
-          }
+          )}
           <Label className="adhoc-filter-option">
             <div onMouseDownCapture={this.onMouseDown}>
               <span className="m-r-5 option-label">
