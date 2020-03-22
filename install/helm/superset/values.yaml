@@ -54,6 +54,184 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
+#Superset node configuration
+supersetNode:
+  config: |
+    import os
+
+    from werkzeug.contrib.cache import RedisCache
+    MAPBOX_API_KEY = os.getenv('MAPBOX_API_KEY', '')
+    CACHE_CONFIG = {
+        'CACHE_TYPE': 'redis',
+        'CACHE_DEFAULT_TIMEOUT': 300,
+        'CACHE_KEY_PREFIX': 'superset_',
+        'CACHE_REDIS_HOST': 'superset-redis-headless',
+        'CACHE_REDIS_PORT': 6379,
+        'CACHE_REDIS_DB': 1,
+        'CACHE_REDIS_URL': 'redis://superset-redis-headless:6379/1'}
+    SQLALCHEMY_DATABASE_URI = \
+        'postgresql+psycopg2://superset:superset@superset-postgresql:5432/superset'
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
+    SECRET_KEY = 'thisISaSECRET_1234'
+    
+    # Flask-WTF flag for CSRF
+    WTF_CSRF_ENABLED = True
+    # Add endpoints that need to be exempt from CSRF protection
+    WTF_CSRF_EXEMPT_LIST = []
+    # A CSRF token that expires in 1 year
+    WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
+    
+    class CeleryConfig(object):
+        BROKER_URL = 'redis://superset-redis-headless:6379/0'
+        CELERY_IMPORTS = ('superset.sql_lab', )
+        CELERY_RESULT_BACKEND = 'redis://superset-redis-headless:6379/0'
+        CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+
+    CELERY_CONFIG = CeleryConfig
+    RESULTS_BACKEND = RedisCache(
+        host='redis',
+        port=6379,
+        key_prefix='superset_results'
+    )
+  #hooks: {}
+  hooks: 
+    ## (string) Script to execute prior the client pod stops.
+    # preStop: |-
+
+    ## (string) Script to execute after the client pod starts.
+    postStart: |-
+      #!/usr/bin/env bash
+        set -e
+
+        STEP_CNT=4
+
+        echo_step() {
+        cat <<EOF
+        Init Step ${1}/${STEP_CNT} [${2}] -- ${3}
+        EOF
+        }
+
+        # Create an admin user
+        echo_step "1" "Starting" "Setting up admin user ( admin / admin )"
+        superset fab create-admin \
+                      --username admin \
+                      --firstname Superset \
+                      --lastname Admin \
+                      --email admin@superset.com \
+                      --password admin
+        echo_step "1" "Complete" "Setting up admin user"
+
+        # Initialize the database
+        echo_step "2" "Starting" "Applying DB migrations"
+        superset db upgrade
+        echo_step "2" "Complete" "Applying DB migrations"
+        # Load some data to play with
+        echo_step "3" "Starting" "Loading examples"
+        superset load_examples
+        echo_step "3" "Complete" "Loading examples"
+        # Create default roles and permissions
+        echo_step "4" "Starting" "Setting up roles and perms"
+        superset init
+        echo_step "4" "Complete" "Setting up roles and perms"
+##
+## Configuration values for the postgresql dependency.
+## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+postgresql:
+  ##
+  ## Use the PostgreSQL chart dependency.
+  ## Set to false if bringing your own PostgreSQL.
+  enabled: true
+
+  ##
+  ## The name of an existing secret that contains the postgres password.
+  existingSecret:
+
+  ## Name of the key containing the secret.
+  existingSecretKey: postgresql-password
+
+  ##
+  ## If you are bringing your own PostgreSQL, you should set postgresHost and
+  ## also probably service.port, postgresqlUsername, postgresqlPassword, and postgresqlDatabase
+  ## postgresHost:
+  ##
+  ## PostgreSQL port
+  service:
+    port: 5432
+  ## PostgreSQL User to create.
+  postgresqlUsername: superset
+  ##
+  ## PostgreSQL Password for the new user.
+  ## If not set, a random 10 characters password will be used.
+  postgresqlPassword: superset
+  ##
+  ## PostgreSQL Database to create.
+  postgresqlDatabase: superset
+  ##
+  ## Persistent Volume Storage configuration.
+  ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes
+  persistence:
+    ##
+    ## Enable PostgreSQL persistence using Persistent Volume Claims.
+    enabled: true
+    ##
+    ## Persistant class
+    # storageClass: classname
+    ##
+    ## Access modes:
+    accessModes:
+      - ReadWriteOnce
+
+## Configuration values for the Redis dependency.
+## ref: https://github.com/kubernetes/charts/blob/master/stable/redis/README.md
+redis:
+  ##
+  ## Use the redis chart dependency.
+  ## Set to false if bringing your own redis.
+  enabled: true
+
+  usePassword: false
+
+  ##
+  ## The name of an existing secret that contains the redis password.
+  existingSecret:
+
+  ## Name of the key containing the secret.
+  existingSecretKey: redis-password
+
+  ##
+  ## If you are bringing your own redis, you can set the host in redisHost.
+  ## redisHost:
+  ##
+  ## Redis password
+  ##
+  password: superset
+  ##
+  ## Master configuration
+  master:
+    ##
+    ## Image configuration
+    # image:
+      ##
+      ## docker registry secret names (list)
+      # pullSecrets: nil
+    ##
+    ## Configure persistance
+    persistence:
+      ##
+      ## Use a PVC to persist data.
+      enabled: false
+      ##
+      ## Persistant class
+      # storageClass: classname
+      ##
+      ## Access mode:
+      accessModes:
+      - ReadWriteOnce
+  ##
+  ## Disable cluster management by default.
+  cluster:
+    enabled: false
+
 
 nodeSelector: {}
 
