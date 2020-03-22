@@ -1673,12 +1673,15 @@ class SunburstViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         fd = self.form_data
         cols = fd.get("groupby") or []
+        cols.extend(["m1", "m2"])
         metric = utils.get_metric_name(fd.get("metric"))
         secondary_metric = utils.get_metric_name(fd.get("secondary_metric"))
         if metric == secondary_metric or secondary_metric is None:
             df.rename(columns={df.columns[-1]: "m1"}, inplace=True)
             df["m2"] = df["m1"]
-            cols.extend(["m1", "m2"])
+        else:
+            df.rename(columns={df.columns[-2]: "m1"}, inplace=True)
+            df.rename(columns={df.columns[-1]: "m2"}, inplace=True)
 
         # Re-order the columns as the query result set column ordering may differ from
         # that listed in the hierarchy.
