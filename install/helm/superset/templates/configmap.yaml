@@ -24,4 +24,14 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 data:
-{{ (.Files.Glob "config/*").AsConfig | indent 2 }}
+  {{- $defaultConf := .Files.Get "files/superset_config.py" |  nindent 4 }}
+  superset_config.py: |-
+    {{ .Values.supersetNode.config | default $defaultConf |  nindent 4 }}
+  
+  {{- if .Values.supersetNode.hooks.postStart }}
+  superset_init.sh: |-
+  {{ tpl .Values.supersetNode.hooks.postStart . | indent 4 }}
+  {{- end }}
+  
+  
+    

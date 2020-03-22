@@ -42,6 +42,17 @@ spec:
           volumeMounts:
             - name: superset-config
               mountPath: /etc/superset/
+    {{- if .Values.supersetNode.hooks.postStart }}
+            - name: superset-config
+              mountPath: /superset_init.sh
+              subPath: superset_init.sh
+    {{- end }}
+          lifecycle:
+    {{- if .Values.supersetNode.hooks.postStart }}
+            postStart:
+              exec:
+                command: ["/bin/bash","/superset_init.sh"]
+    {{- end }}  
           ports:
             - name: http
               containerPort: 8088
