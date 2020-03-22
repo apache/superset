@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { setConfig } from 'react-hot-loader';
 import dompurify from 'dompurify';
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
@@ -58,6 +59,11 @@ const defaultProps = {
   triggerRender: false,
 };
 
+const isDevMode = process.env.WEBPACK_MODE === 'development';
+if (isDevMode) {
+  setConfig({ logLevel: 'debug', trackTailUpdates: false });
+}
+
 class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
@@ -77,29 +83,19 @@ class ChartRenderer extends React.Component {
     };
   }
 
-  shouldComponentUpdate(nextProps) {
-    const resultsReady =
-      nextProps.queryResponse &&
-      ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
-      !nextProps.queryResponse.error &&
-      !nextProps.refreshOverlayVisible;
-
-    if (resultsReady) {
-      this.hasQueryResponseChange =
-        nextProps.queryResponse !== this.props.queryResponse;
-
-      if (
-        this.hasQueryResponseChange ||
-        nextProps.annotationData !== this.props.annotationData ||
-        nextProps.height !== this.props.height ||
-        nextProps.width !== this.props.width ||
-        nextProps.triggerRender ||
-        nextProps.formData.color_scheme !== this.props.formData.color_scheme
-      ) {
-        return true;
-      }
+  shouldComponentUpdate(nextProps, nextState) {
+    const props = this.props;
+    if (
+      props.queryResponse === nextProps.queryResponse &&
+      props.chartStatus === 'success' &&
+      nextProps.chartStatus === 'rendered'
+    ) {
+      // don't rerender if it's updating from `success` to `rendered`.
+      // however, do update current props;
+      this.props = nextProps;
+      return false;
     }
-    return false;
+    return true;
   }
 
   handleAddFilter(col, vals, merge = true, refresh = true) {
@@ -111,7 +107,6 @@ class ChartRenderer extends React.Component {
     if (['loading', 'rendered'].indexOf(chartStatus) < 0) {
       actions.chartRenderingSucceeded(chartId);
     }
-
     // only log chart render time which is triggered by query results change
     // currently we don't log chart re-render time, like window resize etc
     if (this.hasQueryResponseChange) {
@@ -197,6 +192,7 @@ class ChartRenderer extends React.Component {
 
     return (
       <SuperChart
+        key={`${chartId}-${isDevMode ? Date.now() : ''}`}
         disableErrorBoundary
         id={`chart-id-${chartId}`}
         className={chartClassName}
