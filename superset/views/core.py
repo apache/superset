@@ -2756,8 +2756,13 @@ class Superset(BaseSupersetView):
     def sqllab(self):
         """SQL Editor"""
         payload = self._get_sqllab_payload(g.user.get_id())
+        form_data = request.form.get('form_data')
+        try:
+            payload['form_data'] = json.loads(form_data)
+        except:
+            pass
         bootstrap_data = json.dumps(
-            payload, default=utils.pessimistic_json_iso_dttm_ser
+            payload, default=utils.pessimistic_json_iso_dttm_ser,
         )
 
         return self.render_template(

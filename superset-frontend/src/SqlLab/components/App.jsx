@@ -125,7 +125,7 @@ class App extends React.PureComponent {
       content = (
         <>
           <QueryAutoRefresh />
-          <TabbedSqlEditors />
+          <TabbedSqlEditors formData={this.props.formData} />
         </>
       );
     }

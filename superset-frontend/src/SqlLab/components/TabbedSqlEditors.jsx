@@ -99,7 +99,12 @@ class TabbedSqlEditors extends React.PureComponent {
         });
     }
 
-    const query = URI(window.location).search(true);
+    // merge post form data with GET search params
+    const query = {
+      ...this.props.formData,
+      ...URI(window.location).search(true),
+    };
+
     // Popping a new tab based on the querystring
     if (query.id || query.sql || query.savedQueryId || query.datasourceKey) {
       if (query.id) {
