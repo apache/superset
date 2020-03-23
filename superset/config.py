@@ -305,7 +305,7 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #     if hasattr(g, "user") and g.user.is_active:
 #         feature_flags_dict['some_feature'] = g.user and g.user.id == 5
 #     return feature_flags_dict
-GET_FEATURE_FLAGS_FUNC: Optional[Callable[Dict[str, bool]]] = None
+GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
 
 
 # ---------------------------------------------------
