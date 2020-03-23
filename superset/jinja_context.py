@@ -17,7 +17,7 @@
 """Defines the templating context for SQL Lab"""
 import inspect
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment

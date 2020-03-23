@@ -45,10 +45,25 @@ class MacroTestCase(SupersetTestCase):
             "filters": [{"col": "my_special_filter", "op": "in", "val": "savage"}],
         }
 
+        form_data5 = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "my_special_filter",
+                    "operator": "in",
+                    "comparator": ["bar"],
+                    "clause": "WHERE",
+                    "sqlExpression": None,
+                    "fromFormData": True,
+                }
+            ]
+        }
+
         data1 = {"form_data": json.dumps(form_data1)}
         data2 = {"form_data": json.dumps(form_data2)}
         data3 = {"form_data": json.dumps(form_data3)}
         data4 = {"form_data": json.dumps(form_data4)}
+        data5 = {"form_data": json.dumps(form_data5)}
 
         with app.test_request_context(data=data1):
             filter_values = jinja_context.filter_values("my_special_filter")
@@ -75,3 +90,7 @@ class MacroTestCase(SupersetTestCase):
         with app.test_request_context(data=data4):
             filter_values = jinja_context.filter_values("my_special_filter")
             self.assertEqual(filter_values, ["savage", "foo"])
+
+        with app.test_request_context(data=data5):
+            filter_values = jinja_context.filter_values("my_special_filter")
+            self.assertEqual(filter_values, ["bar"])
