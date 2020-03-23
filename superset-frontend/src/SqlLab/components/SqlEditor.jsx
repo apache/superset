@@ -94,7 +94,7 @@ class SqlEditor extends React.PureComponent {
       northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
       southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
-      autocomplete: true,
+      autocompleteEnabled: true,
     };
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
@@ -247,8 +247,8 @@ class SqlEditor extends React.PureComponent {
   handleWindowResize() {
     this.setState({ height: this.getSqlEditorHeight() });
   }
-  handleToggleAutocomplete = () => {
-    this.setState({ autocomplete: !this.state.autocomplete });
+  handleToggleAutocompleteEnabled = () => {
+    this.setState({ autocompleteEnabled: !this.state.autocompleteEnabled });
   };
   elementStyle(dimension, elementSize, gutterSize) {
     return {
@@ -342,7 +342,7 @@ class SqlEditor extends React.PureComponent {
         <div ref={this.northPaneRef} className="north-pane">
           <AceEditorWrapper
             actions={this.props.actions}
-            autocomplete={this.state.autocomplete}
+            autocomplete={this.state.autocompleteEnabled}
             onBlur={this.setQueryEditorSql}
             onChange={this.onSqlChanged}
             queryEditor={this.props.queryEditor}
