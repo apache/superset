@@ -663,12 +663,12 @@ This is an optional feature that can be turned on by activating it's feature fla
 For this feature you will need a cache system and celery workers. All thumbnails are store on cache and are processed
 asynchronously by the workers.
 
-An example config could be:
+An example config where images are stored on S3 could be:
 
 .. code-block:: python
 
     from flask import Flask
-    from werkzeug.contrib.cache import RedisCache
+    from s3cache.s3cache import S3Cache
 
     ...
 
@@ -682,8 +682,8 @@ An example config could be:
 
     CELERY_CONFIG = CeleryConfig
 
-    def init_thumbnail_cache(app: Flask) -> RedisCache:
-        return RedisCache(host='localhost', port=6379, key_prefix='superset_')
+    def init_thumbnail_cache(app: Flask) -> S3Cache:
+        return S3Cache("bucket_name", 'thumbs_cache/')
 
 
     THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache

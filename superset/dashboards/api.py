@@ -94,6 +94,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "published",
         "slug",
         "url",
+        "thumbnail_url",
     ]
     edit_columns = [
         "dashboard_title",
