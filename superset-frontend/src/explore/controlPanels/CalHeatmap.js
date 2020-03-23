@@ -39,7 +39,13 @@ export default {
               type: 'SelectControl',
               label: t('Domain'),
               default: 'month',
-              choices: formatSelectOptions(['hour', 'day', 'week', 'month', 'year']),
+              choices: formatSelectOptions([
+                'hour',
+                'day',
+                'week',
+                'month',
+                'year',
+              ]),
               description: t('The time unit used for the grouping of blocks'),
             },
           },
@@ -49,13 +55,19 @@ export default {
               type: 'SelectControl',
               label: t('Subdomain'),
               default: 'day',
-              choices: formatSelectOptions(['min', 'hour', 'day', 'week', 'month']),
+              choices: formatSelectOptions([
+                'min',
+                'hour',
+                'day',
+                'week',
+                'month',
+              ]),
               description: t(
                 'The time unit for each block. Should be a smaller unit than ' +
                   'domain_granularity. Should be larger or equal to Time Grain',
               ),
             },
-          }
+          },
         ],
         ['metrics'],
         ['adhoc_filters'],
@@ -90,7 +102,7 @@ export default {
               label: t('Cell Padding'),
               description: t('The distance between cells, in pixels'),
             },
-          }
+          },
         ],
         [
           {
@@ -116,10 +128,10 @@ export default {
               label: t('Color Steps'),
               description: t('The number color "steps"'),
             },
-          }
+          },
         ],
         [
-          'y_axis_format', 
+          'y_axis_format',
           {
             name: 'x_axis_time_format',
             config: {
@@ -131,7 +143,7 @@ export default {
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
             },
-          }
+          },
         ],
         ['show_legend', 'show_values'],
         [
@@ -145,7 +157,7 @@ export default {
               description: t('Whether to display the metric name as a title'),
             },
           },
-          null
+          null,
         ],
       ],
     },
