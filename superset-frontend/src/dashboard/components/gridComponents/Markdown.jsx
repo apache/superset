@@ -23,6 +23,7 @@ import cx from 'classnames';
 import AceEditor from 'react-ace';
 import 'brace/mode/markdown';
 import 'brace/theme/textmate';
+import { t } from '@superset-ui/translation';
 
 import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
@@ -49,6 +50,9 @@ const propTypes = {
 
   // from redux
   logEvent: PropTypes.func.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
+  undoLength: PropTypes.number.isRequired,
+  redoLength: PropTypes.number.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -73,6 +77,10 @@ const markdownPlaceHolder = `# ✨Markdown
 
 Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
+const emergencyCode = `
+  This markdown component has an error.
+`;
+
 function isSafeMarkup(node) {
   if (node.type === 'html') {
     return /href="(javascript|vbscript|file):.*"/gim.test(node.value) === false;
@@ -88,6 +96,8 @@ class Markdown extends React.PureComponent {
       markdownSource: props.component.meta.code,
       editor: null,
       editorMode: 'preview',
+      undoLength: props.undoLength,
+      redoLength: props.redoLength,
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -107,11 +117,46 @@ class Markdown extends React.PureComponent {
     });
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const nextSource = nextProps.component.meta.code;
-    if (this.state.markdownSource !== nextSource) {
-      this.setState({ markdownSource: nextSource });
+  static getDerivedStateFromProps(nextProps, state) {
+    const {
+      hasError,
+      editorMode,
+      markdownSource,
+      undoLength,
+      redoLength,
+    } = state;
+    const {
+      component: nextComponent,
+      undoLength: nextUndoLength,
+      redoLength: nextRedoLength,
+    } = nextProps;
+    // user click undo or redo ?
+    if (nextUndoLength !== undoLength || nextRedoLength !== redoLength) {
+      return {
+        ...state,
+        undoLength: nextUndoLength,
+        redoLength: nextRedoLength,
+        markdownSource: nextComponent.meta.code,
+        hasError: false,
+      };
+    } else if (
+      !hasError &&
+      editorMode === 'preview' &&
+      nextComponent.meta.code !== markdownSource
+    ) {
+      return {
+        ...state,
+        markdownSource: nextComponent.meta.code,
+      };
     }
+
+    return state;
+  }
+
+  static getDerivedStateFromError() {
+    return {
+      hasError: true,
+    };
   }
 
   componentDidUpdate(prevProps) {
@@ -121,6 +166,16 @@ class Markdown extends React.PureComponent {
         prevProps.columnWidth !== this.props.columnWidth)
     ) {
       this.state.editor.resize(true);
+    }
+  }
+
+  componentDidCatch(error, info) {
+    if (this.state.editor && this.state.editorMode === 'preview') {
+      this.props.addDangerToast(
+        t(
+          'This markdown component has an error. Please revert your recent changes.',
+        ),
+      );
     }
   }
 
@@ -139,7 +194,12 @@ class Markdown extends React.PureComponent {
   }
 
   handleChangeEditorMode(mode) {
-    if (this.state.editorMode === 'edit') {
+    const nextState = {
+      ...this.state,
+      editorMode: mode,
+    };
+
+    if (mode === 'preview') {
       const { updateComponents, component } = this.props;
       if (component.meta.code !== this.state.markdownSource) {
         updateComponents({
@@ -152,11 +212,10 @@ class Markdown extends React.PureComponent {
           },
         });
       }
+      nextState.hasError = false;
     }
 
-    this.setState(() => ({
-      editorMode: mode,
-    }));
+    this.setState(nextState);
   }
 
   handleMarkdownChange(nextValue) {
@@ -193,9 +252,14 @@ class Markdown extends React.PureComponent {
   }
 
   renderPreviewMode() {
+    const { hasError } = this.state;
     return (
       <ReactMarkdown
-        source={this.state.markdownSource || markdownPlaceHolder}
+        source={
+          hasError
+            ? emergencyCode
+            : this.state.markdownSource || markdownPlaceHolder
+        }
         escapeHtml={false}
         allowNode={isSafeMarkup}
       />
