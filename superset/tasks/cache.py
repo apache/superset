@@ -18,6 +18,7 @@
 
 import json
 import logging
+from typing import Any, Dict, Optional
 from urllib import request
 from urllib.error import URLError
 
@@ -31,6 +32,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.utils.core import parse_human_datetime
+from superset.views.utils import build_extra_filters
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -54,27 +56,23 @@ def get_form_data(chart_id, dashboard=None):
     if not default_filters:
         return form_data
 
-    # do not apply filters if chart is immune to them
-    immune_fields = []
     filter_scopes = json_metadata.get("filter_scopes", {})
-    if filter_scopes:
-        for scopes in filter_scopes.values():
-            for (field, scope) in scopes.items():
-                if chart_id in scope.get("immune", []):
-                    immune_fields.append(field)
-
-    extra_filters = []
-    for filters in default_filters.values():
-        for col, val in filters.items():
-            if col not in immune_fields:
-                extra_filters.append({"col": col, "op": "in", "val": val})
+    layout = json.loads(dashboard.position_json or "{}")
+    if (
+        isinstance(layout, dict)
+        and isinstance(filter_scopes, dict)
+        and isinstance(default_filters, dict)
+    ):
+        extra_filters = build_extra_filters(
+            layout, filter_scopes, default_filters, chart_id
+        )
     if extra_filters:
         form_data["extra_filters"] = extra_filters
 
     return form_data
 
 
-def get_url(chart):
+def get_url(chart, extra_filters: Optional[Dict[str, Any]] = None):
     """Return external URL for warming up a given chart/table cache."""
     with app.test_request_context():
         baseurl = (
@@ -82,7 +80,7 @@ def get_url(chart):
             "{SUPERSET_WEBSERVER_ADDRESS}:"
             "{SUPERSET_WEBSERVER_PORT}".format(**app.config)
         )
-        return f"{baseurl}{chart.url}"
+        return f"{baseurl}{chart.get_explore_url(overrides=extra_filters)}"
 
 
 class Strategy:
@@ -181,7 +179,8 @@ class TopNDashboardsStrategy(Strategy):
         dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
         for dashboard in dashboards:
             for chart in dashboard.slices:
-                urls.append(get_url(chart))
+                form_data_with_filters = get_form_data(chart.id, dashboard)
+                urls.append(get_url(chart, form_data_with_filters))
 
         return urls
 

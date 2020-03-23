@@ -152,7 +152,7 @@ class SupersetAppInitializer:
         )
         from superset.views.chart.api import ChartRestApi
         from superset.views.chart.views import SliceModelView, SliceAsync
-        from superset.views.dashboard.api import DashboardRestApi
+        from superset.dashboards.api import DashboardRestApi
         from superset.views.dashboard.views import (
             DashboardModelView,
             Dashboard,

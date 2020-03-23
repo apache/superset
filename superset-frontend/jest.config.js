@@ -37,6 +37,10 @@ module.exports = {
       diagnostics: {
         warnOnly: true,
       },
+      tsConfig: {
+        jsx: 'react',
+        esModuleInterop: true,
+      },
     },
   },
 };

@@ -31,7 +31,5 @@
 
 {% block tail_js %}
   {{ super() }}
-  {% with filename="addSlice" %}
-    {% include "superset/partials/_script_tag.html" %}
-  {% endwith %}
+  {{ js_bundle("addSlice") }}
 {% endblock %}
