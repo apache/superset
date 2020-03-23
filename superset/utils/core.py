@@ -1177,6 +1177,17 @@ def split_adhoc_filters_into_base_filters(fd):
         fd["filters"] = simple_where_filters
 
 
+def harmonize_query_filters(form_data: Dict[str, Any]) -> None:
+    """
+    Converts all filters in form_data into base filters.
+
+    :param form_data: parsed form data from request to be mutated
+    """
+    convert_legacy_filters_into_adhoc(form_data)
+    merge_extra_filters(form_data)
+    split_adhoc_filters_into_base_filters(form_data)
+
+
 def get_username() -> Optional[str]:
     """Get username if within the flask context, otherwise return noffin'"""
     try:

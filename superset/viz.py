@@ -51,12 +51,7 @@ from superset.exceptions import NullValueException, SpatialException
 from superset.models.helpers import QueryResult
 from superset.typing import VizData
 from superset.utils import core as utils
-from superset.utils.core import (
-    DTTM_ALIAS,
-    JS_MAX_INTEGER,
-    merge_extra_filters,
-    to_adhoc,
-)
+from superset.utils.core import DTTM_ALIAS, JS_MAX_INTEGER, to_adhoc
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -280,15 +275,10 @@ class BaseViz:
             if dtype.type == np.object_ and col in metrics:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    def process_query_filters(self):
-        utils.convert_legacy_filters_into_adhoc(self.form_data)
-        merge_extra_filters(self.form_data)
-        utils.split_adhoc_filters_into_base_filters(self.form_data)
-
     def query_obj(self) -> Dict[str, Any]:
         """Building a query object"""
         form_data = self.form_data
-        self.process_query_filters()
+        utils.harmonize_query_filters(form_data)
         gb = form_data.get("groupby") or []
         metrics = self.all_metrics or []
         columns = form_data.get("columns") or []

@@ -17,13 +17,14 @@
 """Defines the templating context for SQL Lab"""
 import inspect
 import json
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
 
 from superset import jinja_base_context
 from superset.extensions import jinja_context_manager
+from superset.utils import core as utils
 
 
 def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
@@ -94,6 +95,8 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
     :return: returns a list of filter values
     """
     form_data = json.loads(request.form.get("form_data", "{}"))
+    utils.harmonize_query_filters(form_data)
+
     return_val = []
     for filter_type in ["filters", "extra_filters"]:
         if filter_type not in form_data:
