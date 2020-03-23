@@ -46,16 +46,16 @@ interface Props {
     addTable: (queryEditor: any, value: any, schema: any) => void;
   };
   autocomplete: boolean;
-  onBlur?: (sql: string) => void;
+  onBlur: (sql: string) => void;
   sql: string;
-  schemas?: any[];
-  tables?: any[];
-  functionNames?: string[];
-  extendedTables?: Array<{ name: string; columns: any[] }>;
+  schemas: any[];
+  tables: any[];
+  functionNames: string[];
+  extendedTables: Array<{ name: string; columns: any[] }>;
   queryEditor: any;
-  height?: string;
+  height: string;
   hotkeys: HotKey[];
-  onChange?: (sql: string) => void;
+  onChange: (sql: string) => void;
 }
 
 interface State {
@@ -65,6 +65,15 @@ interface State {
 }
 
 class AceEditorWrapper extends React.PureComponent<Props, State> {
+  static defaultProps = {
+    onBlur: () => {},
+    onChange: () => {},
+    schemas: [],
+    tables: [],
+    functionNames: [],
+    extendedTables: [],
+  };
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -81,14 +90,11 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   }
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (
-      !areArraysShallowEqual(this.props.tables || [], nextProps.tables || []) ||
+      !areArraysShallowEqual(this.props.tables, nextProps.tables) ||
+      !areArraysShallowEqual(this.props.schemas, nextProps.schemas) ||
       !areArraysShallowEqual(
-        this.props.schemas || [],
-        nextProps.schemas || [],
-      ) ||
-      !areArraysShallowEqual(
-        this.props.extendedTables || [],
-        nextProps.extendedTables || [],
+        this.props.extendedTables,
+        nextProps.extendedTables,
       )
     ) {
       this.setAutoCompleter(nextProps);
@@ -98,10 +104,10 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     }
   }
   onBlur() {
-    if (this.props.onBlur) this.props.onBlur(this.state.sql);
+    this.props.onBlur(this.state.sql);
   }
   onAltEnter() {
-    if (this.props.onBlur) this.props.onBlur(this.state.sql);
+    this.props.onBlur(this.state.sql);
   }
   onEditorLoad(editor: any) {
     editor.commands.addCommand({
@@ -136,7 +142,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   }
   onChange(text: string) {
     this.setState({ sql: text });
-    if (this.props.onChange) this.props.onChange(text);
+    this.props.onChange(text);
   }
   getCompletions(
     aceEditor: any,
@@ -208,14 +214,12 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       meta: 'column',
     }));
 
-    const functionWords = props.functionNames
-      ? props.functionNames.map(func => ({
-          name: func,
-          value: func,
-          score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
-          meta: 'function',
-        }))
-      : [];
+    const functionWords = props.functionNames.map(func => ({
+      name: func,
+      value: func,
+      score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
+      meta: 'function',
+    }));
 
     const words = schemaWords
       .concat(tableWords)
