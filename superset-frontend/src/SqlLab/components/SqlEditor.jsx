@@ -510,10 +510,10 @@ class SqlEditor extends React.PureComponent {
         <div className="rightItems">
           <span>
             <Checkbox
-              checked={this.state.autocomplete}
+              checked={this.state.autocompleteEnabled}
               inline
               title={t('Autocomplete')}
-              onChange={this.handleToggleAutocomplete}
+              onChange={this.handleToggleAutocompleteEnabled}
             >
               {t('Autocomplete')}
             </Checkbox>
