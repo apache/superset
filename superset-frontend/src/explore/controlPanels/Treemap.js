@@ -46,7 +46,7 @@ export default {
               default: 0.5 * (1 + Math.sqrt(5)), // d3 default, golden ratio
               description: t('Target aspect ratio for treemap tiles.'),
             },
-          }
+          },
         ],
         ['number_format'],
       ],
