@@ -82,6 +82,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "url",
         "slug",
         "table_names",
+        "thumbnail_url",
     ]
     order_columns = ["dashboard_title", "changed_on", "published", "changed_by_fk"]
     list_columns = [

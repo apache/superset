@@ -158,6 +158,7 @@ class ChartRestApi(SliceMixin, BaseOwnedModelRestApi):
         "viz_type",
         "params",
         "cache_timeout",
+        "thumbnail_url",
     ]
     list_columns = [
         "id",
