@@ -98,17 +98,13 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
     utils.harmonize_query_filters(form_data)
 
     return_val = []
-    for filter_type in ["filters", "extra_filters"]:
-        if filter_type not in form_data:
-            continue
-
-        for f in form_data[filter_type]:
-            if f["col"] == column:
-                if isinstance(f["val"], list):
-                    for v in f["val"]:
-                        return_val.append(v)
-                else:
-                    return_val.append(f["val"])
+    for f in form_data.get("filters", {}):
+        if f["col"] == column:
+            if isinstance(f["val"], list):
+                for v in f["val"]:
+                    return_val.append(v)
+            else:
+                return_val.append(f["val"])
 
     if return_val:
         return return_val
