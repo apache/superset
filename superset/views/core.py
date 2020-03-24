@@ -946,6 +946,12 @@ class Superset(BaseSupersetView):
         )
         return json_success(payload)
 
+    @staticmethod
+    def remove_extra_filters(filters):
+        """Extra filters are ones inherited from the dashboard's temporary context
+        Those should not be saved when saving the chart"""
+        return [f for f in filters if not f.get("isExtra")]
+
     def save_or_overwrite_slice(
         self,
         args,
@@ -966,6 +972,10 @@ class Superset(BaseSupersetView):
             if "slice_id" in form_data:
                 form_data.pop("slice_id")  # don't save old slice_id
             slc = Slice(owners=[g.user] if g.user else [])
+
+        form_data["adhoc_filters"] = self.remove_extra_filters(
+            form_data.get("adhoc_filters", [])
+        )
 
         slc.params = json.dumps(form_data, indent=2, sort_keys=True)
         slc.datasource_name = datasource_name
