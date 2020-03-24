@@ -389,56 +389,58 @@ class DatasetList extends React.PureComponent<Props, State> {
     return (
       <div className="container welcome">
         <Panel>
-          <ConfirmStatusChange
-            title={t('Please confirm')}
-            description={t(
-              'Are you sure you want to delete the selected datasets?',
-            )}
-            onConfirm={this.handleBulkDatasetDelete}
-          >
-            {confirmDelete => {
-              const bulkActions = [];
-              if (this.canDelete) {
-                bulkActions.push({
-                  key: 'delete',
-                  name: (
-                    <>
-                      <i className="fa fa-trash" /> Delete
-                    </>
-                  ),
-                  onSelect: confirmDelete,
-                });
-              }
-              return (
-                <>
-                  {this.canCreate && (
-                    <span className="list-add-action">
-                      <Link
-                        className="btn btn-sm btn-primary pull-right"
-                        href="/tablemodelview/add"
-                        tooltip="Add a new record"
-                      >
-                        <i className="fa fa-plus" />
-                      </Link>
-                    </span>
-                  )}
-                  <ListView
-                    className="dataset-list-view"
-                    title={'Datasets'}
-                    columns={this.columns}
-                    data={datasets}
-                    count={datasetCount}
-                    pageSize={PAGE_SIZE}
-                    fetchData={this.fetchData}
-                    loading={loading}
-                    initialSort={this.initialSort}
-                    filters={filters}
-                    bulkActions={bulkActions}
-                  />
-                </>
-              );
-            }}
-          </ConfirmStatusChange>
+          <Panel.Body>
+            <ConfirmStatusChange
+              title={t('Please confirm')}
+              description={t(
+                'Are you sure you want to delete the selected datasets?',
+              )}
+              onConfirm={this.handleBulkDatasetDelete}
+            >
+              {confirmDelete => {
+                const bulkActions = [];
+                if (this.canDelete) {
+                  bulkActions.push({
+                    key: 'delete',
+                    name: (
+                      <>
+                        <i className="fa fa-trash" /> Delete
+                      </>
+                    ),
+                    onSelect: confirmDelete,
+                  });
+                }
+                return (
+                  <>
+                    {this.canCreate && (
+                      <span className="list-add-action">
+                        <Link
+                          className="btn btn-sm btn-primary pull-right"
+                          href="/tablemodelview/add"
+                          tooltip="Add a new record"
+                        >
+                          <i className="fa fa-plus" />
+                        </Link>
+                      </span>
+                    )}
+                    <ListView
+                      className="dataset-list-view"
+                      title={'Datasets'}
+                      columns={this.columns}
+                      data={datasets}
+                      count={datasetCount}
+                      pageSize={PAGE_SIZE}
+                      fetchData={this.fetchData}
+                      loading={loading}
+                      initialSort={this.initialSort}
+                      filters={filters}
+                      bulkActions={bulkActions}
+                    />
+                  </>
+                );
+              }}
+            </ConfirmStatusChange>
+          </Panel.Body>
         </Panel>
       </div>
     );
