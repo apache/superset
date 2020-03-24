@@ -1089,7 +1089,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `autozoom`                      | _N/A_ |       |
 | `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
-| `clustering_radius`             | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
 | `column_collection`             | _N/A_ |       |
@@ -1135,7 +1134,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `line_width`                    | _N/A_ |       |
 | `linear_color_scheme`           | _N/A_ |       |
 | `log_scale`                     | _N/A_ |       |
-| `mapbox_color`                  | _N/A_ |       |
 | `mapbox_label`                  | _N/A_ |       |
 | `mapbox_style`                  | _N/A_ |       |
 | `marker_labels`                 | _N/A_ |       |
@@ -1159,9 +1157,7 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `partition_threshold`           | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
-| `point_radius`                  | _N/A_ |       |
 | `point_radius_fixed`            | _N/A_ |       |
-| `point_radius_unit`             | _N/A_ |       |
 | `point_unit`                    | _N/A_ |       |
 | `prefix_metric_with_slice_name` | _N/A_ |       |
 | `range_labels`                  | _N/A_ |       |
@@ -1170,7 +1166,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `reduce_x_ticks`                | _N/A_ |       |
 | `refresh_frequency`             | _N/A_ |       |
 | `remote_id`                     | _N/A_ |       |
-| `render_while_dragging`         | _N/A_ |       |
 | `resample_fillmethod`           | _N/A_ |       |
 | `resample_how`                  | _N/A_ |       |
 | `resample_method`               | _N/A_ |       |
@@ -1211,6 +1206,4 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
 | `viewport`                      | _N/A_ |       |
-| `viewport_latitude`             | _N/A_ |       |
-| `viewport_longitude`            | _N/A_ |       |
 | `viewport_zoom`                 | _N/A_ |       |
