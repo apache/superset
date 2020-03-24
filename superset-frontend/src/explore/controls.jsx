@@ -400,21 +400,6 @@ export const controls = {
     ),
   },
 
-  horizon_color_scale: {
-    type: 'SelectControl',
-    renderTrigger: true,
-    label: t('Value Domain'),
-    choices: [
-      ['series', 'series'],
-      ['overall', 'overall'],
-      ['change', 'change'],
-    ],
-    default: 'series',
-    description: t(
-      'series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series',
-    ),
-  },
-
   include_time: {
     type: 'CheckboxControl',
     label: t('Include Time'),
@@ -1171,25 +1156,6 @@ export const controls = {
     clearable: false,
     choices: D3_TIME_FORMAT_OPTIONS,
     description: t('Timestamp Format'),
-  },
-
-  series_height: {
-    type: 'SelectControl',
-    renderTrigger: true,
-    freeForm: true,
-    label: t('Series Height'),
-    default: '25',
-    choices: formatSelectOptions([
-      '10',
-      '25',
-      '40',
-      '50',
-      '75',
-      '100',
-      '150',
-      '200',
-    ]),
-    description: t('Pixel height of each series'),
   },
 
   page_length: {
