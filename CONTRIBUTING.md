@@ -1055,7 +1055,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `x_axis_format`      | _string_  | The **X Axis Format** widget |
 | `x_axis_label`       | _string_  | The **X Axis Label** widget  |
 | `x_axis_showminmax`  | _boolean_ | The **X bounds** widget      |
-| `x_axis_time_format` | _N/A_     | _Deprecated?_                |
 | `x_log_scale`        | _N/A_     | _Deprecated?_                |
 | `x_ticks_layout`     | _string_  | The **X Tick Layout** widget |
 
@@ -1095,9 +1094,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
 | `canvas_image_rendering`        | _N/A_ |       |
-| `cell_padding`                  | _N/A_ |       |
-| `cell_radius`                   | _N/A_ |       |
-| `cell_size`                     | _N/A_ |       |
 | `charge`                        | _N/A_ |       |
 | `clustering_radius`             | _N/A_ |       |
 | `code`                          | _N/A_ |       |
@@ -1112,7 +1108,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `deck_slices`                   | _N/A_ |       |
 | `default_filters`               | _N/A_ |       |
 | `dimension`                     | _N/A_ |       |
-| `domain_granularity`            | _N/A_ |       |
 | `end_spatial`                   | _N/A_ |       |
 | `entity`                        | _N/A_ |       |
 | `equal_date_size`               | _N/A_ |       |
@@ -1211,7 +1206,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_druid_time_granularity`   | _N/A_ |       |
 | `show_druid_time_origin`        | _N/A_ |       |
 | `show_labels`                   | _N/A_ |       |
-| `show_metric_name`              | _N/A_ |       |
 | `show_perc`                     | _N/A_ |       |
 | `show_sqla_time_column`         | _N/A_ |       |
 | `show_sqla_time_granularity`    | _N/A_ |       |
@@ -1224,11 +1218,9 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `spatial`                       | _N/A_ |       |
 | `stacked_style`                 | _N/A_ |       |
 | `start_spatial`                 | _N/A_ |       |
-| `steps`                         | _N/A_ |       |
 | `stroke_color_picker`           | _N/A_ |       |
 | `stroke_width`                  | _N/A_ |       |
 | `stroked`                       | _N/A_ |       |
-| `subdomain_granularity`         | _N/A_ |       |
 | `subheader`                     | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
 | `table_timestamp_format`        | _N/A_ |       |
