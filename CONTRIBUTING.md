@@ -1227,7 +1227,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `toggle_polygons`               | _N/A_ |       |
 | `transpose_pivot`               | _N/A_ |       |
-| `treemap_ratio`                 | _N/A_ |       |
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
 | `viewport`                      | _N/A_ |       |
