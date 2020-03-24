@@ -18,9 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries } from './sections';
-import {
-  formatSelectOptions,
-} from '../../modules/utils';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
@@ -67,8 +65,8 @@ export default {
                 'series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series',
               ),
             },
-          }
-        ]
+          },
+        ],
       ],
     },
   ],
