@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import { Checkbox } from 'react-bootstrap';
 
 import { defaultQueryEditor, initialState, queries, table } from './fixtures';
 import {
@@ -104,5 +105,14 @@ describe('SqlEditor', () => {
     expect(wrapper.find(LimitControl).props().value).toEqual(
       queryEditor.queryLimit,
     );
+  });
+  it('allows toggling autocomplete', () => {
+    const wrapper = shallow(<SqlEditor {...mockedProps} />);
+    expect(wrapper.find(AceEditorWrapper).props().autocomplete).toBe(true);
+    wrapper
+      .find(Checkbox)
+      .props()
+      .onChange();
+    expect(wrapper.find(AceEditorWrapper).props().autocomplete).toBe(false);
   });
 });
