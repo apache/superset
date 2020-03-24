@@ -1046,15 +1046,6 @@ export const controls = {
     ]),
   },
 
-  treemap_ratio: {
-    type: 'TextControl',
-    label: t('Ratio'),
-    renderTrigger: true,
-    isFloat: true,
-    default: 0.5 * (1 + Math.sqrt(5)), // d3 default, golden ratio
-    description: t('Target aspect ratio for treemap tiles.'),
-  },
-
   number_format: {
     type: 'SelectControl',
     freeForm: true,
