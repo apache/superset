@@ -1153,7 +1153,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `markers`                       | _N/A_ |       |
 | `markup_type`                   | _N/A_ |       |
 | `max_radius`                    | _N/A_ |       |
-| `min_leaf_node_event_count`     | _N/A_ |       |
 | `min_periods`                   | _N/A_ |       |
 | `min_radius`                    | _N/A_ |       |
 | `multiplier`                    | _N/A_ |       |
@@ -1163,7 +1162,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `num_buckets`                   | _N/A_ |       |
 | `num_period_compare`            | _N/A_ |       |
 | `order_bars`                    | _N/A_ |       |
-| `order_by_entity`               | _N/A_ |       |
 | `order_desc`                    | _N/A_ |       |
 | `page_length`                   | _N/A_ |       |
 | `pandas_aggfunc`                | _N/A_ |       |
