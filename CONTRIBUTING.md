@@ -805,8 +805,7 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
 ### Improving visualizations
 
-Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal,
-we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins):
+Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins):
 
 ```bash
 git clone https://github.com/apache-superset/superset-ui-plugins.git

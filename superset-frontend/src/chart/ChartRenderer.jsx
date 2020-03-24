@@ -64,6 +64,41 @@ if (isDevMode) {
   setConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
+/**
+ * Compare two objects with DFS (till a maxDepth)
+ */
+function deepEqual(obj1, obj2, maxDepth = Infinity, depth = 0) {
+  if (
+    // don't go too deep
+    depth > maxDepth ||
+    // nulls
+    obj1 === null ||
+    obj2 === null ||
+    // primatives
+    typeof obj1 !== 'object' ||
+    typeof obj2 !== 'object'
+  ) {
+    return obj1 === obj2;
+  }
+
+  // arrays
+  if (Array.isArray(obj1) && Array.isArray(obj2)) {
+    return (
+      obj1.length === obj2.length &&
+      obj1.every((val, i) => deepEqual(val, obj2[i], maxDepth, depth + 1))
+    );
+  }
+
+  // objects
+  for (const [key, val] of Object.entries(obj1)) {
+    if (!deepEqual(obj2[key], val, maxDepth, depth + 1)) {
+      // console.log('>> Diff "%s":', key, depth, val, obj2[key]);
+      return false;
+    }
+  }
+  return true;
+}
+
 class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
@@ -83,18 +118,35 @@ class ChartRenderer extends React.Component {
     };
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
-    const props = this.props;
+  shouldComponentUpdate(nextProps) {
+    // if no results loaded, don't render
     if (
-      props.queryResponse === nextProps.queryResponse &&
-      props.chartStatus === 'success' &&
-      nextProps.chartStatus === 'rendered'
-    ) {
-      // don't rerender if it's updating from `success` to `rendered`.
-      // however, do update current props;
-      this.props = nextProps;
+      !nextProps.queryResponse ||
+      nextProps.queryResponse.error ||
+      nextProps.refreshOverlayVisible
+    )
       return false;
+
+    this.hasQueryResponseChange =
+      this.props.queryResponse !== nextProps.queryResponse;
+
+    // current chart status
+    const chartStatus = this.props.chartStatus;
+    // `rendered` status is set right after `success` or `loading`,
+    // don't trigger rerender here (see `actions.chartRenderingSucceeded`).
+    // note that even though render is not triggered, the props will still be
+    // updated.
+    if (
+      (chartStatus === 'success' || chartStatus === 'loading') &&
+      nextProps.chartStatus === 'rendered'
+    )
+      return false;
+
+    // already successfully rendered, only rerender when some prop is updated
+    if (chartStatus === 'rendered' || chartStatus === 'success') {
+      return !deepEqual(this.props, nextProps, 2);
     }
+
     return true;
   }
 
@@ -104,7 +156,7 @@ class ChartRenderer extends React.Component {
 
   handleRenderSuccess() {
     const { actions, chartStatus, chartId, vizType } = this.props;
-    if (['loading', 'rendered'].indexOf(chartStatus) < 0) {
+    if (chartStatus !== 'loading' && chartStatus !== 'rendered') {
       actions.chartRenderingSucceeded(chartId);
     }
     // only log chart render time which is triggered by query results change
@@ -189,6 +241,9 @@ class ChartRenderer extends React.Component {
       vizType === 'table'
         ? `superset-chart-${snakeCaseVizType}`
         : snakeCaseVizType;
+
+    // Use this line to make sure charts do not render unnecessarily.
+    // console.log('>>> %s rendered', this.props.chartId);
 
     return (
       <SuperChart
