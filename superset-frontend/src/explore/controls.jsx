@@ -119,12 +119,6 @@ const timeColumnOption = {
       'account',
   ),
 };
-const sortAxisChoices = [
-  ['alpha_asc', 'Axis ascending'],
-  ['alpha_desc', 'Axis descending'],
-  ['value_asc', 'sum(value) ascending'],
-  ['value_desc', 'sum(value) descending'],
-];
 
 const groupByControl = {
   type: 'SelectControl',
@@ -377,22 +371,6 @@ export const controls = {
     description: '',
   },
 
-  sort_x_axis: {
-    type: 'SelectControl',
-    label: t('Sort X Axis'),
-    choices: sortAxisChoices,
-    clearable: false,
-    default: 'alpha_asc',
-  },
-
-  sort_y_axis: {
-    type: 'SelectControl',
-    label: t('Sort Y Axis'),
-    choices: sortAxisChoices,
-    clearable: false,
-    default: 'alpha_asc',
-  },
-
   linear_color_scheme: {
     type: 'ColorSchemeControl',
     label: t('Linear Color Scheme'),
@@ -437,45 +415,6 @@ export const controls = {
     ),
   },
 
-  canvas_image_rendering: {
-    type: 'SelectControl',
-    label: t('Rendering'),
-    renderTrigger: true,
-    choices: [
-      ['pixelated', 'pixelated (Sharp)'],
-      ['auto', 'auto (Smooth)'],
-    ],
-    default: 'pixelated',
-    description: t(
-      'image-rendering CSS attribute of the canvas object that ' +
-        'defines how the browser scales up the image',
-    ),
-  },
-
-  xscale_interval: {
-    type: 'SelectControl',
-    label: t('XScale Interval'),
-    renderTrigger: true,
-    choices: formatSelectOptionsForRange(1, 50),
-    default: '1',
-    clearable: false,
-    description: t(
-      'Number of steps to take between ticks when displaying the X scale',
-    ),
-  },
-
-  yscale_interval: {
-    type: 'SelectControl',
-    label: t('YScale Interval'),
-    choices: formatSelectOptionsForRange(1, 50),
-    default: '1',
-    clearable: false,
-    renderTrigger: true,
-    description: t(
-      'Number of steps to take between ticks when displaying the Y scale',
-    ),
-  },
-
   include_time: {
     type: 'CheckboxControl',
     label: t('Include Time'),
@@ -493,14 +432,6 @@ export const controls = {
     description: t(
       'When checked, the map will zoom to your data after each query',
     ),
-  },
-
-  show_perc: {
-    type: 'CheckboxControl',
-    label: t('Show percentage'),
-    renderTrigger: true,
-    description: t('Whether to include the percentage in the tooltip'),
-    default: true,
   },
 
   bar_stacked: {
