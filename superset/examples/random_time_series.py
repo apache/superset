@@ -60,8 +60,8 @@ def load_random_time_series_data(only_metadata=False, force=False):
     slice_data = {
         "granularity_sqla": "day",
         "row_limit": config["ROW_LIMIT"],
-        "since": "1 year ago",
-        "until": "now",
+        "since": "2019-01-01",
+        "until": "2019-02-01",
         "metric": "count",
         "viz_type": "cal_heatmap",
         "domain_granularity": "month",

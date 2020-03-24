@@ -79,6 +79,7 @@ export default class AdhocFilter {
       this.operator = null;
       this.comparator = null;
     }
+    this.isExtra = !!adhocFilter.isExtra;
     this.fromFormData = !!adhocFilter.filterOptionName;
 
     this.filterOptionName =

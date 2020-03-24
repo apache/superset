@@ -805,6 +805,7 @@ def to_adhoc(filt, expressionType="SIMPLE", clause="where"):
         "clause": clause.upper(),
         "expressionType": expressionType,
         "filterOptionName": str(uuid.uuid4()),
+        "isExtra": True if filt.get("isExtra") is True else False,
     }
 
     if expressionType == "SIMPLE":
@@ -860,6 +861,7 @@ def merge_extra_filters(form_data: dict):
                 existing_filters[get_filter_key(existing)] = existing["comparator"]
 
         for filtr in form_data["extra_filters"]:
+            filtr["isExtra"] = True
             # Pull out time filters/options and merge into form data
             if date_options.get(filtr["col"]):
                 if filtr.get("val"):
