@@ -34,7 +34,6 @@ from superset.models.core import Database
 from superset.utils.core import get_example_database
 from superset.utils.dict_import_export import export_to_dict
 from superset.views.base import generate_download_headers
-
 from tests.base_tests import SupersetTestCase
 
 
