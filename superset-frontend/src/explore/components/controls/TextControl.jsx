@@ -55,7 +55,7 @@ export default class TextControl extends React.Component {
       if (error) {
         errors.push(error);
       } else {
-        value = parseFloat(value);
+        value = value.match(/.*(\.)$/g) ? value : parseFloat(value);
       }
     }
     if (value !== '' && this.props.isInt) {
