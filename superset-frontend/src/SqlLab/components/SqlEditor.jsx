@@ -20,6 +20,7 @@ import React from 'react';
 import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
 import {
+  Checkbox,
   FormGroup,
   InputGroup,
   Form,
@@ -93,6 +94,7 @@ class SqlEditor extends React.PureComponent {
       northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
       southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
+      autocompleteEnabled: true,
     };
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
@@ -245,6 +247,9 @@ class SqlEditor extends React.PureComponent {
   handleWindowResize() {
     this.setState({ height: this.getSqlEditorHeight() });
   }
+  handleToggleAutocompleteEnabled = () => {
+    this.setState({ autocompleteEnabled: !this.state.autocompleteEnabled });
+  };
   elementStyle(dimension, elementSize, gutterSize) {
     return {
       [dimension]: `calc(${elementSize}% - ${gutterSize +
@@ -337,6 +342,7 @@ class SqlEditor extends React.PureComponent {
         <div ref={this.northPaneRef} className="north-pane">
           <AceEditorWrapper
             actions={this.props.actions}
+            autocomplete={this.state.autocompleteEnabled}
             onBlur={this.setQueryEditorSql}
             onChange={this.onSqlChanged}
             queryEditor={this.props.queryEditor}
@@ -502,6 +508,16 @@ class SqlEditor extends React.PureComponent {
           </Form>
         </div>
         <div className="rightItems">
+          <span>
+            <Checkbox
+              checked={this.state.autocompleteEnabled}
+              inline
+              title={t('Autocomplete')}
+              onChange={this.handleToggleAutocompleteEnabled}
+            >
+              {t('Autocomplete')}
+            </Checkbox>
+          </span>
           <TemplateParamsEditor
             language="json"
             onChange={params => {

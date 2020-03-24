@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';
@@ -34,41 +33,53 @@ import {
 
 const langTools = ace.acequire('ace/ext/language_tools');
 
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  onBlur: PropTypes.func,
-  sql: PropTypes.string.isRequired,
-  schemas: PropTypes.array,
-  tables: PropTypes.array,
-  functionNames: PropTypes.array,
-  extendedTables: PropTypes.array,
-  queryEditor: PropTypes.object.isRequired,
-  height: PropTypes.string,
-  hotkeys: PropTypes.arrayOf(
-    PropTypes.shape({
-      key: PropTypes.string.isRequired,
-      descr: PropTypes.string.isRequired,
-      func: PropTypes.func.isRequired,
-    }),
-  ),
-  onChange: PropTypes.func,
+type HotKey = {
+  key: string;
+  descr: string;
+  name: string;
+  func: () => void;
 };
 
-const defaultProps = {
-  onBlur: () => {},
-  onChange: () => {},
-  schemas: [],
-  tables: [],
-  functionNames: [],
-  extendedTables: [],
-};
+interface Props {
+  actions: {
+    queryEditorSetSelectedText: (edit: any, text: null | string) => void;
+    addTable: (queryEditor: any, value: any, schema: any) => void;
+  };
+  autocomplete: boolean;
+  onBlur: (sql: string) => void;
+  sql: string;
+  schemas: any[];
+  tables: any[];
+  functionNames: string[];
+  extendedTables: Array<{ name: string; columns: any[] }>;
+  queryEditor: any;
+  height: string;
+  hotkeys: HotKey[];
+  onChange: (sql: string) => void;
+}
 
-class AceEditorWrapper extends React.PureComponent {
-  constructor(props) {
+interface State {
+  sql: string;
+  selectedText: string;
+  words: any[];
+}
+
+class AceEditorWrapper extends React.PureComponent<Props, State> {
+  static defaultProps = {
+    onBlur: () => {},
+    onChange: () => {},
+    schemas: [],
+    tables: [],
+    functionNames: [],
+    extendedTables: [],
+  };
+
+  constructor(props: Props) {
     super(props);
     this.state = {
       sql: props.sql,
       selectedText: '',
+      words: [],
     };
     this.onChange = this.onChange.bind(this);
   }
@@ -77,7 +88,7 @@ class AceEditorWrapper extends React.PureComponent {
     this.props.actions.queryEditorSetSelectedText(this.props.queryEditor, null);
     this.setAutoCompleter(this.props);
   }
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (
       !areArraysShallowEqual(this.props.tables, nextProps.tables) ||
       !areArraysShallowEqual(this.props.schemas, nextProps.schemas) ||
@@ -98,7 +109,7 @@ class AceEditorWrapper extends React.PureComponent {
   onAltEnter() {
     this.props.onBlur(this.state.sql);
   }
-  onEditorLoad(editor) {
+  onEditorLoad(editor: any) {
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
@@ -129,18 +140,24 @@ class AceEditorWrapper extends React.PureComponent {
       }
     });
   }
-  onChange(text) {
+  onChange(text: string) {
     this.setState({ sql: text });
     this.props.onChange(text);
   }
-  getCompletions(aceEditor, session, pos, prefix, callback) {
+  getCompletions(
+    aceEditor: any,
+    session: any,
+    pos: any,
+    prefix: string,
+    callback: (p0: any, p1: any[]) => void,
+  ) {
     // If the prefix starts with a number, don't try to autocomplete with a
     // table name or schema or anything else
     if (!isNaN(parseInt(prefix, 10))) {
       return;
     }
     const completer = {
-      insertMatch: (editor, data) => {
+      insertMatch: (editor: any, data: any) => {
         if (data.meta === 'table') {
           this.props.actions.addTable(
             this.props.queryEditor,
@@ -163,7 +180,7 @@ class AceEditorWrapper extends React.PureComponent {
     });
     callback(null, words);
   }
-  setAutoCompleter(props) {
+  setAutoCompleter(props: Props) {
     // Loading schema, table and column names as auto-completable words
     const schemas = props.schemas || [];
     const schemaWords = schemas.map(s => ({
@@ -223,7 +240,7 @@ class AceEditorWrapper extends React.PureComponent {
     const validationResult = this.props.queryEditor.validationResult;
     const resultIsReady = validationResult && validationResult.completed;
     if (resultIsReady && validationResult.errors.length > 0) {
-      const errors = validationResult.errors.map(err => ({
+      const errors = validationResult.errors.map((err: any) => ({
         type: 'error',
         row: err.line_number - 1,
         column: err.start_column - 1,
@@ -244,14 +261,12 @@ class AceEditorWrapper extends React.PureComponent {
         onChange={this.onChange}
         width="100%"
         editorProps={{ $blockScrolling: true }}
-        enableLiveAutocompletion
+        enableLiveAutocompletion={this.props.autocomplete}
         value={this.state.sql}
         annotations={this.getAceAnnotations()}
       />
     );
   }
 }
-AceEditorWrapper.defaultProps = defaultProps;
-AceEditorWrapper.propTypes = propTypes;
 
 export default AceEditorWrapper;
