@@ -30,8 +30,10 @@ from superset.datasets.commands.exceptions import (
     DatasetForbiddenError,
     DatasetInvalidError,
     DatasetNotFoundError,
+    DatasetRefreshFailedError,
     DatasetUpdateFailedError,
 )
+from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.schemas import DatasetPostSchema, DatasetPutSchema
 from superset.views.base import DatasourceFilter
@@ -49,9 +51,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
 
     class_permission_name = "TableModelView"
-    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED}
+    include_route_methods = (
+        RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED} | {"refresh"}
+    )
 
     list_columns = [
+        "database_name",
         "changed_by_name",
         "changed_by_url",
         "changed_by.username",
@@ -79,6 +84,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "template_params",
         "owners.id",
         "owners.username",
+        "columns",
+        "metrics",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
@@ -97,6 +104,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "is_sqllab_view",
         "template_params",
         "owners",
+        "columns",
+        "metrics",
     ]
     openapi_spec_tag = "Datasets"
 
@@ -267,4 +276,50 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetDeleteFailedError as e:
             logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
+            return self.response_422(message=str(e))
+
+    @expose("/<pk>/refresh", methods=["PUT"])
+    @protect()
+    @safe
+    def refresh(self, pk: int) -> Response:  # pylint: disable=invalid-name
+        """Refresh a Dataset
+        ---
+        put:
+          description: >-
+            Refreshes and updates columns of a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Dataset delete
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            RefreshDatasetCommand(g.user, pk).run()
+            return self.response(200, message="OK")
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except DatasetRefreshFailedError as e:
+            logger.error(f"Error refreshing dataset {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))

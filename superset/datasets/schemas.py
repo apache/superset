@@ -14,9 +14,52 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 
-from marshmallow import fields, Schema
+from flask_babel import lazy_gettext as _
+from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
+
+
+def validate_python_date_format(value):
+    regex = re.compile(
+        r"""
+        ^(
+            epoch_s|epoch_ms|
+            (?P<date>%Y(-%m(-%d)?)?)([\sT](?P<time>%H(:%M(:%S(\.%f)?)?)?))?
+        )$
+        """,
+        re.VERBOSE,
+    )
+    match = regex.match(value or "")
+    if not match:
+        raise ValidationError(_("Invalid date/timestamp format"))
+
+
+class DatasetColumnsPutSchema(Schema):
+    id = fields.Integer()  # pylint: disable=invalid-name
+    column_name = fields.String(required=True, validate=Length(1, 255))
+    type = fields.String(validate=Length(1, 32))
+    verbose_name = fields.String(allow_none=True, Length=(1, 1024))
+    description = fields.String(allow_none=True)
+    expression = fields.String(allow_none=True)
+    filterable = fields.Boolean()
+    groupby = fields.Boolean()
+    is_active = fields.Boolean()
+    is_dttm = fields.Boolean(default=False)
+    python_date_format = fields.String(
+        allow_none=True, validate=[Length(1, 255), validate_python_date_format]
+    )
+
+
+class DatasetMetricsPutSchema(Schema):
+    id = fields.Integer()  # pylint: disable=invalid-name
+    expression = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    metric_name = fields.String(required=True, validate=Length(1, 255))
+    metric_type = fields.String(allow_none=True, validate=Length(1, 32))
+    d3format = fields.String(allow_none=True, validate=Length(1, 128))
+    warning_text = fields.String(allow_none=True)
 
 
 class DatasetPostSchema(Schema):
@@ -31,7 +74,7 @@ class DatasetPutSchema(Schema):
     sql = fields.String(allow_none=True)
     filter_select_enabled = fields.Boolean(allow_none=True)
     fetch_values_predicate = fields.String(allow_none=True, validate=Length(0, 1000))
-    schema = fields.String(allow_none=True, validate=Length(1, 255))
+    schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
     offset = fields.Integer(allow_none=True)
@@ -40,3 +83,5 @@ class DatasetPutSchema(Schema):
     is_sqllab_view = fields.Boolean(allow_none=True)
     template_params = fields.String(allow_none=True)
     owners = fields.List(fields.Integer())
+    columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
+    metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))

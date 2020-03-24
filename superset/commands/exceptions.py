@@ -25,7 +25,10 @@ from superset.exceptions import SupersetException
 class CommandException(SupersetException):
     """ Common base class for Command exceptions. """
 
-    pass
+    def __repr__(self):
+        if self._exception:
+            return self._exception
+        return self
 
 
 class CommandInvalidError(CommandException):
