@@ -92,7 +92,8 @@ export default {
               ),
             },
           },
-          'normalize_across'],
+          'normalize_across',
+        ],
         ['left_margin', 'bottom_margin'],
         ['y_axis_bounds', 'y_axis_format'],
         [
@@ -104,7 +105,7 @@ export default {
               label: t('Show percentage'),
               renderTrigger: true,
               description: t(
-                'Whether to include the percentage in the tooltip'
+                'Whether to include the percentage in the tooltip',
               ),
               default: true,
             },
@@ -130,7 +131,7 @@ export default {
               choices: sortAxisChoices,
               clearable: false,
               default: 'alpha_asc',
-            }
+            },
           },
         ],
       ],
