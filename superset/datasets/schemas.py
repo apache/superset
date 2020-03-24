@@ -18,6 +18,8 @@
 from marshmallow import fields, Schema
 from marshmallow.validate import Length
 
+get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
 
 class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
