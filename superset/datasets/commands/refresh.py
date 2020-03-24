@@ -18,25 +18,22 @@ import logging
 from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.dao.exceptions import DAODeleteFailedError
 from superset.datasets.commands.exceptions import (
-    DatasetDeleteFailedError,
     DatasetForbiddenError,
     DatasetNotFoundError,
+    DatasetRefreshFailedError,
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db, security_manager
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
-class DeleteDatasetCommand(BaseCommand):
+class RefreshDatasetCommand(BaseCommand):
     def __init__(self, user: User, model_id: int):
         self._actor = user
         self._model_id = model_id
@@ -45,16 +42,12 @@ class DeleteDatasetCommand(BaseCommand):
     def run(self):
         self.validate()
         try:
-            dataset = DatasetDAO.delete(self._model, commit=False)
-            security_manager.del_permission_view_menu(
-                "datasource_access", dataset.get_perm()
-            )
-            db.session.commit()
-        except (SQLAlchemyError, DAODeleteFailedError) as e:
+            # Updates columns and metrics from the dataset
+            self._model.fetch_metadata()
+        except Exception as e:
             logger.exception(e)
-            db.session.rollback()
-            raise DatasetDeleteFailedError()
-        return dataset
+            raise DatasetRefreshFailedError()
+        return self._model
 
     def validate(self) -> None:
         # Validate/populate model exists
