@@ -18,9 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { nonEmpty } from '../validators';
-import {
-  formatSelectOptionsForRange,
-} from '../../modules/utils';
+import { formatSelectOptionsForRange } from '../../modules/utils';
 
 export default {
   requiresTime: true,
@@ -43,7 +41,7 @@ export default {
               ),
               default: true,
             },
-          }
+          },
         ],
         [
           {
@@ -59,7 +57,7 @@ export default {
                   'hidden in the visualization',
               ),
             },
-          }
+          },
         ],
       ],
     },
