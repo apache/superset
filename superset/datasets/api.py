@@ -281,7 +281,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         ---
         put:
           description: >-
-            Refreshes and updates columns of a dataset
+            Refresh updates columns for a dataset
           parameters:
           - in: path
             schema:
@@ -289,7 +289,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             name: pk
           responses:
             200:
-              description: Dataset delete
+              description: Dataset refreshed
               content:
                 application/json:
                   schema:
@@ -303,8 +303,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
