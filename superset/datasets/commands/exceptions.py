@@ -101,3 +101,7 @@ class DatasetDeleteFailedError(DeleteFailedError):
 
 class DatasetForbiddenError(ForbiddenError):
     message = _("Changing this dataset is forbidden")
+
+
+class DatasetRefreshFailedError(UpdateFailedError):
+    message = _("Dataset could not be updated.")

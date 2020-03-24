@@ -20,9 +20,10 @@ from typing import List
 from unittest.mock import patch
 
 import prison
+from sqlalchemy.sql import func
 
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.dao.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
@@ -451,4 +452,56 @@ class DatasetApiTests(SupersetTestCase):
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(data, {"message": "Dataset could not be deleted."})
         db.session.delete(table)
+        db.session.commit()
+
+    def test_dataset_item_refresh(self):
+        """
+            Dataset API: Test item refresh
+        """
+        dataset = self.insert_default_dataset()
+        # delete a column
+        id_column = (
+            db.session.query(TableColumn)
+                .filter_by(table_id=dataset.id, column_name="id")
+                .one()
+        )
+        db.session.delete(id_column)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/refresh"
+        rv = self.client.put(uri)
+        self.assertEqual(rv.status_code, 200)
+        # Assert the column is restored on refresh
+        id_column = (
+            db.session.query(TableColumn)
+                .filter_by(table_id=dataset.id, column_name="id")
+                .one()
+        )
+        self.assertIsNotNone(id_column)
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_dataset_item_refresh_not_found(self):
+        """
+            Dataset API: Test item refresh not found dataset
+        """
+        max_id = db.session.query(func.max(SqlaTable.id)).scalar()
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{max_id + 1}/refresh"
+        rv = self.client.put(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_dataset_item_refresh_not_owned(self):
+        """
+            Dataset API: Test item refresh not owned dataset
+        """
+        dataset = self.insert_default_dataset()
+        self.login(username="alpha")
+        uri = f"api/v1/dataset/{dataset.id}/refresh"
+        rv = self.client.put(uri)
+        self.assertEqual(rv.status_code, 403)
+
+        db.session.delete(dataset)
         db.session.commit()
