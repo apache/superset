@@ -79,8 +79,6 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
-const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
-
 // input choices & options
 const D3_FORMAT_OPTIONS = [
   ['SMART_NUMBER', 'Adaptative formating'],
@@ -99,6 +97,9 @@ const D3_FORMAT_OPTIONS = [
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
+
+export const D3_FORMAT_DOCS =
+  'D3 format syntax: https://github.com/d3/d3-format';
 
 export const D3_TIME_FORMAT_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
@@ -894,25 +895,6 @@ export const controls = {
     ),
   },
 
-  domain_granularity: {
-    type: 'SelectControl',
-    label: t('Domain'),
-    default: 'month',
-    choices: formatSelectOptions(['hour', 'day', 'week', 'month', 'year']),
-    description: t('The time unit used for the grouping of blocks'),
-  },
-
-  subdomain_granularity: {
-    type: 'SelectControl',
-    label: t('Subdomain'),
-    default: 'day',
-    choices: formatSelectOptions(['min', 'hour', 'day', 'week', 'month']),
-    description: t(
-      'The time unit for each block. Should be a smaller unit than ' +
-        'domain_granularity. Should be larger or equal to Time Grain',
-    ),
-  },
-
   link_length: {
     type: 'SelectControl',
     renderTrigger: true,
@@ -1155,46 +1137,6 @@ export const controls = {
     ),
   },
 
-  cell_size: {
-    type: 'TextControl',
-    isInt: true,
-    default: 10,
-    validators: [v.integer],
-    renderTrigger: true,
-    label: t('Cell Size'),
-    description: t('The size of the square cell, in pixels'),
-  },
-
-  cell_padding: {
-    type: 'TextControl',
-    isInt: true,
-    validators: [v.integer],
-    renderTrigger: true,
-    default: 2,
-    label: t('Cell Padding'),
-    description: t('The distance between cells, in pixels'),
-  },
-
-  cell_radius: {
-    type: 'TextControl',
-    isInt: true,
-    validators: [v.integer],
-    renderTrigger: true,
-    default: 0,
-    label: t('Cell Radius'),
-    description: t('The pixel radius'),
-  },
-
-  steps: {
-    type: 'TextControl',
-    isInt: true,
-    validators: [v.integer],
-    renderTrigger: true,
-    default: 10,
-    label: t('Color Steps'),
-    description: t('The number color "steps"'),
-  },
-
   grid_size: {
     type: 'TextControl',
     label: t('Grid Size'),
@@ -1345,16 +1287,6 @@ export const controls = {
     renderTrigger: true,
     default: 'SMART_NUMBER',
     choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
-  x_axis_time_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('X Axis Format'),
-    renderTrigger: true,
-    default: 'smart_date',
-    choices: D3_TIME_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
 
@@ -1722,14 +1654,6 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Whether to display the numerical values within the cells'),
-  },
-
-  show_metric_name: {
-    type: 'CheckboxControl',
-    label: t('Show Metric Names'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to display the metric name as a title'),
   },
 
   show_trend_line: {
