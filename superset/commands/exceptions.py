@@ -25,7 +25,10 @@ from superset.exceptions import SupersetException
 class CommandException(SupersetException):
     """ Common base class for Command exceptions. """
 
-    pass
+    def __repr__(self):
+        if self._exception:
+            return self._exception
+        return self
 
 
 class CommandInvalidError(CommandException):
@@ -75,3 +78,10 @@ class OwnersNotFoundValidationError(ValidationError):
 
     def __init__(self):
         super().__init__(_("Owners are invalid"), field_names=["owners"])
+
+
+class DatasourceNotFoundValidationError(ValidationError):
+    status = 404
+
+    def __init__(self):
+        super().__init__(_("Datasource does not exist"), field_names=["datasource_id"])

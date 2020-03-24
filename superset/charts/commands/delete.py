@@ -18,25 +18,23 @@ import logging
 from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.exc import SQLAlchemyError
 
+from superset.charts.commands.exceptions import (
+    ChartDeleteFailedError,
+    ChartForbiddenError,
+    ChartNotFoundError,
+)
+from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAODeleteFailedError
-from superset.datasets.commands.exceptions import (
-    DatasetDeleteFailedError,
-    DatasetForbiddenError,
-    DatasetNotFoundError,
-)
-from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db, security_manager
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
-class DeleteDatasetCommand(BaseCommand):
+class DeleteChartCommand(BaseCommand):
     def __init__(self, user: User, model_id: int):
         self._actor = user
         self._model_id = model_id
@@ -45,24 +43,19 @@ class DeleteDatasetCommand(BaseCommand):
     def run(self):
         self.validate()
         try:
-            dataset = DatasetDAO.delete(self._model, commit=False)
-            security_manager.del_permission_view_menu(
-                "datasource_access", dataset.get_perm()
-            )
-            db.session.commit()
-        except (SQLAlchemyError, DAODeleteFailedError) as e:
-            logger.exception(e)
-            db.session.rollback()
-            raise DatasetDeleteFailedError()
-        return dataset
+            chart = ChartDAO.delete(self._model)
+        except DAODeleteFailedError as e:
+            logger.exception(e.exception)
+            raise ChartDeleteFailedError()
+        return chart
 
     def validate(self) -> None:
         # Validate/populate model exists
-        self._model = DatasetDAO.find_by_id(self._model_id)
+        self._model = ChartDAO.find_by_id(self._model_id)
         if not self._model:
-            raise DatasetNotFoundError()
+            raise ChartNotFoundError()
         # Check ownership
         try:
             check_ownership(self._model)
         except SupersetSecurityException:
-            raise DatasetForbiddenError()
+            raise ChartForbiddenError()

@@ -17,9 +17,15 @@
 from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
+from sqlalchemy.orm.exc import NoResultFound
 
-from superset.commands.exceptions import OwnersNotFoundValidationError
-from superset.extensions import security_manager
+from superset.commands.exceptions import (
+    DatasourceNotFoundValidationError,
+    OwnersNotFoundValidationError,
+)
+from superset.connectors.base.models import BaseDatasource
+from superset.connectors.connector_registry import ConnectorRegistry
+from superset.extensions import db, security_manager
 
 
 def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[User]:
@@ -40,3 +46,12 @@ def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[
             raise OwnersNotFoundValidationError()
         owners.append(owner)
     return owners
+
+
+def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
+    try:
+        return ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session
+        )
+    except (NoResultFound, KeyError):
+        raise DatasourceNotFoundValidationError()

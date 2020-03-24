@@ -37,6 +37,18 @@ intended for use with local development.
 In order to override configuration settings locally, simply make a copy of [./docker/pythonpath/superset_config_local.example](./docker/pythonpath/superset_config_local.example)
 into [./docker/pythonpath/superset_config_docker.py](./docker/pythonpath/superset_config_docker.py) (git ignored) and fill in your overrides.
 
+### Local packages
+
+If you want to add python packages in order to test things like DBs locally, you can simply add a local requirements.txt (./docker/requirements-local.txt)
+and rebuild your docker stack.
+
+Steps:
+    1. Create ./docker/requirements-local.txt
+    2. Add your new packages
+    3. Rebuild docker-compose
+        a. `docker-compose down -v`
+        b. `docker-compose up`
+
 ## Initializing Database
 
 The DB will initialize itself upon startup via the init container (superset-init)

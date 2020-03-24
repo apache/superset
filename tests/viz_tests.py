@@ -1081,6 +1081,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lat",
+                    "isExtra": False,
                 },
                 {
                     "clause": "WHERE",
@@ -1089,6 +1090,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lon",
+                    "isExtra": False,
                 },
             ],
             "delimited_key": [
@@ -1099,6 +1101,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lonlat",
+                    "isExtra": False,
                 }
             ],
             "geohash_key": [
@@ -1109,6 +1112,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "geo",
+                    "isExtra": False,
                 }
             ],
         }

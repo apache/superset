@@ -20,110 +20,102 @@ from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.connectors.sqla.models import SqlaTable
-from superset.constants import RouteMethod
-from superset.datasets.commands.create import CreateDatasetCommand
-from superset.datasets.commands.delete import DeleteDatasetCommand
-from superset.datasets.commands.exceptions import (
-    DatasetCreateFailedError,
-    DatasetDeleteFailedError,
-    DatasetForbiddenError,
-    DatasetInvalidError,
-    DatasetNotFoundError,
-    DatasetRefreshFailedError,
-    DatasetUpdateFailedError,
+from superset.charts.commands.create import CreateChartCommand
+from superset.charts.commands.delete import DeleteChartCommand
+from superset.charts.commands.exceptions import (
+    ChartCreateFailedError,
+    ChartDeleteFailedError,
+    ChartForbiddenError,
+    ChartInvalidError,
+    ChartNotFoundError,
+    ChartUpdateFailedError,
 )
-from superset.datasets.commands.refresh import RefreshDatasetCommand
-from superset.datasets.commands.update import UpdateDatasetCommand
-from superset.datasets.schemas import DatasetPostSchema, DatasetPutSchema
-from superset.views.base import DatasourceFilter
+from superset.charts.commands.update import UpdateChartCommand
+from superset.charts.filters import ChartFilter
+from superset.charts.schemas import ChartPostSchema, ChartPutSchema
+from superset.models.slice import Slice
 from superset.views.base_api import BaseSupersetModelRestApi
-from superset.views.database.filters import DatabaseFilter
 
 logger = logging.getLogger(__name__)
 
 
-class DatasetRestApi(BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(SqlaTable)
-    base_filters = [["id", DatasourceFilter, lambda: []]]
+class ChartRestApi(BaseSupersetModelRestApi):
+    datamodel = SQLAInterface(Slice)
 
-    resource_name = "dataset"
+    resource_name = "chart"
     allow_browser_login = True
 
-    class_permission_name = "TableModelView"
-    include_route_methods = (
-        RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED} | {"refresh"}
-    )
-
-    list_columns = [
-        "database_name",
-        "changed_by_name",
-        "changed_by_url",
-        "changed_by.username",
-        "changed_on",
-        "database_name",
-        "explore_url",
-        "id",
-        "schema",
-        "table_name",
-    ]
+    class_permission_name = "SliceModelView"
     show_columns = [
-        "database.database_name",
-        "database.id",
-        "table_name",
-        "sql",
-        "filter_select_enabled",
-        "fetch_values_predicate",
-        "schema",
+        "slice_name",
         "description",
-        "main_dttm_col",
-        "offset",
-        "default_endpoint",
-        "cache_timeout",
-        "is_sqllab_view",
-        "template_params",
         "owners.id",
         "owners.username",
-        "columns",
-        "metrics",
-    ]
-    add_model_schema = DatasetPostSchema()
-    edit_model_schema = DatasetPutSchema()
-    add_columns = ["database", "schema", "table_name", "owners"]
-    edit_columns = [
-        "table_name",
-        "sql",
-        "filter_select_enabled",
-        "fetch_values_predicate",
-        "schema",
-        "description",
-        "main_dttm_col",
-        "offset",
-        "default_endpoint",
+        "dashboards.id",
+        "dashboards.dashboard_title",
+        "viz_type",
+        "params",
         "cache_timeout",
-        "is_sqllab_view",
-        "template_params",
-        "owners",
-        "columns",
-        "metrics",
     ]
-    openapi_spec_tag = "Datasets"
+    list_columns = [
+        "id",
+        "slice_name",
+        "url",
+        "description",
+        "changed_by.username",
+        "changed_by_name",
+        "changed_by_url",
+        "changed_on",
+        "datasource_name_text",
+        "datasource_url",
+        "viz_type",
+        "params",
+        "cache_timeout",
+    ]
+    order_columns = [
+        "slice_name",
+        "viz_type",
+        "datasource_name",
+        "changed_by_fk",
+        "changed_on",
+    ]
+    search_columns = (
+        "slice_name",
+        "description",
+        "viz_type",
+        "datasource_name",
+        "owners",
+    )
+    base_order = ("changed_on", "desc")
+    base_filters = [["id", ChartFilter, lambda: []]]
 
-    filter_rel_fields_field = {"owners": "first_name", "database": "database_name"}
-    filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
-    allowed_rel_fields = {"database", "owners"}
+    # Will just affect _info endpoint
+    edit_columns = ["slice_name"]
+    add_columns = edit_columns
+
+    add_model_schema = ChartPostSchema()
+    edit_model_schema = ChartPutSchema()
+
+    openapi_spec_tag = "Charts"
+
+    order_rel_fields = {
+        "slices": ("slice_name", "asc"),
+        "owners": ("first_name", "asc"),
+    }
+    filter_rel_fields_field = {"owners": "first_name"}
+    allowed_rel_fields = {"owners"}
 
     @expose("/", methods=["POST"])
     @protect()
     @safe
     def post(self) -> Response:
-        """Creates a new Dataset
+        """Creates a new Chart
         ---
         post:
           description: >-
-            Create a new Dataset
+            Create a new Chart
           requestBody:
-            description: Dataset schema
+            description: Chart schema
             required: true
             content:
               application/json:
@@ -131,7 +123,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
           responses:
             201:
-              description: Dataset added
+              description: Chart added
               content:
                 application/json:
                   schema:
@@ -157,11 +149,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if item.errors:
             return self.response_400(message=item.errors)
         try:
-            new_model = CreateDatasetCommand(g.user, item.data).run()
+            new_model = CreateChartCommand(g.user, item.data).run()
             return self.response(201, id=new_model.id, result=item.data)
-        except DatasetInvalidError as e:
+        except ChartInvalidError as e:
             return self.response_422(message=e.normalized_messages())
-        except DatasetCreateFailedError as e:
+        except ChartCreateFailedError as e:
             logger.error(f"Error creating model {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))
 
@@ -171,18 +163,18 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     def put(  # pylint: disable=too-many-return-statements, arguments-differ
         self, pk: int
     ) -> Response:
-        """Changes a Dataset
+        """Changes a Chart
         ---
         put:
           description: >-
-            Changes a Dataset
+            Changes a Chart
           parameters:
           - in: path
             schema:
               type: integer
             name: pk
           requestBody:
-            description: Dataset schema
+            description: Chart schema
             required: true
             content:
               application/json:
@@ -190,7 +182,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
           responses:
             200:
-              description: Dataset changed
+              description: Chart changed
               content:
                 application/json:
                   schema:
@@ -220,15 +212,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if item.errors:
             return self.response_400(message=item.errors)
         try:
-            changed_model = UpdateDatasetCommand(g.user, pk, item.data).run()
+            changed_model = UpdateChartCommand(g.user, pk, item.data).run()
             return self.response(200, id=changed_model.id, result=item.data)
-        except DatasetNotFoundError:
+        except ChartNotFoundError:
             return self.response_404()
-        except DatasetForbiddenError:
+        except ChartForbiddenError:
             return self.response_403()
-        except DatasetInvalidError as e:
+        except ChartInvalidError as e:
             return self.response_422(message=e.normalized_messages())
-        except DatasetUpdateFailedError as e:
+        except ChartUpdateFailedError as e:
             logger.error(f"Error updating model {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))
 
@@ -236,11 +228,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
-        """Deletes a Dataset
+        """Deletes a Chart
         ---
         delete:
           description: >-
-            Deletes a Dataset
+            Deletes a Chart
           parameters:
           - in: path
             schema:
@@ -248,7 +240,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             name: pk
           responses:
             200:
-              description: Dataset delete
+              description: Chart delete
               content:
                 application/json:
                   schema:
@@ -268,58 +260,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDatasetCommand(g.user, pk).run()
+            DeleteChartCommand(g.user, pk).run()
             return self.response(200, message="OK")
-        except DatasetNotFoundError:
+        except ChartNotFoundError:
             return self.response_404()
-        except DatasetForbiddenError:
+        except ChartForbiddenError:
             return self.response_403()
-        except DatasetDeleteFailedError as e:
+        except ChartDeleteFailedError as e:
             logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
-
-    @expose("/<pk>/refresh", methods=["PUT"])
-    @protect()
-    @safe
-    def refresh(self, pk: int) -> Response:  # pylint: disable=invalid-name
-        """Refresh a Dataset
-        ---
-        put:
-          description: >-
-            Refreshes and updates columns of a dataset
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          responses:
-            200:
-              description: Dataset delete
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            RefreshDatasetCommand(g.user, pk).run()
-            return self.response(200, message="OK")
-        except DatasetNotFoundError:
-            return self.response_404()
-        except DatasetForbiddenError:
-            return self.response_403()
-        except DatasetRefreshFailedError as e:
-            logger.error(f"Error refreshing dataset {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))
