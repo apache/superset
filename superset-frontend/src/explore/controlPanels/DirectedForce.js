@@ -17,9 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import {
-  formatSelectOptions,
-} from '../../modules/utils';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
@@ -36,30 +34,32 @@ export default {
     {
       label: t('Options'),
       controlSetRows: [
-        ['link_length'], 
-        [{
-          name: 'charge',
-          config: {
-            type: 'SelectControl',
-            renderTrigger: true,
-            freeForm: true,
-            label: t('Charge'),
-            default: '-500',
-            choices: formatSelectOptions([
-              '-50',
-              '-75',
-              '-100',
-              '-150',
-              '-200',
-              '-250',
-              '-500',
-              '-1000',
-              '-2500',
-              '-5000',
-            ]),
-            description: t('Charge in the force layout'),
+        ['link_length'],
+        [
+          {
+            name: 'charge',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: true,
+              freeForm: true,
+              label: t('Charge'),
+              default: '-500',
+              choices: formatSelectOptions([
+                '-50',
+                '-75',
+                '-100',
+                '-150',
+                '-200',
+                '-250',
+                '-500',
+                '-1000',
+                '-2500',
+                '-5000',
+              ]),
+              description: t('Charge in the force layout'),
+            },
           },
-        }]
+        ],
       ],
     },
   ],
