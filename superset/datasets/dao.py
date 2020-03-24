@@ -15,18 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from flask import current_app
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.commands.exceptions import (
-    CreateFailedError,
-    DeleteFailedError,
-    UpdateFailedError,
-)
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.dao.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import Database
 from superset.views.base import DatasourceFilter
@@ -34,7 +29,10 @@ from superset.views.base import DatasourceFilter
 logger = logging.getLogger(__name__)
 
 
-class DatasetDAO:
+class DatasetDAO(BaseDAO):
+    model_cls = SqlaTable
+    base_filter = DatasourceFilter
+
     @staticmethod
     def get_owner_by_id(owner_id: int) -> Optional[object]:
         return (
@@ -79,47 +77,108 @@ class DatasetDAO:
         return not db.session.query(dataset_query.exists()).scalar()
 
     @staticmethod
-    def find_by_id(model_id: int) -> SqlaTable:
-        data_model = SQLAInterface(SqlaTable, db.session)
-        query = db.session.query(SqlaTable)
-        query = DatasourceFilter("id", data_model).apply(query, None)
-        return query.filter_by(id=model_id).one_or_none()
+    def validate_columns_exist(dataset_id: int, columns_ids: List[int]) -> bool:
+        dataset_query = (
+            db.session.query(TableColumn.id).filter(
+                TableColumn.table_id == dataset_id, TableColumn.id.in_(columns_ids)
+            )
+        ).all()
+        return len(columns_ids) == len(dataset_query)
 
     @staticmethod
-    def create(properties: Dict, commit=True) -> Optional[SqlaTable]:
-        model = SqlaTable()
-        for key, value in properties.items():
-            setattr(model, key, value)
-        try:
-            db.session.add(model)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
-            db.session.rollback()
-            raise CreateFailedError(exception=e)
-        return model
+    def validate_columns_uniqueness(dataset_id: int, columns_names: List[str]) -> bool:
+        dataset_query = (
+            db.session.query(TableColumn.id).filter(
+                TableColumn.table_id == dataset_id,
+                TableColumn.column_name.in_(columns_names),
+            )
+        ).all()
+        return len(dataset_query) == 0
 
     @staticmethod
-    def update(model: SqlaTable, properties: Dict, commit=True) -> Optional[SqlaTable]:
-        for key, value in properties.items():
-            setattr(model, key, value)
-        try:
-            db.session.merge(model)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
-            db.session.rollback()
-            raise UpdateFailedError(exception=e)
-        return model
+    def validate_metrics_exist(dataset_id: int, metrics_ids: List[int]) -> bool:
+        dataset_query = (
+            db.session.query(SqlMetric.id).filter(
+                SqlMetric.table_id == dataset_id, SqlMetric.id.in_(metrics_ids)
+            )
+        ).all()
+        return len(metrics_ids) == len(dataset_query)
 
     @staticmethod
-    def delete(model: SqlaTable, commit=True):
-        try:
-            db.session.delete(model)
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
-            logger.error(f"Failed to delete dataset: {e}")
-            db.session.rollback()
-            raise DeleteFailedError(exception=e)
-        return model
+    def validate_metrics_uniqueness(dataset_id: int, metrics_names: List[str]) -> bool:
+        dataset_query = (
+            db.session.query(SqlMetric.id).filter(
+                SqlMetric.table_id == dataset_id,
+                SqlMetric.metric_name.in_(metrics_names),
+            )
+        ).all()
+        return len(dataset_query) == 0
+
+    @classmethod
+    def update(
+        cls, model: SqlaTable, properties: Dict, commit=True
+    ) -> Optional[SqlaTable]:
+        """
+        Updates a Dataset model on the metadata DB
+        """
+        if "columns" in properties:
+            new_columns = list()
+            for column in properties.get("columns", []):
+                if column.get("id"):
+                    column_obj = db.session.query(TableColumn).get(column.get("id"))
+                    column_obj = DatasetDAO.update_column(
+                        column_obj, column, commit=commit
+                    )
+                else:
+                    column_obj = DatasetDAO.create_column(column, commit=commit)
+                new_columns.append(column_obj)
+            properties["columns"] = new_columns
+
+        if "metrics" in properties:
+            new_metrics = list()
+            for metric in properties.get("metrics", []):
+                if metric.get("id"):
+                    metric_obj = db.session.query(SqlMetric).get(metric.get("id"))
+                    metric_obj = DatasetDAO.update_metric(
+                        metric_obj, metric, commit=commit
+                    )
+                else:
+                    metric_obj = DatasetDAO.create_metric(metric, commit=commit)
+                new_metrics.append(metric_obj)
+            properties["metrics"] = new_metrics
+
+        return super().update(model, properties, commit=commit)
+
+    @classmethod
+    def update_column(
+        cls, model: TableColumn, properties: Dict, commit=True
+    ) -> Optional[TableColumn]:
+        return DatasetColumnDAO.update(model, properties, commit=commit)
+
+    @classmethod
+    def create_column(cls, properties: Dict, commit=True) -> Optional[TableColumn]:
+        """
+        Creates a Dataset model on the metadata DB
+        """
+        return DatasetColumnDAO.create(properties, commit=commit)
+
+    @classmethod
+    def update_metric(
+        cls, model: SqlMetric, properties: Dict, commit=True
+    ) -> Optional[SqlMetric]:
+        return DatasetMetricDAO.update(model, properties, commit=commit)
+
+    @classmethod
+    def create_metric(cls, properties: Dict, commit=True) -> Optional[SqlMetric]:
+        """
+        Creates a Dataset model on the metadata DB
+        """
+        return DatasetMetricDAO.create(properties, commit=commit)
+
+
+class DatasetColumnDAO(BaseDAO):
+    model_cls = TableColumn
+
+
+class DatasetMetricDAO(BaseDAO):
+    model_cls = SqlMetric
