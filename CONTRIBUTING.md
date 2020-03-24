@@ -1070,7 +1070,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `y_axis_showminmax` | _boolean_       | The **Y bounds** widget      |
 | `y_axis_zero`       | _N/A_           | _Deprecated?_                |
 | `y_log_scale`       | _boolean_       | The **Y Log Scale** widget   |
-| `yscale_interval`   | _N/A_           | _Deprecated?_                |
 
 Note the `y_axis_format` is defined under various section for some charts.
 
@@ -1093,7 +1092,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `autozoom`                      | _N/A_ |       |
 | `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
-| `canvas_image_rendering`        | _N/A_ |       |
 | `charge`                        | _N/A_ |       |
 | `clustering_radius`             | _N/A_ |       |
 | `code`                          | _N/A_ |       |
@@ -1204,15 +1202,12 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_druid_time_granularity`   | _N/A_ |       |
 | `show_druid_time_origin`        | _N/A_ |       |
 | `show_labels`                   | _N/A_ |       |
-| `show_perc`                     | _N/A_ |       |
 | `show_sqla_time_column`         | _N/A_ |       |
 | `show_sqla_time_granularity`    | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |
 | `size_from`                     | _N/A_ |       |
 | `size_to`                       | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
-| `sort_x_axis`                   | _N/A_ |       |
-| `sort_y_axis`                   | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
 | `stacked_style`                 | _N/A_ |       |
 | `start_spatial`                 | _N/A_ |       |
