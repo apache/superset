@@ -57,6 +57,68 @@ class DatasetExistsValidationError(ValidationError):
         )
 
 
+class DatasetColumnNotFoundValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset column for update does not exist
+    """
+
+    def __init__(self):
+        super().__init__(_("One or more columns do not exist"), field_names=["columns"])
+
+
+class DatasetColumnsDuplicateValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset columns have a duplicate on the list
+    """
+
+    def __init__(self):
+        super().__init__(
+            _("One or more columns are duplicated"), field_names=["columns"]
+        )
+
+
+class DatasetColumnsExistsValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset columns already exist
+    """
+
+    def __init__(self):
+        super().__init__(
+            _("One or more columns already exist"), field_names=["columns"]
+        )
+
+
+class DatasetMetricsNotFoundValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset metric for update does not exist
+    """
+
+    def __init__(self):
+        super().__init__(_("One or more metrics do not exist"), field_names=["metrics"])
+
+
+class DatasetMetricsDuplicateValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset metrics have a duplicate on the list
+    """
+
+    def __init__(self):
+        super().__init__(
+            _("One or more metrics are duplicated"), field_names=["metrics"]
+        )
+
+
+class DatasetMetricsExistsValidationError(ValidationError):
+    """
+    Marshmallow validation error when dataset metrics already exist
+    """
+
+    def __init__(self):
+        super().__init__(
+            _("One or more metrics already exist"), field_names=["metrics"]
+        )
+
+
 class TableNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error when a table does not exist on the database
@@ -97,6 +159,10 @@ class DatasetUpdateFailedError(UpdateFailedError):
 
 class DatasetDeleteFailedError(DeleteFailedError):
     message = _("Dataset could not be deleted.")
+
+
+class DatasetRefreshFailedError(UpdateFailedError):
+    message = _("Dataset could not be updated.")
 
 
 class DatasetForbiddenError(ForbiddenError):
