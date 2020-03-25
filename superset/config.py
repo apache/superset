@@ -34,6 +34,9 @@ from celery.schedules import crontab
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
+from superset.jinja_context import (  # pylint: disable=unused-import
+    BaseTemplateProcessor,
+)
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
 from superset.utils.log import DBEventLogger
@@ -584,6 +587,13 @@ UPLOADED_CSV_HIVE_NAMESPACE = None
 # meaning values for existing keys get overwritten by the content of this
 # dictionary.
 JINJA_CONTEXT_ADDONS: Dict[str, Callable] = {}
+
+# A dictionary of macro template processors that gets merged into global
+# template processors. The existing template processors get updated with this
+# dictionary, which means the existing keys get overwritten by the content of this
+# dictionary. The customized addons don't necessarily need to use jinjia templating
+# language. This allows you to define custom logic to process macro template.
+CUSTOM_TEMPLATE_PROCESSORS = {}  # type: Dict[str, BaseTemplateProcessor]
 
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.
