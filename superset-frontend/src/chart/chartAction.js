@@ -25,6 +25,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   getExploreUrlAndPayload,
   getAnnotationJsonUrl,
+  postForm,
 } from '../explore/exploreUtils';
 import {
   requiresQuery,
@@ -358,14 +359,12 @@ export function redirectSQLLab(formData) {
       postPayload: { form_data: formData },
     })
       .then(({ json }) => {
-        const redirectUrl = new URL(window.location);
-        redirectUrl.pathname = '/superset/sqllab';
-        for (const key of redirectUrl.searchParams.keys()) {
-          redirectUrl.searchParams.delete(key);
-        }
-        redirectUrl.searchParams.set('datasourceKey', formData.datasource);
-        redirectUrl.searchParams.set('sql', json.query);
-        window.open(redirectUrl.href, '_blank');
+        const redirectUrl = '/superset/sqllab';
+        const payload = {
+          datasourceKey: formData.datasource,
+          sql: json.query,
+        };
+        postForm(redirectUrl, payload);
       })
       .catch(() =>
         dispatch(addDangerToast(t('An error occurred while loading the SQL'))),
