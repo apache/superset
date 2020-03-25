@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-black==19.3b0
+black==19.10b0
 coverage==4.5.3
 flask-cors==3.0.7
 flask-testing==0.7.1
