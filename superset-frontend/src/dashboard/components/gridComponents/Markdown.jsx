@@ -69,7 +69,7 @@ const propTypes = {
 
 const defaultProps = {};
 
-const markdownPlaceHolder = `# ✨Markdown
+const MARKDOWN_PLACE_HOLDER = `# ✨Markdown
 ## ✨Markdown
 ### ✨Markdown
 
@@ -77,9 +77,7 @@ const markdownPlaceHolder = `# ✨Markdown
 
 Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
-const emergencyCode = `
-  This markdown component has an error.
-`;
+const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
 
 function isSafeMarkup(node) {
   if (node.type === 'html') {
@@ -243,7 +241,7 @@ class Markdown extends React.PureComponent {
           // thisl allows "select all => delete" to give an empty editor
           typeof this.state.markdownSource === 'string'
             ? this.state.markdownSource
-            : markdownPlaceHolder
+            : MARKDOWN_PLACE_HOLDER
         }
         readOnly={false}
         onLoad={this.setEditor}
@@ -257,8 +255,8 @@ class Markdown extends React.PureComponent {
       <ReactMarkdown
         source={
           hasError
-            ? emergencyCode
-            : this.state.markdownSource || markdownPlaceHolder
+            ? MARKDOWN_ERROR_MESSAGE
+            : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
         escapeHtml={false}
         allowNode={isSafeMarkup}
