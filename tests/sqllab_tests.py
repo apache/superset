@@ -338,7 +338,7 @@ class SqlLabTests(SupersetTestCase):
         payload = {"datasourceName": "ab_role", "columns": [], "dbId": examples_dbid}
 
         data = {"data": json.dumps(payload)}
-        resp = self.get_json_resp("/superset/sqllab_table_viz/", data=data)
+        resp = self.get_json_resp("/superset/get_or_create_table/", data=data)
         self.assertIn("table_id", resp)
 
         # ensure owner is set correctly

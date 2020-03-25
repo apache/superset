@@ -1254,22 +1254,18 @@ export function createCtasDatasource(vizOptions) {
   return dispatch => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
-      endpoint: '/superset/sqllab_table_viz/',
+      endpoint: '/superset/get_or_create_table/',
       postPayload: { data: vizOptions },
     })
       .then(({ json }) => {
         dispatch(createDatasourceSuccess(json));
 
-        return Promise.resolve(json);
+        return json;
       })
       .catch(() => {
-        dispatch(
-          createDatasourceFailed(
-            t('An error occurred while creating the data source'),
-          ),
-        );
-
-        return Promise.reject();
+        const errorMsg = t('An error occurred while creating the data source');
+        dispatch(createDatasourceFailed(errorMsg));
+        return Promise.reject(new Error(errorMsg));
       });
   };
 }

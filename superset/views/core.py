@@ -1958,10 +1958,10 @@ class Superset(BaseSupersetView):
         return Response(status=201)
 
     @has_access
-    @expose("/sqllab_table_viz/", methods=["POST"])
+    @expose("/get_or_create_table/", methods=["POST"])
     @event_logger.log_this
     def sqllab_table_viz(self):
-        """ This endpoint visualizes table no matter if it is created or not.
+        """ Gets or creates a table object with attributes passed to the API.
 
         It expects the json with params:
         * datasourceName - e.g. table name, required
