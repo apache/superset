@@ -39,6 +39,7 @@ const propTypes = {
   databases: PropTypes.object.isRequired,
   queries: PropTypes.object.isRequired,
   queryEditors: PropTypes.array,
+  requestedQuery: PropTypes.object,
   tabHistory: PropTypes.array.isRequired,
   tables: PropTypes.array.isRequired,
   offline: PropTypes.bool,
@@ -48,6 +49,7 @@ const propTypes = {
 const defaultProps = {
   queryEditors: [],
   offline: false,
+  requestedQuery: null,
   saveQueryWarning: null,
   scheduleQueryWarning: null,
 };
@@ -101,7 +103,7 @@ class TabbedSqlEditors extends React.PureComponent {
 
     // merge post form data with GET search params
     const query = {
-      ...this.props.formData,
+      ...this.props.requestedQuery,
       ...URI(window.location).search(true),
     };
 
@@ -379,7 +381,7 @@ class TabbedSqlEditors extends React.PureComponent {
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
 
-function mapStateToProps({ sqlLab, common }) {
+function mapStateToProps({ sqlLab, common, requestedQuery }) {
   return {
     databases: sqlLab.databases,
     queryEditors: sqlLab.queryEditors,
@@ -393,6 +395,7 @@ function mapStateToProps({ sqlLab, common }) {
     maxRow: common.conf.SQL_MAX_ROW,
     saveQueryWarning: common.conf.SQLLAB_SAVE_WARNING_MESSAGE,
     scheduleQueryWarning: common.conf.SQLLAB_SCHEDULE_WARNING_MESSAGE,
+    requestedQuery,
   };
 }
 function mapDispatchToProps(dispatch) {

@@ -2703,7 +2703,7 @@ class Superset(BaseSupersetView):
         )
 
     @staticmethod
-    def _get_sqllab_payload(user_id: int) -> Dict[str, Any]:
+    def _get_sqllab_tabs(user_id: int) -> Dict[str, Any]:
         # send list of tab state ids
         tabs_state = (
             db.session.query(TabState.id, TabState.label)
@@ -2743,8 +2743,6 @@ class Superset(BaseSupersetView):
             }
 
         return {
-            "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
-            "common": common_bootstrap_payload(),
             "tab_state_ids": tabs_state,
             "active_tab": active_tab.to_dict() if active_tab else None,
             "databases": databases,
@@ -2755,14 +2753,22 @@ class Superset(BaseSupersetView):
     @expose("/sqllab", methods=["GET", "POST"])
     def sqllab(self):
         """SQL Editor"""
-        payload = self._get_sqllab_payload(g.user.get_id())
-        form_data = request.form.get('form_data')
-        try:
-            payload['form_data'] = json.loads(form_data)
-        except:
-            pass
+        payload = {
+            "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
+            "common": common_bootstrap_payload(),
+        }
+
+        tabs_data = self._get_sqllab_tabs(g.user.get_id())
+        payload.update(tabs_data)
+
+        form_data = request.form.get("form_data")
+        if form_data:
+            try:
+                payload["requested_query"] = json.loads(form_data)
+            except json.JSONDecodeError:
+                pass
         bootstrap_data = json.dumps(
-            payload, default=utils.pessimistic_json_iso_dttm_ser,
+            payload, default=utils.pessimistic_json_iso_dttm_ser
         )
 
         return self.render_template(

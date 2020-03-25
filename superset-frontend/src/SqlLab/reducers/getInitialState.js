@@ -26,6 +26,7 @@ export default function getInitialState({
   tab_state_ids: tabStateIds = [],
   databases,
   queries: queries_,
+  requested_query: requestedQuery,
 }) {
   /**
    * Before YYYY-MM-DD, the state for SQL Lab was stored exclusively in the
@@ -180,6 +181,7 @@ export default function getInitialState({
       tables,
       queriesLastUpdate: Date.now(),
     },
+    requestedQuery,
     messageToasts: getToastsFromPyFlashMessages(
       (common || {}).flash_messages || [],
     ),

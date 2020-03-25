@@ -109,7 +109,7 @@ if (sqlLabMenu) {
 
 const Application = () => (
   <Provider store={store}>
-    <App formData={bootstrapData.form_data} />
+    <App />
   </Provider>
 );
 
