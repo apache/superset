@@ -2756,10 +2756,8 @@ class Superset(BaseSupersetView):
         payload = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": common_bootstrap_payload(),
+            **self._get_sqllab_tabs(g.user.get_id()),
         }
-
-        tabs_data = self._get_sqllab_tabs(g.user.get_id())
-        payload.update(tabs_data)
 
         form_data = request.form.get("form_data")
         if form_data:
