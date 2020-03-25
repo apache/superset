@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 # flake8: noqa
+# type: ignore
 import os
 from copy import copy
 
-from superset.config import *  # type: ignore
+from superset.config import *
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")

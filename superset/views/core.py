@@ -188,7 +188,10 @@ def check_datasource_perms(
     except SupersetException as e:
         raise SupersetSecurityException(str(e))
 
-    viz_obj = get_viz(  # type: ignore
+    if datasource_type is None:
+        raise SupersetSecurityException("Could not determine datasource type")
+
+    viz_obj = get_viz(
         datasource_type=datasource_type,
         datasource_id=datasource_id,
         form_data=form_data,
