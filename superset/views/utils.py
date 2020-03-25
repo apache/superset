@@ -223,8 +223,9 @@ def get_time_range_endpoints(
     Note under certain circumstances the slice object may not exist, however the slice
     ID may be defined which serves as a fallback.
 
-    When SIP-15 is enabled all slices and will the [start, end) interval. If the grace
-    period is defined and has ended all slices will adhere to the [start, end) interval.
+    When SIP-15 is enabled all new slices will use the [start, end) interval. If the
+    grace period is defined and has ended all slices will adhere to the [start, end)
+    interval.
 
     :param form_data: The form-data
     :param slc: The slice
