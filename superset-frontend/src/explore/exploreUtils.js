@@ -190,29 +190,36 @@ export function getExploreUrlAndPayload({
   };
 }
 
+export function postForm(url, payload, target = '_blank') {
+  if (!url) {
+    return;
+  }
+
+  const hiddenForm = document.createElement('form');
+  hiddenForm.action = url;
+  hiddenForm.method = 'POST';
+  hiddenForm.target = target;
+  const token = document.createElement('input');
+  token.type = 'hidden';
+  token.name = 'csrf_token';
+  token.value = (document.getElementById('csrf_token') || {}).value;
+  hiddenForm.appendChild(token);
+  const data = document.createElement('input');
+  data.type = 'hidden';
+  data.name = 'form_data';
+  data.value = safeStringify(payload);
+  hiddenForm.appendChild(data);
+
+  document.body.appendChild(hiddenForm);
+  hiddenForm.submit();
+  document.body.removeChild(hiddenForm);
+}
+
 export function exportChart(formData, endpointType) {
   const { url, payload } = getExploreUrlAndPayload({
     formData,
     endpointType,
     allowDomainSharding: false,
   });
-
-  const exploreForm = document.createElement('form');
-  exploreForm.action = url;
-  exploreForm.method = 'POST';
-  exploreForm.target = '_blank';
-  const token = document.createElement('input');
-  token.type = 'hidden';
-  token.name = 'csrf_token';
-  token.value = (document.getElementById('csrf_token') || {}).value;
-  exploreForm.appendChild(token);
-  const data = document.createElement('input');
-  data.type = 'hidden';
-  data.name = 'form_data';
-  data.value = safeStringify(payload);
-  exploreForm.appendChild(data);
-
-  document.body.appendChild(exploreForm);
-  exploreForm.submit();
-  document.body.removeChild(exploreForm);
+  postForm(url, payload);
 }
