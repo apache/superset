@@ -1177,7 +1177,7 @@ class CoreTests(SupersetTestCase):
 
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
-        payload = views.Superset._get_sqllab_payload(user_id=user_id)
+        payload = views.Superset._get_sqllab_tabs(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
 
