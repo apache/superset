@@ -1119,7 +1119,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `flt_op_1`                      | _N/A_ |       |
 | `goto_dash`                     | _N/A_ |       |
 | `grid_size`                     | _N/A_ |       |
-| `horizon_color_scale`           | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
 | `js_agg_function`               | _N/A_ |       |
@@ -1182,7 +1181,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `schema`                        | _N/A_ |       |
 | `select_country`                | _N/A_ |       |
 | `series`                        | _N/A_ |       |
-| `series_height`                 | _N/A_ |       |
 | `show_bar_value`                | _N/A_ |       |
 | `show_brush`                    | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
