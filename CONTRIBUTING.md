@@ -75,7 +75,7 @@ little bit helps, and credit will always be given.
     - [Creating a new language dictionary](#creating-a-new-language-dictionary)
   - [Tips](#tips)
     - [Adding a new datasource](#adding-a-new-datasource)
-    - [Creating a new visualization type](#creating-a-new-visualization-type)
+    - [Improving visualizations](#improving-visualizations)
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
     - [SQL Lab Async](#sql-lab-async)
@@ -389,7 +389,7 @@ Make sure your machine meets the [OS dependencies](https://superset.incubator.ap
 
 Developers should use a virtualenv.
 
-```
+```bash
 pip install virtualenv
 ```
 
@@ -726,7 +726,7 @@ In TypeScript/JavaScript, the technique is similar:
 we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import { t, tn } from "@superset-ui/translation";
+import { t, tn } from '@superset-ui/translation';
 ```
 
 ### Enabling language selection
@@ -803,11 +803,31 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
    This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
 
-### Creating a new visualization type
+### Improving visualizations
 
-Here's an example as a Github PR with comments that describe what the
-different sections of the code do:
-https://github.com/apache/incubator-superset/pull/3013
+Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins):
+
+```bash
+git clone https://github.com/apache-superset/superset-ui-plugins.git
+yarn && yarn build
+```
+
+Then use `npm link` to create a symlink of the source code in `superset-frontend/node_modules`:
+
+```bash
+cd incubator-superset/superset-frontend
+npm link ../../superset-ui-plugins/packages/superset-ui-[PLUGIN NAME]
+
+# Or to link all plugin packages:
+# npm link ../../superset-ui-plugins/packages/*
+
+# Start developing
+npm run dev-server
+```
+
+When plugin packages are linked with `npm link`, the dev server will automatically load files from the plugin's `/src` directory.
+
+Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
 
 ### Adding a DB migration
 
@@ -905,12 +925,14 @@ To do this, you'll need to:
 - Configure a results backend, here's a local `FileSystemCache` example,
   not recommended for production,
   but perfect for testing (stores cache in `/tmp`)
+
   ```python
   from werkzeug.contrib.cache import FileSystemCache
   RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
   ```
 
-* Start up a celery worker
+- Start up a celery worker
+
   ```shell script
   celery worker --app=superset.tasks.celery_app:app -Ofair
   ```
