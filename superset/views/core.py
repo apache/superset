@@ -187,7 +187,7 @@ def check_datasource_perms(
     except SupersetException as e:
         raise SupersetSecurityException(str(e))
 
-    viz_obj = get_viz(
+    viz_obj = get_viz(  # type: ignore
         datasource_type=datasource_type,
         datasource_id=datasource_id,
         form_data=form_data,
@@ -575,27 +575,6 @@ class Superset(BaseSupersetView):
             session.delete(r)
         session.commit()
         return redirect("/accessrequestsmodelview/list/")
-
-    def get_viz(
-        self,
-        slice_id=None,
-        form_data=None,
-        datasource_type=None,
-        datasource_id=None,
-        force=False,
-    ):
-        if slice_id:
-            slc = db.session.query(Slice).filter_by(id=slice_id).one()
-            return slc.get_viz()
-        else:
-            viz_type = form_data.get("viz_type", "table")
-            datasource = ConnectorRegistry.get_datasource(
-                datasource_type, datasource_id, db.session
-            )
-            viz_obj = viz.viz_types[viz_type](
-                datasource, form_data=form_data, force=force
-            )
-            return viz_obj
 
     @has_access
     @expose("/slice/<slice_id>/")
@@ -2782,19 +2761,6 @@ class Superset(BaseSupersetView):
         return self.render_template(
             "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
         )
-
-    @api
-    @handle_api_exception
-    @has_access_api
-    @expose("/slice_query/<slice_id>/")
-    def slice_query(self, slice_id):
-        """
-        This method exposes an API endpoint to
-        get the database query string for this slice
-        """
-        viz_obj = get_viz(slice_id)
-        security_manager.assert_viz_permission(viz_obj)
-        return self.get_query_string_response(viz_obj)
 
     @api
     @has_access_api
