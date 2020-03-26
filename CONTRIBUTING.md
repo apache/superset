@@ -1092,7 +1092,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `autozoom`                      | _N/A_ |       |
 | `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
-| `charge`                        | _N/A_ |       |
 | `clustering_radius`             | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
