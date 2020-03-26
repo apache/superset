@@ -393,51 +393,53 @@ class ChartList extends React.PureComponent<Props, State> {
     return (
       <div className="container welcome">
         <Panel>
-          {sliceCurrentlyEditing && (
-            <PropertiesModal
-              show
-              onHide={this.closeChartEditModal}
-              onSave={this.handleChartUpdated}
-              slice={sliceCurrentlyEditing}
-            />
-          )}
-          <ConfirmStatusChange
-            title={t('Please confirm')}
-            description={t(
-              'Are you sure you want to delete the selected charts?',
+          <Panel.Body>
+            {sliceCurrentlyEditing && (
+              <PropertiesModal
+                show
+                onHide={this.closeChartEditModal}
+                onSave={this.handleChartUpdated}
+                slice={sliceCurrentlyEditing}
+              />
             )}
-            onConfirm={this.handleBulkChartDelete}
-          >
-            {confirmDelete => {
-              const bulkActions = [];
-              if (this.canDelete) {
-                bulkActions.push({
-                  key: 'delete',
-                  name: (
-                    <>
-                      <i className="fa fa-trash" /> Delete
-                    </>
-                  ),
-                  onSelect: confirmDelete,
-                });
-              }
-              return (
-                <ListView
-                  className="chart-list-view"
-                  title={'Charts'}
-                  columns={this.columns}
-                  data={charts}
-                  count={chartCount}
-                  pageSize={PAGE_SIZE}
-                  fetchData={this.fetchData}
-                  loading={loading}
-                  initialSort={this.initialSort}
-                  filters={filters}
-                  bulkActions={bulkActions}
-                />
-              );
-            }}
-          </ConfirmStatusChange>
+            <ConfirmStatusChange
+              title={t('Please confirm')}
+              description={t(
+                'Are you sure you want to delete the selected charts?',
+              )}
+              onConfirm={this.handleBulkChartDelete}
+            >
+              {confirmDelete => {
+                const bulkActions = [];
+                if (this.canDelete) {
+                  bulkActions.push({
+                    key: 'delete',
+                    name: (
+                      <>
+                        <i className="fa fa-trash" /> Delete
+                      </>
+                    ),
+                    onSelect: confirmDelete,
+                  });
+                }
+                return (
+                  <ListView
+                    className="chart-list-view"
+                    title={'Charts'}
+                    columns={this.columns}
+                    data={charts}
+                    count={chartCount}
+                    pageSize={PAGE_SIZE}
+                    fetchData={this.fetchData}
+                    loading={loading}
+                    initialSort={this.initialSort}
+                    filters={filters}
+                    bulkActions={bulkActions}
+                  />
+                );
+              }}
+            </ConfirmStatusChange>
+          </Panel.Body>
         </Panel>
       </div>
     );
