@@ -63,45 +63,51 @@ export default function Welcome({ user }) {
       >
         <Tab eventKey="all" title={t('Dashboards')}>
           <Panel>
-            <Row>
-              <Col md={8}>
-                <h2>{t('Dashboards')}</h2>
-              </Col>
-              <Col md={4}>
-                <FormControl
-                  type="text"
-                  bsSize="sm"
-                  style={{ marginTop: '25px' }}
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.currentTarget.value)}
-                />
-              </Col>
-            </Row>
-            <hr />
-            <DashboardTable search={searchQuery} />
+            <Panel.Body>
+              <Row>
+                <Col md={8}>
+                  <h2>{t('Dashboards')}</h2>
+                </Col>
+                <Col md={4}>
+                  <FormControl
+                    type="text"
+                    bsSize="sm"
+                    style={{ marginTop: '25px' }}
+                    placeholder="Search"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.currentTarget.value)}
+                  />
+                </Col>
+              </Row>
+              <hr />
+              <DashboardTable search={searchQuery} />
+            </Panel.Body>
           </Panel>
         </Tab>
         <Tab eventKey="recent" title={t('Recently Viewed')}>
           <Panel>
-            <Row>
-              <Col md={8}>
-                <h2>{t('Recently Viewed')}</h2>
-              </Col>
-            </Row>
-            <hr />
-            <RecentActivity user={user} />
+            <Panel.Body>
+              <Row>
+                <Col md={8}>
+                  <h2>{t('Recently Viewed')}</h2>
+                </Col>
+              </Row>
+              <hr />
+              <RecentActivity user={user} />
+            </Panel.Body>
           </Panel>
         </Tab>
         <Tab eventKey="favorites" title={t('Favorites')}>
           <Panel>
-            <Row>
-              <Col md={8}>
-                <h2>{t('Favorites')}</h2>
-              </Col>
-            </Row>
-            <hr />
-            <Favorites user={user} />
+            <Panel.Body>
+              <Row>
+                <Col md={8}>
+                  <h2>{t('Favorites')}</h2>
+                </Col>
+              </Row>
+              <hr />
+              <Favorites user={user} />
+            </Panel.Body>
           </Panel>
         </Tab>
       </Tabs>
