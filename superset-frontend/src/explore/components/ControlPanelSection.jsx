@@ -40,6 +40,7 @@ export default class ControlPanelSection extends React.Component {
   constructor(props) {
     super(props);
     this.state = { expanded: this.props.startExpanded };
+    this.toggleExpand = this.toggleExpand.bind(this);
   }
   toggleExpand() {
     this.setState({ expanded: !this.state.expanded });
@@ -50,7 +51,7 @@ export default class ControlPanelSection extends React.Component {
       label && (
         <div>
           <span>
-            <span onClick={this.toggleExpand.bind(this)}>{label}</span>{' '}
+            <span onClick={this.toggleExpand}>{label}</span>{' '}
             {description && (
               <InfoTooltipWithTrigger label={label} tooltip={description} />
             )}
@@ -77,11 +78,15 @@ export default class ControlPanelSection extends React.Component {
     return (
       <Panel
         className="control-panel-section"
-        collapsible
         expanded={this.state.expanded}
-        header={this.renderHeader()}
+        onToggle={this.toggleExpand}
       >
-        {this.props.children}
+        <Panel.Heading>
+          <Panel.Title>{this.renderHeader()}</Panel.Title>
+        </Panel.Heading>
+        <Panel.Collapse>
+          <Panel.Body>{this.props.children}</Panel.Body>
+        </Panel.Collapse>
       </Panel>
     );
   }

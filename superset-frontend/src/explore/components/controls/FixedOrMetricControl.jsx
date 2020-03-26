@@ -120,44 +120,49 @@ export default class FixedOrMetricControl extends React.Component {
           className="panel-spreaded"
           collapsible
           expanded={this.state.expanded}
+          onToggle={this.toggle}
         >
-          <div className="well">
-            <PopoverSection
-              title="Fixed"
-              isSelected={type === controlTypes.fixed}
-              onSelect={() => {
-                this.setType(controlTypes.fixed);
-              }}
-            >
-              <TextControl
-                isFloat
-                onChange={this.setFixedValue}
-                onFocus={() => {
-                  this.setType(controlTypes.fixed);
-                }}
-                value={this.state.fixedValue}
-              />
-            </PopoverSection>
-            <PopoverSection
-              title="Based on a metric"
-              isSelected={type === controlTypes.metric}
-              onSelect={() => {
-                this.setType(controlTypes.metric);
-              }}
-            >
-              <MetricsControl
-                name="metric"
-                columns={columns}
-                savedMetrics={metrics}
-                multi={false}
-                onFocus={() => {
-                  this.setType(controlTypes.metric);
-                }}
-                onChange={this.setMetric}
-                value={this.state.metricValue}
-              />
-            </PopoverSection>
-          </div>
+          <Panel.Collapse>
+            <Panel.Body>
+              <div className="well">
+                <PopoverSection
+                  title="Fixed"
+                  isSelected={type === controlTypes.fixed}
+                  onSelect={() => {
+                    this.setType(controlTypes.fixed);
+                  }}
+                >
+                  <TextControl
+                    isFloat
+                    onChange={this.setFixedValue}
+                    onFocus={() => {
+                      this.setType(controlTypes.fixed);
+                    }}
+                    value={this.state.fixedValue}
+                  />
+                </PopoverSection>
+                <PopoverSection
+                  title="Based on a metric"
+                  isSelected={type === controlTypes.metric}
+                  onSelect={() => {
+                    this.setType(controlTypes.metric);
+                  }}
+                >
+                  <MetricsControl
+                    name="metric"
+                    columns={columns}
+                    savedMetrics={metrics}
+                    multi={false}
+                    onFocus={() => {
+                      this.setType(controlTypes.metric);
+                    }}
+                    onChange={this.setMetric}
+                    value={this.state.metricValue}
+                  />
+                </PopoverSection>
+              </div>
+            </Panel.Body>
+          </Panel.Collapse>
         </Panel>
       </div>
     );

@@ -449,7 +449,7 @@ class Header extends React.PureComponent {
 
           {this.state.showingPropertiesModal && (
             <PropertiesModal
-              dahboardId={dashboardInfo.id}
+              dashboardId={dashboardInfo.id}
               show={this.state.showingPropertiesModal}
               onHide={this.hidePropertiesModal}
               onDashboardSave={updates => {

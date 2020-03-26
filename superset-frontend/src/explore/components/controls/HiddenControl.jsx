@@ -26,6 +26,9 @@ const propTypes = {
     PropTypes.string,
     PropTypes.number,
     PropTypes.object,
+    PropTypes.bool,
+    PropTypes.array,
+    PropTypes.func,
   ]),
 };
 

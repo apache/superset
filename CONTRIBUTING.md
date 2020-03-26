@@ -961,10 +961,8 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 | Field                     | Type            | Notes                       |
 | ------------------------- | --------------- | --------------------------- |
-| `include_time`            | _boolean_       | The **Include Time** widget |
 | `metrics`                 | _array(string)_ | See Query section           |
 | `order_asc`               | -               | See Query section           |
-| `percent_metrics`         | -               | See Query section           |
 | `row_limit`               | -               | See Query section           |
 | `timeseries_limit_metric` | -               | See Query section           |
 
@@ -1086,19 +1084,15 @@ Note the `y_axis_format` is defined under various section for some charts.
 | Field                           | Type  | Notes |
 | ------------------------------- | ----- | ----- |
 | `add_to_dash`                   | _N/A_ |       |
-| `align_pn`                      | _N/A_ |       |
 | `all_columns_y`                 | _N/A_ |       |
 | `annotation_layers`             | _N/A_ |       |
 | `autozoom`                      | _N/A_ |       |
 | `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
-| `charge`                        | _N/A_ |       |
 | `clustering_radius`             | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
-| `color_pn`                      | _N/A_ |       |
 | `column_collection`             | _N/A_ |       |
-| `combine_metric`                | _N/A_ |       |
 | `comparison type`               | _N/A_ |       |
 | `contribution`                  | _N/A_ |       |
 | `country_fieldtype`             | _N/A_ |       |
@@ -1126,7 +1120,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `goto_dash`                     | _N/A_ |       |
 | `grid_size`                     | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
-| `include_search`                | _N/A_ |       |
 | `include_series`                | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
 | `js_agg_function`               | _N/A_ |       |
@@ -1160,13 +1153,11 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `num_period_compare`            | _N/A_ |       |
 | `order_bars`                    | _N/A_ |       |
 | `order_desc`                    | _N/A_ |       |
-| `page_length`                   | _N/A_ |       |
 | `pandas_aggfunc`                | _N/A_ |       |
 | `partition_limit`               | _N/A_ |       |
 | `partition_threshold`           | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
-| `pivot_margins`                 | _N/A_ |       |
 | `point_radius`                  | _N/A_ |       |
 | `point_radius_fixed`            | _N/A_ |       |
 | `point_radius_unit`             | _N/A_ |       |
@@ -1187,7 +1178,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `rolling_periods`               | _N/A_ |       |
 | `rolling_type`                  | _N/A_ |       |
 | `rose_area_proportion`          | _N/A_ |       |
-| `rotation`                      | _N/A_ |       |
 | `save_to_dashboard_id`          | _N/A_ |       |
 | `schema`                        | _N/A_ |       |
 | `select_country`                | _N/A_ |       |
@@ -1203,8 +1193,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_sqla_time_column`         | _N/A_ |       |
 | `show_sqla_time_granularity`    | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |
-| `size_from`                     | _N/A_ |       |
-| `size_to`                       | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
 | `stacked_style`                 | _N/A_ |       |
@@ -1214,16 +1202,13 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `stroked`                       | _N/A_ |       |
 | `subheader`                     | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
-| `table_timestamp_format`        | _N/A_ |       |
 | `time_compare`                  | _N/A_ |       |
 | `time_series_option`            | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `toggle_polygons`               | _N/A_ |       |
-| `transpose_pivot`               | _N/A_ |       |
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
 | `viewport`                      | _N/A_ |       |
 | `viewport_latitude`             | _N/A_ |       |
 | `viewport_longitude`            | _N/A_ |       |
 | `viewport_zoom`                 | _N/A_ |       |
-| `whisker_options`               | _N/A_ |       |
