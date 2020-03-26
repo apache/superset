@@ -1187,7 +1187,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `rolling_periods`               | _N/A_ |       |
 | `rolling_type`                  | _N/A_ |       |
 | `rose_area_proportion`          | _N/A_ |       |
-| `rotation`                      | _N/A_ |       |
 | `save_to_dashboard_id`          | _N/A_ |       |
 | `schema`                        | _N/A_ |       |
 | `select_country`                | _N/A_ |       |
@@ -1204,8 +1203,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_sqla_time_column`         | _N/A_ |       |
 | `show_sqla_time_granularity`    | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |
-| `size_from`                     | _N/A_ |       |
-| `size_to`                       | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
 | `stacked_style`                 | _N/A_ |       |
