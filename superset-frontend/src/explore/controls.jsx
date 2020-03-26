@@ -442,21 +442,6 @@ export const controls = {
     description: null,
   },
 
-  pivot_margins: {
-    type: 'CheckboxControl',
-    label: t('Show totals'),
-    renderTrigger: false,
-    default: true,
-    description: t('Display total row/column'),
-  },
-
-  transpose_pivot: {
-    type: 'CheckboxControl',
-    label: t('Transpose Pivot'),
-    default: false,
-    description: t('Swap Groups and Columns'),
-  },
-
   show_markers: {
     type: 'CheckboxControl',
     label: t('Show Markers'),
@@ -479,16 +464,6 @@ export const controls = {
     default: false,
     renderTrigger: true,
     description: t('Sort bars by x labels.'),
-  },
-
-  combine_metric: {
-    type: 'CheckboxControl',
-    label: t('Combine Metrics'),
-    default: false,
-    description: t(
-      'Display metrics side by side within each column, as ' +
-        'opposed to each column being displayed side by side for each metric.',
-    ),
   },
 
   show_controls: {
