@@ -1214,4 +1214,3 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `viewport_latitude`             | _N/A_ |       |
 | `viewport_longitude`            | _N/A_ |       |
 | `viewport_zoom`                 | _N/A_ |       |
-| `whisker_options`               | _N/A_ |       |
