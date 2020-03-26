@@ -257,15 +257,6 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  percent_metrics: {
-    ...metrics,
-    multi: true,
-    default: [],
-    label: t('Percentage Metrics'),
-    validators: [],
-    description: t('Metrics for which percentage of total are to be displayed'),
-  },
-
   y_axis_bounds: {
     type: 'BoundsControl',
     label: t('Y Axis Bounds'),
@@ -279,16 +270,6 @@ export const controls = {
     ),
   },
 
-  order_by_cols: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Ordering'),
-    default: [],
-    description: t('One or many metrics to display'),
-    mapStateToProps: state => ({
-      choices: state.datasource ? state.datasource.order_by_choices : [],
-    }),
-  },
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
@@ -415,15 +396,6 @@ export const controls = {
     ),
   },
 
-  include_time: {
-    type: 'CheckboxControl',
-    label: t('Include Time'),
-    description: t(
-      'Whether to include the time granularity as defined in the time section',
-    ),
-    default: false,
-  },
-
   autozoom: {
     type: 'CheckboxControl',
     label: t('Auto Zoom'),
@@ -440,21 +412,6 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: null,
-  },
-
-  pivot_margins: {
-    type: 'CheckboxControl',
-    label: t('Show totals'),
-    renderTrigger: false,
-    default: true,
-    description: t('Display total row/column'),
-  },
-
-  transpose_pivot: {
-    type: 'CheckboxControl',
-    label: t('Transpose Pivot'),
-    default: false,
-    description: t('Swap Groups and Columns'),
   },
 
   show_markers: {
@@ -479,16 +436,6 @@ export const controls = {
     default: false,
     renderTrigger: true,
     description: t('Sort bars by x labels.'),
-  },
-
-  combine_metric: {
-    type: 'CheckboxControl',
-    label: t('Combine Metrics'),
-    default: false,
-    description: t(
-      'Display metrics side by side within each column, as ' +
-        'opposed to each column being displayed side by side for each metric.',
-    ),
   },
 
   show_controls: {
@@ -1140,18 +1087,6 @@ export const controls = {
     description: t('Suffix to apply after the percentage display'),
   },
 
-  table_timestamp_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Table Timestamp Format'),
-    default: '%Y-%m-%d %H:%M:%S',
-    renderTrigger: true,
-    validators: [v.nonEmpty],
-    clearable: false,
-    choices: D3_TIME_FORMAT_OPTIONS,
-    description: t('Timestamp Format'),
-  },
-
   series_height: {
     type: 'SelectControl',
     renderTrigger: true,
@@ -1169,16 +1104,6 @@ export const controls = {
       '200',
     ]),
     description: t('Pixel height of each series'),
-  },
-
-  page_length: {
-    type: 'SelectControl',
-    freeForm: true,
-    renderTrigger: true,
-    label: t('Page Length'),
-    default: 0,
-    choices: formatSelectOptions([0, 10, 25, 40, 50, 75, 100, 150, 200]),
-    description: t('Rows per page, 0 means no pagination'),
   },
 
   x_axis_format: {
@@ -1461,36 +1386,12 @@ export const controls = {
     description: t('Whether to display the interactive data table'),
   },
 
-  include_search: {
-    type: 'CheckboxControl',
-    label: t('Search Box'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to include a client-side search box'),
-  },
-
   table_filter: {
     type: 'CheckboxControl',
     label: t('Emit Filter Events'),
     renderTrigger: true,
     default: false,
     description: t('Whether to apply filter when items are clicked'),
-  },
-
-  align_pn: {
-    type: 'CheckboxControl',
-    label: t('Align +/-'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to align the background chart for +/- values'),
-  },
-
-  color_pn: {
-    type: 'CheckboxControl',
-    label: t('Color +/-'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to color +/- values'),
   },
 
   show_legend: {
