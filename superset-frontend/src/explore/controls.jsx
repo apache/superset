@@ -845,27 +845,6 @@ export const controls = {
     description: t('Link length in the force layout'),
   },
 
-  charge: {
-    type: 'SelectControl',
-    renderTrigger: true,
-    freeForm: true,
-    label: t('Charge'),
-    default: '-500',
-    choices: formatSelectOptions([
-      '-50',
-      '-75',
-      '-100',
-      '-150',
-      '-200',
-      '-250',
-      '-500',
-      '-1000',
-      '-2500',
-      '-5000',
-    ]),
-    description: t('Charge in the force layout'),
-  },
-
   granularity_sqla: {
     type: 'SelectControl',
     label: TIME_FILTER_LABELS.granularity_sqla,
