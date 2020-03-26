@@ -731,15 +731,6 @@ class CoreTests(SupersetTestCase):
         self.get_json_resp(slc_url, {"form_data": json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
 
-    def test_slice_query_endpoint(self):
-        # API endpoint for query string
-        self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
-        resp = self.get_resp("/superset/slice_query/{}/".format(slc.id))
-        assert "query" in resp
-        assert "language" in resp
-        self.logout()
-
     def test_import_csv(self):
         self.login(username="admin")
         table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
