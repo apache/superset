@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
@@ -30,7 +31,27 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['whisker_options', 'x_ticks_layout'],
+        [
+          {
+            name: 'whisker_options',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Whisker/outlier options'),
+              default: 'Tukey',
+              description: t(
+                'Determines how whiskers and outliers are calculated.',
+              ),
+              choices: formatSelectOptions([
+                'Tukey',
+                'Min/max (no outliers)',
+                '2/98 percentiles',
+                '9/91 percentiles',
+              ]),
+            },
+          },
+          'x_ticks_layout',
+        ],
       ],
     },
   ],

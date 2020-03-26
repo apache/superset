@@ -889,20 +889,6 @@ export const controls = {
     choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
   },
 
-  whisker_options: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Whisker/outlier options'),
-    default: 'Tukey',
-    description: t('Determines how whiskers and outliers are calculated.'),
-    choices: formatSelectOptions([
-      'Tukey',
-      'Min/max (no outliers)',
-      '2/98 percentiles',
-      '9/91 percentiles',
-    ]),
-  },
-
   number_format: {
     type: 'SelectControl',
     freeForm: true,
