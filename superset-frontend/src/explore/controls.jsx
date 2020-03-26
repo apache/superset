@@ -257,15 +257,6 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  percent_metrics: {
-    ...metrics,
-    multi: true,
-    default: [],
-    label: t('Percentage Metrics'),
-    validators: [],
-    description: t('Metrics for which percentage of total are to be displayed'),
-  },
-
   y_axis_bounds: {
     type: 'BoundsControl',
     label: t('Y Axis Bounds'),
@@ -279,16 +270,6 @@ export const controls = {
     ),
   },
 
-  order_by_cols: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Ordering'),
-    default: [],
-    description: t('One or many metrics to display'),
-    mapStateToProps: state => ({
-      choices: state.datasource ? state.datasource.order_by_choices : [],
-    }),
-  },
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
@@ -413,15 +394,6 @@ export const controls = {
     description: t(
       'series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series',
     ),
-  },
-
-  include_time: {
-    type: 'CheckboxControl',
-    label: t('Include Time'),
-    description: t(
-      'Whether to include the time granularity as defined in the time section',
-    ),
-    default: false,
   },
 
   autozoom: {
@@ -1115,18 +1087,6 @@ export const controls = {
     description: t('Suffix to apply after the percentage display'),
   },
 
-  table_timestamp_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Table Timestamp Format'),
-    default: '%Y-%m-%d %H:%M:%S',
-    renderTrigger: true,
-    validators: [v.nonEmpty],
-    clearable: false,
-    choices: D3_TIME_FORMAT_OPTIONS,
-    description: t('Timestamp Format'),
-  },
-
   series_height: {
     type: 'SelectControl',
     renderTrigger: true,
@@ -1144,16 +1104,6 @@ export const controls = {
       '200',
     ]),
     description: t('Pixel height of each series'),
-  },
-
-  page_length: {
-    type: 'SelectControl',
-    freeForm: true,
-    renderTrigger: true,
-    label: t('Page Length'),
-    default: 0,
-    choices: formatSelectOptions([0, 10, 25, 40, 50, 75, 100, 150, 200]),
-    description: t('Rows per page, 0 means no pagination'),
   },
 
   x_axis_format: {
@@ -1436,36 +1386,12 @@ export const controls = {
     description: t('Whether to display the interactive data table'),
   },
 
-  include_search: {
-    type: 'CheckboxControl',
-    label: t('Search Box'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to include a client-side search box'),
-  },
-
   table_filter: {
     type: 'CheckboxControl',
     label: t('Emit Filter Events'),
     renderTrigger: true,
     default: false,
     description: t('Whether to apply filter when items are clicked'),
-  },
-
-  align_pn: {
-    type: 'CheckboxControl',
-    label: t('Align +/-'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to align the background chart for +/- values'),
-  },
-
-  color_pn: {
-    type: 'CheckboxControl',
-    label: t('Color +/-'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to color +/- values'),
   },
 
   show_legend: {
