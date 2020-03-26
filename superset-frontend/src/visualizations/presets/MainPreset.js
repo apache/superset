@@ -60,7 +60,7 @@ import {
   LineMultiChartPlugin,
   PieChartPlugin,
   TimePivotChartPlugin,
-} from '@superset-ui/legacy-preset-chart-nvd3/lib';
+} from '@superset-ui/legacy-preset-chart-nvd3';
 import { BoxPlotChartPlugin } from '@superset-ui/preset-chart-xy/esm/legacy';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 
