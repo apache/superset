@@ -959,3 +959,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: instance to be mutated
         """
         return None
+
+    @staticmethod
+    def mutate_connection_args(
+        database: "Database", connect_args: Dict[str, Any]
+    ) -> None:
+        """
+        Some databases require passing additional non-standard parameters to database
+        connections, for example client certificates.
+
+        :param database: instance to be mutated
+        """
+        return None

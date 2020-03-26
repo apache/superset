@@ -65,6 +65,7 @@ class DatabaseMixin:
         "allow_multi_schema_metadata_fetch",
         "extra",
         "encrypted_extra",
+        "server_cert",
     ]
     search_exclude_columns = (
         "password",
@@ -74,6 +75,7 @@ class DatabaseMixin:
         "queries",
         "saved_queries",
         "encrypted_extra",
+        "server_cert",
     )
     edit_columns = add_columns
     show_columns = [
@@ -149,6 +151,11 @@ class DatabaseMixin:
             "syntax normally used by SQLAlchemy.",
             True,
         ),
+        "server_cert": utils.markdown(
+            "Optional CA_BUNDLE contents to validate HTTPS requests. Only available "
+            "on certain database engines.",
+            True,
+        ),
         "impersonate_user": _(
             "If Presto, all the queries in SQL Lab are going to be executed as the "
             "currently logged on user who must have permission to run them.<br/>"
@@ -183,6 +190,7 @@ class DatabaseMixin:
         "cache_timeout": _("Chart Cache Timeout"),
         "extra": _("Extra"),
         "encrypted_extra": _("Secure Extra"),
+        "server_cert": _("Root certificate"),
         "allow_run_async": _("Asynchronous Query Execution"),
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_csv_upload": _("Allow Csv Upload"),
@@ -196,6 +204,9 @@ class DatabaseMixin:
             check_sqlalchemy_uri(database.sqlalchemy_uri)
         self.check_extra(database)
         self.check_encrypted_extra(database)
+        database.server_cert = (
+            database.server_cert.strip() if database.server_cert else ""
+        )
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", database.perm)
         # adding a new database we always want to force refresh schema list

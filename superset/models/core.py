@@ -139,6 +139,7 @@ class Database(
     encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
+    server_cert = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     export_fields = [
         "database_name",
         "sqlalchemy_uri",
@@ -299,6 +300,7 @@ class Database(
             params["poolclass"] = NullPool
 
         connect_args = params.get("connect_args", {})
+        self.db_engine_spec.mutate_connection_args(self, connect_args)
         configuration = connect_args.get("configuration", {})
 
         # If using Hive, this will set hive.server2.proxy.user=$effective_username
@@ -309,6 +311,7 @@ class Database(
         )
         if configuration:
             connect_args["configuration"] = configuration
+        if connect_args:
             params["connect_args"] = connect_args
 
         params.update(self.get_encrypted_extra())

@@ -1374,6 +1374,7 @@ class Superset(BaseSupersetView):
             # this is the database instance that will be tested
             database = models.Database(
                 # extras is sent as json, but required to be a string in the Database model
+                server_cert=request.json.get("server_cert"),
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
                 encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),

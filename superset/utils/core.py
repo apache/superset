@@ -19,12 +19,13 @@
 import decimal
 import errno
 import functools
+import hashlib
 import json
 import logging
 import os
-import re
 import signal
 import smtplib
+import tempfile
 import traceback
 import uuid
 import zlib
@@ -45,6 +46,8 @@ import numpy as np
 import pandas as pd
 import parsedatetime
 import sqlalchemy as sa
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from flask import current_app, flash, Flask, g, Markup, render_template
@@ -1161,6 +1164,26 @@ def get_username() -> Optional[str]:
         return g.user.username
     except Exception:
         return None
+
+
+def create_temporary_ssl_cert_file(certificate: str) -> str:
+    """
+    This creates a temporary certificate file that can be used to validate HTTPS
+    sessions. A certificate is only written to disk once; on subsequent calls,
+    only the path of the existing certificate is returned.
+
+    :param certificate: The contents of the certificate
+    :return: The path to the certificate file
+    """
+    filename = hashlib.md5(certificate.encode("utf-8")).hexdigest()
+    path = os.path.join(tempfile.gettempdir(), filename)
+    if not os.path.exists(path):
+        # Validate certificate prior to persisting to temporary directory
+        x509.load_pem_x509_certificate(certificate.encode("utf-8"), default_backend())
+        cert_file = open(path, "w+")
+        cert_file.write(certificate)
+        cert_file.close()
+    return path
 
 
 def MediumText() -> Variant:

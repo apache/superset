@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import TYPE_CHECKING
+import json
+from typing import Any, Dict, TYPE_CHECKING
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import (  # pylint: disable=unused-import
@@ -47,3 +49,18 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
         if orm_col.column_name == "__time":
             orm_col.is_dttm = True
+
+    @classmethod
+    def mutate_connection_args(
+        cls, database: "Database", connect_args: Dict[str, Any]
+    ) -> None:
+        """
+        Some databases require passing additional non-standard parameters to database
+        connections, for example client certificates.
+
+        :param database: instance to be mutated
+        """
+        if database.server_cert:
+            connect_args["scheme"] = "https"
+            path = utils.create_temporary_ssl_cert_file(database.server_cert)
+            connect_args["ssl_verify_cert"] = path
