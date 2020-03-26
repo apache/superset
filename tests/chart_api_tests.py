@@ -102,7 +102,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         expected_response = {"message": f"Deleted {chart_count} charts"}
         self.assertEqual(response, expected_response)
         for chart_id in chart_ids:
-            model = db.session.query(Chart).get(chart_id)
+            model = db.session.query(Slice).get(chart_id)
             self.assertEqual(model, None)
 
     def test_delete_bulk_chart_bad_request(self):
