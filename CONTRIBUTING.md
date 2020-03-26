@@ -1121,7 +1121,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `grid_size`                     | _N/A_ |       |
 | `horizon_color_scale`           | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
-| `include_series`                | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
 | `js_agg_function`               | _N/A_ |       |
 | `js_columns`                    | _N/A_ |       |
@@ -1188,7 +1187,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_brush`                    | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
 | `show_controls`                 | _N/A_ |       |
-| `show_datatable`                | _N/A_ |       |
 | `show_druid_time_granularity`   | _N/A_ |       |
 | `show_druid_time_origin`        | _N/A_ |       |
 | `show_labels`                   | _N/A_ |       |
