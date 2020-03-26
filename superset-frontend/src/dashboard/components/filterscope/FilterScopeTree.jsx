@@ -34,7 +34,7 @@ const propTypes = {
   ).isRequired,
   onCheck: PropTypes.func.isRequired,
   onExpand: PropTypes.func.isRequired,
-  selectedChartId: PropTypes.oneOfType([null, PropTypes.number]),
+  selectedChartId: PropTypes.number,
 };
 
 const defaultProps = {

@@ -41,31 +41,33 @@ const UserInfo = ({ user }) => (
     </a>
     <hr />
     <Panel>
-      <h3>
-        <strong>
-          {user.firstName} {user.lastName}
-        </strong>
-      </h3>
-      <h4 className="username">
-        <i className="fa fa-user-o" /> {user.username}
-      </h4>
-      <hr />
-      <p>
-        <i className="fa fa-clock-o" /> {t('joined')}{' '}
-        {moment(user.createdOn, 'YYYYMMDD').fromNow()}
-      </p>
-      <p className="email">
-        <i className="fa fa-envelope-o" /> {user.email}
-      </p>
-      <p className="roles">
-        <i className="fa fa-lock" /> {Object.keys(user.roles).join(', ')}
-      </p>
-      <p>
-        <i className="fa fa-key" />
-        &nbsp;
-        <span className="text-muted">{t('id:')}</span>&nbsp;
-        <span className="user-id">{user.userId}</span>
-      </p>
+      <Panel.Body>
+        <h3>
+          <strong>
+            {user.firstName} {user.lastName}
+          </strong>
+        </h3>
+        <h4 className="username">
+          <i className="fa fa-user-o" /> {user.username}
+        </h4>
+        <hr />
+        <p>
+          <i className="fa fa-clock-o" /> {t('joined')}{' '}
+          {moment(user.createdOn, 'YYYYMMDD').fromNow()}
+        </p>
+        <p className="email">
+          <i className="fa fa-envelope-o" /> {user.email}
+        </p>
+        <p className="roles">
+          <i className="fa fa-lock" /> {Object.keys(user.roles).join(', ')}
+        </p>
+        <p>
+          <i className="fa fa-key" />
+          &nbsp;
+          <span className="text-muted">{t('id:')}</span>&nbsp;
+          <span className="user-id">{user.userId}</span>
+        </p>
+      </Panel.Body>
     </Panel>
   </div>
 );

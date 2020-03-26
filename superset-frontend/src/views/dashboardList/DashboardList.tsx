@@ -427,64 +427,66 @@ class DashboardList extends React.PureComponent<Props, State> {
     return (
       <div className="container welcome">
         <Panel>
-          <ConfirmStatusChange
-            title={t('Please confirm')}
-            description={t(
-              'Are you sure you want to delete the selected dashboards?',
-            )}
-            onConfirm={this.handleBulkDashboardDelete}
-          >
-            {confirmDelete => {
-              const bulkActions = [];
-              if (this.canDelete) {
-                bulkActions.push({
-                  key: 'delete',
-                  name: (
-                    <>
-                      <i className="fa fa-trash" /> Delete
-                    </>
-                  ),
-                  onSelect: confirmDelete,
-                });
-              }
-              if (this.canExport) {
-                bulkActions.push({
-                  key: 'export',
-                  name: (
-                    <>
-                      <i className="fa fa-database" /> Export
-                    </>
-                  ),
-                  onSelect: this.handleBulkDashboardExport,
-                });
-              }
-              return (
-                <>
-                  {dashboardToEdit && (
-                    <PropertiesModal
-                      show
-                      dashboardId={dashboardToEdit.id}
-                      onHide={() => this.setState({ dashboardToEdit: null })}
-                      onDashboardSave={this.handleDashboardEdit}
+          <Panel.Body>
+            <ConfirmStatusChange
+              title={t('Please confirm')}
+              description={t(
+                'Are you sure you want to delete the selected dashboards?',
+              )}
+              onConfirm={this.handleBulkDashboardDelete}
+            >
+              {confirmDelete => {
+                const bulkActions = [];
+                if (this.canDelete) {
+                  bulkActions.push({
+                    key: 'delete',
+                    name: (
+                      <>
+                        <i className="fa fa-trash" /> Delete
+                      </>
+                    ),
+                    onSelect: confirmDelete,
+                  });
+                }
+                if (this.canExport) {
+                  bulkActions.push({
+                    key: 'export',
+                    name: (
+                      <>
+                        <i className="fa fa-database" /> Export
+                      </>
+                    ),
+                    onSelect: this.handleBulkDashboardExport,
+                  });
+                }
+                return (
+                  <>
+                    {dashboardToEdit && (
+                      <PropertiesModal
+                        show
+                        dashboardId={dashboardToEdit.id}
+                        onHide={() => this.setState({ dashboardToEdit: null })}
+                        onDashboardSave={this.handleDashboardEdit}
+                      />
+                    )}
+                    <ListView
+                      className="dashboard-list-view"
+                      title={'Dashboards'}
+                      columns={this.columns}
+                      data={dashboards}
+                      count={dashboardCount}
+                      pageSize={PAGE_SIZE}
+                      fetchData={this.fetchData}
+                      loading={loading}
+                      initialSort={this.initialSort}
+                      filters={filters}
+                      bulkActions={bulkActions}
                     />
-                  )}
-                  <ListView
-                    className="dashboard-list-view"
-                    title={'Dashboards'}
-                    columns={this.columns}
-                    data={dashboards}
-                    count={dashboardCount}
-                    pageSize={PAGE_SIZE}
-                    fetchData={this.fetchData}
-                    loading={loading}
-                    initialSort={this.initialSort}
-                    filters={filters}
-                    bulkActions={bulkActions}
-                  />
-                </>
-              );
-            }}
-          </ConfirmStatusChange>
+                  </>
+                );
+              }}
+            </ConfirmStatusChange>
+          </Panel.Body>
         </Panel>
       </div>
     );
