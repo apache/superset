@@ -204,6 +204,7 @@ class DatabaseMixin:
             check_sqlalchemy_uri(database.sqlalchemy_uri)
         self.check_extra(database)
         self.check_encrypted_extra(database)
+        utils.parse_ssl_cert(database.server_cert)
         database.server_cert = (
             database.server_cert.strip() if database.server_cert else ""
         )

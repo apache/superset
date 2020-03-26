@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import (  # pylint: disable=unused-import
         TableColumn,
     )
+    from superset.models.core import Database  # pylint: disable=unused-import
 
 logger = logging.getLogger()
 
@@ -59,6 +60,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         For Druid, the path to a SSL certificate is placed in `connect_args`.
 
         :param database: database instance from which to extract extras
+        :raises CertificateException: If certificate is not valid/unparseable
         """
         try:
             extra = json.loads(database.extra or "{}")

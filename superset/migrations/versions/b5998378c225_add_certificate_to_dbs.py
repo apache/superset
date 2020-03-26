@@ -37,8 +37,6 @@ from sqlalchemy_utils import EncryptedType
 def upgrade():
     kwargs: Dict[str, str] = {}
     bind = op.get_bind()
-    if isinstance(bind.dialect, PGDialect):
-        kwargs["postgresql_using"] = "encrypted_extra::bytea"
     op.add_column(
         "dbs",
         sa.Column("server_cert", EncryptedType(sa.Text()), nullable=True, **kwargs),

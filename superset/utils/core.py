@@ -1196,15 +1196,16 @@ def create_ssl_cert_file(certificate: str) -> str:
 
     :param certificate: The contents of the certificate
     :return: The path to the certificate file
+    :raises CertificateException: If certificate is not valid/unparseable
     """
-    filename = hashlib.md5(certificate.encode("utf-8")).hexdigest()
+    filename = f"{hashlib.md5(certificate.encode('utf-8')).hexdigest()}.crt"
     cert_dir = current_app.config["SSL_CERT_PATH"]
     path = cert_dir if cert_dir else tempfile.gettempdir()
     path = os.path.join(path, filename)
     if not os.path.exists(path):
         # Validate certificate prior to persisting to temporary directory
         parse_ssl_cert(certificate)
-        cert_file = open(path, "w+")
+        cert_file = open(path, "w")
         cert_file.write(certificate)
         cert_file.close()
     return path
