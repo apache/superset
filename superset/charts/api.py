@@ -288,7 +288,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs) -> Response:  # pylint: disable=arguments-differ
-        """Delete bulk Dashboards
+        """Delete bulk Charts
         ---
         delete:
           description: >-

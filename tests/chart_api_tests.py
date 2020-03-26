@@ -102,7 +102,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         expected_response = {"message": f"Deleted {chart_count} charts"}
         self.assertEqual(response, expected_response)
         for chart_id in chart_ids:
-            model = db.session.query(Dashboard).get(chart_id)
+            model = db.session.query(Chart).get(chart_id)
             self.assertEqual(model, None)
 
     def test_delete_bulk_chart_bad_request(self):
@@ -219,7 +219,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         self.login(username="alpha2", password="password")
 
-        # verify we can't delete not owned dashboards
+        # verify we can't delete not owned charts
         arguments = [chart.id for chart in charts]
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.client.delete(uri)
@@ -228,7 +228,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         expected_response = {"message": "Forbidden"}
         self.assertEqual(response, expected_response)
 
-        # # nothing is deleted in bulk with a list of owned and not owned dashboards
+        # # nothing is deleted in bulk with a list of owned and not owned charts
         arguments = [chart.id for chart in charts] + [owned_chart.id]
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.client.delete(uri)
