@@ -961,10 +961,8 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 | Field                     | Type            | Notes                       |
 | ------------------------- | --------------- | --------------------------- |
-| `include_time`            | _boolean_       | The **Include Time** widget |
 | `metrics`                 | _array(string)_ | See Query section           |
 | `order_asc`               | -               | See Query section           |
-| `percent_metrics`         | -               | See Query section           |
 | `row_limit`               | -               | See Query section           |
 | `timeseries_limit_metric` | -               | See Query section           |
 
@@ -1086,7 +1084,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | Field                           | Type  | Notes |
 | ------------------------------- | ----- | ----- |
 | `add_to_dash`                   | _N/A_ |       |
-| `align_pn`                      | _N/A_ |       |
 | `all_columns_y`                 | _N/A_ |       |
 | `annotation_layers`             | _N/A_ |       |
 | `autozoom`                      | _N/A_ |       |
@@ -1095,7 +1092,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `clustering_radius`             | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
-| `color_pn`                      | _N/A_ |       |
 | `column_collection`             | _N/A_ |       |
 | `comparison type`               | _N/A_ |       |
 | `contribution`                  | _N/A_ |       |
@@ -1125,7 +1121,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `grid_size`                     | _N/A_ |       |
 | `horizon_color_scale`           | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
-| `include_search`                | _N/A_ |       |
 | `include_series`                | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
 | `js_agg_function`               | _N/A_ |       |
@@ -1159,7 +1154,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `num_period_compare`            | _N/A_ |       |
 | `order_bars`                    | _N/A_ |       |
 | `order_desc`                    | _N/A_ |       |
-| `page_length`                   | _N/A_ |       |
 | `pandas_aggfunc`                | _N/A_ |       |
 | `partition_limit`               | _N/A_ |       |
 | `partition_threshold`           | _N/A_ |       |
@@ -1210,7 +1204,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `stroked`                       | _N/A_ |       |
 | `subheader`                     | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
-| `table_timestamp_format`        | _N/A_ |       |
 | `time_compare`                  | _N/A_ |       |
 | `time_series_option`            | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
