@@ -232,23 +232,6 @@ class Slice(
     def changed_by_url(self) -> str:
         return f"/superset/profile/{self.created_by.username}"
 
-    def get_viz(self, force: bool = False) -> BaseViz:
-        """Creates :py:class:viz.BaseViz object from the url_params_multidict.
-
-        :return: object of the 'viz_type' type that is taken from the
-            url_params_multidict or self.params.
-        :rtype: :py:class:viz.BaseViz
-        """
-        slice_params = json.loads(self.params)
-        slice_params["slice_id"] = self.id
-        slice_params["json"] = "false"
-        slice_params["slice_name"] = self.slice_name
-        slice_params["viz_type"] = self.viz_type if self.viz_type else "table"
-
-        return viz_types[slice_params.get("viz_type")](
-            self.datasource, form_data=slice_params, force=force
-        )
-
     @property
     def icons(self) -> str:
         return f"""

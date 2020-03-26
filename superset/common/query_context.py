@@ -213,6 +213,8 @@ class QueryContext:
                 df = query_result["df"]
                 if status != utils.QueryStatus.FAILED:
                     stats_logger.incr("loaded_from_source")
+                    if not self.force:
+                        stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
             except Exception as e:  # pylint: disable=broad-except
                 logger.exception(e)
