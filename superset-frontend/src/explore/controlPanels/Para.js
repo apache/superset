@@ -35,7 +35,28 @@ export default {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
-        ['show_datatable', 'include_series'],
+        [
+          {
+            name: 'show_datatable',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Data Table'),
+              default: false,
+              renderTrigger: true,
+              description: t('Whether to display the interactive data table'),
+            },
+          },
+          {
+            name: 'include_series',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Include Series'),
+              renderTrigger: true,
+              default: false,
+              description: t('Include series name as an axis'),
+            },
+          },
+        ],
         ['linear_color_scheme'],
       ],
     },

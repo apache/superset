@@ -464,14 +464,6 @@ export const controls = {
     ),
   },
 
-  include_series: {
-    type: 'CheckboxControl',
-    label: t('Include Series'),
-    renderTrigger: true,
-    default: false,
-    description: t('Include series name as an axis'),
-  },
-
   secondary_metric: {
     ...metric,
     label: t('Color Metric'),
@@ -1362,14 +1354,6 @@ export const controls = {
     label: t('Show Druid Time Origin'),
     default: false,
     description: t('Check to include Time Origin dropdown'),
-  },
-
-  show_datatable: {
-    type: 'CheckboxControl',
-    label: t('Data Table'),
-    default: false,
-    renderTrigger: true,
-    description: t('Whether to display the interactive data table'),
   },
 
   table_filter: {
