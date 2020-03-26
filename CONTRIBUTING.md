@@ -1097,7 +1097,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `collapsed_fieldsets`           | _N/A_ |       |
 | `color_pn`                      | _N/A_ |       |
 | `column_collection`             | _N/A_ |       |
-| `combine_metric`                | _N/A_ |       |
 | `comparison type`               | _N/A_ |       |
 | `contribution`                  | _N/A_ |       |
 | `country_fieldtype`             | _N/A_ |       |
@@ -1166,7 +1165,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `partition_threshold`           | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
-| `pivot_margins`                 | _N/A_ |       |
 | `point_radius`                  | _N/A_ |       |
 | `point_radius_fixed`            | _N/A_ |       |
 | `point_radius_unit`             | _N/A_ |       |
@@ -1217,7 +1215,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `time_series_option`            | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `toggle_polygons`               | _N/A_ |       |
-| `transpose_pivot`               | _N/A_ |       |
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
 | `viewport`                      | _N/A_ |       |
