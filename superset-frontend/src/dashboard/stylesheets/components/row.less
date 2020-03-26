@@ -57,10 +57,18 @@
   .dashboard-component-tabs > .hover-menu + div:after {
     border: 1px dashed @gray-light;
   }
+
+  /* provide hit area in case row contents is edge to edge */
+  .dashboard-component-tabs-content {
+    .dragdroppable-row {
+      padding-top: 16px;
+    }
+  }
 }
 
 .grid-row.grid-row--empty {
-  align-items: center; /* this centers the empty note content */
+  /* this centers the empty note content */
+  align-items: center;
   height: 100px;
 
   &:before {
