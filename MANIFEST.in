@@ -18,6 +18,7 @@ include NOTICE
 include LICENSE.txt
 graft licenses/
 include README.md
+include superset-frontend/package.json
 recursive-include superset/examples *
 recursive-include superset/migrations *
 recursive-include superset/templates *
