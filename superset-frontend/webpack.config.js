@@ -85,7 +85,6 @@ const plugins = [
       }
       return {
         ...seed,
-        // files: filePaths,
         entrypoints: entryFiles,
       };
     },

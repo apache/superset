@@ -133,8 +133,7 @@ class Chart extends React.Component {
       }
     }
 
-    // `cacheBusterProp` is jnjected by react-hot-loader
-    return this.props.cacheBusterProp !== nextProps.cacheBusterProp;
+    return false;
   }
 
   componentWillUnmount() {

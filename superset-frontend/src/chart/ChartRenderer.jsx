@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { setConfig } from 'react-hot-loader';
 import dompurify from 'dompurify';
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
@@ -59,46 +58,6 @@ const defaultProps = {
   triggerRender: false,
 };
 
-const isDevMode = process.env.WEBPACK_MODE === 'development';
-if (isDevMode) {
-  setConfig({ logLevel: 'debug', trackTailUpdates: false });
-}
-
-/**
- * Compare two objects with DFS (till a maxDepth)
- */
-function deepEqual(obj1, obj2, maxDepth = Infinity, depth = 0) {
-  if (
-    // don't go too deep
-    depth > maxDepth ||
-    // nulls
-    obj1 === null ||
-    obj2 === null ||
-    // primatives
-    typeof obj1 !== 'object' ||
-    typeof obj2 !== 'object'
-  ) {
-    return obj1 === obj2;
-  }
-
-  // arrays
-  if (Array.isArray(obj1) && Array.isArray(obj2)) {
-    return (
-      obj1.length === obj2.length &&
-      obj1.every((val, i) => deepEqual(val, obj2[i], maxDepth, depth + 1))
-    );
-  }
-
-  // objects
-  for (const [key, val] of Object.entries(obj1)) {
-    if (!deepEqual(obj2[key], val, maxDepth, depth + 1)) {
-      // console.log('>> Diff "%s":', key, depth, val, obj2[key]);
-      return false;
-    }
-  }
-  return true;
-}
-
 class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
@@ -119,35 +78,28 @@ class ChartRenderer extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
-    // if no results loaded, don't render
-    if (
-      !nextProps.queryResponse ||
-      nextProps.queryResponse.error ||
-      nextProps.refreshOverlayVisible
-    )
-      return false;
+    const resultsReady =
+      nextProps.queryResponse &&
+      ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
+      !nextProps.queryResponse.error &&
+      !nextProps.refreshOverlayVisible;
 
-    this.hasQueryResponseChange =
-      this.props.queryResponse !== nextProps.queryResponse;
+    if (resultsReady) {
+      this.hasQueryResponseChange =
+        nextProps.queryResponse !== this.props.queryResponse;
 
-    // current chart status
-    const chartStatus = this.props.chartStatus;
-    // `rendered` status is set right after `success` or `loading`,
-    // don't trigger rerender here (see `actions.chartRenderingSucceeded`).
-    // note that even though render is not triggered, the props will still be
-    // updated.
-    if (
-      (chartStatus === 'success' || chartStatus === 'loading') &&
-      nextProps.chartStatus === 'rendered'
-    )
-      return false;
-
-    // already successfully rendered, only rerender when some prop is updated
-    if (chartStatus === 'rendered' || chartStatus === 'success') {
-      return !deepEqual(this.props, nextProps, 2);
+      if (
+        this.hasQueryResponseChange ||
+        nextProps.annotationData !== this.props.annotationData ||
+        nextProps.height !== this.props.height ||
+        nextProps.width !== this.props.width ||
+        nextProps.triggerRender ||
+        nextProps.formData.color_scheme !== this.props.formData.color_scheme
+      ) {
+        return true;
+      }
     }
-
-    return true;
+    return false;
   }
 
   handleAddFilter(col, vals, merge = true, refresh = true) {
@@ -156,9 +108,10 @@ class ChartRenderer extends React.Component {
 
   handleRenderSuccess() {
     const { actions, chartStatus, chartId, vizType } = this.props;
-    if (chartStatus !== 'loading' && chartStatus !== 'rendered') {
+    if (['loading', 'rendered'].indexOf(chartStatus) < 0) {
       actions.chartRenderingSucceeded(chartId);
     }
+
     // only log chart render time which is triggered by query results change
     // currently we don't log chart re-render time, like window resize etc
     if (this.hasQueryResponseChange) {
@@ -242,12 +195,8 @@ class ChartRenderer extends React.Component {
         ? `superset-chart-${snakeCaseVizType}`
         : snakeCaseVizType;
 
-    // Use this line to make sure charts do not render unnecessarily.
-    // console.log('>>> %s rendered', this.props.chartId);
-
     return (
       <SuperChart
-        key={`${chartId}-${isDevMode ? Date.now() : ''}`}
         disableErrorBoundary
         id={`chart-id-${chartId}`}
         className={chartClassName}
