@@ -935,17 +935,6 @@ export const controls = {
     description: t('Whether to sort descending or ascending'),
   },
 
-  rolling_type: {
-    type: 'SelectControl',
-    label: t('Rolling Function'),
-    default: 'None',
-    choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
-    description: t(
-      'Defines a rolling window function to apply, works along ' +
-        'with the [Periods] text box',
-    ),
-  },
-
   multiplier: {
     type: 'TextControl',
     label: t('Multiplier'),
@@ -955,16 +944,6 @@ export const controls = {
     description: t('Factor to multiply the metric by'),
   },
 
-  rolling_periods: {
-    type: 'TextControl',
-    label: t('Periods'),
-    isInt: true,
-    description: t(
-      'Defines the size of the rolling window function, ' +
-        'relative to the time granularity selected',
-    ),
-  },
-
   grid_size: {
     type: 'TextControl',
     label: t('Grid Size'),
@@ -972,19 +951,6 @@ export const controls = {
     default: 20,
     isInt: true,
     description: t('Defines the grid size in pixels'),
-  },
-
-  min_periods: {
-    type: 'TextControl',
-    label: t('Min Periods'),
-    isInt: true,
-    description: t(
-      'The minimum number of rolling periods required to show ' +
-        'a value. For instance if you do a cumulative sum on 7 days ' +
-        'you may want your "Min Period" to be 7, so that all data points ' +
-        'shown are the total of 7 periods. This will hide the "ramp up" ' +
-        'taking place over the first 7 periods',
-    ),
   },
 
   series: {
@@ -1050,21 +1016,6 @@ export const controls = {
     label: t('Y Axis Label'),
     renderTrigger: true,
     default: '',
-  },
-
-  compare_lag: {
-    type: 'TextControl',
-    label: t('Comparison Period Lag'),
-    isInt: true,
-    description: t(
-      'Based on granularity, number of time periods to compare against',
-    ),
-  },
-
-  compare_suffix: {
-    type: 'TextControl',
-    label: t('Comparison suffix'),
-    description: t('Suffix to apply after the percentage display'),
   },
 
   x_axis_format: {
@@ -1411,24 +1362,6 @@ export const controls = {
     description: t('Whether to display the numerical values within the cells'),
   },
 
-  show_trend_line: {
-    type: 'CheckboxControl',
-    label: t('Show Trend Line'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to display the trend line'),
-  },
-
-  start_y_axis_at_zero: {
-    type: 'CheckboxControl',
-    label: t('Start y-axis at 0'),
-    renderTrigger: true,
-    default: true,
-    description: t(
-      'Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.',
-    ),
-  },
-
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('X bounds'),
@@ -1538,12 +1471,6 @@ export const controls = {
         'absolute difference between the main time series and each time shift; ' +
         'as the percentage change; or as the ratio between series and time shifts.',
     ),
-  },
-
-  subheader: {
-    type: 'TextControl',
-    label: t('Subheader'),
-    description: t('Description text that shows up below your Big Number'),
   },
 
   mapbox_label: {

@@ -28,7 +28,21 @@ export default {
     {
       label: t('Options'),
       expanded: true,
-      controlSetRows: [['subheader'], ['y_axis_format']],
+      controlSetRows: [
+        [
+          {
+            name: 'subheader',
+            config: {
+              type: 'TextControl',
+              label: t('Subheader'),
+              description: t(
+                'Description text that shows up below your Big Number',
+              ),
+            },
+          },
+        ],
+        ['y_axis_format'],
+      ],
     },
     {
       label: t('Chart Options'),

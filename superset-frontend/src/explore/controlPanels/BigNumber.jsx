@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import React from 'react';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
@@ -30,9 +31,52 @@ export default {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
-        ['compare_lag', 'compare_suffix'],
+        [
+          {
+            name: 'compare_lag',
+            config: {
+              type: 'TextControl',
+              label: t('Comparison Period Lag'),
+              isInt: true,
+              description: t(
+                'Based on granularity, number of time periods to compare against',
+              ),
+            },
+          },
+          {
+            name: 'compare_suffix',
+            config: {
+              type: 'TextControl',
+              label: t('Comparison suffix'),
+              description: t('Suffix to apply after the percentage display'),
+            },
+          },
+        ],
         ['y_axis_format'],
-        ['show_trend_line', 'start_y_axis_at_zero'],
+        [
+          {
+            name: 'show_trend_line',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Trend Line'),
+              renderTrigger: true,
+              default: true,
+              description: t('Whether to display the trend line'),
+            },
+          },
+          {
+            name: 'start_y_axis_at_zero',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Start y-axis at 0'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.',
+              ),
+            },
+          },
+        ],
         ['time_range_fixed'],
       ],
     },
@@ -50,7 +94,54 @@ export default {
       expanded: false,
       controlSetRows: [
         [<h1 className="section-header">{t('Rolling Window')}</h1>],
-        ['rolling_type', 'rolling_periods', 'min_periods'],
+        [
+          {
+            name: 'rolling_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Rolling Function'),
+              default: 'None',
+              choices: formatSelectOptions([
+                'None',
+                'mean',
+                'sum',
+                'std',
+                'cumsum',
+              ]),
+              description: t(
+                'Defines a rolling window function to apply, works along ' +
+                  'with the [Periods] text box',
+              ),
+            },
+          },
+          {
+            name: 'rolling_periods',
+            config: {
+              type: 'TextControl',
+              label: t('Periods'),
+              isInt: true,
+              description: t(
+                'Defines the size of the rolling window function, ' +
+                  'relative to the time granularity selected',
+              ),
+            },
+          },
+          {
+            name: 'min_periods',
+            config: {
+              type: 'TextControl',
+              label: t('Min Periods'),
+              isInt: true,
+              description: t(
+                'The minimum number of rolling periods required to show ' +
+                  'a value. For instance if you do a cumulative sum on 7 days ' +
+                  'you may want your "Min Period" to be 7, so that all data points ' +
+                  'shown are the total of 7 periods. This will hide the "ramp up" ' +
+                  'taking place over the first 7 periods',
+              ),
+            },
+          },
+        ],
       ],
     },
   ],

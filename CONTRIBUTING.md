@@ -1036,15 +1036,6 @@ The `metric` (or equivalent) and `timeseries_limit_metric` fields are all compos
 
 The filter-box configuration references column names (via the `column` key) and optionally metric names (via the `metric` key) if sorting is defined.
 
-### Options
-
-| Field                  | Type      | Notes                                |
-| ---------------------- | --------- | ------------------------------------ |
-| `compare_lag`          | _number_  | The **Comparison Period Lag** widget |
-| `compare_suffix`       | _string_  | The **Comparison suffix** widget     |
-| `show_trend_line`      | _boolean_ | The **Show Trend Line** widget       |
-| `start_y_axis_at_zero` | _boolean_ | The **Start y-axis at 0** widget     |
-
 ### Chart Options
 
 | Field                 | Type      | Notes                                            |
@@ -1161,7 +1152,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `markers`                       | _N/A_ |       |
 | `markup_type`                   | _N/A_ |       |
 | `max_radius`                    | _N/A_ |       |
-| `min_periods`                   | _N/A_ |       |
 | `min_radius`                    | _N/A_ |       |
 | `multiplier`                    | _N/A_ |       |
 | `new_dashboard_name`            | _N/A_ |       |
@@ -1188,8 +1178,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `resample_method`               | _N/A_ |       |
 | `resample_rule`                 | _N/A_ |       |
 | `reverse_long_lat`              | _N/A_ |       |
-| `rolling_periods`               | _N/A_ |       |
-| `rolling_type`                  | _N/A_ |       |
 | `rose_area_proportion`          | _N/A_ |       |
 | `save_to_dashboard_id`          | _N/A_ |       |
 | `schema`                        | _N/A_ |       |
@@ -1212,7 +1200,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `stroke_color_picker`           | _N/A_ |       |
 | `stroke_width`                  | _N/A_ |       |
 | `stroked`                       | _N/A_ |       |
-| `subheader`                     | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
 | `time_compare`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
