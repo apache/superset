@@ -968,6 +968,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Some databases require passing additional non-standard parameters to database
         connections, for example client certificates.
 
-        :param database: instance to be mutated
+        :param database: database instance to connect to
+        :param connect_args: arguments to be passed to dbapi connect call
         """
         return None

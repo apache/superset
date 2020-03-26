@@ -58,9 +58,10 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         Some databases require passing additional non-standard parameters to database
         connections, for example client certificates.
 
-        :param database: instance to be mutated
+        :param database: database instance to connect to
+        :param connect_args: arguments to be passed to dbapi connect call
         """
         if database.server_cert:
             connect_args["scheme"] = "https"
-            path = utils.create_temporary_ssl_cert_file(database.server_cert)
+            path = utils.create_ssl_cert_file(database.server_cert)
             connect_args["ssl_verify_cert"] = path
