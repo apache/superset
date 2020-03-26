@@ -74,6 +74,7 @@ const defaultProps = {
   setControlValue() {},
   triggerRender: false,
   dashboardId: null,
+  chartStackTrace: null,
 };
 
 class Chart extends React.PureComponent {
