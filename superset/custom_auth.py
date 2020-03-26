@@ -17,7 +17,13 @@ def has_resource_access(privileges):
           for resource in config['resources']:
             if ('appId' in resource) and (resource['appId'] in ['customerAi', 'demandAi']):
               return True
-            elif (resource['name'] == 'SOLUTION MANAGER') and (resource['action'] == 'write'):
+    return False
+
+def has_solution_write_access(privileges):
+    for config in privileges['level']['tenant']['tenants']:
+      if config['tenant'] == environ['TENANT']:
+          for resource in config['resources']:
+            if (resource['name'] == 'SOLUTION MANAGER') and (resource['action'] == 'write'):
               return True
     return False
 
@@ -51,7 +57,9 @@ class CustomAuthDBView(AuthDBView):
                 user = 'admin'
             else:
                 privileges = loads(auth_response['privileges'])
-                if not has_resource_access(privileges):
+                if has_solution_write_access(privileges):
+                    user = 'peakuser'
+                elif not has_resource_access(privileges):
                     raise Exception('Insufficient Resource Permissions')
             user = self.appbuilder.sm.find_user(user)
             login_user(user, remember=False,
@@ -68,7 +76,8 @@ class CustomAuthDBView(AuthDBView):
                 jsonify(
                     {
                         'message': 'Access Denied',
-                        'severity': 'danger'
+                        'severity': 'danger',
+                        'error': e
                     }
                 ),
                 401
@@ -99,7 +108,9 @@ class CustomAuthDBView(AuthDBView):
                     user = 'admin'
                 else:
                     privileges = loads(auth_response['privileges'])
-                    if not has_resource_access(privileges):
+                    if has_solution_write_access(privileges):
+                        user = 'peakuser'
+                    elif not has_resource_access(privileges):
                         raise Exception('Insufficient Resource Permissions')
                 user = self.appbuilder.sm.find_user(user)
                 login_user(user, remember=False,
