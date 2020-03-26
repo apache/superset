@@ -1173,7 +1173,8 @@ def get_username() -> Optional[str]:
 
 def parse_ssl_cert(certificate: str) -> _Certificate:
     """
-    Parse the contents of a
+    Parses the contents of a certificate and returns a valid certificate object
+    if valid.
 
     :param certificate: Contents of certificate file
     :return: Valid certificate instance

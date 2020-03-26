@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=unused-argument
 import hashlib
+import json
+import logging
 import os
 import re
 from contextlib import closing
@@ -58,6 +60,8 @@ if TYPE_CHECKING:
         TableColumn,
     )
     from superset.models.core import Database  # pylint: disable=unused-import
+
+logger = logging.getLogger()
 
 
 class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
@@ -961,14 +965,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @staticmethod
-    def mutate_connection_args(
-        database: "Database", connect_args: Dict[str, Any]
-    ) -> None:
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
         """
-        Some databases require passing additional non-standard parameters to database
-        connections, for example client certificates.
+        Some databases require adding elements to connection parameters,
+        like passing certificates to `extra`. This can be done here.
 
-        :param database: database instance to connect to
-        :param connect_args: arguments to be passed to dbapi connect call
+        :param database: database instance from which to extract extras
         """
-        return None
+        extra: Dict[str, Any] = {}
+        if database.extra:
+            try:
+                extra = json.loads(database.extra)
+            except json.JSONDecodeError as e:
+                logger.error(e)
+                raise e
+        return extra

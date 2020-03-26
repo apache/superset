@@ -300,7 +300,6 @@ class Database(
             params["poolclass"] = NullPool
 
         connect_args = params.get("connect_args", {})
-        self.db_engine_spec.mutate_connection_args(self, connect_args)
         configuration = connect_args.get("configuration", {})
 
         # If using Hive, this will set hive.server2.proxy.user=$effective_username
@@ -558,14 +557,7 @@ class Database(
         return self.db_engine_spec.get_time_grains()
 
     def get_extra(self) -> Dict[str, Any]:
-        extra: Dict[str, Any] = {}
-        if self.extra:
-            try:
-                extra = json.loads(self.extra)
-            except json.JSONDecodeError as e:
-                logger.error(e)
-                raise e
-        return extra
+        return self.db_engine_spec.get_extra_params(self)
 
     def get_encrypted_extra(self):
         encrypted_extra = {}
