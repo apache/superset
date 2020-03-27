@@ -1082,11 +1082,11 @@ class DruidDatasource(Model, BaseDatasource):
         return aggregations
 
     def get_dimensions(
-        self, groupby: List[str], columns_dict: Dict[str, DruidColumn]
+        self, columns: List[str], columns_dict: Dict[str, DruidColumn]
     ) -> List[Union[str, Dict]]:
         dimensions = []
-        groupby = [gb for gb in groupby if gb in columns_dict]
-        for column_name in groupby:
+        columns = [gb for gb in columns if gb in columns_dict]
+        for column_name in columns:
             col = columns_dict.get(column_name)
             dim_spec = col.dimension_spec if col else None
             dimensions.append(dim_spec or column_name)
@@ -1137,7 +1137,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     def run_query(  # druid
         self,
-        groupby,
+        columns,
         metrics,
         granularity,
         from_dttm,
@@ -1151,7 +1151,6 @@ class DruidDatasource(Model, BaseDatasource):
         inner_to_dttm=None,
         orderby=None,
         extras=None,
-        columns=None,
         phase=2,
         client=None,
         order_desc=True,
@@ -1188,7 +1187,7 @@ class DruidDatasource(Model, BaseDatasource):
         )
 
         # the dimensions list with dimensionSpecs expanded
-        dimensions = self.get_dimensions(groupby, columns_dict)
+        dimensions = self.get_dimensions(columns, columns_dict)
         extras = extras or {}
         qry = dict(
             datasource=self.datasource_name,
@@ -1214,7 +1213,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         order_direction = "descending" if order_desc else "ascending"
 
-        if not metrics:
+        if not metrics and "__time" not in columns:
             columns.append("__time")
             del qry["post_aggregations"]
             del qry["aggregations"]
@@ -1224,11 +1223,11 @@ class DruidDatasource(Model, BaseDatasource):
             qry["granularity"] = "all"
             qry["limit"] = row_limit
             client.scan(**qry)
-        elif len(groupby) == 0 and not having_filters:
+        elif not columns and not having_filters:
             logger.info("Running timeseries query for no groupby values")
             del qry["dimensions"]
             client.timeseries(**qry)
-        elif not having_filters and len(groupby) == 1 and order_desc:
+        elif not having_filters and len(columns) == 1 and order_desc:
             dim = list(qry["dimensions"])[0]
             logger.info("Running two-phase topn query for dimension [{}]".format(dim))
             pre_qry = deepcopy(qry)
@@ -1279,7 +1278,7 @@ class DruidDatasource(Model, BaseDatasource):
             qry["metric"] = list(qry["aggregations"].keys())[0]
             client.topn(**qry)
             logger.info("Phase 2 Complete")
-        elif len(groupby) > 0 or having_filters:
+        elif columns or having_filters:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             logger.info("Running groupby query for dimensions [{}]".format(dimensions))
@@ -1365,7 +1364,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     @staticmethod
     def homogenize_types(df: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
-        """Converting all GROUPBY columns to strings
+        """Converting all columns to strings
 
         When grouping by a numeric (say FLOAT) column, pydruid returns
         strings in the dataframe. This creates issues downstream related

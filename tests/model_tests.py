@@ -234,11 +234,10 @@ class SqlaTableModelTestCase(SupersetTestCase):
             label="arbitrary", expressionType="SQL", sqlExpression="COUNT(1)"
         )
         query_obj = dict(
-            groupby=[arbitrary_gby, "name"],
+            columns=[arbitrary_gby, "name"],
             metrics=[arbitrary_metric],
             filter=[],
             is_timeseries=is_timeseries,
-            columns=[],
             granularity="ds",
             from_dttm=None,
             to_dttm=None,

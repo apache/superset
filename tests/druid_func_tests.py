@@ -407,7 +407,7 @@ class DruidFuncTestCase(SupersetTestCase):
         aggs = []
         post_aggs = ["some_agg"]
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
-        groupby = []
+        columns = []
         metrics = ["metric1"]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder = Mock()
@@ -415,7 +415,7 @@ class DruidFuncTestCase(SupersetTestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             None,
             from_dttm,
@@ -456,7 +456,7 @@ class DruidFuncTestCase(SupersetTestCase):
         all_metrics = []
         post_aggs = ["some_agg"]
         ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
-        groupby = []
+        columns = []
         metrics = [
             {
                 "expressionType": "SIMPLE",
@@ -472,7 +472,7 @@ class DruidFuncTestCase(SupersetTestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             None,
             from_dttm,
@@ -513,13 +513,13 @@ class DruidFuncTestCase(SupersetTestCase):
         aggs = ["metric1"]
         post_aggs = ["some_agg"]
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
-        groupby = ["col1"]
+        columns = ["col1"]
         metrics = ["metric1"]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder.last_query.query_dict = {"mock": 0}
         # client.topn is called twice
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             None,
             from_dttm,
@@ -543,7 +543,7 @@ class DruidFuncTestCase(SupersetTestCase):
         client = Mock()
         client.query_builder.last_query.query_dict = {"mock": 0}
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             None,
             from_dttm,
@@ -611,7 +611,7 @@ class DruidFuncTestCase(SupersetTestCase):
         aggs = []
         post_aggs = ["some_agg"]
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
-        groupby = ["col1", "col2"]
+        columns = ["col1", "col2"]
         metrics = ["metric1"]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder = Mock()
@@ -619,7 +619,7 @@ class DruidFuncTestCase(SupersetTestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             None,
             from_dttm,
@@ -1016,12 +1016,12 @@ class DruidFuncTestCase(SupersetTestCase):
         ds.columns = [dim1, dim2]
         ds.metrics = list(metrics_dict.values())
 
-        groupby = ["dim1"]
+        columns = ["dim1"]
         metrics = ["count1"]
         granularity = "all"
         # get the counts of the top 5 'dim1's, order by 'sum1'
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             granularity,
             from_dttm,
@@ -1042,7 +1042,7 @@ class DruidFuncTestCase(SupersetTestCase):
 
         # get the counts of the top 5 'dim1's, order by 'div1'
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             granularity,
             from_dttm,
@@ -1061,10 +1061,10 @@ class DruidFuncTestCase(SupersetTestCase):
         self.assertEqual({"count1", "sum1", "sum2"}, set(aggregations.keys()))
         self.assertEqual({"div1"}, set(post_aggregations.keys()))
 
-        groupby = ["dim1", "dim2"]
+        columns = ["dim1", "dim2"]
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             granularity,
             from_dttm,
@@ -1085,7 +1085,7 @@ class DruidFuncTestCase(SupersetTestCase):
 
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'div1'
         ds.run_query(
-            groupby,
+            columns,
             metrics,
             granularity,
             from_dttm,

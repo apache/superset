@@ -1635,6 +1635,8 @@ class DistributionBarViz(DistributionPieViz):
     is_timeseries = False
 
     def query_obj(self):
+        # TODO: Refactor this plugin to either perform grouping or assume
+        #  preaggretagion of metrics ("numeric columns")
         d = super().query_obj()
         fd = self.form_data
         if not self.all_metrics:
