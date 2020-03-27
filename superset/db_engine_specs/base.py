@@ -971,6 +971,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         like passing certificates to `extra`. This can be done here.
 
         :param database: database instance from which to extract extras
+        :raises CertificateException: If certificate is not valid/unparseable
         """
         extra: Dict[str, Any] = {}
         if database.extra:

@@ -21,7 +21,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
 
 from superset import app, security_manager
-from superset.exceptions import SupersetException
+from superset.exceptions import CertificateException, SupersetException
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import core as utils
 from superset.views.database.filters import DatabaseFilter
@@ -236,17 +236,24 @@ class DatabaseMixin:
         # this will check whether json.loads(extra) can succeed
         try:
             extra = database.get_extra()
+        except CertificateException:
+            raise Exception(_("Invalid certificate"))
         except Exception as e:
-            raise Exception("Extra field cannot be decoded by JSON. {}".format(str(e)))
+            raise Exception(
+                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(e))
+            )
 
         # this will check whether 'metadata_params' is configured correctly
         metadata_signature = inspect.signature(MetaData)
         for key in extra.get("metadata_params", {}):
             if key not in metadata_signature.parameters:
                 raise Exception(
-                    "The metadata_params in Extra field "
-                    "is not configured correctly. The key "
-                    "{} is invalid.".format(key)
+                    _(
+                        "The metadata_params in Extra field "
+                        "is not configured correctly. The key "
+                        "%{key}s is invalid.",
+                        key=key,
+                    )
                 )
 
     def check_encrypted_extra(self, database):  # pylint: disable=no-self-use
@@ -254,4 +261,6 @@ class DatabaseMixin:
         try:
             database.get_encrypted_extra()
         except Exception as e:
-            raise Exception(f"Secure Extra field cannot be decoded as JSON. {str(e)}")
+            raise Exception(
+                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(e))
+            )

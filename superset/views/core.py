@@ -1393,8 +1393,8 @@ class Superset(BaseSupersetView):
             logger.info("Invalid certificate %s", e)
             return json_error_response(
                 _(
-                    "Invalid certificate; "
-                    "please make sure the certificate begins with\n"
+                    "Invalid certificate. "
+                    "Please make sure the certificate begins with\n"
                     "-----BEGIN CERTIFICATE-----\n"
                     "and ends with \n"
                     "-----END CERTIFICATE-----"
