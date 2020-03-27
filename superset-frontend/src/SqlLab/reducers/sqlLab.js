@@ -328,6 +328,7 @@ export default function sqlLabReducer(state = {}, action) {
       if (action.results.data) {
         rows = action.results.data.length;
       }
+
       const alts = {
         endDttm: now(),
         progress: 100,

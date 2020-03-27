@@ -102,13 +102,13 @@ export default class ResultSet extends React.PureComponent {
   clearQueryResults(query) {
     this.props.actions.clearQueryResults(query);
   }
-  popSelectStar() {
+  popSelectStar(tmpSchema, tmpTable) {
     const qe = {
       id: shortid.generate(),
-      title: this.props.query.tempTable,
+      title: tmpTable,
       autorun: false,
       dbId: this.props.query.dbId,
-      sql: `SELECT * FROM ${this.props.query.tempTable}`,
+      sql: `SELECT * FROM ${tmpSchema}.${tmpTable}`,
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -217,40 +217,30 @@ export default class ResultSet extends React.PureComponent {
         </Alert>
       );
     } else if (query.state === 'success' && query.ctas) {
-      // Get the schema of the temporary table that was created.
-      let schema = query.schema;
-      let tempTable = query.tempTable;
-      // Sync queries only have tempTable in query.results.query
-      if (
-        query.results &&
-        query.results.query &&
-        query.results.query.tempTable
-      ) {
-        tempTable = query.results.query.tempTable;
+      // Async queries
+      let tmpSchema = query.tempSchema;
+      let tmpTable = query.tempTableName;
+      // Sync queries, query.results.query contains source of truth for them.
+      if (query.results && query.results.query) {
+        tmpTable = query.results.query.tempTable;
+        tmpSchema = query.results.query.tempSchema;
       }
-      if (tempTable !== undefined) {
-        const tableNameParts = tempTable.split('.');
-        if (tableNameParts.length > 1) {
-          schema = tableNameParts[0];
-        }
-      }
-
       return (
         <div>
           <Alert bsStyle="info">
-            {t('Table')} [<strong>{tempTable}</strong>] {t('was created')}{' '}
+            {t('Table')} [<strong>{tmpSchema}.{tmpTable}</strong>] {t('was created')}{' '}
             &nbsp;
             <ButtonGroup>
               <Button
                 bsSize="small"
                 className="m-r-5"
-                onClick={this.popSelectStar}
+                onClick={() => this.popSelectStar(tmpSchema, tmpTable)}
               >
                 {t('Query in a new tab')}
               </Button>
               <ExploreCtasResultsButton
-                table={query.tempTableName}
-                schema={schema}
+                table={tmpTable}
+                schema={tmpSchema}
                 dbId={query.dbId}
                 database={this.props.database}
                 actions={this.props.actions}
