@@ -55,7 +55,7 @@ export default function getFormDataWithExtraFilters({
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
-    extra_filters: getEffectiveExtraFilters(filters),
+    extra_filters: getEffectiveExtraFilters(filters, chart['form_data']['filter_operators']),
   };
 
   cachedFiltersByChart[sliceId] = filters;
