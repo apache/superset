@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import moment from 'moment';
 import { configure } from '@superset-ui/translation';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
+
+if (process.env.WEBPACK_MODE === 'development') {
+  setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
+}
 
 // Configure translation
 if (typeof window !== 'undefined') {
