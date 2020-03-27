@@ -79,3 +79,7 @@ class ChartDeleteFailedError(DeleteFailedError):
 
 class ChartForbiddenError(ForbiddenError):
     message = _("Changing this chart is forbidden")
+
+
+class ChartBulkDeleteFailedError(CreateFailedError):
+    message = _("Charts could not be deleted.")

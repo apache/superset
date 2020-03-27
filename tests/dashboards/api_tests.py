@@ -379,7 +379,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         expected_response = {"message": "Forbidden"}
         self.assertEqual(response, expected_response)
 
-        # nothing is delete in bulk with a list of owned and not owned dashboards
+        # nothing is deleted in bulk with a list of owned and not owned dashboards
         arguments = [dashboard.id for dashboard in dashboards] + [owned_dashboard.id]
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
         rv = self.client.delete(uri)
