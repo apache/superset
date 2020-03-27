@@ -191,7 +191,7 @@ const jsFunctionInfo = (
   </div>
 );
 
-function columnChoices(datasource) {
+export function columnChoices(datasource) {
   if (datasource && datasource.columns) {
     return datasource.columns
       .map(col => [col.column_name, col.verbose_name || col.column_name])
@@ -1562,29 +1562,6 @@ export const controls = {
     description: t('Base layer map style'),
   },
 
-  clustering_radius: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Clustering Radius'),
-    default: '60',
-    choices: formatSelectOptions([
-      '0',
-      '20',
-      '40',
-      '60',
-      '80',
-      '100',
-      '200',
-      '500',
-      '1000',
-    ]),
-    description: t(
-      'The radius (in pixels) the algorithm uses to define a cluster. ' +
-        'Choose 0 to turn off clustering, but beware that a large ' +
-        'number of points (>1000) will cause lag.',
-    ),
-  },
-
   point_radius_fixed: {
     type: 'FixedOrMetricControl',
     label: t('Point Size'),
@@ -1593,30 +1570,6 @@ export const controls = {
     mapStateToProps: state => ({
       datasource: state.datasource,
     }),
-  },
-
-  point_radius: {
-    type: 'SelectControl',
-    label: t('Point Radius'),
-    default: 'Auto',
-    description: t(
-      'The radius of individual points (ones that are not in a cluster). ' +
-        'Either a numerical column or `Auto`, which scales the point based ' +
-        'on the largest cluster',
-    ),
-    mapStateToProps: state => ({
-      choices: formatSelectOptions(['Auto']).concat(
-        columnChoices(state.datasource),
-      ),
-    }),
-  },
-
-  point_radius_unit: {
-    type: 'SelectControl',
-    label: t('Point Radius Unit'),
-    default: 'Pixels',
-    choices: formatSelectOptions(['Pixels', 'Miles', 'Kilometers']),
-    description: t('The unit of measure for the specified point radius'),
   },
 
   point_unit: {
@@ -1677,55 +1630,6 @@ export const controls = {
     places: 8,
     // Viewport zoom shouldn't prompt user to re-run query
     dontRefreshOnChange: true,
-  },
-
-  viewport_latitude: {
-    type: 'TextControl',
-    label: t('Default latitude'),
-    renderTrigger: true,
-    default: 37.772123,
-    isFloat: true,
-    description: t('Latitude of default viewport'),
-    places: 8,
-    // Viewport latitude changes shouldn't prompt user to re-run query
-    dontRefreshOnChange: true,
-  },
-
-  viewport_longitude: {
-    type: 'TextControl',
-    label: t('Default longitude'),
-    renderTrigger: true,
-    default: -122.405293,
-    isFloat: true,
-    description: t('Longitude of default viewport'),
-    places: 8,
-    // Viewport longitude changes shouldn't prompt user to re-run query
-    dontRefreshOnChange: true,
-  },
-
-  render_while_dragging: {
-    type: 'CheckboxControl',
-    label: t('Live render'),
-    default: true,
-    description: t(
-      'Points and clusters will update as the viewport is being changed',
-    ),
-  },
-
-  mapbox_color: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('RGB Color'),
-    default: 'rgb(0, 122, 135)',
-    choices: [
-      ['rgb(0, 139, 139)', 'Dark Cyan'],
-      ['rgb(128, 0, 128)', 'Purple'],
-      ['rgb(255, 215, 0)', 'Gold'],
-      ['rgb(69, 69, 69)', 'Dim Gray'],
-      ['rgb(220, 20, 60)', 'Crimson'],
-      ['rgb(34, 139, 34)', 'Forest Green'],
-    ],
-    description: t('The color for points and clusters in RGB'),
   },
 
   color: {

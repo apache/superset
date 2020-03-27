@@ -17,6 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { formatSelectOptions } from '../../modules/utils';
+import { columnChoices } from '../controls';
 
 export default {
   controlPanelSections: [
@@ -25,7 +27,33 @@ export default {
       expanded: true,
       controlSetRows: [
         ['all_columns_x', 'all_columns_y'],
-        ['clustering_radius'],
+        [
+          {
+            name: 'clustering_radius',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Clustering Radius'),
+              default: '60',
+              choices: formatSelectOptions([
+                '0',
+                '20',
+                '40',
+                '60',
+                '80',
+                '100',
+                '200',
+                '500',
+                '1000',
+              ]),
+              description: t(
+                'The radius (in pixels) the algorithm uses to define a cluster. ' +
+                  'Choose 0 to turn off clustering, but beware that a large ' +
+                  'number of points (>1000) will cause lag.',
+              ),
+            },
+          },
+        ],
         ['row_limit'],
         ['adhoc_filters'],
         ['groupby'],
@@ -33,7 +61,42 @@ export default {
     },
     {
       label: t('Points'),
-      controlSetRows: [['point_radius'], ['point_radius_unit']],
+      controlSetRows: [
+        [
+          {
+            name: 'point_radius',
+            config: {
+              type: 'SelectControl',
+              label: t('Point Radius'),
+              default: 'Auto',
+              description: t(
+                'The radius of individual points (ones that are not in a cluster). ' +
+                  'Either a numerical column or `Auto`, which scales the point based ' +
+                  'on the largest cluster',
+              ),
+              mapStateToProps: state => ({
+                choices: formatSelectOptions(['Auto']).concat(
+                  columnChoices(state.datasource),
+                ),
+              }),
+            },
+          },
+        ],
+        [
+          {
+            name: 'point_radius_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Point Radius Unit'),
+              default: 'Pixels',
+              choices: formatSelectOptions(['Pixels', 'Miles', 'Kilometers']),
+              description: t(
+                'The unit of measure for the specified point radius',
+              ),
+            },
+          },
+        ],
+      ],
     },
     {
       label: t('Labelling'),
@@ -42,18 +105,94 @@ export default {
     {
       label: t('Visual Tweaks'),
       controlSetRows: [
-        ['render_while_dragging'],
+        [
+          {
+            name: 'render_while_dragging',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Live render'),
+              default: true,
+              description: t(
+                'Points and clusters will update as the viewport is being changed',
+              ),
+            },
+          },
+        ],
         ['mapbox_style'],
         ['global_opacity'],
-        ['mapbox_color'],
+        [
+          {
+            name: 'mapbox_color',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('RGB Color'),
+              default: 'rgb(0, 122, 135)',
+              choices: [
+                ['rgb(0, 139, 139)', 'Dark Cyan'],
+                ['rgb(128, 0, 128)', 'Purple'],
+                ['rgb(255, 215, 0)', 'Gold'],
+                ['rgb(69, 69, 69)', 'Dim Gray'],
+                ['rgb(220, 20, 60)', 'Crimson'],
+                ['rgb(34, 139, 34)', 'Forest Green'],
+              ],
+              description: t('The color for points and clusters in RGB'),
+            },
+          },
+        ],
       ],
     },
     {
       label: t('Viewport'),
       expanded: true,
       controlSetRows: [
-        ['viewport_longitude', 'viewport_latitude'],
-        ['viewport_zoom', null],
+        [
+          {
+            name: 'viewport_longitude',
+            config: {
+              type: 'TextControl',
+              label: t('Default longitude'),
+              renderTrigger: true,
+              default: -122.405293,
+              isFloat: true,
+              description: t('Longitude of default viewport'),
+              places: 8,
+              // Viewport longitude changes shouldn't prompt user to re-run query
+              dontRefreshOnChange: true,
+            },
+          },
+          {
+            name: 'viewport_latitude',
+            config: {
+              type: 'TextControl',
+              label: t('Default latitude'),
+              renderTrigger: true,
+              default: 37.772123,
+              isFloat: true,
+              description: t('Latitude of default viewport'),
+              places: 8,
+              // Viewport latitude changes shouldn't prompt user to re-run query
+              dontRefreshOnChange: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'viewport_zoom',
+            config: {
+              type: 'TextControl',
+              label: t('Zoom'),
+              renderTrigger: true,
+              isFloat: true,
+              default: 11,
+              description: t('Zoom level of the map'),
+              places: 8,
+              // Viewport zoom shouldn't prompt user to re-run query
+              dontRefreshOnChange: true,
+            },
+          },
+          null,
+        ],
       ],
     },
   ],
