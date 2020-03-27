@@ -16,8 +16,9 @@
 # under the License.
 import logging
 
+import yaml
 from flask import g, request, Response
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.connectors.sqla.models import SqlaTable
@@ -35,8 +36,12 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
-from superset.datasets.schemas import DatasetPostSchema, DatasetPutSchema
-from superset.views.base import DatasourceFilter
+from superset.datasets.schemas import (
+    DatasetPostSchema,
+    DatasetPutSchema,
+    get_export_ids_schema,
+)
+from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.filters import DatabaseFilter
 
@@ -51,10 +56,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
 
     class_permission_name = "TableModelView"
-    include_route_methods = (
-        RouteMethod.REST_MODEL_VIEW_CRUD_SET | {RouteMethod.RELATED} | {"refresh"}
-    )
-
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.EXPORT,
+        RouteMethod.RELATED,
+        "refresh",
+    }
     list_columns = [
         "database_name",
         "changed_by_name",
@@ -277,6 +283,58 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetDeleteFailedError as e:
             logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
             return self.response_422(message=str(e))
+
+    @expose("/export/", methods=["GET"])
+    @protect()
+    @safe
+    @rison(get_export_ids_schema)
+    def export(self, **kwargs):
+        """Export dashboards
+        ---
+        get:
+          description: >-
+            Exports multiple datasets and downloads them as YAML files
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: integer
+          responses:
+            200:
+              description: Dataset export
+              content:
+                text/plain:
+                  schema:
+                    type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        requested_ids = kwargs["rison"]
+        query = self.datamodel.session.query(SqlaTable).filter(
+            SqlaTable.id.in_(requested_ids)
+        )
+        query = self._base_filters.apply_all(query)
+        items = query.all()
+        ids = [item.id for item in items]
+        if len(ids) != len(requested_ids):
+            return self.response_404()
+
+        data = [t.export_to_dict() for t in items]
+        return Response(
+            yaml.safe_dump(data),
+            headers=generate_download_headers("yaml"),
+            mimetype="application/text",
+        )
 
     @expose("/<pk>/refresh", methods=["PUT"])
     @protect()
