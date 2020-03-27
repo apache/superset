@@ -76,3 +76,16 @@ class MssqlEngineSpec(BaseEngineSpec):
             if regex.match(type_):
                 return sqla_type
         return None
+
+    @classmethod
+    def modify_url_for_impersonation(
+            cls, url: URL, impersonate_user: bool, username: Optional[str]
+    ) -> None:
+        """
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        if impersonate_user and username is not None:
+            url.query["conn_properties"] = "EXECUTE AS USER = '{}'".format(username)
