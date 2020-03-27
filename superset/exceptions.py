@@ -60,5 +60,9 @@ class SpatialException(SupersetException):
     pass
 
 
+class CertificateException(SupersetException):
+    pass
+
+
 class DatabaseNotFound(SupersetException):
     status = 400

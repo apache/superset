@@ -67,6 +67,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
 from superset.constants import RouteMethod
 from superset.exceptions import (
+    CertificateException,
     DatabaseNotFound,
     SupersetException,
     SupersetSecurityException,
@@ -1353,6 +1354,7 @@ class Superset(BaseSupersetView):
             # this is the database instance that will be tested
             database = models.Database(
                 # extras is sent as json, but required to be a string in the Database model
+                server_cert=request.json.get("server_cert"),
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
                 encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
@@ -1366,6 +1368,17 @@ class Superset(BaseSupersetView):
             with closing(engine.connect()) as conn:
                 conn.scalar(select([1]))
                 return json_success('"OK"')
+        except CertificateException as e:
+            logger.info("Invalid certificate %s", e)
+            return json_error_response(
+                _(
+                    "Invalid certificate. "
+                    "Please make sure the certificate begins with\n"
+                    "-----BEGIN CERTIFICATE-----\n"
+                    "and ends with \n"
+                    "-----END CERTIFICATE-----"
+                )
+            )
         except NoSuchModuleError as e:
             logger.info("Invalid driver %s", e)
             driver_name = make_url(uri).drivername

@@ -19,12 +19,13 @@
 import decimal
 import errno
 import functools
+import hashlib
 import json
 import logging
 import os
-import re
 import signal
 import smtplib
+import tempfile
 import traceback
 import uuid
 import zlib
@@ -45,6 +46,9 @@ import numpy as np
 import pandas as pd
 import parsedatetime
 import sqlalchemy as sa
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.backends.openssl.x509 import _Certificate
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from flask import current_app, flash, Flask, g, Markup, render_template
@@ -56,7 +60,11 @@ from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
 
-from superset.exceptions import SupersetException, SupersetTimeoutException
+from superset.exceptions import (
+    CertificateException,
+    SupersetException,
+    SupersetTimeoutException,
+)
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
 try:
@@ -1161,6 +1169,46 @@ def get_username() -> Optional[str]:
         return g.user.username
     except Exception:
         return None
+
+
+def parse_ssl_cert(certificate: str) -> _Certificate:
+    """
+    Parses the contents of a certificate and returns a valid certificate object
+    if valid.
+
+    :param certificate: Contents of certificate file
+    :return: Valid certificate instance
+    :raises CertificateException: If certificate is not valid/unparseable
+    """
+    try:
+        return x509.load_pem_x509_certificate(
+            certificate.encode("utf-8"), default_backend()
+        )
+    except ValueError as e:
+        raise CertificateException("Invalid certificate")
+
+
+def create_ssl_cert_file(certificate: str) -> str:
+    """
+    This creates a certificate file that can be used to validate HTTPS
+    sessions. A certificate is only written to disk once; on subsequent calls,
+    only the path of the existing certificate is returned.
+
+    :param certificate: The contents of the certificate
+    :return: The path to the certificate file
+    :raises CertificateException: If certificate is not valid/unparseable
+    """
+    filename = f"{hashlib.md5(certificate.encode('utf-8')).hexdigest()}.crt"
+    cert_dir = current_app.config["SSL_CERT_PATH"]
+    path = cert_dir if cert_dir else tempfile.gettempdir()
+    path = os.path.join(path, filename)
+    if not os.path.exists(path):
+        # Validate certificate prior to persisting to temporary directory
+        parse_ssl_cert(certificate)
+        cert_file = open(path, "w")
+        cert_file.write(certificate)
+        cert_file.close()
+    return path
 
 
 def MediumText() -> Variant:

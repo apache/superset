@@ -43,6 +43,7 @@
           impersonate_user: $('#impersonate_user').is(':checked'),
           extras: extra ? JSON.parse(extra) : {},
           encrypted_extra: encryptedExtra ? JSON.parse(encryptedExtra) : {},
+          server_cert: $("#server_cert").val(),
         })
       } catch(parse_error){
         alert("Malformed JSON in the extras field: " + parse_error);
@@ -79,5 +80,11 @@
 {% macro expand_encrypted_extra_textarea() %}
   <script>
     $('#encrypted_extra').attr('rows', '5');
+  </script>
+{% endmacro %}
+
+{% macro expand_server_cert_textarea() %}
+  <script>
+    $('#server_cert').attr('rows', '5');
   </script>
 {% endmacro %}

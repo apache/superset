@@ -729,6 +729,12 @@ The native Druid connector (behind the ``DRUID_IS_ACTIVE`` feature flag)
 is slowly getting deprecated in favor of the SQLAlchemy/DBAPI connector made
 available in the ``pydruid`` library.
 
+To use a custom SSL certificate to validate HTTPS requests, the certificate
+contents can be entered in the ``Root Certificate`` field in the Database
+dialog. When using a custom certificate, ``pydruid`` will automatically use
+``https`` scheme. To disable SSL verification add the following to extras:
+``engine_params": {"connect_args": {"scheme": "https", "ssl_verify_cert": false}}``
+
 Dremio
 ------
 
