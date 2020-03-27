@@ -18,6 +18,7 @@ import re
 from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
+from sqlalchemy.dialects.mssql.pymssql import MSDialect_pymssql
 from sqlalchemy.engine.url import URL
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
@@ -89,7 +90,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         :param username: Effective username
         """
         if impersonate_user and username is not None:
-            if url.drivername == "mssql+pymssql":
+            if url.get_dialect().driver == MSDialect_pymssql.driver:
                 url.query["conn_properties"] = f"EXECUTE AS USER = '{username}'"
             else:
                 url.username = username
