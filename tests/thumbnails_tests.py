@@ -99,7 +99,7 @@ class ThumbnailsSeleniumLive(CeleryStartMixin, LiveServerTestCase):
             Thumbnails: Simple get async dashboard screenshot
         """
         dashboard = db.session.query(Dashboard).all()[0]
-        with patch("superset.views.dashboard.api.DashboardRestApi.get") as mock_get:
+        with patch("superset.dashboards.api.DashboardRestApi.get") as mock_get:
             response = self.url_open_auth(
                 "admin",
                 f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/",
@@ -148,7 +148,7 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         ) as mock_task:
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 202)
-            mock_task.assert_called_with(dashboard_id, force=True)
+            mock_task.assert_called_with(dashboard.id, force=True)
 
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_dashboard_notfound(self):

@@ -111,8 +111,9 @@ class ExploreChartPanel extends React.PureComponent {
     );
     return (
       <div className="chart-container">
-        <Panel style={{ height: this.props.height }} header={header}>
-          {this.renderChart()}
+        <Panel style={{ height: this.props.height }}>
+          <Panel.Heading>{header}</Panel.Heading>
+          <Panel.Body>{this.renderChart()}</Panel.Body>
         </Panel>
       </div>
     );

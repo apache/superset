@@ -18,6 +18,25 @@
  */
 import React from 'react';
 import ReactDOM from 'react-dom';
+import thunk from 'redux-thunk';
+import { createStore, applyMiddleware, compose } from 'redux';
+import { initFeatureFlags } from 'src/featureFlags';
+import { initEnhancer } from '../reduxUtils';
+import getInitialState from './reducers/getInitialState';
+import rootReducer from './reducers/index';
+import logger from '../middleware/loggerMiddleware';
+
 import App from './App';
 
-ReactDOM.render(<App />, document.getElementById('app'));
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+initFeatureFlags(bootstrapData.common.feature_flags);
+const initState = getInitialState(bootstrapData);
+
+const store = createStore(
+  rootReducer,
+  initState,
+  compose(applyMiddleware(thunk, logger), initEnhancer(false)),
+);
+
+ReactDOM.render(<App store={store} />, document.getElementById('app'));

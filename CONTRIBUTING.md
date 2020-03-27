@@ -75,7 +75,7 @@ little bit helps, and credit will always be given.
     - [Creating a new language dictionary](#creating-a-new-language-dictionary)
   - [Tips](#tips)
     - [Adding a new datasource](#adding-a-new-datasource)
-    - [Creating a new visualization type](#creating-a-new-visualization-type)
+    - [Improving visualizations](#improving-visualizations)
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
     - [SQL Lab Async](#sql-lab-async)
@@ -389,7 +389,7 @@ Make sure your machine meets the [OS dependencies](https://superset.incubator.ap
 
 Developers should use a virtualenv.
 
-```
+```bash
 pip install virtualenv
 ```
 
@@ -726,7 +726,7 @@ In TypeScript/JavaScript, the technique is similar:
 we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import { t, tn } from "@superset-ui/translation";
+import { t, tn } from '@superset-ui/translation';
 ```
 
 ### Enabling language selection
@@ -803,11 +803,31 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
    This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
 
-### Creating a new visualization type
+### Improving visualizations
 
-Here's an example as a Github PR with comments that describe what the
-different sections of the code do:
-https://github.com/apache/incubator-superset/pull/3013
+Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins):
+
+```bash
+git clone https://github.com/apache-superset/superset-ui-plugins.git
+yarn && yarn build
+```
+
+Then use `npm link` to create a symlink of the source code in `superset-frontend/node_modules`:
+
+```bash
+cd incubator-superset/superset-frontend
+npm link ../../superset-ui-plugins/packages/superset-ui-[PLUGIN NAME]
+
+# Or to link all plugin packages:
+# npm link ../../superset-ui-plugins/packages/*
+
+# Start developing
+npm run dev-server
+```
+
+When plugin packages are linked with `npm link`, the dev server will automatically load files from the plugin's `/src` directory.
+
+Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
 
 ### Adding a DB migration
 
@@ -905,12 +925,14 @@ To do this, you'll need to:
 - Configure a results backend, here's a local `FileSystemCache` example,
   not recommended for production,
   but perfect for testing (stores cache in `/tmp`)
+
   ```python
   from werkzeug.contrib.cache import FileSystemCache
   RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
   ```
 
-* Start up a celery worker
+- Start up a celery worker
+
   ```shell script
   celery worker --app=superset.tasks.celery_app:app -Ofair
   ```
@@ -961,10 +983,8 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 | Field                     | Type            | Notes                       |
 | ------------------------- | --------------- | --------------------------- |
-| `include_time`            | _boolean_       | The **Include Time** widget |
 | `metrics`                 | _array(string)_ | See Query section           |
 | `order_asc`               | -               | See Query section           |
-| `percent_metrics`         | -               | See Query section           |
 | `row_limit`               | -               | See Query section           |
 | `timeseries_limit_metric` | -               | See Query section           |
 
@@ -1055,7 +1075,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `x_axis_format`      | _string_  | The **X Axis Format** widget |
 | `x_axis_label`       | _string_  | The **X Axis Label** widget  |
 | `x_axis_showminmax`  | _boolean_ | The **X bounds** widget      |
-| `x_axis_time_format` | _N/A_     | _Deprecated?_                |
 | `x_log_scale`        | _N/A_     | _Deprecated?_                |
 | `x_ticks_layout`     | _string_  | The **X Tick Layout** widget |
 
@@ -1071,7 +1090,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `y_axis_showminmax` | _boolean_       | The **Y bounds** widget      |
 | `y_axis_zero`       | _N/A_           | _Deprecated?_                |
 | `y_log_scale`       | _boolean_       | The **Y Log Scale** widget   |
-| `yscale_interval`   | _N/A_           | _Deprecated?_                |
 
 Note the `y_axis_format` is defined under various section for some charts.
 
@@ -1088,23 +1106,14 @@ Note the `y_axis_format` is defined under various section for some charts.
 | Field                           | Type  | Notes |
 | ------------------------------- | ----- | ----- |
 | `add_to_dash`                   | _N/A_ |       |
-| `align_pn`                      | _N/A_ |       |
 | `all_columns_y`                 | _N/A_ |       |
 | `annotation_layers`             | _N/A_ |       |
 | `autozoom`                      | _N/A_ |       |
 | `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
-| `canvas_image_rendering`        | _N/A_ |       |
-| `cell_padding`                  | _N/A_ |       |
-| `cell_radius`                   | _N/A_ |       |
-| `cell_size`                     | _N/A_ |       |
-| `charge`                        | _N/A_ |       |
-| `clustering_radius`             | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
-| `color_pn`                      | _N/A_ |       |
 | `column_collection`             | _N/A_ |       |
-| `combine_metric`                | _N/A_ |       |
 | `comparison type`               | _N/A_ |       |
 | `contribution`                  | _N/A_ |       |
 | `country_fieldtype`             | _N/A_ |       |
@@ -1112,7 +1121,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `deck_slices`                   | _N/A_ |       |
 | `default_filters`               | _N/A_ |       |
 | `dimension`                     | _N/A_ |       |
-| `domain_granularity`            | _N/A_ |       |
 | `end_spatial`                   | _N/A_ |       |
 | `entity`                        | _N/A_ |       |
 | `equal_date_size`               | _N/A_ |       |
@@ -1132,10 +1140,7 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `flt_op_1`                      | _N/A_ |       |
 | `goto_dash`                     | _N/A_ |       |
 | `grid_size`                     | _N/A_ |       |
-| `horizon_color_scale`           | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
-| `include_search`                | _N/A_ |       |
-| `include_series`                | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
 | `js_agg_function`               | _N/A_ |       |
 | `js_columns`                    | _N/A_ |       |
@@ -1149,7 +1154,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `line_width`                    | _N/A_ |       |
 | `linear_color_scheme`           | _N/A_ |       |
 | `log_scale`                     | _N/A_ |       |
-| `mapbox_color`                  | _N/A_ |       |
 | `mapbox_label`                  | _N/A_ |       |
 | `mapbox_style`                  | _N/A_ |       |
 | `marker_labels`                 | _N/A_ |       |
@@ -1158,7 +1162,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `markers`                       | _N/A_ |       |
 | `markup_type`                   | _N/A_ |       |
 | `max_radius`                    | _N/A_ |       |
-| `min_leaf_node_event_count`     | _N/A_ |       |
 | `min_periods`                   | _N/A_ |       |
 | `min_radius`                    | _N/A_ |       |
 | `multiplier`                    | _N/A_ |       |
@@ -1168,18 +1171,13 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `num_buckets`                   | _N/A_ |       |
 | `num_period_compare`            | _N/A_ |       |
 | `order_bars`                    | _N/A_ |       |
-| `order_by_entity`               | _N/A_ |       |
 | `order_desc`                    | _N/A_ |       |
-| `page_length`                   | _N/A_ |       |
 | `pandas_aggfunc`                | _N/A_ |       |
 | `partition_limit`               | _N/A_ |       |
 | `partition_threshold`           | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
-| `pivot_margins`                 | _N/A_ |       |
-| `point_radius`                  | _N/A_ |       |
 | `point_radius_fixed`            | _N/A_ |       |
-| `point_radius_unit`             | _N/A_ |       |
 | `point_unit`                    | _N/A_ |       |
 | `prefix_metric_with_slice_name` | _N/A_ |       |
 | `range_labels`                  | _N/A_ |       |
@@ -1188,7 +1186,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `reduce_x_ticks`                | _N/A_ |       |
 | `refresh_frequency`             | _N/A_ |       |
 | `remote_id`                     | _N/A_ |       |
-| `render_while_dragging`         | _N/A_ |       |
 | `resample_fillmethod`           | _N/A_ |       |
 | `resample_how`                  | _N/A_ |       |
 | `resample_method`               | _N/A_ |       |
@@ -1197,51 +1194,34 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `rolling_periods`               | _N/A_ |       |
 | `rolling_type`                  | _N/A_ |       |
 | `rose_area_proportion`          | _N/A_ |       |
-| `rotation`                      | _N/A_ |       |
 | `save_to_dashboard_id`          | _N/A_ |       |
 | `schema`                        | _N/A_ |       |
 | `select_country`                | _N/A_ |       |
 | `series`                        | _N/A_ |       |
-| `series_height`                 | _N/A_ |       |
 | `show_bar_value`                | _N/A_ |       |
 | `show_brush`                    | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
 | `show_controls`                 | _N/A_ |       |
-| `show_datatable`                | _N/A_ |       |
 | `show_druid_time_granularity`   | _N/A_ |       |
 | `show_druid_time_origin`        | _N/A_ |       |
 | `show_labels`                   | _N/A_ |       |
-| `show_metric_name`              | _N/A_ |       |
-| `show_perc`                     | _N/A_ |       |
 | `show_sqla_time_column`         | _N/A_ |       |
 | `show_sqla_time_granularity`    | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |
-| `size_from`                     | _N/A_ |       |
-| `size_to`                       | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
-| `sort_x_axis`                   | _N/A_ |       |
-| `sort_y_axis`                   | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
 | `stacked_style`                 | _N/A_ |       |
 | `start_spatial`                 | _N/A_ |       |
-| `steps`                         | _N/A_ |       |
 | `stroke_color_picker`           | _N/A_ |       |
 | `stroke_width`                  | _N/A_ |       |
 | `stroked`                       | _N/A_ |       |
-| `subdomain_granularity`         | _N/A_ |       |
 | `subheader`                     | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
-| `table_timestamp_format`        | _N/A_ |       |
 | `time_compare`                  | _N/A_ |       |
 | `time_series_option`            | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `toggle_polygons`               | _N/A_ |       |
-| `transpose_pivot`               | _N/A_ |       |
-| `treemap_ratio`                 | _N/A_ |       |
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
 | `viewport`                      | _N/A_ |       |
-| `viewport_latitude`             | _N/A_ |       |
-| `viewport_longitude`            | _N/A_ |       |
 | `viewport_zoom`                 | _N/A_ |       |
-| `whisker_options`               | _N/A_ |       |

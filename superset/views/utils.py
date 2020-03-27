@@ -80,12 +80,11 @@ def get_permissions(user):
 
 
 def get_viz(
-    slice_id=None, form_data=None, datasource_type=None, datasource_id=None, force=False
+    form_data: Dict[str, Any],
+    datasource_type: str,
+    datasource_id: int,
+    force: bool = False,
 ):
-    if slice_id:
-        slc = db.session.query(Slice).filter_by(id=slice_id).one()
-        return slc.get_viz()
-
     viz_type = form_data.get("viz_type", "table")
     datasource = ConnectorRegistry.get_datasource(
         datasource_type, datasource_id, db.session
@@ -223,8 +222,9 @@ def get_time_range_endpoints(
     Note under certain circumstances the slice object may not exist, however the slice
     ID may be defined which serves as a fallback.
 
-    When SIP-15 is enabled all slices and will the [start, end) interval. If the grace
-    period is defined and has ended all slices will adhere to the [start, end) interval.
+    When SIP-15 is enabled all new slices will use the [start, end) interval. If the
+    grace period is defined and has ended all slices will adhere to the [start, end)
+    interval.
 
     :param form_data: The form-data
     :param slc: The slice

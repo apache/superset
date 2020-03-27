@@ -17,7 +17,6 @@
 import logging
 from typing import List
 
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dao.base import BaseDAO
@@ -31,13 +30,6 @@ logger = logging.getLogger(__name__)
 class DashboardDAO(BaseDAO):
     model_cls = Dashboard
     base_filter = DashboardFilter
-
-    @staticmethod
-    def find_by_ids(model_ids: List[int]) -> List[Dashboard]:
-        query = db.session.query(Dashboard).filter(Dashboard.id.in_(model_ids))
-        data_model = SQLAInterface(Dashboard, db.session)
-        query = DashboardFilter("id", data_model).apply(query, None)
-        return query.all()
 
     @staticmethod
     def validate_slug_uniqueness(slug: str) -> bool:

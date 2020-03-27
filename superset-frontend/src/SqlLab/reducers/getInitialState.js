@@ -19,8 +19,16 @@
 import { t } from '@superset-ui/translation';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 
-export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
-  /*
+export default function getInitialState({
+  defaultDbId,
+  common,
+  active_tab: activeTab,
+  tab_state_ids: tabStateIds = [],
+  databases,
+  queries: queries_,
+  requested_query: requestedQuery,
+}) {
+  /**
    * Before YYYY-MM-DD, the state for SQL Lab was stored exclusively in the
    * browser's localStorage. The feature flag `SQLLAB_BACKEND_PERSISTENCE`
    * moves the state to the backend instead, migrating it from local storage.
@@ -39,7 +47,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     autorun: false,
     templateParams: null,
     dbId: defaultDbId,
-    queryLimit: restBootstrapData.common.conf.DEFAULT_SQLLAB_LIMIT,
+    queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     validationResult: {
       id: null,
       errors: [],
@@ -52,11 +60,11 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     },
   };
 
-  /* Load state from the backend. This will be empty if the feature flag
+  /**
+   * Load state from the backend. This will be empty if the feature flag
    * `SQLLAB_BACKEND_PERSISTENCE` is off.
    */
-  const activeTab = restBootstrapData.active_tab;
-  restBootstrapData.tab_state_ids.forEach(({ id, label }) => {
+  tabStateIds.forEach(({ id, label }) => {
     let queryEditor;
     if (activeTab && activeTab.id === id) {
       queryEditor = {
@@ -92,7 +100,6 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   });
 
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
-
   const tables = [];
   if (activeTab) {
     activeTab.table_schemas
@@ -126,9 +133,10 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       });
   }
 
-  const { databases, queries } = restBootstrapData;
+  const queries = { ...queries_ };
 
-  /* If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user
+  /**
+   * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user
    * hasn't used SQL Lab after it has been turned on, the state will be stored
    * in the browser's local storage.
    */
@@ -173,13 +181,14 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       tables,
       queriesLastUpdate: Date.now(),
     },
+    requestedQuery,
     messageToasts: getToastsFromPyFlashMessages(
-      (restBootstrapData.common || {}).flash_messages || [],
+      (common || {}).flash_messages || [],
     ),
     localStorageUsageInKilobytes: 0,
     common: {
-      flash_messages: restBootstrapData.common.flash_messages,
-      conf: restBootstrapData.common.conf,
+      flash_messages: common.flash_messages,
+      conf: common.conf,
     },
   };
 }

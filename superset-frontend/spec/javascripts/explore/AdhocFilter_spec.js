@@ -40,6 +40,7 @@ describe('AdhocFilter', () => {
       filterOptionName: adhocFilter.filterOptionName,
       sqlExpression: null,
       fromFormData: false,
+      isExtra: false,
     });
   });
 

@@ -75,6 +75,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         "info": "list",
         "related": "list",
         "thumbnail": "list",
+        "refresh": "edit",
     }
 
     order_rel_fields: Dict[str, Tuple[str, str]] = {}

@@ -443,6 +443,8 @@ class BaseViz:
                 df = self.get_df(query_obj)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr("loaded_from_source")
+                    if not self.force:
+                        stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
             except Exception as e:
                 logger.exception(e)

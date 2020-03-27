@@ -20,17 +20,17 @@
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
-  .BundleAnalyzerPlugin;
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
-const WebpackAssetsManifest = require('webpack-assets-manifest');
+const ManifestPlugin = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
+const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package.json');
 
 // input dir
@@ -60,14 +60,38 @@ if (isDevMode) {
 
 const plugins = [
   // creates a manifest.json mapping of name to hashed output used in template files
-  new WebpackAssetsManifest({
-    publicPath: true,
+  new ManifestPlugin({
+    publicPath: output.publicPath,
+    seed: { app: 'superset' },
     // This enables us to include all relevant files for an entry
-    entrypoints: true,
+    generate: (seed, files, entrypoints) => {
+      // Each entrypoint's chunk files in the format of
+      // {
+      //   entry: {
+      //     css: [],
+      //     js: []
+      //   }
+      // }
+      const entryFiles = {};
+      for (const [entry, chunks] of Object.entries(entrypoints)) {
+        entryFiles[entry] = {
+          css: chunks
+            .filter(x => x.endsWith('.css'))
+            .map(x => path.join(output.publicPath, x)),
+          js: chunks
+            .filter(x => x.endsWith('.js'))
+            .map(x => path.join(output.publicPath, x)),
+        };
+      }
+      return {
+        ...seed,
+        entrypoints: entryFiles,
+      };
+    },
     // Also write to disk when using devServer
     // instead of only keeping manifest.json in memory
     // This is required to make devServer work with flask.
-    writeToDisk: isDevMode,
+    writeToFileEmit: isDevMode,
   }),
 
   // create fresh dist/ upon build
@@ -127,6 +151,8 @@ const babelLoader = {
   loader: 'babel-loader',
   options: {
     cacheDirectory: true,
+    // disable gzip compression for cache files
+    // faster when there are millions of small files
     cacheCompression: false,
   },
 };
@@ -205,7 +231,7 @@ const config = {
       {
         test: /\.jsx?$/,
         // include source code for plugins, but exclude node_modules within them
-        exclude: [/superset-ui.*\/node_modules\/.*/],
+        exclude: [/superset-ui.*\/node_modules\//],
         include: [new RegExp(`${APP_DIR}/src`), /superset-ui.*\/src/],
         use: [babelLoader],
       },
@@ -277,28 +303,17 @@ const config = {
   devtool: false,
 };
 
-let proxyConfig = {};
-const requireModule = module.require;
-
-function loadProxyConfig() {
-  try {
-    delete require.cache[require.resolve('./webpack.proxy-config')];
-    proxyConfig = requireModule('./webpack.proxy-config');
-  } catch (e) {
-    if (e.code !== 'ENOENT') {
-      console.error('\n>> Error loading proxy config:');
-      console.trace(e);
-    }
-  }
-}
+let proxyConfig = getProxyConfig();
 
 if (isDevMode) {
   config.devtool = 'eval-cheap-module-source-map';
   config.devServer = {
-    before() {
-      loadProxyConfig();
-      // hot reloading proxy config
-      fs.watch('./webpack.proxy-config.js', loadProxyConfig);
+    before(app, server, compiler) {
+      // load proxy config when manifest updates
+      const hook = compiler.hooks.webpackManifestPluginAfterEmit;
+      hook.tap('ManifestPlugin', manifest => {
+        proxyConfig = getProxyConfig(manifest);
+      });
     },
     historyApiFallback: true,
     hot: true,

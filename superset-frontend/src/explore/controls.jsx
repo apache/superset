@@ -79,8 +79,6 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
-const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
-
 // input choices & options
 const D3_FORMAT_OPTIONS = [
   ['SMART_NUMBER', 'Adaptative formating'],
@@ -100,6 +98,9 @@ const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
+export const D3_FORMAT_DOCS =
+  'D3 format syntax: https://github.com/d3/d3-format';
+
 export const D3_TIME_FORMAT_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
@@ -118,12 +119,6 @@ const timeColumnOption = {
       'account',
   ),
 };
-const sortAxisChoices = [
-  ['alpha_asc', 'Axis ascending'],
-  ['alpha_desc', 'Axis descending'],
-  ['value_asc', 'sum(value) ascending'],
-  ['value_desc', 'sum(value) descending'],
-];
 
 const groupByControl = {
   type: 'SelectControl',
@@ -196,7 +191,7 @@ const jsFunctionInfo = (
   </div>
 );
 
-function columnChoices(datasource) {
+export function columnChoices(datasource) {
   if (datasource && datasource.columns) {
     return datasource.columns
       .map(col => [col.column_name, col.verbose_name || col.column_name])
@@ -262,15 +257,6 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  percent_metrics: {
-    ...metrics,
-    multi: true,
-    default: [],
-    label: t('Percentage Metrics'),
-    validators: [],
-    description: t('Metrics for which percentage of total are to be displayed'),
-  },
-
   y_axis_bounds: {
     type: 'BoundsControl',
     label: t('Y Axis Bounds'),
@@ -284,16 +270,6 @@ export const controls = {
     ),
   },
 
-  order_by_cols: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Ordering'),
-    default: [],
-    description: t('One or many metrics to display'),
-    mapStateToProps: state => ({
-      choices: state.datasource ? state.datasource.order_by_choices : [],
-    }),
-  },
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
@@ -376,22 +352,6 @@ export const controls = {
     description: '',
   },
 
-  sort_x_axis: {
-    type: 'SelectControl',
-    label: t('Sort X Axis'),
-    choices: sortAxisChoices,
-    clearable: false,
-    default: 'alpha_asc',
-  },
-
-  sort_y_axis: {
-    type: 'SelectControl',
-    label: t('Sort Y Axis'),
-    choices: sortAxisChoices,
-    clearable: false,
-    default: 'alpha_asc',
-  },
-
   linear_color_scheme: {
     type: 'ColorSchemeControl',
     label: t('Linear Color Scheme'),
@@ -421,69 +381,6 @@ export const controls = {
     ),
   },
 
-  horizon_color_scale: {
-    type: 'SelectControl',
-    renderTrigger: true,
-    label: t('Value Domain'),
-    choices: [
-      ['series', 'series'],
-      ['overall', 'overall'],
-      ['change', 'change'],
-    ],
-    default: 'series',
-    description: t(
-      'series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series',
-    ),
-  },
-
-  canvas_image_rendering: {
-    type: 'SelectControl',
-    label: t('Rendering'),
-    renderTrigger: true,
-    choices: [
-      ['pixelated', 'pixelated (Sharp)'],
-      ['auto', 'auto (Smooth)'],
-    ],
-    default: 'pixelated',
-    description: t(
-      'image-rendering CSS attribute of the canvas object that ' +
-        'defines how the browser scales up the image',
-    ),
-  },
-
-  xscale_interval: {
-    type: 'SelectControl',
-    label: t('XScale Interval'),
-    renderTrigger: true,
-    choices: formatSelectOptionsForRange(1, 50),
-    default: '1',
-    clearable: false,
-    description: t(
-      'Number of steps to take between ticks when displaying the X scale',
-    ),
-  },
-
-  yscale_interval: {
-    type: 'SelectControl',
-    label: t('YScale Interval'),
-    choices: formatSelectOptionsForRange(1, 50),
-    default: '1',
-    clearable: false,
-    renderTrigger: true,
-    description: t(
-      'Number of steps to take between ticks when displaying the Y scale',
-    ),
-  },
-
-  include_time: {
-    type: 'CheckboxControl',
-    label: t('Include Time'),
-    description: t(
-      'Whether to include the time granularity as defined in the time section',
-    ),
-    default: false,
-  },
-
   autozoom: {
     type: 'CheckboxControl',
     label: t('Auto Zoom'),
@@ -494,35 +391,12 @@ export const controls = {
     ),
   },
 
-  show_perc: {
-    type: 'CheckboxControl',
-    label: t('Show percentage'),
-    renderTrigger: true,
-    description: t('Whether to include the percentage in the tooltip'),
-    default: true,
-  },
-
   bar_stacked: {
     type: 'CheckboxControl',
     label: t('Stacked Bars'),
     renderTrigger: true,
     default: false,
     description: null,
-  },
-
-  pivot_margins: {
-    type: 'CheckboxControl',
-    label: t('Show totals'),
-    renderTrigger: false,
-    default: true,
-    description: t('Display total row/column'),
-  },
-
-  transpose_pivot: {
-    type: 'CheckboxControl',
-    label: t('Transpose Pivot'),
-    default: false,
-    description: t('Swap Groups and Columns'),
   },
 
   show_markers: {
@@ -549,16 +423,6 @@ export const controls = {
     description: t('Sort bars by x labels.'),
   },
 
-  combine_metric: {
-    type: 'CheckboxControl',
-    label: t('Combine Metrics'),
-    default: false,
-    description: t(
-      'Display metrics side by side within each column, as ' +
-        'opposed to each column being displayed side by side for each metric.',
-    ),
-  },
-
   show_controls: {
     type: 'CheckboxControl',
     label: t('Extra Controls'),
@@ -583,14 +447,6 @@ export const controls = {
         'to columns and the width may overflow into an ' +
         'horizontal scroll.',
     ),
-  },
-
-  include_series: {
-    type: 'CheckboxControl',
-    label: t('Include Series'),
-    renderTrigger: true,
-    default: false,
-    description: t('Include series name as an axis'),
   },
 
   secondary_metric: {
@@ -894,25 +750,6 @@ export const controls = {
     ),
   },
 
-  domain_granularity: {
-    type: 'SelectControl',
-    label: t('Domain'),
-    default: 'month',
-    choices: formatSelectOptions(['hour', 'day', 'week', 'month', 'year']),
-    description: t('The time unit used for the grouping of blocks'),
-  },
-
-  subdomain_granularity: {
-    type: 'SelectControl',
-    label: t('Subdomain'),
-    default: 'day',
-    choices: formatSelectOptions(['min', 'hour', 'day', 'week', 'month']),
-    description: t(
-      'The time unit for each block. Should be a smaller unit than ' +
-        'domain_granularity. Should be larger or equal to Time Grain',
-    ),
-  },
-
   link_length: {
     type: 'SelectControl',
     renderTrigger: true,
@@ -930,27 +767,6 @@ export const controls = {
       '250',
     ]),
     description: t('Link length in the force layout'),
-  },
-
-  charge: {
-    type: 'SelectControl',
-    renderTrigger: true,
-    freeForm: true,
-    label: t('Charge'),
-    default: '-500',
-    choices: formatSelectOptions([
-      '-50',
-      '-75',
-      '-100',
-      '-150',
-      '-200',
-      '-250',
-      '-500',
-      '-1000',
-      '-2500',
-      '-5000',
-    ]),
-    description: t('Charge in the force layout'),
   },
 
   granularity_sqla: {
@@ -1050,29 +866,6 @@ export const controls = {
     choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
   },
 
-  whisker_options: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Whisker/outlier options'),
-    default: 'Tukey',
-    description: t('Determines how whiskers and outliers are calculated.'),
-    choices: formatSelectOptions([
-      'Tukey',
-      'Min/max (no outliers)',
-      '2/98 percentiles',
-      '9/91 percentiles',
-    ]),
-  },
-
-  treemap_ratio: {
-    type: 'TextControl',
-    label: t('Ratio'),
-    renderTrigger: true,
-    isFloat: true,
-    default: 0.5 * (1 + Math.sqrt(5)), // d3 default, golden ratio
-    description: t('Target aspect ratio for treemap tiles.'),
-  },
-
   number_format: {
     type: 'SelectControl',
     freeForm: true,
@@ -1153,46 +946,6 @@ export const controls = {
       'Defines the size of the rolling window function, ' +
         'relative to the time granularity selected',
     ),
-  },
-
-  cell_size: {
-    type: 'TextControl',
-    isInt: true,
-    default: 10,
-    validators: [v.integer],
-    renderTrigger: true,
-    label: t('Cell Size'),
-    description: t('The size of the square cell, in pixels'),
-  },
-
-  cell_padding: {
-    type: 'TextControl',
-    isInt: true,
-    validators: [v.integer],
-    renderTrigger: true,
-    default: 2,
-    label: t('Cell Padding'),
-    description: t('The distance between cells, in pixels'),
-  },
-
-  cell_radius: {
-    type: 'TextControl',
-    isInt: true,
-    validators: [v.integer],
-    renderTrigger: true,
-    default: 0,
-    label: t('Cell Radius'),
-    description: t('The pixel radius'),
-  },
-
-  steps: {
-    type: 'TextControl',
-    isInt: true,
-    validators: [v.integer],
-    renderTrigger: true,
-    default: 10,
-    label: t('Color Steps'),
-    description: t('The number color "steps"'),
   },
 
   grid_size: {
@@ -1297,47 +1050,6 @@ export const controls = {
     description: t('Suffix to apply after the percentage display'),
   },
 
-  table_timestamp_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Table Timestamp Format'),
-    default: '%Y-%m-%d %H:%M:%S',
-    renderTrigger: true,
-    validators: [v.nonEmpty],
-    clearable: false,
-    choices: D3_TIME_FORMAT_OPTIONS,
-    description: t('Timestamp Format'),
-  },
-
-  series_height: {
-    type: 'SelectControl',
-    renderTrigger: true,
-    freeForm: true,
-    label: t('Series Height'),
-    default: '25',
-    choices: formatSelectOptions([
-      '10',
-      '25',
-      '40',
-      '50',
-      '75',
-      '100',
-      '150',
-      '200',
-    ]),
-    description: t('Pixel height of each series'),
-  },
-
-  page_length: {
-    type: 'SelectControl',
-    freeForm: true,
-    renderTrigger: true,
-    label: t('Page Length'),
-    default: 0,
-    choices: formatSelectOptions([0, 10, 25, 40, 50, 75, 100, 150, 200]),
-    description: t('Rows per page, 0 means no pagination'),
-  },
-
   x_axis_format: {
     type: 'SelectControl',
     freeForm: true,
@@ -1345,16 +1057,6 @@ export const controls = {
     renderTrigger: true,
     default: 'SMART_NUMBER',
     choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
-  x_axis_time_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('X Axis Format'),
-    renderTrigger: true,
-    default: 'smart_date',
-    choices: D3_TIME_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
 
@@ -1620,44 +1322,12 @@ export const controls = {
     description: t('Check to include Time Origin dropdown'),
   },
 
-  show_datatable: {
-    type: 'CheckboxControl',
-    label: t('Data Table'),
-    default: false,
-    renderTrigger: true,
-    description: t('Whether to display the interactive data table'),
-  },
-
-  include_search: {
-    type: 'CheckboxControl',
-    label: t('Search Box'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to include a client-side search box'),
-  },
-
   table_filter: {
     type: 'CheckboxControl',
     label: t('Emit Filter Events'),
     renderTrigger: true,
     default: false,
     description: t('Whether to apply filter when items are clicked'),
-  },
-
-  align_pn: {
-    type: 'CheckboxControl',
-    label: t('Align +/-'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to align the background chart for +/- values'),
-  },
-
-  color_pn: {
-    type: 'CheckboxControl',
-    label: t('Color +/-'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to color +/- values'),
   },
 
   show_legend: {
@@ -1722,14 +1392,6 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Whether to display the numerical values within the cells'),
-  },
-
-  show_metric_name: {
-    type: 'CheckboxControl',
-    label: t('Show Metric Names'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to display the metric name as a title'),
   },
 
   show_trend_line: {
@@ -1900,29 +1562,6 @@ export const controls = {
     description: t('Base layer map style'),
   },
 
-  clustering_radius: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Clustering Radius'),
-    default: '60',
-    choices: formatSelectOptions([
-      '0',
-      '20',
-      '40',
-      '60',
-      '80',
-      '100',
-      '200',
-      '500',
-      '1000',
-    ]),
-    description: t(
-      'The radius (in pixels) the algorithm uses to define a cluster. ' +
-        'Choose 0 to turn off clustering, but beware that a large ' +
-        'number of points (>1000) will cause lag.',
-    ),
-  },
-
   point_radius_fixed: {
     type: 'FixedOrMetricControl',
     label: t('Point Size'),
@@ -1931,30 +1570,6 @@ export const controls = {
     mapStateToProps: state => ({
       datasource: state.datasource,
     }),
-  },
-
-  point_radius: {
-    type: 'SelectControl',
-    label: t('Point Radius'),
-    default: 'Auto',
-    description: t(
-      'The radius of individual points (ones that are not in a cluster). ' +
-        'Either a numerical column or `Auto`, which scales the point based ' +
-        'on the largest cluster',
-    ),
-    mapStateToProps: state => ({
-      choices: formatSelectOptions(['Auto']).concat(
-        columnChoices(state.datasource),
-      ),
-    }),
-  },
-
-  point_radius_unit: {
-    type: 'SelectControl',
-    label: t('Point Radius Unit'),
-    default: 'Pixels',
-    choices: formatSelectOptions(['Pixels', 'Miles', 'Kilometers']),
-    description: t('The unit of measure for the specified point radius'),
   },
 
   point_unit: {
@@ -2015,55 +1630,6 @@ export const controls = {
     places: 8,
     // Viewport zoom shouldn't prompt user to re-run query
     dontRefreshOnChange: true,
-  },
-
-  viewport_latitude: {
-    type: 'TextControl',
-    label: t('Default latitude'),
-    renderTrigger: true,
-    default: 37.772123,
-    isFloat: true,
-    description: t('Latitude of default viewport'),
-    places: 8,
-    // Viewport latitude changes shouldn't prompt user to re-run query
-    dontRefreshOnChange: true,
-  },
-
-  viewport_longitude: {
-    type: 'TextControl',
-    label: t('Default longitude'),
-    renderTrigger: true,
-    default: -122.405293,
-    isFloat: true,
-    description: t('Longitude of default viewport'),
-    places: 8,
-    // Viewport longitude changes shouldn't prompt user to re-run query
-    dontRefreshOnChange: true,
-  },
-
-  render_while_dragging: {
-    type: 'CheckboxControl',
-    label: t('Live render'),
-    default: true,
-    description: t(
-      'Points and clusters will update as the viewport is being changed',
-    ),
-  },
-
-  mapbox_color: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('RGB Color'),
-    default: 'rgb(0, 122, 135)',
-    choices: [
-      ['rgb(0, 139, 139)', 'Dark Cyan'],
-      ['rgb(128, 0, 128)', 'Purple'],
-      ['rgb(255, 215, 0)', 'Gold'],
-      ['rgb(69, 69, 69)', 'Dim Gray'],
-      ['rgb(220, 20, 60)', 'Crimson'],
-      ['rgb(34, 139, 34)', 'Forest Green'],
-    ],
-    description: t('The color for points and clusters in RGB'),
   },
 
   color: {
@@ -2165,28 +1731,6 @@ export const controls = {
     label: t('Time range endpoints'),
     hidden: true,
     description: t('Time range endpoints (SIP-15)'),
-  },
-
-  order_by_entity: {
-    type: 'CheckboxControl',
-    label: t('Order by entity id'),
-    description: t(
-      'Important! Select this if the table is not already sorted by entity id, ' +
-        'else there is no guarantee that all events for each entity are returned.',
-    ),
-    default: true,
-  },
-
-  min_leaf_node_event_count: {
-    type: 'SelectControl',
-    freeForm: false,
-    label: t('Minimum leaf node event count'),
-    default: 1,
-    choices: formatSelectOptionsForRange(1, 10),
-    description: t(
-      'Leaf nodes that represent fewer than this number of events will be initially ' +
-        'hidden in the visualization',
-    ),
   },
 
   color_scheme: {
