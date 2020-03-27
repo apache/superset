@@ -28,7 +28,7 @@
   "dependencies": {
     "@types/d3-format": "^1.3.0",
     "d3-format": "^1.3.2",
-    "pretty-ms": "^5.1.0"
+    "pretty-ms": "^6.0.1"
   },
   "peerDependencies": {
     "@superset-ui/core": "^0.12.0"
