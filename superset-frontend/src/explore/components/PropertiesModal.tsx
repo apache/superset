@@ -243,6 +243,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 loadOptions={loadOptions}
                 onChange={setOwners}
                 disabled={!owners}
+                filterOption={() => true} // options are filtered at the api
               />
               <p className="help-block">
                 {t('A list of users who can alter the chart')}

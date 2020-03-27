@@ -44,7 +44,8 @@ from superset.dashboards.schemas import (
 )
 from superset.models.dashboard import Dashboard
 from superset.views.base import generate_download_headers
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name"}
+    related_field_filters = {
+        "owners": RelatedFieldFilter("username", FilterRelatedOwners)
+    }
     allowed_rel_fields = {"owners"}
 
     @expose("/", methods=["POST"])
