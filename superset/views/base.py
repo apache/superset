@@ -179,11 +179,12 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
         logger.exception(f"Got an error in pre_add for {table.name}")
         raise Exception(
             _(
-                "Table [{}] could not be found, "
+                "Table [%{table}s] could not be found, "
                 "please double check your "
                 "database connection, schema, and "
                 "table name, error: {}"
             ).format(table.name, str(ex))
+        )
 
 
 def create_table_permissions(table: models.SqlaTable) -> None:
@@ -192,7 +193,7 @@ def create_table_permissions(table: models.SqlaTable) -> None:
         security_manager.add_permission_view_menu("schema_access", table.schema_perm)
 
 
-def get_user_roles():
+def get_user_roles() -> List[Role]:
     if g.user.is_anonymous:
         public_role = conf.get("AUTH_ROLE_PUBLIC")
         return [security_manager.find_role(public_role)] if public_role else []

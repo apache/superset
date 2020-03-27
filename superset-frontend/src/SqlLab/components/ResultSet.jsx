@@ -220,7 +220,7 @@ export default class ResultSet extends React.PureComponent {
       // Async queries
       let tmpSchema = query.tempSchema;
       let tmpTable = query.tempTableName;
-      // Sync queries, query.results.query contains source of truth for them.
+      // Sync queries, query.results.query contains the source of truth for them.
       if (query.results && query.results.query) {
         tmpTable = query.results.query.tempTable;
         tmpSchema = query.results.query.tempSchema;
@@ -228,8 +228,11 @@ export default class ResultSet extends React.PureComponent {
       return (
         <div>
           <Alert bsStyle="info">
-            {t('Table')} [<strong>{tmpSchema}.{tmpTable}</strong>] {t('was created')}{' '}
-            &nbsp;
+            {t('Table')} [
+            <strong>
+              {tmpSchema}.{tmpTable}
+            </strong>
+            ] {t('was created')} &nbsp;
             <ButtonGroup>
               <Button
                 bsSize="small"

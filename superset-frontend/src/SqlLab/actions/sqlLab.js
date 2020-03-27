@@ -317,7 +317,6 @@ export function fetchQueryResults(query, displayLimit) {
     })
       .then(({ text = '{}' }) => {
         const bigIntJson = JSONbig.parse(text);
-        // TODO(bk): update query object with tmp_schema_name
         return dispatch(querySuccess(query, bigIntJson));
       })
       .catch(response =>
