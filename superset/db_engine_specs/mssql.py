@@ -80,7 +80,7 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     @classmethod
     def modify_url_for_impersonation(
-            cls, url: URL, impersonate_user: bool, username: Optional[str]
+        cls, url: URL, impersonate_user: bool, username: Optional[str]
     ) -> None:
         """
         Modify the SQL Alchemy URL object with the user to impersonate if applicable.
