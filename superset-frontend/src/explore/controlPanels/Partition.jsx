@@ -20,7 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries } from './sections';
 import OptionDescription from '../../components/OptionDescription';
-import * as v from '../validators';
+import { nonEmpty } from '../validators';
 
 export default {
   controlPanelSections: [
@@ -35,7 +35,7 @@ export default {
             config: {
               type: 'SelectControl',
               label: t('Options'),
-              validators: [v.nonEmpty],
+              validators: [nonEmpty],
               default: 'not_time',
               valueKey: 'value',
               options: [
