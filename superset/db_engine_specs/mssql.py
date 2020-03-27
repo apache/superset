@@ -18,6 +18,7 @@ import re
 from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
+from sqlalchemy.engine.url import URL
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
