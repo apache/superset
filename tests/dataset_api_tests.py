@@ -20,6 +20,7 @@ from typing import List
 from unittest.mock import patch
 
 import prison
+import yaml
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
@@ -31,6 +32,8 @@ from superset.dao.exceptions import (
 )
 from superset.models.core import Database
 from superset.utils.core import get_example_database
+from superset.utils.dict_import_export import export_to_dict
+from superset.views.base import generate_download_headers
 from tests.base_tests import SupersetTestCase
 
 
@@ -680,3 +683,63 @@ class DatasetApiTests(SupersetTestCase):
 
         db.session.delete(dataset)
         db.session.commit()
+
+    def test_export_dataset(self):
+        """
+            Dataset API: Test export dataset
+        :return:
+        """
+        birth_names_dataset = self.get_birth_names_dataset()
+
+        argument = [birth_names_dataset.id]
+        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+
+        self.login(username="admin")
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(
+            rv.headers["Content-Disposition"],
+            generate_download_headers("yaml")["Content-Disposition"],
+        )
+
+        cli_export = export_to_dict(
+            session=db.session,
+            recursive=True,
+            back_references=False,
+            include_defaults=False,
+        )
+        cli_export_tables = cli_export["databases"][0]["tables"]
+        expected_response = []
+        for export_table in cli_export_tables:
+            if export_table["table_name"] == "birth_names":
+                expected_response = export_table
+                break
+        ui_export = yaml.safe_load(rv.data.decode("utf-8"))
+        self.assertEqual(ui_export[0], expected_response)
+
+    def test_export_dataset_not_found(self):
+        """
+            Dataset API: Test export dataset not found
+        :return:
+        """
+        max_id = db.session.query(func.max(SqlaTable.id)).scalar()
+        # Just one does not exist and we get 404
+        argument = [max_id + 1, 1]
+        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        self.login(username="admin")
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_export_dataset_gamma(self):
+        """
+            Dataset API: Test export dataset has gamma
+        :return:
+        """
+        birth_names_dataset = self.get_birth_names_dataset()
+
+        argument = [birth_names_dataset.id]
+        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+
+        self.login(username="gamma")
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 401)
