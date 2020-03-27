@@ -1596,19 +1596,21 @@ class HistogramViz(BaseViz):
             keys = (keys,)
         # removing undesirable characters
         labels = [re.sub(r"\W+", r"_", k) for k in keys]
-        if len(self.columns) > 1 or not self.groupby:
+        if len(self.columns) > 1:
             # Only show numeric column in label if there are many
             labels = [column] + labels
         return "__".join(labels)
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         """Returns the chart data"""
+        groupby = self.form_data.get("groupby")
+
         if df.empty:
             return None
 
         chart_data = []
-        if len(self.groupby) > 0:
-            groups = df.groupby(self.groupby)
+        if groupby:
+            groups = df.groupby(groupby)
         else:
             groups = [((), df)]
         for keys, data in groups:

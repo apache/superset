@@ -1214,7 +1214,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         order_direction = "descending" if order_desc else "ascending"
 
-        if columns:
+        if not metrics:
             columns.append("__time")
             del qry["post_aggregations"]
             del qry["aggregations"]
@@ -1364,7 +1364,7 @@ class DruidDatasource(Model, BaseDatasource):
         return query_str
 
     @staticmethod
-    def homogenize_types(df: pd.DataFrame, groupby_cols: Iterable[str]) -> pd.DataFrame:
+    def homogenize_types(df: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
         """Converting all GROUPBY columns to strings
 
         When grouping by a numeric (say FLOAT) column, pydruid returns
@@ -1374,7 +1374,7 @@ class DruidDatasource(Model, BaseDatasource):
         Here we replace None with <NULL> and make the whole series a
         str instead of an object.
         """
-        df[groupby_cols] = df[groupby_cols].fillna(NULL_STRING).astype("unicode")
+        df[columns] = df[columns].fillna(NULL_STRING).astype("unicode")
         return df
 
     def query(self, query_obj: Dict) -> QueryResult:
@@ -1390,7 +1390,7 @@ class DruidDatasource(Model, BaseDatasource):
                 df=df, query=query_str, duration=datetime.now() - qry_start_dttm
             )
 
-        df = self.homogenize_types(df, query_obj.get("groupby", []))
+        df = self.homogenize_types(df, query_obj.get("columns", []))
         df.columns = [
             DTTM_ALIAS if c in ("timestamp", "__time") else c for c in df.columns
         ]
@@ -1405,7 +1405,6 @@ class DruidDatasource(Model, BaseDatasource):
         cols: List[str] = []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
-        cols += query_obj.get("groupby") or []
         cols += query_obj.get("columns") or []
         cols += query_obj.get("metrics") or []
 
