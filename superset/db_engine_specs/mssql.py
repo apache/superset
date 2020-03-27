@@ -89,4 +89,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         :param username: Effective username
         """
         if impersonate_user and username is not None:
-            url.query["conn_properties"] = "EXECUTE AS USER = '{}'".format(username)
+            if url.drivername == "mssql+pymssql":
+                url.query["conn_properties"] = f"EXECUTE AS USER = '{username}'"
+            else:
+                url.username = username
