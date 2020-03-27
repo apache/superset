@@ -373,21 +373,15 @@ class TableVizTestCase(SupersetTestCase):
         with self.assertRaises(Exception):
             test_viz.query_obj()
 
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_merges_all_columns(self, super_query_obj):
+    def test_query_obj_merges_all_columns(self):
         datasource = self.get_datasource_mock()
         form_data = {
             "all_columns": ["colA", "colB", "colC"],
             "order_by_cols": ['["colA", "colB"]', '["colC"]'],
         }
-        super_query_obj.return_value = {
-            "columns": ["colD", "colC"],
-            "groupby": ["colA", "colB"],
-        }
         test_viz = viz.TableViz(datasource, form_data)
         query_obj = test_viz.query_obj()
         self.assertEqual(form_data["all_columns"], query_obj["columns"])
-        self.assertEqual([], query_obj["groupby"])
         self.assertEqual([["colA", "colB"], ["colC"]], query_obj["orderby"])
 
     @patch("superset.viz.BaseViz.query_obj")
@@ -948,18 +942,6 @@ class TimeSeriesTableVizTestCase(SupersetTestCase):
 
 
 class BaseDeckGLVizTestCase(SupersetTestCase):
-    def test_get_metrics(self):
-        form_data = load_fixture("deck_path_form_data.json")
-        datasource = self.get_datasource_mock()
-        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
-        result = test_viz_deckgl.get_metrics()
-        assert result == [form_data.get("size")]
-
-        form_data = {}
-        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
-        result = test_viz_deckgl.get_metrics()
-        assert result == []
-
     def test_scatterviz_get_metrics(self):
         form_data = load_fixture("deck_path_form_data.json")
         datasource = self.get_datasource_mock()
@@ -996,36 +978,6 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
 
         self.assertTrue("" in str(context.exception))
 
-    def test_process_spatial_query_obj(self):
-        form_data = load_fixture("deck_path_form_data.json")
-        datasource = self.get_datasource_mock()
-        mock_key = "spatial_key"
-        mock_gb = []
-        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
-
-        with self.assertRaises(ValueError) as context:
-            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
-
-        self.assertTrue("Bad spatial key" in str(context.exception))
-
-        test_form_data = {
-            "latlong_key": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-            "delimited_key": {"type": "delimited", "lonlatCol": "lonlat"},
-            "geohash_key": {"type": "geohash", "geohashCol": "geo"},
-        }
-
-        datasource = self.get_datasource_mock()
-        expected_results = {
-            "latlong_key": ["lon", "lat"],
-            "delimited_key": ["lonlat"],
-            "geohash_key": ["geo"],
-        }
-        for mock_key in ["latlong_key", "delimited_key", "geohash_key"]:
-            mock_gb = []
-            test_viz_deckgl = viz.BaseDeckGLViz(datasource, test_form_data)
-            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
-            assert expected_results.get(mock_key) == mock_gb
-
     def test_geojson_query_obj(self):
         form_data = load_fixture("deck_geojson_form_data.json")
         datasource = self.get_datasource_mock()
@@ -1033,8 +985,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         results = test_viz_deckgl.query_obj()
 
         assert results["metrics"] == []
-        assert results["groupby"] == []
-        assert results["columns"] == ["test_col"]
+        assert results["columns"] == ["color", "test_col"]
 
     def test_parse_coordinates(self):
         form_data = load_fixture("deck_path_form_data.json")
@@ -1061,67 +1012,6 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
 
         with self.assertRaises(SpatialException):
             test_viz_deckgl.parse_coordinates("fldkjsalkj,fdlaskjfjadlksj")
-
-    @patch("superset.utils.core.uuid.uuid4")
-    def test_filter_nulls(self, mock_uuid4):
-        mock_uuid4.return_value = uuid.UUID("12345678123456781234567812345678")
-        test_form_data = {
-            "latlong_key": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-            "delimited_key": {"type": "delimited", "lonlatCol": "lonlat"},
-            "geohash_key": {"type": "geohash", "geohashCol": "geo"},
-        }
-
-        datasource = self.get_datasource_mock()
-        expected_results = {
-            "latlong_key": [
-                {
-                    "clause": "WHERE",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
-                    "comparator": "",
-                    "operator": "IS NOT NULL",
-                    "subject": "lat",
-                    "isExtra": False,
-                },
-                {
-                    "clause": "WHERE",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
-                    "comparator": "",
-                    "operator": "IS NOT NULL",
-                    "subject": "lon",
-                    "isExtra": False,
-                },
-            ],
-            "delimited_key": [
-                {
-                    "clause": "WHERE",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
-                    "comparator": "",
-                    "operator": "IS NOT NULL",
-                    "subject": "lonlat",
-                    "isExtra": False,
-                }
-            ],
-            "geohash_key": [
-                {
-                    "clause": "WHERE",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
-                    "comparator": "",
-                    "operator": "IS NOT NULL",
-                    "subject": "geo",
-                    "isExtra": False,
-                }
-            ],
-        }
-        for mock_key in ["latlong_key", "delimited_key", "geohash_key"]:
-            test_viz_deckgl = viz.BaseDeckGLViz(datasource, test_form_data.copy())
-            test_viz_deckgl.spatial_control_keys = [mock_key]
-            test_viz_deckgl.add_null_filters()
-            adhoc_filters = test_viz_deckgl.form_data["adhoc_filters"]
-            assert expected_results.get(mock_key) == adhoc_filters
 
 
 class TimeSeriesVizTestCase(SupersetTestCase):

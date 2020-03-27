@@ -86,7 +86,6 @@ COLUMN_FORM_DATA_PARAMS = [
     "dimension",
     "entity",
     "groupby",
-    "order_by_cols",
     "series",
     "line_column",
     "js_columns",
@@ -1651,6 +1650,8 @@ class DistributionBarViz(DistributionPieViz):
 
         fd = self.form_data
         metrics = self.metric_labels
+        # TODO: will require post transformation logic not currently available in
+        #  /api/v1/query endpoint
         columns = fd.get("columns") or []
         groupby = fd.get("groupby") or []
 
@@ -1658,7 +1659,7 @@ class DistributionBarViz(DistributionPieViz):
         # so we substitute NULL_STRING for any nulls in the necessary columns
         df[self.columns] = df[self.columns].fillna(value=NULL_STRING)
 
-        row = df.groupby(self.columns).sum()[metrics[0]].copy()
+        row = df.groupby(groupby).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)
         pt = df.pivot_table(index=groupby, columns=columns, values=metrics)
         if fd.get("contribution"):

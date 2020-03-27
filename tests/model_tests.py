@@ -277,11 +277,10 @@ class SqlaTableModelTestCase(SupersetTestCase):
     def test_sql_mutator(self):
         tbl = self.get_table_by_name("birth_names")
         query_obj = dict(
-            groupby=[],
+            columns=["name"],
             metrics=[],
             filter=[],
             is_timeseries=False,
-            columns=["name"],
             granularity=None,
             from_dttm=None,
             to_dttm=None,

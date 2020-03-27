@@ -125,7 +125,6 @@ class QueryObject:
             "from_dttm": self.from_dttm,
             "to_dttm": self.to_dttm,
             "is_timeseries": self.is_timeseries,
-            "groupby": self.groupby,
             "metrics": self.metrics,
             "row_limit": self.row_limit,
             "filter": self.filter,
