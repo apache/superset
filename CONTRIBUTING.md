@@ -1050,16 +1050,13 @@ The filter-box configuration references column names (via the `column` key) and 
 | Field                 | Type      | Notes                                            |
 | --------------------- | --------- | ------------------------------------------------ |
 | `color_picker`        | _object_  | The **Fixed Color** widget                       |
-| `donut`               | _boolean_ | The **Donut** widget                             |
 | `global_opacity`      | _number_  | The **Opacity** widget                           |
 | `header_font_size`    | _number_  | The **Big Number Font Size** widget (or similar) |
 | `label_colors`        | _object_  | The **Color Scheme** widget                      |
-| `labels_outside`      | _boolean_ | The **Put labels outside** widget                |
 | `line_interpolation`  | _string_  | The **Line Style** widget                        |
 | `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
 | `number_format`       | _string_  | The **Number format** widget                     |
-| `pie_label_type`      | _string_  | [HIDDEN]                                         |
 | `rich_tooltip`        | _boolean_ | The **Rich Tooltip** widget                      |
 | `send_time_range`     | _boolean_ | The **Show Markers** widget                      |
 | `show_brush`          | _string_  | The **Show Range Filter** widget                 |
@@ -1075,7 +1072,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `x_axis_format`      | _string_  | The **X Axis Format** widget |
 | `x_axis_label`       | _string_  | The **X Axis Label** widget  |
 | `x_axis_showminmax`  | _boolean_ | The **X bounds** widget      |
-| `x_log_scale`        | _N/A_     | _Deprecated?_                |
 | `x_ticks_layout`     | _string_  | The **X Tick Layout** widget |
 
 ### Y Axis
@@ -1144,10 +1140,7 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `js_agg_function`               | _N/A_ |       |
 | `js_columns`                    | _N/A_ |       |
 | `label`                         | _N/A_ |       |
-| `labels_outside`                | _N/A_ |       |
 | `legend_position`               | _N/A_ |       |
-| `line_charts`                   | _N/A_ |       |
-| `line_charts_2`                 | _N/A_ |       |
 | `line_column`                   | _N/A_ |       |
 | `line_type`                     | _N/A_ |       |
 | `line_width`                    | _N/A_ |       |
@@ -1155,10 +1148,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `log_scale`                     | _N/A_ |       |
 | `mapbox_label`                  | _N/A_ |       |
 | `mapbox_style`                  | _N/A_ |       |
-| `marker_labels`                 | _N/A_ |       |
-| `marker_line_labels`            | _N/A_ |       |
-| `marker_lines`                  | _N/A_ |       |
-| `markers`                       | _N/A_ |       |
 | `markup_type`                   | _N/A_ |       |
 | `max_radius`                    | _N/A_ |       |
 | `min_periods`                   | _N/A_ |       |
@@ -1176,9 +1165,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `perm`                          | _N/A_ |       |
 | `point_radius_fixed`            | _N/A_ |       |
 | `point_unit`                    | _N/A_ |       |
-| `prefix_metric_with_slice_name` | _N/A_ |       |
-| `range_labels`                  | _N/A_ |       |
-| `ranges`                        | _N/A_ |       |
 | `rdo_save`                      | _N/A_ |       |
 | `reduce_x_ticks`                | _N/A_ |       |
 | `refresh_frequency`             | _N/A_ |       |
@@ -1207,7 +1193,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
-| `stacked_style`                 | _N/A_ |       |
 | `start_spatial`                 | _N/A_ |       |
 | `stroke_color_picker`           | _N/A_ |       |
 | `stroke_width`                  | _N/A_ |       |

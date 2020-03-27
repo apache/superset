@@ -19,6 +19,8 @@
 import { t } from '@superset-ui/translation';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import { mainMetric } from '../../modules/utils';
+import { nonEmpty } from '../validators';
 
 export default {
   requiresTime: true,
@@ -36,7 +38,31 @@ export default {
     {
       label: t('Y Axis 2'),
       expanded: true,
-      controlSetRows: [['metric_2', 'y_axis_2_format']],
+      controlSetRows: [
+        [
+          {
+            name: 'metric_2',
+            config: {
+              type: 'MetricsControl',
+              validators: [nonEmpty],
+              mapStateToProps: state => {
+                const datasource = state.datasource;
+                return {
+                  columns: datasource ? datasource.columns : [],
+                  savedMetrics: datasource ? datasource.metrics : [],
+                  datasourceType: datasource && datasource.type,
+                };
+              },
+              multi: false,
+              default: props => mainMetric(props.savedMetrics),
+              label: t('Right Axis Metric'),
+              clearable: true,
+              description: t('Choose a metric for right axis'),
+            },
+          },
+          'y_axis_2_format',
+        ],
+      ],
     },
     {
       label: t('Query'),

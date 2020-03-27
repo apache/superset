@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { nonEmpty } from '../validators';
 
 export default {
   label: t('Bubble Chart'),
@@ -26,8 +27,48 @@ export default {
       expanded: true,
       controlSetRows: [
         ['series', 'entity'],
-        ['x'],
-        ['y'],
+        [
+          {
+            name: 'x',
+            config: {
+              type: 'MetricsControl',
+              validators: [nonEmpty],
+              mapStateToProps: state => {
+                const datasource = state.datasource;
+                return {
+                  columns: datasource ? datasource.columns : [],
+                  savedMetrics: datasource ? datasource.metrics : [],
+                  datasourceType: datasource && datasource.type,
+                };
+              },
+              multi: false,
+              label: t('X Axis'),
+              description: t('Metric assigned to the [X] axis'),
+              default: null,
+            },
+          },
+        ],
+        [
+          {
+            name: 'y',
+            config: {
+              type: 'MetricsControl',
+              validators: [nonEmpty],
+              mapStateToProps: state => {
+                const datasource = state.datasource;
+                return {
+                  columns: datasource ? datasource.columns : [],
+                  savedMetrics: datasource ? datasource.metrics : [],
+                  datasourceType: datasource && datasource.type,
+                };
+              },
+              multi: false,
+              label: t('Y Axis'),
+              default: null,
+              description: t('Metric assigned to the [Y] axis'),
+            },
+          },
+        ],
         ['adhoc_filters'],
         ['size'],
         ['max_bubble_size'],
@@ -48,7 +89,19 @@ export default {
       controlSetRows: [
         ['x_axis_label', 'left_margin'],
         ['x_axis_format', 'x_ticks_layout'],
-        ['x_log_scale', 'x_axis_showminmax'],
+        [
+          {
+            name: 'x_log_scale',
+            config: {
+              type: 'CheckboxControl',
+              label: t('X Log Scale'),
+              default: false,
+              renderTrigger: true,
+              description: t('Use a log scale for the X-axis'),
+            },
+          },
+          'x_axis_showminmax',
+        ],
       ],
     },
     {
