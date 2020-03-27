@@ -108,7 +108,7 @@ class QueryObject:
         if app.config["SIP_15_ENABLED"] and "time_range_endpoints" not in self.extras:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
 
-        self.columns = columns
+        self.columns = columns or []
         if groupby:
             self.columns += groupby
             logger.warning(
