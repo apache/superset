@@ -17,12 +17,15 @@
 import logging
 
 from flask import g, request, Response
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import ngettext
 
+from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.delete import DeleteChartCommand
 from superset.charts.commands.exceptions import (
+    ChartBulkDeleteFailedError,
     ChartCreateFailedError,
     ChartDeleteFailedError,
     ChartForbiddenError,
@@ -32,7 +35,12 @@ from superset.charts.commands.exceptions import (
 )
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.filters import ChartFilter
-from superset.charts.schemas import ChartPostSchema, ChartPutSchema
+from superset.charts.schemas import (
+    ChartPostSchema,
+    ChartPutSchema,
+    get_delete_ids_schema,
+)
+from superset.constants import RouteMethod
 from superset.models.slice import Slice
 from superset.views.base_api import BaseSupersetModelRestApi
 
@@ -45,6 +53,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
     resource_name = "chart"
     allow_browser_login = True
 
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.EXPORT,
+        RouteMethod.RELATED,
+        "bulk_delete",  # not using RouteMethod since locally defined
+    }
     class_permission_name = "SliceModelView"
     show_columns = [
         "slice_name",
@@ -268,4 +281,62 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ChartDeleteFailedError as e:
             logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
+            return self.response_422(message=str(e))
+
+    @expose("/", methods=["DELETE"])
+    @protect()
+    @safe
+    @rison(get_delete_ids_schema)
+    def bulk_delete(self, **kwargs) -> Response:  # pylint: disable=arguments-differ
+        """Delete bulk Charts
+        ---
+        delete:
+          description: >-
+            Deletes multiple Charts in a bulk operation
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: integer
+          responses:
+            200:
+              description: Charts bulk delete
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item_ids = kwargs["rison"]
+        try:
+            BulkDeleteChartCommand(g.user, item_ids).run()
+            return self.response(
+                200,
+                message=ngettext(
+                    f"Deleted %(num)d chart",
+                    f"Deleted %(num)d charts",
+                    num=len(item_ids),
+                ),
+            )
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartBulkDeleteFailedError as e:
             return self.response_422(message=str(e))

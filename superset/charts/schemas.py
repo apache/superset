@@ -21,6 +21,8 @@ from marshmallow.validate import Length
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
+get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
 
 def validate_json(value):
     try:

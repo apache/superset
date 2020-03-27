@@ -19,6 +19,7 @@ import json
 from typing import List, Optional
 
 import prison
+from sqlalchemy.sql import func
 
 from superset import db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -81,6 +82,40 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         model = db.session.query(Slice).get(chart_id)
         self.assertEqual(model, None)
 
+    def test_delete_bulk_charts(self):
+        """
+            Chart API: Test delete bulk
+        """
+        admin_id = self.get_user("admin").id
+        chart_count = 4
+        chart_ids = list()
+        for chart_name_index in range(chart_count):
+            chart_ids.append(
+                self.insert_chart(f"title{chart_name_index}", [admin_id], 1).id
+            )
+        self.login(username="admin")
+        argument = chart_ids
+        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": f"Deleted {chart_count} charts"}
+        self.assertEqual(response, expected_response)
+        for chart_id in chart_ids:
+            model = db.session.query(Slice).get(chart_id)
+            self.assertEqual(model, None)
+
+    def test_delete_bulk_chart_bad_request(self):
+        """
+            Chart API: Test delete bulk bad request
+        """
+        chart_ids = [1, "a"]
+        self.login(username="admin")
+        argument = chart_ids
+        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 400)
+
     def test_delete_not_found_chart(self):
         """
             Chart API: Test not found delete
@@ -88,6 +123,18 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         chart_id = 1000
         uri = f"api/v1/chart/{chart_id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_delete_bulk_charts_not_found(self):
+        """
+            Chart API: Test delete bulk not found
+        """
+        max_id = db.session.query(func.max(Slice.id)).scalar()
+        chart_ids = [max_id + 1, max_id + 2]
+        self.login(username="admin")
+        argument = chart_ids
+        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -105,6 +152,31 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         model = db.session.query(Slice).get(chart_id)
         self.assertEqual(model, None)
 
+    def test_delete_bulk_chart_admin_not_owned(self):
+        """
+            Chart API: Test admin delete bulk not owned
+        """
+        gamma_id = self.get_user("gamma").id
+        chart_count = 4
+        chart_ids = list()
+        for chart_name_index in range(chart_count):
+            chart_ids.append(
+                self.insert_chart(f"title{chart_name_index}", [gamma_id], 1).id
+            )
+
+        self.login(username="admin")
+        argument = chart_ids
+        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        rv = self.client.delete(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        expected_response = {"message": f"Deleted {chart_count} charts"}
+        self.assertEqual(response, expected_response)
+
+        for chart_id in chart_ids:
+            model = db.session.query(Slice).get(chart_id)
+            self.assertEqual(model, None)
+
     def test_delete_chart_not_owned(self):
         """
             Chart API: Test delete try not owned
@@ -121,6 +193,53 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         db.session.delete(chart)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
+        db.session.commit()
+
+    def test_delete_bulk_chart_not_owned(self):
+        """
+            Chart API: Test delete bulk try not owned
+        """
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+
+        chart_count = 4
+        charts = list()
+        for chart_name_index in range(chart_count):
+            charts.append(
+                self.insert_chart(f"title{chart_name_index}", [user_alpha1.id], 1)
+            )
+
+        owned_chart = self.insert_chart("title_owned", [user_alpha2.id], 1)
+
+        self.login(username="alpha2", password="password")
+
+        # verify we can't delete not owned charts
+        arguments = [chart.id for chart in charts]
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "Forbidden"}
+        self.assertEqual(response, expected_response)
+
+        # # nothing is deleted in bulk with a list of owned and not owned charts
+        arguments = [chart.id for chart in charts] + [owned_chart.id]
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": "Forbidden"}
+        self.assertEqual(response, expected_response)
+
+        for chart in charts:
+            db.session.delete(chart)
+        db.session.delete(owned_chart)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
         db.session.commit()
