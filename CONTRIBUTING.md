@@ -1123,7 +1123,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `dimension`                     | _N/A_ |       |
 | `end_spatial`                   | _N/A_ |       |
 | `entity`                        | _N/A_ |       |
-| `equal_date_size`               | _N/A_ |       |
 | `expanded_slices`               | _N/A_ |       |
 | `extra_filters`                 | _N/A_ |       |
 | `extruded`                      | _N/A_ |       |
@@ -1173,8 +1172,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `order_bars`                    | _N/A_ |       |
 | `order_desc`                    | _N/A_ |       |
 | `pandas_aggfunc`                | _N/A_ |       |
-| `partition_limit`               | _N/A_ |       |
-| `partition_threshold`           | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
 | `point_radius_fixed`            | _N/A_ |       |
@@ -1218,7 +1215,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `subheader`                     | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
 | `time_compare`                  | _N/A_ |       |
-| `time_series_option`            | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `toggle_polygons`               | _N/A_ |       |
 | `url`                           | _N/A_ |       |
