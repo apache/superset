@@ -139,6 +139,7 @@ class Database(
     encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
+    server_cert = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     export_fields = [
         "database_name",
         "sqlalchemy_uri",
@@ -309,6 +310,7 @@ class Database(
         )
         if configuration:
             connect_args["configuration"] = configuration
+        if connect_args:
             params["connect_args"] = connect_args
 
         params.update(self.get_encrypted_extra())
@@ -555,14 +557,7 @@ class Database(
         return self.db_engine_spec.get_time_grains()
 
     def get_extra(self) -> Dict[str, Any]:
-        extra: Dict[str, Any] = {}
-        if self.extra:
-            try:
-                extra = json.loads(self.extra)
-            except json.JSONDecodeError as e:
-                logger.error(e)
-                raise e
-        return extra
+        return self.db_engine_spec.get_extra_params(self)
 
     def get_encrypted_extra(self):
         encrypted_extra = {}

@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=unused-argument
 import hashlib
+import json
+import logging
 import os
 import re
 from contextlib import closing
@@ -58,6 +60,8 @@ if TYPE_CHECKING:
         TableColumn,
     )
     from superset.models.core import Database  # pylint: disable=unused-import
+
+logger = logging.getLogger()
 
 
 class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
@@ -959,3 +963,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: instance to be mutated
         """
         return None
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        Some databases require adding elements to connection parameters,
+        like passing certificates to `extra`. This can be done here.
+
+        :param database: database instance from which to extract extras
+        :raises CertificateException: If certificate is not valid/unparseable
+        """
+        extra: Dict[str, Any] = {}
+        if database.extra:
+            try:
+                extra = json.loads(database.extra)
+            except json.JSONDecodeError as e:
+                logger.error(e)
+                raise e
+        return extra
