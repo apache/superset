@@ -133,7 +133,10 @@ class SliceHeaderControls extends React.PureComponent {
         </Dropdown.Toggle>
 
         <Dropdown.Menu>
-          <MenuItem onClick={this.refreshChart} disabled={!updatedDttm}>
+          <MenuItem
+            onClick={this.refreshChart}
+            disabled={this.props.chartStatus === 'loading'}
+          >
             {t('Force refresh')}
             <div className="refresh-tooltip">{refreshTooltip}</div>
           </MenuItem>
