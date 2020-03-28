@@ -49,6 +49,7 @@ export default function ExploreActionButtons({
   });
   const doExportCSV = exportChart.bind(this, latestQueryFormData, 'csv');
   const doExportChart = exportChart.bind(this, latestQueryFormData, 'json');
+  const doExportXYZ = exportChart.bind(this, latestQueryFormData, 'xyz');
 
   return (
     <div className="btn-group results" role="group">
@@ -84,6 +85,17 @@ export default function ExploreActionButtons({
           rel="noopener noreferrer"
         >
           <i className="fa fa-file-text-o" /> .csv
+        </a>
+      )}
+      {latestQueryFormData && (
+        <a
+          onClick={doExportXYZ}
+          className={exportToCSVClasses}
+          title={t('Export to .xyz format')}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <i className="fa fa-file-text-o" /> .xyz
         </a>
       )}
       <DisplayQueryButton

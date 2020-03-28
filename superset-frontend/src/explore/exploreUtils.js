@@ -67,7 +67,7 @@ export function getURIDirectory(formData, endpointType = 'base') {
   // Building the directory part of the URI
   let directory = '/superset/explore/';
   if (
-    ['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0
+    ['json', 'csv', 'xyz' ,'query', 'results', 'samples'].indexOf(endpointType) >= 0
   ) {
     directory = '/superset/explore_json/';
   }
@@ -160,6 +160,9 @@ export function getExploreUrlAndPayload({
   }
   if (endpointType === 'csv') {
     search.csv = 'true';
+  }
+  if (endpointType === 'xyz') {
+    search.xyz = 'true';
   }
   if (endpointType === 'standalone') {
     search.standalone = 'true';

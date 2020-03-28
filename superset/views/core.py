@@ -617,8 +617,7 @@ class Superset(BaseSupersetView):
         return self.json_response({"data": viz_obj.get_samples()})
 
     def generate_json(
-        self, viz_obj, csv=False, query=False, results=False, samples=False
-    ):
+        self,viz_obj, csv=False, xyz=False,query=False, results=False, samples=False):
         if csv:
             return CsvResponse(
                 viz_obj.get_csv(),
@@ -635,6 +634,15 @@ class Superset(BaseSupersetView):
 
         if samples:
             return self.get_samples(viz_obj)
+
+        if xyz:
+            logging.debug("Hello XYZ.>................")
+            return CsvResponse(
+                viz_obj.get_csv(),
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv",
+            )
 
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
@@ -693,11 +701,13 @@ class Superset(BaseSupersetView):
 
         TODO: break into one endpoint for each return shape"""
         csv = request.args.get("csv") == "true"
+        xyz = request.args.get("xyz") == "true"
         query = request.args.get("query") == "true"
         results = request.args.get("results") == "true"
         samples = request.args.get("samples") == "true"
         force = request.args.get("force") == "true"
         form_data = get_form_data()[0]
+
 
         try:
             datasource_id, datasource_type = get_datasource_info(
@@ -714,7 +724,7 @@ class Superset(BaseSupersetView):
         )
 
         return self.generate_json(
-            viz_obj, csv=csv, query=query, results=results, samples=samples
+            viz_obj,xyz=xyz, csv=csv, query=query, results=results, samples=samples,
         )
 
     @event_logger.log_this
