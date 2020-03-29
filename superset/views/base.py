@@ -18,7 +18,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import simplejson as json
 import yaml
@@ -27,6 +27,7 @@ from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
@@ -365,7 +366,7 @@ class CsvResponse(Response):  # pylint: disable=too-many-ancestors
     charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
 
 
-def check_ownership(obj, raise_if_false=True):
+def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
     """Meant to be used in `pre_update` hooks on models to enforce ownership
 
     Admin have all access, and other users need to be referenced on either
@@ -392,7 +393,7 @@ def check_ownership(obj, raise_if_false=True):
     orig_obj = scoped_session.query(obj.__class__).filter_by(id=obj.id).first()
 
     # Making a list of owners that works across ORM models
-    owners = []
+    owners: List[User] = []
     if hasattr(orig_obj, "owners"):
         owners += orig_obj.owners
     if hasattr(orig_obj, "owner"):

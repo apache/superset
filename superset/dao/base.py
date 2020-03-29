@@ -75,7 +75,7 @@ class BaseDAO:
         return query.all()
 
     @classmethod
-    def create(cls, properties: Dict, commit=True) -> Optional[Model]:
+    def create(cls, properties: Dict, commit: bool = True) -> Model:
         """
         Generic for creating models
         :raises: DAOCreateFailedError
@@ -95,7 +95,7 @@ class BaseDAO:
         return model
 
     @classmethod
-    def update(cls, model: Model, properties: Dict, commit=True) -> Optional[Model]:
+    def update(cls, model: Model, properties: Dict, commit: bool = True) -> Model:
         """
         Generic update a model
         :raises: DAOCreateFailedError
