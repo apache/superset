@@ -31,5 +31,5 @@ SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
     DATABASE_PORT,
     DATABASE_DB,
 )
-SQLALCHEMY_ECHO = False
+SQLALCHEMY_ECHO = True
 

@@ -93,7 +93,6 @@ RUN cd /app \
         && chown -R superset:superset * \
         && pip install -e .
 
-COPY ./docker/superset_config.py /app/
 COPY ./docker/docker-init.sh /app/
 COPY ./docker/docker-entrypoint.sh /usr/bin/
 
@@ -112,6 +111,8 @@ ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 ######################################################################
 FROM lean AS dev
 
+COPY ./docker/superset_config_dev.py /app/
+COPY ./docker/requirements-extra.txt /app/
 COPY ./requirements-dev.txt ./docker/requirements* /app/
 
 USER root
@@ -125,6 +126,7 @@ USER superset
 #######################################################################
 FROM lean AS prod
 
+COPY ./docker/superset_config.py /app/
 COPY ./docker/requirements-extra.txt /app/
 
 USER root

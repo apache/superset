@@ -1,0 +1,85 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+x-superset-build: &superset-build
+  args:
+    NPM_BUILD_CMD: build-dev
+  context: ./
+  dockerfile: Dockerfile
+  target: dev
+
+x-superset-volumes: &superset-volumes
+  - ./superset:/app/superset
+  - ./superset-frontend:/app/superset-frontend
+
+x-superset-networks: &superset-networks
+  - backend
+
+version: "3.7"
+services:
+
+  superset-db:
+    image: postgres:12
+    container_name: dwh-superset-db
+    env_file: docker/.env
+    restart: unless-stopped
+    networks: *superset-networks
+    volumes:
+      - db_home:/var/lib/postgresql/data
+
+  superset-init:
+    image: dwh:superset-init
+    container_name: dwh-superset-init
+    env_file: docker/.env
+    build: *superset-build
+    command: ["/app/docker-init.sh"]
+    depends_on:
+      - superset-db
+    networks: *superset-networks
+
+  superset:
+    image: dwh:superset-fork
+    container_name: dwh-superset-fork
+    env_file: docker/.env
+    restart: unless-stopped
+    build: *superset-build
+    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
+    ports:
+      - 8088:8088
+    environment:
+      - SUPERSET_CONFIG_PATH=/app/superset_config_dev.py
+    depends_on:
+      - superset-db
+      - superset-init
+    networks: *superset-networks
+    volumes: *superset-volumes
+
+  superset-node:
+    image: node:10-jessie
+    container_name: dwh-superset-node
+    env_file: docker/.env
+    restart: unless-stopped
+    command: ["bash", "-c", "cd /app/superset-frontend && npm install --global webpack webpack-cli && npm install && npm run dev"]
+    networks: *superset-networks
+    volumes: *superset-volumes
+
+networks:
+  backend:
+
+volumes:
+  db_home:
+    external: false
+
