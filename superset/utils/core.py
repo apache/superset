@@ -1224,9 +1224,10 @@ class DatasourceName(NamedTuple):
     schema: str
 
 
-def get_stacktrace():
+def get_stacktrace() -> Optional[str]:
     if current_app.config["SHOW_STACKTRACE"]:
         return traceback.format_exc()
+    return None
 
 
 def split(
