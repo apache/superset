@@ -56,83 +56,32 @@ resources: {}
   #   memory: 128Mi
 #Superset node configuration
 supersetNode:
-  config: |
-    import os
+  connections: 
+    redis_host: superset-redis-headless
+    redis_port: "6379"
+    db_host: superset-postgresql
+    db_port: "5432"
+    db_user: superset
+    db_pass: superset
+    db_name: superset
 
-    from werkzeug.contrib.cache import RedisCache
-    MAPBOX_API_KEY = os.getenv('MAPBOX_API_KEY', '')
-    CACHE_CONFIG = {
-        'CACHE_TYPE': 'redis',
-        'CACHE_DEFAULT_TIMEOUT': 300,
-        'CACHE_KEY_PREFIX': 'superset_',
-        'CACHE_REDIS_HOST': 'superset-redis-headless',
-        'CACHE_REDIS_PORT': 6379,
-        'CACHE_REDIS_DB': 1,
-        'CACHE_REDIS_URL': 'redis://superset-redis-headless:6379/1'}
-    SQLALCHEMY_DATABASE_URI = \
-        'postgresql+psycopg2://superset:superset@superset-postgresql:5432/superset'
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
-    SECRET_KEY = 'thisISaSECRET_1234'
-    
-    # Flask-WTF flag for CSRF
-    WTF_CSRF_ENABLED = True
-    # Add endpoints that need to be exempt from CSRF protection
-    WTF_CSRF_EXEMPT_LIST = []
-    # A CSRF token that expires in 1 year
-    WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
-    
-    class CeleryConfig(object):
-        BROKER_URL = 'redis://superset-redis-headless:6379/0'
-        CELERY_IMPORTS = ('superset.sql_lab', )
-        CELERY_RESULT_BACKEND = 'redis://superset-redis-headless:6379/0'
-        CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+# -----------------------------------------------------------------------------
+# Miscellaneous parameters
+# -----------------------------------------------------------------------------
 
-    CELERY_CONFIG = CeleryConfig
-    RESULTS_BACKEND = RedisCache(
-        host='redis',
-        port=6379,
-        key_prefix='superset_results'
-    )
-  #hooks: {}
-  hooks: 
-    ## (string) Script to execute prior the client pod stops.
-    # preStop: |-
-
-    ## (string) Script to execute after the client pod starts.
-    postStart: |-
-      #!/usr/bin/env bash
-        set -e
-
-        STEP_CNT=4
-
-        echo_step() {
-        cat <<EOF
-        Init Step ${1}/${STEP_CNT} [${2}] -- ${3}
-        EOF
-        }
-
-        # Create an admin user
-        echo_step "1" "Starting" "Setting up admin user ( admin / admin )"
-        superset fab create-admin \
-                      --username admin \
+init:
+  enabled: true
+  waitImage:
+    repository: busybox
+    tag: latest
+    pullPolicy: IfNotPresent
+  initscript: |-
+    superset fab create-admin \
+                    --username admin \
                       --firstname Superset \
                       --lastname Admin \
                       --email admin@superset.com \
-                      --password admin
-        echo_step "1" "Complete" "Setting up admin user"
-
-        # Initialize the database
-        echo_step "2" "Starting" "Applying DB migrations"
-        superset db upgrade
-        echo_step "2" "Complete" "Applying DB migrations"
-        # Load some data to play with
-        echo_step "3" "Starting" "Loading examples"
-        superset load_examples
-        echo_step "3" "Complete" "Loading examples"
-        # Create default roles and permissions
-        echo_step "4" "Starting" "Setting up roles and perms"
-        superset init
-        echo_step "4" "Complete" "Setting up roles and perms"
+                      --password admin; superset db upgrade;superset init
 ##
 ## Configuration values for the postgresql dependency.
 ## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
@@ -231,7 +180,6 @@ redis:
   ## Disable cluster management by default.
   cluster:
     enabled: false
-
 
 nodeSelector: {}
 
