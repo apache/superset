@@ -46,7 +46,7 @@ ENV BUILD_CMD=${NPM_BUILD_CMD}
 
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 RUN mkdir -p /app/superset-frontend
-RUN mkdir -p /app/superset/assets
+RUN mkdir -p /app/superset/static/assets
 COPY ./docker/frontend-mem-nag.sh /
 COPY ./superset-frontend/package* /app/superset-frontend/
 RUN /frontend-mem-nag.sh \
@@ -71,12 +71,9 @@ ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     FLASK_ENV=production \
     FLASK_APP="superset.app:create_app()" \
-    PYTHONPATH="/app/pythonpath" \
-    SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8080
 
-RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash superset \
-        && mkdir -p ${SUPERSET_HOME} ${PYTHONPATH} \
+RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset # \
         && apt-get update -y \
         && apt-get install -y --no-install-recommends \
             build-essential \
@@ -85,7 +82,6 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/site-packages/
-# Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
 COPY --from=superset-node /app/superset-frontend /app/superset-frontend
@@ -97,6 +93,8 @@ RUN cd /app \
         && chown -R superset:superset * \
         && pip install -e .
 
+COPY ./docker/superset_config.py /app/
+COPY ./docker/docker-init.sh /app/
 COPY ./docker/docker-entrypoint.sh /usr/bin/
 
 WORKDIR /app
@@ -121,3 +119,16 @@ RUN cd /app \
     && pip install --no-cache -r requirements-dev.txt -r requirements-extra.txt \
     && pip install --no-cache -r requirements-local.txt || true
 USER superset
+
+######################################################################
+## Prod image...
+#######################################################################
+FROM lean AS prod
+
+COPY ./docker/requirements-extra.txt /app/
+
+USER root
+RUN cd /app \
+    && pip install --no-cache -r requirements-extra.txt
+    USER superset
+
