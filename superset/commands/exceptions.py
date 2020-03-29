@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
+from typing import Any, Dict, List
 
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
@@ -36,8 +36,8 @@ class CommandInvalidError(CommandException):
 
     status = 422
 
-    def __init__(self, message=""):
-        self._invalid_exceptions = list()
+    def __init__(self, message="") -> None:
+        self._invalid_exceptions: List[ValidationError] = []
         super().__init__(self.message)
 
     def add(self, exception: ValidationError):
@@ -46,8 +46,8 @@ class CommandInvalidError(CommandException):
     def add_list(self, exceptions: List[ValidationError]):
         self._invalid_exceptions.extend(exceptions)
 
-    def normalized_messages(self):
-        errors = {}
+    def normalized_messages(self) -> Dict[Any, Any]:
+        errors: Dict[Any, Any] = {}
         for exception in self._invalid_exceptions:
             errors.update(exception.normalized_messages())
         return errors

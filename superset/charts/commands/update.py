@@ -17,6 +17,7 @@
 import logging
 from typing import Dict, List, Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
@@ -47,7 +48,7 @@ class UpdateChartCommand(BaseCommand):
         self._properties = data.copy()
         self._model: Optional[SqlaTable] = None
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
             chart = ChartDAO.update(self._model, self._properties)

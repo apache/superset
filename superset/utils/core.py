@@ -547,7 +547,7 @@ def get_datasource_full_name(database_name, datasource_name, schema=None):
     return "[{}].[{}].[{}]".format(database_name, schema, datasource_name)
 
 
-def validate_json(obj):
+def validate_json(obj: Union[bytes, bytearray, str]) -> None:
     if obj:
         try:
             json.loads(obj)

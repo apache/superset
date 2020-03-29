@@ -40,7 +40,7 @@ class BulkDeleteChartCommand(BaseCommand):
         self._model_ids = model_ids
         self._models: Optional[List[Slice]] = None
 
-    def run(self):
+    def run(self) -> None:
         self.validate()
         try:
             ChartDAO.bulk_delete(self._models)
