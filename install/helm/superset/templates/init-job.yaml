@@ -1,0 +1,64 @@
+{{- if .Values.init.enabled  }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "superset.name" . }}-init-db
+  annotations:
+spec:
+  template:
+    metadata:
+      name: {{ template "superset.name" . }}-init-db
+    spec:
+      initContainers:
+      {{- include "superset.wait-for-postgres" . | nindent 6 }}
+      containers:
+      - name: {{ template "superset.name" . }}-init-db
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        env:
+          - name: REDIS_HOST
+            valueFrom:
+              secretKeyRef:
+                name: superset-secret
+                key: redis_host
+          - name: REDIS_PORT
+            valueFrom:
+              secretKeyRef:
+                name: superset-secret
+                key: redis_port
+          - name: DB_HOST
+            valueFrom:
+              secretKeyRef:
+                name: superset-secret
+                key: db_host
+          - name: DB_PORT
+            valueFrom:
+              secretKeyRef:
+                name: superset-secret
+                key: db_port
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: superset-secret
+                key: db_user
+          - name: DB_PASS
+            valueFrom:
+              secretKeyRef:
+                name: superset-secret
+                key: db_pass         
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name: superset-secret
+                key: db_name 
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+          - name: superset-config
+            mountPath: "/etc/superset"
+            readOnly: true
+        command: [ "/bin/sh", "-c", "{{ .Values.init.initscript }}" ]
+      volumes:
+        - name: superset-config
+          secret:
+            secretName: superset-config
+      restartPolicy: Never
+{{- end }}
