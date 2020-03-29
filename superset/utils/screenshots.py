@@ -18,7 +18,7 @@ import logging
 import time
 import urllib.parse
 from io import BytesIO
-from typing import Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app, request, Response, session, url_for
 from flask_login import login_user
@@ -91,7 +91,7 @@ def headless_url(path: str) -> str:
     return urllib.parse.urljoin(current_app.config.get("WEBDRIVER_BASEURL", ""), path)
 
 
-def get_url_path(view: str, **kwargs) -> str:
+def get_url_path(view: str, **kwargs: Any) -> str:
     with current_app.test_request_context():
         return headless_url(url_for(view, **kwargs))
 
@@ -135,7 +135,7 @@ class AuthWebDriverProxy:
         return self._auth_func(driver, user)
 
     @staticmethod
-    def destroy(driver: WebDriver, tries=2):
+    def destroy(driver: WebDriver, tries: int = 2) -> None:
         """Destroy a driver"""
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
