@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -287,7 +288,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(get_delete_ids_schema)
-    def bulk_delete(self, **kwargs) -> Response:  # pylint: disable=arguments-differ
+    def bulk_delete(
+        self, **kwargs: Any
+    ) -> Response:  # pylint: disable=arguments-differ
         """Delete bulk Charts
         ---
         delete:
