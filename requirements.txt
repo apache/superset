@@ -21,7 +21,7 @@ croniter==0.3.31          # via apache-superset (setup.py)
 cryptography==2.8         # via apache-superset (setup.py)
 decorator==4.4.1          # via retry
 defusedxml==0.6.0         # via python3-openid
-flask-appbuilder==2.3.0   # via apache-superset (setup.py)
+flask-appbuilder==2.3.1   # via apache-superset (setup.py)
 flask-babel==1.0.0        # via flask-appbuilder
 flask-caching==1.8.0
 flask-compress==1.4.0
