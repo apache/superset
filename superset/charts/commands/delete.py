@@ -17,6 +17,7 @@
 import logging
 from typing import Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 
 from superset.charts.commands.exceptions import (
@@ -40,7 +41,7 @@ class DeleteChartCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
             chart = ChartDAO.delete(self._model)
