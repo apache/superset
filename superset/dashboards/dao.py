@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -46,13 +46,14 @@ class DashboardDAO(BaseDAO):
         return not db.session.query(dashboard_query.exists()).scalar()
 
     @staticmethod
-    def bulk_delete(models: List[Dashboard], commit=True):
-        item_ids = [model.id for model in models]
+    def bulk_delete(models: Optional[List[Dashboard]], commit: bool = True) -> None:
+        item_ids = [model.id for model in models] if models else []
         # bulk delete, first delete related data
-        for model in models:
-            model.slices = []
-            model.owners = []
-            db.session.merge(model)
+        if models:
+            for model in models:
+                model.slices = []
+                model.owners = []
+                db.session.merge(model)
         # bulk delete itself
         try:
             db.session.query(Dashboard).filter(Dashboard.id.in_(item_ids)).delete(
