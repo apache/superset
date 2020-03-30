@@ -85,4 +85,25 @@ describe('FilterIndicatorsContainer', () => {
     const wrapper = setup({ dashboardFilters: overwriteDashboardFilters });
     expect(wrapper.find(FilterIndicator)).toHaveLength(0);
   });
+
+  it('should show single number type value', () => {
+    const overwriteDashboardFilters = {
+      ...dashboardFilters,
+      [filterId]: {
+        ...dashboardFilters[filterId],
+        columns: {
+          testField: 0,
+        },
+      },
+    };
+    const wrapper = setup({ dashboardFilters: overwriteDashboardFilters });
+    expect(wrapper.find(FilterIndicator)).toHaveLength(1);
+
+    const indicatorProps = wrapper
+      .find(FilterIndicator)
+      .first()
+      .props().indicator;
+    expect(indicatorProps.label).toEqual('testField');
+    expect(indicatorProps.values).toEqual([0]);
+  });
 });
