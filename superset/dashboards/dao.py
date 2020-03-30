@@ -40,10 +40,12 @@ class DashboardDAO(BaseDAO):
 
     @staticmethod
     def validate_update_slug_uniqueness(dashboard_id: int, slug: str) -> bool:
-        dashboard_query = db.session.query(Dashboard).filter(
-            Dashboard.slug == slug, Dashboard.id != dashboard_id
-        )
-        return not db.session.query(dashboard_query.exists()).scalar()
+        if slug:
+            dashboard_query = db.session.query(Dashboard).filter(
+                Dashboard.slug == slug, Dashboard.id != dashboard_id
+            )
+            return not db.session.query(dashboard_query.exists()).scalar()
+        return True
 
     @staticmethod
     def bulk_delete(models: List[Dashboard], commit=True):
