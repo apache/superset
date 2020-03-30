@@ -72,6 +72,8 @@ services:
     restart: unless-stopped
     build: *superset-build
     command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
+    healthcheck:
+      test: ["curl", "-f", "http://localhost:8088/health"]
     ports:
       - 8088:8088
     environment:
