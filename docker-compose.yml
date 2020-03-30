@@ -21,29 +21,74 @@ x-superset-build: &superset-build
   dockerfile: Dockerfile
   target: prod
 
+x-superset-networks: &superset-networks
+  - backend
+
 version: "3.7"
 services:
+
+  superset-db:
+    image: postgres:12
+    container_name: dwh-superset-db
+    env_file: docker/.env
+    restart: unless-stopped
+    networks: *superset-networks
+    volumes:
+      - db_home:/var/lib/postgresql/data
+
+  superset-init:
+    image: dwh:superset-init
+    container_name: dwh-superset-init
+    env_file: docker/.env
+    build: *superset-build
+    command: ["/app/docker-init.sh"]
+    depends_on:
+      - superset-db
+    networks: *superset-networks
+
+  superset-broker:
+    image: redis:3.2
+    container_name: dwh-superset-broker
+    restart: unless-stopped
+    networks: *superset-networks
+    volumes:
+      - redis:/data
+
+  superset-worker:
+    image: dwh:superset-worker
+    container_name: dwh-superset-worker
+    env_file: docker/.env
+    restart: unless-stopped
+    build: *superset-build
+    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair"]
+    depends_on:
+      - superset-broker
+    networks: *superset-networks
 
   superset:
     image: 'dwh:superset-fork'
     container_name: dwh-superset-fork
-    build: *superset-build
-    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
     env_file: docker/.env
     restart: unless-stopped
+    build: *superset-build
+    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
     ports:
       - 8088:8088
     environment:
       - SUPERSET_CONFIG_PATH=/app/superset_config.py
-
-  superset-init:
-    image: 'dwh:superset-init'
-    container_name: dwh-superset-init
-    build: *superset-build
-    command: ["/app/docker-init.sh"]
-    env_file: docker/.env
+    depends_on:
+      - superset-db
+      - superset-init
+      - superset-broker
+      - superset-worker
+    networks: *superset-networks
 
 networks:
-  default:
-    external:
-      name: superset_backend
+  backend:
+
+volumes:
+  db_home:
+    external: false
+  redis:
+    external: false
+
