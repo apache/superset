@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { isEmpty } from 'lodash';
+import { isEmpty, isNil } from 'lodash';
 
 import FilterIndicator from './FilterIndicator';
 import FilterIndicatorGroup from './FilterIndicatorGroup';
@@ -101,6 +101,15 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
                 chartId,
                 column: name,
               });
+
+              // filter values could be single value or array of values
+              const values =
+                isNil(columns[name]) ||
+                (isDateFilter && columns[name] === 'No filter') ||
+                (Array.isArray(columns[name]) && columns[name].length === 0)
+                  ? []
+                  : [].concat(columns[name]);
+
               const indicator = {
                 chartId,
                 colorCode: dashboardFiltersColorMap[colorMapKey],
@@ -110,11 +119,7 @@ export default class FilterIndicatorsContainer extends React.PureComponent {
                 isInstantFilter,
                 name,
                 label: labels[name] || name,
-                values:
-                  isEmpty(columns[name]) ||
-                  (isDateFilter && columns[name] === 'No filter')
-                    ? []
-                    : [].concat(columns[name]),
+                values,
                 isFilterFieldActive:
                   chartId === filterFieldOnFocus.chartId &&
                   name === filterFieldOnFocus.column,
