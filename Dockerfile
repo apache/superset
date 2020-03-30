@@ -100,8 +100,6 @@ WORKDIR /app
 
 USER superset
 
-HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
-
 EXPOSE ${SUPERSET_PORT}
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
