@@ -1,14 +1,14 @@
 /**
  * Build only plugins specified by globs
  */
-const { spawnSync, spawn } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const glob = process.argv[2];
 const extraArgs = process.argv.slice(2);
 
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const run = (cmd) => {
+const run = cmd => {
   console.log(`>> ${cmd}`);
   const [p, ...args] = cmd.split(' ');
   const runner = spawnSync;
