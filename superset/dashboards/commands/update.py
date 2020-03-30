@@ -57,7 +57,7 @@ class UpdateDashboardCommand(BaseCommand):
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
         owner_ids: Optional[List[int]] = self._properties.get("owners")
-        slug: str = self._properties.get("slug", "")
+        slug: Optional[str] = self._properties.get("slug")
 
         # Validate/populate model exists
         self._model = DashboardDAO.find_by_id(self._model_id)
