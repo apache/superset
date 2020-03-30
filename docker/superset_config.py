@@ -40,7 +40,7 @@ REDIS_PORT = get_env_variable("REDIS_PORT")
 class CeleryConfig(object):
     BROKER_URL = "redis://%s:%s/0" % (REDIS_HOST, REDIS_PORT)
     CELERY_IMPORTS = ("superset.sql_lab",)
-    CELERY_RESULT_BACKEND = "redis://%s:%s/1" % (REDIS_HOST, REDIS_PORT)
+    CELERY_RESULT_BACKEND = "redis://%s:%s/0" % (REDIS_HOST, REDIS_PORT)
     CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}
     CELERY_TASK_PROTOCOL = 1
 
@@ -52,4 +52,14 @@ RESULTS_BACKEND = RedisCache(
     port=REDIS_PORT,
     key_prefix='superset_results'
 )
+
+CACHE_CONFIG = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 300,
+    'CACHE_KEY_PREFIX': 'superset_',
+    'CACHE_REDIS_HOST': 'redis',
+    'CACHE_REDIS_PORT': 6379,
+    'CACHE_REDIS_DB': 1,
+    'CACHE_REDIS_URL': "redis://%s:%s/1" % (REDIS_HOST, REDIS_PORT)
+}
 
