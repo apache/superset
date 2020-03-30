@@ -224,6 +224,15 @@ const config = {
               // type checking is done via fork-ts-checker-webpack-plugin
               happyPackMode: true,
               transpileOnly: true,
+              // must override compiler options here, even though we have set
+              // the same options in `tsconfig.json`, because they may still
+              // be overriden by `tsconfig.json` in node_modules subdirectories.
+              compilerOptions: {
+                esModuleInterop: false,
+                importHelpers: false,
+                module: 'esnext',
+                target: 'esnext',
+              },
             },
           },
         ],
