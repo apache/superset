@@ -288,9 +288,10 @@ class Database(
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
-        self.db_engine_spec.modify_url_for_impersonation(
-            sqlalchemy_url, self.impersonate_user, effective_username
-        )
+        if not user_name or not str(sqlalchemy_url).startswith('presto'):
+            self.db_engine_spec.modify_url_for_impersonation(
+                sqlalchemy_url, self.impersonate_user, effective_username
+            )
 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database.get_sqla_engine(). Masked URL: %s", str(masked_url))
@@ -312,6 +313,9 @@ class Database(
             connect_args["configuration"] = configuration
         if connect_args:
             params["connect_args"] = connect_args
+
+        if user_name and self.impersonate_user and str(sqlalchemy_url).startswith('presto'):
+            params["connect_args"]['principle_username'] = user_name
 
         params.update(self.get_encrypted_extra())
 

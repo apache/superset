@@ -112,7 +112,7 @@ setup(
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "mysql": ["mysqlclient==1.4.2.post1"],
         "postgres": ["psycopg2-binary==2.7.5"],
-        "presto": ["pyhive[presto]>=0.4.0"],
+        "presto": ["pyhive[presto]>=0.6.2"],
         "elasticsearch": ["elasticsearch-dbapi>=0.1.0, <0.2.0"],
         "druid": ["pydruid==0.5.7", "requests==2.22.0"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
