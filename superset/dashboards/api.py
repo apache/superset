@@ -69,6 +69,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "json_metadata",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "changed_by_name",
         "changed_by_url",
         "changed_by.username",
@@ -115,7 +117,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners": ("first_name", "asc"),
     }
     related_field_filters = {
-        "owners": RelatedFieldFilter("username", FilterRelatedOwners)
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
     }
     allowed_rel_fields = {"owners"}
 

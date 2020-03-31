@@ -104,7 +104,7 @@ class PropertiesModal extends React.PureComponent {
       }));
       const initialSelectedOwners = dashboard.owners.map(owner => ({
         value: owner.id,
-        label: owner.username,
+        label: `${owner.first_name} ${owner.last_name}`,
       }));
       this.onOwnersChange(initialSelectedOwners);
     }, this.handleErrorResponse);

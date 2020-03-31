@@ -66,6 +66,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "dashboards.id",
         "dashboards.dashboard_title",
         "viz_type",

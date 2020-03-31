@@ -99,7 +99,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
       setOwners(
         chart.owners.map((owner: any) => ({
           value: owner.id,
-          label: owner.username,
+          label: `${owner.first_name} ${owner.last_name}`,
         })),
       );
     } catch (response) {

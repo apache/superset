@@ -91,6 +91,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "template_params",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "columns",
         "metrics",
     ]
@@ -116,7 +118,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     ]
     openapi_spec_tag = "Datasets"
     related_field_filters = {
-        "owners": RelatedFieldFilter("username", FilterRelatedOwners),
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
