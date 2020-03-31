@@ -116,7 +116,6 @@ class QueryObject:
                 f"pass all selectables via the columns field"
             )
 
-        self.columns = columns or []
         self.orderby = orderby or []
 
     def to_dict(self) -> Dict[str, Any]:
