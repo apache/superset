@@ -49,6 +49,19 @@ logger = logging.getLogger(__name__)
 
 
 class ChartRestApi(BaseSupersetModelRestApi):
+    class_permission_name = "ChartRestApi"
+    method_permission_name = {
+        "get_list": "list",
+        "get": "show",
+        "export": "mulexport",
+        "post": "add",
+        "put": "edit",
+        "delete": "delete",
+        "bulk_delete": "delete",
+        "info": "list",
+        "related": "list",
+        "refresh": "edit",
+    }
     datamodel = SQLAInterface(Slice)
 
     resource_name = "chart"
