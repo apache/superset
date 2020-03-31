@@ -127,6 +127,48 @@ class CoreTests(SupersetTestCase):
             ],
         }
 
+    def _get_query_context_dict_with_post_processing(self) -> Dict[str, Any]:
+        self.login(username="admin")
+        slc = self.get_slice("Girl Name Cloud", db.session)
+        return {
+            "datasource": {"id": slc.datasource_id, "type": slc.datasource_type},
+            "queries": [
+                {
+                    "granularity": "ds",
+                    "groupby": ["name", "state"],
+                    "metrics": [{"label": "sum__num"}],
+                    "filters": [],
+                    "row_limit": 100,
+                    "post_processing": [
+                        {
+                            "operation": "aggregate",
+                            "options": {
+                                "groupby": ["state"],
+                                "aggregates": {
+                                    "q1": {
+                                        "operator": "percentile",
+                                        "column": "sum__num",
+                                        "options": {"q": 25},
+                                    },
+                                    "median": {
+                                        "operator": "median",
+                                        "column": "sum__num",
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            "operation": "sort",
+                            "options": {
+                                "by": ["q1", "state"],
+                                "ascending": {"q1": False},
+                            },
+                        },
+                    ],
+                }
+            ],
+        }
+
     def test_viz_cache_key(self):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
@@ -221,6 +263,13 @@ class CoreTests(SupersetTestCase):
         data = json.dumps(qc_dict)
         resp = json.loads(self.get_resp("/api/v1/query/", {"query_context": data}))
         self.assertEqual(resp[0]["rowcount"], 100)
+
+    def test_api_v1_query_endpoint_with_post_processing(self):
+        self.login(username="admin")
+        qc_dict = self._get_query_context_dict_with_post_processing()
+        data = json.dumps(qc_dict)
+        resp = json.loads(self.get_resp("/api/v1/query/", {"query_context": data}))
+        self.assertEqual(resp[0]["rowcount"], 6)
 
     def test_old_slice_json_endpoint(self):
         self.login(username="admin")
