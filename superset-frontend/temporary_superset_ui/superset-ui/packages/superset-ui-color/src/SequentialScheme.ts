@@ -2,7 +2,7 @@ import { scaleLinear } from 'd3-scale';
 import ColorScheme, { ColorSchemeConfig } from './ColorScheme';
 
 function range(count: number) {
-  const values: number[] = [];
+  const values = [];
   for (let i = 0; i < count; i += 1) {
     values.push(i);
   }
@@ -31,7 +31,10 @@ export default class SequentialScheme extends ColorScheme {
     const denominator = this.colors.length - 1;
     const domain = range(this.colors.length).map(i => valueScale(i / denominator));
 
-    return scaleLinear<string>().domain(domain).range(this.colors).clamp(true);
+    return scaleLinear<string>()
+      .domain(domain)
+      .range(this.colors)
+      .clamp(true);
   }
 
   getColors(numColors: number = this.colors.length): string[] {
