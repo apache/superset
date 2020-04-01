@@ -127,18 +127,14 @@ describe('CategoricalColorNamespace', () => {
     it('getColor(value) returns a color from default scheme in default namespace', () => {
       const value = 'dog';
       const color = getColor(value);
-      const color2 = getNamespace()
-        .getScale()
-        .getColor(value);
+      const color2 = getNamespace().getScale().getColor(value);
       expect(color).toBe(color2);
     });
     it('getColor(value, scheme) returns a color from specified scheme in default namespace', () => {
       const value = 'dog';
       const scheme = 'testColors';
       const color = getColor(value, scheme);
-      const color2 = getNamespace()
-        .getScale(scheme)
-        .getColor(value);
+      const color2 = getNamespace().getScale(scheme).getColor(value);
       expect(color).toBe(color2);
     });
     it('getColor(value, scheme, namespace) returns a color from specified scheme in specified namespace', () => {
@@ -146,9 +142,7 @@ describe('CategoricalColorNamespace', () => {
       const scheme = 'testColors';
       const namespace = 'test-getColor';
       const color = getColor(value, scheme, namespace);
-      const color2 = getNamespace(namespace)
-        .getScale(scheme)
-        .getColor(value);
+      const color2 = getNamespace(namespace).getScale(scheme).getColor(value);
       expect(color).toBe(color2);
     });
   });

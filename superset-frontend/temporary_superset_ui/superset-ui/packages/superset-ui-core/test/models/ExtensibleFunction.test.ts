@@ -1,4 +1,4 @@
-import ExtensibleFunction from '../../src/models/ExtensibleFunction';
+import { ExtensibleFunction } from '../../src';
 
 describe('ExtensibleFunction', () => {
   class Func1 extends ExtensibleFunction {
