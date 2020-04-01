@@ -17,6 +17,7 @@
 import logging
 from typing import Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand
@@ -39,11 +40,13 @@ class RefreshDatasetCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
             # Updates columns and metrics from the dataset
-            self._model.fetch_metadata()
+            if self._model:
+                self._model.fetch_metadata()
+            raise DatasetRefreshFailedError()
         except Exception as e:
             logger.exception(e)
             raise DatasetRefreshFailedError()
