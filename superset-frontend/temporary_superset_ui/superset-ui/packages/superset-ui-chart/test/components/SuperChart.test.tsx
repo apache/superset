@@ -247,7 +247,11 @@ describe('SuperChart', () => {
 
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
-        const boundingBox = renderedWrapper.find('div.test-component').parent().parent().parent();
+        const boundingBox = renderedWrapper
+          .find('div.test-component')
+          .parent()
+          .parent()
+          .parent();
         expect(boundingBox.css('width')).toEqual('50%');
         expect(boundingBox.css('height')).toEqual('125px');
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
@@ -268,7 +272,11 @@ describe('SuperChart', () => {
 
       return promiseTimeout(() => {
         const renderedWrapper = wrapper.render();
-        const boundingBox = renderedWrapper.find('div.test-component').parent().parent().parent();
+        const boundingBox = renderedWrapper
+          .find('div.test-component')
+          .parent()
+          .parent()
+          .parent();
         expect(boundingBox.css('width')).toEqual('50px');
         expect(boundingBox.css('height')).toEqual('25%');
         expect(renderedWrapper.find('div.test-component')).toHaveLength(1);
