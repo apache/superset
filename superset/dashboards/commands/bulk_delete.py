@@ -17,6 +17,7 @@
 import logging
 from typing import List, Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand
@@ -40,10 +41,11 @@ class BulkDeleteDashboardCommand(BaseCommand):
         self._model_ids = model_ids
         self._models: Optional[List[Dashboard]] = None
 
-    def run(self) -> None:
+    def run(self) -> Optional[Model]:
         self.validate()
         try:
             DashboardDAO.bulk_delete(self._models)
+            return None
         except DeleteFailedError as e:
             logger.exception(e.exception)
             raise DashboardBulkDeleteFailedError()
