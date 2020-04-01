@@ -5,5 +5,5 @@
     "packages/*"
   ],
   "useWorkspaces": true,
-  "version": "0.12.11"
+  "version": "0.12.12"
 }
