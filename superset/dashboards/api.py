@@ -162,7 +162,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=item.errors)
         try:
             new_model = CreateDashboardCommand(g.user, item.data).run()
-            return self.response(201, id=new_model.id, result=item.data)
+            if new_model:
+                return self.response(201, id=new_model.id, result=item.data)
+            raise DashboardCreateFailedError()
         except DashboardInvalidError as e:
             return self.response_422(message=e.normalized_messages())
         except DashboardCreateFailedError as e:
@@ -225,7 +227,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=item.errors)
         try:
             changed_model = UpdateDashboardCommand(g.user, pk, item.data).run()
-            return self.response(200, id=changed_model.id, result=item.data)
+            if changed_model:
+                return self.response(200, id=changed_model.id, result=item.data)
+            raise DashboardUpdateFailedError()
         except DashboardNotFoundError:
             return self.response_404()
         except DashboardForbiddenError:

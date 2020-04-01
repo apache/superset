@@ -41,7 +41,7 @@ class DeleteDashboardCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[Dashboard] = None
 
-    def run(self) -> Model:
+    def run(self) -> Optional[Model]:
         self.validate()
         try:
             dashboard = DashboardDAO.delete(self._model)
