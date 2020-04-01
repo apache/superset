@@ -1379,8 +1379,14 @@ Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave lik
 To remedy this rather than having to define the date/time format for every non-IS0 8601 date-time column, once can define a default column mapping on a per database level via the ``extra`` parameter ::
 
     {
+        "main_dttm_column": "ds",
+        "default_dttm_column_names": ["ds", "hour_ts"],
         "python_date_format_by_column_name": {
-            "ds": "%Y-%m-%d"
+            "ds": "%Y-%m-%d",
+            "hour_ts": "epoch_s",
+        }
+        "expression_by_column_name": {
+            "hour_ts": "CAST(hour_ts as INTEGER)",
         }
     }
 
