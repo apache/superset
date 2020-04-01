@@ -484,6 +484,8 @@ class BaseViz:
             "form_data": self.form_data,
             "is_cached": self._any_cache_key is not None,
             "query": self.query,
+            "from_dttm": self.from_dttm,
+            "to_dttm": self.to_dttm,
             "status": self.status,
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
