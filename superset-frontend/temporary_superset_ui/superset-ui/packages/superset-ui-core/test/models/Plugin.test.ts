@@ -1,4 +1,4 @@
-import { Plugin } from '../../src';
+import Plugin from '../../src/models/Plugin';
 
 describe('Plugin', () => {
   it('exists', () => {

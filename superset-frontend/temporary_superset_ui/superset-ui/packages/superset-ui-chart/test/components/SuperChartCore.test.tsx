@@ -94,7 +94,12 @@ describe('SuperChartCore', () => {
       );
 
       return promiseTimeout(() => {
-        expect(wrapper.render().find('.message').text()).toEqual('hulk');
+        expect(
+          wrapper
+            .render()
+            .find('.message')
+            .text(),
+        ).toEqual('hulk');
       });
     });
     it('uses preTransformProps when specified', () => {
@@ -110,7 +115,12 @@ describe('SuperChartCore', () => {
       );
 
       return promiseTimeout(() => {
-        expect(wrapper.render().find('.message').text()).toEqual('hulk');
+        expect(
+          wrapper
+            .render()
+            .find('.message')
+            .text(),
+        ).toEqual('hulk');
       });
     });
     it('uses postTransformProps when specified', () => {
@@ -122,7 +132,12 @@ describe('SuperChartCore', () => {
       );
 
       return promiseTimeout(() => {
-        expect(wrapper.render().find('.message').text()).toEqual('hulk');
+        expect(
+          wrapper
+            .render()
+            .find('.message')
+            .text(),
+        ).toEqual('hulk');
       });
     });
     it('renders if chartProps is not specified', () => {
