@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Optional, Type
+from typing import Type
 
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
@@ -23,8 +23,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
 from superset import security_manager
-from superset.exceptions import CertificateException
-from superset.utils.core import parse_ssl_cert
 
 
 def sqlalchemy_uri_validator(
@@ -55,21 +53,3 @@ def schema_allows_csv_upload(database, schema):
         security_manager.database_access(database)
         or security_manager.all_datasource_access()
     )
-
-
-def certificate_validator(
-    certificate: Optional[str], exception: Type[ValidationError] = ValidationError
-) -> None:
-    if certificate:
-        try:
-            parse_ssl_cert(certificate)
-        except CertificateException:
-            raise exception(
-                _(
-                    "Invalid certificate. <br>"
-                    "Please make sure the certificate begins with<br>"
-                    "-----BEGIN CERTIFICATE-----<br>"
-                    "and ends with<br>"
-                    "-----END CERTIFICATE-----"
-                )
-            )

@@ -29,16 +29,13 @@ import superset.models.core as models
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
+from superset.exceptions import CertificateException
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
 from .forms import CsvToDatabaseForm
 from .mixins import DatabaseMixin
-from .validators import (
-    certificate_validator,
-    schema_allows_csv_upload,
-    sqlalchemy_uri_validator,
-)
+from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage  # pylint: disable=unused-import
@@ -56,9 +53,13 @@ def sqlalchemy_uri_form_validator(_, field: StringField) -> None:
 
 def certificate_form_validator(_, field: StringField) -> None:
     """
-        Check if user has submitted a valid SQLAlchemy URI
+        Check if user has submitted a valid SSL certificate
     """
-    certificate_validator(field.data, exception=ValidationError)
+    if field.data:
+        try:
+            utils.parse_ssl_cert(field.data)
+        except CertificateException as ex:
+            raise ValidationError(ex.message)
 
 
 def upload_stream_write(form_file_field: "FileStorage", path: str):
