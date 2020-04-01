@@ -26,6 +26,7 @@ lib/
 public/
 node_modules/
 tmp/
+_gh-pages/
 
 # Custom
 *.map
@@ -43,12 +44,11 @@ jest.config.js
 prettier.config.js
 tsconfig.eslint.json
 tsconfig.json
+!demo/tsconfig.json
 tsconfig.options.json
 *.tsbuildinfo
 webpack.config.js
 
-# Lock files, libs should not have lock files
+# Ignore npm lock files, always use yarn.loock instead
 npm-shrinkwrap.json
 package-lock.json
-# disable to provide more stability for the ci builds
-# yarn.lock
