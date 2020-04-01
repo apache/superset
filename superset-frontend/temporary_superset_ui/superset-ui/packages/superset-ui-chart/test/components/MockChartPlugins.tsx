@@ -42,7 +42,7 @@ export const TestComponent = ({
       {[width, height].join('x')}
     </div>
     <div className="formData" style={{ padding: 10 }}>
-      <code style={{ color: '#D3F9F7', background: 'none' }}>{JSON.stringify(formData)}</code>
+      <code style={{ color: '#D3F9F7' }}>{JSON.stringify(formData)}</code>
     </div>
   </div>
 );

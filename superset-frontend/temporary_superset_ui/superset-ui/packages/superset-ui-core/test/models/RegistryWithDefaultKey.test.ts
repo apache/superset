@@ -1,4 +1,5 @@
-import { Registry, RegistryWithDefaultKey } from '../../src';
+import RegistryWithDefaultKey from '../../src/models/RegistryWithDefaultKey';
+import Registry from '../../src/models/Registry';
 
 describe('RegistryWithDefaultKey', () => {
   let registry: RegistryWithDefaultKey<number>;
@@ -30,7 +31,10 @@ describe('RegistryWithDefaultKey', () => {
 
   describe('.get()', () => {
     beforeEach(() => {
-      registry.registerValue('abc', 100).registerValue('def', 200).setDefaultKey('abc');
+      registry
+        .registerValue('abc', 100)
+        .registerValue('def', 200)
+        .setDefaultKey('abc');
     });
     it('.get() returns value from default key', () => {
       expect(registry.get()).toEqual(100);

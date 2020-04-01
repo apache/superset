@@ -1,4 +1,5 @@
-import { Plugin, Preset } from '../../src';
+import Plugin from '../../src/models/Plugin';
+import Preset from '../../src/models/Preset';
 
 describe('Preset', () => {
   it('exists', () => {
