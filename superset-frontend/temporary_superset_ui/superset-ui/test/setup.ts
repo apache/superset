@@ -1,3 +1,7 @@
+import { configure } from '@superset-ui/translation';
+
+configure();
+
 const caches = {};
 
 class Cache {
