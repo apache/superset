@@ -1036,15 +1036,6 @@ The `metric` (or equivalent) and `timeseries_limit_metric` fields are all compos
 
 The filter-box configuration references column names (via the `column` key) and optionally metric names (via the `metric` key) if sorting is defined.
 
-### Options
-
-| Field                  | Type      | Notes                                |
-| ---------------------- | --------- | ------------------------------------ |
-| `compare_lag`          | _number_  | The **Comparison Period Lag** widget |
-| `compare_suffix`       | _string_  | The **Comparison suffix** widget     |
-| `show_trend_line`      | _boolean_ | The **Show Trend Line** widget       |
-| `start_y_axis_at_zero` | _boolean_ | The **Start y-axis at 0** widget     |
-
 ### Chart Options
 
 | Field                 | Type      | Notes                                            |

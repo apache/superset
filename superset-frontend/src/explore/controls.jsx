@@ -1033,21 +1033,6 @@ export const controls = {
     default: '',
   },
 
-  compare_lag: {
-    type: 'TextControl',
-    label: t('Comparison Period Lag'),
-    isInt: true,
-    description: t(
-      'Based on granularity, number of time periods to compare against',
-    ),
-  },
-
-  compare_suffix: {
-    type: 'TextControl',
-    label: t('Comparison suffix'),
-    description: t('Suffix to apply after the percentage display'),
-  },
-
   x_axis_format: {
     type: 'SelectControl',
     freeForm: true,
@@ -1338,24 +1323,6 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Whether to display the numerical values within the cells'),
-  },
-
-  show_trend_line: {
-    type: 'CheckboxControl',
-    label: t('Show Trend Line'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to display the trend line'),
-  },
-
-  start_y_axis_at_zero: {
-    type: 'CheckboxControl',
-    label: t('Start y-axis at 0'),
-    renderTrigger: true,
-    default: true,
-    description: t(
-      'Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.',
-    ),
   },
 
   x_axis_showminmax: {
