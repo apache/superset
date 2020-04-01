@@ -34,7 +34,11 @@ from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
 from .forms import CsvToDatabaseForm
 from .mixins import DatabaseMixin
-from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
+from .validators import (
+    certificate_validator,
+    schema_allows_csv_upload,
+    sqlalchemy_uri_validator,
+)
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage  # pylint: disable=unused-import
@@ -48,6 +52,13 @@ def sqlalchemy_uri_form_validator(_, field: StringField) -> None:
         Check if user has submitted a valid SQLAlchemy URI
     """
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
+
+
+def certificate_form_validator(_, field: StringField) -> None:
+    """
+        Check if user has submitted a valid SQLAlchemy URI
+    """
+    certificate_validator(field.data, exception=ValidationError)
 
 
 def upload_stream_write(form_file_field: "FileStorage", path: str):
@@ -68,7 +79,10 @@ class DatabaseView(
 
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
-    validators_columns = {"sqlalchemy_uri": [sqlalchemy_uri_form_validator]}
+    validators_columns = {
+        "sqlalchemy_uri": [sqlalchemy_uri_form_validator],
+        "server_cert": [certificate_form_validator],
+    }
 
     yaml_dict_key = "databases"
 
