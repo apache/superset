@@ -31,8 +31,9 @@ export default {
       expanded: true,
       controlSetRows: [
         ['compare_lag', 'compare_suffix'],
-        ['y_axis_format', null],
+        ['y_axis_format'],
         ['show_trend_line', 'start_y_axis_at_zero'],
+        ['time_range_fixed'],
       ],
     },
     {
