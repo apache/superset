@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 
 from superset import db, security_manager
@@ -21,6 +22,19 @@ from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter, get_user_roles
+
+
+class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("Title or Slug")
+    arg_name = "title_or_slug"
+
+    def apply(self, query, value):
+        return query.filter(
+            or_(
+                Dashboard.dashboard_title.ilike(value + "%"),
+                Dashboard.slug.ilike(value + "%"),
+            )
+        )
 
 
 class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
