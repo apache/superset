@@ -12,7 +12,7 @@
     "demo": "cd packages/demo && yarn demo:build",
     "storybook": "cd packages/demo && yarn storybook",
     "sb": "yarn storybook",
-    "clean": "rm -rf ./{packages,plugins}/**/{lib,esm,tsbuild.info}",
+    "clean": "rm -rf ./{packages,plugins}/**/{lib,esm}",
     "commit": "superset-commit",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 10",
     "format": "yarn prettier --write",
