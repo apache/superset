@@ -814,31 +814,6 @@ export const controls = {
     }),
   },
 
-  resample_rule: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Rule'),
-    default: null,
-    choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
-    description: t('Pandas resample rule'),
-  },
-
-  resample_method: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Method'),
-    default: null,
-    choices: formatSelectOptions([
-      'asfreq',
-      'bfill',
-      'ffill',
-      'median',
-      'mean',
-      'sum',
-    ]),
-    description: t('Pandas resample method'),
-  },
-
   time_range: {
     type: 'DateFilterControl',
     freeForm: true,
@@ -1433,44 +1408,6 @@ export const controls = {
     label: t('Contribution'),
     default: false,
     description: t('Compute the contribution to the total'),
-  },
-
-  time_compare: {
-    type: 'SelectControl',
-    multi: true,
-    freeForm: true,
-    label: t('Time Shift'),
-    choices: formatSelectOptions([
-      '1 day',
-      '1 week',
-      '28 days',
-      '30 days',
-      '52 weeks',
-      '1 year',
-    ]),
-    description: t(
-      'Overlay one or more timeseries from a ' +
-        'relative time period. Expects relative time deltas ' +
-        'in natural language (example:  24 hours, 7 days, ' +
-        '56 weeks, 365 days)',
-    ),
-  },
-
-  comparison_type: {
-    type: 'SelectControl',
-    label: t('Calculation type'),
-    default: 'values',
-    choices: [
-      ['values', 'Actual Values'],
-      ['absolute', 'Absolute difference'],
-      ['percentage', 'Percentage change'],
-      ['ratio', 'Ratio'],
-    ],
-    description: t(
-      'How to display time shifts: as individual lines; as the ' +
-        'absolute difference between the main time series and each time shift; ' +
-        'as the percentage change; or as the ratio between series and time shifts.',
-    ),
   },
 
   mapbox_label: {

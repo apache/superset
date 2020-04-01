@@ -1175,8 +1175,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `remote_id`                     | _N/A_ |       |
 | `resample_fillmethod`           | _N/A_ |       |
 | `resample_how`                  | _N/A_ |       |
-| `resample_method`               | _N/A_ |       |
-| `resample_rule`                 | _N/A_ |       |
 | `reverse_long_lat`              | _N/A_ |       |
 | `rose_area_proportion`          | _N/A_ |       |
 | `save_to_dashboard_id`          | _N/A_ |       |
@@ -1201,7 +1199,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `stroke_width`                  | _N/A_ |       |
 | `stroked`                       | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
-| `time_compare`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `toggle_polygons`               | _N/A_ |       |
 | `url`                           | _N/A_ |       |

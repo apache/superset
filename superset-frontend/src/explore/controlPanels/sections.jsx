@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { formatSelectOptions } from '../../modules/utils';
 
 export const druidTimeSeries = {
   label: t('Time'),
@@ -77,8 +78,37 @@ export const NVD3TimeSeries = [
     controlSetRows: [
       [<h1 className="section-header">{t('Rolling Window')}</h1>],
       [
-        'rolling_type',
-        'rolling_periods',
+        {
+          name: 'rolling_type',
+          config: {
+            type: 'SelectControl',
+            label: t('Rolling Function'),
+            default: 'None',
+            choices: formatSelectOptions([
+              'None',
+              'mean',
+              'sum',
+              'std',
+              'cumsum',
+            ]),
+            description: t(
+              'Defines a rolling window function to apply, works along ' +
+                'with the [Periods] text box',
+            ),
+          },
+        },
+        {
+          name: 'rolling_periods',
+          config: {
+            type: 'TextControl',
+            label: t('Periods'),
+            isInt: true,
+            description: t(
+              'Defines the size of the rolling window function, ' +
+                'relative to the time granularity selected',
+            ),
+          },
+        },
         {
           name: 'min_periods',
           config: {
@@ -96,10 +126,83 @@ export const NVD3TimeSeries = [
         },
       ],
       [<h1 className="section-header">{t('Time Comparison')}</h1>],
-      ['time_compare', 'comparison_type'],
+      [
+        {
+          name: 'time_compare',
+          config: {
+            type: 'SelectControl',
+            multi: true,
+            freeForm: true,
+            label: t('Time Shift'),
+            choices: formatSelectOptions([
+              '1 day',
+              '1 week',
+              '28 days',
+              '30 days',
+              '52 weeks',
+              '1 year',
+            ]),
+            description: t(
+              'Overlay one or more timeseries from a ' +
+                'relative time period. Expects relative time deltas ' +
+                'in natural language (example:  24 hours, 7 days, ' +
+                '56 weeks, 365 days)',
+            ),
+          },
+        },
+        {
+          name: 'comparison_type',
+          config: {
+            type: 'SelectControl',
+            label: t('Calculation type'),
+            default: 'values',
+            choices: [
+              ['values', 'Actual Values'],
+              ['absolute', 'Absolute difference'],
+              ['percentage', 'Percentage change'],
+              ['ratio', 'Ratio'],
+            ],
+            description: t(
+              'How to display time shifts: as individual lines; as the ' +
+                'absolute difference between the main time series and each time shift; ' +
+                'as the percentage change; or as the ratio between series and time shifts.',
+            ),
+          },
+        },
+      ],
       [<h1 className="section-header">{t('Python Functions')}</h1>],
       [<h2 className="section-header">pandas.resample</h2>],
-      ['resample_rule', 'resample_method'],
+      [
+        {
+          name: 'resample_rule',
+          config: {
+            type: 'SelectControl',
+            freeForm: true,
+            label: t('Rule'),
+            default: null,
+            choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
+            description: t('Pandas resample rule'),
+          },
+        },
+        {
+          name: 'resample_method',
+          config: {
+            type: 'SelectControl',
+            freeForm: true,
+            label: t('Method'),
+            default: null,
+            choices: formatSelectOptions([
+              'asfreq',
+              'bfill',
+              'ffill',
+              'median',
+              'mean',
+              'sum',
+            ]),
+            description: t('Pandas resample method'),
+          },
+        },
+      ],
     ],
   },
 ];
