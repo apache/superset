@@ -125,6 +125,7 @@ class TableColumn(Model, BaseColumn):
         foreign_keys=[table_id],
     )
     is_dttm = Column(Boolean, default=False)
+    # Please use get_expression as a getter for this field.
     expression = Column(Text)
     python_date_format = Column(String(255))
 
@@ -144,6 +145,17 @@ class TableColumn(Model, BaseColumn):
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
     export_parent = "table"
+
+    def get_expression(self):
+        if config["SIP_15_ENABLED"] and not self.expression:
+            db_default_expression = (
+                self.table.database.get_extra()
+                .get("expression_by_column_name", {})
+                .get(self.column_name)
+            )
+            # TODO(bkyryliuk): consider setting self.expression to db_default_expreassion
+            return db_default_expression
+        return self.expression
 
     @property
     def is_numeric(self) -> bool:
@@ -168,8 +180,9 @@ class TableColumn(Model, BaseColumn):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
-        if self.expression:
-            col = literal_column(self.expression)
+        expression = self.get_expression()
+        if expression:
+            col = literal_column(expression)
         else:
             db_engine_spec = self.table.database.db_engine_spec
             type_ = db_engine_spec.get_sqla_column_type(self.type)
@@ -221,11 +234,12 @@ class TableColumn(Model, BaseColumn):
         db = self.table.database
         pdf = self.python_date_format
         is_epoch = pdf in ("epoch_s", "epoch_ms")
-        if not self.expression and not time_grain and not is_epoch:
+        expression = self.get_expression()
+        if not expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=DateTime)
             return self.table.make_sqla_column_compatible(sqla_col, label)
-        if self.expression:
-            col = literal_column(self.expression)
+        if expression:
+            col = literal_column(expression)
         else:
             col = column(self.column_name)
         time_expr = db.db_engine_spec.get_timestamp_expr(
@@ -268,6 +282,8 @@ class TableColumn(Model, BaseColumn):
 
         # Fallback to the default format (if defined) only if the SIP-15 time range
         # endpoints, i.e., [start, end) are enabled.
+        # TODO(bkyryliuk): serialize the python_date_format_by_column_name in the column object for
+        # better debuggability and user experience.
         if not tf and time_range_endpoints == (
             utils.TimeRangeEndpoint.INCLUSIVE,
             utils.TimeRangeEndpoint.EXCLUSIVE,
@@ -1086,6 +1102,14 @@ class SqlaTable(Model, BaseDatasource):
                 ).format(self.table_name)
             )
 
+        default_main_dttm_col = None
+        default_dttm_columns = []
+        if config["SIP_15_ENABLED"]:
+            default_main_dttm_col = self.database.get_extra().get("main_dttm_column")
+            default_dttm_columns = (
+                self.database.get_extra().get("default_dttm_column_names") or []
+            )
+
         metrics = []
         any_date_col = None
         db_engine_spec = self.database.db_engine_spec
@@ -1113,6 +1137,15 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.avg = dbcol.is_numeric
                 dbcol.is_dttm = dbcol.is_temporal
                 db_engine_spec.alter_new_orm_column(dbcol)
+                # Apply default dttm setting from the database configuration.
+                if dbcol.column_name in default_dttm_columns:
+                    dbcol.is_dttm = True
+                if (
+                    default_main_dttm_col
+                    and dbcol.is_dttm
+                    and dbcol.column_name == default_main_dttm_col
+                ):
+                    any_date_col = default_main_dttm_col
             else:
                 dbcol.type = datatype
             dbcol.groupby = True

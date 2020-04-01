@@ -1171,6 +1171,78 @@ class CoreTests(SupersetTestCase):
         payload = views.Superset._get_sqllab_tabs(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
+    def test_db_column_defaults(self):
+        db_extras = json.dumps(
+            {
+                "main_datetime_column": "dttm",
+                "default_dttm_column_names": ["id", "dttm"],
+                "python_date_format_by_column_name": {
+                    "id": "epoch_ms",
+                    "dttm": "epoch_s",
+                },
+                "expression_by_column_name": {"dttm": "CAST(dttm as INTEGER)"},
+            }
+        )
+
+        self.login(username="admin")
+        try:
+            test_db = utils.get_or_create_db(
+                "column_test_db", app.config["SQLALCHEMY_DATABASE_URI"], extra=db_extras
+            )
+
+            resp = self.client.post(
+                "/tablemodelview/add",
+                data=dict(database=test_db.id, table_name="logs"),
+                follow_redirects=True,
+            )
+            self.assertEqual(resp.status_code, 200)
+            added_table = db.session.query(SqlaTable).filter_by(table_name="logs").one()
+
+            # Make sure that dttm column is set properly
+            self.assertEqual(added_table.main_dttm_col, "dttm")
+            # Make sure that default_dttm_column_names is set
+            self.assertEqual(len(added_table.dttm_cols), 2)
+
+            # validate python_date_format_by_column_name and expression_by_column_name
+            dttm_col = [c for c in added_table.columns if c.column_name == "dttm"][0]
+            self.assertEqual(dttm_col.get_expression(), "CAST(dttm as INTEGER)")
+            self.assertIn(
+                "CAST(dttm as INTEGER)", str(dttm_col.get_timestamp_expression("P1W"))
+            )
+            self.assertIsNone(
+                dttm_col.python_date_format
+            )  # defaults are not serialized
+            tre = utils.TimeRangeEndpoint.INCLUSIVE, utils.TimeRangeEndpoint.EXCLUSIVE
+            expected_literal = (
+                "STR_TO_DATE('2019-01-01 00:00:00.000000', '%Y-%m-%d %H:%i:%s.%f')"
+            )
+            if test_db.backend == "sqlite":
+                expected_literal = "1546329600"
+            self.assertEqual(
+                dttm_col.dttm_sql_literal(
+                    datetime.datetime(2019, 1, 1), time_range_endpoints=tre
+                ),
+                expected_literal,
+            )
+            self.assertTrue(dttm_col.is_dttm)
+
+            id_col = [c for c in added_table.columns if c.column_name == "id"][0]
+            self.assertIsNone(id_col.get_expression())
+            self.assertIsNone(id_col.python_date_format)  # defaults are not serialized
+            expected_literal = "1546329600000"
+            self.assertEqual(
+                id_col.dttm_sql_literal(
+                    datetime.datetime(2019, 1, 1), time_range_endpoints=tre
+                ),
+                expected_literal,
+            )
+
+            self.assertTrue(id_col.is_dttm)
+        finally:
+            db.session.delete(added_table)
+            db.session.delete(test_db)
+            db.session.commit()
+
 
 if __name__ == "__main__":
     unittest.main()
