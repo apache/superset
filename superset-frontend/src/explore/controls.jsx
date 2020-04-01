@@ -843,7 +843,7 @@ export const controls = {
     type: 'DateFilterControl',
     freeForm: true,
     label: TIME_FILTER_LABELS.time_range,
-    default: t('Last week'),
+    default: t('Last week'), // this value is translated, but the backend wouldn't understand a translated value?
     description: t(
       'The time range for the visualization. All relative times, e.g. "Last month", ' +
         '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
@@ -855,6 +855,24 @@ export const controls = {
     mapStateToProps: state => ({
       endpoints: state.form_data ? state.form_data.time_range_endpoints : null,
     }),
+  },
+
+  time_range_fixed: {
+    type: 'CheckboxControl',
+    label: t('Fix to selected Time Range'),
+    description: t(
+      'Fix the trend line to the full time range specified in case filtered results do not include the start or end dates',
+    ),
+    renderTrigger: true,
+    visibility(props) {
+      const {
+        time_range: timeRange,
+        viz_type: vizType,
+        show_trend_line: showTrendLine,
+      } = props.form_data;
+      // only display this option when a time range is selected
+      return timeRange && timeRange !== 'No filter';
+    },
   },
 
   max_bubble_size: {
@@ -1197,28 +1215,28 @@ export const controls = {
     label: t('Header Font Size'),
     renderTrigger: true,
     clearable: false,
-    default: 0.3,
+    default: 0.4,
     // Values represent the percentage of space a header should take
     options: [
       {
         label: t('Tiny'),
-        value: 0.125,
-      },
-      {
-        label: t('Small'),
         value: 0.2,
       },
       {
-        label: t('Normal'),
+        label: t('Small'),
         value: 0.3,
       },
       {
-        label: t('Large'),
+        label: t('Normal'),
         value: 0.4,
       },
       {
-        label: t('Huge'),
+        label: t('Large'),
         value: 0.5,
+      },
+      {
+        label: t('Huge'),
+        value: 0.6,
       },
     ],
   },
@@ -1228,7 +1246,7 @@ export const controls = {
     label: t('Subheader Font Size'),
     renderTrigger: true,
     clearable: false,
-    default: 0.125,
+    default: 0.15,
     // Values represent the percentage of space a subheader should take
     options: [
       {
@@ -1237,19 +1255,19 @@ export const controls = {
       },
       {
         label: t('Small'),
-        value: 0.2,
+        value: 0.15,
       },
       {
         label: t('Normal'),
-        value: 0.3,
+        value: 0.2,
       },
       {
         label: t('Large'),
-        value: 0.4,
+        value: 0.3,
       },
       {
         label: t('Huge'),
-        value: 0.5,
+        value: 0.4,
       },
     ],
   },
