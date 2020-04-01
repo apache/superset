@@ -795,31 +795,6 @@ export const controls = {
     }),
   },
 
-  resample_rule: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Rule'),
-    default: null,
-    choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
-    description: t('Pandas resample rule'),
-  },
-
-  resample_method: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Method'),
-    default: null,
-    choices: formatSelectOptions([
-      'asfreq',
-      'bfill',
-      'ffill',
-      'median',
-      'mean',
-      'sum',
-    ]),
-    description: t('Pandas resample method'),
-  },
-
   time_range: {
     type: 'DateFilterControl',
     freeForm: true,
@@ -1398,27 +1373,6 @@ export const controls = {
     description: t('Compute the contribution to the total'),
   },
 
-  time_compare: {
-    type: 'SelectControl',
-    multi: true,
-    freeForm: true,
-    label: t('Time Shift'),
-    choices: formatSelectOptions([
-      '1 day',
-      '1 week',
-      '28 days',
-      '30 days',
-      '52 weeks',
-      '1 year',
-    ]),
-    description: t(
-      'Overlay one or more timeseries from a ' +
-        'relative time period. Expects relative time deltas ' +
-        'in natural language (example:  24 hours, 7 days, ' +
-        '56 weeks, 365 days)',
-    ),
-  },
-
   comparison_type: {
     type: 'SelectControl',
     label: t('Calculation type'),
@@ -1434,12 +1388,6 @@ export const controls = {
         'absolute difference between the main time series and each time shift; ' +
         'as the percentage change; or as the ratio between series and time shifts.',
     ),
-  },
-
-  subheader: {
-    type: 'TextControl',
-    label: t('Subheader'),
-    description: t('Description text that shows up below your Big Number'),
   },
 
   mapbox_label: {
