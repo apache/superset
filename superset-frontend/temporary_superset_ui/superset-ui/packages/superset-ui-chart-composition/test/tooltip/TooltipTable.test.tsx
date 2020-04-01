@@ -42,11 +42,6 @@ describe('TooltipTable', () => {
     );
     expect(wrapper.find('tbody')).toHaveLength(1);
     expect(wrapper.find('tr')).toHaveLength(3);
-    expect(
-      wrapper
-        .find('tr > td')
-        .first()
-        .text(),
-    ).toEqual('Cersei');
+    expect(wrapper.find('tr > td').first().text()).toEqual('Cersei');
   });
 });

@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../build/lib",
+    "rootDir": "../../",
+    "emitDeclarationOnly": false,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "jsx": "react",
+    "noEmit": false,
+  },
+  "exclude": ["node_modules"],
+  "include": [
+    "storybook",
+    "../**/src",
+    "../../plugins/**/src",
+  ]
+}

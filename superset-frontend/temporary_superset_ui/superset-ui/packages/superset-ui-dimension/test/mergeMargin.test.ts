@@ -166,9 +166,9 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
   it('if there are NaN or null, use another value', () => {
     expect(
       mergeMargin(
-        // @ts-ignore to let us pass `null` for testing
         {
           top: 10,
+          // @ts-ignore to let us pass `null` for testing
           left: null,
           bottom: 20,
           right: NaN,
