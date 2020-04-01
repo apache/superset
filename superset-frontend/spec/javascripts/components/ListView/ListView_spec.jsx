@@ -22,6 +22,7 @@ import { act } from 'react-dom/test-utils';
 import { MenuItem, Pagination } from 'react-bootstrap';
 
 import ListView from 'src/components/ListView/ListView';
+import ListViewPagination from 'src/components/ListView/Pagination';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 
 describe('ListView', () => {
@@ -159,10 +160,15 @@ describe('ListView', () => {
                   ]
             `);
   });
-
+  it('renders pagination controls', () => {
+    expect(wrapper.find(Pagination).exists()).toBe(true);
+    expect(wrapper.find(Pagination.Prev).exists()).toBe(true);
+    expect(wrapper.find(Pagination.Item).exists()).toBe(true);
+    expect(wrapper.find(Pagination.Next).exists()).toBe(true);
+  });
   it('calls fetchData on page change', () => {
     act(() => {
-      wrapper.find(Pagination).prop('onSelect')(2);
+      wrapper.find(ListViewPagination).prop('onChange')(2);
     });
     wrapper.update();
 
