@@ -45,7 +45,16 @@ export default {
             description: t('Do you want a donut or a pie?'),
           },
         }, 'show_legend'],
-        ['show_labels', 'labels_outside'],
+        ['show_labels', {
+          name: 'labels_outside',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Put labels outside'),
+            default: true,
+            renderTrigger: true,
+            description: t('Put the labels outside the pie?'),
+          },
+        }],
         ['color_scheme', 'label_colors'],
       ],
     },

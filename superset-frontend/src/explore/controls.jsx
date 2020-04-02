@@ -1408,14 +1408,6 @@ export const controls = {
     description: t('Use a log scale'),
   },
 
-  labels_outside: {
-    type: 'CheckboxControl',
-    label: t('Put labels outside'),
-    default: true,
-    renderTrigger: true,
-    description: t('Put the labels outside the pie?'),
-  },
-
   contribution: {
     type: 'CheckboxControl',
     label: t('Contribution'),
