@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
+import { nonEmpty } from '../validators';
 
 export default {
   requiresTime: true,
@@ -53,8 +54,61 @@ export default {
     {
       label: t('Point Size'),
       controlSetRows: [
-        ['point_radius_fixed', 'point_unit'],
-        ['min_radius', 'max_radius'],
+        [
+          'point_radius_fixed',
+          {
+            name: 'point_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Point Unit'),
+              default: 'square_m',
+              clearable: false,
+              choices: [
+                ['square_m', 'Square meters'],
+                ['square_km', 'Square kilometers'],
+                ['square_miles', 'Square miles'],
+                ['radius_m', 'Radius in meters'],
+                ['radius_km', 'Radius in kilometers'],
+                ['radius_miles', 'Radius in miles'],
+              ],
+              description: t(
+                'The unit of measure for the specified point radius',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'min_radius',
+            config: {
+              type: 'TextControl',
+              label: t('Minimum Radius'),
+              isFloat: true,
+              validators: [nonEmpty],
+              renderTrigger: true,
+              default: 2,
+              description: t(
+                'Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
+                  'insures that the circle respects this minimum radius.',
+              ),
+            },
+          },
+          {
+            name: 'max_radius',
+            config: {
+              type: 'TextControl',
+              label: t('Maximum Radius'),
+              isFloat: true,
+              validators: [nonEmpty],
+              renderTrigger: true,
+              default: 250,
+              description: t(
+                'Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+                  'insures that the circle respects this maximum radius.',
+              ),
+            },
+          },
+        ],
         ['multiplier', null],
       ],
     },

@@ -1118,7 +1118,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `contribution`                  | _N/A_ |       |
 | `country_fieldtype`             | _N/A_ |       |
 | `date_filter`                   | _N/A_ |       |
-| `deck_slices`                   | _N/A_ |       |
 | `default_filters`               | _N/A_ |       |
 | `dimension`                     | _N/A_ |       |
 | `end_spatial`                   | _N/A_ |       |
@@ -1141,7 +1140,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `grid_size`                     | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
-| `js_agg_function`               | _N/A_ |       |
 | `js_columns`                    | _N/A_ |       |
 | `label`                         | _N/A_ |       |
 | `labels_outside`                | _N/A_ |       |
@@ -1160,14 +1158,11 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `marker_lines`                  | _N/A_ |       |
 | `markers`                       | _N/A_ |       |
 | `markup_type`                   | _N/A_ |       |
-| `max_radius`                    | _N/A_ |       |
 | `min_periods`                   | _N/A_ |       |
-| `min_radius`                    | _N/A_ |       |
 | `multiplier`                    | _N/A_ |       |
 | `new_dashboard_name`            | _N/A_ |       |
 | `new_slice_name`                | _N/A_ |       |
 | `normalize_across`              | _N/A_ |       |
-| `num_buckets`                   | _N/A_ |       |
 | `num_period_compare`            | _N/A_ |       |
 | `order_bars`                    | _N/A_ |       |
 | `order_desc`                    | _N/A_ |       |
@@ -1175,7 +1170,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
 | `point_radius_fixed`            | _N/A_ |       |
-| `point_unit`                    | _N/A_ |       |
 | `prefix_metric_with_slice_name` | _N/A_ |       |
 | `range_labels`                  | _N/A_ |       |
 | `ranges`                        | _N/A_ |       |
@@ -1216,7 +1210,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `table_filter`                  | _N/A_ |       |
 | `time_compare`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
-| `toggle_polygons`               | _N/A_ |       |
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
 | `viewport`                      | _N/A_ |       |
