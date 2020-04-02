@@ -1146,7 +1146,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `log_scale`                     | _N/A_ |       |
 | `mapbox_label`                  | _N/A_ |       |
 | `mapbox_style`                  | _N/A_ |       |
-| `marker_labels`                 | _N/A_ |       |
 | `marker_line_labels`            | _N/A_ |       |
 | `marker_lines`                  | _N/A_ |       |
 | `markers`                       | _N/A_ |       |

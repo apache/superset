@@ -1540,13 +1540,6 @@ export const controls = {
     description: t('List of values to mark with triangles'),
   },
 
-  marker_labels: {
-    type: 'TextControl',
-    label: t('Marker labels'),
-    default: '',
-    description: t('Labels for the markers'),
-  },
-
   marker_lines: {
     type: 'TextControl',
     label: t('Marker lines'),

@@ -31,7 +31,18 @@ export default {
       expanded: true,
       controlSetRows: [
         ['ranges', 'range_labels'],
-        ['markers', 'marker_labels'],
+        [
+          'markers',
+          {
+            name: 'marker_labels',
+            config: {
+              type: 'TextControl',
+              label: t('Marker labels'),
+              default: '',
+              description: t('Labels for the markers'),
+            },
+          },
+        ],
         ['marker_lines', 'marker_line_labels'],
       ],
     },
