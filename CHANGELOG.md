@@ -18,7 +18,10 @@ under the License.
 -->
 ## Change Log
 
-### 0.36.0 (2020/03/07 06:46 +00:00)
+### 0.36.0 (2020/04/02 07:57 +00:00)
+- [#9436](https://github.com/apache/incubator-superset/pull/9436) Add check for SSL certificate and add form validators (#9436) (@villebro)
+- [#9428](https://github.com/apache/incubator-superset/pull/9428) [fix]some translation not work better (#9428) (@venter-zhu)
+- [#9425](https://github.com/apache/incubator-superset/pull/9425) fix pagination for list views (#9425) (@nytai)
 - [#9401](https://github.com/apache/incubator-superset/pull/9401) [fix] dashboard filter indicator no showing single number value (#9401) (@graceguo-supercat)
 - [#9408](https://github.com/apache/incubator-superset/pull/9408) [fix] allow force refresh for No Results chart (#9408) (@graceguo-supercat)
 - [#9400](https://github.com/apache/incubator-superset/pull/9400) Build: fix hot reload for charts (#9400) (@ktmud)
