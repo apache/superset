@@ -1128,21 +1128,6 @@ export const controls = {
     description: t('Line interpolation as defined by d3.js'),
   },
 
-  pie_label_type: {
-    type: 'SelectControl',
-    label: t('Label Type'),
-    default: 'key',
-    renderTrigger: true,
-    choices: [
-      ['key', 'Category Name'],
-      ['value', 'Value'],
-      ['percent', 'Percentage'],
-      ['key_value', 'Category and Value'],
-      ['key_percent', 'Category and Percentage'],
-    ],
-    description: t('What should be shown on the label?'),
-  },
-
   code: {
     type: 'TextAreaControl',
     label: t('Code'),
@@ -1390,14 +1375,6 @@ export const controls = {
     default: false,
     renderTrigger: true,
     description: t('Use a log scale for the Y-axis'),
-  },
-
-  x_log_scale: {
-    type: 'CheckboxControl',
-    label: t('X Log Scale'),
-    default: false,
-    renderTrigger: true,
-    description: t('Use a log scale for the X-axis'),
   },
 
   log_scale: {

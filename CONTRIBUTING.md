@@ -1057,7 +1057,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
 | `number_format`       | _string_  | The **Number format** widget                     |
-| `pie_label_type`      | _string_  | [HIDDEN]                                         |
 | `rich_tooltip`        | _boolean_ | The **Rich Tooltip** widget                      |
 | `send_time_range`     | _boolean_ | The **Show Markers** widget                      |
 | `show_brush`          | _string_  | The **Show Range Filter** widget                 |
@@ -1073,7 +1072,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `x_axis_format`      | _string_  | The **X Axis Format** widget |
 | `x_axis_label`       | _string_  | The **X Axis Label** widget  |
 | `x_axis_showminmax`  | _boolean_ | The **X bounds** widget      |
-| `x_log_scale`        | _N/A_     | _Deprecated?_                |
 | `x_ticks_layout`     | _string_  | The **X Tick Layout** widget |
 
 ### Y Axis
