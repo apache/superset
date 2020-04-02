@@ -36,6 +36,9 @@ else
       VERSION_MINOR="${BASH_REMATCH[2]}"
       VERSION_PATCH="${BASH_REMATCH[3]}"
       VERSION_RC="${BASH_REMATCH[4]}"
+    else
+      echo "Unsupported shell type, only zsh and bash supported"
+      exit 1
     fi
 
   else
