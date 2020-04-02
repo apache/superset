@@ -1036,15 +1036,6 @@ The `metric` (or equivalent) and `timeseries_limit_metric` fields are all compos
 
 The filter-box configuration references column names (via the `column` key) and optionally metric names (via the `metric` key) if sorting is defined.
 
-### Options
-
-| Field                  | Type      | Notes                                |
-| ---------------------- | --------- | ------------------------------------ |
-| `compare_lag`          | _number_  | The **Comparison Period Lag** widget |
-| `compare_suffix`       | _string_  | The **Comparison suffix** widget     |
-| `show_trend_line`      | _boolean_ | The **Show Trend Line** widget       |
-| `start_y_axis_at_zero` | _boolean_ | The **Start y-axis at 0** widget     |
-
 ### Chart Options
 
 | Field                 | Type      | Notes                                            |
@@ -1052,7 +1043,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `color_picker`        | _object_  | The **Fixed Color** widget                       |
 | `donut`               | _boolean_ | The **Donut** widget                             |
 | `global_opacity`      | _number_  | The **Opacity** widget                           |
-| `header_font_size`    | _number_  | The **Big Number Font Size** widget (or similar) |
 | `label_colors`        | _object_  | The **Color Scheme** widget                      |
 | `labels_outside`      | _boolean_ | The **Put labels outside** widget                |
 | `line_interpolation`  | _string_  | The **Line Style** widget                        |
@@ -1065,7 +1055,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `show_brush`          | _string_  | The **Show Range Filter** widget                 |
 | `show_legend`         | _boolean_ | The **Legend** widget                            |
 | `show_markers`        | _string_  | The **Show Markers** widget                      |
-| `subheader_font_size` | _number_  | The **Subheader Font Size** widget               |
 
 ### X Axis
 
@@ -1179,8 +1168,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `remote_id`                     | _N/A_ |       |
 | `resample_fillmethod`           | _N/A_ |       |
 | `resample_how`                  | _N/A_ |       |
-| `resample_method`               | _N/A_ |       |
-| `resample_rule`                 | _N/A_ |       |
 | `reverse_long_lat`              | _N/A_ |       |
 | `rolling_periods`               | _N/A_ |       |
 | `rolling_type`                  | _N/A_ |       |
@@ -1206,9 +1193,7 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `stroke_color_picker`           | _N/A_ |       |
 | `stroke_width`                  | _N/A_ |       |
 | `stroked`                       | _N/A_ |       |
-| `subheader`                     | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
-| `time_compare`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
