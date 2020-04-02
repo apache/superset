@@ -32,7 +32,15 @@ export default {
       controlSetRows: [
         ['ranges', 'range_labels'],
         [
-          'markers',
+          {
+            name: 'markers',
+            config: {
+              type: 'TextControl',
+              label: t('Markers'),
+              default: '',
+              description: t('List of values to mark with triangles'),
+            },
+          },
           {
             name: 'marker_labels',
             config: {
@@ -43,7 +51,26 @@ export default {
             },
           },
         ],
-        ['marker_lines', 'marker_line_labels'],
+        [
+          {
+            name: 'marker_lines',
+            config: {
+              type: 'TextControl',
+              label: t('Marker lines'),
+              default: '',
+              description: t('List of values to mark with lines'),
+            },
+          },
+          {
+            name: 'marker_line_labels',
+            config: {
+              type: 'TextControl',
+              label: t('Marker line labels'),
+              default: '',
+              description: t('Labels for the marker lines'),
+            },
+          },
+        ],
       ],
     },
   ],

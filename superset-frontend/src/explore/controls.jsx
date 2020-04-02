@@ -1533,27 +1533,6 @@ export const controls = {
     description: t('Labels for the ranges'),
   },
 
-  markers: {
-    type: 'TextControl',
-    label: t('Markers'),
-    default: '',
-    description: t('List of values to mark with triangles'),
-  },
-
-  marker_lines: {
-    type: 'TextControl',
-    label: t('Marker lines'),
-    default: '',
-    description: t('List of values to mark with lines'),
-  },
-
-  marker_line_labels: {
-    type: 'TextControl',
-    label: t('Marker line labels'),
-    default: '',
-    description: t('Labels for the marker lines'),
-  },
-
   annotation_layers: {
     type: 'AnnotationLayerControl',
     label: '',
