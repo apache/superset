@@ -73,7 +73,7 @@ describe('controlUtils', () => {
                     description: '',
                   },
                 },
-              ]
+              ],
             ],
           },
         ],
@@ -165,7 +165,12 @@ describe('controlUtils', () => {
     });
 
     it('removes missing/invalid choice', () => {
-      let control = getControlState('stacked_style', 'test-chart', state, 'stack');
+      let control = getControlState(
+        'stacked_style',
+        'test-chart',
+        state,
+        'stack',
+      );
       expect(control.value).toBe('stack');
 
       control = getControlState('stacked_style', 'test-chart', state, 'FOO');
