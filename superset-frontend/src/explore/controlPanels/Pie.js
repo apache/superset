@@ -35,7 +35,16 @@ export default {
       expanded: true,
       controlSetRows: [
         ['pie_label_type', 'number_format'],
-        ['donut', 'show_legend'],
+        [{
+          name: 'donut',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Donut'),
+            default: false,
+            renderTrigger: true,
+            description: t('Do you want a donut or a pie?'),
+          },
+        }, 'show_legend'],
         ['show_labels', 'labels_outside'],
         ['color_scheme', 'label_colors'],
       ],

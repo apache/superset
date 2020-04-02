@@ -1408,14 +1408,6 @@ export const controls = {
     description: t('Use a log scale'),
   },
 
-  donut: {
-    type: 'CheckboxControl',
-    label: t('Donut'),
-    default: false,
-    renderTrigger: true,
-    description: t('Do you want a donut or a pie?'),
-  },
-
   labels_outside: {
     type: 'CheckboxControl',
     label: t('Put labels outside'),
