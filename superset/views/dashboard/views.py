@@ -45,6 +45,11 @@ class DashboardModelView(
 ):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(models.Dashboard)
+    class_permission_name = "Dashboard"
+    method_permission_name = utils.merge_dicts (
+        SupersetModelView.method_permission_name,
+        {"mulexport":"read", "download_dashboards": "read"}
+    )
     # TODO disable api_read and api_delete (used by cypress)
     # once we move to ChartRestModelApi
     include_route_methods = RouteMethod.CRUD_SET | {

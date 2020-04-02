@@ -23,7 +23,9 @@ from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 from superset import event_logger
 from superset.models.core import Database
 from superset.typing import FlaskResponse
-from superset.utils.core import error_msg_from_exception
+from superset.utils.core import error_msg_from_exception, merge_dicts
+from superset.views.base import SupersetModelView
+
 from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.decorators import check_datasource_access
 from superset.views.database.filters import DatabaseFilter
@@ -114,12 +116,20 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
     include_route_methods = {"get_list", "table_metadata", "select_star"}
-    class_permission_name = "DatabaseView"
-    method_permission_name = {
+
+    method_permission_name = merge_dicts(
+        SupersetModelView.method_permission_name,
+        {
         "get_list": "list",
+        "get": "show",
+        "post": "write",
+        "put": "write",
+        "delete": "write",
+        "info": "read",
         "table_metadata": "list",
         "select_star": "list",
-    }
+        }
+    )
     resource_name = "database"
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]

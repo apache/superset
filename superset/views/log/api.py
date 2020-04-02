@@ -24,8 +24,13 @@ from . import LogMixin
 
 class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(models.Log)
+
+    method_permission_name = {
+        "get_list": "list",
+        "get": "show",
+    }
+
     include_route_methods = {"get_list", "get", "post"}
-    class_permission_name = "LogModelView"
     resource_name = "log"
     allow_browser_login = True
     list_columns = ["user.username", "action", "dttm"]

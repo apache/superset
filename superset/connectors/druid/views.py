@@ -51,6 +51,9 @@ logger = logging.getLogger(__name__)
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidColumn)
+
+    class_permission_name = "Datasource"
+
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
     list_title = _("Columns")
@@ -138,6 +141,9 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidMetric)
+
+    class_permission_name = "Datasource"
+
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
     list_title = _("Metrics")
@@ -191,6 +197,9 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidCluster)
+
+    class_permission_name = "Datasource"
+
     include_route_methods = RouteMethod.CRUD_SET
     list_title = _("Druid Clusters")
     show_title = _("Show Druid Cluster")
@@ -253,6 +262,9 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
 
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
     datamodel = SQLAInterface(models.DruidDatasource)
+
+    class_permission_name = "Datasource"
+
     include_route_methods = RouteMethod.CRUD_SET
     list_title = _("Druid Datasources")
     show_title = _("Show Druid Datasource")

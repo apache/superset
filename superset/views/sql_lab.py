@@ -54,6 +54,9 @@ class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
+
+    class_permission_name = "Query"
+
     include_route_methods = {RouteMethod.SHOW, RouteMethod.LIST, RouteMethod.API_READ}
 
     list_title = _("List Query")
@@ -78,6 +81,9 @@ class SavedQueryView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SavedQuery)
+
+    class_permission_name = "SavedQuery"
+
     include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("List Saved Query")

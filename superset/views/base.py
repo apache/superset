@@ -317,10 +317,57 @@ class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
 
 
 class SupersetModelView(ModelView):
+
+    """This mixin should be used in every Superset ModelView"""
+
     page_size = 100
     list_widget = SupersetListWidget
 
+    method_permission_name = {
+        "add": "write",
+        "delete": "write",
+        "download": "write",
+        "edit": "write",
+        "get": "read",
+        "list": "read",
+        "muldelete": "write",
+        "save": "write",
+        "show": "read",
+        "yaml_export": "read",
+        "api": "read",
+        "api_column_add": "write",
+        "api_column_edit": "write",
+        "api_create": "write",
+        "api_delete": "write",
+        "api_get": "read",
+        "api_read": "read",
+        "api_readvalues": "read",
+        "api_update": "write",
+    }
+
     def render_app_template(self) -> FlaskResponse:
+        method_permission_name = {
+            "add": "write",
+            "delete": "write",
+            "download": "write",
+            "edit": "write",
+            "get": "read",
+            "list": "read",
+            "muldelete": "write",
+            "save": "write",
+            "show": "read",
+            "yaml_export": "read",
+            "api": "read",
+            "api_column_add": "write",
+            "api_column_edit": "write",
+            "api_create": "write",
+            "api_delete": "write",
+            "api_get": "read",
+            "api_read": "read",
+            "api_readvalues": "read",
+            "api_update": "write",
+        }
+
         payload = {
             "user": bootstrap_user_data(g.user),
             "common": common_bootstrap_payload(),

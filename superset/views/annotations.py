@@ -49,6 +49,9 @@ class AnnotationModelView(
     SupersetModelView, CompactCRUDMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Annotation)
+
+    class_permission_name = "Annotation"
+
     include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("Annotations")
@@ -96,8 +99,10 @@ class AnnotationModelView(
 
 class AnnotationLayerModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AnnotationLayer)
+    class_permission_name = "Annotation"
     include_route_methods = RouteMethod.CRUD_SET | {RouteMethod.API_READ}
     related_views = [AnnotationModelView]
+
     list_title = _("Annotation Layers")
     show_title = _("Show Annotation Layer")
     add_title = _("Add Annotation Layer")

@@ -15,9 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_babel import lazy_gettext as _
+from superset.views.base import SupersetModelView
 
 
-class LogMixin:  # pylint: disable=too-few-public-methods
+class LogMixin(SupersetModelView):  # pylint: disable=too-few-public-methods
+
+    class_permission_name = "Log"
+
     list_title = _("Logs")
     show_title = _("Show Log")
     add_title = _("Add Log")

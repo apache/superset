@@ -1274,6 +1274,12 @@ def get_stacktrace() -> Optional[str]:
         return traceback.format_exc()
     return None
 
+def merge_dicts(*args) -> dict:
+    target: Dict[Any, Any] = dict()
+    for d in args:
+        target.update(d)
+    return target
+
 
 def split(
     s: str, delimiter: str = " ", quote: str = '"', escaped_quote: str = r"\""
