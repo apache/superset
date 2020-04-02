@@ -1043,7 +1043,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `color_picker`        | _object_  | The **Fixed Color** widget                       |
 | `donut`               | _boolean_ | The **Donut** widget                             |
 | `global_opacity`      | _number_  | The **Opacity** widget                           |
-| `header_font_size`    | _number_  | The **Big Number Font Size** widget (or similar) |
 | `label_colors`        | _object_  | The **Color Scheme** widget                      |
 | `labels_outside`      | _boolean_ | The **Put labels outside** widget                |
 | `line_interpolation`  | _string_  | The **Line Style** widget                        |
@@ -1056,7 +1055,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `show_brush`          | _string_  | The **Show Range Filter** widget                 |
 | `show_legend`         | _boolean_ | The **Legend** widget                            |
 | `show_markers`        | _string_  | The **Show Markers** widget                      |
-| `subheader_font_size` | _number_  | The **Subheader Font Size** widget               |
 
 ### X Axis
 

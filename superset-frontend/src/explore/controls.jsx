@@ -1128,68 +1128,6 @@ export const controls = {
     ),
   },
 
-  header_font_size: {
-    type: 'SelectControl',
-    label: t('Header Font Size'),
-    renderTrigger: true,
-    clearable: false,
-    default: 0.4,
-    // Values represent the percentage of space a header should take
-    options: [
-      {
-        label: t('Tiny'),
-        value: 0.2,
-      },
-      {
-        label: t('Small'),
-        value: 0.3,
-      },
-      {
-        label: t('Normal'),
-        value: 0.4,
-      },
-      {
-        label: t('Large'),
-        value: 0.5,
-      },
-      {
-        label: t('Huge'),
-        value: 0.6,
-      },
-    ],
-  },
-
-  subheader_font_size: {
-    type: 'SelectControl',
-    label: t('Subheader Font Size'),
-    renderTrigger: true,
-    clearable: false,
-    default: 0.15,
-    // Values represent the percentage of space a subheader should take
-    options: [
-      {
-        label: t('Tiny'),
-        value: 0.125,
-      },
-      {
-        label: t('Small'),
-        value: 0.15,
-      },
-      {
-        label: t('Normal'),
-        value: 0.2,
-      },
-      {
-        label: t('Large'),
-        value: 0.3,
-      },
-      {
-        label: t('Huge'),
-        value: 0.4,
-      },
-    ],
-  },
-
   instant_filtering: {
     type: 'CheckboxControl',
     label: t('Instant Filtering'),

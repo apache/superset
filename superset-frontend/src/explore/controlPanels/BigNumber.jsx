@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import React from 'react';
+import { HeaderFontSize, SubheaderFontSize } from './Shared_BigNumber';
 
 export default {
   controlPanelSections: [
@@ -84,8 +85,8 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_picker', null],
-        ['header_font_size'],
-        ['subheader_font_size'],
+        [HeaderFontSize],
+        [SubheaderFontSize],
       ],
     },
     {
@@ -100,9 +101,6 @@ export default {
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
-    },
-    header_font_size: {
-      label: t('Big Number Font Size'),
     },
   },
   sectionOverrides: {
