@@ -1,4 +1,4 @@
-import isDefined from '../../src/utils/isDefined';
+import { isDefined } from '../../src';
 
 describe('isDefined(value)', () => {
   it('returns true if value is not null and not undefined', () => {

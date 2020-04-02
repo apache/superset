@@ -73,7 +73,7 @@ export default class VerifyCORS extends React.Component<Props, State> {
       .then(response => this.setState({ didVerify: true, error: undefined, payload: response }))
       .catch((error: Response) => {
         const { status, statusText = error } = error;
-        this.setState({ error: Error(`${status || ''}${status ? ':' : ''} ${statusText}`) });
+        this.setState({ error: new Error(`${status || ''}${status ? ':' : ''} ${statusText}`) });
       });
   }
 
@@ -94,11 +94,7 @@ export default class VerifyCORS extends React.Component<Props, State> {
           3) click below to verify authentication. You may debug CORS further using the
           `@superset-ui/connection` story. <br />
           <br />
-          <button
-            type="button"
-            onClick={this.handleVerify}
-            className="btn btn-outline-primary btn-sm"
-          >
+          <button type="button" className="btn btn-primary btn-sm" onClick={this.handleVerify}>
             Verify
           </button>
           <br />
