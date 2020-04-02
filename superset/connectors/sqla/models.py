@@ -841,7 +841,7 @@ class SqlaTable(Model, BaseDatasource):
             op = flt["op"]
             col_obj = cols.get(col)
             if col_obj:
-                is_list_target = op in ("in", "not in", "&&")
+                is_list_target = op in ("in", "not in", "&&", "@>")
                 eq = self.filter_values_handler(
                     flt.get("val"),
                     target_column_is_numeric=col_obj.is_numeric,
@@ -875,7 +875,7 @@ class SqlaTable(Model, BaseDatasource):
                         where_clause_and.append(col_obj.get_sqla_col() == None)
                     elif op == "IS NOT NULL":
                         where_clause_and.append(col_obj.get_sqla_col() != None)
-                    elif op == "&&":
+                    elif op in ["&&", "@>"]:
                         eq = '{' + ','.join(eq) + '}'
                         where_clause_and.append(col_obj.get_sqla_col().op(op, is_comparison=True)(eq))
 
