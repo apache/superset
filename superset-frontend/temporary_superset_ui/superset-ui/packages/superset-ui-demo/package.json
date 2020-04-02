@@ -49,7 +49,7 @@
     "@superset-ui/query": "*",
     "@superset-ui/time-format": "*",
     "@superset-ui/translation": "*",
-    "@types/storybook__react": "4.0.2",
+    "@types/storybook__react": "5.2.1",
     "bootstrap": "^3.4.1",
     "core-js": "3.6.4",
     "gh-pages": "^2.2.0",
