@@ -607,16 +607,6 @@ export const controls = {
     description: t('Whether to ignore locations that are null'),
   },
 
-  geojson: {
-    type: 'SelectControl',
-    label: t('GeoJson Column'),
-    validators: [v.nonEmpty],
-    description: t('Select the geojson column'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
   polygon: {
     type: 'SelectControl',
     label: t('Polygon Column'),
@@ -627,15 +617,6 @@ export const controls = {
     mapStateToProps: state => ({
       choices: columnChoices(state.datasource),
     }),
-  },
-
-  point_radius_scale: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Point Radius Scale'),
-    validators: [v.integer],
-    default: null,
-    choices: formatSelectOptions([0, 100, 200, 300, 500]),
   },
 
   stroke_width: {
@@ -1187,29 +1168,6 @@ export const controls = {
     ),
   },
 
-  js_agg_function: {
-    type: 'SelectControl',
-    label: t('Dynamic Aggregation Function'),
-    description: t('The function to use when aggregating points into groups'),
-    default: 'sum',
-    clearable: false,
-    renderTrigger: true,
-    choices: formatSelectOptions([
-      'sum',
-      'min',
-      'max',
-      'mean',
-      'median',
-      'count',
-      'variance',
-      'deviation',
-      'p1',
-      'p5',
-      'p95',
-      'p99',
-    ]),
-  },
-
   header_font_size: {
     type: 'SelectControl',
     label: t('Header Font Size'),
@@ -1361,35 +1319,6 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Send range filter events to other charts'),
-  },
-
-  toggle_polygons: {
-    type: 'CheckboxControl',
-    label: t('Multiple filtering'),
-    renderTrigger: true,
-    default: true,
-    description: t('Allow sending multiple polygons as a filter event'),
-  },
-
-  num_buckets: {
-    type: 'SelectControl',
-    multi: false,
-    freeForm: true,
-    label: t('Number of buckets to group data'),
-    default: 5,
-    choices: formatSelectOptions([2, 3, 5, 10]),
-    description: t('How many buckets should the data be grouped in.'),
-    renderTrigger: true,
-  },
-
-  break_points: {
-    type: 'SelectControl',
-    multi: true,
-    freeForm: true,
-    label: t('Bucket break points'),
-    choices: formatSelectOptions([]),
-    description: t('List of n+1 values for bucketing metric into n buckets.'),
-    renderTrigger: true,
   },
 
   show_labels: {
@@ -1589,22 +1518,6 @@ export const controls = {
     }),
   },
 
-  point_unit: {
-    type: 'SelectControl',
-    label: t('Point Unit'),
-    default: 'square_m',
-    clearable: false,
-    choices: [
-      ['square_m', 'Square meters'],
-      ['square_km', 'Square kilometers'],
-      ['square_miles', 'Square miles'],
-      ['radius_m', 'Radius in meters'],
-      ['radius_km', 'Radius in kilometers'],
-      ['radius_miles', 'Radius in miles'],
-    ],
-    description: t('The unit of measure for the specified point radius'),
-  },
-
   global_opacity: {
     type: 'TextControl',
     label: t('Opacity'),
@@ -1613,17 +1526,6 @@ export const controls = {
     description: t(
       'Opacity of all clusters, points, and labels. Between 0 and 1.',
     ),
-  },
-
-  opacity: {
-    type: 'SliderControl',
-    label: t('Opacity'),
-    default: 80,
-    step: 1,
-    min: 0,
-    max: 100,
-    renderTrigger: true,
-    description: t('Opacity, expects values between 0 and 100'),
   },
 
   viewport: {
@@ -1778,32 +1680,6 @@ export const controls = {
     controlName: 'TimeSeriesColumnControl',
   },
 
-  min_radius: {
-    type: 'TextControl',
-    label: t('Minimum Radius'),
-    isFloat: true,
-    validators: [v.nonEmpty],
-    renderTrigger: true,
-    default: 2,
-    description: t(
-      'Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
-        'insures that the circle respects this minimum radius.',
-    ),
-  },
-
-  max_radius: {
-    type: 'TextControl',
-    label: t('Maximum Radius'),
-    isFloat: true,
-    validators: [v.nonEmpty],
-    renderTrigger: true,
-    default: 250,
-    description: t(
-      'Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
-        'insures that the circle respects this maximum radius.',
-    ),
-  },
-
   line_column: {
     type: 'SelectControl',
     label: t('Lines column'),
@@ -1885,27 +1761,6 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Reverse Lat & Long'),
     default: false,
-  },
-
-  deck_slices: {
-    type: 'SelectAsyncControl',
-    multi: true,
-    label: t('deck.gl charts'),
-    validators: [v.nonEmpty],
-    default: [],
-    description: t(
-      'Pick a set of deck.gl charts to layer on top of one another',
-    ),
-    dataEndpoint:
-      '/sliceasync/api/read?_flt_0_viz_type=deck_&_flt_7_viz_type=deck_multi',
-    placeholder: t('Select charts'),
-    onAsyncErrorMessage: t('Error while fetching charts'),
-    mutator: data => {
-      if (!data || !data.result) {
-        return [];
-      }
-      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
-    },
   },
 
   js_data_mutator: jsFunctionControl(
