@@ -795,31 +795,6 @@ export const controls = {
     }),
   },
 
-  resample_rule: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Rule'),
-    default: null,
-    choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
-    description: t('Pandas resample rule'),
-  },
-
-  resample_method: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Method'),
-    default: null,
-    choices: formatSelectOptions([
-      'asfreq',
-      'bfill',
-      'ffill',
-      'median',
-      'mean',
-      'sum',
-    ]),
-    description: t('Pandas resample method'),
-  },
-
   time_range: {
     type: 'DateFilterControl',
     freeForm: true,
@@ -1033,21 +1008,6 @@ export const controls = {
     default: '',
   },
 
-  compare_lag: {
-    type: 'TextControl',
-    label: t('Comparison Period Lag'),
-    isInt: true,
-    description: t(
-      'Based on granularity, number of time periods to compare against',
-    ),
-  },
-
-  compare_suffix: {
-    type: 'TextControl',
-    label: t('Comparison suffix'),
-    description: t('Suffix to apply after the percentage display'),
-  },
-
   x_axis_format: {
     type: 'SelectControl',
     freeForm: true,
@@ -1168,68 +1128,6 @@ export const controls = {
     ),
   },
 
-  header_font_size: {
-    type: 'SelectControl',
-    label: t('Header Font Size'),
-    renderTrigger: true,
-    clearable: false,
-    default: 0.4,
-    // Values represent the percentage of space a header should take
-    options: [
-      {
-        label: t('Tiny'),
-        value: 0.2,
-      },
-      {
-        label: t('Small'),
-        value: 0.3,
-      },
-      {
-        label: t('Normal'),
-        value: 0.4,
-      },
-      {
-        label: t('Large'),
-        value: 0.5,
-      },
-      {
-        label: t('Huge'),
-        value: 0.6,
-      },
-    ],
-  },
-
-  subheader_font_size: {
-    type: 'SelectControl',
-    label: t('Subheader Font Size'),
-    renderTrigger: true,
-    clearable: false,
-    default: 0.15,
-    // Values represent the percentage of space a subheader should take
-    options: [
-      {
-        label: t('Tiny'),
-        value: 0.125,
-      },
-      {
-        label: t('Small'),
-        value: 0.15,
-      },
-      {
-        label: t('Normal'),
-        value: 0.2,
-      },
-      {
-        label: t('Large'),
-        value: 0.3,
-      },
-      {
-        label: t('Huge'),
-        value: 0.4,
-      },
-    ],
-  },
-
   instant_filtering: {
     type: 'CheckboxControl',
     label: t('Instant Filtering'),
@@ -1340,24 +1238,6 @@ export const controls = {
     description: t('Whether to display the numerical values within the cells'),
   },
 
-  show_trend_line: {
-    type: 'CheckboxControl',
-    label: t('Show Trend Line'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to display the trend line'),
-  },
-
-  start_y_axis_at_zero: {
-    type: 'CheckboxControl',
-    label: t('Start y-axis at 0'),
-    renderTrigger: true,
-    default: true,
-    description: t(
-      'Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.',
-    ),
-  },
-
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('X bounds'),
@@ -1431,27 +1311,6 @@ export const controls = {
     description: t('Compute the contribution to the total'),
   },
 
-  time_compare: {
-    type: 'SelectControl',
-    multi: true,
-    freeForm: true,
-    label: t('Time Shift'),
-    choices: formatSelectOptions([
-      '1 day',
-      '1 week',
-      '28 days',
-      '30 days',
-      '52 weeks',
-      '1 year',
-    ]),
-    description: t(
-      'Overlay one or more timeseries from a ' +
-        'relative time period. Expects relative time deltas ' +
-        'in natural language (example:  24 hours, 7 days, ' +
-        '56 weeks, 365 days)',
-    ),
-  },
-
   comparison_type: {
     type: 'SelectControl',
     label: t('Calculation type'),
@@ -1467,12 +1326,6 @@ export const controls = {
         'absolute difference between the main time series and each time shift; ' +
         'as the percentage change; or as the ratio between series and time shifts.',
     ),
-  },
-
-  subheader: {
-    type: 'TextControl',
-    label: t('Subheader'),
-    description: t('Description text that shows up below your Big Number'),
   },
 
   mapbox_label: {

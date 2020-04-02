@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import React from 'react';
+import { headerFontSize, subheaderFontSize } from './Shared_BigNumber';
 
 export default {
   controlPanelSections: [
@@ -30,9 +31,52 @@ export default {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
-        ['compare_lag', 'compare_suffix'],
+        [
+          {
+            name: 'compare_lag',
+            config: {
+              type: 'TextControl',
+              label: t('Comparison Period Lag'),
+              isInt: true,
+              description: t(
+                'Based on granularity, number of time periods to compare against',
+              ),
+            },
+          },
+          {
+            name: 'compare_suffix',
+            config: {
+              type: 'TextControl',
+              label: t('Comparison suffix'),
+              description: t('Suffix to apply after the percentage display'),
+            },
+          },
+        ],
         ['y_axis_format'],
-        ['show_trend_line', 'start_y_axis_at_zero'],
+        [
+          {
+            name: 'show_trend_line',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Trend Line'),
+              renderTrigger: true,
+              default: true,
+              description: t('Whether to display the trend line'),
+            },
+          },
+          {
+            name: 'start_y_axis_at_zero',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Start y-axis at 0'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.',
+              ),
+            },
+          },
+        ],
         ['time_range_fixed'],
       ],
     },
@@ -41,8 +85,8 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_picker', null],
-        ['header_font_size'],
-        ['subheader_font_size'],
+        [headerFontSize],
+        [subheaderFontSize],
       ],
     },
     {
@@ -57,9 +101,6 @@ export default {
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
-    },
-    header_font_size: {
-      label: t('Big Number Font Size'),
     },
   },
   sectionOverrides: {
