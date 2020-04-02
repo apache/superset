@@ -20,7 +20,7 @@
 // These are control configurations that are shared ONLY within the BigNumber viz plugin repo.
 import { t } from '@superset-ui/translation';
 
-export const HeaderFontSize = {
+export const headerFontSize = {
   name: 'header_font_size',
   config: {
     type: 'SelectControl',
@@ -54,7 +54,7 @@ export const HeaderFontSize = {
   },
 };
 
-export const SubheaderFontSize = {
+export const subheaderFontSize = {
   name: 'subheader_font_size',
   config: {
     type: 'SelectControl',

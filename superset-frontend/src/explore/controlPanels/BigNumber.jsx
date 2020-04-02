@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import React from 'react';
-import { HeaderFontSize, SubheaderFontSize } from './Shared_BigNumber';
+import { headerFontSize, subheaderFontSize } from './Shared_BigNumber';
 
 export default {
   controlPanelSections: [
@@ -85,8 +85,8 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_picker', null],
-        [HeaderFontSize],
-        [SubheaderFontSize],
+        [headerFontSize],
+        [subheaderFontSize],
       ],
     },
     {

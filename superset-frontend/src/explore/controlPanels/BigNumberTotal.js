@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { HeaderFontSize, SubheaderFontSize } from './Shared_BigNumber';
+import { headerFontSize, subheaderFontSize } from './Shared_BigNumber';
 
 export default {
   controlPanelSections: [
@@ -48,7 +48,7 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [[HeaderFontSize], [SubheaderFontSize]],
+      controlSetRows: [[headerFontSize], [subheaderFontSize]],
     },
   ],
   controlOverrides: {
