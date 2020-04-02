@@ -26,11 +26,7 @@ export default class Expandable extends React.Component<Props, State> {
 
     return (
       <div>
-        <button
-          type="button"
-          onClick={this.handleToggle}
-          className="btn btn-outline-primary btn-sm"
-        >
+        <button type="button" className="btn btn-primary btn-sm" onClick={this.handleToggle}>
           {`${open ? 'Hide' : 'Show'} ${expandableWhat}`}
         </button>
         <br />

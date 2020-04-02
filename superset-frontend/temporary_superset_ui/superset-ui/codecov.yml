@@ -1,0 +1,19 @@
+coverage:
+  status:
+    patch:
+      default:
+        target: 50%
+        threshold: 0%
+    project:
+      default:
+        target: 90%
+        # send notification if coverage change exceed this threshold
+        threshold: 5%
+      core-packages:
+        target: 100%
+        paths:
+          - packages
+      plugins:
+        target: 40%
+        paths:
+          - plugins

@@ -1,4 +1,4 @@
-import convertKeysToCamelCase from '../../src/utils/convertKeysToCamelCase';
+import { convertKeysToCamelCase } from '../../src';
 
 describe('convertKeysToCamelCase(object)', () => {
   it('returns undefined for undefined input', () => {
