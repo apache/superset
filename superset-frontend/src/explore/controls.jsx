@@ -1519,20 +1519,6 @@ export const controls = {
     description: t('Pick a color'),
   },
 
-  ranges: {
-    type: 'TextControl',
-    label: t('Ranges'),
-    default: '',
-    description: t('Ranges to highlight with shading'),
-  },
-
-  range_labels: {
-    type: 'TextControl',
-    label: t('Range labels'),
-    default: '',
-    description: t('Labels for the ranges'),
-  },
-
   annotation_layers: {
     type: 'AnnotationLayerControl',
     label: '',
@@ -1643,13 +1629,6 @@ export const controls = {
     isInt: true,
     default: 10,
     description: t('The width of the lines'),
-  },
-
-  prefix_metric_with_slice_name: {
-    type: 'CheckboxControl',
-    label: t('Prefix metric name with slice name'),
-    default: false,
-    renderTrigger: true,
   },
 
   reverse_long_lat: {

@@ -29,7 +29,18 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['prefix_metric_with_slice_name', null],
+        [
+          {
+            name: 'prefix_metric_with_slice_name',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Prefix metric name with slice name'),
+              default: false,
+              renderTrigger: true,
+            },
+          },
+          null,
+        ],
         ['show_legend', 'show_markers'],
         ['line_interpolation', null],
       ],

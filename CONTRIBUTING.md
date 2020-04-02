@@ -1159,9 +1159,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
 | `point_radius_fixed`            | _N/A_ |       |
-| `prefix_metric_with_slice_name` | _N/A_ |       |
-| `range_labels`                  | _N/A_ |       |
-| `ranges`                        | _N/A_ |       |
 | `rdo_save`                      | _N/A_ |       |
 | `reduce_x_ticks`                | _N/A_ |       |
 | `refresh_frequency`             | _N/A_ |       |

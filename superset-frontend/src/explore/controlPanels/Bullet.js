@@ -30,7 +30,26 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['ranges', 'range_labels'],
+        [
+          {
+            name: 'ranges',
+            config: {
+              type: 'TextControl',
+              label: t('Ranges'),
+              default: '',
+              description: t('Ranges to highlight with shading'),
+            },
+          },
+          {
+            name: 'range_labels',
+            config: {
+              type: 'TextControl',
+              label: t('Range labels'),
+              default: '',
+              description: t('Labels for the ranges'),
+            },
+          },
+        ],
         [
           {
             name: 'markers',
