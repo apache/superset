@@ -1369,16 +1369,8 @@ class Superset(BaseSupersetView):
                 conn.scalar(select([1]))
                 return json_success('"OK"')
         except CertificateException as e:
-            logger.info("Invalid certificate %s", e)
-            return json_error_response(
-                _(
-                    "Invalid certificate. "
-                    "Please make sure the certificate begins with\n"
-                    "-----BEGIN CERTIFICATE-----\n"
-                    "and ends with \n"
-                    "-----END CERTIFICATE-----"
-                )
-            )
+            logger.info(e.message)
+            return json_error_response(e.message)
         except NoSuchModuleError as e:
             logger.info("Invalid driver %s", e)
             driver_name = make_url(uri).drivername
