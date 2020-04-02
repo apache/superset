@@ -17,6 +17,9 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { nonEmpty, integer } from '../validators';
+import { formatSelectOptions } from '../../modules/utils';
+import { columnChoices } from '../controls';
 
 export default {
   requiresTime: true,
@@ -25,7 +28,21 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['geojson', null],
+        [
+          {
+            name: 'geojson',
+            config: {
+              type: 'SelectControl',
+              label: t('GeoJson Column'),
+              validators: [nonEmpty],
+              description: t('Select the geojson column'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+          null,
+        ],
         ['row_limit', 'filter_nulls'],
         ['adhoc_filters'],
       ],
@@ -43,7 +60,20 @@ export default {
         ['fill_color_picker', 'stroke_color_picker'],
         ['filled', 'stroked'],
         ['extruded', null],
-        ['point_radius_scale', null],
+        [
+          {
+            name: 'point_radius_scale',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Point Radius Scale'),
+              validators: [integer],
+              default: null,
+              choices: formatSelectOptions([0, 100, 200, 300, 500]),
+            },
+          },
+          null,
+        ],
       ],
     },
     {
