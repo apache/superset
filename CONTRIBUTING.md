@@ -1139,8 +1139,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `js_columns`                    | _N/A_ |       |
 | `label`                         | _N/A_ |       |
 | `legend_position`               | _N/A_ |       |
-| `line_charts`                   | _N/A_ |       |
-| `line_charts_2`                 | _N/A_ |       |
 | `line_column`                   | _N/A_ |       |
 | `line_type`                     | _N/A_ |       |
 | `line_width`                    | _N/A_ |       |
