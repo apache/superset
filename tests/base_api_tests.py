@@ -158,7 +158,7 @@ class ApiOwnersTestCaseMixin:
             API: Test get filter related owners
         """
         self.login(username="admin")
-        argument = {"filter": "a"}
+        argument = {"filter": "gamma"}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
 
         rv = self.client.get(uri)
@@ -167,8 +167,9 @@ class ApiOwnersTestCaseMixin:
         expected_response = {
             "count": 2,
             "result": [
-                {"text": "admin user", "value": 1},
-                {"text": "alpha user", "value": 5},
+                {"text": "gamma user", "value": 2},
+                {"text": "gamma2 user", "value": 3},
+                {"text": "gamma_sqllab user", "value": 4},
             ],
         }
         self.assertEqual(response, expected_response)

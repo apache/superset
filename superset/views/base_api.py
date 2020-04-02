@@ -16,7 +16,7 @@
 # under the License.
 import functools
 import logging
-from typing import Dict, Set, Tuple, Type, Union
+from typing import cast, Dict, Set, Tuple, Type, Union
 
 from flask import request
 from flask_appbuilder import ModelRestApi
@@ -134,7 +134,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
     def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
         filter_field = self.related_field_filters.get(column_name)
         if type(filter_field) is str:
-            filter_field = RelatedFieldFilter(filter_field, FilterStartsWith)
+            filter_field = RelatedFieldFilter(cast(str, filter_field), FilterStartsWith)
+        filter_field = cast(RelatedFieldFilter, filter_field)
         search_columns = [filter_field.field_name] if filter_field else None
         filters = datamodel.get_filters(search_columns)
         base_filters = self.filter_rel_fields.get(column_name)
