@@ -44,57 +44,55 @@ const FORM_DATA_LOOKUP = {
   [WORD_CLOUD_LEGACY]: wordCloudFormData,
 };
 
-export default [
-  {
-    renderStory: () => {
-      const host = text('Set Superset App host for CORS request', 'localhost:9000');
-      const visType = select('Chart Plugin Type', VIS_TYPES, VIS_TYPES[0]);
-      const formData = text('Override formData', JSON.stringify(FORM_DATA_LOOKUP[visType]));
-      const width = text('Vis width', '500');
-      const height = text('Vis height', '300');
+export default {
+  title: 'Core Packages|@superset-ui/chart',
+};
 
-      return (
-        <div style={{ margin: 16 }}>
-          <VerifyCORS host={host}>
-            {() => (
-              <ChartDataProvider client={SupersetClient} formData={JSON.parse(formData)}>
-                {({ loading, payload, error }) => {
-                  if (loading) return <div>Loading!</div>;
+export const dataProvider = () => {
+  const host = text('Set Superset App host for CORS request', 'localhost:9000');
+  const visType = select('Chart Plugin Type', VIS_TYPES, VIS_TYPES[0]);
+  const formData = text('Override formData', JSON.stringify(FORM_DATA_LOOKUP[visType]));
+  const width = text('Vis width', '500');
+  const height = text('Vis height', '300');
 
-                  if (error) return renderError(error);
+  return (
+    <div style={{ margin: 16 }}>
+      <VerifyCORS host={host}>
+        {() => (
+          <ChartDataProvider client={SupersetClient} formData={JSON.parse(formData)}>
+            {({ loading, payload, error }) => {
+              if (loading) return <div>Loading!</div>;
 
-                  if (payload)
-                    return (
-                      <>
-                        <SuperChart
-                          chartType={visType}
-                          formData={payload.formData}
-                          height={Number(height)}
-                          // @TODO fix typing
-                          // all vis's now expect objects but api/v1/ returns an array
-                          queryData={
-                            Array.isArray(payload.queryData)
-                              ? payload.queryData[0]
-                              : payload.queryData
-                          }
-                          width={Number(width)}
-                        />
-                        <br />
-                        <Expandable expandableWhat="payload">
-                          <pre style={{ fontSize: 11 }}>{JSON.stringify(payload, null, 2)}</pre>
-                        </Expandable>
-                      </>
-                    );
+              if (error) return renderError(error);
 
-                  return null;
-                }}
-              </ChartDataProvider>
-            )}
-          </VerifyCORS>
-        </div>
-      );
-    },
-    storyName: 'ChartDataProvider',
-    storyPath: '@superset-ui/chart',
-  },
-];
+              if (payload)
+                return (
+                  <>
+                    <SuperChart
+                      chartType={visType}
+                      formData={payload.formData}
+                      height={Number(height)}
+                      // @TODO fix typing
+                      // all vis's now expect objects but api/v1/ returns an array
+                      queryData={
+                        Array.isArray(payload.queryData) ? payload.queryData[0] : payload.queryData
+                      }
+                      width={Number(width)}
+                    />
+                    <br />
+                    <Expandable expandableWhat="payload">
+                      <pre style={{ fontSize: 11 }}>{JSON.stringify(payload, null, 2)}</pre>
+                    </Expandable>
+                  </>
+                );
+
+              return null;
+            }}
+          </ChartDataProvider>
+        )}
+      </VerifyCORS>
+    </div>
+  );
+};
+
+dataProvider.story = { name: 'ChartDataProvider' };

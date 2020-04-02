@@ -1,4 +1,4 @@
-import makeSingleton from '../../src/utils/makeSingleton';
+import { makeSingleton } from '../../src';
 
 describe('makeSingleton()', () => {
   class Dog {
