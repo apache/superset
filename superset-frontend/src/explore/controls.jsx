@@ -546,26 +546,6 @@ export const controls = {
     }),
   },
 
-  start_spatial: {
-    type: 'SpatialControl',
-    label: t('Start Longitude & Latitude'),
-    validators: [v.nonEmpty],
-    description: t('Point to your spatial columns'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
-  end_spatial: {
-    type: 'SpatialControl',
-    label: t('End Longitude & Latitude'),
-    validators: [v.nonEmpty],
-    description: t('Point to your spatial columns'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
   longitude: {
     type: 'SelectControl',
     label: t('Longitude'),

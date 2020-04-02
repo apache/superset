@@ -18,6 +18,8 @@
  */
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
+import { nonEmpty } from '../validators';
+import { columnChoices } from '../controls';
 
 export default {
   requiresTime: true,
@@ -26,7 +28,32 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['start_spatial', 'end_spatial'],
+        [
+          {
+            name: 'start_spatial',
+            config: {
+              type: 'SpatialControl',
+              label: t('Start Longitude & Latitude'),
+              validators: [nonEmpty],
+              description: t('Point to your spatial columns'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+          {
+            name: 'end_spatial',
+            config: {
+              type: 'SpatialControl',
+              label: t('End Longitude & Latitude'),
+              validators: [nonEmpty],
+              description: t('Point to your spatial columns'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+        ],
         ['row_limit', 'filter_nulls'],
         ['adhoc_filters'],
       ],

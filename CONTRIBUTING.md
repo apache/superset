@@ -1105,7 +1105,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `date_filter`                   | _N/A_ |       |
 | `default_filters`               | _N/A_ |       |
 | `dimension`                     | _N/A_ |       |
-| `end_spatial`                   | _N/A_ |       |
 | `entity`                        | _N/A_ |       |
 | `expanded_slices`               | _N/A_ |       |
 | `extra_filters`                 | _N/A_ |       |
@@ -1174,7 +1173,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
-| `start_spatial`                 | _N/A_ |       |
 | `stroke_color_picker`           | _N/A_ |       |
 | `stroke_width`                  | _N/A_ |       |
 | `stroked`                       | _N/A_ |       |
