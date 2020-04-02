@@ -9,6 +9,7 @@ import {
   buildQueryContext,
   getTimeFormatterRegistry,
   t,
+  validateInteger,
 } from '../src';
 
 describe('@superset-ui/superset-ui', () => {
@@ -41,5 +42,8 @@ describe('@superset-ui/superset-ui', () => {
   });
   it('should export @superset-ui/translation', () => {
     expect(t).toBeDefined();
+  });
+  it('should export @superset-ui/validator', () => {
+    expect(validateInteger).toBeDefined();
   });
 });

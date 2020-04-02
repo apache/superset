@@ -8,3 +8,4 @@ export * from '@superset-ui/number-format';
 export * from '@superset-ui/query';
 export * from '@superset-ui/time-format';
 export * from '@superset-ui/translation';
+export * from '@superset-ui/validator';
