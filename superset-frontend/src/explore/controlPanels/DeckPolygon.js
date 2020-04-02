@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   requiresTime: true,
@@ -49,9 +50,66 @@ export default {
         ['filled', 'stroked'],
         ['extruded', 'multiplier'],
         ['line_width', null],
-        ['linear_color_scheme', 'opacity'],
-        ['num_buckets', 'break_points'],
-        ['table_filter', 'toggle_polygons'],
+        [
+          'linear_color_scheme',
+          {
+            name: 'opacity',
+            config: {
+              type: 'SliderControl',
+              label: t('Opacity'),
+              default: 80,
+              step: 1,
+              min: 0,
+              max: 100,
+              renderTrigger: true,
+              description: t('Opacity, expects values between 0 and 100'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'num_buckets',
+            config: {
+              type: 'SelectControl',
+              multi: false,
+              freeForm: true,
+              label: t('Number of buckets to group data'),
+              default: 5,
+              choices: formatSelectOptions([2, 3, 5, 10]),
+              description: t('How many buckets should the data be grouped in.'),
+              renderTrigger: true,
+            },
+          },
+          {
+            name: 'break_points',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              freeForm: true,
+              label: t('Bucket break points'),
+              choices: formatSelectOptions([]),
+              description: t(
+                'List of n+1 values for bucketing metric into n buckets.',
+              ),
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          'table_filter',
+          {
+            name: 'toggle_polygons',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Multiple filtering'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Allow sending multiple polygons as a filter event',
+              ),
+            },
+          },
+        ],
         ['legend_position', 'legend_format'],
       ],
     },

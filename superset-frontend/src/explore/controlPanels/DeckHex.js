@@ -17,6 +17,10 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import {
+  formatSelectOptions,
+  formatSelectOptionsForRange,
+} from '../../modules/utils';
 
 export default {
   requiresTime: true,
@@ -36,7 +40,36 @@ export default {
         ['mapbox_style', 'viewport'],
         ['color_picker', 'autozoom'],
         ['grid_size', 'extruded'],
-        ['js_agg_function', null],
+        [
+          {
+            name: 'js_agg_function',
+            config: {
+              type: 'SelectControl',
+              label: t('Dynamic Aggregation Function'),
+              description: t(
+                'The function to use when aggregating points into groups',
+              ),
+              default: 'sum',
+              clearable: false,
+              renderTrigger: true,
+              choices: formatSelectOptions([
+                'sum',
+                'min',
+                'max',
+                'mean',
+                'median',
+                'count',
+                'variance',
+                'deviation',
+                'p1',
+                'p5',
+                'p95',
+                'p99',
+              ]),
+            },
+          },
+          null,
+        ],
       ],
     },
     {
