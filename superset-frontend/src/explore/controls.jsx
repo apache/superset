@@ -338,19 +338,6 @@ export const controls = {
     description: t('Choose a metric for right axis'),
   },
 
-  stacked_style: {
-    type: 'SelectControl',
-    label: t('Stacked Style'),
-    renderTrigger: true,
-    choices: [
-      ['stack', 'stack'],
-      ['stream', 'stream'],
-      ['expand', 'expand'],
-    ],
-    default: 'stack',
-    description: '',
-  },
-
   linear_color_scheme: {
     type: 'ColorSchemeControl',
     label: t('Linear Color Scheme'),
