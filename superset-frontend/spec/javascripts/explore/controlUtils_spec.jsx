@@ -152,7 +152,6 @@ describe('controlUtils', () => {
     });
   });
 
-  
   describe('getControlState', () => {
     it('to be function free', () => {
       const control = getControlState('all_columns', 'table', state, ['a']);
