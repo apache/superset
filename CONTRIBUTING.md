@@ -1174,7 +1174,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
-| `stacked_style`                 | _N/A_ |       |
 | `start_spatial`                 | _N/A_ |       |
 | `stroke_color_picker`           | _N/A_ |       |
 | `stroke_width`                  | _N/A_ |       |
