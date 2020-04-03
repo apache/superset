@@ -20,7 +20,7 @@ import { ChartProps } from '@superset-ui/chart';
 import { QueryFormDataMetric } from '@superset-ui/query';
 
 interface DataRecord {
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 interface DataColumnMeta {
@@ -43,13 +43,24 @@ export interface DataTableProps {
   includeSearch: boolean;
   orderDesc: boolean;
   pageLength: number;
-  tableTimestampFormat: string;
+  tableTimestampFormat?: string;
   // TODO: add filters back or clean up
   // filters: object;
   // onAddFilter?: (key: string, value: number[]) => void;
   // onRemoveFilter?: (key: string, value: number[]) => void;
   // tableFilter: boolean;
   // timeseriesLimitMetric: string | object;
+}
+
+export interface TableChartFormData {
+  alignPn?: boolean;
+  colorPn?: boolean;
+  includeSearch?: boolean;
+  orderDesc?: boolean;
+  pageLength?: string;
+  metrics?: QueryFormDataMetric[];
+  percentMetrics?: QueryFormDataMetric[];
+  tableTimestampFormat?: string;
 }
 
 /**
@@ -60,24 +71,27 @@ const consolidateMetricShape = (metric: QueryFormDataMetric) => {
   // even thought `metric.optionName` is more unique, it's not used
   // anywhere else in `queryData` and cannot be used to access `data.records`.
   // The records are still keyed by `metric.label`.
-  return metric.label;
+  return metric.label || 'NOT_LABLED';
 };
 
 export default function transformProps(chartProps: ChartProps): DataTableProps {
   const { height, datasource, formData, queryData } = chartProps;
 
   const {
-    alignPn,
-    colorPn,
-    includeSearch,
-    orderDesc,
-    pageLength,
-    metrics: metrics_,
-    percentMetrics: percentMetrics_,
+    alignPn = true,
+    colorPn = true,
+    includeSearch = false,
+    orderDesc = false,
+    pageLength = 0,
+    metrics: metrics_ = [],
+    percentMetrics: percentMetrics_ = [],
     tableTimestampFormat,
-  } = formData;
+  } = formData as TableChartFormData;
   const { columnFormats, verboseMap } = datasource;
-  const { records, columns: columns_ } = queryData.data;
+  const {
+    records,
+    columns: columns_,
+  }: { records: DataRecord[]; columns: string[] } = queryData.data;
   const metrics = (metrics_ ?? []).map(consolidateMetricShape);
   // percent metrics always starts with a '%' sign.
   const percentMetrics = (percentMetrics_ ?? [])
@@ -85,12 +99,10 @@ export default function transformProps(chartProps: ChartProps): DataTableProps {
     .map((x: string) => `%${x}`);
   const columns = columns_.map((key: string) => {
     let label = verboseMap[key] || key;
-
     // make sure there is a " " after "%" for percent metrics
     if (label[0] === '%' && label[1] !== ' ') {
       label = `% ${label.slice(1)}`;
     }
-
     return {
       key,
       label,
@@ -108,7 +120,7 @@ export default function transformProps(chartProps: ChartProps): DataTableProps {
     colorPositiveNegative: colorPn,
     includeSearch,
     orderDesc,
-    pageLength: pageLength && parseInt(pageLength, 10),
+    pageLength: pageLength ? parseInt(pageLength, 10) : 0,
     tableTimestampFormat,
   };
 }

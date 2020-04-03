@@ -59,14 +59,16 @@ const basic: ChartProps = {
   ...basicChartProps,
   queryData: {
     data: {
-      columns: ['name', 'sum__num'],
+      columns: ['__timestamp', 'name', 'sum__num'],
       records: [
         {
+          __timestamp: '2020-01-01T12:34:56',
           name: 'Michael',
           sum__num: 2467063,
           '%pct_nice': 0.123456,
         },
         {
+          __timestamp: 1585932584140,
           name: 'Joe',
           sum__num: 2467,
           '%pct_nice': 0.00001,

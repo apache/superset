@@ -108,9 +108,16 @@ export default function ReactDataTable(props: DataTableProps) {
   /**
    * Format text for cell value
    */
-  function cellText(key: string, format: string | undefined, val: unknown) {
+  function cellText(key: string, format: string | undefined, val: any) {
     if (key === '__timestamp') {
-      return formatTimestamp(val);
+      let value = val;
+      if (typeof val === 'string') {
+        // force UTC time zone if is an ISO timestamp without timezone
+        // e.g. "2020-10-12T00:00:00"
+        value = val.match(/T(\d{2}:){2}\d{2}$/) ? `${val}Z` : val;
+        value = new Date(value);
+      }
+      return formatTimestamp(value) as string;
     }
     if (typeof val === 'string') {
       return filterXSS(val, { stripIgnoreTag: true });
@@ -123,7 +130,7 @@ export default function ReactDataTable(props: DataTableProps) {
       // default format '' will return human readable numbers (e.g. 50M, 33k)
       return formatNumber(format, val as number);
     }
-    return val;
+    return String(val);
   }
 
   /**
