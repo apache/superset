@@ -1088,21 +1088,6 @@ export const controls = {
     description: t('Line interpolation as defined by d3.js'),
   },
 
-  pie_label_type: {
-    type: 'SelectControl',
-    label: t('Label Type'),
-    default: 'key',
-    renderTrigger: true,
-    choices: [
-      ['key', 'Category Name'],
-      ['value', 'Value'],
-      ['percent', 'Percentage'],
-      ['key_value', 'Category and Value'],
-      ['key_percent', 'Category and Percentage'],
-    ],
-    description: t('What should be shown on the label?'),
-  },
-
   code: {
     type: 'TextAreaControl',
     label: t('Code'),
@@ -1272,36 +1257,12 @@ export const controls = {
     description: t('Use a log scale for the Y-axis'),
   },
 
-  x_log_scale: {
-    type: 'CheckboxControl',
-    label: t('X Log Scale'),
-    default: false,
-    renderTrigger: true,
-    description: t('Use a log scale for the X-axis'),
-  },
-
   log_scale: {
     type: 'CheckboxControl',
     label: t('Log Scale'),
     default: false,
     renderTrigger: true,
     description: t('Use a log scale'),
-  },
-
-  donut: {
-    type: 'CheckboxControl',
-    label: t('Donut'),
-    default: false,
-    renderTrigger: true,
-    description: t('Do you want a donut or a pie?'),
-  },
-
-  labels_outside: {
-    type: 'CheckboxControl',
-    label: t('Put labels outside'),
-    default: true,
-    renderTrigger: true,
-    description: t('Put the labels outside the pie?'),
   },
 
   contribution: {
@@ -1409,48 +1370,6 @@ export const controls = {
     label: t('Color'),
     default: PRIMARY_COLOR,
     description: t('Pick a color'),
-  },
-
-  ranges: {
-    type: 'TextControl',
-    label: t('Ranges'),
-    default: '',
-    description: t('Ranges to highlight with shading'),
-  },
-
-  range_labels: {
-    type: 'TextControl',
-    label: t('Range labels'),
-    default: '',
-    description: t('Labels for the ranges'),
-  },
-
-  markers: {
-    type: 'TextControl',
-    label: t('Markers'),
-    default: '',
-    description: t('List of values to mark with triangles'),
-  },
-
-  marker_labels: {
-    type: 'TextControl',
-    label: t('Marker labels'),
-    default: '',
-    description: t('Labels for the markers'),
-  },
-
-  marker_lines: {
-    type: 'TextControl',
-    label: t('Marker lines'),
-    default: '',
-    description: t('List of values to mark with lines'),
-  },
-
-  marker_line_labels: {
-    type: 'TextControl',
-    label: t('Marker line labels'),
-    default: '',
-    description: t('Labels for the marker lines'),
   },
 
   annotation_layers: {
@@ -1563,51 +1482,6 @@ export const controls = {
     isInt: true,
     default: 10,
     description: t('The width of the lines'),
-  },
-
-  line_charts: {
-    type: 'SelectAsyncControl',
-    multi: true,
-    label: t('Line charts'),
-    validators: [v.nonEmpty],
-    default: [],
-    description: t('Pick a set of line charts to layer on top of one another'),
-    dataEndpoint:
-      '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
-    placeholder: t('Select charts'),
-    onAsyncErrorMessage: t('Error while fetching charts'),
-    mutator: data => {
-      if (!data || !data.result) {
-        return [];
-      }
-      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
-    },
-  },
-
-  line_charts_2: {
-    type: 'SelectAsyncControl',
-    multi: true,
-    label: t('Right Axis chart(s)'),
-    validators: [],
-    default: [],
-    description: t('Choose one or more charts for right axis'),
-    dataEndpoint:
-      '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
-    placeholder: t('Select charts'),
-    onAsyncErrorMessage: t('Error while fetching charts'),
-    mutator: data => {
-      if (!data || !data.result) {
-        return [];
-      }
-      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
-    },
-  },
-
-  prefix_metric_with_slice_name: {
-    type: 'CheckboxControl',
-    label: t('Prefix metric name with slice name'),
-    default: false,
-    renderTrigger: true,
   },
 
   reverse_long_lat: {
