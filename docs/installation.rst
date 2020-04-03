@@ -740,7 +740,8 @@ Dremio
 
 Install the following dependencies to connect to Dremio:
 
-* Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``  
+* Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
+
   * If you receive any errors during the installation of ``sqlalchemy_dremio``, make sure to install the prerequisites for PyODBC properly by following the instructions for your OS here: https://github.com/narendrans/sqlalchemy_dremio#installation
 * Dremio's ODBC driver: https://www.dremio.com/drivers/
 
