@@ -177,19 +177,6 @@ const metric = {
   default: props => mainMetric(props.savedMetrics),
 };
 
-const sandboxUrl =
-  'https://github.com/apache/incubator-superset/' +
-  'blob/master/superset-frontend/src/modules/sandbox.js';
-const jsFunctionInfo = (
-  <div>
-    {t(
-      'For more information about objects are in context in the scope of this function, refer to the',
-    )}
-    <a href={sandboxUrl}>{t(" source code of Superset's sandboxed parser")}.</a>
-    .
-  </div>
-);
-
 export function columnChoices(datasource) {
   if (datasource && datasource.columns) {
     return datasource.columns
