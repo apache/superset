@@ -22,7 +22,6 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import ColumnOption from '../../components/ColumnOption';
-import { PRIMARY_COLOR } from '../controls';
 
 export const filterNulls = {
   name: 'filter_nulls',
