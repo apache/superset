@@ -49,7 +49,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 
-from superset import app, db, security_manager
+from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
@@ -63,6 +63,9 @@ from superset.utils import core as utils, import_datasource
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
+
+
+IS_SIP_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
 
 
 class SqlaQuery(NamedTuple):
@@ -700,6 +703,8 @@ class SqlaTable(Model, BaseDatasource):
         granularity,
         from_dttm,
         to_dttm,
+        columns=None,
+        groupby=None,
         filter=None,
         is_timeseries=True,
         timeseries_limit=15,
@@ -709,12 +714,12 @@ class SqlaTable(Model, BaseDatasource):
         inner_to_dttm=None,
         orderby=None,
         extras=None,
-        columns=None,
         order_desc=True,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         template_kwargs = {
             "from_dttm": from_dttm,
+            "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "to_dttm": to_dttm,
@@ -747,7 +752,15 @@ class SqlaTable(Model, BaseDatasource):
                     "and is required by this type of chart"
                 )
             )
-        if not metrics and not columns:
+        if (
+            IS_SIP_38
+            and not metrics
+            and not columns
+            or not IS_SIP_38
+            and not groupby
+            and not metrics
+            and not columns
+        ):
             raise Exception(_("Empty query?"))
         metrics_exprs: List[ColumnElement] = []
         for m in metrics:
@@ -766,9 +779,12 @@ class SqlaTable(Model, BaseDatasource):
         select_exprs: List[Column] = []
         groupby_exprs_sans_timestamp: OrderedDict = OrderedDict()
 
-        if metrics and columns:
+        if IS_SIP_38 and metrics and columns or not IS_SIP_38 and groupby:
             # dedup columns while preserving order
-            groupby = list(dict.fromkeys(columns))
+            if IS_SIP_38:
+                groupby = list(dict.fromkeys(columns))
+            else:
+                groupby = list(dict.fromkeys(groupby))
 
             select_exprs = []
             for s in groupby:
@@ -827,7 +843,7 @@ class SqlaTable(Model, BaseDatasource):
 
         tbl = self.get_from_clause(template_processor)
 
-        if metrics:
+        if IS_SIP_38 and metrics or not IS_SIP_38 and not columns:
             qry = qry.group_by(*groupby_exprs_with_timestamp.values())
 
         where_clause_and = []
@@ -890,7 +906,14 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
 
-        if not orderby and metrics:
+        if (
+            IS_SIP_38
+            and not orderby
+            and metrics
+            or not IS_SIP_38
+            and not orderby
+            and not columns
+        ):
             orderby = [(main_metric_expr, not order_desc)]
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
@@ -912,7 +935,18 @@ class SqlaTable(Model, BaseDatasource):
         if row_limit:
             qry = qry.limit(row_limit)
 
-        if is_timeseries and timeseries_limit and columns and not time_groupby_inline:
+        if (
+            IS_SIP_38
+            and is_timeseries
+            and timeseries_limit
+            and columns
+            and not time_groupby_inline
+            or not IS_SIP_38
+            and is_timeseries
+            and timeseries_limit
+            and groupby
+            and not time_groupby_inline
+        ):
             if self.database.db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
@@ -980,6 +1014,9 @@ class SqlaTable(Model, BaseDatasource):
                     "columns": columns,
                     "order_desc": True,
                 }
+                if not IS_SIP_38:
+                    prequery_obj["groupby"] = groupby
+
                 result = self.query(prequery_obj)
                 prequeries.append(result.query)
                 dimensions = [

@@ -48,7 +48,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy_utils import EncryptedType
 
-from superset import conf, db, security_manager
+from superset import conf, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.exceptions import SupersetException
@@ -84,6 +84,7 @@ try:
 except ImportError:
     pass
 
+IS_SIP_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
 DRUID_TZ = conf.get("DRUID_TZ")
 POST_AGG_TYPE = "postagg"
 metadata = Model.metadata  # pylint: disable=no-member
@@ -1085,7 +1086,7 @@ class DruidDatasource(Model, BaseDatasource):
         self, columns: List[str], columns_dict: Dict[str, DruidColumn]
     ) -> List[Union[str, Dict]]:
         dimensions = []
-        columns = [gb for gb in columns if gb in columns_dict]
+        columns = [col for col in columns if col in columns_dict]
         for column_name in columns:
             col = columns_dict.get(column_name)
             dim_spec = col.dimension_spec if col else None
@@ -1137,11 +1138,12 @@ class DruidDatasource(Model, BaseDatasource):
 
     def run_query(  # druid
         self,
-        columns,
         metrics,
         granularity,
         from_dttm,
         to_dttm,
+        columns=None,
+        groupby=None,
         filter=None,
         is_timeseries=True,
         timeseries_limit=None,
@@ -1187,7 +1189,12 @@ class DruidDatasource(Model, BaseDatasource):
         )
 
         # the dimensions list with dimensionSpecs expanded
-        dimensions = self.get_dimensions(columns, columns_dict)
+
+        if IS_SIP_38:
+            dimensions = self.get_dimensions(columns, columns_dict)
+        else:
+            dimensions = self.get_dimensions(groupby, columns_dict)
+
         extras = extras or {}
         qry = dict(
             datasource=self.datasource_name,
@@ -1213,7 +1220,13 @@ class DruidDatasource(Model, BaseDatasource):
 
         order_direction = "descending" if order_desc else "ascending"
 
-        if not metrics and "__time" not in columns:
+        if (
+            IS_SIP_38
+            and not metrics
+            and "__time" not in columns
+            or not IS_SIP_38
+            and columns
+        ):
             columns.append("__time")
             del qry["post_aggregations"]
             del qry["aggregations"]
@@ -1223,11 +1236,26 @@ class DruidDatasource(Model, BaseDatasource):
             qry["granularity"] = "all"
             qry["limit"] = row_limit
             client.scan(**qry)
-        elif not columns and not having_filters:
+        elif (
+            IS_SIP_38
+            and columns
+            or not IS_SIP_38
+            and len(groupby) == 0
+            and not having_filters
+        ):
             logger.info("Running timeseries query for no groupby values")
             del qry["dimensions"]
             client.timeseries(**qry)
-        elif not having_filters and len(columns) == 1 and order_desc:
+        elif (
+            IS_SIP_38
+            and not having_filters
+            and len(columns) == 1
+            and order_desc
+            or not IS_SIP_38
+            and not having_filters
+            and len(groupby) == 1
+            and order_desc
+        ):
             dim = list(qry["dimensions"])[0]
             logger.info("Running two-phase topn query for dimension [{}]".format(dim))
             pre_qry = deepcopy(qry)
@@ -1278,7 +1306,13 @@ class DruidDatasource(Model, BaseDatasource):
             qry["metric"] = list(qry["aggregations"].keys())[0]
             client.topn(**qry)
             logger.info("Phase 2 Complete")
-        elif columns or having_filters:
+        elif (
+            having_filters
+            or IS_SIP_38
+            and columns
+            or not IS_SIP_38
+            and len(groupby) > 0
+        ):
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             logger.info("Running groupby query for dimensions [{}]".format(dimensions))
@@ -1364,7 +1398,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     @staticmethod
     def homogenize_types(df: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
-        """Converting all columns to strings
+        """Converting all GROUPBY columns to strings
 
         When grouping by a numeric (say FLOAT) column, pydruid returns
         strings in the dataframe. This creates issues downstream related
@@ -1389,7 +1423,9 @@ class DruidDatasource(Model, BaseDatasource):
                 df=df, query=query_str, duration=datetime.now() - qry_start_dttm
             )
 
-        df = self.homogenize_types(df, query_obj.get("columns", []))
+        df = self.homogenize_types(
+            df, query_obj.get("columns" if IS_SIP_38 else "groupby", [])
+        )
         df.columns = [
             DTTM_ALIAS if c in ("timestamp", "__time") else c for c in df.columns
         ]
@@ -1404,6 +1440,9 @@ class DruidDatasource(Model, BaseDatasource):
         cols: List[str] = []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
+
+        if not IS_SIP_38:
+            cols += query_obj.get("groupby") or []
         cols += query_obj.get("columns") or []
         cols += query_obj.get("metrics") or []
 
