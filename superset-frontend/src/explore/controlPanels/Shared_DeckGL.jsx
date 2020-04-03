@@ -372,3 +372,12 @@ export const lineType = {
     ],
   },
 };
+
+export const reverseLongLat = {
+  name: 'reverse_long_lat',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Reverse Lat & Long'),
+    default: false,
+  },
+};

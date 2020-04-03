@@ -1229,12 +1229,6 @@ export const controls = {
     controlName: 'TimeSeriesColumnControl',
   },
 
-  reverse_long_lat: {
-    type: 'CheckboxControl',
-    label: t('Reverse Lat & Long'),
-    default: false,
-  },
-
   filter_configs: {
     type: 'CollectionControl',
     label: 'Filters',

@@ -39,6 +39,7 @@ import {
   multiplier,
   lineWidth,
   lineType,
+  reverseLongLat,
 } from './Shared_DeckGL';
 
 export default {
@@ -64,7 +65,7 @@ export default {
           }),
         ],
         ['row_limit', null],
-        ['reverse_long_lat', filterNulls],
+        [reverseLongLat, filterNulls],
       ],
     },
     {
