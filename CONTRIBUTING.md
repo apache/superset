@@ -1121,7 +1121,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `grid_size`                     | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
-| `js_columns`                    | _N/A_ |       |
 | `label`                         | _N/A_ |       |
 | `legend_position`               | _N/A_ |       |
 | `line_column`                   | _N/A_ |       |

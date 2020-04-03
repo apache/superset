@@ -23,6 +23,46 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import ColumnOption from '../../components/ColumnOption';
 
+const timeColumnOption = {
+  verbose_name: 'Time',
+  column_name: '__timestamp',
+  description: t(
+    'A reference to the [Time] configuration, taking granularity into ' +
+      'account',
+  ),
+};
+
+const groupByControl = {
+  type: 'SelectControl',
+  multi: true,
+  freeForm: true,
+  label: t('Group by'),
+  default: [],
+  includeTime: false,
+  description: t('One or many controls to group by'),
+  optionRenderer: c => <ColumnOption column={c} showType />,
+  valueRenderer: c => <ColumnOption column={c} />,
+  valueKey: 'column_name',
+  allowAll: true,
+  filterOption: (opt, text) =>
+    (opt.column_name &&
+      opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
+    (opt.verbose_name &&
+      opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
+  promptTextCreator: label => label,
+  mapStateToProps: (state, control) => {
+    const newState = {};
+    if (state.datasource) {
+      newState.options = state.datasource.columns.filter(c => c.groupby);
+      if (control && control.includeTime) {
+        newState.options.push(timeColumnOption);
+      }
+    }
+    return newState;
+  },
+  commaChoosesOption: false,
+};
+
 export const filterNulls = {
   name: 'filter_nulls',
   config: {
@@ -49,40 +89,22 @@ export const autozoom = {
 export const dimension = {
   name: 'dimension',
   config: {
-    type: 'SelectControl',
-    multi: false,
-    freeForm: true,
+    ...groupByControl,
     label: t('Dimension'),
-    default: null,
-    includeTime: false,
     description: t('Select a dimension'),
-    optionRenderer: c => <ColumnOption column={c} showType />,
-    valueRenderer: c => <ColumnOption column={c} />,
-    valueKey: 'column_name',
-    allowAll: true,
-    filterOption: (opt, text) =>
-      (opt.column_name &&
-        opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
-      (opt.verbose_name &&
-        opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
-    promptTextCreator: label => label,
-    mapStateToProps: (state, control) => {
-      const newState = {};
-      if (state.datasource) {
-        newState.options = state.datasource.columns.filter(c => c.groupby);
-        if (control && control.includeTime) {
-          newState.options.push({
-            verbose_name: 'Time',
-            column_name: '__timestamp',
-            description: t(
-              'A reference to the [Time] configuration, taking granularity into ' +
-                'account',
-            ),
-          });
-        }
-      }
-      return newState;
-    },
-    commaChoosesOption: false,
+    multi: false,
+    default: null,
+  },
+};
+
+export const jsColumns = {
+  name: 'js_columns',
+  config: {
+    ...groupByControl,
+    label: t('Extra data for JS'),
+    default: [],
+    description: t(
+      'List of extra columns made available in Javascript functions',
+    ),
   },
 };

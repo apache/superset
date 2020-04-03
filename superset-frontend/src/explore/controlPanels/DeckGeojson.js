@@ -20,7 +20,7 @@ import { t } from '@superset-ui/translation';
 import { nonEmpty, integer } from '../validators';
 import { formatSelectOptions } from '../../modules/utils';
 import { columnChoices } from '../controls';
-import { filterNulls } from './Shared_DeckGL';
+import { filterNulls, jsColumns } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -80,7 +80,7 @@ export default {
     {
       label: t('Advanced'),
       controlSetRows: [
-        ['js_columns'],
+        [jsColumns],
         ['js_data_mutator'],
         ['js_tooltip'],
         ['js_onclick_href'],

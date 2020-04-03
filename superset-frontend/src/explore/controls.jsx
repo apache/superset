@@ -1444,15 +1444,6 @@ export const controls = {
     t('Define a function that returns a URL to navigate to when user clicks'),
   ),
 
-  js_columns: {
-    ...groupByControl,
-    label: t('Extra data for JS'),
-    default: [],
-    description: t(
-      'List of extra columns made available in Javascript functions',
-    ),
-  },
-
   stroked: {
     type: 'CheckboxControl',
     label: t('Stroked'),
