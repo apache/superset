@@ -221,7 +221,7 @@ class QueryApiTests(SupersetTestCase):
         db.session.delete(query)
         db.session.commit()
 
-    def test_get_dashboards_no_data_access(self):
+    def test_get_queries_no_data_access(self):
         """
             Query API: Test get queries no data access
         """
