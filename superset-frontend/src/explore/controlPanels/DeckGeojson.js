@@ -26,6 +26,7 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
+  fillColorPicker,
 } from './Shared_DeckGL';
 
 export default {
@@ -64,7 +65,7 @@ export default {
     {
       label: t('GeoJson Settings'),
       controlSetRows: [
-        ['fill_color_picker', 'stroke_color_picker'],
+        [fillColorPicker, 'stroke_color_picker'],
         ['filled', 'stroked'],
         ['extruded', null],
         [

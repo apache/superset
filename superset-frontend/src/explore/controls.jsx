@@ -232,16 +232,6 @@ export const controls = {
     renderTrigger: true,
   },
 
-  fill_color_picker: {
-    label: t('Fill Color'),
-    description: t(
-      ' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON',
-    ),
-    type: 'ColorPickerControl',
-    default: PRIMARY_COLOR,
-    renderTrigger: true,
-  },
-
   stroke_color_picker: {
     label: t('Stroke Color'),
     description: t(

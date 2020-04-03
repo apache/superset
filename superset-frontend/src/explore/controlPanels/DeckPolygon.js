@@ -29,6 +29,7 @@ import {
   legendFormat,
   legendPosition,
   lineColumn,
+  fillColorPicker,
 } from './Shared_DeckGL';
 
 export default {
@@ -62,7 +63,7 @@ export default {
       label: t('Polygon Settings'),
       expanded: true,
       controlSetRows: [
-        ['fill_color_picker', 'stroke_color_picker'],
+        [fillColorPicker, 'stroke_color_picker'],
         ['filled', 'stroked'],
         ['extruded', 'multiplier'],
         ['line_width', null],
