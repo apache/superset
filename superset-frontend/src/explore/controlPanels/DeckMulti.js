@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { nonEmpty } from '@superset-ui/validators';
 import { viewport } from './Shared_DeckGL';
 
 export default {

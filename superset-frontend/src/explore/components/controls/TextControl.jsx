@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup, FormControl } from 'react-bootstrap';
-import * as v from '../../validators';
+import { numeric, integer } from '@superset-ui/validators';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
@@ -51,7 +51,7 @@ export default class TextControl extends React.Component {
     // Validation & casting
     const errors = [];
     if (value !== '' && this.props.isFloat) {
-      const error = v.numeric(value);
+      const error = numeric(value);
       if (error) {
         errors.push(error);
       } else {
@@ -59,7 +59,7 @@ export default class TextControl extends React.Component {
       }
     }
     if (value !== '' && this.props.isInt) {
-      const error = v.integer(value);
+      const error = integer(value);
       if (error) {
         errors.push(error);
       } else {

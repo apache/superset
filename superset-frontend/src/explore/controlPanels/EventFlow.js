@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { nonEmpty } from '@superset-ui/validators';
 import { formatSelectOptionsForRange } from '../../modules/utils';
 
 export default {

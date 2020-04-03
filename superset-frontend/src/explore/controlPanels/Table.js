@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import * as v from '../validators';
+import { nonEmpty } from '@superset-ui/validators';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
 import { formatSelectOptions } from '../../modules/utils';
 
@@ -114,7 +114,7 @@ export default {
               label: t('Table Timestamp Format'),
               default: '%Y-%m-%d %H:%M:%S',
               renderTrigger: true,
-              validators: [v.nonEmpty],
+              validators: [nonEmpty],
               clearable: false,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: t('Timestamp Format'),
