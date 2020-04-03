@@ -232,22 +232,6 @@ export const controls = {
     renderTrigger: true,
   },
 
-  legend_position: {
-    label: t('Legend Position'),
-    description: t('Choose the position of the legend'),
-    type: 'SelectControl',
-    clearable: false,
-    default: 'tr',
-    choices: [
-      [null, 'None'],
-      ['tl', 'Top left'],
-      ['tr', 'Top right'],
-      ['bl', 'Bottom left'],
-      ['br', 'Bottom right'],
-    ],
-    renderTrigger: true,
-  },
-
   fill_color_picker: {
     label: t('Fill Color'),
     description: t(

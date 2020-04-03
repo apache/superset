@@ -1122,7 +1122,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `import_time`                   | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
 | `label`                         | _N/A_ |       |
-| `legend_position`               | _N/A_ |       |
 | `line_column`                   | _N/A_ |       |
 | `line_type`                     | _N/A_ |       |
 | `line_width`                    | _N/A_ |       |

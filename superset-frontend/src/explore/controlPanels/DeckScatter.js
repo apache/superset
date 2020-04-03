@@ -28,6 +28,7 @@ import {
   jsTooltip,
   jsOnclickHref,
   legendFormat,
+  legendPosition,
 } from './Shared_DeckGL';
 
 export default {
@@ -125,7 +126,7 @@ export default {
     {
       label: t('Point Color'),
       controlSetRows: [
-        ['color_picker', 'legend_position'],
+        ['color_picker', legendPosition],
         [null, legendFormat],
         [
           Object.assign({}, dimension, {

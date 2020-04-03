@@ -27,6 +27,7 @@ import {
   jsTooltip,
   jsOnclickHref,
   legendFormat,
+  legendPosition,
 } from './Shared_DeckGL';
 
 export default {
@@ -119,7 +120,7 @@ export default {
             },
           },
         ],
-        ['legend_position', legendFormat],
+        [legendPosition, legendFormat],
       ],
     },
     {
