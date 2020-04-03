@@ -80,9 +80,7 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertEqual(df.sum()[0], 382)
 
     def test_sort(self):
-        df = proc.sort(
-            df=categories_df, by=["category", "asc_idx"], ascending={"asc_idx": False}
-        )
+        df = proc.sort(df=categories_df, by={"category": True, "asc_idx": False})
         self.assertEqual(96, df["asc_idx"].reset_index(drop=True)[1])
 
     def test_rolling(self):

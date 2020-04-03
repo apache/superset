@@ -145,24 +145,15 @@ def aggregate(
     return df.groupby(by=groupby).agg(**aggregate_funcs)
 
 
-def sort(
-    df: DataFrame,
-    by: List[str],
-    ascending: Optional[Union[bool, Dict[str, bool]]] = True,
-) -> DataFrame:
+def sort(df: DataFrame, by: Dict[str, bool]) -> DataFrame:
     """
     Sort a DataFrame.
 
     df: DataFrame to sort.
-    by: columns by by which to sort `df`.
-    ascending: Sort order. Defaults to True. If bool, applies same sort order to all
-               columns. If dict, applies sorting per column, defaulting to True if
-               missing.
+    by: columns by by which to sort. The key specifies the column name, value
+        specifies if sorting in ascending order.
     """
-    if isinstance(ascending, dict):
-        ascending = [ascending.get(col, True) for col in by]
-
-    return df.sort_values(by=by, ascending=ascending)
+    return df.sort_values(by=by.keys(), ascending=by.values())
 
 
 def rolling(
@@ -188,7 +179,7 @@ def rolling(
     if rolling_type == "cumsum":
         df = df.cumsum()
     else:
-        kwargs = {}
+        kwargs: Dict[str, Union[str, int]] = {}
         if window is not None:
             kwargs["window"] = window
         if min_periods is not None:
