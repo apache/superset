@@ -63,6 +63,51 @@ const groupByControl = {
   commaChoosesOption: false,
 };
 
+const sandboxUrl =
+  'https://github.com/apache/incubator-superset/' +
+  'blob/master/superset-frontend/src/modules/sandbox.js';
+const jsFunctionInfo = (
+  <div>
+    {t(
+      'For more information about objects are in context in the scope of this function, refer to the',
+    )}
+    <a href={sandboxUrl}>{t(" source code of Superset's sandboxed parser")}.</a>
+    .
+  </div>
+);
+
+function jsFunctionControl(
+  label,
+  description,
+  extraDescr = null,
+  height = 100,
+  defaultText = '',
+) {
+  return {
+    type: 'TextAreaControl',
+    language: 'javascript',
+    label,
+    description,
+    height,
+    default: defaultText,
+    aboveEditorSection: (
+      <div>
+        <p>{description}</p>
+        <p>{jsFunctionInfo}</p>
+        {extraDescr}
+      </div>
+    ),
+    mapStateToProps: state => ({
+      warning: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS
+        ? t(
+            'This functionality is disabled in your environment for security reasons.',
+          )
+        : null,
+      readOnly: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS,
+    }),
+  };
+}
+
 export const filterNulls = {
   name: 'filter_nulls',
   config: {
@@ -107,4 +152,34 @@ export const jsColumns = {
       'List of extra columns made available in Javascript functions',
     ),
   },
+};
+
+export const jsDataMutator = {
+  name: 'js_data_mutator',
+  config: jsFunctionControl(
+    t('Javascript data interceptor'),
+    t(
+      'Define a javascript function that receives the data array used in the visualization ' +
+        'and is expected to return a modified version of that array. This can be used ' +
+        'to alter properties of the data, filter, or enrich the array.',
+    ),
+  ),
+};
+
+export const jsTooltip = {
+  name: 'js_tooltip',
+  config: jsFunctionControl(
+    t('Javascript tooltip generator'),
+    t(
+      'Define a function that receives the input and outputs the content for a tooltip',
+    ),
+  ),
+};
+
+export const jsOnclickHref = {
+  name: 'js_onclick_href',
+  config: jsFunctionControl(
+    t('Javascript onClick href'),
+    t('Define a function that returns a URL to navigate to when user clicks'),
+  ),
 };

@@ -19,7 +19,14 @@
 import { t } from '@superset-ui/translation';
 import { nonEmpty } from '../validators';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
-import { filterNulls, autozoom, jsColumns } from './Shared_DeckGL';
+import {
+  filterNulls,
+  autozoom,
+  jsColumns,
+  jsDataMutator,
+  jsTooltip,
+  jsOnclickHref,
+} from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -49,9 +56,9 @@ export default {
       label: t('Advanced'),
       controlSetRows: [
         [jsColumns],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
+        [jsDataMutator],
+        [jsTooltip],
+        [jsOnclickHref],
       ],
     },
   ],

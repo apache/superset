@@ -201,38 +201,6 @@ export function columnChoices(datasource) {
   return [];
 }
 
-function jsFunctionControl(
-  label,
-  description,
-  extraDescr = null,
-  height = 100,
-  defaultText = '',
-) {
-  return {
-    type: 'TextAreaControl',
-    language: 'javascript',
-    label,
-    description,
-    height,
-    default: defaultText,
-    aboveEditorSection: (
-      <div>
-        <p>{description}</p>
-        <p>{jsFunctionInfo}</p>
-        {extraDescr}
-      </div>
-    ),
-    mapStateToProps: state => ({
-      warning: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS
-        ? t(
-            'This functionality is disabled in your environment for security reasons.',
-          )
-        : null,
-      readOnly: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS,
-    }),
-  };
-}
-
 export const controls = {
   metrics,
 
@@ -1415,34 +1383,6 @@ export const controls = {
     label: t('Reverse Lat & Long'),
     default: false,
   },
-
-  js_data_mutator: jsFunctionControl(
-    t('Javascript data interceptor'),
-    t(
-      'Define a javascript function that receives the data array used in the visualization ' +
-        'and is expected to return a modified version of that array. This can be used ' +
-        'to alter properties of the data, filter, or enrich the array.',
-    ),
-  ),
-
-  js_data: jsFunctionControl(
-    t('Javascript data mutator'),
-    t(
-      'Define a function that receives intercepts the data objects and can mutate it',
-    ),
-  ),
-
-  js_tooltip: jsFunctionControl(
-    t('Javascript tooltip generator'),
-    t(
-      'Define a function that receives the input and outputs the content for a tooltip',
-    ),
-  ),
-
-  js_onclick_href: jsFunctionControl(
-    t('Javascript onClick href'),
-    t('Define a function that returns a URL to navigate to when user clicks'),
-  ),
 
   stroked: {
     type: 'CheckboxControl',
