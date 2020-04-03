@@ -35,6 +35,7 @@ import {
   stroked,
   extruded,
   viewport,
+  pointRadiusFixed,
 } from './Shared_DeckGL';
 
 export default {
@@ -51,7 +52,7 @@ export default {
           'line_type',
         ],
         ['adhoc_filters'],
-        ['metric', 'point_radius_fixed'],
+        ['metric', pointRadiusFixed],
         ['row_limit', null],
         ['reverse_long_lat', filterNulls],
       ],

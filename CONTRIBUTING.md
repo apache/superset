@@ -1136,7 +1136,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `pandas_aggfunc`                | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
-| `point_radius_fixed`            | _N/A_ |       |
 | `rdo_save`                      | _N/A_ |       |
 | `reduce_x_ticks`                | _N/A_ |       |
 | `refresh_frequency`             | _N/A_ |       |
@@ -1162,7 +1161,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_sqla_time_granularity`    | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
-| `spatial`                       | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `url`                           | _N/A_ |       |

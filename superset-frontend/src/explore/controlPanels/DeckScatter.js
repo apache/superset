@@ -30,6 +30,8 @@ import {
   legendFormat,
   legendPosition,
   viewport,
+  spatial,
+  pointRadiusFixed,
 } from './Shared_DeckGL';
 
 export default {
@@ -50,7 +52,7 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['spatial', null],
+        [spatial, null],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
@@ -67,7 +69,7 @@ export default {
       label: t('Point Size'),
       controlSetRows: [
         [
-          'point_radius_fixed',
+          pointRadiusFixed,
           {
             name: 'point_unit',
             config: {

@@ -31,6 +31,7 @@ import {
   extruded,
   gridSize,
   viewport,
+  spatial,
 } from './Shared_DeckGL';
 
 export default {
@@ -40,7 +41,7 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['spatial', 'size'],
+        [spatial, 'size'],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],

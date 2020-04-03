@@ -318,3 +318,29 @@ export const viewport = {
     dontRefreshOnChange: true,
   },
 };
+
+export const spatial = {
+  name: 'spatial',
+  config: {
+    type: 'SpatialControl',
+    label: t('Longitude & Latitude'),
+    validators: [nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: columnChoices(state.datasource),
+    }),
+  },
+};
+
+export const pointRadiusFixed = {
+  name: 'point_radius_fixed',
+  config: {
+    type: 'FixedOrMetricControl',
+    label: t('Point Size'),
+    default: { type: 'fix', value: 1000 },
+    description: t('Fixed point radius'),
+    mapStateToProps: state => ({
+      datasource: state.datasource,
+    }),
+  },
+};
