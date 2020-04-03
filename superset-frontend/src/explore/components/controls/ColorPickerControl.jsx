@@ -88,9 +88,10 @@ export default class ColorPickerControl extends React.Component {
   }
   render() {
     const c = this.props.value || { r: 0, g: 0, b: 0, a: 0 };
-    const colStyle = Object.assign({}, styles.color, {
+    const colStyle = {
+      ...styles.color,
       background: `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`,
-    });
+    };
     return (
       <div>
         <ControlHeader {...this.props} />
