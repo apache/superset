@@ -245,3 +245,38 @@ export const fillColorPicker = {
     renderTrigger: true,
   },
 };
+
+export const strokeColorPicker = {
+  name: 'stroke_color_picker',
+  config: {
+    label: t('Stroke Color'),
+    description: t(
+      ' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON',
+    ),
+    type: 'ColorPickerControl',
+    default: PRIMARY_COLOR,
+    renderTrigger: true,
+  },
+};
+
+export const filled = {
+  name: 'filled',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Filled'),
+    renderTrigger: true,
+    description: t('Whether to fill the objects'),
+    default: true,
+  },
+};
+
+export const stroked = {
+  name: 'stroked',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Stroked'),
+    renderTrigger: true,
+    description: t('Whether to display the stroke'),
+    default: false,
+  },
+};

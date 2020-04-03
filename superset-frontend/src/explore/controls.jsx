@@ -232,16 +232,6 @@ export const controls = {
     renderTrigger: true,
   },
 
-  stroke_color_picker: {
-    label: t('Stroke Color'),
-    description: t(
-      ' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON',
-    ),
-    type: 'ColorPickerControl',
-    default: PRIMARY_COLOR,
-    renderTrigger: true,
-  },
-
   metric_2: {
     ...metric,
     label: t('Right Axis Metric'),
@@ -1323,22 +1313,6 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Reverse Lat & Long'),
     default: false,
-  },
-
-  stroked: {
-    type: 'CheckboxControl',
-    label: t('Stroked'),
-    renderTrigger: true,
-    description: t('Whether to display the stroke'),
-    default: false,
-  },
-
-  filled: {
-    type: 'CheckboxControl',
-    label: t('Filled'),
-    renderTrigger: true,
-    description: t('Whether to fill the objects'),
-    default: true,
   },
 
   filter_configs: {

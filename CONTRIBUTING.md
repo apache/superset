@@ -1107,7 +1107,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `expanded_slices`               | _N/A_ |       |
 | `extra_filters`                 | _N/A_ |       |
 | `extruded`                      | _N/A_ |       |
-| `filled`                        | _N/A_ |       |
 | `filter_immune_slice_fields`    | _N/A_ |       |
 | `filter_immune_slices`          | _N/A_ |       |
 | `flt_col_0`                     | _N/A_ |       |
@@ -1166,8 +1165,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
-| `stroke_color_picker`           | _N/A_ |       |
-| `stroked`                       | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `url`                           | _N/A_ |       |

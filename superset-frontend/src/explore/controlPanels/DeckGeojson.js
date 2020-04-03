@@ -27,6 +27,9 @@ import {
   jsTooltip,
   jsOnclickHref,
   fillColorPicker,
+  strokeColorPicker,
+  filled,
+  stroked,
 } from './Shared_DeckGL';
 
 export default {
@@ -65,8 +68,8 @@ export default {
     {
       label: t('GeoJson Settings'),
       controlSetRows: [
-        [fillColorPicker, 'stroke_color_picker'],
-        ['filled', 'stroked'],
+        [fillColorPicker, strokeColorPicker],
+        [filled, stroked],
         ['extruded', null],
         [
           {
