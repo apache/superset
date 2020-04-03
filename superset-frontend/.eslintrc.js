@@ -146,6 +146,7 @@ module.exports = {
     'no-unused-vars': 0,
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
+    'prefer-object-spread': 1,
     'prefer-template': 0,
     'react/forbid-prop-types': 0,
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
