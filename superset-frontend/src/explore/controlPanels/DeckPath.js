@@ -24,6 +24,7 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
+  lineColumn,
 } from './Shared_DeckGL';
 
 export default {
@@ -33,7 +34,7 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['line_column', 'line_type'],
+        [lineColumn, 'line_type'],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],

@@ -1307,16 +1307,6 @@ export const controls = {
     controlName: 'TimeSeriesColumnControl',
   },
 
-  line_column: {
-    type: 'SelectControl',
-    label: t('Lines column'),
-    default: null,
-    description: t('The database columns that contains lines information'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-    validators: [v.nonEmpty],
-  },
   line_type: {
     type: 'SelectControl',
     label: t('Lines encoding'),

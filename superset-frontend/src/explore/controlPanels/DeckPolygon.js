@@ -28,6 +28,7 @@ import {
   jsOnclickHref,
   legendFormat,
   legendPosition,
+  lineColumn,
 } from './Shared_DeckGL';
 
 export default {
@@ -37,7 +38,12 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['line_column', 'line_type'],
+        [
+          Object.assign({}, lineColumn, {
+            label: t('Polygon Column'),
+          }),
+          'line_type',
+        ],
         ['adhoc_filters'],
         ['metric', 'point_radius_fixed'],
         ['row_limit', null],
@@ -136,9 +142,6 @@ export default {
   controlOverrides: {
     metric: {
       validators: [],
-    },
-    line_column: {
-      label: t('Polygon Column'),
     },
     line_type: {
       label: t('Polygon Encoding'),

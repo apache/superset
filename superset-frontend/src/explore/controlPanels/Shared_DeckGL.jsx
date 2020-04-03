@@ -22,7 +22,8 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import ColumnOption from '../../components/ColumnOption';
-import { D3_FORMAT_OPTIONS } from '../controls';
+import { D3_FORMAT_OPTIONS, columnChoices } from '../controls';
+import { nonEmpty } from '../validators';
 
 const timeColumnOption = {
   verbose_name: 'Time',
@@ -214,5 +215,19 @@ export const legendPosition = {
       ['br', 'Bottom right'],
     ],
     renderTrigger: true,
+  },
+};
+
+export const lineColumn = {
+  name: 'line_column',
+  config: {
+    type: 'SelectControl',
+    label: t('Lines column'),
+    default: null,
+    description: t('The database columns that contains lines information'),
+    mapStateToProps: state => ({
+      choices: columnChoices(state.datasource),
+    }),
+    validators: [nonEmpty],
   },
 };
