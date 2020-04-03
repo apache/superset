@@ -367,16 +367,6 @@ export const controls = {
     ),
   },
 
-  autozoom: {
-    type: 'CheckboxControl',
-    label: t('Auto Zoom'),
-    default: true,
-    renderTrigger: true,
-    description: t(
-      'When checked, the map will zoom to your data after each query',
-    ),
-  },
-
   bar_stacked: {
     type: 'CheckboxControl',
     label: t('Stacked Bars'),

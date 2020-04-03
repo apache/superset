@@ -52,7 +52,7 @@ export default {
       label: t('Map'),
       controlSetRows: [
         ['mapbox_style', 'viewport'],
-        // TODO ['autozoom', null],
+        // TODO [autozoom, null], // import { autozoom } from './Shared_DeckGL'
       ],
     },
     {

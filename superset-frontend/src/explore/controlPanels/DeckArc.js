@@ -20,7 +20,7 @@ import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { nonEmpty } from '../validators';
 import { columnChoices } from '../controls';
-import { filterNulls } from './Shared_DeckGL';
+import { filterNulls, autozoom } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -63,7 +63,7 @@ export default {
       label: t('Map'),
       controlSetRows: [
         ['mapbox_style', 'viewport'],
-        ['autozoom', null],
+        [autozoom, null],
       ],
     },
     {

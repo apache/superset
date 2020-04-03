@@ -1093,7 +1093,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `add_to_dash`                   | _N/A_ |       |
 | `all_columns_y`                 | _N/A_ |       |
 | `annotation_layers`             | _N/A_ |       |
-| `autozoom`                      | _N/A_ |       |
 | `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
 | `code`                          | _N/A_ |       |

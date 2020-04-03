@@ -30,3 +30,16 @@ export const filterNulls = {
     description: t('Whether to ignore locations that are null'),
   },
 };
+
+export const autozoom = {
+  name: 'autozoom',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Auto Zoom'),
+    default: true,
+    renderTrigger: true,
+    description: t(
+      'When checked, the map will zoom to your data after each query',
+    ),
+  },
+};

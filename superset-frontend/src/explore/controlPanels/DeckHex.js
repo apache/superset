@@ -21,7 +21,7 @@ import {
   formatSelectOptions,
   formatSelectOptionsForRange,
 } from '../../modules/utils';
-import { filterNulls } from './Shared_DeckGL';
+import { filterNulls, autozoom } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -39,7 +39,7 @@ export default {
       label: t('Map'),
       controlSetRows: [
         ['mapbox_style', 'viewport'],
-        ['color_picker', 'autozoom'],
+        ['color_picker', autozoom],
         ['grid_size', 'extruded'],
         [
           {
