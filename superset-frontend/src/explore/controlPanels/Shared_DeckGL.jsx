@@ -23,6 +23,7 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import ColumnOption from '../../components/ColumnOption';
 import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
+import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
 
 import { nonEmpty } from '../validators';
 
@@ -301,5 +302,19 @@ export const gridSize = {
     default: 20,
     isInt: true,
     description: t('Defines the grid size in pixels'),
+  },
+};
+
+export const viewport = {
+  name: 'viewport',
+  config: {
+    type: 'ViewportControl',
+    label: t('Viewport'),
+    renderTrigger: false,
+    description: t('Parameters related to the view and perspective on the map'),
+    // default is whole world mostly centered
+    default: DEFAULT_VIEWPORT,
+    // Viewport changes shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 };

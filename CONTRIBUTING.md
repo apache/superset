@@ -1167,5 +1167,4 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
-| `viewport`                      | _N/A_ |       |
 | `viewport_zoom`                 | _N/A_ |       |

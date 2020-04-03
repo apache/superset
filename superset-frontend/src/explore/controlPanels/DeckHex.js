@@ -30,6 +30,7 @@ import {
   jsOnclickHref,
   extruded,
   gridSize,
+  viewport,
 } from './Shared_DeckGL';
 
 export default {
@@ -47,7 +48,7 @@ export default {
     {
       label: t('Map'),
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
+        ['mapbox_style', viewport],
         ['color_picker', autozoom],
         [gridSize, extruded],
         [

@@ -70,7 +70,6 @@ import {
 } from '../modules/utils';
 import * as v from './validators';
 import ColumnOption from '../components/ColumnOption';
-import { DEFAULT_VIEWPORT } from '../explore/components/controls/ViewportControl';
 import { TIME_FILTER_LABELS } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -1158,17 +1157,6 @@ export const controls = {
     description: t(
       'Opacity of all clusters, points, and labels. Between 0 and 1.',
     ),
-  },
-
-  viewport: {
-    type: 'ViewportControl',
-    label: t('Viewport'),
-    renderTrigger: false,
-    description: t('Parameters related to the view and perspective on the map'),
-    // default is whole world mostly centered
-    default: DEFAULT_VIEWPORT,
-    // Viewport changes shouldn't prompt user to re-run query
-    dontRefreshOnChange: true,
   },
 
   viewport_zoom: {
