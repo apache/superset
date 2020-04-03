@@ -810,7 +810,7 @@ class DruidDatasource(Model, BaseDatasource):
             "year": "P1Y",
         }
 
-        granularity = {"type": "period"}  # type: Dict[str, Union[str, float]]
+        granularity: Dict[str, Union[str, float]] = {"type": "period"}
         if timezone:
             granularity["timeZone"] = timezone
 
