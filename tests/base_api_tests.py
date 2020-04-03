@@ -165,7 +165,7 @@ class ApiOwnersTestCaseMixin:
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "count": 2,
+            "count": 3,
             "result": [
                 {"text": "gamma user", "value": 2},
                 {"text": "gamma2 user", "value": 3},
