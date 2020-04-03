@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import { nonEmpty, integer } from '../validators';
 import { formatSelectOptions } from '../../modules/utils';
 import { columnChoices } from '../controls';
+import { filterNulls } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -43,7 +44,7 @@ export default {
           },
           null,
         ],
-        ['row_limit', 'filter_nulls'],
+        ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
     },

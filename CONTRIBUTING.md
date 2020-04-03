@@ -1113,7 +1113,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `filled`                        | _N/A_ |       |
 | `filter_immune_slice_fields`    | _N/A_ |       |
 | `filter_immune_slices`          | _N/A_ |       |
-| `filter_nulls`                  | _N/A_ |       |
 | `flt_col_0`                     | _N/A_ |       |
 | `flt_col_1`                     | _N/A_ |       |
 | `flt_eq_0`                      | _N/A_ |       |

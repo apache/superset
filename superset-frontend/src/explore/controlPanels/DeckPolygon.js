@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { formatSelectOptions } from '../../modules/utils';
+import { filterNulls } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -31,7 +32,7 @@ export default {
         ['adhoc_filters'],
         ['metric', 'point_radius_fixed'],
         ['row_limit', null],
-        ['reverse_long_lat', 'filter_nulls'],
+        ['reverse_long_lat', filterNulls],
       ],
     },
     {

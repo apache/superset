@@ -16,46 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { filterNulls } from './Shared_DeckGL';
 
-export default {
-  requiresTime: true,
-  controlPanelSections: [
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        ['line_column', 'line_type'],
-        ['row_limit', filterNulls],
-        ['adhoc_filters'],
-      ],
-    },
-    {
-      label: t('Map'),
-      expanded: true,
-      controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        ['color_picker', 'line_width'],
-        ['reverse_long_lat', 'autozoom'],
-      ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [
-        ['js_columns'],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
-      ],
-    },
-  ],
-  controlOverrides: {
-    line_type: {
-      choices: [
-        ['polyline', 'Polyline'],
-        ['json', 'JSON'],
-      ],
-    },
+// These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
+
+import { t } from '@superset-ui/translation';
+
+export const filterNulls = {
+  name: 'filter_nulls',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Ignore null locations'),
+    default: true,
+    description: t('Whether to ignore locations that are null'),
   },
 };

@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { nonEmpty } from '../validators';
 import { columnChoices } from '../controls';
+import { filterNulls } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -54,7 +55,7 @@ export default {
             },
           },
         ],
-        ['row_limit', 'filter_nulls'],
+        ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
     },

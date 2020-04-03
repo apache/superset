@@ -568,13 +568,6 @@ export const controls = {
     }),
   },
 
-  filter_nulls: {
-    type: 'CheckboxControl',
-    label: t('Ignore null locations'),
-    default: true,
-    description: t('Whether to ignore locations that are null'),
-  },
-
   polygon: {
     type: 'SelectControl',
     label: t('Polygon Column'),
