@@ -22,6 +22,7 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import ColumnOption from '../../components/ColumnOption';
+import { D3_FORMAT_OPTIONS } from '../controls';
 
 const timeColumnOption = {
   verbose_name: 'Time',
@@ -182,4 +183,17 @@ export const jsOnclickHref = {
     t('Javascript onClick href'),
     t('Define a function that returns a URL to navigate to when user clicks'),
   ),
+};
+
+export const legendFormat = {
+  name: 'legend_format',
+  config: {
+    label: t('Legend Format'),
+    description: t('Choose the format for legend values'),
+    type: 'SelectControl',
+    clearable: false,
+    default: D3_FORMAT_OPTIONS[0],
+    choices: D3_FORMAT_OPTIONS,
+    renderTrigger: true,
+  },
 };

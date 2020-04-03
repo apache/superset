@@ -79,7 +79,7 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 // input choices & options
-const D3_FORMAT_OPTIONS = [
+export const D3_FORMAT_OPTIONS = [
   ['SMART_NUMBER', 'Adaptative formating'],
   ['.1s', '.1s (12345.432 => 10k)'],
   ['.3s', '.3s (12345.432 => 12.3k)'],
