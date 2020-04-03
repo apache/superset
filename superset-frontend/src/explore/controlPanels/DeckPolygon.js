@@ -26,6 +26,7 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
+  legendFormat,
 } from './Shared_DeckGL';
 
 export default {
@@ -118,7 +119,7 @@ export default {
             },
           },
         ],
-        ['legend_position', 'legend_format'],
+        ['legend_position', legendFormat],
       ],
     },
     {
