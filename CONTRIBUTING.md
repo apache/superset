@@ -1115,7 +1115,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `flt_op_0`                      | _N/A_ |       |
 | `flt_op_1`                      | _N/A_ |       |
 | `goto_dash`                     | _N/A_ |       |
-| `grid_size`                     | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
 | `label`                         | _N/A_ |       |
