@@ -441,9 +441,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return df
 
     @classmethod
-    def df_to_sql(  # pylint: disable=invalid-name
-        cls, df: pd.DataFrame, **kwargs: Any
-    ) -> None:
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs: Any) -> None:
         """ Upload data from a Pandas DataFrame to a database. For
         regular engines this calls the DataFrame.to_sql() method. Can be
         overridden for engines that don't work well with to_sql(), e.g.

@@ -62,7 +62,7 @@ class Tag(Model, AuditMixinNullable):
     """A tag attached to an object (query, chart or dashboard)."""
 
     __tablename__ = "tag"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
 
@@ -72,7 +72,7 @@ class TaggedObject(Model, AuditMixinNullable):
     """An association between an object and a tag."""
 
     __tablename__ = "tagged_object"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectTypes))

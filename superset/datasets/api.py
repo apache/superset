@@ -345,7 +345,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>/refresh", methods=["PUT"])
     @protect()
     @safe
-    def refresh(self, pk: int) -> Response:  # pylint: disable=invalid-name
+    def refresh(self, pk: int) -> Response:
         """Refresh a Dataset
         ---
         put:

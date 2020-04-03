@@ -1254,7 +1254,7 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     """
 
     __tablename__ = "row_level_security_filters"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     roles = relationship(
         security_manager.role_model,
         secondary=RLSFilterRoles,

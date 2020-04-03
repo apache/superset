@@ -44,7 +44,7 @@ def check_ownership_and_item_exists(f):
     A Decorator that checks if an object exists and is owned by the current user
     """
 
-    def wraps(self, pk):  # pylint: disable=invalid-name
+    def wraps(self, pk):
         item = self.datamodel.get(
             pk, self._base_filters  # pylint: disable=protected-access
         )

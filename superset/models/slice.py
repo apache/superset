@@ -55,7 +55,7 @@ class Slice(
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))

@@ -376,7 +376,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
     def __init__(  # pylint: disable=too-many-arguments
         self, df, query, duration, status=QueryStatus.SUCCESS, error_message=None
     ):
-        self.df: pd.DataFrame = df  # pylint: disable=invalid-name
+        self.df: pd.DataFrame = df
         self.query: str = query
         self.duration: int = duration
         self.status: str = status

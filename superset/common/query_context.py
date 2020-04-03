@@ -113,7 +113,7 @@ class QueryContext:
         }
 
     @staticmethod
-    def df_metrics_to_num(  # pylint: disable=invalid-name,no-self-use
+    def df_metrics_to_num(  # pylint: disable=no-self-use
         df: pd.DataFrame, query_object: QueryObject
     ) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
@@ -122,9 +122,7 @@ class QueryContext:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
     @staticmethod
-    def get_data(  # pylint: disable=invalid-name,no-self-use
-        df: pd.DataFrame,
-    ) -> List[Dict]:
+    def get_data(df: pd.DataFrame,) -> List[Dict]:  # pylint: disable=no-self-use
         return df.to_dict(orient="records")
 
     def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
