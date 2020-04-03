@@ -756,15 +756,6 @@ export const controls = {
     ),
   },
 
-  grid_size: {
-    type: 'TextControl',
-    label: t('Grid Size'),
-    renderTrigger: true,
-    default: 20,
-    isInt: true,
-    description: t('Defines the grid size in pixels'),
-  },
-
   min_periods: {
     type: 'TextControl',
     label: t('Min Periods'),
@@ -956,14 +947,6 @@ export const controls = {
     description:
       'Whether to apply filters as they change, or wait for ' +
       'users to hit an [Apply] button',
-  },
-
-  extruded: {
-    type: 'CheckboxControl',
-    label: t('Extruded'),
-    renderTrigger: true,
-    default: true,
-    description: 'Whether to make the grid 3D',
   },
 
   show_brush: {

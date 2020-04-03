@@ -1106,7 +1106,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `entity`                        | _N/A_ |       |
 | `expanded_slices`               | _N/A_ |       |
 | `extra_filters`                 | _N/A_ |       |
-| `extruded`                      | _N/A_ |       |
 | `filter_immune_slice_fields`    | _N/A_ |       |
 | `filter_immune_slices`          | _N/A_ |       |
 | `flt_col_0`                     | _N/A_ |       |

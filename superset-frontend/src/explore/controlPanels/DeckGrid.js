@@ -25,6 +25,8 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
+  extruded,
+  gridSize,
 } from './Shared_DeckGL';
 
 export default {
@@ -44,7 +46,7 @@ export default {
       controlSetRows: [
         ['mapbox_style', 'viewport'],
         ['color_picker', autozoom],
-        ['grid_size', 'extruded'],
+        [gridSize, extruded],
       ],
     },
     {

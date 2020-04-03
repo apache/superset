@@ -33,6 +33,7 @@ import {
   strokeColorPicker,
   filled,
   stroked,
+  extruded,
 } from './Shared_DeckGL';
 
 export default {
@@ -68,7 +69,7 @@ export default {
       controlSetRows: [
         [fillColorPicker, strokeColorPicker],
         [filled, stroked],
-        ['extruded', 'multiplier'],
+        [extruded, 'multiplier'],
         ['line_width', null],
         [
           'linear_color_scheme',

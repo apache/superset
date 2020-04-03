@@ -26,6 +26,7 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
+  gridSize,
 } from './Shared_DeckGL';
 
 export default {
@@ -50,7 +51,7 @@ export default {
     {
       label: t('Grid'),
       expanded: true,
-      controlSetRows: [['grid_size', 'color_picker']],
+      controlSetRows: [[gridSize, 'color_picker']],
     },
     {
       label: t('Advanced'),

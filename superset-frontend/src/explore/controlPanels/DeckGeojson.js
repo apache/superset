@@ -30,6 +30,7 @@ import {
   strokeColorPicker,
   filled,
   stroked,
+  extruded,
 } from './Shared_DeckGL';
 
 export default {
@@ -70,7 +71,7 @@ export default {
       controlSetRows: [
         [fillColorPicker, strokeColorPicker],
         [filled, stroked],
-        ['extruded', null],
+        [extruded, null],
         [
           {
             name: 'point_radius_scale',

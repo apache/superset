@@ -280,3 +280,26 @@ export const stroked = {
     default: false,
   },
 };
+
+export const extruded = {
+  name: 'extruded',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Extruded'),
+    renderTrigger: true,
+    default: true,
+    description: 'Whether to make the grid 3D',
+  },
+};
+
+export const gridSize = {
+  name: 'grid_size',
+  config: {
+    type: 'TextControl',
+    label: t('Grid Size'),
+    renderTrigger: true,
+    default: 20,
+    isInt: true,
+    description: t('Defines the grid size in pixels'),
+  },
+};
