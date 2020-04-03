@@ -19,6 +19,8 @@ from flask_babel import lazy_gettext
 
 from superset import security_manager
 
+# pylint: disable=too-few-public-methods
+
 
 class FilterRelatedOwners(BaseFilter):
     """

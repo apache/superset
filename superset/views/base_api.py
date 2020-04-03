@@ -60,6 +60,8 @@ def check_ownership_and_item_exists(f):
 
 
 class RelatedFieldFilter:
+    # data class to specify what filter to use on a /related endpoint
+    # pylint: disable=too-few-public-methods
     def __init__(self, field_name: str, filter_class: Type[BaseFilter]):
         self.field_name = field_name
         self.filter_class = filter_class
@@ -133,7 +135,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
         filter_field = self.related_field_filters.get(column_name)
-        if type(filter_field) is str:
+        if isinstance(filter_field, str):
             filter_field = RelatedFieldFilter(cast(str, filter_field), FilterStartsWith)
         filter_field = cast(RelatedFieldFilter, filter_field)
         search_columns = [filter_field.field_name] if filter_field else None
