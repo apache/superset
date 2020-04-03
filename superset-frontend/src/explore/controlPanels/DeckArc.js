@@ -18,9 +18,10 @@
  */
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
-import { nonEmpty } from '../validators';
+import { nonEmpty, integer } from '../validators';
 import { columnChoices, PRIMARY_COLOR } from '../controls';
 import { filterNulls, autozoom, dimension } from './Shared_DeckGL';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   requiresTime: true,
@@ -92,7 +93,21 @@ export default {
           'color_scheme',
           'label_colors',
         ],
-        ['stroke_width', 'legend_position'],
+        [
+          {
+            name: 'stroke_width',
+            color: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Stroke Width'),
+              validators: [integer],
+              default: null,
+              renderTrigger: true,
+              choices: formatSelectOptions([1, 2, 3, 4, 5]),
+            },
+          },
+          'legend_position',
+        ],
         ['legend_format', null],
       ],
     },

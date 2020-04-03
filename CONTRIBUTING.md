@@ -1171,7 +1171,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `slice_name`                    | _N/A_ |       |
 | `spatial`                       | _N/A_ |       |
 | `stroke_color_picker`           | _N/A_ |       |
-| `stroke_width`                  | _N/A_ |       |
 | `stroked`                       | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
