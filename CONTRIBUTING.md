@@ -1118,15 +1118,12 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `import_time`                   | _N/A_ |       |
 | `instant_filtering`             | _N/A_ |       |
 | `label`                         | _N/A_ |       |
-| `line_type`                     | _N/A_ |       |
-| `line_width`                    | _N/A_ |       |
 | `linear_color_scheme`           | _N/A_ |       |
 | `log_scale`                     | _N/A_ |       |
 | `mapbox_label`                  | _N/A_ |       |
 | `mapbox_style`                  | _N/A_ |       |
 | `markup_type`                   | _N/A_ |       |
 | `min_periods`                   | _N/A_ |       |
-| `multiplier`                    | _N/A_ |       |
 | `new_dashboard_name`            | _N/A_ |       |
 | `new_slice_name`                | _N/A_ |       |
 | `normalize_across`              | _N/A_ |       |

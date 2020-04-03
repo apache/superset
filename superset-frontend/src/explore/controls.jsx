@@ -726,15 +726,6 @@ export const controls = {
     ),
   },
 
-  multiplier: {
-    type: 'TextControl',
-    label: t('Multiplier'),
-    isFloat: true,
-    renderTrigger: true,
-    default: 1,
-    description: t('Factor to multiply the metric by'),
-  },
-
   rolling_periods: {
     type: 'TextControl',
     label: t('Periods'),
@@ -1236,28 +1227,6 @@ export const controls = {
     label: t('Time Series Columns'),
     validators: [v.nonEmpty],
     controlName: 'TimeSeriesColumnControl',
-  },
-
-  line_type: {
-    type: 'SelectControl',
-    label: t('Lines encoding'),
-    clearable: false,
-    default: 'json',
-    description: t('The encoding format of the lines'),
-    choices: [
-      ['polyline', 'Polyline'],
-      ['json', 'JSON'],
-      ['geohash', 'geohash (square)'],
-    ],
-  },
-
-  line_width: {
-    type: 'TextControl',
-    label: t('Line width'),
-    renderTrigger: true,
-    isInt: true,
-    default: 10,
-    description: t('The width of the lines'),
   },
 
   reverse_long_lat: {

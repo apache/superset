@@ -36,6 +36,9 @@ import {
   extruded,
   viewport,
   pointRadiusFixed,
+  multiplier,
+  lineWidth,
+  lineType,
 } from './Shared_DeckGL';
 
 export default {
@@ -49,10 +52,17 @@ export default {
           Object.assign({}, lineColumn, {
             label: t('Polygon Column'),
           }),
-          'line_type',
+          Object.assign({}, lineType, {
+            label: t('Polygon Encoding'),
+          }),
         ],
         ['adhoc_filters'],
-        ['metric', pointRadiusFixed],
+        [
+          'metric',
+          Object.assign({}, pointRadiusFixed, {
+            label: t('Elevation'),
+          }),
+        ],
         ['row_limit', null],
         ['reverse_long_lat', filterNulls],
       ],
@@ -71,8 +81,8 @@ export default {
       controlSetRows: [
         [fillColorPicker, strokeColorPicker],
         [filled, stroked],
-        [extruded, 'multiplier'],
-        ['line_width', null],
+        [extruded, multiplier],
+        [lineWidth, null],
         [
           'linear_color_scheme',
           {
@@ -149,12 +159,6 @@ export default {
   controlOverrides: {
     metric: {
       validators: [],
-    },
-    line_type: {
-      label: t('Polygon Encoding'),
-    },
-    point_radius_fixed: {
-      label: t('Elevation'),
     },
     time_grain_sqla: timeGrainSqlaAnimationOverrides,
   },

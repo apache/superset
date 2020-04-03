@@ -32,6 +32,7 @@ import {
   viewport,
   spatial,
   pointRadiusFixed,
+  multiplier,
 } from './Shared_DeckGL';
 
 export default {
@@ -123,7 +124,7 @@ export default {
             },
           },
         ],
-        ['multiplier', null],
+        [multiplier, null],
       ],
     },
     {

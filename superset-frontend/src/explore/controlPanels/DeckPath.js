@@ -26,6 +26,8 @@ import {
   jsOnclickHref,
   lineColumn,
   viewport,
+  lineWidth,
+  lineType,
 } from './Shared_DeckGL';
 
 export default {
@@ -35,7 +37,15 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [lineColumn, 'line_type'],
+        [
+          lineColumn,
+          Object.assign({}, lineType, {
+            choices: [
+              ['polyline', 'Polyline'],
+              ['json', 'JSON'],
+            ],
+          }),
+        ],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
@@ -45,7 +55,7 @@ export default {
       expanded: true,
       controlSetRows: [
         ['mapbox_style', viewport],
-        ['color_picker', 'line_width'],
+        ['color_picker', lineWidth],
         ['reverse_long_lat', autozoom],
       ],
     },
@@ -59,12 +69,4 @@ export default {
       ],
     },
   ],
-  controlOverrides: {
-    line_type: {
-      choices: [
-        ['polyline', 'Polyline'],
-        ['json', 'JSON'],
-      ],
-    },
-  },
 };

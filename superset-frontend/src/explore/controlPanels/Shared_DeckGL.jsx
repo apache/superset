@@ -344,3 +344,31 @@ export const pointRadiusFixed = {
     }),
   },
 };
+
+export const multiplier = {
+  name: 'multiplier',
+  config: {
+    type: 'TextControl',
+    label: t('Multiplier'),
+    isFloat: true,
+    renderTrigger: true,
+    default: 1,
+    description: t('Factor to multiply the metric by'),
+  },
+};
+
+export const lineType = {
+  name: 'line_type',
+  config: {
+    type: 'SelectControl',
+    label: t('Lines encoding'),
+    clearable: false,
+    default: 'json',
+    description: t('The encoding format of the lines'),
+    choices: [
+      ['polyline', 'Polyline'],
+      ['json', 'JSON'],
+      ['geohash', 'geohash (square)'],
+    ],
+  },
+};
