@@ -76,7 +76,7 @@ import { TIME_FILTER_LABELS } from './constants';
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
-const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
+export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
@@ -272,14 +272,6 @@ export const controls = {
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
-    type: 'ColorPickerControl',
-    default: PRIMARY_COLOR,
-    renderTrigger: true,
-  },
-
-  target_color_picker: {
-    label: t('Target Color'),
-    description: t('Color of the target location'),
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
     renderTrigger: true,
@@ -495,13 +487,6 @@ export const controls = {
   },
 
   groupby: groupByControl,
-  dimension: {
-    ...groupByControl,
-    label: t('Dimension'),
-    description: t('Select a dimension'),
-    multi: false,
-    default: null,
-  },
 
   columns: {
     ...groupByControl,

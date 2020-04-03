@@ -19,7 +19,10 @@
 
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
+import React from 'react';
 import { t } from '@superset-ui/translation';
+import ColumnOption from '../../components/ColumnOption';
+import { PRIMARY_COLOR } from '../controls';
 
 export const filterNulls = {
   name: 'filter_nulls',
@@ -41,5 +44,46 @@ export const autozoom = {
     description: t(
       'When checked, the map will zoom to your data after each query',
     ),
+  },
+};
+
+export const dimension = {
+  name: 'dimension',
+  config: {
+    type: 'SelectControl',
+    multi: false,
+    freeForm: true,
+    label: t('Dimension'),
+    default: null,
+    includeTime: false,
+    description: t('Select a dimension'),
+    optionRenderer: c => <ColumnOption column={c} showType />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
+    allowAll: true,
+    filterOption: (opt, text) =>
+      (opt.column_name &&
+        opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
+      (opt.verbose_name &&
+        opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
+    promptTextCreator: label => label,
+    mapStateToProps: (state, control) => {
+      const newState = {};
+      if (state.datasource) {
+        newState.options = state.datasource.columns.filter(c => c.groupby);
+        if (control && control.includeTime) {
+          newState.options.push({
+            verbose_name: 'Time',
+            column_name: '__timestamp',
+            description: t(
+              'A reference to the [Time] configuration, taking granularity into ' +
+                'account',
+            ),
+          });
+        }
+      }
+      return newState;
+    },
+    commaChoosesOption: false,
   },
 };

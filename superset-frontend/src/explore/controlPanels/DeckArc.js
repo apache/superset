@@ -19,8 +19,8 @@
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { nonEmpty } from '../validators';
-import { columnChoices } from '../controls';
-import { filterNulls, autozoom } from './Shared_DeckGL';
+import { columnChoices, PRIMARY_COLOR } from '../controls';
+import { filterNulls, autozoom, dimension } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -69,8 +69,29 @@ export default {
     {
       label: t('Arc'),
       controlSetRows: [
-        ['color_picker', 'target_color_picker'],
-        ['dimension', 'color_scheme', 'label_colors'],
+        [
+          'color_picker',
+          {
+            name: 'target_color_picker',
+            config: {
+              label: t('Target Color'),
+              description: t('Color of the target location'),
+              type: 'ColorPickerControl',
+              default: PRIMARY_COLOR,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          Object.assign({}, dimension, {
+            label: t('Categorical Color'),
+            description: t(
+              'Pick a dimension from which categorical colors are defined',
+            ),
+          }),
+          'color_scheme',
+          'label_colors',
+        ],
         ['stroke_width', 'legend_position'],
         ['legend_format', null],
       ],
@@ -86,12 +107,6 @@ export default {
     },
   ],
   controlOverrides: {
-    dimension: {
-      label: t('Categorical Color'),
-      description: t(
-        'Pick a dimension from which categorical colors are defined',
-      ),
-    },
     size: {
       validators: [],
     },

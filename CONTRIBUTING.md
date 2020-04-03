@@ -1103,7 +1103,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `country_fieldtype`             | _N/A_ |       |
 | `date_filter`                   | _N/A_ |       |
 | `default_filters`               | _N/A_ |       |
-| `dimension`                     | _N/A_ |       |
 | `entity`                        | _N/A_ |       |
 | `expanded_slices`               | _N/A_ |       |
 | `extra_filters`                 | _N/A_ |       |
