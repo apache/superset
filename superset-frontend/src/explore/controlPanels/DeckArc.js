@@ -95,12 +95,13 @@ export default {
           },
         ],
         [
-          Object.assign({}, dimension, {
+          {
+            ...dimension,
             label: t('Categorical Color'),
             description: t(
               'Pick a dimension from which categorical colors are defined',
             ),
-          }),
+          },
           'color_scheme',
           'label_colors',
         ],

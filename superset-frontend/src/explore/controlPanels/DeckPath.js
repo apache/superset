@@ -40,12 +40,13 @@ export default {
       controlSetRows: [
         [
           lineColumn,
-          Object.assign({}, lineType, {
+          {
+            ...lineType,
             choices: [
               ['polyline', 'Polyline'],
               ['json', 'JSON'],
             ],
-          }),
+          },
         ],
         ['row_limit', filterNulls],
         ['adhoc_filters'],

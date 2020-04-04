@@ -50,20 +50,11 @@ export default {
       expanded: true,
       controlSetRows: [
         [
-          Object.assign({}, lineColumn, {
-            label: t('Polygon Column'),
-          }),
-          Object.assign({}, lineType, {
-            label: t('Polygon Encoding'),
-          }),
+          { ...lineColumn, label: t('Polygon Column') },
+          { ...lineType, label: t('Polygon Encoding') },
         ],
         ['adhoc_filters'],
-        [
-          'metric',
-          Object.assign({}, pointRadiusFixed, {
-            label: t('Elevation'),
-          }),
-        ],
+        ['metric', { ...pointRadiusFixed, label: t('Elevation') }],
         ['row_limit', null],
         [reverseLongLat, filterNulls],
       ],
