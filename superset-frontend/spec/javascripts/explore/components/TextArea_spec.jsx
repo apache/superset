@@ -48,7 +48,7 @@ describe('SelectControl', () => {
   });
 
   it('renders a AceEditor when language is specified', () => {
-    const props = Object.assign({}, defaultProps);
+    const props = { ...defaultProps };
     props.language = 'markdown';
     wrapper = shallow(<TextAreaControl {...props} />);
     expect(wrapper.find(FormControl)).toHaveLength(0);

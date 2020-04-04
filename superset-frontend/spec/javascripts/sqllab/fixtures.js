@@ -19,7 +19,7 @@
 import sinon from 'sinon';
 import * as actions from '../../../src/SqlLab/actions/sqlLab';
 
-export const mockedActions = sinon.stub(Object.assign({}, actions));
+export const mockedActions = sinon.stub({ ...actions });
 
 export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
 export const table = {
@@ -388,7 +388,7 @@ export const runningQuery = {
   state: 'running',
   startDttm: Date.now() - 500,
 };
-export const cachedQuery = Object.assign({}, queries[0], { cached: true });
+export const cachedQuery = { ...queries[0], cached: true };
 
 export const initialState = {
   sqlLab: {
