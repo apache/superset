@@ -1875,8 +1875,8 @@ class WorldMapViz(BaseViz):
         for row in d:
             country = None
             if isinstance(row["country"], str):
-                country = countries.get(fd.get("country_fieldtype"), row["country"])
-
+                if "country_fieldtype" in fd:
+                    country = countries.get(fd["country_fieldtype"], row["country"])
             if country:
                 row["country"] = country["cca3"]
                 row["latitude"] = country["lat"]

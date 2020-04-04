@@ -24,7 +24,7 @@ from .helpers import merge_slice, misc_dash_slices
 from .world_bank import load_world_bank_health_n_pop
 
 
-def load_multi_line(only_metadata=False):
+def load_multi_line(only_metadata: bool = False) -> None:
     load_world_bank_health_n_pop(only_metadata)
     load_birth_names(only_metadata)
     ids = [
