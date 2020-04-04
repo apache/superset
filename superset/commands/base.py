@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC, abstractmethod
+from typing import Optional
+
+from flask_appbuilder.models.sqla import Model
 
 
 class BaseCommand(ABC):
@@ -23,7 +26,7 @@ class BaseCommand(ABC):
     """
 
     @abstractmethod
-    def run(self):
+    def run(self) -> Optional[Model]:
         """
         Run executes the command. Can raise command exceptions
         :raises: CommandException
