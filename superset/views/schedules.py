@@ -48,7 +48,7 @@ class EmailScheduleView(
 ):  # pylint: disable=too-many-ancestors
     include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
-    schedule_type: Optional[Type] = None
+    schedule_type: Optional[str] = None
     schedule_type_model: Optional[Type] = None
 
     page_size = 20
