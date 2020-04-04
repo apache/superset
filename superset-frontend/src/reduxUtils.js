@@ -22,20 +22,20 @@ import persistState from 'redux-localstorage';
 import { isEqual } from 'lodash';
 
 export function addToObject(state, arrKey, obj) {
-  const newObject = Object.assign({}, state[arrKey]);
-  const copiedObject = Object.assign({}, obj);
+  const newObject = { ...state[arrKey] };
+  const copiedObject = { ...obj };
 
   if (!copiedObject.id) {
     copiedObject.id = shortid.generate();
   }
   newObject[copiedObject.id] = copiedObject;
-  return Object.assign({}, state, { [arrKey]: newObject });
+  return { ...state, [arrKey]: newObject };
 }
 
 export function alterInObject(state, arrKey, obj, alterations) {
-  const newObject = Object.assign({}, state[arrKey]);
-  newObject[obj.id] = Object.assign({}, newObject[obj.id], alterations);
-  return Object.assign({}, state, { [arrKey]: newObject });
+  const newObject = { ...state[arrKey] };
+  newObject[obj.id] = { ...newObject[obj.id], ...alterations };
+  return { ...state, [arrKey]: newObject };
 }
 
 export function alterInArr(state, arrKey, obj, alterations, idKey = 'id') {
@@ -44,12 +44,12 @@ export function alterInArr(state, arrKey, obj, alterations, idKey = 'id') {
   const newArr = [];
   state[arrKey].forEach(arrItem => {
     if (obj[idKey] === arrItem[idKey]) {
-      newArr.push(Object.assign({}, arrItem, alterations));
+      newArr.push({ ...arrItem, ...alterations });
     } else {
       newArr.push(arrItem);
     }
   });
-  return Object.assign({}, state, { [arrKey]: newArr });
+  return { ...state, [arrKey]: newArr };
 }
 
 export function removeFromArr(state, arrKey, obj, idKey = 'id') {
@@ -59,7 +59,7 @@ export function removeFromArr(state, arrKey, obj, idKey = 'id') {
       newArr.push(arrItem);
     }
   });
-  return Object.assign({}, state, { [arrKey]: newArr });
+  return { ...state, [arrKey]: newArr };
 }
 
 export function getFromArr(arr, id) {
@@ -73,7 +73,7 @@ export function getFromArr(arr, id) {
 }
 
 export function addToArr(state, arrKey, obj, prepend = false) {
-  const newObj = Object.assign({}, obj);
+  const newObj = { ...obj };
   if (!newObj.id) {
     newObj.id = shortid.generate();
   }
@@ -83,7 +83,7 @@ export function addToArr(state, arrKey, obj, prepend = false) {
   } else {
     newState[arrKey] = [...state[arrKey], newObj];
   }
-  return Object.assign({}, state, newState);
+  return { ...state, ...newState };
 }
 
 export function extendArr(state, arrKey, obj, prepend = false) {
@@ -100,7 +100,7 @@ export function extendArr(state, arrKey, obj, prepend = false) {
   } else {
     newState[arrKey] = [...state[arrKey], ...newObj];
   }
-  return Object.assign({}, state, newState);
+  return { ...state, ...newState };
 }
 
 export function initEnhancer(persist = true, persistConfig = {}) {

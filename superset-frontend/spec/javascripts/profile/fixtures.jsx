@@ -43,4 +43,4 @@ export const user = {
     database_access: ['db1', 'db2', 'db3'],
   },
 };
-export const userNoPerms = Object.assign({}, user, { permissions: {} });
+export const userNoPerms = { ...user, permissions: {} };

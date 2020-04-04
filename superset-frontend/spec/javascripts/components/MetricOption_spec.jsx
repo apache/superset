@@ -40,7 +40,7 @@ describe('MetricOption', () => {
   const factory = o => <MetricOption {...o} />;
   beforeEach(() => {
     wrapper = shallow(factory(defaultProps));
-    props = Object.assign({}, defaultProps);
+    props = { ...defaultProps };
   });
   it('is a valid element', () => {
     expect(React.isValidElement(<MetricOption {...defaultProps} />)).toBe(true);

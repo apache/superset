@@ -30,7 +30,7 @@ describe('Checkbox', () => {
 
   let wrapper;
   const factory = o => {
-    const props = Object.assign({}, defaultProps, o);
+    const props = { ...defaultProps, ...o };
     return shallow(<Checkbox {...props} />);
   };
   beforeEach(() => {

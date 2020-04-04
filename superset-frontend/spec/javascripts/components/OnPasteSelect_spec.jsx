@@ -54,9 +54,9 @@ describe('OnPasteSelect', () => {
   let evt;
   let expected;
   beforeEach(() => {
-    props = Object.assign({}, defaultProps);
+    props = { ...defaultProps };
     wrapper = shallow(<OnPasteSelect {...props} />);
-    evt = Object.assign({}, defaultEvt);
+    evt = { ...defaultEvt };
   });
 
   it('renders the supplied selectWrap component', () => {

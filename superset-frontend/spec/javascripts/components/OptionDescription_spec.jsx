@@ -34,7 +34,7 @@ describe('OptionDescription', () => {
   let props;
 
   beforeEach(() => {
-    props = { option: Object.assign({}, defaultProps.option) };
+    props = { option: { ...defaultProps.option } };
     wrapper = shallow(<OptionDescription {...props} />);
   });
 
