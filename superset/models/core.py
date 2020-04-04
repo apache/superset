@@ -460,7 +460,7 @@ class Database(
         self,
         schema: str,
         cache: bool = False,
-        cache_timeout: int = None,
+        cache_timeout: Optional[int] = None,
         force: bool = False,
     ) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments.
@@ -492,7 +492,7 @@ class Database(
         self,
         schema: str,
         cache: bool = False,
-        cache_timeout: int = None,
+        cache_timeout: Optional[int] = None,
         force: bool = False,
     ) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments.
