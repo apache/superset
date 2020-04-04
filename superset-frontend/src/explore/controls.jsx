@@ -513,10 +513,11 @@ export const controls = {
     default: null,
   },
 
-  columns: Object.assign({}, groupByControl, {
+  columns: {
+    ...groupByControl,
     label: t('Columns'),
     description: t('One or many controls to pivot as columns'),
-  }),
+  },
 
   all_columns: {
     type: 'SelectControl',

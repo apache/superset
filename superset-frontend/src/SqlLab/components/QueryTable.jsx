@@ -94,7 +94,7 @@ class QueryTable extends React.PureComponent {
   render() {
     const data = this.props.queries
       .map(query => {
-        const q = Object.assign({}, query);
+        const q = { ...query };
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
         }
