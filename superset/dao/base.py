@@ -112,7 +112,7 @@ class BaseDAO:
         return model
 
     @classmethod
-    def delete(cls, model: Model, commit=True):
+    def delete(cls, model: Model, commit: bool = True) -> Model:
         """
         Generic delete a model
         :raises: DAOCreateFailedError
