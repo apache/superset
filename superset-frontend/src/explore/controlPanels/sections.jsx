@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { formatSelectOptions } from '../../modules/utils';
 
 export const druidTimeSeries = {
   label: t('Time'),
@@ -78,10 +79,65 @@ export const NVD3TimeSeries = [
       [<h1 className="section-header">{t('Rolling Window')}</h1>],
       ['rolling_type', 'rolling_periods', 'min_periods'],
       [<h1 className="section-header">{t('Time Comparison')}</h1>],
-      ['time_compare', 'comparison_type'],
+      [
+        {
+          name: 'time_compare',
+          config: {
+            type: 'SelectControl',
+            multi: true,
+            freeForm: true,
+            label: t('Time Shift'),
+            choices: formatSelectOptions([
+              '1 day',
+              '1 week',
+              '28 days',
+              '30 days',
+              '52 weeks',
+              '1 year',
+            ]),
+            description: t(
+              'Overlay one or more timeseries from a ' +
+                'relative time period. Expects relative time deltas ' +
+                'in natural language (example:  24 hours, 7 days, ' +
+                '56 weeks, 365 days)',
+            ),
+          },
+        },
+        'comparison_type',
+      ],
       [<h1 className="section-header">{t('Python Functions')}</h1>],
       [<h2 className="section-header">pandas.resample</h2>],
-      ['resample_rule', 'resample_method'],
+      [
+        {
+          name: 'resample_rule',
+          config: {
+            type: 'SelectControl',
+            freeForm: true,
+            label: t('Rule'),
+            default: null,
+            choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
+            description: t('Pandas resample rule'),
+          },
+        },
+        {
+          name: 'resample_method',
+          config: {
+            type: 'SelectControl',
+            freeForm: true,
+            label: t('Method'),
+            default: null,
+            choices: formatSelectOptions([
+              'asfreq',
+              'bfill',
+              'ffill',
+              'median',
+              'mean',
+              'sum',
+            ]),
+            description: t('Pandas resample method'),
+          },
+        },
+      ],
     ],
   },
 ];

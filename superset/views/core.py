@@ -188,7 +188,10 @@ def check_datasource_perms(
     except SupersetException as e:
         raise SupersetSecurityException(str(e))
 
-    viz_obj = get_viz(  # type: ignore
+    if datasource_type is None:
+        raise SupersetSecurityException("Could not determine datasource type")
+
+    viz_obj = get_viz(
         datasource_type=datasource_type,
         datasource_id=datasource_id,
         form_data=form_data,
@@ -1369,16 +1372,8 @@ class Superset(BaseSupersetView):
                 conn.scalar(select([1]))
                 return json_success('"OK"')
         except CertificateException as e:
-            logger.info("Invalid certificate %s", e)
-            return json_error_response(
-                _(
-                    "Invalid certificate. "
-                    "Please make sure the certificate begins with\n"
-                    "-----BEGIN CERTIFICATE-----\n"
-                    "and ends with \n"
-                    "-----END CERTIFICATE-----"
-                )
-            )
+            logger.info(e.message)
+            return json_error_response(e.message)
         except NoSuchModuleError as e:
             logger.info("Invalid driver %s", e)
             driver_name = make_url(uri).drivername

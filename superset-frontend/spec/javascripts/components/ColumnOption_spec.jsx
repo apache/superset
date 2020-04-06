@@ -39,7 +39,7 @@ describe('ColumnOption', () => {
   const factory = o => <ColumnOption {...o} />;
   beforeEach(() => {
     wrapper = shallow(factory(defaultProps));
-    props = Object.assign({}, defaultProps);
+    props = { ...defaultProps };
   });
   it('is a valid element', () => {
     expect(React.isValidElement(<ColumnOption {...defaultProps} />)).toBe(true);

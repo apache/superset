@@ -29,6 +29,7 @@ import superset.models.core as models
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
+from superset.exceptions import CertificateException
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
@@ -50,6 +51,17 @@ def sqlalchemy_uri_form_validator(_, field: StringField) -> None:
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
 
 
+def certificate_form_validator(_, field: StringField) -> None:
+    """
+        Check if user has submitted a valid SSL certificate
+    """
+    if field.data:
+        try:
+            utils.parse_ssl_cert(field.data)
+        except CertificateException as ex:
+            raise ValidationError(ex.message)
+
+
 def upload_stream_write(form_file_field: "FileStorage", path: str):
     chunk_size = app.config["UPLOAD_CHUNK_SIZE"]
     with open(path, "bw") as file_description:
@@ -68,7 +80,10 @@ class DatabaseView(
 
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
-    validators_columns = {"sqlalchemy_uri": [sqlalchemy_uri_form_validator]}
+    validators_columns = {
+        "sqlalchemy_uri": [sqlalchemy_uri_form_validator],
+        "server_cert": [certificate_form_validator],
+    }
 
     yaml_dict_key = "databases"
 

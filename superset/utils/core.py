@@ -51,7 +51,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends.openssl.x509 import _Certificate
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import current_app, flash, Flask, g, Markup, render_template
+from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
@@ -1057,15 +1057,11 @@ def get_since_until(
         else:
             rel, num, grain = time_range.split()
             if rel == "Last":
-                since = relative_start - relativedelta(  # type: ignore
-                    **{grain: int(num)}
-                )
+                since = relative_start - relativedelta(**{grain: int(num)})  # type: ignore
                 until = relative_end
             else:  # rel == 'Next'
                 since = relative_start
-                until = relative_end + relativedelta(  # type: ignore
-                    **{grain: int(num)}
-                )
+                until = relative_end + relativedelta(**{grain: int(num)})  # type: ignore
     else:
         since = since or ""
         if since:
@@ -1184,7 +1180,7 @@ def parse_ssl_cert(certificate: str) -> _Certificate:
         return x509.load_pem_x509_certificate(
             certificate.encode("utf-8"), default_backend()
         )
-    except ValueError as e:
+    except ValueError:
         raise CertificateException("Invalid certificate")
 
 
@@ -1224,9 +1220,10 @@ class DatasourceName(NamedTuple):
     schema: str
 
 
-def get_stacktrace():
+def get_stacktrace() -> Optional[str]:
     if current_app.config["SHOW_STACKTRACE"]:
         return traceback.format_exc()
+    return None
 
 
 def split(

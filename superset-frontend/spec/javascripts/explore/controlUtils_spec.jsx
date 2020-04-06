@@ -57,6 +57,23 @@ describe('controlUtils', () => {
                   },
                 },
               ],
+              [
+                {
+                  name: 'stacked_style',
+                  config: {
+                    type: 'SelectControl',
+                    label: t('Stacked Style'),
+                    renderTrigger: true,
+                    choices: [
+                      ['stack', 'stack'],
+                      ['stream', 'stream'],
+                      ['expand', 'expand'],
+                    ],
+                    default: 'stack',
+                    description: '',
+                  },
+                },
+              ],
             ],
           },
         ],
@@ -148,10 +165,15 @@ describe('controlUtils', () => {
     });
 
     it('removes missing/invalid choice', () => {
-      let control = getControlState('stacked_style', 'area', state, 'stack');
+      let control = getControlState(
+        'stacked_style',
+        'test-chart',
+        state,
+        'stack',
+      );
       expect(control.value).toBe('stack');
 
-      control = getControlState('stacked_style', 'area', state, 'FOO');
+      control = getControlState('stacked_style', 'test-chart', state, 'FOO');
       expect(control.value).toBe(null);
     });
 

@@ -810,7 +810,7 @@ class DruidDatasource(Model, BaseDatasource):
             "year": "P1Y",
         }
 
-        granularity = {"type": "period"}
+        granularity: Dict[str, Union[str, float]] = {"type": "period"}
         if timezone:
             granularity["timeZone"] = timezone
 
@@ -831,7 +831,7 @@ class DruidDatasource(Model, BaseDatasource):
             granularity["period"] = period_name
         else:
             granularity["type"] = "duration"
-            granularity["duration"] = (  # type: ignore
+            granularity["duration"] = (
                 utils.parse_human_timedelta(period_name).total_seconds() * 1000
             )
         return granularity
@@ -941,23 +941,24 @@ class DruidDatasource(Model, BaseDatasource):
         adhoc_agg_configs = []
         postagg_names = []
         for metric in metrics:
-            if utils.is_adhoc_metric(metric):
+            if isinstance(metric, dict) and utils.is_adhoc_metric(metric):
                 adhoc_agg_configs.append(metric)
-            elif metrics_dict[metric].metric_type != POST_AGG_TYPE:  # type: ignore
-                saved_agg_names.add(metric)
-            else:
-                postagg_names.append(metric)
+            elif isinstance(metric, str):
+                if metrics_dict[metric].metric_type != POST_AGG_TYPE:
+                    saved_agg_names.add(metric)
+                else:
+                    postagg_names.append(metric)
         # Create the post aggregations, maintain order since postaggs
         # may depend on previous ones
         post_aggs: "OrderedDict[str, Postaggregator]" = OrderedDict()
         visited_postaggs = set()
         for postagg_name in postagg_names:
-            postagg = metrics_dict[postagg_name]  # type: ignore
+            postagg = metrics_dict[postagg_name]
             visited_postaggs.add(postagg_name)
             DruidDatasource.resolve_postagg(
                 postagg, post_aggs, saved_agg_names, visited_postaggs, metrics_dict
             )
-        aggs = DruidDatasource.get_aggregations(  # type: ignore
+        aggs = DruidDatasource.get_aggregations(
             metrics_dict, saved_agg_names, adhoc_agg_configs
         )
         return aggs, post_aggs

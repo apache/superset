@@ -122,7 +122,7 @@ class QueryObject:
         }
         return query_object_dict
 
-    def cache_key(self, **extra) -> str:
+    def cache_key(self, **extra: Any) -> str:
         """
         The cache key is made out of the key/values from to_dict(), plus any
         other key/values in `extra`

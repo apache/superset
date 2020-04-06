@@ -29,7 +29,24 @@ export default {
       expanded: true,
       controlSetRows: [
         ['show_brush', 'show_legend'],
-        ['line_interpolation', 'stacked_style'],
+        [
+          'line_interpolation',
+          {
+            name: 'stacked_style',
+            config: {
+              type: 'SelectControl',
+              label: t('Stacked Style'),
+              renderTrigger: true,
+              choices: [
+                ['stack', 'stack'],
+                ['stream', 'stream'],
+                ['expand', 'expand'],
+              ],
+              default: 'stack',
+              description: '',
+            },
+          },
+        ],
         ['color_scheme', 'label_colors'],
         ['rich_tooltip', 'show_controls'],
       ],

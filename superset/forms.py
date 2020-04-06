@@ -23,7 +23,7 @@ from wtforms import Field
 
 class CommaSeparatedListField(Field):
     widget = BS3TextFieldWidget()
-    data = []  # type: List[str]
+    data: List[str] = []
 
     def _value(self):
         if self.data:

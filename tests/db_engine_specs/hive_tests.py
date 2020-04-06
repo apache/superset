@@ -58,7 +58,7 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(0, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_1_map_40_progress(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         log = """
             17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
@@ -71,7 +71,7 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(10, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_1_map_80_reduce_40_progress(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         log = """
             17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
@@ -85,7 +85,7 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(30, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_2_stages_progress(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         log = """
             17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
@@ -101,7 +101,7 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(12, HiveEngineSpec.progress(log))
 
     def test_job_2_launched_stage_2_stages_progress(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         log = """
             17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
@@ -145,7 +145,7 @@ class HiveTests(DbEngineSpecTestCase):
         )
 
     def test_hive_get_view_names_return_empty_list(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         self.assertEqual(
             [], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)

@@ -65,116 +65,93 @@ const strokeLinejoin = 'round';
 
 // Create the theme
 const theme = {
-  area: assign(
-    {
-      style: {
-        data: {
-          fill: charcoal,
-        },
-        labels: baseLabelStyles,
+  area: {
+    style: {
+      data: {
+        fill: charcoal,
       },
+      labels: baseLabelStyles,
     },
-    baseProps,
-  ),
-  axis: assign(
-    {
-      style: {
-        axis: {
-          fill: 'none',
-          stroke: AXIS_LINE_GRAY,
-          strokeWidth: 1,
-          strokeLinecap,
-          strokeLinejoin,
-        },
-        axisLabel: assign({}, baseLabelStyles, {
-          padding: 25,
-        }),
-        grid: {
-          fill: 'none',
-          stroke: 'transparent',
-        },
-        ticks: {
-          fill: 'none',
-          padding: 10,
-          size: 1,
-          stroke: 'transparent',
-        },
-        tickLabels: baseLabelStyles,
+    ...baseProps,
+  },
+  axis: {
+    style: {
+      axis: {
+        fill: 'none',
+        stroke: AXIS_LINE_GRAY,
+        strokeWidth: 1,
+        strokeLinecap,
+        strokeLinejoin,
       },
+      axisLabel: { ...baseLabelStyles, padding: 25 },
+      grid: {
+        fill: 'none',
+        stroke: 'transparent',
+      },
+      ticks: {
+        fill: 'none',
+        padding: 10,
+        size: 1,
+        stroke: 'transparent',
+      },
+      tickLabels: baseLabelStyles,
     },
-    baseProps,
-  ),
-  bar: assign(
-    {
-      style: {
-        data: {
-          fill: A11Y_BABU,
-          padding: 10,
-          stroke: 'transparent',
-          strokeWidth: 0,
-          width: 8,
-        },
-        labels: baseLabelStyles,
+    ...baseProps,
+  },
+  bar: {
+    style: {
+      data: {
+        fill: A11Y_BABU,
+        padding: 10,
+        stroke: 'transparent',
+        strokeWidth: 0,
+        width: 8,
       },
+      labels: baseLabelStyles,
     },
-    baseProps,
-  ),
-  candlestick: assign(
-    {
-      style: {
-        data: {
-          stroke: A11Y_BABU,
-          strokeWidth: 1,
-        },
-        labels: assign({}, baseLabelStyles, {
-          padding: 25,
-          textAnchor: 'end',
-        }),
+    ...baseProps,
+  },
+  candlestick: {
+    style: {
+      data: {
+        stroke: A11Y_BABU,
+        strokeWidth: 1,
       },
-      candleColors: {
-        positive: '#ffffff',
-        negative: charcoal,
-      },
+      labels: { ...baseLabelStyles, padding: 25, textAnchor: 'end' },
     },
-    baseProps,
-  ),
+    candleColors: {
+      positive: '#ffffff',
+      negative: charcoal,
+    },
+    ...baseProps,
+  },
   chart: baseProps,
-  errorbar: assign(
-    {
-      style: {
-        data: {
-          fill: 'none',
-          stroke: charcoal,
-          strokeWidth: 2,
-        },
-        labels: assign({}, baseLabelStyles, {
-          textAnchor: 'start',
-        }),
+  errorbar: {
+    style: {
+      data: {
+        fill: 'none',
+        stroke: charcoal,
+        strokeWidth: 2,
       },
+      labels: { ...baseLabelStyles, textAnchor: 'start' },
     },
-    baseProps,
-  ),
-  group: assign(
-    {
-      colorScale: colors,
-    },
-    baseProps,
-  ),
-  line: assign(
-    {
-      style: {
-        data: {
-          fill: 'none',
-          stroke: A11Y_BABU,
-          strokeWidth: 2,
-        },
-        labels: assign({}, baseLabelStyles, {
-          textAnchor: 'start',
-        }),
+    ...baseProps,
+  },
+  group: {
+    colorScale: colors,
+    ...baseProps,
+  },
+  line: {
+    style: {
+      data: {
+        fill: 'none',
+        stroke: A11Y_BABU,
+        strokeWidth: 2,
       },
+      labels: { ...baseLabelStyles, textAnchor: 'start' },
     },
-    baseProps,
-  ),
+    ...baseProps,
+  },
   pie: {
     style: {
       data: {
@@ -182,37 +159,28 @@ const theme = {
         stroke: 'none',
         strokeWidth: 1,
       },
-      labels: assign({}, baseLabelStyles, {
-        padding: 200,
-        textAnchor: 'middle',
-      }),
+      labels: { ...baseLabelStyles, padding: 200, textAnchor: 'middle' },
     },
     colorScale: colors,
     width: 400,
     height: 400,
     padding: 50,
   },
-  scatter: assign(
-    {
-      style: {
-        data: {
-          fill: charcoal,
-          stroke: 'transparent',
-          strokeWidth: 0,
-        },
-        labels: assign({}, baseLabelStyles, {
-          textAnchor: 'middle',
-        }),
+  scatter: {
+    style: {
+      data: {
+        fill: charcoal,
+        stroke: 'transparent',
+        strokeWidth: 0,
       },
+      labels: { ...baseLabelStyles, textAnchor: 'middle' },
     },
-    baseProps,
-  ),
-  stack: assign(
-    {
-      colorScale: colors,
-    },
-    baseProps,
-  ),
+    ...baseProps,
+  },
+  stack: {
+    colorScale: colors,
+    ...baseProps,
+  },
 };
 
 export default theme;
