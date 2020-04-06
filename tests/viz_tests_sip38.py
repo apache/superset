@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import uuid
 from datetime import datetime
 import logging
 from math import nan
@@ -25,7 +24,7 @@ import numpy as np
 import pandas as pd
 
 import tests.test_app
-import superset.viz as viz
+import superset.viz_sip38 as viz
 from superset import app
 from superset.constants import NULL_STRING
 from superset.exceptions import SpatialException
@@ -37,7 +36,16 @@ from .utils import load_fixture
 logger = logging.getLogger(__name__)
 
 
-class BaseVizTestCase(SupersetTestCase):
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    {"SIP_38_VIZ_REARCHITECTURE": True},
+    clear=True,
+)
+class Sip38TestCase(SupersetTestCase):
+    pass
+
+
+class BaseVizTestCase(Sip38TestCase):
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
@@ -166,7 +174,7 @@ class BaseVizTestCase(SupersetTestCase):
         self.assertEqual(app.config["CACHE_DEFAULT_TIMEOUT"], test_viz.cache_timeout)
 
 
-class TableVizTestCase(SupersetTestCase):
+class TableVizTestCase(Sip38TestCase):
     def test_get_data_applies_percentage(self):
         form_data = {
             "groupby": ["groupA", "groupB"],
@@ -344,7 +352,7 @@ class TableVizTestCase(SupersetTestCase):
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("", query_obj["extras"]["having"])
 
-    @patch("superset.viz.BaseViz.query_obj")
+    @patch("superset.viz_sip38.BaseViz.query_obj")
     def test_query_obj_merges_percent_metrics(self, super_query_obj):
         datasource = self.get_datasource_mock()
         form_data = {
@@ -359,7 +367,7 @@ class TableVizTestCase(SupersetTestCase):
             ["sum__A", "count", "avg__C", "avg__B", "max__Y"], query_obj["metrics"]
         )
 
-    @patch("superset.viz.BaseViz.query_obj")
+    @patch("superset.viz_sip38.BaseViz.query_obj")
     def test_query_obj_throws_columns_and_metrics(self, super_query_obj):
         datasource = self.get_datasource_mock()
         form_data = {"all_columns": ["A", "B"], "metrics": ["x", "y"]}
@@ -373,24 +381,18 @@ class TableVizTestCase(SupersetTestCase):
         with self.assertRaises(Exception):
             test_viz.query_obj()
 
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_merges_all_columns(self, super_query_obj):
+    def test_query_obj_merges_all_columns(self):
         datasource = self.get_datasource_mock()
         form_data = {
             "all_columns": ["colA", "colB", "colC"],
             "order_by_cols": ['["colA", "colB"]', '["colC"]'],
         }
-        super_query_obj.return_value = {
-            "columns": ["colD", "colC"],
-            "groupby": ["colA", "colB"],
-        }
         test_viz = viz.TableViz(datasource, form_data)
         query_obj = test_viz.query_obj()
         self.assertEqual(form_data["all_columns"], query_obj["columns"])
-        self.assertEqual([], query_obj["groupby"])
         self.assertEqual([["colA", "colB"], ["colC"]], query_obj["orderby"])
 
-    @patch("superset.viz.BaseViz.query_obj")
+    @patch("superset.viz_sip38.BaseViz.query_obj")
     def test_query_obj_uses_sortby(self, super_query_obj):
         datasource = self.get_datasource_mock()
         form_data = {"timeseries_limit_metric": "__time__", "order_desc": False}
@@ -434,7 +436,7 @@ class TableVizTestCase(SupersetTestCase):
         self.assertEqual(["sum_value", "SUM(value1)"], data["columns"])
 
 
-class DistBarVizTestCase(SupersetTestCase):
+class DistBarVizTestCase(Sip38TestCase):
     def test_groupby_nulls(self):
         form_data = {
             "metrics": ["votes"],
@@ -510,7 +512,7 @@ class DistBarVizTestCase(SupersetTestCase):
         self.assertEqual(expected, data)
 
 
-class PairedTTestTestCase(SupersetTestCase):
+class PairedTTestTestCase(Sip38TestCase):
     def test_get_data_transforms_dataframe(self):
         form_data = {
             "groupby": ["groupA", "groupB", "groupC"],
@@ -650,8 +652,8 @@ class PairedTTestTestCase(SupersetTestCase):
         self.assertEqual(data, expected)
 
 
-class PartitionVizTestCase(SupersetTestCase):
-    @patch("superset.viz.BaseViz.query_obj")
+class PartitionVizTestCase(Sip38TestCase):
+    @patch("superset.viz_sip38.BaseViz.query_obj")
     def test_query_obj_time_series_option(self, super_query_obj):
         datasource = self.get_datasource_mock()
         form_data = {}
@@ -854,7 +856,7 @@ class PartitionVizTestCase(SupersetTestCase):
         self.assertEqual(7, len(test_viz.nest_values.mock_calls))
 
 
-class RoseVisTestCase(SupersetTestCase):
+class RoseVisTestCase(Sip38TestCase):
     def test_rose_vis_get_data(self):
         raw = {}
         t1 = pd.Timestamp("2000")
@@ -890,7 +892,7 @@ class RoseVisTestCase(SupersetTestCase):
         self.assertEqual(expected, res)
 
 
-class TimeSeriesTableVizTestCase(SupersetTestCase):
+class TimeSeriesTableVizTestCase(Sip38TestCase):
     def test_get_data_metrics(self):
         form_data = {"metrics": ["sum__A", "count"], "groupby": []}
         datasource = self.get_datasource_mock()
@@ -933,7 +935,7 @@ class TimeSeriesTableVizTestCase(SupersetTestCase):
         }
         self.assertEqual(expected, data["records"])
 
-    @patch("superset.viz.BaseViz.query_obj")
+    @patch("superset.viz_sip38.BaseViz.query_obj")
     def test_query_obj_throws_metrics_and_groupby(self, super_query_obj):
         datasource = self.get_datasource_mock()
         form_data = {"groupby": ["a"]}
@@ -947,19 +949,7 @@ class TimeSeriesTableVizTestCase(SupersetTestCase):
             test_viz.query_obj()
 
 
-class BaseDeckGLVizTestCase(SupersetTestCase):
-    def test_get_metrics(self):
-        form_data = load_fixture("deck_path_form_data.json")
-        datasource = self.get_datasource_mock()
-        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
-        result = test_viz_deckgl.get_metrics()
-        assert result == [form_data.get("size")]
-
-        form_data = {}
-        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
-        result = test_viz_deckgl.get_metrics()
-        assert result == []
-
+class BaseDeckGLVizTestCase(Sip38TestCase):
     def test_scatterviz_get_metrics(self):
         form_data = load_fixture("deck_path_form_data.json")
         datasource = self.get_datasource_mock()
@@ -996,36 +986,6 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
 
         self.assertTrue("" in str(context.exception))
 
-    def test_process_spatial_query_obj(self):
-        form_data = load_fixture("deck_path_form_data.json")
-        datasource = self.get_datasource_mock()
-        mock_key = "spatial_key"
-        mock_gb = []
-        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
-
-        with self.assertRaises(ValueError) as context:
-            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
-
-        self.assertTrue("Bad spatial key" in str(context.exception))
-
-        test_form_data = {
-            "latlong_key": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-            "delimited_key": {"type": "delimited", "lonlatCol": "lonlat"},
-            "geohash_key": {"type": "geohash", "geohashCol": "geo"},
-        }
-
-        datasource = self.get_datasource_mock()
-        expected_results = {
-            "latlong_key": ["lon", "lat"],
-            "delimited_key": ["lonlat"],
-            "geohash_key": ["geo"],
-        }
-        for mock_key in ["latlong_key", "delimited_key", "geohash_key"]:
-            mock_gb = []
-            test_viz_deckgl = viz.BaseDeckGLViz(datasource, test_form_data)
-            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
-            assert expected_results.get(mock_key) == mock_gb
-
     def test_geojson_query_obj(self):
         form_data = load_fixture("deck_geojson_form_data.json")
         datasource = self.get_datasource_mock()
@@ -1033,8 +993,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         results = test_viz_deckgl.query_obj()
 
         assert results["metrics"] == []
-        assert results["groupby"] == []
-        assert results["columns"] == ["test_col"]
+        assert results["columns"] == ["color", "test_col"]
 
     def test_parse_coordinates(self):
         form_data = load_fixture("deck_path_form_data.json")
@@ -1062,69 +1021,8 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         with self.assertRaises(SpatialException):
             test_viz_deckgl.parse_coordinates("fldkjsalkj,fdlaskjfjadlksj")
 
-    @patch("superset.utils.core.uuid.uuid4")
-    def test_filter_nulls(self, mock_uuid4):
-        mock_uuid4.return_value = uuid.UUID("12345678123456781234567812345678")
-        test_form_data = {
-            "latlong_key": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-            "delimited_key": {"type": "delimited", "lonlatCol": "lonlat"},
-            "geohash_key": {"type": "geohash", "geohashCol": "geo"},
-        }
 
-        datasource = self.get_datasource_mock()
-        expected_results = {
-            "latlong_key": [
-                {
-                    "clause": "WHERE",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
-                    "comparator": "",
-                    "operator": "IS NOT NULL",
-                    "subject": "lat",
-                    "isExtra": False,
-                },
-                {
-                    "clause": "WHERE",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
-                    "comparator": "",
-                    "operator": "IS NOT NULL",
-                    "subject": "lon",
-                    "isExtra": False,
-                },
-            ],
-            "delimited_key": [
-                {
-                    "clause": "WHERE",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
-                    "comparator": "",
-                    "operator": "IS NOT NULL",
-                    "subject": "lonlat",
-                    "isExtra": False,
-                }
-            ],
-            "geohash_key": [
-                {
-                    "clause": "WHERE",
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
-                    "comparator": "",
-                    "operator": "IS NOT NULL",
-                    "subject": "geo",
-                    "isExtra": False,
-                }
-            ],
-        }
-        for mock_key in ["latlong_key", "delimited_key", "geohash_key"]:
-            test_viz_deckgl = viz.BaseDeckGLViz(datasource, test_form_data.copy())
-            test_viz_deckgl.spatial_control_keys = [mock_key]
-            test_viz_deckgl.add_null_filters()
-            adhoc_filters = test_viz_deckgl.form_data["adhoc_filters"]
-            assert expected_results.get(mock_key) == adhoc_filters
-
-
-class TimeSeriesVizTestCase(SupersetTestCase):
+class TimeSeriesVizTestCase(Sip38TestCase):
     def test_timeseries_unicode_data(self):
         datasource = self.get_datasource_mock()
         form_data = {"groupby": ["name"], "metrics": ["sum__payout"]}
@@ -1249,7 +1147,7 @@ class TimeSeriesVizTestCase(SupersetTestCase):
         )
 
 
-class BigNumberVizTestCase(SupersetTestCase):
+class BigNumberVizTestCase(Sip38TestCase):
     def test_get_data(self):
         datasource = self.get_datasource_mock()
         df = pd.DataFrame(

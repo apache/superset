@@ -1247,14 +1247,9 @@ class DruidDatasource(Model, BaseDatasource):
             del qry["dimensions"]
             client.timeseries(**qry)
         elif (
-            IS_SIP_38
-            and not having_filters
-            and len(columns) == 1
+            not having_filters
             and order_desc
-            or not IS_SIP_38
-            and not having_filters
-            and len(groupby) == 1
-            and order_desc
+            and (IS_SIP_38 and len(columns) == 1 or not IS_SIP_38 and len(groupby) == 1)
         ):
             dim = list(qry["dimensions"])[0]
             logger.info("Running two-phase topn query for dimension [{}]".format(dim))
@@ -1308,10 +1303,7 @@ class DruidDatasource(Model, BaseDatasource):
             logger.info("Phase 2 Complete")
         elif (
             having_filters
-            or IS_SIP_38
-            and columns
-            or not IS_SIP_38
-            and len(groupby) > 0
+            or (IS_SIP_38 and columns or not IS_SIP_38 and len(groupby)) > 0
         ):
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
@@ -1398,7 +1390,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     @staticmethod
     def homogenize_types(df: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
-        """Converting all GROUPBY columns to strings
+        """Converting all columns to strings
 
         When grouping by a numeric (say FLOAT) column, pydruid returns
         strings in the dataframe. This creates issues downstream related

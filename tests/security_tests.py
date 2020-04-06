@@ -853,6 +853,7 @@ class RowLevelSecurityTests(SupersetTestCase):
         )  # self.login() doesn't actually set the user
         tbl = self.get_table_by_name("birth_names")
         query_obj = dict(
+            groupby=[],
             metrics=[],
             filter=[],
             is_timeseries=False,
@@ -871,6 +872,7 @@ class RowLevelSecurityTests(SupersetTestCase):
         )  # self.login() doesn't actually set the user
         tbl = self.get_table_by_name("birth_names")
         query_obj = dict(
+            groupby=[],
             metrics=[],
             filter=[],
             is_timeseries=False,

@@ -85,6 +85,7 @@ COLUMN_FORM_DATA_PARAMS = [
     "columns",
     "dimension",
     "entity",
+    "geojson",
     "groupby",
     "series",
     "line_column",
@@ -125,14 +126,15 @@ class BaseViz:
         # merge all selectable columns into `columns` property
         self.columns: List[str] = []
         for key in COLUMN_FORM_DATA_PARAMS:
-            logger.warning(
-                f"The form field %s is deprecated. Viz plugins should "
-                f"pass all selectables via the columns field",
-                key,
-            )
             value = self.form_data.get(key) or []
             value_list = value if isinstance(value, list) else [value]
-            self.columns += value_list
+            if value_list:
+                logger.warning(
+                    f"The form field %s is deprecated. Viz plugins should "
+                    f"pass all selectables via the columns field",
+                    key,
+                )
+                self.columns += value_list
 
         for key in SPATIAL_COLUMN_FORM_DATA_PARAMS:
             spatial = self.form_data.get(key)
@@ -2279,27 +2281,6 @@ class BaseDeckGLViz(BaseViz):
             filter_ = to_adhoc({"col": column, "op": "IS NOT NULL", "val": ""})
             fd["adhoc_filters"].append(filter_)
 
-    def query_obj(self):
-        fd = self.form_data
-
-        # add NULL filters
-        if fd.get("filter_nulls", True):
-            self.add_null_filters()
-
-        d = super().query_obj()
-        gb = []
-
-        if fd.get("dimension"):
-            gb += [fd.get("dimension")]
-
-        if fd.get("js_columns"):
-            gb += fd.get("js_columns")
-        metrics = self.get_metrics()
-        gb = list(set(gb))
-        if metrics:
-            d["metrics"] = metrics
-        return d
-
     def get_js_columns(self, d):
         cols = self.form_data.get("js_columns") or []
         return {col: d.get(col) for col in cols}
@@ -2526,12 +2507,6 @@ class DeckGeoJson(BaseDeckGLViz):
 
     viz_type = "deck_geojson"
     verbose_name = _("Deck.gl - GeoJSON")
-
-    def query_obj(self):
-        d = super().query_obj()
-        d["columns"] += [self.form_data.get("geojson")]
-        d["metrics"] = []
-        return d
 
     def get_properties(self, d):
         geojson = d.get(self.form_data.get("geojson"))

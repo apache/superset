@@ -234,10 +234,11 @@ class SqlaTableModelTestCase(SupersetTestCase):
             label="arbitrary", expressionType="SQL", sqlExpression="COUNT(1)"
         )
         query_obj = dict(
-            columns=[arbitrary_gby, "name"],
+            groupby=[arbitrary_gby, "name"],
             metrics=[arbitrary_metric],
             filter=[],
             is_timeseries=is_timeseries,
+            columns=[],
             granularity="ds",
             from_dttm=None,
             to_dttm=None,
@@ -277,10 +278,11 @@ class SqlaTableModelTestCase(SupersetTestCase):
     def test_sql_mutator(self):
         tbl = self.get_table_by_name("birth_names")
         query_obj = dict(
-            columns=["name"],
+            groupby=[],
             metrics=[],
             filter=[],
             is_timeseries=False,
+            columns=["name"],
             granularity=None,
             from_dttm=None,
             to_dttm=None,
