@@ -16,6 +16,7 @@
 # under the License.
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
+from sqlalchemy import or_
 
 from superset import security_manager
 
@@ -39,6 +40,9 @@ class FilterRelatedOwners(BaseFilter):
         user_model = security_manager.user_model
         like_value = "%" + value + "%"
         return query.filter(
-            # could be made to handle spaces between names more gracefully
-            (user_model.first_name + " " + user_model.last_name).ilike(like_value)
+            or_(
+                # could be made to handle spaces between names more gracefully
+                (user_model.first_name + " " + user_model.last_name).ilike(like_value),
+                user_model.username.ilike(like_value),
+            )
         )
