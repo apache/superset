@@ -17,7 +17,6 @@
 import logging
 from typing import List, Optional
 
-from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 
 from superset.commands.base import BaseCommand
