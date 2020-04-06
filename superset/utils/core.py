@@ -37,7 +37,18 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum
 from time import struct_time
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 from urllib.parse import unquote_plus
 
 import bleach
@@ -71,6 +82,9 @@ try:
     from pydruid.utils.having import Having
 except ImportError:
     pass
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -944,7 +958,7 @@ def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     return database
 
 
-def get_example_database():
+def get_example_database() -> "Database":
     from superset import conf
 
     db_uri = conf.get("SQLALCHEMY_EXAMPLES_URI") or conf.get("SQLALCHEMY_DATABASE_URI")
@@ -1057,11 +1071,15 @@ def get_since_until(
         else:
             rel, num, grain = time_range.split()
             if rel == "Last":
-                since = relative_start - relativedelta(**{grain: int(num)})  # type: ignore
+                since = relative_start - relativedelta(  # type: ignore
+                    **{grain: int(num)}  # type: ignore
+                )
                 until = relative_end
             else:  # rel == 'Next'
                 since = relative_start
-                until = relative_end + relativedelta(**{grain: int(num)})  # type: ignore
+                until = relative_end + relativedelta(  # type: ignore
+                    **{grain: int(num)}  # type: ignore
+                )
     else:
         since = since or ""
         if since:

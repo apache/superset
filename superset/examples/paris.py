@@ -25,7 +25,7 @@ from superset.utils import core as utils
 from .helpers import get_example_data, TBL
 
 
-def load_paris_iris_geojson(only_metadata=False, force=False):
+def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) -> None:
     tbl_name = "paris_iris_mapping"
     database = utils.get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
