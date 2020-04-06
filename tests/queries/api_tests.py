@@ -17,9 +17,9 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-import uuid
 import random
 import string
+from typing import Dict, Any
 
 import prison
 from sqlalchemy.sql import func
@@ -66,6 +66,22 @@ class QueryApiTests(SupersetTestCase):
         db.session.add(query)
         db.session.commit()
         return query
+
+    def _get_query_context_dict(self) -> Dict[str, Any]:
+        self.login(username="admin")
+        slc = self.get_slice("Girl Name Cloud", db.session)
+        return {
+            "datasource": {"id": slc.datasource_id, "type": slc.datasource_type},
+            "queries": [
+                {
+                    "granularity": "ds",
+                    "groupby": ["name"],
+                    "metrics": [{"label": "sum__num"}],
+                    "filters": [],
+                    "row_limit": 100,
+                }
+            ],
+        }
 
     @staticmethod
     def get_random_string(length: int = 10):
@@ -245,3 +261,15 @@ class QueryApiTests(SupersetTestCase):
         # rollback changes
         db.session.delete(query)
         db.session.commit()
+
+    def test_query_exec(self):
+        """
+            Query API: Test exec query
+        """
+        self.login(username="admin")
+        qc_dict = self._get_query_context_dict()
+        data = json.dumps(qc_dict)
+        uri = "api/v1/query/exec"
+        rv = self.client.post(uri, json=data)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data[0]["rowcount"], 100)
