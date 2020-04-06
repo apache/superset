@@ -578,6 +578,34 @@ If you are using JDBC to connect to Drill, the connection string looks like this
 For a complete tutorial about how to use Apache Drill with Superset, see this tutorial:
 `Visualize Anything with Superset and Drill <http://thedataist.com/visualize-anything-with-superset-and-drill/>`_
 
+SQL Server
+----------
+
+The impersonation on SQL Server is supported using the ``pymssql`` adapter. Once enabled, every query to the database is run as the logged in user.
+
+This is accomplished using the `EXECUTE AS USER <https://docs.microsoft.com/en-us/sql/t-sql/statements/execute-as-transact-sql>`_ statement. This query is sent to the server upon the connection establishment and the following queries are run as the logged in user.
+
+There are some requirements you need to have in order to make the impersonation works:
+
+* Have a database user for your logged in user. They must share the same username;
+* Have an application user on your database. This user must be granted with the IMPERSONATE permission as below:
+
+.. code-block:: sql
+
+    GRANT IMPERSONATE ON USER::[<USER_TO_IMPERSONATE>] TO <APPLICATION_USER>;
+
+Once you satisfy the requirements above, you are able to enable impersonation. When creating the database connection on Superset UI, check the impersonation flag and add a connection string like below::
+
+    mssql+pymssql://<username>:<password>@<server>:<port>/<database_name>
+
+You can test the impersonation by running the following query using SQL Lab:
+
+.. code-block:: sql
+
+    SELECT CURRENT_USER as username; on SQL Lab;
+
+The expected output should be your logged in user and not the application one.
+
 Caching
 -------
 
@@ -1408,32 +1436,3 @@ parameter ::
 
 
 Note in a future release the interim SIP-15 logic will be removed (including the ``time_grain_endpoints`` form-data field) via a code change and Alembic migration.
-
-
-Impersonation on SQL Server using ``pymssql`` adapter
------------------------------------------------------
-
-The impersonation on SQL Server is supported using the ``pymssql`` adapter. Once enabled, every query to the database is run as the logged in user.
-
-This is accomplished using the `EXECUTE AS USER <https://docs.microsoft.com/en-us/sql/t-sql/statements/execute-as-transact-sql>`_ statement. This query is sent to the server upon the connection establishment and the following queries are run as the logged in user.
-
-There are some requirements you need to have in order to make the impersonation works:
-
-* Have a database user for your logged in user. They must share the same username;
-* Have an application user on your database. This user must be granted with the IMPERSONATE permission as below:
-
-.. code-block:: sql
-
-    GRANT IMPERSONATE ON USER::[<USER_TO_IMPERSONATE>] TO <APPLICATION_USER>;
-
-Once you satisfy the requirements above, you are able to enable impersonation. When creating the database connection on Superset UI, check the impersonation flag and add a connection string like below::
-
-    mssql+pymssql://<username>:<password>@<server>:<port>/<database_name>
-
-You can test the impersonation by running the following query using SQL Lab:
-
-.. code-block:: sql
-
-    SELECT CURRENT_USER as username; on SQL Lab;
-
-The expected output should be your logged in user and not the application one.
