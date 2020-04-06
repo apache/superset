@@ -89,8 +89,8 @@ class MssqlEngineSpec(BaseEngineSpec):
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
-        if impersonate_user and username is not None:
-            if url.get_dialect().driver == MSDialect_pymssql.driver:
+        if url.get_dialect().driver == MSDialect_pymssql.driver:
+            if impersonate_user and username is not None:
                 url.query["conn_properties"] = f"EXECUTE AS USER = '{username}'"
-            else:
-                url.username = username
+        else:
+            super().modify_url_for_impersonation(url, impersonate_user, username)
