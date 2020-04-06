@@ -16,6 +16,7 @@
 # under the License.
 import json
 import textwrap
+from typing import Dict, Union
 
 import pandas as pd
 from sqlalchemy import DateTime, String
@@ -23,6 +24,7 @@ from sqlalchemy.sql import column
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
@@ -38,7 +40,9 @@ from .helpers import (
 )
 
 
-def gen_filter(subject, comparator, operator="=="):
+def gen_filter(
+    subject: str, comparator: str, operator: str = "=="
+) -> Dict[str, Union[bool, str]]:
     return {
         "clause": "WHERE",
         "comparator": comparator,
@@ -49,7 +53,7 @@ def gen_filter(subject, comparator, operator="=="):
     }
 
 
-def load_data(tbl_name, database):
+def load_data(tbl_name: str, database: Database) -> None:
     pdf = pd.read_json(get_example_data("birth_names.json.gz"))
     pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
     pdf.to_sql(
@@ -69,7 +73,7 @@ def load_data(tbl_name, database):
     print("-" * 80)
 
 
-def load_birth_names(only_metadata=False, force=False):
+def load_birth_names(only_metadata: bool = False, force: bool = False) -> None:
     """Loading birth name dataset from a zip file in the repo"""
     # pylint: disable=too-many-locals
     tbl_name = "birth_names"

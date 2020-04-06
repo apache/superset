@@ -26,7 +26,7 @@ from superset.utils.core import get_example_database
 from .helpers import get_example_data, TBL
 
 
-def load_bart_lines(only_metadata=False, force=False):
+def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     tbl_name = "bart_lines"
     database = get_example_database()
     table_exists = database.has_table_by_name(tbl_name)
