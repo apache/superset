@@ -1,3 +1,20 @@
+..  Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+..    http://www.apache.org/licenses/LICENSE-2.0
+
+..  Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 Visualization Tools
 ===================
 
@@ -78,7 +95,7 @@ List of Countries
 +----------+-----------------------+
 |  BR-MS   | Mato Grosso do Sul    |
 +----------+-----------------------+
-|  BR-MT   | Mato Grosso           | 
+|  BR-MT   | Mato Grosso           |
 +----------+-----------------------+
 |  BR-MG   | Minas Gerais          |
 +----------+-----------------------+
@@ -88,11 +105,11 @@ List of Countries
 +----------+-----------------------+
 |  BR-PR   | Paraná                |
 +----------+-----------------------+
-|  BR-PE   | Pernambuco            |  
+|  BR-PE   | Pernambuco            |
 +----------+-----------------------+
-|  BR-PI   | Piauí                 |  
+|  BR-PI   | Piauí                 |
 +----------+-----------------------+
-|  BR-RJ   | Rio de Janeiro        |  
+|  BR-RJ   | Rio de Janeiro        |
 +----------+-----------------------+
 |  BR-RN   | Rio Grande do Norte   |
 +----------+-----------------------+
@@ -496,11 +513,11 @@ List of Countries
 +------+------------------------------------+
 |IT-PE |Pescara                             |
 +------+------------------------------------+
-|IT-TE |Teramo                              |       
+|IT-TE |Teramo                              |
 +------+------------------------------------+
 |IT-BA |Bari                                |
 +------+------------------------------------+
-|IT-BT |Barletta-Andria-Trani               | 
+|IT-BT |Barletta-Andria-Trani               |
 +------+------------------------------------+
 |IT-BR |Brindisi                            |
 +------+------------------------------------+
@@ -536,177 +553,177 @@ List of Countries
 +------+------------------------------------+
 |IT-BO |Bologna                             |
 +------+------------------------------------+
-|IT-FE |Ferrara                             |     
+|IT-FE |Ferrara                             |
 +------+------------------------------------+
 |IT-FC |            Forli' - Cesena         |
 +------+------------------------------------+
-|IT-MO |Modena                              |  
+|IT-MO |Modena                              |
 +------+------------------------------------+
 |IT-PR |Parma                               |
 +------+------------------------------------+
-|IT-PC |Piacenza                            |     
+|IT-PC |Piacenza                            |
 +------+------------------------------------+
-|IT-RA |Ravenna                             |    
+|IT-RA |Ravenna                             |
 +------+------------------------------------+
-|IT-RE |Reggio Nell'Emilia                  |            
+|IT-RE |Reggio Nell'Emilia                  |
 +------+------------------------------------+
-|IT-RN |Rimini                              |   
+|IT-RN |Rimini                              |
 +------+------------------------------------+
-|IT-GO |Gorizia                             |    
+|IT-GO |Gorizia                             |
 +------+------------------------------------+
-|IT-PN |Pordenone                           |       
+|IT-PN |Pordenone                           |
 +------+------------------------------------+
-|IT-TS |Trieste                             |      
+|IT-TS |Trieste                             |
 +------+------------------------------------+
-|IT-UD |Udine                               |     
+|IT-UD |Udine                               |
 +------+------------------------------------+
-|IT-FR |Frosinone                           |         
+|IT-FR |Frosinone                           |
 +------+------------------------------------+
-|IT-LT |Latina                              |      
+|IT-LT |Latina                              |
 +------+------------------------------------+
-|IT-RI |Rieti                               |      
+|IT-RI |Rieti                               |
 +------+------------------------------------+
-|IT-RM |Roma                                |     
+|IT-RM |Roma                                |
 +------+------------------------------------+
-|IT-VT |Viterbo                             |       
+|IT-VT |Viterbo                             |
 +------+------------------------------------+
-|IT-GE |Genova                              |     
+|IT-GE |Genova                              |
 +------+------------------------------------+
-|IT-IM |Imperia                             |      
+|IT-IM |Imperia                             |
 +------+------------------------------------+
-|IT-SP |La Spezia                           |         
+|IT-SP |La Spezia                           |
 +------+------------------------------------+
-|IT-SV |Savona                              |      
+|IT-SV |Savona                              |
 +------+------------------------------------+
-|IT-BG |Bergamo                             |      
+|IT-BG |Bergamo                             |
 +------+------------------------------------+
-|IT-BS |Brescia                             |      
+|IT-BS |Brescia                             |
 +------+------------------------------------+
-|IT-CO |Como                                |   
+|IT-CO |Como                                |
 +------+------------------------------------+
-|IT-CR |Cremona                             |      
+|IT-CR |Cremona                             |
 +------+------------------------------------+
-|IT-LC |Lecco                               |    
+|IT-LC |Lecco                               |
 +------+------------------------------------+
-|IT-LO |Lodi                                |   
+|IT-LO |Lodi                                |
 +------+------------------------------------+
-|IT-MN |Mantua                              |     
+|IT-MN |Mantua                              |
 +------+------------------------------------+
-|IT-MI |Milano                              |     
+|IT-MI |Milano                              |
 +------+------------------------------------+
-|IT-MB |Monza and Brianza                   |              
+|IT-MB |Monza and Brianza                   |
 +------+------------------------------------+
-|IT-PV |Pavia                               |   
+|IT-PV |Pavia                               |
 +------+------------------------------------+
-|IT-SO |Sondrio                             |     
+|IT-SO |Sondrio                             |
 +------+------------------------------------+
-|IT-VA |Varese                              |    
+|IT-VA |Varese                              |
 +------+------------------------------------+
-|IT-AN |Ancona                              |    
+|IT-AN |Ancona                              |
 +------+------------------------------------+
-|IT-AP |Ascoli Piceno                       |           
+|IT-AP |Ascoli Piceno                       |
 +------+------------------------------------+
-|IT-FM |Fermo                               |   
+|IT-FM |Fermo                               |
 +------+------------------------------------+
-|IT-MC |Macerata                            |     
+|IT-MC |Macerata                            |
 +------+------------------------------------+
-|IT-PU |Pesaro E Urbino                     |            
+|IT-PU |Pesaro E Urbino                     |
 +------+------------------------------------+
-|IT-CB |Campobasso                          |       
+|IT-CB |Campobasso                          |
 +------+------------------------------------+
-|IT-IS |Isernia                             |     
+|IT-IS |Isernia                             |
 +------+------------------------------------+
-|IT-AL |Alessandria                         |         
+|IT-AL |Alessandria                         |
 +------+------------------------------------+
-|IT-AT |Asti                                |  
+|IT-AT |Asti                                |
 +------+------------------------------------+
-|IT-BI |Biella                              |     
+|IT-BI |Biella                              |
 +------+------------------------------------+
-|IT-CN |Cuneo                               |   
+|IT-CN |Cuneo                               |
 +------+------------------------------------+
-|IT-NO |Novara                              |     
+|IT-NO |Novara                              |
 +------+------------------------------------+
-|IT-TO |Torino                              |    
+|IT-TO |Torino                              |
 +------+------------------------------------+
-|IT-VB |Verbano-Cusio-Ossola                |             
+|IT-VB |Verbano-Cusio-Ossola                |
 +------+------------------------------------+
-|IT-VC |Vercelli                            |       
+|IT-VC |Vercelli                            |
 +------+------------------------------------+
-|IT-CA |Cagliari                            |     
+|IT-CA |Cagliari                            |
 +------+------------------------------------+
-|IT-CI |Carbonia-Iglesias                   |             
+|IT-CI |Carbonia-Iglesias                   |
 +------+------------------------------------+
-|IT-VS |Medio Campidano                     |           
+|IT-VS |Medio Campidano                     |
 +------+------------------------------------+
-|IT-NU |Nuoro                               |  
+|IT-NU |Nuoro                               |
 +------+------------------------------------+
-|IT-OG |Ogliastra                           |     
+|IT-OG |Ogliastra                           |
 +------+------------------------------------+
-|IT-OT |Olbia-Tempio                        |         
+|IT-OT |Olbia-Tempio                        |
 +------+------------------------------------+
-|IT-OR |Oristano                            |     
+|IT-OR |Oristano                            |
 +------+------------------------------------+
-|IT-SS |Sassari                             |  
+|IT-SS |Sassari                             |
 +------+------------------------------------+
-|IT-AG |Agrigento                           | 
+|IT-AG |Agrigento                           |
 +------+------------------------------------+
-|IT-CL |Caltanissetta                       |      
+|IT-CL |Caltanissetta                       |
 +------+------------------------------------+
 |IT-CT |Catania                             |
 +------+------------------------------------+
 |IT-EN |Enna                                |
 +------+------------------------------------+
-|IT-ME |Messina                             |   
+|IT-ME |Messina                             |
 +------+------------------------------------+
 |IT-PA |Palermo                             |
 +------+------------------------------------+
 |IT-RG |Ragusa                              |
 +------+------------------------------------+
-|IT-SR |Syracuse                            |  
+|IT-SR |Syracuse                            |
 +------+------------------------------------+
 |IT-TP |Trapani                             |
 +------+------------------------------------+
-|IT-AR |Arezzo                              | 
+|IT-AR |Arezzo                              |
 +------+------------------------------------+
-|IT-FI |Florence                            |  
+|IT-FI |Florence                            |
 +------+------------------------------------+
-|IT-GR |Grosseto                            |  
+|IT-GR |Grosseto                            |
 +------+------------------------------------+
-|IT-LI |Livorno                             | 
+|IT-LI |Livorno                             |
 +------+------------------------------------+
 |IT-LU |Lucca                               |
 +------+------------------------------------+
-|IT-MS |Massa Carrara                       |       
+|IT-MS |Massa Carrara                       |
 +------+------------------------------------+
 |IT-PI |Pisa                                |
 +------+------------------------------------+
-|IT-PT |Pistoia                             |  
+|IT-PT |Pistoia                             |
 +------+------------------------------------+
 |IT-PO |Prato                               |
 +------+------------------------------------+
 |IT-SI |Siena                               |
 +------+------------------------------------+
-|IT-BZ |Bolzano                             |  
+|IT-BZ |Bolzano                             |
 +------+------------------------------------+
-|IT-TN |Trento                              | 
+|IT-TN |Trento                              |
 +------+------------------------------------+
-|IT-PG |Perugia                             |  
+|IT-PG |Perugia                             |
 +------+------------------------------------+
-|IT-TR |Terni                               |          
+|IT-TR |Terni                               |
 +------+------------------------------------+
-|IT-AO |Aosta                               |          
+|IT-AO |Aosta                               |
 +------+------------------------------------+
-|IT-BL |Belluno                             |            
+|IT-BL |Belluno                             |
 +------+------------------------------------+
-|IT-PD |Padua                               |           
+|IT-PD |Padua                               |
 +------+------------------------------------+
-|IT-RO |Rovigo                              |            
+|IT-RO |Rovigo                              |
 +------+------------------------------------+
-|IT-TV |Treviso                             |             
+|IT-TV |Treviso                             |
 +------+------------------------------------+
-|IT-VE |Venezia                             |             
+|IT-VE |Venezia                             |
 +------+------------------------------------+
-|IT-VR |Verona                              |              
+|IT-VR |Verona                              |
 +------+------------------------------------+
 |IT-VI |Vicenza                             |
 +------+------------------------------------+
@@ -812,6 +829,73 @@ List of Countries
 | JP-47 | Okinawa        |
 +-------+----------------+
 
+* Korea
+
++-------+----------------+
+| ISO   | Name of region |
++=======+================+
+| KR-11 | Seoul          |
++-------+----------------+
+| KR-26 | Busan          |
++-------+----------------+
+| KR-27 | Daegu          |
++-------+----------------+
+| KR-28 | Incheon        |
++-------+----------------+
+| KR-29 | Gwangju        |
++-------+----------------+
+| KR-30 | Daejeon        |
++-------+----------------+
+| KR-31 | Ulsan          |
++-------+----------------+
+| KR-41 | Gyeonggi       |
++-------+----------------+
+| KR-42 | Gangwon        |
++-------+----------------+
+| KR-43 | Chungbuk       |
++-------+----------------+
+| KR-44 | Chungnam       |
++-------+----------------+
+| KR-45 | Jeonbuk        |
++-------+----------------+
+| KR-46 | Jeonnam        |
++-------+----------------+
+| KR-47 | Gyeongbuk      |
++-------+----------------+
+| KR-48 | Gyeongnam      |
++-------+----------------+
+| KR-49 | Jeju           |
++-------+----------------+
+| KR-50 | Sejong         |
++-------+----------------+
+
+* Liechtenstein
+
++-------+----------------+
+| ISO   | Name of region |
++=======+================+
+| LI-01 | Balzers        |
++-------+----------------+
+| LI-02 | Eschen         |
++-------+----------------+
+| LI-03 | Gamprin        |
++-------+----------------+
+| LI-04 | Mauren         |
++-------+----------------+
+| LI-05 | Planken        |
++-------+----------------+
+| LI-06 | Ruggell        |
++-------+----------------+
+| LI-07 | Schaan         |
++-------+----------------+
+| LI-08 | Schellenberg   |
++-------+----------------+
+| LI-09 | Triesen        |
++-------+----------------+
+| LI-10 | Triesenberg    |
++-------+----------------+
+| LI-11 | Vaduz          |
++-------+----------------+
 
 * Morocco
 
@@ -1252,6 +1336,64 @@ List of Countries
 |ES-MU6 |                      Murcia |
 +-------+-----------------------------+
 
+* Switzerland
+
++-------+-----------------------------+
+|ISO    | Name of region              |
++=======+=============================+
+|CH-AG  |                      Aargau |
++-------+-----------------------------+
+|CH-AR  |      Appenzell Ausserrhoden |
++-------+-----------------------------+
+|CH-AI  |       Appenzell Innerrhoden |
++-------+-----------------------------+
+|CH-BL  |            Basel-Landschaft |
++-------+-----------------------------+
+|CH-BS  |                 Basel-Stadt |
++-------+-----------------------------+
+|CH-BE  |                        Bern |
++-------+-----------------------------+
+|CH-FR  |                    Freiburg |
++-------+-----------------------------+
+|CH-GE  |                        Genf |
++-------+-----------------------------+
+|CH-GL  |                      Glarus |
++-------+-----------------------------+
+|CH-GR  |                  Graubünden |
++-------+-----------------------------+
+|CH-JU  |                        Jura |
++-------+-----------------------------+
+|CH-LU  |                      Luzern |
++-------+-----------------------------+
+|CH-NE  |                   Neuenburg |
++-------+-----------------------------+
+|CH-NW  |                   Nidwalden |
++-------+-----------------------------+
+|CH-OW  |                    Obwalden |
++-------+-----------------------------+
+|CH-SH  |                Schaffhausen |
++-------+-----------------------------+
+|CH-SZ  |                      Schwyz |
++-------+-----------------------------+
+|CH-SO  |                   Solothurn |
++-------+-----------------------------+
+|CH-SG  |                  St. Gallen |
++-------+-----------------------------+
+|CH-TI  |                      Tessin |
++-------+-----------------------------+
+|CH-TG  |                     Thurgau |
++-------+-----------------------------+
+|CH-UR  |                         Uri |
++-------+-----------------------------+
+|CH-VD  |                       Waadt |
++-------+-----------------------------+
+|CH-VS  |                      Wallis |
++-------+-----------------------------+
+|CH-ZG  |                         Zug |
++-------+-----------------------------+
+|CH-ZH  |                      Zürich |
++-------+-----------------------------+
+
 * Uk
 
 +-------+------------------------------+
@@ -1573,7 +1715,7 @@ List of Countries
 +-------+------------------------------+
 |GB-MRY |                        Moray |
 +-------+------------------------------+
-|GB-NAY |                North Ayrshire |
+|GB-NAY |               North Ayrshire |
 +-------+------------------------------+
 |GB-NLK |            North Lanarkshire |
 +-------+------------------------------+
@@ -1647,7 +1789,7 @@ List of Countries
 +------+------------------------------+
 |ISO   | Name of region               |
 +======+==============================+
-|UA-71 |           Cherkasy           |  
+|UA-71 |           Cherkasy           |
 +------+------------------------------+
 |UA-74 |         Chernihiv            |
 +------+------------------------------+
@@ -1673,7 +1815,7 @@ List of Countries
 +------+------------------------------+
 |UA-35 |         Kirovohrad           |
 +------+------------------------------+
-|UA-46 |         L'viv                | 
+|UA-46 |         L'viv                |
 +------+------------------------------+
 |UA-09 |         Luhans'k             |
 +------+------------------------------+
@@ -1681,7 +1823,7 @@ List of Countries
 +------+------------------------------+
 |UA-51 |         Odessa               |
 +------+------------------------------+
-|UA-53 |         Poltava              | 
+|UA-53 |         Poltava              |
 +------+------------------------------+
 |UA-56 |         Rivne                |
 +------+------------------------------+
@@ -1820,19 +1962,19 @@ Need to add a new Country?
 To add a new country in country map tools, we need to follow the following steps :
 
 1. You need shapefiles which contain data of your map.
-   You can get this file on this site: http://www.diva-gis.org/gdata
+   You can get this file on this site: https://www.diva-gis.org/gdata
 
-2. You need to add ISO 3166-2 with column name ISO for all record in your file. 
+2. You need to add ISO 3166-2 with column name ISO for all record in your file.
    It's important because it's a norm for mapping your data with geojson file
 
 3. You need to convert shapefile to geojson file.
-   This action can make with ogr2ogr tools: http://www.gdal.org/ogr2ogr.html
+   This action can make with ogr2ogr tools: https://www.gdal.org/ogr2ogr.html
 
-4. Put your geojson file in next folder : superset/assets/src/visualizations/CountryMap/countries with the next name : nameofyourcountries.geojson
+4. Put your geojson file in next folder : superset-frontend/src/visualizations/CountryMap/countries with the next name : nameofyourcountries.geojson
 
-5. You can to reduce size of geojson file on this site: http://mapshaper.org/
+5. You can to reduce size of geojson file on this site: https://mapshaper.org/
 
-6. Go in file superset/assets/src/explore/controls.jsx
+6. Go in file superset-frontend/src/explore/controls.jsx
 
 7. Add your country in component 'select_country'
    Example :
@@ -1852,6 +1994,7 @@ To add a new country in country map tools, we need to follow the following steps
         'Germany',
         'Italy',
         'Japan',
+        'Korea',
         'Morocco',
         'Netherlands',
         'Russia',
@@ -1862,7 +2005,3 @@ To add a new country in country map tools, we need to follow the following steps
         ].map(s => [s, s]),
         description: 'The name of country that Superset should display',
     },
-       
-
-
-

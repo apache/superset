@@ -1,3 +1,19 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 [MASTER]
 
 # Specify a configuration file.
@@ -65,7 +81,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=standarderror-builtin,long-builtin,dict-view-method,intern-builtin,suppressed-message,no-absolute-import,unpacking-in-except,apply-builtin,delslice-method,indexing-exception,old-raise-syntax,print-statement,cmp-builtin,reduce-builtin,useless-suppression,coerce-method,input-builtin,cmp-method,raw_input-builtin,nonzero-method,backtick,basestring-builtin,setslice-method,reload-builtin,oct-method,map-builtin-not-iterating,execfile-builtin,old-octal-literal,zip-builtin-not-iterating,buffer-builtin,getslice-method,metaclass-assignment,xrange-builtin,long-suffix,round-builtin,range-builtin-not-iterating,next-method-called,dict-iter-method,parameter-unpacking,unicode-builtin,unichr-builtin,import-star-module-level,raising-string,filter-builtin-not-iterating,old-ne-operator,using-cmp-argument,coerce-builtin,file-builtin,old-division,hex-method,invalid-unary-operand-type,missing-docstring,too-many-lines,duplicate-code
+disable=standarderror-builtin,long-builtin,dict-view-method,intern-builtin,suppressed-message,no-absolute-import,unpacking-in-except,apply-builtin,delslice-method,indexing-exception,old-raise-syntax,print-statement,cmp-builtin,reduce-builtin,useless-suppression,coerce-method,input-builtin,cmp-method,raw_input-builtin,nonzero-method,backtick,basestring-builtin,setslice-method,reload-builtin,oct-method,map-builtin-not-iterating,execfile-builtin,old-octal-literal,zip-builtin-not-iterating,buffer-builtin,getslice-method,metaclass-assignment,xrange-builtin,long-suffix,round-builtin,range-builtin-not-iterating,next-method-called,dict-iter-method,parameter-unpacking,unicode-builtin,unichr-builtin,import-star-module-level,raising-string,filter-builtin-not-iterating,old-ne-operator,using-cmp-argument,coerce-builtin,file-builtin,old-division,hex-method,invalid-unary-operand-type,missing-docstring,too-many-lines,duplicate-code,bad-continuation,ungrouped-imports
 
 
 [REPORTS]
@@ -193,7 +209,7 @@ max-nested-blocks=5
 [FORMAT]
 
 # Maximum number of characters on a single line.
-max-line-length=90
+max-line-length=88
 
 # Regexp for a line that is allowed to be longer than the limit.
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$

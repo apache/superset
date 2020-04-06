@@ -1,111 +1,187 @@
-# pylint: disable=C,R,W
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import logging
+from typing import List, Optional, Set
 
 import sqlparse
-from sqlparse.sql import Identifier, IdentifierList
-from sqlparse.tokens import Keyword, Name
+from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
+from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.utils import imt
 
-RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT', 'SELECT'}
-ON_KEYWORD = 'ON'
-PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
+RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
+ON_KEYWORD = "ON"
+PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
+CTE_PREFIX = "CTE__"
+logger = logging.getLogger(__name__)
 
 
-class SupersetQuery(object):
-    def __init__(self, sql_statement):
-        self.sql = sql_statement
-        self._table_names = set()
-        self._alias_names = set()
-        self._limit = None
-        # TODO: multistatement support
+def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
+    """
+    Extract limit clause from SQL statement.
 
-        logging.info('Parsing with sqlparse statement {}'.format(self.sql))
-        self._parsed = sqlparse.parse(self.sql)
+    :param statement: SQL statement
+    :return: Limit extracted from query, None if no limit present in statement
+    """
+    idx, _ = statement.token_next_by(m=(Keyword, "LIMIT"))
+    if idx is not None:
+        _, token = statement.token_next(idx=idx)
+        if token:
+            if isinstance(token, IdentifierList):
+                # In case of "LIMIT <offset>, <limit>", find comma and extract
+                # first succeeding non-whitespace token
+                idx, _ = token.token_next_by(m=(sqlparse.tokens.Punctuation, ","))
+                _, token = token.token_next(idx=idx)
+            if token and token.ttype == sqlparse.tokens.Literal.Number.Integer:
+                return int(token.value)
+    return None
+
+
+class ParsedQuery:
+    def __init__(self, sql_statement: str):
+        self.sql: str = sql_statement
+        self._table_names: Set[str] = set()
+        self._alias_names: Set[str] = set()
+        self._limit: Optional[int] = None
+
+        logger.debug("Parsing with sqlparse statement: %s", self.sql)
+        self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
             self.__extract_from_token(statement)
-            self._limit = self._extract_limit_from_query(statement)
+            self._limit = _extract_limit_from_query(statement)
         self._table_names = self._table_names - self._alias_names
 
     @property
-    def tables(self):
+    def tables(self) -> Set[str]:
         return self._table_names
 
     @property
-    def limit(self):
+    def limit(self) -> Optional[int]:
         return self._limit
 
-    def is_select(self):
-        return self._parsed[0].get_type() == 'SELECT'
+    def is_select(self) -> bool:
+        return self._parsed[0].get_type() == "SELECT"
 
-    def is_explain(self):
-        return self.sql.strip().upper().startswith('EXPLAIN')
+    def is_explain(self) -> bool:
+        return self.stripped().upper().startswith("EXPLAIN")
 
-    def is_readonly(self):
+    def is_readonly(self) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return self.is_select() or self.is_explain()
 
-    def stripped(self):
-        return self.sql.strip(' \t\n;')
+    def stripped(self) -> str:
+        return self.sql.strip(" \t\n;")
+
+    def get_statements(self) -> List[str]:
+        """Returns a list of SQL statements as strings, stripped"""
+        statements = []
+        for statement in self._parsed:
+            if statement:
+                sql = str(statement).strip(" \n;\t")
+                if sql:
+                    statements.append(sql)
+        return statements
 
     @staticmethod
-    def __precedes_table_name(token_value):
-        for keyword in PRECEDES_TABLE_NAME:
-            if keyword in token_value:
-                return True
-        return False
+    def __get_full_name(tlist: TokenList) -> Optional[str]:
+        """
+        Return the full unquoted table name if valid, i.e., conforms to the following
+        [[cluster.]schema.]table construct.
+
+        :param tlist: The SQL tokens
+        :returns: The valid full table name
+        """
+
+        # Strip the alias if present.
+        idx = len(tlist.tokens)
+
+        if tlist.has_alias():
+            ws_idx, _ = tlist.token_next_by(t=Whitespace)
+
+            if ws_idx != -1:
+                idx = ws_idx
+
+        tokens = tlist.tokens[:idx]
+
+        if (
+            len(tokens) in (1, 3, 5)
+            and all(imt(token, t=[Name, String]) for token in tokens[0::2])
+            and all(imt(token, m=(Punctuation, ".")) for token in tokens[1::2])
+        ):
+            return ".".join([remove_quotes(token.value) for token in tokens[0::2]])
+
+        return None
 
     @staticmethod
-    def __get_full_name(identifier):
-        if len(identifier.tokens) > 1 and identifier.tokens[1].value == '.':
-            return '{}.{}'.format(identifier.tokens[0].value,
-                                  identifier.tokens[2].value)
-        return identifier.get_real_name()
-
-    @staticmethod
-    def __is_result_operation(keyword):
-        for operation in RESULT_OPERATIONS:
-            if operation in keyword.upper():
-                return True
-        return False
-
-    @staticmethod
-    def __is_identifier(token):
+    def __is_identifier(token: Token) -> bool:
         return isinstance(token, (IdentifierList, Identifier))
 
-    def __process_identifier(self, identifier):
+    def __process_tokenlist(self, token_list: TokenList):
+        """
+        Add table names to table set
+
+        :param token_list: TokenList to be processed
+        """
         # exclude subselects
-        if '(' not in '{}'.format(identifier):
-            self._table_names.add(self.__get_full_name(identifier))
+        if "(" not in str(token_list):
+            table_name = self.__get_full_name(token_list)
+            if table_name and not table_name.startswith(CTE_PREFIX):
+                self._table_names.add(table_name)
             return
 
         # store aliases
-        if hasattr(identifier, 'get_alias'):
-            self._alias_names.add(identifier.get_alias())
-        if hasattr(identifier, 'tokens'):
-            # some aliases are not parsed properly
-            if identifier.tokens[0].ttype == Name:
-                self._alias_names.add(identifier.tokens[0].value)
-        self.__extract_from_token(identifier)
+        if token_list.has_alias():
+            self._alias_names.add(token_list.get_alias())
 
-    def as_create_table(self, table_name, overwrite=False):
+        # some aliases are not parsed properly
+        if token_list.tokens[0].ttype == Name:
+            self._alias_names.add(token_list.tokens[0].value)
+        self.__extract_from_token(token_list)
+
+    def as_create_table(
+        self,
+        table_name: str,
+        schema_name: Optional[str] = None,
+        overwrite: bool = False,
+    ) -> str:
         """Reformats the query into the create table as query.
 
         Works only for the single select SQL statements, in all other cases
         the sql query is not modified.
-        :param superset_query: string, sql query that will be executed
-        :param table_name: string, will contain the results of the
-            query execution
-        :param overwrite, boolean, table table_name will be dropped if true
-        :return: string, create table as query
+        :param table_name: table that will contain the results of the query execution
+        :param schema_name: schema name for the target table
+        :param overwrite: table_name will be dropped if true
+        :return: Create table as query
         """
-        exec_sql = ''
+        exec_sql = ""
         sql = self.stripped()
+        # TODO(bkyryliuk): quote full_table_name
+        full_table_name = f"{schema_name}.{table_name}" if schema_name else table_name
         if overwrite:
-            exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
-        exec_sql += 'CREATE TABLE {table_name} AS \n{sql}'
-        return exec_sql.format(**locals())
+            exec_sql = f"DROP TABLE IF EXISTS {full_table_name};\n"
+        exec_sql += f"CREATE TABLE {full_table_name} AS \n{sql}"
+        return exec_sql
 
-    def __extract_from_token(self, token):
-        if not hasattr(token, 'tokens'):
+    def __extract_from_token(self, token: Token):  # pylint: disable=too-many-branches
+        """
+        Populate self._table_names from token
+
+        :param token: instance of Token or child class, e.g. TokenList, to be processed
+        """
+        if not hasattr(token, "tokens"):
             return
 
         table_name_preceding_token = False
@@ -114,64 +190,58 @@ class SupersetQuery(object):
             if item.is_group and not self.__is_identifier(item):
                 self.__extract_from_token(item)
 
-            if item.ttype in Keyword:
-                if self.__precedes_table_name(item.value.upper()):
-                    table_name_preceding_token = True
-                    continue
-
-            if not table_name_preceding_token:
+            if item.ttype in Keyword and (
+                item.normalized in PRECEDES_TABLE_NAME
+                or item.normalized.endswith(" JOIN")
+            ):
+                table_name_preceding_token = True
                 continue
 
-            if item.ttype in Keyword or item.value == ',':
-                if (self.__is_result_operation(item.value) or
-                        item.value.upper() == ON_KEYWORD):
-                    table_name_preceding_token = False
-                    continue
-                # FROM clause is over
-                break
+            if item.ttype in Keyword:
+                table_name_preceding_token = False
+                continue
 
-            if isinstance(item, Identifier):
-                self.__process_identifier(item)
+            if table_name_preceding_token:
+                if isinstance(item, Identifier):
+                    self.__process_tokenlist(item)
+                elif isinstance(item, IdentifierList):
+                    for token2 in item.get_identifiers():
+                        if isinstance(token2, TokenList):
+                            self.__process_tokenlist(token2)
+            elif isinstance(item, IdentifierList):
+                for token2 in item.tokens:
+                    if not self.__is_identifier(token2):
+                        self.__extract_from_token(item)
 
-            if isinstance(item, IdentifierList):
-                for token in item.tokens:
-                    if self.__is_identifier(token):
-                        self.__process_identifier(token)
+    def set_or_update_query_limit(self, new_limit: int) -> str:
+        """Returns the query with the specified limit.
 
-    def _get_limit_from_token(self, token):
-        if token.ttype == sqlparse.tokens.Literal.Number.Integer:
-            return int(token.value)
-        elif token.is_group:
-            return int(token.get_token_at_offset(1).value)
+        Does not change the underlying query if user did not apply the limit,
+        otherwise replaces the limit with the lower value between existing limit
+        in the query and new_limit.
 
-    def _extract_limit_from_query(self, statement):
-        limit_token = None
-        for pos, item in enumerate(statement.tokens):
-            if item.ttype in Keyword and item.value.lower() == 'limit':
-                limit_token = statement.tokens[pos + 2]
-                return self._get_limit_from_token(limit_token)
-
-    def get_query_with_new_limit(self, new_limit):
-        """returns the query with the specified limit"""
-        """does not change the underlying query"""
+        :param new_limit: Limit to be incorporated into returned query
+        :return: The original query with new limit
+        """
         if not self._limit:
-            return self.sql + ' LIMIT ' + str(new_limit)
+            return f"{self.stripped()}\nLIMIT {new_limit}"
         limit_pos = None
-        tokens = self._parsed[0].tokens
+        statement = self._parsed[0]
         # Add all items to before_str until there is a limit
-        for pos, item in enumerate(tokens):
-            if item.ttype in Keyword and item.value.lower() == 'limit':
+        for pos, item in enumerate(statement.tokens):
+            if item.ttype in Keyword and item.value.lower() == "limit":
                 limit_pos = pos
                 break
-        limit = tokens[limit_pos + 2]
-        if limit.ttype == sqlparse.tokens.Literal.Number.Integer:
-            tokens[limit_pos + 2].value = new_limit
+        _, limit = statement.token_next(idx=limit_pos)
+        # Override the limit only when it exceeds the configured value.
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and new_limit < int(
+            limit.value
+        ):
+            limit.value = new_limit
         elif limit.is_group:
-            tokens[limit_pos + 2].value = (
-                '{}, {}'.format(next(limit.get_identifiers()), new_limit)
-            )
+            limit.value = f"{next(limit.get_identifiers())}, {new_limit}"
 
-        str_res = ''
-        for i in tokens:
+        str_res = ""
+        for i in statement.tokens:
             str_res += str(i.value)
         return str_res

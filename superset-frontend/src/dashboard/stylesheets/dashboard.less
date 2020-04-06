@@ -1,0 +1,238 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/* header has mysterious extra margin */
+header.top {
+  margin-bottom: -20px;
+}
+
+body {
+  h1 {
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-xxl;
+    letter-spacing: -0.2px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-xl;
+    margin-top: 12px;
+    margin-bottom: 8px;
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: @font-weight-bold;
+    line-height: @line-height-base;
+    font-size: @font-size-l;
+    letter-spacing: 0.2px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin: 0 0 8px 0;
+  }
+}
+
+.dashboard .chart-header {
+  position: relative;
+  font-size: @font-size-l;
+  font-weight: @font-weight-bold;
+  margin-bottom: 4px;
+
+  .dropdown.btn-group {
+    position: absolute;
+    right: 0;
+  }
+
+  .dropdown-toggle.btn.btn-default {
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .dropdown-menu.dropdown-menu-right {
+    top: 20px;
+  }
+
+  .divider {
+    margin: 5px 0;
+  }
+
+  .refresh-tooltip {
+    display: block;
+    height: 16px;
+    margin: 3px 0;
+    color: @gray;
+  }
+}
+
+.dashboard .dashboard-header {
+  #save-dash-split-button {
+    border-radius: 0;
+    margin-left: -9px;
+    height: 30px;
+    width: 30px;
+
+    &.btn.btn-primary {
+      border-left-color: @lightest;
+    }
+
+    & + .dropdown-menu.dropdown-menu-right {
+      min-width: unset;
+    }
+
+    .caret {
+      display: inline-block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .button-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+
+    & > :nth-child(3) {
+      border-radius: @border-radius-normal 0px 0px @border-radius-normal;
+      border-right: none;
+    }
+
+    & > :nth-child(4) {
+      border-radius: 0px @border-radius-normal @border-radius-normal 0px;
+    }
+
+    & > :not(:nth-child(3)):not(:last-child) {
+      margin-right: 8px;
+    }
+  }
+}
+
+.dashboard .chart-header,
+.dashboard .dashboard-header {
+  .dropdown-menu {
+    padding: 9px 0;
+  }
+
+  .dropdown-menu li a {
+    padding: 3px 16px;
+    color: @almost-black;
+    font-size: @font-size-m;
+
+    &:hover,
+    &:focus {
+      background: @menu-hover;
+      color: @almost-black;
+    }
+  }
+}
+
+.modal {
+  img.loading {
+    width: 50px;
+    margin: 0;
+    position: relative;
+  }
+
+  .modal-body {
+    padding: 24px 24px 29px 24px;
+  }
+
+  .modal-dialog.filter-scope-modal {
+    width: 80%;
+  }
+
+  .dashboard-modal-actions-container {
+    margin-top: 24px;
+    text-align: right;
+
+    .btn {
+      margin-right: 16px;
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+
+  .dashboard-modal.delete {
+    .btn.btn-primary {
+      background: @danger;
+      border-color: @danger;
+    }
+  }
+}
+
+.react-bs-container-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.hidden,
+#pageDropDown {
+  display: none;
+}
+
+.separator .chart-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.dashboard .title {
+  margin: 0 20px;
+}
+
+.dashboard-header .dashboard-component-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  .favstar {
+    font-size: @font-size-xl;
+    position: relative;
+    margin-left: 8px;
+  }
+
+  .publish {
+    position: relative;
+    margin-left: 8px;
+  }
+}
+
+.slice_container .alert {
+  margin: 10px;
+}
+
+i.danger {
+  color: @danger;
+}
+
+i.warning {
+  color: @warning;
+}

@@ -1,5 +1,0 @@
-{% block partial_js %}
-  {% for entry in get_unloaded_chunks(js_manifest(filename), loaded_chunks) %}
-    <script src="{{ entry }}"></script>
-  {% endfor %}
-{% endblock %}

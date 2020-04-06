@@ -1891,15 +1891,6 @@
          "Cluster": [
             "Cluster"
          ],
-         "Coordinator Host": [
-            ""
-         ],
-         "Coordinator Port": [
-            ""
-         ],
-         "Coordinator Endpoint": [
-            ""
-         ],
          "Broker Host": [
             ""
          ],

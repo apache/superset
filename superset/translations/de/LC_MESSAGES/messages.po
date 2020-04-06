@@ -1,8 +1,21 @@
-# German translations for PROJECT.
-# Copyright (C) 2017 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR github.com/alanmcruickshank, 2017.
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# FIRST AUTHOR github.com/alanmcruickshank, 2017.
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
@@ -145,7 +158,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:386
 #: superset/viz.py:430
 msgid "Pivot Table"
-msgstr ""
+msgstr "Pivot-Tabelle"
 
 #: superset/viz.py:444
 msgid "Please choose at least one \"Group by\" field "
@@ -153,7 +166,7 @@ msgstr ""
 
 #: superset/viz.py:446
 msgid "Please choose at least one metric"
-msgstr ""
+msgstr "Bitte wählt zumindest eine Metrik"
 
 #: superset/viz.py:450
 msgid "'Group By' and 'Columns' can't overlap"
@@ -162,7 +175,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:373
 #: superset/viz.py:483
 msgid "Markup"
-msgstr ""
+msgstr "Auszeichnung"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:411
 #: superset/viz.py:502
@@ -172,7 +185,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:433
 #: superset/viz.py:514
 msgid "Word Cloud"
-msgstr ""
+msgstr "Wortwolke"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:454
 #: superset/viz.py:537
@@ -187,7 +200,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:502
 #: superset/viz.py:621
 msgid "Box Plot"
-msgstr ""
+msgstr "Box-Plot"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:523
 #: superset/viz.py:710
@@ -214,12 +227,12 @@ msgstr ""
 
 #: superset/viz.py:817 superset/viz.py:846
 msgid "Pick a metric!"
-msgstr ""
+msgstr "Wählt eine Metrik!"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:622
 #: superset/viz.py:838
 msgid "Big Number"
-msgstr ""
+msgstr "Große Nummer"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:157
 #: superset/viz.py:865
@@ -2824,18 +2837,6 @@ msgstr "Druid Cluster bearbeiten"
 #: superset/connectors/druid/views.py:143
 #: superset/connectors/druid/views.py:227
 msgid "Cluster"
-msgstr ""
-
-#: superset/connectors/druid/views.py:144
-msgid "Coordinator Host"
-msgstr ""
-
-#: superset/connectors/druid/views.py:145
-msgid "Coordinator Port"
-msgstr ""
-
-#: superset/connectors/druid/views.py:146
-msgid "Coordinator Endpoint"
 msgstr ""
 
 #: superset/connectors/druid/views.py:147

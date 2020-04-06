@@ -1,8 +1,20 @@
-# Translations template for PROJECT.
-# Copyright (C) 2018 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2018.
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 #, fuzzy
 msgid ""
 msgstr ""
@@ -4104,18 +4116,6 @@ msgstr ""
 msgid "Cluster"
 msgstr ""
 
-#: superset/connectors/druid/views.py:172
-msgid "Coordinator Host"
-msgstr ""
-
-#: superset/connectors/druid/views.py:173
-msgid "Coordinator Port"
-msgstr ""
-
-#: superset/connectors/druid/views.py:174
-msgid "Coordinator Endpoint"
-msgstr ""
-
 #: superset/connectors/druid/views.py:175
 msgid "Broker Host"
 msgstr ""
@@ -4669,7 +4669,7 @@ msgid "CSV to Database configuration"
 msgstr ""
 
 #: superset/views/core.py:375
-msgid "CSV file \"{0}\" uploaded to table \"{1}\" in database \"{2}\""
+msgid "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\""
 msgstr ""
 
 #: superset/views/core.py:401 superset/views/core.py:667
@@ -4967,4 +4967,3 @@ msgstr ""
 #: superset/views/sql_lab.py:86
 msgid "Saved Queries"
 msgstr ""
-

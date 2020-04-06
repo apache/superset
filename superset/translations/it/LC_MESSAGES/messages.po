@@ -1,9 +1,19 @@
-# Italian translations for Superset.
-# Copyright (C) 2016 ORGANIZATION
-# This file is distributed under the same license as the Superset project.
-# Maxime Beauchemin <maximebeauchemin @ gmail.com>, 2016.
-# Maurizio Napolitano <napo@fbk.eu>, 2017.
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
@@ -3844,18 +3854,6 @@ msgstr ""
 msgid "Cluster"
 msgstr "Cluster"
 
-#: superset/connectors/druid/views.py:165
-msgid "Coordinator Host"
-msgstr "Host Coordinatore"
-
-#: superset/connectors/druid/views.py:166
-msgid "Coordinator Port"
-msgstr "Porta Coordinatore"
-
-#: superset/connectors/druid/views.py:167
-msgid "Coordinator Endpoint"
-msgstr "Endpoint Coordinatore"
-
 #: superset/connectors/druid/views.py:168
 msgid "Broker Host"
 msgstr "Host Broker"
@@ -4434,7 +4432,7 @@ msgid "CSV to Database configuration"
 msgstr ""
 
 #: superset/views/core.py:363
-msgid "CSV file \"{0}\" uploaded to table \"{1}\" in database \"{2}\""
+msgid "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\""
 msgstr ""
 
 #: superset/views/core.py:389 superset/views/core.py:655
@@ -6463,4 +6461,3 @@ msgstr "Query salvate"
 
 #~ msgid "Slice"
 #~ msgstr "Slice"
-

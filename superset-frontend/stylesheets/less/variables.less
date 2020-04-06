@@ -1,0 +1,193 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/************************************************************************/
+/* COLORS                                                               */
+/* Please attempt to use and standardize on these colors,               */
+/* rather than including specific color values in                       */
+/* component styles. This will allow us to more easily adjust theming   */
+/************************************************************************/
+
+@primary-color: #00a699;
+@indicator-color: #44c0ff;
+
+@almost-black: #263238;
+@gray-dark: #484848;
+@gray-light: #cfd8dc;
+@gray: #879399;
+@gray-bg: #f5f5f5;
+@gray-heading: #a3a3a3;
+@menu-hover: #f2f3f5;
+@lightest: #ffffff;
+@darkest: #000000;
+
+/**************************** text-specific *****************************/
+@link: @brand-primary;
+@link-hover: darken(@link, @colorstop-one);
+
+/***************************** status colors ****************************/
+@success: #4ac15f;
+@info: lighten(#2ab7ca, 15%);
+@warning: mix(
+  #fed766,
+  #ffab00,
+  50%
+); // mix of old superset warning color and cosmo warning color. Compromise!
+@danger: #fe4a49;
+
+/* general component effects */
+@shadow-highlight: @primary-color;
+
+/*************************** filter indicators **************************/
+/* make sure be consistent with FILTER_COLORS_COUNT in
+   dashboardFiltersColorMap.js
+*/
+@badge-colors: #228be6, #40c057, #fab005, #f76707, #e64980, #15aabf, #7950f2,
+  #fa5252, #74b816, #12b886, #1864ab, #2b8a3e, #e67700, #d9480f, #a61e4d,
+  #0b7285, #5f3dc4, #c92a2a, #5c940d, #087f5b;
+
+@iterations: length(@badge-colors);
+.badge-loop (@i) when (@i > 0) {
+  .filter-badge.badge-@{i},
+  .active .color-bar.badge-@{i},
+  .dashboard-filter-indicators-container:hover .color-bar.badge-@{i},
+  .dashboard-component-chart-holder:hover .color-bar.badge-@{i} {
+    @value: extract(@badge-colors, @i);
+    background-color: @value;
+  }
+  .badge-loop(@i - 1);
+}
+.badge-loop(@iterations);
+
+/************************************************************************/
+/* OPACITIES                                                            */
+/* Used in LESS filters, e.g. fade(@someColorVar, @someOpacityBelow)    */
+/************************************************************************/
+@opacity-light: 10%;
+@opacity-medium-light: 35%;
+@opacity-medium-heavy: 60%;
+@opacity-heavy: 80%;
+
+/************************************************************************/
+/* SHADES & TINTS                                                       */
+/* Used in LESS filters for shadint/tinting,                            */
+/* e.g. shade(@someColorVar, @colorstop-one) to darken                  */
+/* or tint(@someColorVar, @colorstop-one) to lighten                    */
+/************************************************************************/
+@colorstop-one: 20%;
+@colorstop-two: 40%;
+@colorstop-three: 60%;
+@colorstop-four: 80%;
+
+/************************************************************************/
+/* LAYOUT                                                               */
+/* Widths and heights of things, that might be referred to often        */
+/************************************************************************/
+
+/* builder component pane */
+@builder-pane-width: 374px;
+
+/************************************************************************/
+/* Z-INDEX                                                              */
+/* Think of the site as "layers" rather than an arms race of numbers    */
+/* Keep these to a minimum                                              */
+/* Label semantic "layers" and add comments for usage notes             */
+/* Use double dash modifiers to step up/down from a base layer          */
+/* e.g. z-whatever--modifier                                            */
+/************************************************************************/
+
+/************************ toast messages, popovers **********************/
+@z-index-max: 3000;
+
+/***** filters, dashboard editor widgets, Explore reloading overlay *****/
+@z-index-dropdown: @z-index-above-dashboard-charts + 1;
+@z-index-above-dashboard-charts: 10;
+
+/******************************** charts ********************************/
+@z-index-chart--dragging: @z-index-chart + 1;
+@z-index-chart: 1;
+
+/************************************************************************/
+/* TYPOGRAPHY                                                           */
+/* Commonly used font weights, line heights, etc. These should be the   */
+/* core values used to build more complex styles for headers, etc.      */
+/************************************************************************/
+
+// *************************** Weights **********************************
+@font-weight-light: 200;
+@font-weight-normal: 400;
+@font-weight-bold: 700;
+
+// ***************************** Font Sizes *****************************
+@font-size-base: 14px; // Base `rem` units on this, as needed.
+
+@font-size-xxs: 9px;
+@font-size-xs: 10px;
+@font-size-s: 12px;
+@font-size-m: @font-size-base;
+@font-size-l: 16px;
+@font-size-xl: 21px;
+@font-size-xxl: 28px;
+
+// **************************** Line Heights ****************************
+@line-height-base: 1.4;
+// Ranged Sizes
+@line-height-tight: 1;
+@line-height-normal: @line-height-base;
+@line-height-loose: 2;
+
+// ****************************** Features *******************************
+@use-ligatures: false;
+
+// setting up OTF settings based on @use-ligatures:
+.set-otf-options(@use-ligatures);
+.set-otf-options(true) {
+  @font-feature-settings: 'liga' on, 'calt' on;
+}
+.set-otf-options(false) {
+  @font-feature-settings: 'liga' off, 'calt' off;
+}
+
+// ****************************** Families ******************************
+@font-family-sans-serif: 'Inter', Helvetica, Arial;
+@font-family-serif: Georgia, 'Times New Roman', Times, serif;
+@font-family-monospace: 'Fira Code', 'Courier New', monospace;
+@font-family-base: @font-family-sans-serif;
+
+/************************************************************************/
+/* TRANSITIONS                                                          */
+/* Timing and easings presets used in CSS transitions                   */
+/************************************************************************/
+@timing-normal: 0.3s;
+
+/************************************************************************/
+/* BORDER RADII                                                         */
+/* Standard border-radius settings                                      */
+/************************************************************************/
+@border-radius-normal: 2px;
+@border-radius-large: (@border-radius-normal * 2);
+
+/************************************************************************/
+/* BOOTSTRAP/BOOTSWATCH/COSMO                                           */
+/* These are the legacy Cosmo theme overrides to Bootswatch's           */
+/* overrides to Bootstrap. We should consolidate/deprecate these        */
+/* in favor of custom/reusable CSS wherever possible                    */
+/************************************************************************/
+
+@import '../less/cosmo/variables.less';

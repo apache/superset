@@ -1,10 +1,27 @@
+..  Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+..    http://www.apache.org/licenses/LICENSE-2.0
+
+..  Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 Security
 ========
 Security in Superset is handled by Flask AppBuilder (FAB). FAB is a
 "Simple and rapid application development framework, built on top of Flask.".
 FAB provides authentication, user management, permissions and roles.
-Please read its `Security documentation 
-<http://flask-appbuilder.readthedocs.io/en/latest/security.html>`_.
+Please read its `Security documentation
+<https://flask-appbuilder.readthedocs.io/en/latest/security.html>`_.
 
 Provided Roles
 --------------
@@ -70,7 +87,7 @@ sure the users with limited access have [only] the Gamma role assigned to
 them. Second, create a new role (``Menu -> Security -> List Roles``) and
 click the ``+`` sign.
 
-.. image:: images/create_role.png
+.. image:: _static/images/create_role.png
    :scale: 50 %
 
 This new window allows you to give this new role a name, attribute it to users
@@ -138,24 +155,24 @@ list of dashboards it has access to, based on the roles and
 permissions that were attributed.
 
 
-Restricting the access to some metrics
-""""""""""""""""""""""""""""""""""""""
+Restricting access to a subset of a particular table
+""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-Sometimes some metrics are relatively sensitive (e.g. revenue).
-We may want to restrict those metrics to only a few roles.
-For example, assumed there is a metric ``[cluster1].[datasource1].[revenue]``
-and only Admin users are allowed to see it. Here’s how to restrict the access.
+Using ``Row level security filters`` (under the ``Security`` menu) you can create 
+filters that are assigned to a particular table, as well as a set of roles. 
+Say people in your finance department should only have access to rows where 
+``department = "finance"``.  You could create a ``Row level security filter`` 
+with that clause, and assign it to your ``Finance`` role, as well as the 
+applicable table.
 
-1. Edit the datasource (``Menu -> Source -> Druid datasources -> edit the
-   record "datasource1"``) and go to the tab ``List Druid Metric``. Check
-   the checkbox ``Is Restricted`` in the row of the metric ``revenue``.
+The ``clause`` field can contain arbitrary text which is then added to the generated 
+SQL statement's ``WHERE`` clause.  So you could even do something like create a 
+filter for the last 30 days and apply it to a specific role, with a clause like 
+``date_field > DATE_SUB(NOW(), INTERVAL 30 DAY)``.  It can also support multiple 
+conditions: ``client_id = 6 AND advertiser="foo"``, etc. 
 
-2. Edit the role (``Menu -> Security -> List Roles -> edit the record
-   “Admin”``), in the permissions field, type-and-search the permission
-   ``metric access on [cluster1].[datasource1].[revenue] (id: 1)``, then
-   click the Save button on the bottom of the page.
-
-Any users without the permission will see the error message
-*Access to the metrics denied: revenue (Status: 500)* in the slices.
-It also happens when the user wants to access a post-aggregation metric that
-is dependent on revenue.
+All relevant ``Row level security filters`` will be ANDed together, so it's 
+possible to create a situation where two roles conflict in such a way as to 
+limit a table subset to empty.  For example, the filters ``client_id=4`` and 
+and ``client_id=5``, applied to a role, will result in users of that role having 
+``client_id=4 AND client_id=5`` added to their query, which can never be true.
