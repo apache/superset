@@ -463,6 +463,7 @@ export const controls = {
       'Morocco',
       'Myanmar',
       'Netherlands',
+      'Nigeria',
       'Portugal',
       'Russia',
       'Singapore',
