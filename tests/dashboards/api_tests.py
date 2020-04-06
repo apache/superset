@@ -179,8 +179,8 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin = self.get_user("admin")
         dashboard1 = self.insert_dashboard("foo", "ZY_bar", [admin.id])
         dashboard2 = self.insert_dashboard("zy_foo", "slug1", [admin.id])
-        dashboard2 = self.insert_dashboard("foo", "slug1zy_", [admin.id])
-        dashboard3 = self.insert_dashboard("bar", "foo", [admin.id])
+        dashboard3 = self.insert_dashboard("foo", "slug1zy_", [admin.id])
+        dashboard4 = self.insert_dashboard("bar", "foo", [admin.id])
 
         arguments = {
             "filters": [
@@ -206,6 +206,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard1)
         db.session.delete(dashboard2)
         db.session.delete(dashboard3)
+        db.session.delete(dashboard4)
         db.session.commit()
 
     def test_get_dashboards_no_data_access(self):
