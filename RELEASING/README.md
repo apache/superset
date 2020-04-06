@@ -65,26 +65,27 @@ the wrong files/using wrong names. There's a script to help you set correctly al
 necessary environment variables. Change your current directory to `superset/RELEASING`
 
 ```bash
-    # usage: . set_release_env.sh <SUPERSET_VERSION_RC> <PGP_KEY_FULLNAME>
-    # example: . set_release_env.sh 0.35.2rc1 myid@apache.org
+    # usage (BASH): . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
+    # usage (ZSH): source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
+    #
+    # example: source set_relese_env.sh 0.36.0rc3 myid@apache.org
 ```
 
-The script will output the exported variables. Here's example for 0.35.2rc2:
+The script will output the exported variables. Here's example for 0.36.0rc3:
 
 ```
     -------------------------------
     Set Release env variables
+    SUPERSET_VERSION=0.36.0
+    SUPERSET_RC=3
+    SUPERSET_GITHUB_BRANCH=0.36
     SUPERSET_PGP_FULLNAME=myid@apache.org
-    SUPERSET_VERSION_RC=0.35.2rc1
-    SUPERSET_GITHUB_BRANCH=0.35
-    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.35.2
-    SUPERSET_RELEASE_RC=apache-superset-incubating-0.35.2rc1
-    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.35.2rc1-source.tar.gz
-    SUPERSET_RC=1
-    SUPERSET_CONFIG_PATH=/Users/ville/superset/superset_config.py
-    SUPERSET_RELEASE=apache-superset-incubating-0.35.2
-    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.35.2-source.tar.gz
-    SUPERSET_VERSION=0.35.2
+    SUPERSET_VERSION_RC=0.36.0rc3
+    SUPERSET_RELEASE=apache-superset-incubating-0.36.0
+    SUPERSET_RELEASE_RC=apache-superset-incubating-0.36.0rc3
+    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.36.0-source.tar.gz
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.36.0rc3-source.tar.gz
+    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.36.0
     -------------------------------
 ```
 
@@ -114,10 +115,19 @@ section for the new release.
 Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
 ```json
-    "version": "0.35.2"
+    "version": "0.36.0"
 ```
 
-Commit the change with the version number, then git tag the version with the release candidate and push to the branch
+Commit the change with the version number, then git tag the version with the release candidate and push to the branch:
+
+```
+    # add changed files and commit
+    git add ...
+    git commit ...
+    # push new tag
+    git tag ${SUPERSET_VERSION_RC}
+    git push upstream ${SUPERSET_VERSION_RC}
+```
 
 ## Preparing the release candidate
 
