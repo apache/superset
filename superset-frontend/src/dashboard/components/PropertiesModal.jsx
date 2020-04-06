@@ -25,6 +25,7 @@ import AceEditor from 'react-ace';
 import rison from 'rison';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import stringify from 'json-stringify-pretty-compact';
 import '../stylesheets/buttons.less';
 
 import getClientErrorObject from '../../utils/getClientErrorObject';
@@ -42,6 +43,14 @@ const defaultProps = {
   onHide: () => {},
   onDashboardSave: () => {},
   show: false,
+};
+
+const prettyJSON = jsonString => {
+  try {
+    return stringify(JSON.parse(jsonString));
+  } catch (err) {
+    return jsonString;
+  }
 };
 
 class PropertiesModal extends React.PureComponent {
@@ -99,7 +108,8 @@ class PropertiesModal extends React.PureComponent {
           ...state.values,
           dashboard_title: dashboard.dashboard_title || '',
           slug: dashboard.slug || '',
-          json_metadata: dashboard.json_metadata || '',
+          // always reformat to pretty json at initial opening
+          json_metadata: prettyJSON(dashboard.json_metadata) || '',
         },
       }));
       const initialSelectedOwners = dashboard.owners.map(owner => ({
@@ -279,7 +289,6 @@ class PropertiesModal extends React.PureComponent {
                     <AceEditor
                       mode="json"
                       name="json_metadata"
-                      defaultValue={this.defaultMetadataValue}
                       value={values.json_metadata}
                       onChange={this.onMetadataChange}
                       theme="textmate"
