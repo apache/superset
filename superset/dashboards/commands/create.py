@@ -39,7 +39,7 @@ class CreateDashboardCommand(BaseCommand):
         self._actor = user
         self._properties = data.copy()
 
-    def run(self) -> Optional[Model]:
+    def run(self) -> Model:
         self.validate()
         try:
             dashboard = DashboardDAO.create(self._properties)

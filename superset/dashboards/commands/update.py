@@ -46,7 +46,7 @@ class UpdateDashboardCommand(BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Dashboard] = None
 
-    def run(self) -> Optional[Model]:
+    def run(self) -> Model:
         self.validate()
         try:
             dashboard = DashboardDAO.update(self._model, self._properties)
