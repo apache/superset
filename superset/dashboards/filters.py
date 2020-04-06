@@ -29,10 +29,11 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
     arg_name = "title_or_slug"
 
     def apply(self, query, value):
+        ilike_value = f"%{value}%"
         return query.filter(
             or_(
-                Dashboard.dashboard_title.ilike(value + "%"),
-                Dashboard.slug.ilike(value + "%"),
+                Dashboard.dashboard_title.ilike(ilike_value),
+                Dashboard.slug.ilike(ilike_value),
             )
         )
 
