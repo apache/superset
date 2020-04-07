@@ -78,6 +78,7 @@ class QueryObject:
         relative_start: str = app.config["DEFAULT_RELATIVE_START_TIME"],
         relative_end: str = app.config["DEFAULT_RELATIVE_END_TIME"],
     ):
+        is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
             relative_start=relative_start,
@@ -89,6 +90,8 @@ class QueryObject:
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
         self.post_processing = post_processing or []
+        if not is_sip_38:
+            self.groupby = groupby or []
 
         # Temporary solution for backward compatibility issue due the new format of
         # non-ad-hoc metric which needs to adhere to superset-ui per
@@ -109,7 +112,7 @@ class QueryObject:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
 
         self.columns = columns or []
-        if groupby:
+        if is_sip_38 and groupby:
             self.columns += groupby
             logger.warning(
                 f"The field groupby is deprecated. Viz plugins should "
@@ -134,6 +137,9 @@ class QueryObject:
             "columns": self.columns,
             "orderby": self.orderby,
         }
+        if not is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
+            query_object_dict["groupby"] = self.groupby
+
         return query_object_dict
 
     def cache_key(self, **extra: Any) -> str:

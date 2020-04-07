@@ -65,9 +65,6 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 
-IS_SIP_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
-
-
 class SqlaQuery(NamedTuple):
     extra_cache_keys: List[Any]
     labels_expected: List[str]
@@ -726,6 +723,7 @@ class SqlaTable(Model, BaseDatasource):
             "filter": filter,
             "columns": {col.column_name: col for col in self.columns},
         }
+        is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
@@ -753,10 +751,10 @@ class SqlaTable(Model, BaseDatasource):
                 )
             )
         if (
-            IS_SIP_38
+            is_sip_38
             and not metrics
             and not columns
-            or not IS_SIP_38
+            or not is_sip_38
             and not groupby
             and not metrics
             and not columns
@@ -779,9 +777,9 @@ class SqlaTable(Model, BaseDatasource):
         select_exprs: List[Column] = []
         groupby_exprs_sans_timestamp: OrderedDict = OrderedDict()
 
-        if IS_SIP_38 and metrics and columns or not IS_SIP_38 and groupby:
+        if is_sip_38 and metrics and columns or not is_sip_38 and groupby:
             # dedup columns while preserving order
-            if IS_SIP_38:
+            if is_sip_38:
                 groupby = list(dict.fromkeys(columns))
             else:
                 groupby = list(dict.fromkeys(groupby))
@@ -843,7 +841,7 @@ class SqlaTable(Model, BaseDatasource):
 
         tbl = self.get_from_clause(template_processor)
 
-        if IS_SIP_38 and metrics or not IS_SIP_38 and not columns:
+        if is_sip_38 and metrics or not is_sip_38 and not columns:
             qry = qry.group_by(*groupby_exprs_with_timestamp.values())
 
         where_clause_and = []
@@ -907,10 +905,10 @@ class SqlaTable(Model, BaseDatasource):
         qry = qry.having(and_(*having_clause_and))
 
         if (
-            IS_SIP_38
+            is_sip_38
             and not orderby
             and metrics
-            or not IS_SIP_38
+            or not is_sip_38
             and not orderby
             and not columns
         ):
@@ -936,12 +934,12 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.limit(row_limit)
 
         if (
-            IS_SIP_38
+            is_sip_38
             and is_timeseries
             and timeseries_limit
             and columns
             and not time_groupby_inline
-            or not IS_SIP_38
+            or not is_sip_38
             and is_timeseries
             and timeseries_limit
             and groupby
@@ -1014,7 +1012,7 @@ class SqlaTable(Model, BaseDatasource):
                     "columns": columns,
                     "order_desc": True,
                 }
-                if not IS_SIP_38:
+                if not is_sip_38:
                     prequery_obj["groupby"] = groupby
 
                 result = self.query(prequery_obj)
