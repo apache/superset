@@ -1,0 +1,97 @@
+name: E2E
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+  cypress:
+    name: Cypress
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ['chrome']
+    env:
+      SUPERSET_CONFIG: tests.superset_test_config
+      PYTHONPATH: ${{ github.workspace }}
+      REDIS_PORT: 16379
+      CI: github-actions
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+    services:
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+    - name: Cache pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('./requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Cache npm
+      uses: actions/cache@v1
+      with:
+        path: |
+          ~/.npm
+          superset-frontend/.terser-plugin-cache/
+        key: ${{ runner.os }}-npm-${{ hashFiles('superset-frontend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+    - name: Cache built assets
+      uses: actions/cache@v1
+      with:
+        path: |
+          superset/static/assets
+        key: static-${{ hashFiles('superset-frontend/src/**/*') }}-${{ hashFiles('superset-frontend/package-lock.json') }}
+    - name: Cache Cypress
+      uses: actions/cache@v1
+      with:
+        path: |
+          ~/cache/Cypress
+        key: ${{ runner.os }}-cypress-${{ hashFiles('superset-frontend/cypress-base/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-cypress-
+    - name: Install dependencies
+      uses: ./.github/actions/setup-superset
+      with:
+        run: |
+          frontend --cached
+          cypress
+          backend && testdata
+        parallel: true
+    - name: Cypress run all
+      env:
+        CYPRESS_GROUP: Default
+        CYPRESS_PATH: 'cypress/integration/*/*'
+      run: |
+        flask run -p 8081 --no-debugger &
+        sleep 3 # wait for the Flask app to start
+        cd ${{ github.workspace }}/superset-frontend/cypress-base/
+        npm run cypress -- run --record --group "${{ env.CYPRESS_GROUP }}" \
+          --browser ${{ matrix.browser }} --spec "${{ env.CYPRESS_PATH }}" \
+          --ci-build-id ${{ github.event_name }}-${{ github.run_id }}
+    # Follow step relies on previously installed Cypress
+    - name: Cypress run SQL Lab (with backend persist)
+      env:
+        SUPERSET_CONFIG: tests.superset_test_config_sqllab_backend_persist
+        CYPRESS_GROUP: 'Backend Persist'
+        CYPRESS_PATH: 'cypress/integration/sqllab/*'
+      run: |
+        killall python # exit the running Flask app
+        flask run -p 8081 --no-debugger &
+        sleep 3 # wait for the Flask app to start
+        cd ${{ github.workspace }}/superset-frontend/cypress-base/
+        npm run cypress -- run --record --group "${{ env.CYPRESS_GROUP }}" \
+          --browser ${{ matrix.browser }} --spec "${{ env.CYPRESS_PATH }}" \
+          --ci-build-id ${{ github.event_name }}-${{ github.run_id }}

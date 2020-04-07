@@ -1,0 +1,20 @@
+{
+  "name": "setup-superset-action",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint src/*",
+    "package": "npm run lint && ncc build src/main.mjs -o dist"
+  },
+  "keywords": [
+    "actions",
+    "node",
+    "setup"
+  ],
+  "dependencies": {
+    "@zeit/ncc": "^0.20.5",
+    "@actions/core": "^1.2.0",
+    "@actions/exec": "^1.0.3"
+  }
+}

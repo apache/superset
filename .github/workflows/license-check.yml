@@ -1,0 +1,22 @@
+name: License
+
+on:
+  # only build on `master` pushes
+  push:
+    branches: [ master ]
+  # but always build on pull request to any branch
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+    - name: Generate fossa report
+      run: ./scripts/fossa.sh
+    - name: Run license check
+      run: ./scripts/check_license.sh

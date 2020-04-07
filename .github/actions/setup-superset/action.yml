@@ -1,0 +1,17 @@
+name: Setup Superset
+description: Setup the CI/test envrionment for Apache Superset
+author: Jesse Yang <hello@yjc.me>
+inputs:
+  prepare:
+    required: false
+    description: prepare commands that always run one by one
+  run:
+    required: false
+    description: additional commands that may run in parallel
+    default: backend
+  parallel:
+    required: false
+    description: whether to run additional commands in parallel
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
