@@ -27,7 +27,7 @@ from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.sqla.models import Role, User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
@@ -89,7 +89,9 @@ def data_payload_response(payload_json, has_error=False):
     return json_success(payload_json, status=status)
 
 
-def generate_download_headers(extension, filename=None):
+def generate_download_headers(
+    extension: str, filename: Optional[str] = None
+) -> Dict[str, Any]:
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
@@ -146,7 +148,7 @@ def get_datasource_exist_error_msg(full_name):
     return __("Datasource %(name)s already exists", name=full_name)
 
 
-def get_user_roles():
+def get_user_roles() -> List[Role]:
     if g.user.is_anonymous:
         public_role = conf.get("AUTH_ROLE_PUBLIC")
         return [security_manager.find_role(public_role)] if public_role else []
