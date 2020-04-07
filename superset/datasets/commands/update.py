@@ -56,14 +56,14 @@ class UpdateDatasetCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
-        try:
-            if self._model:
+        if self._model:
+            try:
                 dataset = DatasetDAO.update(self._model, self._properties)
                 return dataset
-            raise DatasetUpdateFailedError()
-        except DAOUpdateFailedError as e:
-            logger.exception(e.exception)
-            raise DatasetUpdateFailedError()
+            except DAOUpdateFailedError as e:
+                logger.exception(e.exception)
+                raise DatasetUpdateFailedError()
+        raise DatasetUpdateFailedError()
 
     def validate(self) -> None:
         exceptions = list()
