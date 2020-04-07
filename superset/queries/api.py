@@ -92,7 +92,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
             Takes a query context constructed in the client and returns payload data
             response for the given query.
           requestBody:
-            description: Query object schema
+            description: Query context schema
             required: true
             content:
               application/json:
