@@ -27,9 +27,9 @@ from superset.charts.commands.exceptions import (
 )
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
-from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.exceptions import SupersetSecurityException
+from superset.models.slice import Slice
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class DeleteChartCommand(BaseCommand):
     def __init__(self, user: User, model_id: int):
         self._actor = user
         self._model_id = model_id
-        self._model: Optional[SqlaTable] = None
+        self._model: Optional[Slice] = None
 
     def run(self) -> Model:
         self.validate()
