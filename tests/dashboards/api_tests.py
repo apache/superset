@@ -23,7 +23,7 @@ import prison
 from sqlalchemy.sql import func
 
 import tests.test_app
-from superset import db, security_manager
+from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.views.base import generate_download_headers

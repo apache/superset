@@ -21,11 +21,11 @@ from typing import List, Optional
 import prison
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+import tests.test_app
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
 
