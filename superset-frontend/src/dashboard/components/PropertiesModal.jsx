@@ -248,7 +248,9 @@ class PropertiesModal extends React.PureComponent {
                   filterOption={() => true} // options are filtered at the api
                 />
                 <p className="help-block">
-                  {t('Owners is a list of users who can alter the dashboard. Searchable by name or username.')}
+                  {t(
+                    'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+                  )}
                 </p>
               </Col>
             </Row>
