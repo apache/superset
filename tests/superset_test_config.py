@@ -18,6 +18,7 @@
 from copy import copy
 
 from superset.config import *
+from tests.superset_test_custom_template_processors import CustomPrestoTemplateProcessor
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")
@@ -57,3 +58,7 @@ class CeleryConfig(object):
 
 
 CELERY_CONFIG = CeleryConfig
+
+CUSTOM_TEMPLATE_PROCESSORS = {
+    CustomPrestoTemplateProcessor.engine: CustomPrestoTemplateProcessor
+}
