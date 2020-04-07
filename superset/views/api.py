@@ -44,7 +44,7 @@ class Api(BaseSupersetView):
         security_manager.assert_query_context_permission(query_context)
         payload_json = query_context.get_payload()
         return json.dumps(
-            payload_json, default=utils.json_int_dttm_ser, allow_nan=False
+            payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
         )
 
     @event_logger.log_this

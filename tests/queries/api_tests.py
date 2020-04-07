@@ -67,7 +67,7 @@ class QueryApiTests(SupersetTestCase):
         db.session.commit()
         return query
 
-    def _get_query_context_dict(self) -> Dict[str, Any]:
+    def _get_query_context(self) -> Dict[str, Any]:
         self.login(username="admin")
         slc = self.get_slice("Girl Name Cloud", db.session)
         return {
@@ -267,9 +267,9 @@ class QueryApiTests(SupersetTestCase):
             Query API: Test exec query
         """
         self.login(username="admin")
-        qc_dict = self._get_query_context_dict()
+        query_context = self._get_query_context()
         uri = "api/v1/query/exec"
-        rv = self.client.post(uri, json=qc_dict)
+        rv = self.client.post(uri, json=query_context)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data[0]["rowcount"], 100)
@@ -279,7 +279,7 @@ class QueryApiTests(SupersetTestCase):
             Query API: Test exec query not allowed
         """
         self.login(username="gamma")
-        qc_dict = self._get_query_context_dict()
+        query_context = self._get_query_context()
         uri = "api/v1/query/exec"
-        rv = self.client.post(uri, json=qc_dict)
+        rv = self.client.post(uri, json=query_context)
         self.assertEqual(rv.status_code, 401)

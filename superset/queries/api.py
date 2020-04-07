@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
+import simplejson
 import logging
 
 from flask import make_response, request, Response
@@ -84,13 +84,13 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @safe
     def exec(self) -> Response:
         """
-        Takes a query_obj constructed in the client and returns payload data response
-        for the given query_obj.
+        Takes a query context constructed in the client and returns payload
+        data response for the given query.
         ---
         post:
           description: >-
-            Takes a query_obj constructed in the client and returns payload data
-            response for the given query_obj
+            Takes a query context constructed in the client and returns payload data
+            response for the given query.
           requestBody:
             description: Query object schema
             required: true
@@ -180,7 +180,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         except SupersetSecurityException:
             return self.response_401()
         payload_json = query_context.get_payload()
-        response_data = json.dumps(
+        response_data = simplejson.dumps(
             payload_json, default=json_int_dttm_ser, allow_nan=False
         )
         resp = make_response(response_data, 200)
