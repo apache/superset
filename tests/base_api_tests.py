@@ -158,20 +158,20 @@ class ApiOwnersTestCaseMixin:
             API: Test get filter related owners
         """
         self.login(username="admin")
-        argument = {"filter": "a"}
+        argument = {"filter": "gamma"}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
 
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {
-            "count": 2,
-            "result": [
-                {"text": "admin user", "value": 1},
-                {"text": "alpha user", "value": 5},
-            ],
-        }
-        self.assertEqual(response, expected_response)
+        self.assertEqual(3, response["count"])
+        sorted_results = sorted(response["result"], key=lambda value: value["text"])
+        expected_results = [
+            {"text": "gamma user", "value": 2},
+            {"text": "gamma2 user", "value": 3},
+            {"text": "gamma_sqllab user", "value": 4},
+        ]
+        self.assertEqual(expected_results, sorted_results)
 
     def test_get_related_fail(self):
         """

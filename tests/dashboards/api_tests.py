@@ -96,7 +96,14 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "css": "",
             "dashboard_title": "title",
             "json_metadata": "",
-            "owners": [{"id": 1, "username": "admin"}],
+            "owners": [
+                {
+                    "id": 1,
+                    "username": "admin",
+                    "first_name": "admin",
+                    "last_name": "user",
+                }
+            ],
             "position_json": "",
             "published": False,
             "url": f"/superset/dashboard/slug1/",
