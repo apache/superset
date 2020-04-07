@@ -25,7 +25,9 @@ from superset.utils import core as utils
 from .helpers import config, get_example_data, get_slice_json, merge_slice, TBL
 
 
-def load_random_time_series_data(only_metadata=False, force=False):
+def load_random_time_series_data(
+    only_metadata: bool = False, force: bool = False
+) -> None:
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "random_time_series"
     database = utils.get_example_database()

@@ -20,6 +20,19 @@ import { t } from '@superset-ui/translation';
 import { nonEmpty, integer } from '../validators';
 import { formatSelectOptions } from '../../modules/utils';
 import { columnChoices } from '../controls';
+import {
+  filterNulls,
+  jsColumns,
+  jsDataMutator,
+  jsTooltip,
+  jsOnclickHref,
+  fillColorPicker,
+  strokeColorPicker,
+  filled,
+  stroked,
+  extruded,
+  viewport,
+} from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -43,23 +56,23 @@ export default {
           },
           null,
         ],
-        ['row_limit', 'filter_nulls'],
+        ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
     },
     {
       label: t('Map'),
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        // TODO ['autozoom', null],
+        ['mapbox_style', viewport],
+        // TODO [autozoom, null], // import { autozoom } from './Shared_DeckGL'
       ],
     },
     {
       label: t('GeoJson Settings'),
       controlSetRows: [
-        ['fill_color_picker', 'stroke_color_picker'],
-        ['filled', 'stroked'],
-        ['extruded', null],
+        [fillColorPicker, strokeColorPicker],
+        [filled, stroked],
+        [extruded, null],
         [
           {
             name: 'point_radius_scale',
@@ -79,10 +92,10 @@ export default {
     {
       label: t('Advanced'),
       controlSetRows: [
-        ['js_columns'],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
+        [jsColumns],
+        [jsDataMutator],
+        [jsTooltip],
+        [jsOnclickHref],
       ],
     },
   ],
