@@ -1,13 +1,14 @@
 {
   "baseUrl": "http://localhost:8081",
   "chromeWebSecurity": false,
-  "defaultCommandTimeout": 20000,
-  "requestTimeout": 20000,
-  "ignoreTestFiles": ["**/!(*.test.js)"],
-  "projectId": "fbf96q",
+  "defaultCommandTimeout": 5000,
+  "requestTimeout": 10000,
+  "ignoreTestFiles": [
+    "**/!(*.test.js)"
+  ],
   "video": false,
   "videoUploadOnPasses": false,
   "viewportWidth": 1280,
-  "viewportHeight": 800,
-  "requestTimeout": 10000
+  "viewportHeight": 1024,
+  "projectId": "dk2opw"
 }

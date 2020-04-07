@@ -23,29 +23,15 @@ export default () =>
     beforeEach(() => {
       cy.server();
       cy.login();
-
       cy.visit(WORLD_HEALTH_DASHBOARD);
-      cy.get('#app').then(data => {
-        const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-        const dashboard = bootstrapData.dashboard_data;
-        const dashboardId = dashboard.id;
-        const boxplotChartId = dashboard.slices.find(
-          slice => slice.form_data.viz_type === 'box_plot',
-        ).slice_id;
-        const formData = `{"slice_id":${boxplotChartId}}`;
-        const boxplotRequest = `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`;
-        cy.route('POST', boxplotRequest).as('boxplotRequest');
-      });
-
       cy.get('.dashboard-header')
         .contains('Edit dashboard')
         .click();
     });
 
     it('remove, and add chart flow', () => {
-      // wait box_plot data and find box plot
-      cy.wait('@boxplotRequest');
-      cy.get('.grid-container .box_plot').should('be.exist');
+      // wait for box plot to appear
+      cy.get('.grid-container .box_plot');
 
       cy.get('.fa.fa-trash')
         .last()
@@ -53,7 +39,6 @@ export default () =>
           cy.wrap($el)
             .invoke('show')
             .click();
-
           // box plot should be gone
           cy.get('.grid-container .box_plot').should('not.exist');
         });
@@ -75,7 +60,7 @@ export default () =>
         .trigger('mousedown', { which: 1 })
         .trigger('dragstart', { dataTransfer })
         .trigger('drag', {});
-      cy.get('.grid-content .dragdroppable')
+      cy.get('.grid-content div.grid-row.background--transparent')
         .last()
         .trigger('dragover', { dataTransfer })
         .trigger('drop', { dataTransfer })

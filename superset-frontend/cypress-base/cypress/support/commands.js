@@ -83,13 +83,11 @@ Cypress.Commands.add('verifyResponseCodes', async xhr => {
 
 Cypress.Commands.add('verifySliceContainer', chartSelector => {
   // After a wait response check for valid slice container
-  cy.get('.slice_container').within(() => {
+  cy.get('.slice_container').within(async () => {
     if (chartSelector) {
-      cy.get(chartSelector).then(charts => {
-        const firstChart = charts[0];
-        expect(firstChart.clientWidth).greaterThan(0);
-        expect(firstChart.clientHeight).greaterThan(0);
-      });
+      const chart = await cy.get(chartSelector);
+      expect(chart[0].clientWidth).greaterThan(0);
+      expect(chart[0].clientHeight).greaterThan(0);
     }
   });
 });

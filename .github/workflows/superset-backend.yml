@@ -1,0 +1,161 @@
+name: Backend
+
+on:
+  # only build on direct push to `master` branch
+  push:
+    branches: [ master ]
+    paths:
+    - superset/**/*.py
+    - tests/**
+    - setup.py
+    - requirements*.txt
+  # but also build on pull requests to any branch
+  # (the so-called feature branch)
+  pull_request:
+    paths:
+    - superset/**/*.py
+    - tests/**
+    - setup.py
+    - requirements*.txt
+
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6]
+    env:
+      PYTHON_LINT_TARGET: setup.py superset tests
+      CI: github-actions
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Cache mypy
+      uses: actions/cache@v1
+      with:
+        path: .mypy_cache
+        key: ${{ runner.os }}-mypy-${{ hashFiles('./requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-mypy-
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: ktmud/cached-dependencies@v1
+    - name: black
+      run: black --check $(echo $PYTHON_LINT_TARGET)
+    - name: mypy
+      run: mypy $(echo $PYTHON_LINT_TARGET)
+    - name: isort
+      run: isort --check-only --recursive $(echo $PYTHON_LINT_TARGET)
+    - name: pylint
+      # `-j 0` run Pylint in parallel
+      run: pylint -j 0 superset
+
+  python-test-postgres:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # run unit tests in multiple version just for fun
+        # (3.8 is not supported yet, some dependencies need an update)
+        python-version: [3.6, 3.7]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+    services:
+      postgres:
+        image: postgres:10.1-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 15432:5432
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: ktmud/cached-dependencies@v1
+    - name: Initialize database
+      run: |
+        psql "postgresql://superset:superset@127.0.0.1:15432/superset" <<- EOF
+          DROP SCHEMA IF EXISTS sqllab_test_db;
+          CREATE SCHEMA sqllab_test_db;
+          DROP SCHEMA IF EXISTS admin_database;
+          CREATE SCHEMA admin_database;
+        EOF
+    - name: Python unit tests (PostgreSQL)
+      env:
+        SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      run: |
+        ./scripts/python_tests.sh
+
+  python-test-mysql:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=5s
+          --health-timeout=2s
+          --health-retries=3
+        ports:
+          - 13306:3306
+      redis:
+        image: redis:5-alpine
+        options: --entrypoint redis-server
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: ktmud/cached-dependencies@v1
+    - name: Initialize database
+      run: |
+        mysql -h 127.0.0.1 -P 13306 -u root --password=root <<- EOF
+          DROP DATABASE IF EXISTS superset;
+          CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+          DROP DATABASE IF EXISTS sqllab_test_db;
+          CREATE DATABASE sqllab_test_db DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+          DROP DATABASE IF EXISTS admin_database;
+          CREATE DATABASE admin_database DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+          CREATE USER 'superset'@'%' IDENTIFIED BY 'superset';
+          GRANT ALL ON *.* TO 'superset'@'%';
+          FLUSH PRIVILEGES;
+        EOF
+    - name: Python unit tests (MySQL)
+      env:
+        SUPERSET__SQLALCHEMY_DATABASE_URI: |
+          mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
+      run: |
+        ./scripts/python_tests.sh
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash)

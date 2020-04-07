@@ -17,6 +17,7 @@
  * under the License.
  */
 const zlib = require('zlib');
+
 // eslint-disable-next-line import/no-extraneous-dependencies
 const parsedArgs = require('yargs').argv;
 
