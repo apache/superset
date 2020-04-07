@@ -17,12 +17,12 @@
 import logging
 from typing import Dict, List, Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.commands.utils import populate_owners
-from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardForbiddenError,
@@ -33,6 +33,7 @@ from superset.dashboards.commands.exceptions import (
 )
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -43,9 +44,9 @@ class UpdateDashboardCommand(BaseCommand):
         self._actor = user
         self._model_id = model_id
         self._properties = data.copy()
-        self._model: Optional[SqlaTable] = None
+        self._model: Optional[Dashboard] = None
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
             dashboard = DashboardDAO.update(self._model, self._properties)

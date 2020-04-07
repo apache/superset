@@ -48,13 +48,14 @@ class DashboardDAO(BaseDAO):
         return True
 
     @staticmethod
-    def bulk_delete(models: List[Dashboard], commit=True):
-        item_ids = [model.id for model in models]
+    def bulk_delete(models: Optional[List[Dashboard]], commit: bool = True) -> None:
+        item_ids = [model.id for model in models] if models else []
         # bulk delete, first delete related data
-        for model in models:
-            model.slices = []
-            model.owners = []
-            db.session.merge(model)
+        if models:
+            for model in models:
+                model.slices = []
+                model.owners = []
+                db.session.merge(model)
         # bulk delete itself
         try:
             db.session.query(Dashboard).filter(Dashboard.id.in_(item_ids)).delete(
