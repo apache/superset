@@ -16,12 +16,13 @@
 # under the License.
 import functools
 import logging
-from typing import Dict, Set, Tuple
+from typing import cast, Dict, Set, Tuple, Type, Union
 
 from flask import request
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
+from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.exceptions import SupersetSecurityException
@@ -58,6 +59,14 @@ def check_ownership_and_item_exists(f):
     return functools.update_wrapper(wraps, f)
 
 
+class RelatedFieldFilter:
+    # data class to specify what filter to use on a /related endpoint
+    # pylint: disable=too-few-public-methods
+    def __init__(self, field_name: str, filter_class: Type[BaseFilter]):
+        self.field_name = field_name
+        self.filter_class = filter_class
+
+
 class BaseSupersetModelRestApi(ModelRestApi):
     """
     Extends FAB's ModelResApi to implement specific superset generic functionality
@@ -86,12 +95,12 @@ class BaseSupersetModelRestApi(ModelRestApi):
              ...
         }
     """  # pylint: disable=pointless-string-statement
-    filter_rel_fields_field: Dict[str, str] = {}
+    related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
-    Declare the related field field for filtering::
+    Declare the filters for related fields::
 
-        filter_rel_fields_field = {
-            "<RELATED_FIELD>": "<RELATED_FIELD_FIELD>")
+        related_fields = {
+            "<RELATED_FIELD>": <RelatedFieldFilter>)
         }
     """  # pylint: disable=pointless-string-statement
     filter_rel_fields: Dict[str, BaseFilter] = {}
@@ -125,14 +134,18 @@ class BaseSupersetModelRestApi(ModelRestApi):
         super()._init_properties()
 
     def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
-        filter_field = self.filter_rel_fields_field.get(column_name)
-        filters = datamodel.get_filters([filter_field])
+        filter_field = self.related_field_filters.get(column_name)
+        if isinstance(filter_field, str):
+            filter_field = RelatedFieldFilter(cast(str, filter_field), FilterStartsWith)
+        filter_field = cast(RelatedFieldFilter, filter_field)
+        search_columns = [filter_field.field_name] if filter_field else None
+        filters = datamodel.get_filters(search_columns)
         base_filters = self.filter_rel_fields.get(column_name)
         if base_filters:
-            filters = filters.add_filter_list(base_filters)
-        if value:
-            filters.rest_add_filters(
-                [{"opr": "sw", "col": filter_field, "value": value}]
+            filters.add_filter_list(base_filters)
+        if value and filter_field:
+            filters.add_filter(
+                filter_field.field_name, filter_field.filter_class, value
             )
         return filters
 
