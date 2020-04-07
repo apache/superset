@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 import yaml
 from flask import g, request, Response
@@ -288,7 +289,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(get_export_ids_schema)
-    def export(self, **kwargs):
+    def export(self, **kwargs: Any) -> Response:
         """Export dashboards
         ---
         get:
