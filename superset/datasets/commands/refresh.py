@@ -42,15 +42,14 @@ class RefreshDatasetCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
-        try:
-            # Updates columns and metrics from the dataset
-            if self._model:
+        if self._model:
+            try:
                 self._model.fetch_metadata()
-            raise DatasetRefreshFailedError()
-        except Exception as e:
-            logger.exception(e)
-            raise DatasetRefreshFailedError()
-        return self._model
+                return self._model
+            except Exception as e:
+                logger.exception(e)
+                raise DatasetRefreshFailedError()
+        raise DatasetRefreshFailedError()
 
     def validate(self) -> None:
         # Validate/populate model exists
