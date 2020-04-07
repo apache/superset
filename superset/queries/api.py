@@ -181,7 +181,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
             return self.response_401()
         payload_json = query_context.get_payload()
         response_data = simplejson.dumps(
-            payload_json, default=json_int_dttm_ser, allow_nan=False
+            payload_json, default=json_int_dttm_ser, ignore_nan=True
         )
         resp = make_response(response_data, 200)
         resp.headers["Content-Type"] = "application/json; charset=utf-8"
