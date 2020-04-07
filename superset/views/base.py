@@ -144,7 +144,7 @@ def handle_api_exception(f):
     return functools.update_wrapper(wraps, f)
 
 
-def get_datasource_exist_error_msg(full_name):
+def get_datasource_exist_error_msg(full_name: str) -> str:
     return __("Datasource %(name)s already exists", name=full_name)
 
 
