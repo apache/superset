@@ -274,7 +274,7 @@ class QueryApiTests(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data[0]["rowcount"], 100)
 
-    def test_query_exec_not_alloed(self):
+    def test_query_exec_not_allowed(self):
         """
             Query API: Test exec query not allowed
         """
