@@ -625,17 +625,18 @@ class TableViz(BaseViz):
             self.form_data.get("percent_metrics") or []
         )
 
-        df = pd.concat(
-            [
-                df[non_percent_metric_columns],
-                (
-                    df[percent_metric_columns]
-                    .div(df[percent_metric_columns].sum())
-                    .add_prefix("%")
-                ),
-            ],
-            axis=1,
-        )
+        if not df.empty:
+            df = pd.concat(
+                [
+                    df[non_percent_metric_columns],
+                    (
+                        df[percent_metric_columns]
+                        .div(df[percent_metric_columns].sum())
+                        .add_prefix("%")
+                    ),
+                ],
+                axis=1,
+            )
 
         data = self.handle_js_int_overflow(
             dict(records=df.to_dict(orient="records"), columns=list(df.columns))
