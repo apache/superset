@@ -56,8 +56,8 @@ export default () =>
 
     it('should work', () => {
       verify(BIG_NUMBER_FORM_DATA);
-      cy.get('.chart-container .header_line');
-      cy.get('.chart-container .subheader_line');
+      cy.get('.chart-container .header-line');
+      cy.get('.chart-container .subheader-line');
       cy.get('.chart-container svg path.vx-linepath');
     });
 
@@ -66,8 +66,8 @@ export default () =>
         ...BIG_NUMBER_FORM_DATA,
         compare_lag: null,
       });
-      cy.get('.chart-container .header_line');
-      cy.get('.chart-container .subheader_line');
+      cy.get('.chart-container .header-line');
+      cy.get('.chart-container .subheader-line').should('not.exist');
       cy.get('.chart-container svg path.vx-linepath');
     });
 
@@ -76,10 +76,8 @@ export default () =>
         ...BIG_NUMBER_FORM_DATA,
         show_trend_line: false,
       });
-      cy.get('.chart-container .header_line');
-      cy.get('.chart-container .subheader_line');
-      cy.get('.chart-container').then(containers => {
-        expect(containers[0].querySelector('svg')).to.equal(null);
-      });
+      cy.get('.chart-container .header-line');
+      cy.get('.chart-container .subheader-line');
+      cy.get('.chart-container svg').should('not.exist');
     });
   });

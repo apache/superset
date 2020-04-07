@@ -51,7 +51,9 @@ CACHE_CONFIG = {"CACHE_TYPE": "simple"}
 
 
 class CeleryConfig(object):
-    BROKER_URL = "redis://localhost"
+    BROKER_URL = "redis://{}:{}".format(
+        os.environ.get("REDIS_HOST", "localhost"), os.environ.get("REDIS_PORT", "6379")
+    )
     CELERY_IMPORTS = ("superset.sql_lab",)
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1

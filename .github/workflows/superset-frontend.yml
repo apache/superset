@@ -1,0 +1,36 @@
+name: Frontend
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+    - superset-frontend/**
+  pull_request:
+    paths:
+    - superset-frontend/**
+
+jobs:
+  frontend-build:
+    name: build
+    runs-on: ubuntu-18.04
+    env:
+      CI: github-actions
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@ddf7d7f
+      with:
+        run: npm-install
+    - name: eslint
+      working-directory: ./superset-frontend
+      run: |
+        npm run lint
+    - name: unit tests
+      working-directory: ./superset-frontend
+      run: |
+        npm run test -- --coverage
+    - name: Upload code coverage
+      working-directory: ./superset-frontend
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF unittest,javascript

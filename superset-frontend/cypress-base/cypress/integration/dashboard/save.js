@@ -52,7 +52,6 @@ export default () =>
     it('should save as new dashboard', () => {
       cy.wait('@copyRequest').then(xhr => {
         expect(xhr.status).to.eq(200);
-
         readResponseBlob(xhr.response.body).then(json => {
           expect(json.id).to.be.gt(dashboardId);
         });
@@ -61,11 +60,7 @@ export default () =>
 
     it('should save/overwrite dashboard', () => {
       // should have box_plot chart
-      const formData = `{"slice_id":${boxplotChartId}}`;
-      const boxplotRequest = `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`;
-      cy.route('POST', boxplotRequest).as('boxplotRequest');
-      cy.wait('@boxplotRequest');
-      cy.get('.grid-container .box_plot').should('be.exist');
+      cy.get('.grid-container .box_plot', { timeout: 5000 }); // wait for 5 secs
 
       // remove box_plot chart from dashboard
       cy.get('.dashboard-header')
