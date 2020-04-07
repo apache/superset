@@ -26,8 +26,8 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
-from .base_api_tests import ApiOwnersTestCaseMixin
-from .base_tests import SupersetTestCase
+from tests.base_api_tests import ApiOwnersTestCaseMixin
+from tests.base_tests import SupersetTestCase
 
 
 class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
