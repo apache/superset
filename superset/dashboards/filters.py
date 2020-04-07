@@ -29,6 +29,8 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
     arg_name = "title_or_slug"
 
     def apply(self, query, value):
+        if not value:
+            return query
         ilike_value = f"%{value}%"
         return query.filter(
             or_(
