@@ -19,6 +19,17 @@
 import { t } from '@superset-ui/translation';
 import { nonEmpty } from '../validators';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
+import {
+  filterNulls,
+  autozoom,
+  jsColumns,
+  jsDataMutator,
+  jsTooltip,
+  jsOnclickHref,
+  gridSize,
+  viewport,
+  spatial,
+} from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -27,30 +38,30 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['spatial', 'size'],
-        ['row_limit', 'filter_nulls'],
+        [spatial, 'size'],
+        ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
     },
     {
       label: t('Map'),
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        ['autozoom', null],
+        ['mapbox_style', viewport],
+        [autozoom, null],
       ],
     },
     {
       label: t('Grid'),
       expanded: true,
-      controlSetRows: [['grid_size', 'color_picker']],
+      controlSetRows: [[gridSize, 'color_picker']],
     },
     {
       label: t('Advanced'),
       controlSetRows: [
-        ['js_columns'],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
+        [jsColumns],
+        [jsDataMutator],
+        [jsTooltip],
+        [jsOnclickHref],
       ],
     },
   ],
