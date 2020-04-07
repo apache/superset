@@ -17,6 +17,7 @@
 import logging
 from typing import Dict, List, Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -42,7 +43,7 @@ class CreateDatasetCommand(BaseCommand):
         self._actor = user
         self._properties = data.copy()
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
             # Creates SqlaTable (Dataset)

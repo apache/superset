@@ -42,7 +42,7 @@ class DatasetDAO(BaseDAO):
         )
 
     @staticmethod
-    def get_database_by_id(database_id) -> Optional[Database]:
+    def get_database_by_id(database_id: int) -> Optional[Database]:
         try:
             return db.session.query(Database).filter_by(id=database_id).one_or_none()
         except SQLAlchemyError as e:  # pragma: no cover
@@ -116,7 +116,7 @@ class DatasetDAO(BaseDAO):
 
     @classmethod
     def update(
-        cls, model: SqlaTable, properties: Dict, commit=True
+        cls, model: SqlaTable, properties: Dict, commit: bool = True
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
@@ -151,12 +151,14 @@ class DatasetDAO(BaseDAO):
 
     @classmethod
     def update_column(
-        cls, model: TableColumn, properties: Dict, commit=True
+        cls, model: TableColumn, properties: Dict, commit: bool = True
     ) -> Optional[TableColumn]:
         return DatasetColumnDAO.update(model, properties, commit=commit)
 
     @classmethod
-    def create_column(cls, properties: Dict, commit=True) -> Optional[TableColumn]:
+    def create_column(
+        cls, properties: Dict, commit: bool = True
+    ) -> Optional[TableColumn]:
         """
         Creates a Dataset model on the metadata DB
         """
@@ -164,12 +166,14 @@ class DatasetDAO(BaseDAO):
 
     @classmethod
     def update_metric(
-        cls, model: SqlMetric, properties: Dict, commit=True
+        cls, model: SqlMetric, properties: Dict, commit: bool = True
     ) -> Optional[SqlMetric]:
         return DatasetMetricDAO.update(model, properties, commit=commit)
 
     @classmethod
-    def create_metric(cls, properties: Dict, commit=True) -> Optional[SqlMetric]:
+    def create_metric(
+        cls, properties: Dict, commit: bool = True
+    ) -> Optional[SqlMetric]:
         """
         Creates a Dataset model on the metadata DB
         """
