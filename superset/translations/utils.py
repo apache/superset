@@ -36,7 +36,7 @@ def get_language_pack(locale):
     if not pack:
         filename = DIR + "/{}/LC_MESSAGES/messages.json".format(locale)
         try:
-            with open(filename) as f:
+            with open(filename, encoding="utf8") as f:
                 pack = json.load(f)
                 ALL_LANGUAGE_PACKS[locale] = pack
         except Exception:  # pylint: disable=broad-except

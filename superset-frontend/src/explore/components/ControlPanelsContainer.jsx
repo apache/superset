@@ -75,11 +75,10 @@ class ControlPanelsContainer extends React.Component {
     }
     // Applying mapStateToProps if needed
     if (mapF) {
-      return Object.assign(
-        {},
-        control,
-        mapF(this.props.exploreState, control, this.props.actions),
-      );
+      return {
+        ...control,
+        ...mapF(this.props.exploreState, control, this.props.actions),
+      };
     }
     return control;
   }
@@ -97,6 +96,12 @@ class ControlPanelsContainer extends React.Component {
 
   renderControl(name, config, lookupControlData) {
     const { actions, controls, exploreState, form_data: formData } = this.props;
+    const { visibility } = config;
+
+    // if visibility check says the config is not visible, don't render it
+    if (visibility && !visibility.call(config, this.props)) {
+      return null;
+    }
 
     // Looking to find mapStateToProps override for this viz type
     const controlPanelConfig =
@@ -179,7 +184,6 @@ class ControlPanelsContainer extends React.Component {
                 // is not specified directly. Have to look up the config from
                 // centralized configs.
                 const name = controlItem;
-
                 return this.renderControl(name, controlConfigs[name], true);
               }
               return null;

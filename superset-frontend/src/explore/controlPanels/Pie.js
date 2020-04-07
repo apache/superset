@@ -34,9 +34,52 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['pie_label_type', 'number_format'],
-        ['donut', 'show_legend'],
-        ['show_labels', 'labels_outside'],
+        [
+          {
+            name: 'pie_label_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Label Type'),
+              default: 'key',
+              renderTrigger: true,
+              choices: [
+                ['key', 'Category Name'],
+                ['value', 'Value'],
+                ['percent', 'Percentage'],
+                ['key_value', 'Category and Value'],
+                ['key_percent', 'Category and Percentage'],
+              ],
+              description: t('What should be shown on the label?'),
+            },
+          },
+          'number_format',
+        ],
+        [
+          {
+            name: 'donut',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Donut'),
+              default: false,
+              renderTrigger: true,
+              description: t('Do you want a donut or a pie?'),
+            },
+          },
+          'show_legend',
+        ],
+        [
+          'show_labels',
+          {
+            name: 'labels_outside',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Put labels outside'),
+              default: true,
+              renderTrigger: true,
+              description: t('Put the labels outside the pie?'),
+            },
+          },
+        ],
         ['color_scheme', 'label_colors'],
       ],
     },

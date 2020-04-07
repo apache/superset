@@ -167,7 +167,7 @@ POSITION_JSON = """\
 }"""
 
 
-def load_deck_dash():
+def load_deck_dash() -> None:
     print("Loading deck.gl dashboard")
     slices = []
     tbl = db.session.query(TBL).filter_by(table_name="long_lat").first()

@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from sqlalchemy import and_, or_
+from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
 from superset.models.core import FavStar
@@ -35,7 +38,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     if they wish to see those dashboards which are published first
     """
 
-    def apply(self, query, value):
+    def apply(self, query: Query, value: Any) -> Query:
         user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
             return query

@@ -17,8 +17,8 @@
  * under the License.
  */
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import controls from './controls';
-import * as sections from './controlPanels/sections';
+import { controls as SHARED_CONTROLS } from './controls';
+import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
@@ -45,38 +45,36 @@ export function validateControl(control) {
   return control;
 }
 
-function isGlobalControl(controlKey) {
-  return controlKey in controls;
+function findCustomControl(controlPanelSections, controlKey) {
+  // find custom control in `controlPanelSections` and apply `controlOverrides` if needed.
+  for (const section of controlPanelSections) {
+    for (const controlArr of section.controlSetRows) {
+      for (const control of controlArr) {
+        if (control != null && typeof control === 'object') {
+          if (control.config && control.name === controlKey) {
+            return control.config;
+          }
+        }
+      }
+    }
+  }
+  return null;
 }
 
 export function getControlConfig(controlKey, vizType) {
-  // Gets the control definition, applies overrides, and executes
-  // the mapStatetoProps
   const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
   const {
     controlOverrides = {},
     controlPanelSections = [],
   } = controlPanelConfig;
 
-  if (!isGlobalControl(controlKey)) {
-    for (const section of controlPanelSections) {
-      for (const controlArr of section.controlSetRows) {
-        for (const control of controlArr) {
-          if (control != null && typeof control === 'object') {
-            if (control.config && control.name === controlKey) {
-              return {
-                ...control.config,
-                ...controlOverrides[controlKey],
-              };
-            }
-          }
-        }
-      }
-    }
-  }
+  const config =
+    controlKey in SHARED_CONTROLS
+      ? SHARED_CONTROLS[controlKey]
+      : findCustomControl(controlPanelSections, controlKey);
 
   return {
-    ...controls[controlKey],
+    ...config,
     ...controlOverrides[controlKey],
   };
 }
@@ -150,31 +148,25 @@ export function sectionsToRender(vizType, datasourceType) {
     controlPanelSections = [],
   } = controlPanelConfig;
 
-  const sectionsCopy = { ...sections };
+  const sections = { ...SECTIONS };
 
   Object.entries(sectionOverrides).forEach(([section, overrides]) => {
     if (typeof overrides === 'object' && overrides.constructor === Object) {
-      sectionsCopy[section] = {
-        ...sectionsCopy[section],
+      sections[section] = {
+        ...sections[section],
         ...overrides,
       };
     } else {
-      sectionsCopy[section] = overrides;
+      sections[section] = overrides;
     }
   });
 
-  const {
-    datasourceAndVizType,
-    sqlaTimeSeries,
-    druidTimeSeries,
-  } = sectionsCopy;
+  const { datasourceAndVizType, sqlaTimeSeries, druidTimeSeries } = sections;
+  const timeSection =
+    datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries;
 
   return []
-    .concat(
-      datasourceAndVizType,
-      datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries,
-      controlPanelSections,
-    )
+    .concat(datasourceAndVizType, timeSection, controlPanelSections)
     .filter(section => section);
 }
 

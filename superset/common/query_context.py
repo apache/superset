@@ -157,7 +157,7 @@ class QueryContext:
             return self.datasource.database.cache_timeout
         return config["CACHE_DEFAULT_TIMEOUT"]
 
-    def cache_key(self, query_obj: QueryObject, **kwargs) -> Optional[str]:
+    def cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
         extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj.to_dict())
         cache_key = (
             query_obj.cache_key(
@@ -173,7 +173,7 @@ class QueryContext:
         return cache_key
 
     def get_df_payload(  # pylint: disable=too-many-locals,too-many-statements
-        self, query_obj: QueryObject, **kwargs
+        self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.cache_key(query_obj, **kwargs)

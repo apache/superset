@@ -48,7 +48,7 @@ describe('VirtualizedRendererWrap', () => {
   let props;
   beforeEach(() => {
     wrapper = shallow(<RendererWrap {...defaultProps} />);
-    props = Object.assign({}, defaultProps);
+    props = { ...defaultProps };
   });
 
   it('uses the provided renderer', () => {

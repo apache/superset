@@ -34,7 +34,7 @@ from .helpers import (
 )
 
 
-def load_country_map_data(only_metadata=False, force=False):
+def load_country_map_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading data for map with country map"""
     tbl_name = "birth_france_by_region"
     database = utils.get_example_database()
