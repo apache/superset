@@ -23,7 +23,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.common.query_context import QueryContext
 from superset.constants import RouteMethod
-from superset.extensions import security_manager
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import event_logger, security_manager
 from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
 from superset.utils.core import json_int_dttm_ser
@@ -78,6 +79,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Queries"
 
     @expose("/exec", methods=["POST"])
+    @event_logger.log_this
     @protect()
     @safe
     def exec(self) -> Response:
@@ -132,7 +134,32 @@ class QueryRestApi(BaseSupersetModelRestApi):
               content:
                 application/json:
                   schema:
-                    type: object
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cache_key:
+                          type: string
+                        cached_dttm:
+                          type: string
+                        cache_timeout:
+                          type: integer
+                        error:
+                          type: string
+                        is_cached:
+                          type: boolean
+                        query:
+                          type: string
+                        status:
+                          type: string
+                        stacktrace:
+                          type: string
+                        rowcount:
+                          type: integer
+                        data:
+                          type: array
+                          items:
+                            type: object
             400:
               $ref: '#/components/responses/400'
             401:
@@ -144,8 +171,14 @@ class QueryRestApi(BaseSupersetModelRestApi):
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
-        query_context = QueryContext(**json.loads(request.json))
-        security_manager.assert_query_context_permission(query_context)
+        try:
+            query_context = QueryContext(**request.json)
+        except KeyError:
+            return self.response_400(message="Request is incorrect")
+        try:
+            security_manager.assert_query_context_permission(query_context)
+        except SupersetSecurityException:
+            return self.response_401()
         payload_json = query_context.get_payload()
         response_data = json.dumps(
             payload_json, default=json_int_dttm_ser, allow_nan=False

@@ -268,8 +268,18 @@ class QueryApiTests(SupersetTestCase):
         """
         self.login(username="admin")
         qc_dict = self._get_query_context_dict()
-        data = json.dumps(qc_dict)
         uri = "api/v1/query/exec"
-        rv = self.client.post(uri, json=data)
+        rv = self.client.post(uri, json=qc_dict)
+        self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data[0]["rowcount"], 100)
+
+    def test_query_exec_not_alloed(self):
+        """
+            Query API: Test exec query not allowed
+        """
+        self.login(username="gamma")
+        qc_dict = self._get_query_context_dict()
+        uri = "api/v1/query/exec"
+        rv = self.client.post(uri, json=qc_dict)
+        self.assertEqual(rv.status_code, 401)
