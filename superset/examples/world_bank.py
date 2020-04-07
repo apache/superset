@@ -41,9 +41,9 @@ from .helpers import (
 )
 
 
-def load_world_bank_health_n_pop(
-    only_metadata=False, force=False
-):  # pylint: disable=too-many-locals
+def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
+    only_metadata: bool = False, force: bool = False
+) -> None:
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
     database = utils.get_example_database()

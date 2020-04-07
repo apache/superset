@@ -25,7 +25,7 @@ from superset.models.slice import Slice
 from .helpers import update_slice_ids
 
 
-def load_tabbed_dashboard(_=False):
+def load_tabbed_dashboard(_: bool = False) -> None:
     """Creating a tabbed dashboard"""
 
     print("Creating a dashboard with nested tabs")

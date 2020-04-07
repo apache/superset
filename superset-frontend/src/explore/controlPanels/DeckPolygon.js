@@ -19,6 +19,28 @@
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { formatSelectOptions } from '../../modules/utils';
+import {
+  filterNulls,
+  autozoom,
+  jsColumns,
+  jsDataMutator,
+  jsTooltip,
+  jsOnclickHref,
+  legendFormat,
+  legendPosition,
+  lineColumn,
+  fillColorPicker,
+  strokeColorPicker,
+  filled,
+  stroked,
+  extruded,
+  viewport,
+  pointRadiusFixed,
+  multiplier,
+  lineWidth,
+  lineType,
+  reverseLongLat,
+} from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -27,29 +49,32 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['line_column', 'line_type'],
+        [
+          { ...lineColumn, label: t('Polygon Column') },
+          { ...lineType, label: t('Polygon Encoding') },
+        ],
         ['adhoc_filters'],
-        ['metric', 'point_radius_fixed'],
+        ['metric', { ...pointRadiusFixed, label: t('Elevation') }],
         ['row_limit', null],
-        ['reverse_long_lat', 'filter_nulls'],
+        [reverseLongLat, filterNulls],
       ],
     },
     {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        ['autozoom', null],
+        ['mapbox_style', viewport],
+        [autozoom, null],
       ],
     },
     {
       label: t('Polygon Settings'),
       expanded: true,
       controlSetRows: [
-        ['fill_color_picker', 'stroke_color_picker'],
-        ['filled', 'stroked'],
-        ['extruded', 'multiplier'],
-        ['line_width', null],
+        [fillColorPicker, strokeColorPicker],
+        [filled, stroked],
+        [extruded, multiplier],
+        [lineWidth, null],
         [
           'linear_color_scheme',
           {
@@ -110,31 +135,22 @@ export default {
             },
           },
         ],
-        ['legend_position', 'legend_format'],
+        [legendPosition, legendFormat],
       ],
     },
     {
       label: t('Advanced'),
       controlSetRows: [
-        ['js_columns'],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
+        [jsColumns],
+        [jsDataMutator],
+        [jsTooltip],
+        [jsOnclickHref],
       ],
     },
   ],
   controlOverrides: {
     metric: {
       validators: [],
-    },
-    line_column: {
-      label: t('Polygon Column'),
-    },
-    line_type: {
-      label: t('Polygon Encoding'),
-    },
-    point_radius_fixed: {
-      label: t('Elevation'),
     },
     time_grain_sqla: timeGrainSqlaAnimationOverrides,
   },

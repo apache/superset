@@ -486,7 +486,14 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "cache_timeout": None,
             "dashboards": [],
             "description": None,
-            "owners": [{"id": 1, "username": "admin"}],
+            "owners": [
+                {
+                    "id": 1,
+                    "username": "admin",
+                    "first_name": "admin",
+                    "last_name": "user",
+                }
+            ],
             "params": None,
             "slice_name": "title",
             "viz_type": None,
