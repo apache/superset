@@ -21,6 +21,7 @@ from typing import List, Optional
 import prison
 from sqlalchemy.sql import func
 
+
 import tests.test_app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
