@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, KeysView, List, Optional, Sequence, Union
 
 import numpy as np
 from flask_babel import gettext as _
 from pandas import DataFrame, NamedAgg
 
-from superset.exceptions import SupersetException
+from superset.exceptions import ChartDataValidationError
 
 SUPPORTED_NUMPY_FUNCTIONS = (
     "average",
@@ -44,6 +44,26 @@ SUPPORTED_NUMPY_FUNCTIONS = (
 )
 
 
+def _validate_columns(
+    df: DataFrame, columns: Union[KeysView[str], Sequence[str]]
+) -> None:
+    """
+    Ensure that all columns are present in the DataFrame
+
+    :param df: Base DataFrame
+    :param columns: column existence to check in `df`
+    """
+    if not all(elem in df.columns.tolist() for elem in columns):
+        raise ChartDataValidationError(
+            _(
+                "Referenced columns not available in DataFrame. "
+                "Columns in DataFrame: %(df_cols)s. Referenced columns: %(columns)s",
+                df_cols=list(df.columns),
+                columns=list(columns),
+            )
+        )
+
+
 def _get_aggregate_funcs(aggregates: Dict[str, Dict[str, Any]],) -> Dict[str, NamedAgg]:
     """
     Converts a set of aggregate config objects into functions that pandas can use as
@@ -57,7 +77,7 @@ def _get_aggregate_funcs(aggregates: Dict[str, Dict[str, Any]],) -> Dict[str, Na
         column = agg_obj.get("column", name)
         operator = agg_obj.get("operator") or "sum"
         if operator not in SUPPORTED_NUMPY_FUNCTIONS:
-            raise SupersetException("Unsupported numpy function: %")
+            raise ChartDataValidationError("Unsupported numpy function: %")
         func = getattr(np, operator)
         options = agg_obj.get("options", {})
         agg_funcs[name] = NamedAgg(column=column, aggfunc=partial(func, **options))
@@ -120,13 +140,19 @@ def pivot(  # pylint: disable=too-many-arguments
     :param marginal_distribution_name: Name of row/column with marginal distribution.
            Default to 'All'.
     :return: A pivot table
+    :raises ChartDataValidationError: If the request in incorrect
     """
+    _validate_columns(df, index)
+    _validate_columns(df, columns)
+    _validate_columns(df, aggregates.keys())
     if not index:
-        raise SupersetException(_("Pivot operation requires at least one index"))
+        raise ChartDataValidationError(_("Pivot operation requires at least one index"))
     if not columns:
-        raise SupersetException(_("Pivot operation requires at least one column"))
+        raise ChartDataValidationError(
+            _("Pivot operation requires at least one column")
+        )
     if not aggregates:
-        raise SupersetException(_("Pivot operation specifying aggregates"))
+        raise ChartDataValidationError(_("Pivot operation specifying aggregates"))
 
     if column_fill_value:
         df[columns] = df[columns].fillna(value=column_fill_value)
@@ -164,11 +190,12 @@ def aggregate(
     :param groupby: columns to aggregate
     :param aggregates: A mapping from metric column to the function used to
            aggregate values.
-    :return: Aggregated DataFrame
+    :raises ChartDataValidationError: If the request in incorrect
     """
+    _validate_columns(df, groupby)
     aggregates = aggregates or {}
     aggregate_funcs = _get_aggregate_funcs(aggregates)
-    return df.groupby(by=groupby).agg(**aggregate_funcs)
+    return df.groupby(by=groupby).agg(**aggregate_funcs).reset_index()
 
 
 def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
@@ -176,10 +203,12 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
     Sort a DataFrame.
 
     :param df: DataFrame to sort.
-    :param by: columns by by which to sort. The key specifies the column name, value
-               specifies if sorting in ascending order.
+    :param columns: columns by by which to sort. The key specifies the column name,
+           value specifies if sorting in ascending order.
     :return: Sorted DataFrame
+    :raises ChartDataValidationError: If the request in incorrect
     """
+    _validate_columns(df, columns.keys())
     return df.sort_values(by=list(columns.keys()), ascending=list(columns.values()))
 
 
@@ -187,9 +216,9 @@ def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
     columns: Dict[str, str],
     rolling_type: str,
+    window: int,
     center: bool = False,
     win_type: Optional[str] = None,
-    window: Optional[int] = None,
     min_periods: Optional[int] = None,
 ) -> DataFrame:
     """
@@ -208,27 +237,28 @@ def rolling(  # pylint: disable=too-many-arguments
     :param window: Size of the window.
     :param min_periods:
     :return: DataFrame with the rolling columns
+    :raises ChartDataValidationError: If the request in incorrect
     """
+    _validate_columns(df, columns.keys())
     df_rolling = df[columns.keys()]
-    if rolling_type == "cumsum":
-        df_rolling = df_rolling.cumsum()
-    else:
-        kwargs: Dict[str, Union[str, int]] = {}
-        if window is not None:
-            kwargs["window"] = window
-        if min_periods is not None:
-            kwargs["min_periods"] = min_periods
-        if center is not None:
-            kwargs["center"] = center
-        if win_type is not None:
-            kwargs["win_type"] = win_type
+    if not hasattr(df_rolling, rolling_type):
+        raise ChartDataValidationError(
+            _("Unsupported rolling_type: %(type)s", type=rolling_type)
+        )
+    kwargs: Dict[str, Union[str, int]] = {}
+    if not window:
+        raise ChartDataValidationError(_("Undefined window for rolling operation"))
 
-        df_rolling = df_rolling.rolling(**kwargs)
-        if not hasattr(df_rolling, rolling_type):
-            raise SupersetException(
-                _("Unsupported rolling_type: %(type)s", type=rolling_type)
-            )
-        df_rolling = getattr(df_rolling, rolling_type)()
+    kwargs["window"] = window
+    if min_periods is not None:
+        kwargs["min_periods"] = min_periods
+    if center is not None:
+        kwargs["center"] = center
+    if win_type is not None:
+        kwargs["win_type"] = win_type
+
+    df_rolling = df_rolling.rolling(**kwargs)
+    df_rolling = getattr(df_rolling, rolling_type)()
     df = _append_columns(df, df_rolling, columns)
     if min_periods:
         df = df[min_periods:]
@@ -247,22 +277,47 @@ def select(df: DataFrame, columns: Dict[str, str],) -> DataFrame:
                     while `{'y': 'y2'}` return a DataFrame with the column `y2`
                     containing the values from column `y`.
     :return: Subset of columns in original DataFrame
+    :raises ChartDataValidationError: If the request in incorrect
     """
+    _validate_columns(df, columns.keys())
     return df[columns.keys()].rename(columns=columns)
 
 
 def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame:
     """
 
-    :param df: DataFrame on which the rolling period will be based.
+    :param df: DataFrame on which the diff will be based.
     :param columns: columns on which to perform diff, mapping source column to
            target column. For instance, `{'y': 'y'}` will replace the column `y` with
            the rollong value in `y`, while `{'y': 'y2'}` will add a column `y2` based
            on rolling values calculated from `y`, leaving the original column `y`
            unchanged.
-    :param periods:
-    :return:
+    :param periods: periods to shift for calculating difference.
+    :return: DataFrame with diffed columns
+    :raises ChartDataValidationError: If the request in incorrect
     """
+    _validate_columns(df, columns.keys())
     df_diff = df[columns.keys()]
     df_diff = df_diff.diff(periods=periods)
     return _append_columns(df, df_diff, columns)
+
+
+def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
+    """
+
+    :param df: DataFrame on which the cumulative operation will be based.
+    :param columns: columns on which to perform a cumulative operation, mapping source
+           column to target column. For instance, `{'y': 'y'}` will replace the column
+           `y` with the rollong value in `y`, while `{'y': 'y2'}` will add a column
+           `y2` based on rolling values calculated from `y`, leaving the original
+           column `y` unchanged.
+    :param operator: cumulative operator, e.g. `sum`, `prod`, `min`, `max`
+    :return:
+    """
+    df_cum = df[columns.keys()]
+    operation = "cum" + operator
+    if not hasattr(df_cum, operation):
+        raise ChartDataValidationError(
+            _("Unsupported cumulative operator: %(operator)s", operator=operator)
+        )
+    return _append_columns(df, getattr(df_cum, operation)(), columns)

@@ -25,7 +25,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset import app
-from superset.exceptions import SupersetException
+from superset.exceptions import ChartDataValidationError
 from superset.utils import core as utils, pandas_postprocessing
 from superset.views.utils import get_time_range_endpoints
 
@@ -161,15 +161,16 @@ class QueryObject:
         :param df: DataFrame returned from database model.
         :return: new DataFrame to which all post processing operations have been
                  applied
+        :raises ChartDataValidationError: If the post processing operation in incorrect
         """
         for post_process in self.post_processing:
             operation = post_process.get("operation")
             if not operation:
-                raise SupersetException(
+                raise ChartDataValidationError(
                     _("`operation` property of post processing object undefined")
                 )
             if not hasattr(pandas_postprocessing, operation):
-                raise SupersetException(
+                raise ChartDataValidationError(
                     _(
                         "Unsupported post processing operation: %(operation)s",
                         type=operation,

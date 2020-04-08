@@ -20,6 +20,7 @@ from typing import Any, List
 
 from pandas import Series
 
+from superset.exceptions import ChartDataValidationError
 from superset.utils import pandas_postprocessing as proc
 
 from .base_tests import SupersetTestCase
@@ -43,28 +44,7 @@ def series_to_list(series: Series) -> List[Any]:
 
 
 class PostProcessingTestCase(SupersetTestCase):
-    def test_aggregate_with_named_aggregators(self):
-        aggregates = {
-            "asc sum": {"column": "asc_idx", "operator": "sum"},
-            "asc q2": {
-                "column": "asc_idx",
-                "operator": "percentile",
-                "options": {"q": 75},
-            },
-            "desc q1": {
-                "column": "desc_idx",
-                "operator": "percentile",
-                "options": {"q": 25},
-            },
-        }
-        df = proc.aggregate(
-            df=categories_df, groupby=["constant"], aggregates=aggregates
-        )
-        self.assertEqual(series_to_list(df["asc sum"])[0], 5050)
-        self.assertEqual(series_to_list(df["asc q2"])[0], 75)
-        self.assertEqual(series_to_list(df["desc q1"])[0], 25)
-
-    def test_pivot_basic_functionality(self):
+    def test_pivot(self):
         aggregates = {"idx_nulls": {"operator": "sum"}}
 
         df = proc.pivot(
@@ -88,31 +68,73 @@ class PostProcessingTestCase(SupersetTestCase):
         )
         self.assertEqual(len(df), 5)
 
-    def test_pivot_metric_fill_value(self):
-        aggregates = {"idx_nulls": {}}  # should default to sum
+        self.assertRaises(
+            ChartDataValidationError,
+            proc.pivot,
+            df=categories_df,
+            index=["abc"],
+            columns=["dept"],
+            aggregates=aggregates,
+        )
+        self.assertRaises(
+            ChartDataValidationError,
+            proc.pivot,
+            df=categories_df,
+            index=["dept"],
+            columns=["abc"],
+            aggregates=aggregates,
+        )
+        self.assertRaises(
+            ChartDataValidationError,
+            proc.pivot,
+            df=categories_df,
+            index=["dept"],
+            columns=["abc"],
+            aggregates={"abc": {"operator": "sum"}},
+        )
+
         df = proc.pivot(
             df=categories_df,
             index=["name"],
             columns=["category"],
             metric_fill_value=1,
-            aggregates=aggregates,
+            aggregates={"idx_nulls": {}},  # should default to sum
         )
         self.assertEqual(df.sum()[0], 382)
+
+    def test_aggregate(self):
+        aggregates = {
+            "asc sum": {"column": "asc_idx", "operator": "sum"},
+            "asc q2": {
+                "column": "asc_idx",
+                "operator": "percentile",
+                "options": {"q": 75},
+            },
+            "desc q1": {
+                "column": "desc_idx",
+                "operator": "percentile",
+                "options": {"q": 25},
+            },
+        }
+        df = proc.aggregate(
+            df=categories_df, groupby=["constant"], aggregates=aggregates
+        )
+        self.assertListEqual(
+            df.columns.tolist(), ["constant", "asc sum", "asc q2", "desc q1"]
+        )
+        self.assertEqual(series_to_list(df["asc sum"])[0], 5050)
+        self.assertEqual(series_to_list(df["asc q2"])[0], 75)
+        self.assertEqual(series_to_list(df["desc q1"])[0], 25)
 
     def test_sort(self):
         df = proc.sort(df=categories_df, columns={"category": True, "asc_idx": False})
         self.assertEqual(96, series_to_list(df["asc_idx"])[1])
 
-    def test_rolling(self):
-        post_df = proc.rolling(
-            df=timeseries_df, columns={"y": "y2"}, rolling_type="cumsum", window=0
+        self.assertRaises(
+            ChartDataValidationError, proc.sort, df=df, columns={"abc": True}
         )
 
-        self.assertListEqual(post_df.columns.tolist(), ["label", "y", "y2"])
-        self.assertListEqual(series_to_list(post_df["label"]), ["x", "y", "z", "q"])
-        self.assertListEqual(series_to_list(post_df["y"]), [1.0, 2.0, 3.0, 4.0])
-        self.assertListEqual(series_to_list(post_df["y2"]), [1.0, 3.0, 6.0, 10.0])
-
+    def test_rolling(self):
         post_df = proc.rolling(
             df=timeseries_df,
             columns={"y": "y"},
@@ -144,6 +166,16 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
         self.assertListEqual(series_to_list(post_df["y"]), [1.0, 2.0, 3.0, 4.0])
 
+        # incorrect type
+        self.assertRaises(
+            ChartDataValidationError,
+            proc.rolling,
+            df=timeseries_df,
+            columns={"y": "y"},
+            rolling_type="abc",
+            window=2,
+        )
+
     def test_select(self):
         post_df = proc.select(df=timeseries_df, columns={"y": "y", "label": "label"})
         self.assertListEqual(post_df.columns.tolist(), ["y", "label"])
@@ -157,6 +189,13 @@ class PostProcessingTestCase(SupersetTestCase):
         post_df = proc.select(df=timeseries_df, columns={"label": "label", "y": "y1"})
         self.assertListEqual(post_df.columns.tolist(), ["label", "y1"])
 
+        self.assertRaises(
+            ChartDataValidationError,
+            proc.select,
+            df=timeseries_df,
+            columns={"abc": "qwerty"},
+        )
+
     def test_diff(self):
         post_df = proc.diff(df=timeseries_df, columns={"y": "y"})
         self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
@@ -169,3 +208,33 @@ class PostProcessingTestCase(SupersetTestCase):
 
         post_df = proc.diff(df=timeseries_df, columns={"y": "y1"}, periods=-1)
         self.assertListEqual(series_to_list(post_df["y1"]), [-1.0, -1.0, -1.0, None])
+
+        self.assertRaises(
+            ChartDataValidationError,
+            proc.diff,
+            df=timeseries_df,
+            columns={"abc": "abc"},
+        )
+
+    def test_cum(self):
+        post_df = proc.cum(df=timeseries_df, columns={"y": "y2"}, operator="sum",)
+        self.assertListEqual(post_df.columns.tolist(), ["label", "y", "y2"])
+        self.assertListEqual(series_to_list(post_df["label"]), ["x", "y", "z", "q"])
+        self.assertListEqual(series_to_list(post_df["y"]), [1.0, 2.0, 3.0, 4.0])
+        self.assertListEqual(series_to_list(post_df["y2"]), [1.0, 3.0, 6.0, 10.0])
+
+        post_df = proc.cum(df=timeseries_df, columns={"y": "y"}, operator="prod",)
+        self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
+        self.assertListEqual(series_to_list(post_df["y"]), [1.0, 2.0, 6.0, 24.0])
+
+        post_df = proc.cum(df=timeseries_df, columns={"y": "y"}, operator="min",)
+        self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
+        self.assertListEqual(series_to_list(post_df["y"]), [1.0, 1.0, 1.0, 1.0])
+
+        self.assertRaises(
+            ChartDataValidationError,
+            proc.cum,
+            df=timeseries_df,
+            columns={"y": "y"},
+            operator="abc",
+        )
