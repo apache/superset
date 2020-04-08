@@ -91,7 +91,7 @@ def _append_columns(
     )
 
 
-def pivot(
+def pivot(  # pylint: disable=too-many-arguments
     df: DataFrame,
     index: List[str],
     columns: List[str],
@@ -183,7 +183,7 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
     return df.sort_values(by=list(columns.keys()), ascending=list(columns.values()))
 
 
-def rolling(
+def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
     columns: Dict[str, str],
     rolling_type: str,
