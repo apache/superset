@@ -43,8 +43,8 @@ class CreateDashboardCommand(BaseCommand):
         self.validate()
         try:
             dashboard = DashboardDAO.create(self._properties)
-        except DAOCreateFailedError as e:
-            logger.exception(e.exception)
+        except DAOCreateFailedError as ex:
+            logger.exception(ex.exception)
             raise DashboardCreateFailedError()
         return dashboard
 
@@ -60,8 +60,8 @@ class CreateDashboardCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
         if exceptions:
             exception = DashboardInvalidError()
             exception.add_list(exceptions)

@@ -37,8 +37,8 @@ def stats_timing(stats_key, stats_logger):
     start_ts = now_as_float()
     try:
         yield start_ts
-    except Exception as e:
-        raise e
+    except Exception as ex:
+        raise ex
     finally:
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 

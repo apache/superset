@@ -107,8 +107,8 @@ def api(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
             return json_error_response(get_error_msg())
 
     return functools.update_wrapper(wraps, f)
@@ -124,22 +124,24 @@ def handle_api_exception(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except SupersetSecurityException as e:
-            logger.exception(e)
+        except SupersetSecurityException as ex:
+            logger.exception(ex)
             return json_error_response(
-                utils.error_msg_from_exception(e), status=e.status, link=e.link
+                utils.error_msg_from_exception(ex), status=ex.status, link=ex.link
             )
-        except SupersetException as e:
-            logger.exception(e)
+        except SupersetException as ex:
+            logger.exception(ex)
             return json_error_response(
-                utils.error_msg_from_exception(e), status=e.status
+                utils.error_msg_from_exception(ex), status=ex.status
             )
-        except HTTPException as e:
-            logger.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e), status=e.code)
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
+        except HTTPException as ex:
+            logger.exception(ex)
+            return json_error_response(
+                utils.error_msg_from_exception(ex), status=ex.code
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
+            return json_error_response(utils.error_msg_from_exception(ex))
 
     return functools.update_wrapper(wraps, f)
 
@@ -176,8 +178,8 @@ def menu_data():
                 or f"/profile/{g.user.username}/"
             )
         # when user object has no username
-        except NameError as e:
-            logger.exception(e)
+        except NameError as ex:
+            logger.exception(ex)
 
         if logo_target_path.startswith("/"):
             root_path = f"/superset{logo_target_path}"
@@ -261,8 +263,8 @@ class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-me
 def validate_json(_form, field):
     try:
         json.loads(field.data)
-    except Exception as e:
-        logger.exception(e)
+    except Exception as ex:
+        logger.exception(ex)
         raise Exception(_("json isn't valid"))
 
 
@@ -303,8 +305,8 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
             abort(404)
         try:
             self.pre_delete(item)
-        except Exception as e:  # pylint: disable=broad-except
-            flash(str(e), "danger")
+        except Exception as ex:  # pylint: disable=broad-except
+            flash(str(ex), "danger")
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
             pvs = (
@@ -338,8 +340,8 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
         for item in items:
             try:
                 self.pre_delete(item)
-            except Exception as e:  # pylint: disable=broad-except
-                flash(str(e), "danger")
+            except Exception as ex:  # pylint: disable=broad-except
+                flash(str(ex), "danger")
             else:
                 self._delete(item.id)
         self.update_redirect()
