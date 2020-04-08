@@ -115,10 +115,10 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 [BASIC]
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,j,k,ex,Run,_,d,e,v,o,l,x,ts,f
+good-names=_,df,ex,f,i,id,j,k,l,o,pk,Run,ts,v,x
 
 # Bad variable names which should always be refused, separated by a comma
-bad-names=foo,bar,baz,toto,tutu,tata,d,fd
+bad-names=fd,foo,bar,baz,toto,tutu,tata
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.

@@ -48,7 +48,7 @@ class Query(Model, ExtraJSONMixin):
     table may represent multiple SQL statements executed sequentially"""
 
     __tablename__ = "query"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
 
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
@@ -150,7 +150,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     schema = Column(String(128))
@@ -195,9 +195,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     __tablename__ = "tab_state"
 
     # basic info
-    id = Column(  # pylint: disable=invalid-name
-        Integer, primary_key=True, autoincrement=True
-    )
+    id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     label = Column(String(256))
     active = Column(Boolean, default=False)
@@ -248,9 +246,7 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
 
     __tablename__ = "table_schema"
 
-    id = Column(  # pylint: disable=invalid-name
-        Integer, primary_key=True, autoincrement=True
-    )
+    id = Column(Integer, primary_key=True, autoincrement=True)
     tab_state_id = Column(Integer, ForeignKey("tab_state.id", ondelete="CASCADE"))
 
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)

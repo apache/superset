@@ -168,11 +168,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateDashboardCommand(g.user, item.data).run()
             return self.response(201, id=new_model.id, result=item.data)
-        except DashboardInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except DashboardCreateFailedError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DashboardCreateFailedError as ex:
+            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
@@ -235,11 +235,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DashboardForbiddenError:
             return self.response_403()
-        except DashboardInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except DashboardUpdateFailedError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DashboardUpdateFailedError as ex:
+            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
@@ -283,9 +283,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DashboardForbiddenError:
             return self.response_403()
-        except DashboardDeleteFailedError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DashboardDeleteFailedError as ex:
+            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/", methods=["DELETE"])
     @protect()
@@ -344,8 +344,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DashboardForbiddenError:
             return self.response_403()
-        except DashboardBulkDeleteFailedError as e:
-            return self.response_422(message=str(e))
+        except DashboardBulkDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
 
     @expose("/export/", methods=["GET"])
     @protect()

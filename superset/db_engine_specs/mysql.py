@@ -86,12 +86,12 @@ class MySQLEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
-    def _extract_error_message(cls, e: Exception) -> str:
+    def _extract_error_message(cls, ex: Exception) -> str:
         """Extract error message for queries"""
-        message = str(e)
+        message = str(ex)
         try:
-            if isinstance(e.args, tuple) and len(e.args) > 1:
-                message = e.args[1]
+            if isinstance(ex.args, tuple) and len(ex.args) > 1:
+                message = ex.args[1]
         except Exception:  # pylint: disable=broad-except
             pass
         return message

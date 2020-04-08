@@ -60,8 +60,8 @@ class UpdateDatasetCommand(BaseCommand):
             try:
                 dataset = DatasetDAO.update(self._model, self._properties)
                 return dataset
-            except DAOUpdateFailedError as e:
-                logger.exception(e.exception)
+            except DAOUpdateFailedError as ex:
+                logger.exception(ex.exception)
                 raise DatasetUpdateFailedError()
         raise DatasetUpdateFailedError()
 
@@ -92,8 +92,8 @@ class UpdateDatasetCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
 
         # Validate columns
         columns = self._properties.get("columns")

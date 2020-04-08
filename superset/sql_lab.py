@@ -135,9 +135,9 @@ def session_scope(nullpool):
     try:
         yield session
         session.commit()
-    except Exception as e:
+    except Exception as ex:
         session.rollback()
-        logger.exception(e)
+        logger.exception(ex)
         raise
     finally:
         session.close()
@@ -175,12 +175,12 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 expand_data=expand_data,
                 log_params=log_params,
             )
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except
             logger.error("Query %d", query_id)
-            logger.debug("Query %d: %s", query_id, e)
+            logger.debug("Query %d: %s", query_id, ex)
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
-            return handle_query_error(str(e), query, session)
+            return handle_query_error(str(ex), query, session)
 
 
 # pylint: disable=too-many-arguments
@@ -253,17 +253,17 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor, log_
             )
             data = db_engine_spec.fetch_data(cursor, query.limit)
 
-    except SoftTimeLimitExceeded as e:
+    except SoftTimeLimitExceeded as ex:
         logger.error("Query %d: Time limit exceeded", query.id)
-        logger.debug("Query %d: %s", query.id, e)
+        logger.debug("Query %d: %s", query.id, ex)
         raise SqlLabTimeoutException(
             "SQL Lab timeout. This environment's policy is to kill queries "
             "after {} seconds.".format(SQLLAB_TIMEOUT)
         )
-    except Exception as e:
-        logger.error("Query %d: %s", query.id, type(e))
-        logger.debug("Query %d: %s", query.id, e)
-        raise SqlLabException(db_engine_spec.extract_error_message(e))
+    except Exception as ex:
+        logger.error("Query %d: %s", query.id, type(ex))
+        logger.debug("Query %d: %s", query.id, ex)
+        raise SqlLabException(db_engine_spec.extract_error_message(ex))
 
     logger.debug("Query %d: Fetching cursor description", query.id)
     cursor_description = cursor.description
@@ -378,8 +378,8 @@ def execute_sql_statements(
                     result_set = execute_sql_statement(
                         statement, query, user_name, session, cursor, log_params
                     )
-                except Exception as e:  # pylint: disable=broad-except
-                    msg = str(e)
+                except Exception as ex:  # pylint: disable=broad-except
+                    msg = str(ex)
                     if statement_count > 1:
                         msg = f"[Statement {i+1} out of {statement_count}] " + msg
                     payload = handle_query_error(msg, query, session, payload)

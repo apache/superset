@@ -27,7 +27,7 @@ class AnnotationLayer(Model, AuditMixinNullable):
     """A logical namespace for a set of annotations"""
 
     __tablename__ = "annotation_layer"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     name = Column(String(250))
     descr = Column(Text)
 
@@ -40,7 +40,7 @@ class Annotation(Model, AuditMixinNullable):
     """Time-related annotation"""
 
     __tablename__ = "annotation"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     start_dttm = Column(DateTime)
     end_dttm = Column(DateTime)
     layer_id = Column(Integer, ForeignKey("annotation_layer.id"), nullable=False)
