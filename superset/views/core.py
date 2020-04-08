@@ -136,7 +136,13 @@ def get_database_access_error_msg(database_name):
 
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
-    return obj and user in obj.owners
+    if obj and user in obj.owners:
+      return True
+    else:
+      user_roles = [role.name.lower() for role in list(get_user_roles())]
+      if "admin" in user_roles or "peak_user" in user_roles:
+        return True
+    return False
 
 
 def check_datasource_perms(

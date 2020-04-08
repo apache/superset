@@ -89,6 +89,6 @@
   color: #aaa;
 }
 .cell-text-for-measuring {
-  font-family: Montserrat;
+  font-family: neue-haas-grotesk-text, -apple-system, system-ui, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-size: 12px;
 }

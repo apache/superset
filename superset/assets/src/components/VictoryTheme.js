@@ -51,7 +51,7 @@ const baseProps = {
 
 // Labels
 const baseLabelStyles = {
-  fontFamily: "Montserrat",
+  fontFamily: 'neue-haas-grotesk-text, -apple-system, system-ui, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif',
   fontSize,
   letterSpacing,
   padding: 10,

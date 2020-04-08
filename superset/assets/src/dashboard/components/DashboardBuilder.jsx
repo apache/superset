@@ -46,7 +46,7 @@ import {
 } from '../util/constants';
 import getDirectPathToTabIndex from '../util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from '../util/getLeafComponentIdFromPath';
-
+import injectCustomCss from '../util/injectCustomCss';
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
 
@@ -103,13 +103,14 @@ class DashboardBuilder extends React.Component {
   constructor(props) {
     super(props);
 
-    const { dashboardLayout, directPathToChild } = props;
+    const { dashboardLayout, directPathToChild, css } = props;
     const tabIndex = DashboardBuilder.getRootLevelTabIndex(
       dashboardLayout,
       directPathToChild,
     );
     this.state = {
       tabIndex,
+      css
     };
 
     this.handleChangeTab = this.handleChangeTab.bind(this);
@@ -121,7 +122,9 @@ class DashboardBuilder extends React.Component {
       dragDropManager: this.context.dragDropManager || getDragDropManager(),
     };
   }
-
+  UNSAFE_componentWillMount() {
+    injectCustomCss(this.state.css);
+  }
   UNSAFE_componentWillReceiveProps(nextProps) {
     const nextFocusComponent = getLeafComponentIdFromPath(
       nextProps.directPathToChild,

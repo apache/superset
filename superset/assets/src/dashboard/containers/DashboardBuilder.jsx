@@ -38,6 +38,7 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState }) {
     directPathToChild: dashboardState.directPathToChild,
     builderPaneType: dashboardState.builderPaneType,
     colorScheme: dashboardState.colorScheme,
+    css: dashboardState.css,
   };
 }
 

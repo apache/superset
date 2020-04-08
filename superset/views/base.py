@@ -372,7 +372,7 @@ def check_ownership(obj, raise_if_false=True):
             raise security_exception
         return False
     roles = [r.name for r in get_user_roles()]
-    if "Admin" in roles:
+    if "Admin" in roles or "peak_user" in roles:
         return True
     session = db.create_scoped_session()
     orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
