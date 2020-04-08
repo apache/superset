@@ -50,7 +50,7 @@ class EmailSchedule:
 
     __tablename__ = "email_schedules"
 
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(50))
 

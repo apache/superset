@@ -62,9 +62,9 @@ def merge_slice(slc: Slice) -> None:
 
 
 def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
-    d = defaults.copy()
-    d.update(kwargs)
-    return json.dumps(d, indent=4, sort_keys=True)
+    defaults_copy = defaults.copy()
+    defaults_copy.update(kwargs)
+    return json.dumps(defaults_copy, indent=4, sort_keys=True)
 
 
 def get_example_data(

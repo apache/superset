@@ -45,8 +45,8 @@ class DeleteChartCommand(BaseCommand):
         self.validate()
         try:
             chart = ChartDAO.delete(self._model)
-        except DAODeleteFailedError as e:
-            logger.exception(e.exception)
+        except DAODeleteFailedError as ex:
+            logger.exception(ex.exception)
             raise ChartDeleteFailedError()
         return chart
 

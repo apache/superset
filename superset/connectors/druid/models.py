@@ -657,9 +657,9 @@ class DruidDatasource(Model, BaseDatasource):
                 merge=self.merge_flag,
                 analysisTypes=[],
             )
-        except Exception as e:
+        except Exception as ex:
             logger.warning("Failed first attempt to get latest segment")
-            logger.exception(e)
+            logger.exception(ex)
         if not segment_metadata:
             # if no segments in the past 7 days, look at all segments
             lbound = datetime(1901, 1, 1).isoformat()[:10]
@@ -674,9 +674,9 @@ class DruidDatasource(Model, BaseDatasource):
                     merge=self.merge_flag,
                     analysisTypes=[],
                 )
-            except Exception as e:
+            except Exception as ex:
                 logger.warning("Failed 2nd attempt to get latest segment")
-                logger.exception(e)
+                logger.exception(ex)
         if segment_metadata:
             return segment_metadata[-1]["columns"]
 

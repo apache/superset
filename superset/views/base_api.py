@@ -44,7 +44,7 @@ def check_ownership_and_item_exists(f):
     A Decorator that checks if an object exists and is owned by the current user
     """
 
-    def wraps(self, pk):  # pylint: disable=invalid-name
+    def wraps(self, pk):
         item = self.datamodel.get(
             pk, self._base_filters  # pylint: disable=protected-access
         )
@@ -52,8 +52,8 @@ def check_ownership_and_item_exists(f):
             return self.response_404()
         try:
             check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(403, message=str(e))
+        except SupersetSecurityException as ex:
+            return self.response(403, message=str(ex))
         return f(self, item)
 
     return functools.update_wrapper(wraps, f)
@@ -290,9 +290,9 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200, result=self.edit_model_schema.dump(item.data, many=False).data
             )
-        except SQLAlchemyError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except SQLAlchemyError as ex:
+            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/", methods=["POST"])
     @protect()
@@ -342,9 +342,9 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
                 result=self.add_model_schema.dump(item.data, many=False).data,
                 id=item.data.id,
             )
-        except SQLAlchemyError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except SQLAlchemyError as ex:
+            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
@@ -383,6 +383,6 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
         try:
             self.datamodel.delete(item, raise_exception=True)
             return self.response(200, message="OK")
-        except SQLAlchemyError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except SQLAlchemyError as ex:
+            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))

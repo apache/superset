@@ -171,11 +171,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateDatasetCommand(g.user, item.data).run()
             return self.response(201, id=new_model.id, result=item.data)
-        except DatasetInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except DatasetCreateFailedError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DatasetInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DatasetCreateFailedError as ex:
+            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
@@ -238,11 +238,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
-        except DatasetInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except DatasetUpdateFailedError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DatasetInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DatasetUpdateFailedError as ex:
+            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
@@ -286,9 +286,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
-        except DatasetDeleteFailedError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DatasetDeleteFailedError as ex:
+            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/export/", methods=["GET"])
     @protect()
@@ -345,7 +345,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>/refresh", methods=["PUT"])
     @protect()
     @safe
-    def refresh(self, pk: int) -> Response:  # pylint: disable=invalid-name
+    def refresh(self, pk: int) -> Response:
         """Refresh a Dataset
         ---
         put:
@@ -384,6 +384,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
-        except DatasetRefreshFailedError as e:
-            logger.error(f"Error refreshing dataset {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DatasetRefreshFailedError as ex:
+            logger.error(f"Error refreshing dataset {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))

@@ -46,8 +46,8 @@ class RefreshDatasetCommand(BaseCommand):
             try:
                 self._model.fetch_metadata()
                 return self._model
-            except Exception as e:
-                logger.exception(e)
+            except Exception as ex:
+                logger.exception(ex)
                 raise DatasetRefreshFailedError()
         raise DatasetRefreshFailedError()
 
