@@ -25,7 +25,9 @@ from superset.utils import core as utils
 from .helpers import get_example_data, TBL
 
 
-def load_sf_population_polygons(only_metadata=False, force=False):
+def load_sf_population_polygons(
+    only_metadata: bool = False, force: bool = False
+) -> None:
     tbl_name = "sf_population_polygons"
     database = utils.get_example_database()
     table_exists = database.has_table_by_name(tbl_name)

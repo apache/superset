@@ -377,7 +377,7 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | CockroachDB      | ``pip install cockroachdb``           | ``cockroachdb://``                              |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://user:pwd@host:31010/``               |
+| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://``                                   |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                       |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -741,6 +741,8 @@ Dremio
 Install the following dependencies to connect to Dremio:
 
 * Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
+
+  * If you receive any errors during the installation of ``sqlalchemy_dremio``, make sure to install the prerequisites for PyODBC properly by following the instructions for your OS here: https://github.com/narendrans/sqlalchemy_dremio#installation
 * Dremio's ODBC driver: https://www.dremio.com/drivers/
 
 Example SQLAlchemy URI: ``dremio://dremio:dremio123@localhost:31010/dremio``
@@ -1084,6 +1086,59 @@ in this dictionary are made available for users to use in their SQL.
     JINJA_CONTEXT_ADDONS = {
         'my_crazy_macro': lambda x: x*2,
     }
+
+Besides default Jinja templating, SQL lab also supports self-defined template
+processor by setting the ``CUSTOM_TEMPLATE_PROCESSORS`` in your superset configuration.
+The values in this dictionary overwrite the default Jinja template processors of the
+specified database engine.
+The example below configures a custom presto template processor which implements
+its own logic of processing macro template with regex parsing. It uses ``$`` style
+macro instead of ``{{ }}`` style in Jinja templating. By configuring it with
+``CUSTOM_TEMPLATE_PROCESSORS``, sql template on presto database is processed
+by the custom one rather than the default one.
+
+.. code-block:: python
+
+    def DATE(
+        ts: datetime, day_offset: SupportsInt = 0, hour_offset: SupportsInt = 0
+    ) -> str:
+        """Current day as a string."""
+        day_offset, hour_offset = int(day_offset), int(hour_offset)
+        offset_day = (ts + timedelta(days=day_offset, hours=hour_offset)).date()
+        return str(offset_day)
+
+    class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
+        """A custom presto template processor."""
+
+        engine = "presto"
+
+        def process_template(self, sql: str, **kwargs) -> str:
+            """Processes a sql template with $ style macro using regex."""
+            # Add custom macros functions.
+            macros = {
+                "DATE": partial(DATE, datetime.utcnow())
+            }  # type: Dict[str, Any]
+            # Update with macros defined in context and kwargs.
+            macros.update(self.context)
+            macros.update(kwargs)
+
+            def replacer(match):
+                """Expand $ style macros with corresponding function calls."""
+                macro_name, args_str = match.groups()
+                args = [a.strip() for a in args_str.split(",")]
+                if args == [""]:
+                    args = []
+                f = macros[macro_name[1:]]
+                return f(*args)
+
+            macro_names = ["$" + name for name in macros.keys()]
+            pattern = r"(%s)\s*\(([^()]*)\)" % "|".join(map(re.escape, macro_names))
+            return re.sub(pattern, replacer, sql)
+
+    CUSTOM_TEMPLATE_PROCESSORS = {
+        CustomPrestoTemplateProcessor.engine: CustomPrestoTemplateProcessor
+    }
+
 
 SQL Lab also includes a live query validation feature with pluggable backends.
 You can configure which validation implementation is used with which database

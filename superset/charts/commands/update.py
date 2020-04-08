@@ -32,10 +32,10 @@ from superset.charts.commands.exceptions import (
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.commands.utils import get_datasource_by_id, populate_owners
-from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.slice import Slice
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ class UpdateChartCommand(BaseCommand):
         self._actor = user
         self._model_id = model_id
         self._properties = data.copy()
-        self._model: Optional[SqlaTable] = None
+        self._model: Optional[Slice] = None
 
     def run(self) -> Model:
         self.validate()

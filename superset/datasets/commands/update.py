@@ -18,6 +18,7 @@ import logging
 from collections import Counter
 from typing import Dict, List, Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
@@ -53,14 +54,16 @@ class UpdateDatasetCommand(BaseCommand):
         self._properties = data.copy()
         self._model: Optional[SqlaTable] = None
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
-        try:
-            dataset = DatasetDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as e:
-            logger.exception(e.exception)
-            raise DatasetUpdateFailedError()
-        return dataset
+        if self._model:
+            try:
+                dataset = DatasetDAO.update(self._model, self._properties)
+                return dataset
+            except DAOUpdateFailedError as e:
+                logger.exception(e.exception)
+                raise DatasetUpdateFailedError()
+        raise DatasetUpdateFailedError()
 
     def validate(self) -> None:
         exceptions = list()
@@ -107,7 +110,9 @@ class UpdateDatasetCommand(BaseCommand):
             exception.add_list(exceptions)
             raise exception
 
-    def _validate_columns(self, columns: List[Dict], exceptions: List[ValidationError]):
+    def _validate_columns(
+        self, columns: List[Dict], exceptions: List[ValidationError]
+    ) -> None:
         # Validate duplicates on data
         if self._get_duplicates(columns, "column_name"):
             exceptions.append(DatasetColumnsDuplicateValidationError())
@@ -127,7 +132,9 @@ class UpdateDatasetCommand(BaseCommand):
             ):
                 exceptions.append(DatasetColumnsExistsValidationError())
 
-    def _validate_metrics(self, metrics: List[Dict], exceptions: List[ValidationError]):
+    def _validate_metrics(
+        self, metrics: List[Dict], exceptions: List[ValidationError]
+    ) -> None:
         if self._get_duplicates(metrics, "metric_name"):
             exceptions.append(DatasetMetricsDuplicateValidationError())
         else:
@@ -145,7 +152,7 @@ class UpdateDatasetCommand(BaseCommand):
                 exceptions.append(DatasetMetricsExistsValidationError())
 
     @staticmethod
-    def _get_duplicates(data: List[Dict], key: str):
+    def _get_duplicates(data: List[Dict], key: str) -> List[str]:
         duplicates = [
             name
             for name, count in Counter([item[key] for item in data]).items()

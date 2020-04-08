@@ -23,7 +23,7 @@ from marshmallow.validate import Length
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 
-def validate_python_date_format(value):
+def validate_python_date_format(value: str) -> None:
     regex = re.compile(
         r"""
         ^(

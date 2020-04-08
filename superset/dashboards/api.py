@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 from flask import g, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -44,7 +45,8 @@ from superset.dashboards.schemas import (
 )
 from superset.models.dashboard import Dashboard
 from superset.views.base import generate_download_headers
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "json_metadata",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "changed_by_name",
         "changed_by_url",
         "changed_by.username",
@@ -113,7 +117,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name"}
+    related_field_filters = {
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
+    }
     allowed_rel_fields = {"owners"}
 
     @expose("/", methods=["POST"])
@@ -285,7 +291,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(get_delete_ids_schema)
-    def bulk_delete(self, **kwargs) -> Response:  # pylint: disable=arguments-differ
+    def bulk_delete(
+        self, **kwargs: Any
+    ) -> Response:  # pylint: disable=arguments-differ
         """Delete bulk Dashboards
         ---
         delete:
@@ -343,7 +351,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(get_export_ids_schema)
-    def export(self, **kwargs):
+    def export(self, **kwargs: Any) -> Response:
         """Export dashboards
         ---
         get:
