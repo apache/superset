@@ -60,8 +60,8 @@ class CreateDatasetCommand(BaseCommand):
                     "schema_access", dataset.schema_perm
                 )
             db.session.commit()
-        except (SQLAlchemyError, DAOCreateFailedError) as e:
-            logger.exception(e)
+        except (SQLAlchemyError, DAOCreateFailedError) as ex:
+            logger.exception(ex)
             db.session.rollback()
             raise DatasetCreateFailedError()
         return dataset
@@ -92,8 +92,8 @@ class CreateDatasetCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
         if exceptions:
             exception = DatasetInvalidError()
             exception.add_list(exceptions)

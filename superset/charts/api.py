@@ -170,11 +170,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateChartCommand(g.user, item.data).run()
             return self.response(201, id=new_model.id, result=item.data)
-        except ChartInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except ChartCreateFailedError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except ChartInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except ChartCreateFailedError as ex:
+            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
@@ -237,11 +237,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ChartForbiddenError:
             return self.response_403()
-        except ChartInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except ChartUpdateFailedError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except ChartInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except ChartUpdateFailedError as ex:
+            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
@@ -285,9 +285,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ChartForbiddenError:
             return self.response_403()
-        except ChartDeleteFailedError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except ChartDeleteFailedError as ex:
+            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/", methods=["DELETE"])
     @protect()
@@ -346,5 +346,5 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ChartForbiddenError:
             return self.response_403()
-        except ChartBulkDeleteFailedError as e:
-            return self.response_422(message=str(e))
+        except ChartBulkDeleteFailedError as ex:
+            return self.response_422(message=str(ex))

@@ -481,8 +481,8 @@ class Database(
             return [
                 utils.DatasourceName(table=table, schema=schema) for table in tables
             ]
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: f"db:{{}}:schema:{kwargs.get('schema')}:view_list",  # type: ignore
@@ -511,8 +511,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: "db:{}:schema_list", attribute_in_key="id"
@@ -564,9 +564,9 @@ class Database(
         if self.encrypted_extra:
             try:
                 encrypted_extra = json.loads(self.encrypted_extra)
-            except json.JSONDecodeError as e:
-                logger.error(e)
-                raise e
+            except json.JSONDecodeError as ex:
+                logger.error(ex)
+                raise ex
         return encrypted_extra
 
     def get_table(self, table_name: str, schema: Optional[str] = None) -> Table:

@@ -263,8 +263,8 @@ def parse_human_datetime(s):
             if parsed_flags & 2 == 0:
                 parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
             dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ex:
+            logger.exception(ex)
             raise ValueError("Couldn't parse date string [{}]".format(s))
     return dttm
 
@@ -565,8 +565,8 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
     if obj:
         try:
             json.loads(obj)
-        except Exception as e:
-            logger.error(f"JSON is not valid {e}")
+        except Exception as ex:
+            logger.error(f"JSON is not valid {ex}")
             raise SupersetException("JSON is not valid")
 
 
@@ -597,16 +597,16 @@ class timeout:
         try:
             signal.signal(signal.SIGALRM, self.handle_timeout)
             signal.alarm(self.seconds)
-        except ValueError as e:
+        except ValueError as ex:
             logger.warning("timeout can't be used in the current context")
-            logger.exception(e)
+            logger.exception(ex)
 
     def __exit__(self, type, value, traceback):
         try:
             signal.alarm(0)
-        except ValueError as e:
+        except ValueError as ex:
             logger.warning("timeout can't be used in the current context")
-            logger.exception(e)
+            logger.exception(ex)
 
 
 def pessimistic_connection_handling(some_engine):
