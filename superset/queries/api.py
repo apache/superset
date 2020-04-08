@@ -16,18 +16,11 @@
 # under the License.
 import logging
 
-import simplejson
-from flask import make_response, request, Response
-from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.common.query_context import QueryContext
 from superset.constants import RouteMethod
-from superset.exceptions import SupersetSecurityException
-from superset.extensions import event_logger, security_manager
 from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
-from superset.utils.core import json_int_dttm_ser
 from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
@@ -38,7 +31,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
 
     resource_name = "query"
     allow_browser_login = True
-    include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST, "exec"}
+    include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST}
 
     class_permission_name = "QueryView"
     list_columns = [
@@ -77,112 +70,3 @@ class QueryRestApi(BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
 
     openapi_spec_tag = "Queries"
-
-    @expose("/exec", methods=["POST"])
-    @event_logger.log_this
-    @protect()
-    @safe
-    def exec(self) -> Response:
-        """
-        Takes a query context constructed in the client and returns payload
-        data response for the given query.
-        ---
-        post:
-          description: >-
-            Takes a query context constructed in the client and returns payload data
-            response for the given query.
-          requestBody:
-            description: Query context schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    datasource:
-                      type: object
-                      description: The datasource where the query will run
-                      properties:
-                        id:
-                          type: integer
-                        type:
-                          type: string
-                    queries:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          granularity:
-                            type: string
-                          groupby:
-                            type: array
-                            items:
-                              type: string
-                          metrics:
-                            type: array
-                            items:
-                              type: object
-                          filters:
-                            type: array
-                            items:
-                              type: string
-                          row_limit:
-                            type: integer
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        cache_key:
-                          type: string
-                        cached_dttm:
-                          type: string
-                        cache_timeout:
-                          type: integer
-                        error:
-                          type: string
-                        is_cached:
-                          type: boolean
-                        query:
-                          type: string
-                        status:
-                          type: string
-                        stacktrace:
-                          type: string
-                        rowcount:
-                          type: integer
-                        data:
-                          type: array
-                          items:
-                            type: object
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
-        try:
-            query_context = QueryContext(**request.json)
-        except KeyError:
-            return self.response_400(message="Request is incorrect")
-        try:
-            security_manager.assert_query_context_permission(query_context)
-        except SupersetSecurityException:
-            return self.response_401()
-        payload_json = query_context.get_payload()
-        response_data = simplejson.dumps(
-            payload_json, default=json_int_dttm_ser, ignore_nan=True
-        )
-        resp = make_response(response_data, 200)
-        resp.headers["Content-Type"] = "application/json; charset=utf-8"
-        return resp

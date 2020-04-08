@@ -67,22 +67,6 @@ class QueryApiTests(SupersetTestCase):
         db.session.commit()
         return query
 
-    def _get_query_context(self) -> Dict[str, Any]:
-        self.login(username="admin")
-        slc = self.get_slice("Girl Name Cloud", db.session)
-        return {
-            "datasource": {"id": slc.datasource_id, "type": slc.datasource_type},
-            "queries": [
-                {
-                    "granularity": "ds",
-                    "groupby": ["name"],
-                    "metrics": [{"label": "sum__num"}],
-                    "filters": [],
-                    "row_limit": 100,
-                }
-            ],
-        }
-
     @staticmethod
     def get_random_string(length: int = 10):
         letters = string.ascii_letters
@@ -261,25 +245,3 @@ class QueryApiTests(SupersetTestCase):
         # rollback changes
         db.session.delete(query)
         db.session.commit()
-
-    def test_query_exec(self):
-        """
-            Query API: Test exec query
-        """
-        self.login(username="admin")
-        query_context = self._get_query_context()
-        uri = "api/v1/query/exec"
-        rv = self.client.post(uri, json=query_context)
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data[0]["rowcount"], 100)
-
-    def test_query_exec_not_allowed(self):
-        """
-            Query API: Test exec query not allowed
-        """
-        self.login(username="gamma")
-        query_context = self._get_query_context()
-        uri = "api/v1/query/exec"
-        rv = self.client.post(uri, json=query_context)
-        self.assertEqual(rv.status_code, 401)
