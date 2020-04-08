@@ -51,7 +51,7 @@ export default function getFormDataWithExtraFilters({
     return cachedFormdataByChart[sliceId];
   }
 
-  filter_operators = null
+  let filter_operators = null
   if (chart['form_data'] && 'filter_operators' in chart['form_data']) {
     filter_operators = chart['form_data']['filter_operators']
   }
