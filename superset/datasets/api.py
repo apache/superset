@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 import yaml
 from flask import g, request, Response
@@ -42,8 +43,9 @@ from superset.datasets.schemas import (
     get_export_ids_schema,
 )
 from superset.views.base import DatasourceFilter, generate_download_headers
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.database.filters import DatabaseFilter
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +92,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "template_params",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "columns",
         "metrics",
     ]
@@ -114,8 +118,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics",
     ]
     openapi_spec_tag = "Datasets"
-
-    filter_rel_fields_field = {"owners": "first_name", "database": "database_name"}
+    related_field_filters = {
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "database": "database_name",
+    }
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
 
@@ -288,7 +294,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(get_export_ids_schema)
-    def export(self, **kwargs):
+    def export(self, **kwargs: Any) -> Response:
         """Export dashboards
         ---
         get:

@@ -43,7 +43,8 @@ from superset.charts.schemas import (
 )
 from superset.constants import RouteMethod
 from superset.models.slice import Slice
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "dashboards.id",
         "dashboards.dashboard_title",
         "viz_type",
@@ -116,7 +119,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name"}
+    related_field_filters = {
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
+    }
     allowed_rel_fields = {"owners"}
 
     @expose("/", methods=["POST"])

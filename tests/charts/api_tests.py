@@ -21,13 +21,13 @@ from typing import List, Optional
 import prison
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+import tests.test_app
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-
-from .base_api_tests import ApiOwnersTestCaseMixin
-from .base_tests import SupersetTestCase
+from tests.base_api_tests import ApiOwnersTestCaseMixin
+from tests.base_tests import SupersetTestCase
 
 
 class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
@@ -486,7 +486,14 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "cache_timeout": None,
             "dashboards": [],
             "description": None,
-            "owners": [{"id": 1, "username": "admin"}],
+            "owners": [
+                {
+                    "id": 1,
+                    "username": "admin",
+                    "first_name": "admin",
+                    "last_name": "user",
+                }
+            ],
             "params": None,
             "slice_name": "title",
             "viz_type": None,
