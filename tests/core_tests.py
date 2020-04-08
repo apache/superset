@@ -159,10 +159,7 @@ class CoreTests(SupersetTestCase):
                         },
                         {
                             "operation": "sort",
-                            "options": {
-                                "by": ["q1", "state"],
-                                "ascending": {"q1": False},
-                            },
+                            "options": {"columns": {"q1": False, "state": True},},
                         },
                     ],
                 }

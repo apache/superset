@@ -117,5 +117,5 @@ categories_df = DataFrame(
 
 timeseries_df = DataFrame(
     index=to_datetime(["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]),
-    data={"y": [1.0, 2.0, 3.0, 4.0]},
+    data={"label": ["x", "y", "z", "q"], "y": [1.0, 2.0, 3.0, 4.0]},
 )
