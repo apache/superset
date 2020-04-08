@@ -32,9 +32,9 @@ from superset.models.slice import Slice
 from superset.utils.core import QueryStatus, TimeRangeEndpoint
 
 if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
-    from superset import viz_sip38 as viz
+    from superset import viz_sip38 as viz  # type: ignore
 else:
-    from superset import viz
+    from superset import viz  # type: ignore
 
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []

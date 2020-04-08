@@ -119,11 +119,7 @@ class CoreTests(SupersetTestCase):
             "queries": [
                 {
                     "granularity": "ds",
-<<<<<<< HEAD
-                    "columns": ["name"],
-=======
                     "groupby": ["name"],
->>>>>>> Reslove test errors
                     "metrics": [{"label": "sum__num"}],
                     "filters": [],
                     "row_limit": 100,
@@ -718,7 +714,6 @@ class CoreTests(SupersetTestCase):
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2017-01-01T00:00:00")
 
-<<<<<<< HEAD
     @mock.patch("tests.superset_test_custom_template_processors.datetime")
     def test_custom_process_template(self, mock_dt) -> None:
         """Test macro defined in custom template processor works."""
@@ -802,8 +797,6 @@ class CoreTests(SupersetTestCase):
 
         self.delete_fake_presto_db()
 
-=======
->>>>>>> Reslove test errors
     def test_fetch_datasource_metadata(self):
         self.login(username="admin")
         url = "/superset/fetch_datasource_metadata?" "datasourceKey=1__table"
