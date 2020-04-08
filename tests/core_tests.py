@@ -111,7 +111,7 @@ class CoreTests(SupersetTestCase):
         resp = self.client.get("/superset/slice/-1/")
         assert resp.status_code == 404
 
-    def _get_query_context_dict(self) -> Dict[str, Any]:
+    def _get_query_context(self) -> Dict[str, Any]:
         self.login(username="admin")
         slc = self.get_slice("Girl Name Cloud", db.session)
         return {
@@ -127,7 +127,7 @@ class CoreTests(SupersetTestCase):
             ],
         }
 
-    def _get_query_context_dict_with_post_processing(self) -> Dict[str, Any]:
+    def _get_query_context_with_post_processing(self) -> Dict[str, Any]:
         self.login(username="admin")
         slc = self.get_slice("Girl Name Cloud", db.session)
         return {
@@ -179,7 +179,7 @@ class CoreTests(SupersetTestCase):
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
 
     def test_cache_key_changes_when_datasource_is_updated(self):
-        qc_dict = self._get_query_context_dict()
+        qc_dict = self._get_query_context()
 
         # construct baseline cache_key
         query_context = QueryContext(**qc_dict)
@@ -207,7 +207,7 @@ class CoreTests(SupersetTestCase):
         self.assertNotEqual(cache_key_original, cache_key_new)
 
     def test_query_context_time_range_endpoints(self):
-        query_context = QueryContext(**self._get_query_context_dict())
+        query_context = QueryContext(**self._get_query_context())
         query_object = query_context.queries[0]
         extras = query_object.to_dict()["extras"]
         self.assertTrue("time_range_endpoints" in extras)
@@ -256,14 +256,14 @@ class CoreTests(SupersetTestCase):
 
     def test_api_v1_query_endpoint(self):
         self.login(username="admin")
-        qc_dict = self._get_query_context_dict()
+        qc_dict = self._get_query_context()
         data = json.dumps(qc_dict)
         resp = json.loads(self.get_resp("/api/v1/query/", {"query_context": data}))
         self.assertEqual(resp[0]["rowcount"], 100)
 
     def test_api_v1_query_endpoint_with_post_processing(self):
         self.login(username="admin")
-        qc_dict = self._get_query_context_dict_with_post_processing()
+        qc_dict = self._get_query_context_with_post_processing()
         data = json.dumps(qc_dict)
         resp = json.loads(self.get_resp("/api/v1/query/", {"query_context": data}))
         self.assertEqual(resp[0]["rowcount"], 6)
