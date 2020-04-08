@@ -51,11 +51,16 @@ export default function getFormDataWithExtraFilters({
     return cachedFormdataByChart[sliceId];
   }
 
+  filter_operators = null
+  if (chart['form_data']) {
+    filter_operators = chart['form_data']['filter_operators']
+  }
+
   const formData = {
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
-    extra_filters: getEffectiveExtraFilters(filters, chart['form_data']['filter_operators']),
+    extra_filters: getEffectiveExtraFilters(filters, filter_operators),
   };
 
   cachedFiltersByChart[sliceId] = filters;
