@@ -600,7 +600,11 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             self.assertIn(user_alpha1, slice.owners)
             self.assertIn(user_alpha2, slice.owners)
             self.assertIn(admin, slice.owners)
+            # Revert owners on slice
+            slice.owners = []
+            db.session.commit()
 
+        # Rollback changes
         db.session.delete(dashboard)
         db.session.delete(user_alpha1)
         db.session.delete(user_alpha2)
