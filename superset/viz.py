@@ -431,10 +431,10 @@ class BaseViz:
                     self.status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
-                except Exception as e:
-                    logger.exception(e)
+                except Exception as ex:
+                    logger.exception(ex)
                     logger.error(
-                        "Error reading cache: " + utils.error_msg_from_exception(e)
+                        "Error reading cache: " + utils.error_msg_from_exception(ex)
                     )
                 logger.info("Serving from cache")
 
@@ -446,10 +446,10 @@ class BaseViz:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
-            except Exception as e:
-                logger.exception(e)
+            except Exception as ex:
+                logger.exception(ex)
                 if not self.error_message:
-                    self.error_message = "{}".format(e)
+                    self.error_message = "{}".format(ex)
                 self.status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
@@ -469,11 +469,11 @@ class BaseViz:
 
                     stats_logger.incr("set_cache_key")
                     cache.set(cache_key, cache_value, timeout=self.cache_timeout)
-                except Exception as e:
+                except Exception as ex:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
                     logger.warning("Could not cache key {}".format(cache_key))
-                    logger.exception(e)
+                    logger.exception(ex)
                     cache.delete(cache_key)
         return {
             "cache_key": self._any_cache_key,

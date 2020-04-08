@@ -55,7 +55,7 @@ class Slice(
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
@@ -135,9 +135,9 @@ class Slice(
     @property  # type: ignore
     @utils.memoized
     def viz(self) -> BaseViz:
-        d = json.loads(self.params)
+        form_data = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
-        return viz_class(datasource=self.datasource, form_data=d)
+        return viz_class(datasource=self.datasource, form_data=form_data)
 
     @property
     def description_markeddown(self) -> str:
@@ -146,14 +146,14 @@ class Slice(
     @property
     def data(self) -> Dict[str, Any]:
         """Data used to render slice in templates"""
-        d: Dict[str, Any] = {}
+        data: Dict[str, Any] = {}
         self.token = ""
         try:
-            d = self.viz.data
-            self.token = d.get("token")  # type: ignore
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
-            d["error"] = str(e)
+            data = self.viz.data
+            self.token = data.get("token")  # type: ignore
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
+            data["error"] = str(ex)
         return {
             "cache_timeout": self.cache_timeout,
             "datasource": self.datasource_name,
@@ -178,9 +178,9 @@ class Slice(
         form_data: Dict[str, Any] = {}
         try:
             form_data = json.loads(self.params)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except
             logger.error("Malformed json in slice's params")
-            logger.exception(e)
+            logger.exception(ex)
         form_data.update(
             {
                 "slice_id": self.id,

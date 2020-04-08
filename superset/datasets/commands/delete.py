@@ -51,8 +51,8 @@ class DeleteDatasetCommand(BaseCommand):
                 "datasource_access", dataset.get_perm()
             )
             db.session.commit()
-        except (SQLAlchemyError, DAODeleteFailedError) as e:
-            logger.exception(e)
+        except (SQLAlchemyError, DAODeleteFailedError) as ex:
+            logger.exception(ex)
             db.session.rollback()
             raise DatasetDeleteFailedError()
         return dataset

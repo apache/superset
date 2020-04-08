@@ -39,7 +39,7 @@ def validate_python_date_format(value: str) -> None:
 
 
 class DatasetColumnsPutSchema(Schema):
-    id = fields.Integer()  # pylint: disable=invalid-name
+    id = fields.Integer()
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(validate=Length(1, 32))
     verbose_name = fields.String(allow_none=True, Length=(1, 1024))
@@ -55,7 +55,7 @@ class DatasetColumnsPutSchema(Schema):
 
 
 class DatasetMetricsPutSchema(Schema):
-    id = fields.Integer()  # pylint: disable=invalid-name
+    id = fields.Integer()
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     metric_name = fields.String(required=True, validate=Length(1, 255))
