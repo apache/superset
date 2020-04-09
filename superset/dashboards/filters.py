@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any
 
+from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
@@ -24,6 +25,22 @@ from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter, get_user_roles
+
+
+class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("Title or Slug")
+    arg_name = "title_or_slug"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        ilike_value = f"%{value}%"
+        return query.filter(
+            or_(
+                Dashboard.dashboard_title.ilike(ilike_value),
+                Dashboard.slug.ilike(ilike_value),
+            )
+        )
 
 
 class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
