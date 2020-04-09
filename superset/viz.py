@@ -475,6 +475,7 @@ class BaseViz:
                     logger.warning("Could not cache key {}".format(cache_key))
                     logger.exception(ex)
                     cache.delete(cache_key)
+
         return {
             "cache_key": self._any_cache_key,
             "cached_dttm": self._any_cached_dttm,
@@ -484,8 +485,8 @@ class BaseViz:
             "form_data": self.form_data,
             "is_cached": self._any_cache_key is not None,
             "query": self.query,
-            "from_dttm": self.from_dttm,
-            "to_dttm": self.to_dttm,
+            "from_dttm": self.from_dttm if hasattr(self, 'from_dttm') else None,
+            "to_dttm": self.to_dttm if hasattr(self, 'to_dttm') else None,
             "status": self.status,
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
