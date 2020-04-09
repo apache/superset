@@ -179,6 +179,43 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_dashboards_custom_filter(self):
+        """
+            Dashboard API: Test get dashboards custom filter
+        """
+        admin = self.get_user("admin")
+        dashboard1 = self.insert_dashboard("foo", "ZY_bar", [admin.id])
+        dashboard2 = self.insert_dashboard("zy_foo", "slug1", [admin.id])
+        dashboard3 = self.insert_dashboard("foo", "slug1zy_", [admin.id])
+        dashboard4 = self.insert_dashboard("bar", "foo", [admin.id])
+
+        arguments = {
+            "filters": [
+                {"col": "dashboard_title", "opr": "title_or_slug", "value": "zy_"}
+            ]
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 3)
+
+        self.logout()
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 0)
+
+        # rollback changes
+        db.session.delete(dashboard1)
+        db.session.delete(dashboard2)
+        db.session.delete(dashboard3)
+        db.session.delete(dashboard4)
+        db.session.commit()
+
     def test_get_dashboards_no_data_access(self):
         """
             Dashboard API: Test get dashboards no data access

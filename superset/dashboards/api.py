@@ -36,7 +36,7 @@ from superset.dashboards.commands.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.dashboards.commands.update import UpdateDashboardCommand
-from superset.dashboards.filters import DashboardFilter
+from superset.dashboards.filters import DashboardFilter, DashboardTitleOrSlugFilter
 from superset.dashboards.schemas import (
     DashboardPostSchema,
     DashboardPutSchema,
@@ -104,6 +104,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "published",
     ]
     search_columns = ("dashboard_title", "slug", "owners", "published")
+    search_filters = {"dashboard_title": [DashboardTitleOrSlugFilter]}
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
 
