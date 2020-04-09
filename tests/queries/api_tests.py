@@ -17,9 +17,9 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-import uuid
 import random
 import string
+from typing import Dict, Any
 
 import prison
 from sqlalchemy.sql import func
