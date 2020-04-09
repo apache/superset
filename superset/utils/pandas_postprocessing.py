@@ -90,7 +90,7 @@ def _get_aggregate_funcs(
             raise QueryObjectValidationError(
                 _("Operator undefined for aggregator: %(name)s", name=name,)
             )
-        operator = agg_obj.get("operator", "sum")
+        operator = agg_obj["operator"]
         if operator not in SUPPORTED_NUMPY_FUNCTIONS:
             raise QueryObjectValidationError(
                 _("Unsupported numpy function: %(operator)s", operator=operator,)
@@ -128,7 +128,7 @@ def _append_columns(
     )
 
 
-@validate_column_args("index", "columns", "aggregates")
+@validate_column_args("index", "columns")
 def pivot(  # pylint: disable=too-many-arguments
     df: DataFrame,
     index: List[str],
