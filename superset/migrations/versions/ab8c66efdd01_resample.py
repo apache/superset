@@ -85,8 +85,8 @@ def upgrade():
                 params.pop("resample_fillmethod", None)
                 params.pop("resample_how", None)
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
-            logging.exception(e)
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
     session.close()
@@ -110,8 +110,8 @@ def downgrade():
 
                 del params["resample_method"]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
-            logging.exception(e)
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
     session.close()

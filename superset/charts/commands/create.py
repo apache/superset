@@ -44,8 +44,8 @@ class CreateChartCommand(BaseCommand):
         self.validate()
         try:
             chart = ChartDAO.create(self._properties)
-        except DAOCreateFailedError as e:
-            logger.exception(e.exception)
+        except DAOCreateFailedError as ex:
+            logger.exception(ex.exception)
             raise ChartCreateFailedError()
         return chart
 
@@ -60,8 +60,8 @@ class CreateChartCommand(BaseCommand):
         try:
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
 
         # Validate/Populate dashboards
         dashboards = DashboardDAO.find_by_ids(dashboard_ids)
@@ -72,8 +72,8 @@ class CreateChartCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
         if exceptions:
             exception = ChartInvalidError()
             exception.add_list(exceptions)

@@ -37,19 +37,19 @@ class AbstractEventLogger(ABC):
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
-            d = request.form.to_dict() or {}
+            form_data = request.form.to_dict() or {}
 
             # request parameters can overwrite post body
             request_params = request.args.to_dict()
-            d.update(request_params)
-            d.update(kwargs)
+            form_data.update(request_params)
+            form_data.update(kwargs)
 
-            slice_id = d.get("slice_id")
-            dashboard_id = d.get("dashboard_id")
+            slice_id = form_data.get("slice_id")
+            dashboard_id = form_data.get("dashboard_id")
 
             try:
                 slice_id = int(
-                    slice_id or json.loads(d.get("form_data")).get("slice_id")
+                    slice_id or json.loads(form_data.get("form_data")).get("slice_id")
                 )
             except (ValueError, TypeError):
                 slice_id = 0
@@ -61,10 +61,10 @@ class AbstractEventLogger(ABC):
 
             # bulk insert
             try:
-                explode_by = d.get("explode")
-                records = json.loads(d.get(explode_by))
+                explode_by = form_data.get("explode")
+                records = json.loads(form_data.get(explode_by))
             except Exception:  # pylint: disable=broad-except
-                records = [d]
+                records = [form_data]
 
             referrer = request.referrer[:1000] if request.referrer else None
 

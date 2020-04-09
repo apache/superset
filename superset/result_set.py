@@ -138,8 +138,8 @@ class SupersetResultSet:
                                 pa_data[i] = pa.Array.from_pandas(
                                     series, type=pa.timestamp("ns", tz=tz)
                                 )
-                        except Exception as e:
-                            logger.exception(e)
+                        except Exception as ex:
+                            logger.exception(ex)
 
         self.table = pa.Table.from_arrays(pa_data, names=column_names)
         self._type_dict: Dict[str, Any] = {}
@@ -150,8 +150,8 @@ class SupersetResultSet:
                 for i, col in enumerate(column_names)
                 if deduped_cursor_desc
             }
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ex:
+            logger.exception(ex)
 
     @staticmethod
     def convert_pa_dtype(pa_dtype: pa.DataType) -> Optional[str]:

@@ -45,8 +45,8 @@ class DeleteDashboardCommand(BaseCommand):
         self.validate()
         try:
             dashboard = DashboardDAO.delete(self._model)
-        except DAODeleteFailedError as e:
-            logger.exception(e.exception)
+        except DAODeleteFailedError as ex:
+            logger.exception(ex.exception)
             raise DashboardDeleteFailedError()
         return dashboard
 

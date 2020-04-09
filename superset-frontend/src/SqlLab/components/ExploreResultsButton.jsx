@@ -139,8 +139,8 @@ class ExploreResultsButton extends React.PureComponent {
           datasource: `${data.table_id}__table`,
           metrics: [],
           groupby: [],
+          time_range: 'No filter',
           viz_type: 'table',
-          since: '100 years ago',
           all_columns: columns.map(c => c.name),
           row_limit: 1000,
         };

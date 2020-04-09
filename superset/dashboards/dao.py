@@ -48,6 +48,15 @@ class DashboardDAO(BaseDAO):
         return True
 
     @staticmethod
+    def update_charts_owners(model: Dashboard, commit: bool = True) -> Dashboard:
+        owners = [owner for owner in model.owners]
+        for slc in model.slices:
+            slc.owners = list(set(owners) | set(slc.owners))
+        if commit:
+            db.session.commit()
+        return model
+
+    @staticmethod
     def bulk_delete(models: Optional[List[Dashboard]], commit: bool = True) -> None:
         item_ids = [model.id for model in models] if models else []
         # bulk delete, first delete related data
@@ -63,7 +72,7 @@ class DashboardDAO(BaseDAO):
             )
             if commit:
                 db.session.commit()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as ex:
             if commit:
                 db.session.rollback()
-            raise e
+            raise ex
