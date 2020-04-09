@@ -234,6 +234,18 @@ export const lineColumn = {
   },
 };
 
+export const lineWidth = {
+  name: 'line_width',
+  config: {
+    type: 'TextControl',
+    label: t('Line width'),
+    renderTrigger: true,
+    isInt: true,
+    default: 10,
+    description: t('The width of the lines'),
+  },
+};
+
 export const fillColorPicker = {
   name: 'fill_color_picker',
   config: {
