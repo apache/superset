@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_babel import lazy_gettext as _
 from typing import Any
 
+from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
@@ -31,7 +31,7 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
     name = _("Title or Slug")
     arg_name = "title_or_slug"
 
-    def apply(self, query, value):
+    def apply(self, query: Query, value: Any) -> Query:
         if not value:
             return query
         ilike_value = f"%{value}%"
