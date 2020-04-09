@@ -29,6 +29,7 @@ export default {
     },
     {
       label: t('Options'),
+      tabOverride: 'data',
       expanded: true,
       controlSetRows: [
         [
