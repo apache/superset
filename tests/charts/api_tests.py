@@ -16,18 +16,18 @@
 # under the License.
 """Unit tests for Superset"""
 import json
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import prison
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+import tests.test_app
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-
-from .base_api_tests import ApiOwnersTestCaseMixin
-from .base_tests import SupersetTestCase
+from tests.base_api_tests import ApiOwnersTestCaseMixin
+from tests.base_tests import SupersetTestCase
 
 
 class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
@@ -68,6 +68,22 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.add(slice)
         db.session.commit()
         return slice
+
+    def _get_query_context(self) -> Dict[str, Any]:
+        self.login(username="admin")
+        slc = self.get_slice("Girl Name Cloud", db.session)
+        return {
+            "datasource": {"id": slc.datasource_id, "type": slc.datasource_type},
+            "queries": [
+                {
+                    "granularity": "ds",
+                    "groupby": ["name"],
+                    "metrics": [{"label": "sum__num"}],
+                    "filters": [],
+                    "row_limit": 100,
+                }
+            ],
+        }
 
     def test_delete_chart(self):
         """
@@ -486,7 +502,14 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "cache_timeout": None,
             "dashboards": [],
             "description": None,
-            "owners": [{"id": 1, "username": "admin"}],
+            "owners": [
+                {
+                    "id": 1,
+                    "username": "admin",
+                    "first_name": "admin",
+                    "last_name": "user",
+                }
+            ],
             "params": None,
             "slice_name": "title",
             "viz_type": None,
@@ -573,3 +596,25 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 0)
+
+    def test_chart_data(self):
+        """
+            Query API: Test chart data query
+        """
+        self.login(username="admin")
+        query_context = self._get_query_context()
+        uri = "api/v1/chart/data"
+        rv = self.client.post(uri, json=query_context)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data[0]["rowcount"], 100)
+
+    def test_query_exec_not_allowed(self):
+        """
+            Query API: Test chart data query not allowed
+        """
+        self.login(username="gamma")
+        query_context = self._get_query_context()
+        uri = "api/v1/chart/data"
+        rv = self.client.post(uri, json=query_context)
+        self.assertEqual(rv.status_code, 401)

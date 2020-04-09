@@ -50,7 +50,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
     def insert_dashboard(
         self,
         dashboard_title: str,
-        slug: str,
+        slug: Optional[str],
         owners: List[int],
         slices: Optional[List[Slice]] = None,
         position_json: str = "",
@@ -96,7 +96,14 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "css": "",
             "dashboard_title": "title",
             "json_metadata": "",
-            "owners": [{"id": 1, "username": "admin"}],
+            "owners": [
+                {
+                    "id": 1,
+                    "username": "admin",
+                    "first_name": "admin",
+                    "last_name": "user",
+                }
+            ],
             "position_json": "",
             "published": False,
             "url": f"/superset/dashboard/slug1/",
@@ -171,6 +178,43 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         # rollback changes
         db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboards_custom_filter(self):
+        """
+            Dashboard API: Test get dashboards custom filter
+        """
+        admin = self.get_user("admin")
+        dashboard1 = self.insert_dashboard("foo", "ZY_bar", [admin.id])
+        dashboard2 = self.insert_dashboard("zy_foo", "slug1", [admin.id])
+        dashboard3 = self.insert_dashboard("foo", "slug1zy_", [admin.id])
+        dashboard4 = self.insert_dashboard("bar", "foo", [admin.id])
+
+        arguments = {
+            "filters": [
+                {"col": "dashboard_title", "opr": "title_or_slug", "value": "zy_"}
+            ]
+        }
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 3)
+
+        self.logout()
+        self.login(username="gamma")
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 0)
+
+        # rollback changes
+        db.session.delete(dashboard1)
+        db.session.delete(dashboard2)
+        db.session.delete(dashboard3)
+        db.session.delete(dashboard4)
         db.session.commit()
 
     def test_get_dashboards_no_data_access(self):
@@ -561,6 +605,49 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_dashboard_chart_owners(self):
+        """
+            Dashboard API: Test update chart owners
+        """
+        user_alpha1 = self.create_user(
+            "alpha1", "password", "Alpha", email="alpha1@superset.org"
+        )
+        user_alpha2 = self.create_user(
+            "alpha2", "password", "Alpha", email="alpha2@superset.org"
+        )
+        admin = self.get_user("admin")
+        slices = []
+        slices.append(
+            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+        )
+        slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
+        slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
+
+        dashboard = self.insert_dashboard("title1", "slug1", [admin.id], slices=slices,)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        dashboard_data = {"owners": [user_alpha1.id, user_alpha2.id]}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+
+        # verify slices owners include alpha1 and alpha2 users
+        slices_ids = [slice.id for slice in slices]
+        # Refetch Slices
+        slices = db.session.query(Slice).filter(Slice.id.in_(slices_ids)).all()
+        for slice in slices:
+            self.assertIn(user_alpha1, slice.owners)
+            self.assertIn(user_alpha2, slice.owners)
+            self.assertIn(admin, slice.owners)
+            # Revert owners on slice
+            slice.owners = []
+            db.session.commit()
+
+        # Rollback changes
+        db.session.delete(dashboard)
+        db.session.delete(user_alpha1)
+        db.session.delete(user_alpha2)
+        db.session.commit()
+
     def test_update_partial_dashboard(self):
         """
             Dashboard API: Test update partial
@@ -643,6 +730,19 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": {"slug": ["Must be unique"]}}
         self.assertEqual(response, expected_response)
+
+        db.session.delete(dashboard1)
+        db.session.delete(dashboard2)
+        db.session.commit()
+
+        dashboard1 = self.insert_dashboard("title1", None, [admin_id])
+        dashboard2 = self.insert_dashboard("title2", None, [admin_id])
+        self.login(username="admin")
+        # Accept empty slugs and don't validate them has unique
+        dashboard_data = {"dashboard_title": "title2_changed", "slug": ""}
+        uri = f"api/v1/dashboard/{dashboard2.id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
 
         db.session.delete(dashboard1)
         db.session.delete(dashboard2)

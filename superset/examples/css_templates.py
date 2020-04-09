@@ -20,7 +20,7 @@ from superset import db
 from superset.models.core import CssTemplate
 
 
-def load_css_templates():
+def load_css_templates() -> None:
     """Loads 2 css templates to demonstrate the feature"""
     print("Creating default CSS templates")
 

@@ -34,7 +34,7 @@ from werkzeug.http import parse_cookie
 logger = logging.getLogger(__name__)
 
 try:
-    from PIL import Image
+    from PIL import Image  # pylint: disable=import-error
 except ModuleNotFoundError:
     logger.info("No PIL installation found")
 
@@ -170,8 +170,8 @@ class AuthWebDriverProxy:
             img = element.screenshot_as_png
         except TimeoutException:
             logger.error("Selenium timed out")
-        except WebDriverException as e:
-            logger.error(e)
+        except WebDriverException as ex:
+            logger.error(ex)
             # Some webdrivers do not support screenshots for elements.
             # In such cases, take a screenshot of the entire page.
             img = driver.screenshot()  # pylint: disable=no-member
@@ -266,14 +266,14 @@ class BaseScreenshot:
         # Assuming all sorts of things can go wrong with Selenium
         try:
             payload = self.get_screenshot(user=user)
-        except Exception as e:  # pylint: disable=broad-except
-            logger.error("Failed at generating thumbnail %s", e)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error("Failed at generating thumbnail %s", ex)
 
         if payload and self.window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, thumb_size=thumb_size)
-            except Exception as e:  # pylint: disable=broad-except
-                logger.error("Failed at resizing thumbnail %s", e)
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.error("Failed at resizing thumbnail %s", ex)
                 payload = None
 
         if payload and cache:

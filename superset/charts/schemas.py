@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Union
 
 from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
@@ -28,7 +29,7 @@ thumbnail_query_schema = {
 }
 
 
-def validate_json(value):
+def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
     except SupersetException:

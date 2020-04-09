@@ -32,7 +32,7 @@ class PrestoTests(DbEngineSpecTestCase):
         self.assertEqual("STRING", PrestoEngineSpec.get_datatype("string"))
 
     def test_presto_get_view_names_return_empty_list(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         self.assertEqual(
             [], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)

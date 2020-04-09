@@ -20,6 +20,7 @@ import random
 import time
 import uuid
 from datetime import datetime, timedelta
+from typing import Dict, TYPE_CHECKING  # pylint: disable=unused-import
 
 import celery
 from dateutil.relativedelta import relativedelta
@@ -30,6 +31,12 @@ from werkzeug.local import LocalProxy
 
 from superset.utils.cache_manager import CacheManager
 from superset.utils.feature_flag_manager import FeatureFlagManager
+
+# Avoid circular import
+if TYPE_CHECKING:
+    from superset.jinja_context import (  # pylint: disable=unused-import
+        BaseTemplateProcessor,
+    )
 
 
 class JinjaContextManager:
@@ -42,13 +49,19 @@ class JinjaContextManager:
             "timedelta": timedelta,
             "uuid": uuid,
         }
+        self._template_processors = {}  # type: Dict[str, BaseTemplateProcessor]
 
     def init_app(self, app):
         self._base_context.update(app.config["JINJA_CONTEXT_ADDONS"])
+        self._template_processors.update(app.config["CUSTOM_TEMPLATE_PROCESSORS"])
 
     @property
     def base_context(self):
         return self._base_context
+
+    @property
+    def template_processors(self):
+        return self._template_processors
 
 
 class ResultsBackendManager:
@@ -120,7 +133,7 @@ db = SQLA()
 _event_logger: dict = {}
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
-jinja_context_manager = JinjaContextManager()
+jinja_context_manager = JinjaContextManager()  # type: JinjaContextManager
 manifest_processor = UIManifestProcessor(APP_DIR)
 migrate = Migrate()
 results_backend_manager = ResultsBackendManager()

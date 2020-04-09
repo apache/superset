@@ -37,10 +37,7 @@ describe('TabbedSqlEditors', () => {
   const tabHistory = ['dfsadfs', 'newEditorId'];
 
   const tables = [
-    Object.assign({}, table, {
-      dataPreviewQueryId: 'B1-VQU1zW',
-      queryEditorId: 'newEditorId',
-    }),
+    { ...table, dataPreviewQueryId: 'B1-VQU1zW', queryEditorId: 'newEditorId' },
   ];
 
   const queryEditors = [

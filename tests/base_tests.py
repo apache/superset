@@ -282,6 +282,28 @@ class SupersetTestCase(TestCase):
         if database:
             db.session.delete(database)
 
+    def create_fake_presto_db(self):
+        self.login(username="admin")
+        database_name = "presto"
+        db_id = 200
+        return self.get_or_create(
+            cls=models.Database,
+            criteria={"database_name": database_name},
+            session=db.session,
+            sqlalchemy_uri="presto://user@host:8080/hive",
+            id=db_id,
+        )
+
+    def delete_fake_presto_db(self):
+        database = (
+            db.session.query(Database)
+            .filter(Database.database_name == "presto")
+            .scalar()
+        )
+        if database:
+            db.session.delete(database)
+            db.session.commit()
+
     def validate_sql(
         self,
         sql,

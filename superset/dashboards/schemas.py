@@ -16,6 +16,7 @@
 # under the License.
 import json
 import re
+from typing import Any, Dict, Union
 
 from marshmallow import fields, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
@@ -31,14 +32,14 @@ thumbnail_query_schema = {
 }
 
 
-def validate_json(value):
+def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
     except SupersetException:
         raise ValidationError("JSON not valid")
 
 
-def validate_json_metadata(value):
+def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
     if not value:
         return
     try:
@@ -64,7 +65,7 @@ class DashboardJSONMetadataSchema(Schema):
 
 class BaseDashboardSchema(Schema):
     @pre_load
-    def pre_load(self, data):  # pylint: disable=no-self-use
+    def pre_load(self, data: Dict[str, Any]) -> None:  # pylint: disable=no-self-use
         if data.get("slug"):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")

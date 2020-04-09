@@ -32,7 +32,7 @@ describe('PopoverSection', () => {
 
   let wrapper;
   const factory = overrideProps => {
-    const props = Object.assign({}, defaultProps, overrideProps || {});
+    const props = { ...defaultProps, ...(overrideProps || {}) };
     return shallow(<PopoverSection {...props} />);
   };
   beforeEach(() => {

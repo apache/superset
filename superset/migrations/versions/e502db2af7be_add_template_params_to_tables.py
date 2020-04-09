@@ -37,5 +37,5 @@ def upgrade():
 def downgrade():
     try:
         op.drop_column("tables", "template_params")
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))

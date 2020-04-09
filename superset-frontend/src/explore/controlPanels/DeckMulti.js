@@ -17,6 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { nonEmpty } from '../validators';
+import { viewport } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -25,8 +27,36 @@ export default {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        ['deck_slices', null],
+        ['mapbox_style', viewport],
+        [
+          {
+            name: 'deck_slices',
+            config: {
+              type: 'SelectAsyncControl',
+              multi: true,
+              label: t('deck.gl charts'),
+              validators: [nonEmpty],
+              default: [],
+              description: t(
+                'Pick a set of deck.gl charts to layer on top of one another',
+              ),
+              dataEndpoint:
+                '/sliceasync/api/read?_flt_0_viz_type=deck_&_flt_7_viz_type=deck_multi',
+              placeholder: t('Select charts'),
+              onAsyncErrorMessage: t('Error while fetching charts'),
+              mutator: data => {
+                if (!data || !data.result) {
+                  return [];
+                }
+                return data.result.map(o => ({
+                  value: o.id,
+                  label: o.slice_name,
+                }));
+              },
+            },
+          },
+          null,
+        ],
       ],
     },
     {

@@ -40,12 +40,12 @@ class BulkDeleteChartCommand(BaseCommand):
         self._model_ids = model_ids
         self._models: Optional[List[Slice]] = None
 
-    def run(self):
+    def run(self) -> None:
         self.validate()
         try:
             ChartDAO.bulk_delete(self._models)
-        except DeleteFailedError as e:
-            logger.exception(e.exception)
+        except DeleteFailedError as ex:
+            logger.exception(ex.exception)
             raise ChartBulkDeleteFailedError()
 
     def validate(self) -> None:

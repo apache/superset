@@ -34,7 +34,7 @@ from .helpers import (
 )
 
 
-def load_long_lat_data(only_metadata=False, force=False):
+def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading lat/long data from a csv file in the repo"""
     tbl_name = "long_lat"
     database = utils.get_example_database()

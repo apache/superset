@@ -65,6 +65,7 @@ class DatabaseMixin:
         "allow_multi_schema_metadata_fetch",
         "extra",
         "encrypted_extra",
+        "server_cert",
     ]
     search_exclude_columns = (
         "password",
@@ -74,6 +75,7 @@ class DatabaseMixin:
         "queries",
         "saved_queries",
         "encrypted_extra",
+        "server_cert",
     )
     edit_columns = add_columns
     show_columns = [
@@ -149,6 +151,11 @@ class DatabaseMixin:
             "syntax normally used by SQLAlchemy.",
             True,
         ),
+        "server_cert": utils.markdown(
+            "Optional CA_BUNDLE contents to validate HTTPS requests. Only available "
+            "on certain database engines.",
+            True,
+        ),
         "impersonate_user": _(
             "If Presto, all the queries in SQL Lab are going to be executed as the "
             "currently logged on user who must have permission to run them.<br/>"
@@ -183,6 +190,7 @@ class DatabaseMixin:
         "cache_timeout": _("Chart Cache Timeout"),
         "extra": _("Extra"),
         "encrypted_extra": _("Secure Extra"),
+        "server_cert": _("Root certificate"),
         "allow_run_async": _("Asynchronous Query Execution"),
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_csv_upload": _("Allow Csv Upload"),
@@ -196,6 +204,8 @@ class DatabaseMixin:
             check_sqlalchemy_uri(database.sqlalchemy_uri)
         self.check_extra(database)
         self.check_encrypted_extra(database)
+        if database.server_cert:
+            utils.parse_ssl_cert(database.server_cert)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", database.perm)
         # adding a new database we always want to force refresh schema list
@@ -224,22 +234,29 @@ class DatabaseMixin:
         # this will check whether json.loads(extra) can succeed
         try:
             extra = database.get_extra()
-        except Exception as e:
-            raise Exception("Extra field cannot be decoded by JSON. {}".format(str(e)))
+        except Exception as ex:
+            raise Exception(
+                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(ex))
+            )
 
         # this will check whether 'metadata_params' is configured correctly
         metadata_signature = inspect.signature(MetaData)
         for key in extra.get("metadata_params", {}):
             if key not in metadata_signature.parameters:
                 raise Exception(
-                    "The metadata_params in Extra field "
-                    "is not configured correctly. The key "
-                    "{} is invalid.".format(key)
+                    _(
+                        "The metadata_params in Extra field "
+                        "is not configured correctly. The key "
+                        "%{key}s is invalid.",
+                        key=key,
+                    )
                 )
 
     def check_encrypted_extra(self, database):  # pylint: disable=no-self-use
         # this will check whether json.loads(secure_extra) can succeed
         try:
             database.get_encrypted_extra()
-        except Exception as e:
-            raise Exception(f"Secure Extra field cannot be decoded as JSON. {str(e)}")
+        except Exception as ex:
+            raise Exception(
+                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(ex))
+            )

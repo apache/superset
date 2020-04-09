@@ -203,8 +203,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             uri.database = parse.quote(selected_schema, safe="")
 
     @classmethod
-    def _extract_error_message(cls, e: Exception) -> str:
-        msg = str(e)
+    def _extract_error_message(cls, ex: Exception) -> str:
+        msg = str(ex)
         match = re.search(r'errorMessage="(.*?)(?<!\\)"', msg)
         if match:
             msg = match.group(1)

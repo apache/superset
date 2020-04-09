@@ -37,7 +37,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     """ORM model for the access requests for datasources and dbs."""
 
     __tablename__ = "access_request"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
 
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
