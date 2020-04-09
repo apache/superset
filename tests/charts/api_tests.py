@@ -579,7 +579,9 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         arguments = {
             "filters": [
                 {"col": "slice_name", "opr": "name_or_description", "value": "zy_"}
-            ]
+            ],
+            "order_column": "slice_name",
+            "order_direction": "asc",
         }
         self.login(username="admin")
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
@@ -587,6 +589,17 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 3)
+
+        expected_response = [
+            {"description": "ZY_bar", "slice_name": "foo",},
+            {"description": "desc1zy_", "slice_name": "foo",},
+            {"description": "desc1", "slice_name": "zy_foo",},
+        ]
+        for index, item in enumerate(data["result"]):
+            self.assertEqual(
+                item["description"], expected_response[index]["description"]
+            )
+            self.assertEqual(item["slice_name"], expected_response[index]["slice_name"])
 
         self.logout()
         self.login(username="gamma")
