@@ -243,7 +243,7 @@ export const lineWidth = {
     isInt: true,
     default: 10,
     description: t('The width of the lines'),
-  }
+  },
 };
 
 export const fillColorPicker = {
