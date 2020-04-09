@@ -27,7 +27,7 @@ from sqlalchemy.sql import func
 from superset import db, is_feature_enabled, security_manager, thumbnail_cache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.selenium import (
+from superset.utils.screenshots import (
     ChartScreenshot,
     DashboardScreenshot,
     get_auth_cookies,
@@ -199,6 +199,23 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         self.assertEqual(rv.status_code, 404)
 
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_cached_chart_wrong_digest(self):
+        """
+            Thumbnails: Simple get chart with wrong digest
+        """
+        chart = db.session.query(Slice).all()[0]
+        # Cache a test "image"
+        screenshot = ChartScreenshot(model_id=chart.id)
+        thumbnail_cache.set(screenshot.cache_key, self.mock_image)
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart.id}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 302)
+        self.assertRedirects(
+            rv, f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
+        )
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_cached_dashboard_screenshot(self):
         """
             Thumbnails: Simple get cached dashboard screenshot
@@ -227,3 +244,20 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.data, self.mock_image)
+
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    def test_get_cached_dashboard_wrong_digest(self):
+        """
+            Thumbnails: Simple get dashboard with wrong digest
+        """
+        dashboard = db.session.query(Dashboard).all()[0]
+        # Cache a test "image"
+        screenshot = DashboardScreenshot(model_id=dashboard.id)
+        thumbnail_cache.set(screenshot.cache_key, self.mock_image)
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/1234/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 302)
+        self.assertRedirects(
+            rv, f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
+        )

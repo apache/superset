@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Dict
 
-from flask import g, make_response, request, Response
+from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -48,7 +48,7 @@ from superset.dashboards.schemas import (
 )
 from superset.models.dashboard import Dashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
-from superset.utils.selenium import DashboardScreenshot
+from superset.utils.screenshots import DashboardScreenshot
 from superset.views.base import generate_download_headers
 from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.filters import FilterRelatedOwners
@@ -163,12 +163,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            302:
+              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
+            404:
+              $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
@@ -482,8 +484,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response(202, message="OK Async")
         # If digests
         if dashboard.digest != digest:
-            logger.info("Requested thumbnail digest differs from actual digest")
-            return self.response(304, message="Digest differs")
+            return redirect(
+                url_for(
+                    f"{self.__class__.__name__}.thumbnail",
+                    pk=pk,
+                    digest=dashboard.digest,
+                )
+            )
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )

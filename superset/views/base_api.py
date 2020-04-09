@@ -25,8 +25,8 @@ from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.stats_logger import BaseStatsLogger
 from superset.exceptions import SupersetSecurityException
+from superset.stats_logger import BaseStatsLogger
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)

@@ -18,7 +18,7 @@ import logging
 from typing import Any, Dict
 
 import simplejson
-from flask import g, make_response, request, Response
+from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -52,7 +52,7 @@ from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.core import json_int_dttm_ser
-from superset.utils.selenium import ChartScreenshot
+from superset.utils.screenshots import ChartScreenshot
 from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.filters import FilterRelatedOwners
 
@@ -496,12 +496,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
                  schema:
                    type: string
                    format: binary
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -519,8 +521,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response(202, message="OK Async")
         # If digests
         if chart.digest != digest:
-            logger.info("Requested thumbnail digest differs from actual digest")
-            return self.response(304, message="Digest differs")
+            return redirect(
+                url_for(
+                    f"{self.__class__.__name__}.thumbnail", pk=pk, digest=chart.digest
+                )
+            )
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
