@@ -234,9 +234,9 @@ class DatabaseMixin:
         # this will check whether json.loads(extra) can succeed
         try:
             extra = database.get_extra()
-        except Exception as e:
+        except Exception as ex:
             raise Exception(
-                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(e))
+                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(ex))
             )
 
         # this will check whether 'metadata_params' is configured correctly
@@ -256,7 +256,7 @@ class DatabaseMixin:
         # this will check whether json.loads(secure_extra) can succeed
         try:
             database.get_encrypted_extra()
-        except Exception as e:
+        except Exception as ex:
             raise Exception(
-                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(e))
+                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(ex))
             )

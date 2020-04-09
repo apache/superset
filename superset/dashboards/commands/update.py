@@ -51,8 +51,8 @@ class UpdateDashboardCommand(BaseCommand):
         try:
             dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
             dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
-        except DAOUpdateFailedError as e:
-            logger.exception(e.exception)
+        except DAOUpdateFailedError as ex:
+            logger.exception(ex.exception)
             raise DashboardUpdateFailedError()
         return dashboard
 
@@ -81,8 +81,8 @@ class UpdateDashboardCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
         if exceptions:
             exception = DashboardInvalidError()
             exception.add_list(exceptions)

@@ -387,7 +387,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
         # Fail before adding if the table can't be found
         try:
             table.get_sqla_table_object()
-        except Exception as e:
+        except Exception as ex:
             logger.exception(f"Got an error in pre_add for {table.name}")
             raise Exception(
                 _(
@@ -395,7 +395,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
                     "please double check your "
                     "database connection, schema, and "
                     "table name, error: {}"
-                ).format(table.name, str(e))
+                ).format(table.name, str(ex))
             )
 
     def post_add(self, table, flash_message=True):

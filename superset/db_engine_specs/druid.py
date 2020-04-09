@@ -64,9 +64,9 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         """
         try:
             extra = json.loads(database.extra or "{}")
-        except json.JSONDecodeError as e:
-            logger.error(e)
-            raise e
+        except json.JSONDecodeError as ex:
+            logger.error(ex)
+            raise ex
 
         if database.server_cert:
             engine_params = extra.get("engine_params", {})

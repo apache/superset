@@ -72,7 +72,7 @@ class DashboardDAO(BaseDAO):
             )
             if commit:
                 db.session.commit()
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as ex:
             if commit:
                 db.session.rollback()
-            raise e
+            raise ex

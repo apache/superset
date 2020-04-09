@@ -45,8 +45,8 @@ class BulkDeleteDashboardCommand(BaseCommand):
         try:
             DashboardDAO.bulk_delete(self._models)
             return None
-        except DeleteFailedError as e:
-            logger.exception(e.exception)
+        except DeleteFailedError as ex:
+            logger.exception(ex.exception)
             raise DashboardBulkDeleteFailedError()
 
     def validate(self) -> None:

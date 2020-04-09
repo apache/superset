@@ -270,9 +270,9 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         self.incr_stats("init", self.table_metadata.__name__)
         try:
             table_info: Dict = get_table_metadata(database, table_name, schema_name)
-        except SQLAlchemyError as e:
+        except SQLAlchemyError as ex:
             self.incr_stats("error", self.table_metadata.__name__)
-            return self.response_422(error_msg_from_exception(e))
+            return self.response_422(error_msg_from_exception(ex))
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 

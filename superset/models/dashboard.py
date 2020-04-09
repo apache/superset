@@ -119,7 +119,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())
     description = Column(Text)
