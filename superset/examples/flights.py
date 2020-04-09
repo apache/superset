@@ -23,7 +23,7 @@ from superset.utils import core as utils
 from .helpers import get_example_data, TBL
 
 
-def load_flights(only_metadata=False, force=False):
+def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "flights"
     database = utils.get_example_database()

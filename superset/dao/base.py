@@ -89,9 +89,9 @@ class BaseDAO:
             db.session.add(model)
             if commit:
                 db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
+        except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAOCreateFailedError(exception=e)
+            raise DAOCreateFailedError(exception=ex)
         return model
 
     @classmethod
@@ -106,13 +106,13 @@ class BaseDAO:
             db.session.merge(model)
             if commit:
                 db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
+        except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAOUpdateFailedError(exception=e)
+            raise DAOUpdateFailedError(exception=ex)
         return model
 
     @classmethod
-    def delete(cls, model: Model, commit=True):
+    def delete(cls, model: Model, commit: bool = True) -> Model:
         """
         Generic delete a model
         :raises: DAOCreateFailedError
@@ -121,7 +121,7 @@ class BaseDAO:
             db.session.delete(model)
             if commit:
                 db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
+        except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAODeleteFailedError(exception=e)
+            raise DAODeleteFailedError(exception=ex)
         return model

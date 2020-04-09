@@ -17,6 +17,22 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { nonEmpty, integer } from '../validators';
+import { formatSelectOptions } from '../../modules/utils';
+import { columnChoices } from '../controls';
+import {
+  filterNulls,
+  jsColumns,
+  jsDataMutator,
+  jsTooltip,
+  jsOnclickHref,
+  fillColorPicker,
+  strokeColorPicker,
+  filled,
+  stroked,
+  extruded,
+  viewport,
+} from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -25,34 +41,61 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['geojson', null],
-        ['row_limit', 'filter_nulls'],
+        [
+          {
+            name: 'geojson',
+            config: {
+              type: 'SelectControl',
+              label: t('GeoJson Column'),
+              validators: [nonEmpty],
+              description: t('Select the geojson column'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+          null,
+        ],
+        ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
     },
     {
       label: t('Map'),
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        // TODO ['autozoom', null],
+        ['mapbox_style', viewport],
+        // TODO [autozoom, null], // import { autozoom } from './Shared_DeckGL'
       ],
     },
     {
       label: t('GeoJson Settings'),
       controlSetRows: [
-        ['fill_color_picker', 'stroke_color_picker'],
-        ['filled', 'stroked'],
-        ['extruded', null],
-        ['point_radius_scale', null],
+        [fillColorPicker, strokeColorPicker],
+        [filled, stroked],
+        [extruded, null],
+        [
+          {
+            name: 'point_radius_scale',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Point Radius Scale'),
+              validators: [integer],
+              default: null,
+              choices: formatSelectOptions([0, 100, 200, 300, 500]),
+            },
+          },
+          null,
+        ],
       ],
     },
     {
       label: t('Advanced'),
       controlSetRows: [
-        ['js_columns'],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
+        [jsColumns],
+        [jsDataMutator],
+        [jsTooltip],
+        [jsOnclickHref],
       ],
     },
   ],

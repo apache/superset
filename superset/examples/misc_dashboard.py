@@ -26,7 +26,7 @@ from .helpers import misc_dash_slices, update_slice_ids
 DASH_SLUG = "misc_charts"
 
 
-def load_misc_dashboard():
+def load_misc_dashboard() -> None:
     """Loading a dashboard featuring misc charts"""
 
     print("Creating the dashboard")

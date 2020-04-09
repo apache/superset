@@ -116,7 +116,7 @@ describe('AlteredSliceTag', () => {
   let props;
 
   beforeEach(() => {
-    props = Object.assign({}, defaultProps);
+    props = { ...defaultProps };
     wrapper = shallow(<AlteredSliceTag {...props} />);
   });
 
@@ -140,8 +140,8 @@ describe('AlteredSliceTag', () => {
 
   it('sets new diffs when receiving new props', () => {
     const newProps = {
-      currentFormData: Object.assign({}, props.currentFormData),
-      origFormData: Object.assign({}, props.origFormData),
+      currentFormData: { ...props.currentFormData },
+      origFormData: { ...props.origFormData },
     };
     newProps.currentFormData.beta = 10;
     wrapper = shallow(<AlteredSliceTag {...props} />);

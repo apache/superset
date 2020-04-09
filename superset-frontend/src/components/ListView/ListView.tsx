@@ -24,7 +24,6 @@ import {
   DropdownButton,
   FormControl,
   MenuItem,
-  Pagination,
   Row,
   // @ts-ignore
 } from 'react-bootstrap';
@@ -33,8 +32,8 @@ import SelectComponent from 'react-select';
 // @ts-ignore
 import VirtualizedSelect from 'react-virtualized-select';
 import IndeterminateCheckbox from '../IndeterminateCheckbox';
-import './ListViewStyles.less';
 import TableCollection from './TableCollection';
+import Pagination from './Pagination';
 import {
   FetchDataConfig,
   Filters,
@@ -49,6 +48,8 @@ import {
   removeFromList,
   useListViewState,
 } from './utils';
+
+import './ListViewStyles.less';
 
 interface Props {
   columns: any[];
@@ -101,8 +102,6 @@ const ListView: FunctionComponent<Props> = ({
     headerGroups,
     rows,
     prepareRow,
-    canPreviousPage,
-    canNextPage,
     pageCount = 1,
     gotoPage,
     setAllFilters,
@@ -340,16 +339,10 @@ const ListView: FunctionComponent<Props> = ({
           </Col>
           <Col md={8} className="text-center">
             <Pagination
-              prev={canPreviousPage}
-              first={pageIndex > 1}
-              next={canNextPage}
-              last={pageIndex < pageCount - 2}
-              items={pageCount}
-              activePage={pageIndex + 1}
-              ellipsis
-              boundaryLinks
-              maxButtons={5}
-              onSelect={(p: number) => gotoPage(p - 1)}
+              totalPages={pageCount || 0}
+              currentPage={pageCount ? pageIndex + 1 : 0}
+              onChange={(p: number) => gotoPage(p - 1)}
+              hideFirstAndLastPageLinks
             />
           </Col>
           <Col md={2}>

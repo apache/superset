@@ -431,10 +431,10 @@ class BaseViz:
                     self.status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
-                except Exception as e:
-                    logger.exception(e)
+                except Exception as ex:
+                    logger.exception(ex)
                     logger.error(
-                        "Error reading cache: " + utils.error_msg_from_exception(e)
+                        "Error reading cache: " + utils.error_msg_from_exception(ex)
                     )
                 logger.info("Serving from cache")
 
@@ -446,10 +446,10 @@ class BaseViz:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
-            except Exception as e:
-                logger.exception(e)
+            except Exception as ex:
+                logger.exception(ex)
                 if not self.error_message:
-                    self.error_message = "{}".format(e)
+                    self.error_message = "{}".format(ex)
                 self.status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
@@ -469,11 +469,11 @@ class BaseViz:
 
                     stats_logger.incr("set_cache_key")
                     cache.set(cache_key, cache_value, timeout=self.cache_timeout)
-                except Exception as e:
+                except Exception as ex:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
                     logger.warning("Could not cache key {}".format(cache_key))
-                    logger.exception(e)
+                    logger.exception(ex)
                     cache.delete(cache_key)
         return {
             "cache_key": self._any_cache_key,
@@ -484,6 +484,8 @@ class BaseViz:
             "form_data": self.form_data,
             "is_cached": self._any_cache_key is not None,
             "query": self.query,
+            "from_dttm": self.from_dttm,
+            "to_dttm": self.to_dttm,
             "status": self.status,
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
@@ -623,17 +625,18 @@ class TableViz(BaseViz):
             self.form_data.get("percent_metrics") or []
         )
 
-        df = pd.concat(
-            [
-                df[non_percent_metric_columns],
-                (
-                    df[percent_metric_columns]
-                    .div(df[percent_metric_columns].sum())
-                    .add_prefix("%")
-                ),
-            ],
-            axis=1,
-        )
+        if not df.empty:
+            df = pd.concat(
+                [
+                    df[non_percent_metric_columns],
+                    (
+                        df[percent_metric_columns]
+                        .div(df[percent_metric_columns].sum())
+                        .add_prefix("%")
+                    ),
+                ],
+                axis=1,
+            )
 
         data = self.handle_js_int_overflow(
             dict(records=df.to_dict(orient="records"), columns=list(df.columns))
@@ -1873,8 +1876,8 @@ class WorldMapViz(BaseViz):
         for row in d:
             country = None
             if isinstance(row["country"], str):
-                country = countries.get(fd.get("country_fieldtype"), row["country"])
-
+                if "country_fieldtype" in fd:
+                    country = countries.get(fd["country_fieldtype"], row["country"])
             if country:
                 row["country"] = country["cca3"]
                 row["latitude"] = country["lat"]

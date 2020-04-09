@@ -567,10 +567,7 @@ class RequestAccessTests(SupersetTestCase):
             self.get_resp(ACCESS_REQUEST.format("druid", druid_ds_4_id, "go"))
             access_request4 = self.get_access_requests("gamma", "druid", druid_ds_4_id)
 
-            self.assertEqual(
-                access_request4.roles_with_datasource,
-                "<ul></ul>".format(access_request4.id),
-            )
+            self.assertEqual(access_request4.roles_with_datasource, "<ul></ul>")
 
             # Case 5. Roles exist that contains the druid datasource.
             # add druid ds to the existing roles

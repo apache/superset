@@ -762,22 +762,22 @@ class PrestoEngineSpec(BaseEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def _extract_error_message(cls, e: Exception) -> Optional[str]:
+    def _extract_error_message(cls, ex: Exception) -> Optional[str]:
         if (
-            hasattr(e, "orig")
-            and type(e.orig).__name__ == "DatabaseError"  # type: ignore
-            and isinstance(e.orig[0], dict)  # type: ignore
+            hasattr(ex, "orig")
+            and type(ex.orig).__name__ == "DatabaseError"  # type: ignore
+            and isinstance(ex.orig[0], dict)  # type: ignore
         ):
-            error_dict = e.orig[0]  # type: ignore
+            error_dict = ex.orig[0]  # type: ignore
             return "{} at {}: {}".format(
                 error_dict.get("errorName"),
                 error_dict.get("errorLocation"),
                 error_dict.get("message"),
             )
-        if type(e).__name__ == "DatabaseError" and hasattr(e, "args") and e.args:
-            error_dict = e.args[0]
+        if type(ex).__name__ == "DatabaseError" and hasattr(ex, "args") and ex.args:
+            error_dict = ex.args[0]
             return error_dict.get("message")
-        return utils.error_msg_from_exception(e)
+        return utils.error_msg_from_exception(ex)
 
     @classmethod
     def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
@@ -863,9 +863,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return query
 
     @classmethod
-    def _latest_partition_from_df(  # pylint: disable=invalid-name
-        cls, df: pd.DataFrame
-    ) -> Optional[List[str]]:
+    def _latest_partition_from_df(cls, df: pd.DataFrame) -> Optional[List[str]]:
         if not df.empty:
             return df.to_records(index=False)[0].item()
         return None

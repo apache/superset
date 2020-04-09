@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 from flask import g, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -44,7 +45,8 @@ from superset.dashboards.schemas import (
 )
 from superset.models.dashboard import Dashboard
 from superset.views.base import generate_download_headers
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "json_metadata",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "changed_by_name",
         "changed_by_url",
         "changed_by.username",
@@ -114,7 +118,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name"}
+    related_field_filters = {
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
+    }
     allowed_rel_fields = {"owners"}
 
     @expose("/", methods=["POST"])
@@ -163,11 +169,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateDashboardCommand(g.user, item.data).run()
             return self.response(201, id=new_model.id, result=item.data)
-        except DashboardInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except DashboardCreateFailedError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DashboardCreateFailedError as ex:
+            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
@@ -230,11 +236,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DashboardForbiddenError:
             return self.response_403()
-        except DashboardInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except DashboardUpdateFailedError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DashboardUpdateFailedError as ex:
+            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
@@ -278,15 +284,17 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DashboardForbiddenError:
             return self.response_403()
-        except DashboardDeleteFailedError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DashboardDeleteFailedError as ex:
+            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/", methods=["DELETE"])
     @protect()
     @safe
     @rison(get_delete_ids_schema)
-    def bulk_delete(self, **kwargs) -> Response:  # pylint: disable=arguments-differ
+    def bulk_delete(
+        self, **kwargs: Any
+    ) -> Response:  # pylint: disable=arguments-differ
         """Delete bulk Dashboards
         ---
         delete:
@@ -337,14 +345,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DashboardForbiddenError:
             return self.response_403()
-        except DashboardBulkDeleteFailedError as e:
-            return self.response_422(message=str(e))
+        except DashboardBulkDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
 
     @expose("/export/", methods=["GET"])
     @protect()
     @safe
     @rison(get_export_ids_schema)
-    def export(self, **kwargs):
+    def export(self, **kwargs: Any) -> Response:
         """Export dashboards
         ---
         get:

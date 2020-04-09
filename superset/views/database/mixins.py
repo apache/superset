@@ -21,7 +21,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
 
 from superset import app, security_manager
-from superset.exceptions import CertificateException, SupersetException
+from superset.exceptions import SupersetException
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import core as utils
 from superset.views.database.filters import DatabaseFilter
@@ -204,10 +204,8 @@ class DatabaseMixin:
             check_sqlalchemy_uri(database.sqlalchemy_uri)
         self.check_extra(database)
         self.check_encrypted_extra(database)
-        utils.parse_ssl_cert(database.server_cert)
-        database.server_cert = (
-            database.server_cert.strip() if database.server_cert else ""
-        )
+        if database.server_cert:
+            utils.parse_ssl_cert(database.server_cert)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         security_manager.add_permission_view_menu("database_access", database.perm)
         # adding a new database we always want to force refresh schema list
@@ -236,11 +234,9 @@ class DatabaseMixin:
         # this will check whether json.loads(extra) can succeed
         try:
             extra = database.get_extra()
-        except CertificateException:
-            raise Exception(_("Invalid certificate"))
-        except Exception as e:
+        except Exception as ex:
             raise Exception(
-                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(e))
+                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(ex))
             )
 
         # this will check whether 'metadata_params' is configured correctly
@@ -260,7 +256,7 @@ class DatabaseMixin:
         # this will check whether json.loads(secure_extra) can succeed
         try:
             database.get_encrypted_extra()
-        except Exception as e:
+        except Exception as ex:
             raise Exception(
-                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(e))
+                _("Extra field cannot be decoded by JSON. %{msg}s", msg=str(ex))
             )

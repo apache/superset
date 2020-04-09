@@ -136,9 +136,9 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 start_column=start_column,
                 end_column=end_column,
             )
-        except Exception as e:
-            logger.exception(f"Unexpected error running validation query: {e}")
-            raise e
+        except Exception as ex:
+            logger.exception(f"Unexpected error running validation query: {ex}")
+            raise ex
 
     @classmethod
     def validate(

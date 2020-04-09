@@ -23,13 +23,13 @@ import prison
 import yaml
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
     DAOUpdateFailedError,
 )
+from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.utils.core import get_example_database
 from superset.utils.dict_import_export import export_to_dict

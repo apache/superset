@@ -48,7 +48,19 @@ export default {
       controlSetRows: [
         ['x_axis_label', 'left_margin'],
         ['x_axis_format', 'x_ticks_layout'],
-        ['x_log_scale', 'x_axis_showminmax'],
+        [
+          {
+            name: 'x_log_scale',
+            config: {
+              type: 'CheckboxControl',
+              label: t('X Log Scale'),
+              default: false,
+              renderTrigger: true,
+              description: t('Use a log scale for the X-axis'),
+            },
+          },
+          'x_axis_showminmax',
+        ],
       ],
     },
     {

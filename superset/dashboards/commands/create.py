@@ -17,6 +17,7 @@
 import logging
 from typing import Dict, List, Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
@@ -38,12 +39,13 @@ class CreateDashboardCommand(BaseCommand):
         self._actor = user
         self._properties = data.copy()
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
-            dashboard = DashboardDAO.create(self._properties)
-        except DAOCreateFailedError as e:
-            logger.exception(e.exception)
+            dashboard = DashboardDAO.create(self._properties, commit=False)
+            dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
+        except DAOCreateFailedError as ex:
+            logger.exception(ex.exception)
             raise DashboardCreateFailedError()
         return dashboard
 
@@ -59,8 +61,8 @@ class CreateDashboardCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
         if exceptions:
             exception = DashboardInvalidError()
             exception.add_list(exceptions)

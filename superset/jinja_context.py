@@ -23,6 +23,7 @@ from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
 
 from superset import jinja_base_context
+from superset.extensions import jinja_context_manager
 
 
 def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
@@ -263,7 +264,8 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
     engine = "hive"
 
 
-template_processors = {}
+# The global template processors from Jinja context manager.
+template_processors = jinja_context_manager.template_processors
 keys = tuple(globals().keys())
 for k in keys:
     o = globals()[k]
