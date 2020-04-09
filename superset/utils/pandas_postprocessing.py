@@ -48,7 +48,7 @@ SUPPORTED_NUMPY_FUNCTIONS = (
 
 
 def validate_column_args(*argnames: str) -> Callable:
-    def wrapper(fn):
+    def wrapper(func):
         def wrapped(df, **options):
             columns = df.columns.tolist()
             for name in argnames:
@@ -58,7 +58,7 @@ def validate_column_args(*argnames: str) -> Callable:
                     raise QueryObjectValidationError(
                         _("Referenced columns not available in DataFrame.")
                     )
-            return fn(df, **options)
+            return func(df, **options)
 
         return wrapped
 
