@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 import yaml
 from flask import g, request, Response
@@ -42,8 +43,9 @@ from superset.datasets.schemas import (
     get_export_ids_schema,
 )
 from superset.views.base import DatasourceFilter, generate_download_headers
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.database.filters import DatabaseFilter
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +92,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "template_params",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "columns",
         "metrics",
     ]
@@ -114,8 +118,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics",
     ]
     openapi_spec_tag = "Datasets"
-
-    filter_rel_fields_field = {"owners": "first_name", "database": "database_name"}
+    related_field_filters = {
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "database": "database_name",
+    }
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
 
@@ -165,11 +171,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateDatasetCommand(g.user, item.data).run()
             return self.response(201, id=new_model.id, result=item.data)
-        except DatasetInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except DatasetCreateFailedError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DatasetInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DatasetCreateFailedError as ex:
+            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
@@ -232,11 +238,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
-        except DatasetInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except DatasetUpdateFailedError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DatasetInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DatasetUpdateFailedError as ex:
+            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
@@ -280,15 +286,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
-        except DatasetDeleteFailedError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DatasetDeleteFailedError as ex:
+            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/export/", methods=["GET"])
     @protect()
     @safe
     @rison(get_export_ids_schema)
-    def export(self, **kwargs):
+    def export(self, **kwargs: Any) -> Response:
         """Export dashboards
         ---
         get:
@@ -339,7 +345,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>/refresh", methods=["PUT"])
     @protect()
     @safe
-    def refresh(self, pk: int) -> Response:  # pylint: disable=invalid-name
+    def refresh(self, pk: int) -> Response:
         """Refresh a Dataset
         ---
         put:
@@ -378,6 +384,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
-        except DatasetRefreshFailedError as e:
-            logger.error(f"Error refreshing dataset {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except DatasetRefreshFailedError as ex:
+            logger.error(f"Error refreshing dataset {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))

@@ -441,9 +441,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return df
 
     @classmethod
-    def df_to_sql(  # pylint: disable=invalid-name
-        cls, df: pd.DataFrame, **kwargs: Any
-    ) -> None:
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs: Any) -> None:
         """ Upload data from a Pandas DataFrame to a database. For
         regular engines this calls the DataFrame.to_sql() method. Can be
         overridden for engines that don't work well with to_sql(), e.g.
@@ -562,13 +560,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         pass
 
     @classmethod
-    def extract_error_message(cls, e: Exception) -> str:
-        return f"{cls.engine} error: {cls._extract_error_message(e)}"
+    def extract_error_message(cls, ex: Exception) -> str:
+        return f"{cls.engine} error: {cls._extract_error_message(ex)}"
 
     @classmethod
-    def _extract_error_message(cls, e: Exception) -> Optional[str]:
+    def _extract_error_message(cls, ex: Exception) -> Optional[str]:
         """Extract error message for queries"""
-        return utils.error_msg_from_exception(e)
+        return utils.error_msg_from_exception(ex)
 
     @classmethod
     def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
@@ -977,7 +975,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if database.extra:
             try:
                 extra = json.loads(database.extra)
-            except json.JSONDecodeError as e:
-                logger.error(e)
-                raise e
+            except json.JSONDecodeError as ex:
+                logger.error(ex)
+                raise ex
         return extra

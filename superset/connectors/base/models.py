@@ -76,7 +76,7 @@ class BaseDatasource(
     # ---------------------------------------------------------------
 
     # Columns
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     description = Column(Text)
     default_endpoint = Column(Text)
     is_featured = Column(Boolean, default=False)  # TODO deprecating
@@ -453,7 +453,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
 
     __tablename__: Optional[str] = None  # {connector_name}_column
 
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     column_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
@@ -526,7 +526,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
 
     __tablename__: Optional[str] = None  # {connector_name}_metric
 
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     metric_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))

@@ -20,8 +20,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, Button, Modal, FormControl } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
-import Select from 'react-select';
+import { Async as SelectAsync } from 'react-select';
 import AceEditor from 'react-ace';
+import rison from 'rison';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import '../stylesheets/buttons.less';
@@ -55,7 +56,6 @@ class PropertiesModal extends React.PureComponent {
         json_metadata: '',
       },
       isDashboardLoaded: false,
-      ownerOptions: null,
       isAdvancedOpen: false,
     };
     this.onChange = this.onChange.bind(this);
@@ -63,10 +63,11 @@ class PropertiesModal extends React.PureComponent {
     this.onOwnersChange = this.onOwnersChange.bind(this);
     this.save = this.save.bind(this);
     this.toggleAdvanced = this.toggleAdvanced.bind(this);
+    this.loadOwnerOptions = this.loadOwnerOptions.bind(this);
+    this.handleErrorResponse = this.handleErrorResponse.bind(this);
   }
 
   componentDidMount() {
-    this.fetchOwnerOptions();
     this.fetchDashboardDetails();
   }
 
@@ -90,41 +91,42 @@ class PropertiesModal extends React.PureComponent {
     // datamodel, the dashboard could probably just be passed as a prop.
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
-    })
-      .then(response => {
-        const dashboard = response.json.result;
-        this.setState(state => ({
-          isDashboardLoaded: true,
-          values: {
-            ...state.values,
-            dashboard_title: dashboard.dashboard_title || '',
-            slug: dashboard.slug || '',
-            json_metadata: dashboard.json_metadata || '',
-          },
-        }));
-        const initialSelectedValues = dashboard.owners.map(owner => ({
-          value: owner.id,
-          label: owner.username,
-        }));
-        this.onOwnersChange(initialSelectedValues);
-      })
-      .catch(err => console.error(err));
+    }).then(response => {
+      const dashboard = response.json.result;
+      this.setState(state => ({
+        isDashboardLoaded: true,
+        values: {
+          ...state.values,
+          dashboard_title: dashboard.dashboard_title || '',
+          slug: dashboard.slug || '',
+          json_metadata: dashboard.json_metadata || '',
+        },
+      }));
+      const initialSelectedOwners = dashboard.owners.map(owner => ({
+        value: owner.id,
+        label: `${owner.first_name} ${owner.last_name}`,
+      }));
+      this.onOwnersChange(initialSelectedOwners);
+    }, this.handleErrorResponse);
   }
 
-  fetchOwnerOptions() {
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/related/owners`,
-    })
-      .then(response => {
+  loadOwnerOptions(input = '') {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
+    }).then(
+      response => {
         const options = response.json.result.map(item => ({
           value: item.value,
           label: item.text,
         }));
-        this.setState({
-          ownerOptions: options,
-        });
-      })
-      .catch(err => console.error(err));
+        return { options };
+      },
+      badResponse => {
+        this.handleErrorResponse(badResponse);
+        return { options: [] };
+      },
+    );
   }
 
   updateFormState(name, value) {
@@ -142,6 +144,17 @@ class PropertiesModal extends React.PureComponent {
     }));
   }
 
+  async handleErrorResponse(response) {
+    const { error, statusText } = await getClientErrorObject(response);
+    this.dialog.show({
+      title: 'Error',
+      bsSize: 'medium',
+      bsStyle: 'danger',
+      actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
+      body: error || statusText || t('An error has occurred'),
+    });
+  }
+
   save(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -157,38 +170,21 @@ class PropertiesModal extends React.PureComponent {
         json_metadata: values.json_metadata || null,
         owners,
       }),
-    })
-      .then(({ json }) => {
-        this.props.addSuccessToast(t('The dashboard has been saved'));
-        this.props.onDashboardSave({
-          id: this.props.dashboardId,
-          title: json.result.dashboard_title,
-          slug: json.result.slug,
-          jsonMetadata: json.result.json_metadata,
-          ownerIds: json.result.owners,
-        });
-        this.props.onHide();
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(({ error, statusText }) => {
-          this.dialog.show({
-            title: 'Error',
-            bsSize: 'medium',
-            bsStyle: 'danger',
-            actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-            body: error || statusText || t('An error has occurred'),
-          });
-        }),
-      );
+    }).then(({ json }) => {
+      this.props.addSuccessToast(t('The dashboard has been saved'));
+      this.props.onDashboardSave({
+        id: this.props.dashboardId,
+        title: json.result.dashboard_title,
+        slug: json.result.slug,
+        jsonMetadata: json.result.json_metadata,
+        ownerIds: json.result.owners,
+      });
+      this.props.onHide();
+    }, this.handleErrorResponse);
   }
 
   render() {
-    const {
-      ownerOptions,
-      values,
-      isDashboardLoaded,
-      isAdvancedOpen,
-    } = this.state;
+    const { values, isDashboardLoaded, isAdvancedOpen } = this.state;
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <form onSubmit={this.save}>
@@ -242,17 +238,19 @@ class PropertiesModal extends React.PureComponent {
                 <label className="control-label" htmlFor="owners">
                   {t('Owners')}
                 </label>
-                <Select
+                <SelectAsync
                   name="owners"
                   multi
-                  isLoading={!ownerOptions}
                   value={values.owners}
-                  options={ownerOptions || []}
+                  loadOptions={this.loadOwnerOptions}
                   onChange={this.onOwnersChange}
-                  disabled={!ownerOptions || !isDashboardLoaded}
+                  disabled={!isDashboardLoaded}
+                  filterOption={() => true} // options are filtered at the api
                 />
                 <p className="help-block">
-                  {t('Owners is a list of users who can alter the dashboard.')}
+                  {t(
+                    'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+                  )}
                 </p>
               </Col>
             </Row>

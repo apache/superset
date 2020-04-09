@@ -60,8 +60,8 @@ def upgrade():
             session.merge(slc)
             session.commit()
             print("Upgraded ({}/{}): {}".format(i, slice_len, slc.slice_name))
-        except Exception as e:
-            print(slc.slice_name + " error: " + str(e))
+        except Exception as ex:
+            print(slc.slice_name + " error: " + str(ex))
 
     session.close()
 

@@ -81,8 +81,8 @@ def upgrade():
                 layout, indent=None, separators=(",", ":"), sort_keys=True
             )
             session.merge(dashboard)
-        except Exception as e:
-            logging.exception(e)
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
     session.close()
@@ -111,8 +111,8 @@ def downgrade():
                 layout, indent=None, separators=(",", ":"), sort_keys=True
             )
             session.merge(dashboard)
-        except Exception as e:
-            logging.exception(e)
+        except Exception as ex:
+            logging.exception(ex)
 
     session.commit()
     session.close()

@@ -58,8 +58,8 @@ def upgrade():
                 batch_op.drop_constraint(slices_ibfk_2, type_="foreignkey")
             batch_op.drop_column("druid_datasource_id")
             batch_op.drop_column("table_id")
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))
 
     # fixed issue: https://github.com/airbnb/superset/issues/466
     try:
@@ -67,27 +67,27 @@ def upgrade():
             batch_op.create_foreign_key(
                 None, "datasources", ["datasource_name"], ["datasource_name"]
             )
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))
     try:
         with op.batch_alter_table("query") as batch_op:
             batch_op.create_unique_constraint("client_id", ["client_id"])
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))
 
     try:
         with op.batch_alter_table("query") as batch_op:
             batch_op.drop_column("name")
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))
 
 
 def downgrade():
     try:
         with op.batch_alter_table("tables") as batch_op:
             batch_op.create_index("table_name", ["table_name"], unique=True)
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))
 
     try:
         with op.batch_alter_table("slices") as batch_op:
@@ -111,8 +111,8 @@ def downgrade():
                 "slices_ibfk_1", "datasources", ["druid_datasource_id"], ["id"]
             )
             batch_op.create_foreign_key("slices_ibfk_2", "tables", ["table_id"], ["id"])
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))
 
     try:
         fk_columns = generic_find_constraint_name(
@@ -123,12 +123,12 @@ def downgrade():
         )
         with op.batch_alter_table("columns") as batch_op:
             batch_op.drop_constraint(fk_columns, type_="foreignkey")
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))
 
     op.add_column("query", sa.Column("name", sa.String(length=256), nullable=True))
     try:
         with op.batch_alter_table("query") as batch_op:
             batch_op.drop_constraint("client_id", type_="unique")
-    except Exception as e:
-        logging.warning(str(e))
+    except Exception as ex:
+        logging.warning(str(ex))

@@ -113,7 +113,7 @@ class QueryContext:
         }
 
     @staticmethod
-    def df_metrics_to_num(  # pylint: disable=invalid-name,no-self-use
+    def df_metrics_to_num(  # pylint: disable=no-self-use
         df: pd.DataFrame, query_object: QueryObject
     ) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
@@ -122,9 +122,7 @@ class QueryContext:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
     @staticmethod
-    def get_data(  # pylint: disable=invalid-name,no-self-use
-        df: pd.DataFrame,
-    ) -> List[Dict]:
+    def get_data(df: pd.DataFrame,) -> List[Dict]:  # pylint: disable=no-self-use
         return df.to_dict(orient="records")
 
     def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
@@ -197,10 +195,10 @@ class QueryContext:
                     status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
-                except Exception as e:  # pylint: disable=broad-except
-                    logger.exception(e)
+                except Exception as ex:  # pylint: disable=broad-except
+                    logger.exception(ex)
                     logger.error(
-                        "Error reading cache: %s", utils.error_msg_from_exception(e)
+                        "Error reading cache: %s", utils.error_msg_from_exception(ex)
                     )
                 logger.info("Serving from cache")
 
@@ -216,10 +214,10 @@ class QueryContext:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
-            except Exception as e:  # pylint: disable=broad-except
-                logger.exception(e)
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.exception(ex)
                 if not error_message:
-                    error_message = "{}".format(e)
+                    error_message = "{}".format(ex)
                 status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
@@ -234,11 +232,11 @@ class QueryContext:
 
                     stats_logger.incr("set_cache_key")
                     cache.set(cache_key, cache_binary, timeout=self.cache_timeout)
-                except Exception as e:  # pylint: disable=broad-except
+                except Exception as ex:  # pylint: disable=broad-except
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
                     logger.warning("Could not cache key %s", cache_key)
-                    logger.exception(e)
+                    logger.exception(ex)
                     cache.delete(cache_key)
         return {
             "cache_key": cache_key,

@@ -32,10 +32,10 @@ from superset.charts.commands.exceptions import (
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.commands.utils import get_datasource_by_id, populate_owners
-from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.slice import Slice
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -46,14 +46,14 @@ class UpdateChartCommand(BaseCommand):
         self._actor = user
         self._model_id = model_id
         self._properties = data.copy()
-        self._model: Optional[SqlaTable] = None
+        self._model: Optional[Slice] = None
 
     def run(self) -> Model:
         self.validate()
         try:
             chart = ChartDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as e:
-            logger.exception(e.exception)
+        except DAOUpdateFailedError as ex:
+            logger.exception(ex.exception)
             raise ChartUpdateFailedError()
         return chart
 
@@ -84,8 +84,8 @@ class UpdateChartCommand(BaseCommand):
             try:
                 datasource = get_datasource_by_id(datasource_id, datasource_type)
                 self._properties["datasource_name"] = datasource.name
-            except ValidationError as e:
-                exceptions.append(e)
+            except ValidationError as ex:
+                exceptions.append(ex)
 
         # Validate/Populate dashboards
         dashboards = DashboardDAO.find_by_ids(dashboard_ids)
@@ -97,8 +97,8 @@ class UpdateChartCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
         if exceptions:
             exception = ChartInvalidError()
             exception.add_list(exceptions)

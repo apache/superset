@@ -17,6 +17,7 @@
 import logging
 from typing import Dict, List, Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -42,7 +43,7 @@ class CreateDatasetCommand(BaseCommand):
         self._actor = user
         self._properties = data.copy()
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
             # Creates SqlaTable (Dataset)
@@ -59,8 +60,8 @@ class CreateDatasetCommand(BaseCommand):
                     "schema_access", dataset.schema_perm
                 )
             db.session.commit()
-        except (SQLAlchemyError, DAOCreateFailedError) as e:
-            logger.exception(e)
+        except (SQLAlchemyError, DAOCreateFailedError) as ex:
+            logger.exception(ex)
             db.session.rollback()
             raise DatasetCreateFailedError()
         return dataset
@@ -91,8 +92,8 @@ class CreateDatasetCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
         if exceptions:
             exception = DatasetInvalidError()
             exception.add_list(exceptions)

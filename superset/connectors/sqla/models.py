@@ -96,11 +96,11 @@ class AnnotationDatasource(BaseDatasource):
         status = utils.QueryStatus.SUCCESS
         try:
             df = pd.read_sql_query(qry.statement, db.engine)
-        except Exception as e:
+        except Exception as ex:
             df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
-            logger.exception(e)
-            error_message = utils.error_msg_from_exception(e)
+            logger.exception(ex)
+            error_message = utils.error_msg_from_exception(ex)
         return QueryResult(
             status=status, df=df, duration=0, query="", error_message=error_message
         )
@@ -1055,12 +1055,12 @@ class SqlaTable(Model, BaseDatasource):
 
         try:
             df = self.database.get_df(sql, self.schema, mutator)
-        except Exception as e:
+        except Exception as ex:
             df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
             logger.exception(f"Query {sql} on schema {self.schema} failed")
             db_engine_spec = self.database.db_engine_spec
-            error_message = db_engine_spec.extract_error_message(e)
+            error_message = db_engine_spec.extract_error_message(ex)
 
         return QueryResult(
             status=status,
@@ -1077,8 +1077,8 @@ class SqlaTable(Model, BaseDatasource):
         """Fetches the metadata for the table and merges it in"""
         try:
             table = self.get_sqla_table_object()
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ex:
+            logger.exception(ex)
             raise Exception(
                 _(
                     "Table [{}] doesn't seem to exist in the specified database, "
@@ -1102,10 +1102,10 @@ class SqlaTable(Model, BaseDatasource):
                 datatype = db_engine_spec.column_datatype_to_string(
                     col.type, db_dialect
                 )
-            except Exception as e:
+            except Exception as ex:
                 datatype = "UNKNOWN"
                 logger.error("Unrecognized data type in {}.{}".format(table, col.name))
-                logger.exception(e)
+                logger.exception(ex)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name, type=datatype, table=self)
@@ -1254,7 +1254,7 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     """
 
     __tablename__ = "row_level_security_filters"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     roles = relationship(
         security_manager.role_model,
         secondary=RLSFilterRoles,

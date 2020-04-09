@@ -17,6 +17,7 @@
 import logging
 from typing import Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -42,7 +43,7 @@ class DeleteDatasetCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
             dataset = DatasetDAO.delete(self._model, commit=False)
@@ -50,8 +51,8 @@ class DeleteDatasetCommand(BaseCommand):
                 "datasource_access", dataset.get_perm()
             )
             db.session.commit()
-        except (SQLAlchemyError, DAODeleteFailedError) as e:
-            logger.exception(e)
+        except (SQLAlchemyError, DAODeleteFailedError) as ex:
+            logger.exception(ex)
             db.session.rollback()
             raise DatasetDeleteFailedError()
         return dataset

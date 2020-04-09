@@ -16,12 +16,13 @@
 # under the License.
 import functools
 import logging
-from typing import Dict, Set, Tuple
+from typing import cast, Dict, Set, Tuple, Type, Union
 
 from flask import request
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
+from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.exceptions import SupersetSecurityException
@@ -43,7 +44,7 @@ def check_ownership_and_item_exists(f):
     A Decorator that checks if an object exists and is owned by the current user
     """
 
-    def wraps(self, pk):  # pylint: disable=invalid-name
+    def wraps(self, pk):
         item = self.datamodel.get(
             pk, self._base_filters  # pylint: disable=protected-access
         )
@@ -51,11 +52,19 @@ def check_ownership_and_item_exists(f):
             return self.response_404()
         try:
             check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(403, message=str(e))
+        except SupersetSecurityException as ex:
+            return self.response(403, message=str(ex))
         return f(self, item)
 
     return functools.update_wrapper(wraps, f)
+
+
+class RelatedFieldFilter:
+    # data class to specify what filter to use on a /related endpoint
+    # pylint: disable=too-few-public-methods
+    def __init__(self, field_name: str, filter_class: Type[BaseFilter]):
+        self.field_name = field_name
+        self.filter_class = filter_class
 
 
 class BaseSupersetModelRestApi(ModelRestApi):
@@ -75,6 +84,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         "info": "list",
         "related": "list",
         "refresh": "edit",
+        "data": "list",
     }
 
     order_rel_fields: Dict[str, Tuple[str, str]] = {}
@@ -86,12 +96,12 @@ class BaseSupersetModelRestApi(ModelRestApi):
              ...
         }
     """  # pylint: disable=pointless-string-statement
-    filter_rel_fields_field: Dict[str, str] = {}
+    related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
-    Declare the related field field for filtering::
+    Declare the filters for related fields::
 
-        filter_rel_fields_field = {
-            "<RELATED_FIELD>": "<RELATED_FIELD_FIELD>")
+        related_fields = {
+            "<RELATED_FIELD>": <RelatedFieldFilter>)
         }
     """  # pylint: disable=pointless-string-statement
     filter_rel_fields: Dict[str, BaseFilter] = {}
@@ -125,14 +135,18 @@ class BaseSupersetModelRestApi(ModelRestApi):
         super()._init_properties()
 
     def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
-        filter_field = self.filter_rel_fields_field.get(column_name)
-        filters = datamodel.get_filters([filter_field])
+        filter_field = self.related_field_filters.get(column_name)
+        if isinstance(filter_field, str):
+            filter_field = RelatedFieldFilter(cast(str, filter_field), FilterStartsWith)
+        filter_field = cast(RelatedFieldFilter, filter_field)
+        search_columns = [filter_field.field_name] if filter_field else None
+        filters = datamodel.get_filters(search_columns)
         base_filters = self.filter_rel_fields.get(column_name)
         if base_filters:
-            filters = filters.add_filter_list(base_filters)
-        if value:
-            filters.rest_add_filters(
-                [{"opr": "sw", "col": filter_field, "value": value}]
+            filters.add_filter_list(base_filters)
+        if value and filter_field:
+            filters.add_filter(
+                filter_field.field_name, filter_field.filter_class, value
             )
         return filters
 
@@ -277,9 +291,9 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200, result=self.edit_model_schema.dump(item.data, many=False).data
             )
-        except SQLAlchemyError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except SQLAlchemyError as ex:
+            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/", methods=["POST"])
     @protect()
@@ -329,9 +343,9 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
                 result=self.add_model_schema.dump(item.data, many=False).data,
                 id=item.data.id,
             )
-        except SQLAlchemyError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except SQLAlchemyError as ex:
+            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
@@ -370,6 +384,6 @@ class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
         try:
             self.datamodel.delete(item, raise_exception=True)
             return self.response(200, message="OK")
-        except SQLAlchemyError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except SQLAlchemyError as ex:
+            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))

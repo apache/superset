@@ -17,12 +17,12 @@
 import logging
 from typing import Dict, List, Optional
 
+from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.commands.utils import populate_owners
-from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardForbiddenError,
@@ -33,6 +33,7 @@ from superset.dashboards.commands.exceptions import (
 )
 from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard import Dashboard
 from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
@@ -43,14 +44,15 @@ class UpdateDashboardCommand(BaseCommand):
         self._actor = user
         self._model_id = model_id
         self._properties = data.copy()
-        self._model: Optional[SqlaTable] = None
+        self._model: Optional[Dashboard] = None
 
-    def run(self):
+    def run(self) -> Model:
         self.validate()
         try:
-            dashboard = DashboardDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as e:
-            logger.exception(e.exception)
+            dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
+            dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
+        except DAOUpdateFailedError as ex:
+            logger.exception(ex.exception)
             raise DashboardUpdateFailedError()
         return dashboard
 
@@ -79,8 +81,8 @@ class UpdateDashboardCommand(BaseCommand):
         try:
             owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
-        except ValidationError as e:
-            exceptions.append(e)
+        except ValidationError as ex:
+            exceptions.append(ex)
         if exceptions:
             exception = DashboardInvalidError()
             exception.add_list(exceptions)

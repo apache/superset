@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { nonEmpty } from '../validators';
+import { viewport } from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -26,7 +27,7 @@ export default {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
+        ['mapbox_style', viewport],
         [
           {
             name: 'deck_slices',

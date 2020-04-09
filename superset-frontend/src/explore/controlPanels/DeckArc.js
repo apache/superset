@@ -18,6 +18,21 @@
  */
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
+import { nonEmpty, integer } from '../validators';
+import { columnChoices, PRIMARY_COLOR } from '../controls';
+import { formatSelectOptions } from '../../modules/utils';
+import {
+  filterNulls,
+  autozoom,
+  dimension,
+  jsColumns,
+  jsDataMutator,
+  jsTooltip,
+  jsOnclickHref,
+  legendFormat,
+  legendPosition,
+  viewport,
+} from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -26,44 +41,99 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['start_spatial', 'end_spatial'],
-        ['row_limit', 'filter_nulls'],
+        [
+          {
+            name: 'start_spatial',
+            config: {
+              type: 'SpatialControl',
+              label: t('Start Longitude & Latitude'),
+              validators: [nonEmpty],
+              description: t('Point to your spatial columns'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+          {
+            name: 'end_spatial',
+            config: {
+              type: 'SpatialControl',
+              label: t('End Longitude & Latitude'),
+              validators: [nonEmpty],
+              description: t('Point to your spatial columns'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+        ],
+        ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
     },
     {
       label: t('Map'),
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        ['autozoom', null],
+        ['mapbox_style', viewport],
+        [autozoom, null],
       ],
     },
     {
       label: t('Arc'),
       controlSetRows: [
-        ['color_picker', 'target_color_picker'],
-        ['dimension', 'color_scheme', 'label_colors'],
-        ['stroke_width', 'legend_position'],
-        ['legend_format', null],
+        [
+          'color_picker',
+          {
+            name: 'target_color_picker',
+            config: {
+              label: t('Target Color'),
+              description: t('Color of the target location'),
+              type: 'ColorPickerControl',
+              default: PRIMARY_COLOR,
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            ...dimension,
+            label: t('Categorical Color'),
+            description: t(
+              'Pick a dimension from which categorical colors are defined',
+            ),
+          },
+          'color_scheme',
+          'label_colors',
+        ],
+        [
+          {
+            name: 'stroke_width',
+            color: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Stroke Width'),
+              validators: [integer],
+              default: null,
+              renderTrigger: true,
+              choices: formatSelectOptions([1, 2, 3, 4, 5]),
+            },
+          },
+          legendPosition,
+        ],
+        [legendFormat, null],
       ],
     },
     {
       label: t('Advanced'),
       controlSetRows: [
-        ['js_columns'],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
+        [jsColumns],
+        [jsDataMutator],
+        [jsTooltip],
+        [jsOnclickHref],
       ],
     },
   ],
   controlOverrides: {
-    dimension: {
-      label: t('Categorical Color'),
-      description: t(
-        'Pick a dimension from which categorical colors are defined',
-      ),
-    },
     size: {
       validators: [],
     },

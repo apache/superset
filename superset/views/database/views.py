@@ -158,7 +158,7 @@ class CsvToDatabaseView(SimpleFormView):
                 table.fetch_metadata()
                 db.session.add(table)
             db.session.commit()
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
             try:
                 os.remove(path)
@@ -171,7 +171,7 @@ class CsvToDatabaseView(SimpleFormView):
                 filename=csv_filename,
                 table_name=form.name.data,
                 db_name=database.database_name,
-                error_msg=str(e),
+                error_msg=str(ex),
             )
 
             flash(message, "danger")

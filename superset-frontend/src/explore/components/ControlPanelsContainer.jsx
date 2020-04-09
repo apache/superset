@@ -198,7 +198,10 @@ class ControlPanelsContainer extends React.Component {
     const querySectionsToRender = [];
     const displaySectionsToRender = [];
     allSectionsToRender.forEach(section => {
+      // if at least one control in the secion is not `renderTrigger`
+      // or asks to be displayed at the Data tab
       if (
+        section.tabOverride === 'data' ||
         section.controlSetRows.some(rows =>
           rows.some(
             control =>
