@@ -70,5 +70,5 @@ class DatabaseNotFound(SupersetException):
     status = 400
 
 
-class ChartDataValidationError(SupersetException):
-    pass
+class QueryObjectValidationError(SupersetException):
+    status = 400

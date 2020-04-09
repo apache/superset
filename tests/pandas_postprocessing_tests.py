@@ -20,7 +20,7 @@ from typing import Any, List
 
 from pandas import Series
 
-from superset.exceptions import ChartDataValidationError
+from superset.exceptions import QueryObjectValidationError
 from superset.utils import pandas_postprocessing as proc
 
 from .base_tests import SupersetTestCase
@@ -68,8 +68,17 @@ class PostProcessingTestCase(SupersetTestCase):
         )
         self.assertEqual(len(df), 5)
 
+        df = proc.pivot(
+            df=categories_df,
+            index=["name"],
+            columns=["category"],
+            metric_fill_value=1,
+            aggregates={"idx_nulls": {"operator": "sum"}},
+        )
+        self.assertEqual(df.sum()[0], 382)
+
         self.assertRaises(
-            ChartDataValidationError,
+            QueryObjectValidationError,
             proc.pivot,
             df=categories_df,
             index=["abc"],
@@ -77,7 +86,7 @@ class PostProcessingTestCase(SupersetTestCase):
             aggregates=aggregates,
         )
         self.assertRaises(
-            ChartDataValidationError,
+            QueryObjectValidationError,
             proc.pivot,
             df=categories_df,
             index=["dept"],
@@ -85,22 +94,21 @@ class PostProcessingTestCase(SupersetTestCase):
             aggregates=aggregates,
         )
         self.assertRaises(
-            ChartDataValidationError,
+            QueryObjectValidationError,
             proc.pivot,
             df=categories_df,
             index=["dept"],
             columns=["abc"],
             aggregates={"abc": {"operator": "sum"}},
         )
-
-        df = proc.pivot(
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.pivot,
             df=categories_df,
             index=["name"],
             columns=["category"],
-            metric_fill_value=1,
-            aggregates={"idx_nulls": {}},  # should default to sum
+            aggregates={"idx_nulls": {}},
         )
-        self.assertEqual(df.sum()[0], 382)
 
     def test_aggregate(self):
         aggregates = {
@@ -131,7 +139,7 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertEqual(96, series_to_list(df["asc_idx"])[1])
 
         self.assertRaises(
-            ChartDataValidationError, proc.sort, df=df, columns={"abc": True}
+            QueryObjectValidationError, proc.sort, df=df, columns={"abc": True}
         )
 
     def test_rolling(self):
@@ -168,7 +176,7 @@ class PostProcessingTestCase(SupersetTestCase):
 
         # incorrect type
         self.assertRaises(
-            ChartDataValidationError,
+            QueryObjectValidationError,
             proc.rolling,
             df=timeseries_df,
             columns={"y": "y"},
@@ -177,23 +185,26 @@ class PostProcessingTestCase(SupersetTestCase):
         )
 
     def test_select(self):
-        post_df = proc.select(df=timeseries_df, columns={"y": "y", "label": "label"})
+        post_df = proc.select(df=timeseries_df, columns=["y", "label"])
         self.assertListEqual(post_df.columns.tolist(), ["y", "label"])
 
-        post_df = proc.select(df=timeseries_df, columns={"label": "label"})
+        post_df = proc.select(df=timeseries_df, columns=["label"])
         self.assertListEqual(post_df.columns.tolist(), ["label"])
 
-        post_df = proc.select(df=timeseries_df, columns={"y": "y1"})
+        post_df = proc.select(df=timeseries_df, columns=["y"], rename={"y": "y1"})
         self.assertListEqual(post_df.columns.tolist(), ["y1"])
 
-        post_df = proc.select(df=timeseries_df, columns={"label": "label", "y": "y1"})
+        post_df = proc.select(
+            df=timeseries_df, columns=["label", "y"], rename={"y": "y1"}
+        )
         self.assertListEqual(post_df.columns.tolist(), ["label", "y1"])
 
         self.assertRaises(
-            ChartDataValidationError,
+            QueryObjectValidationError,
             proc.select,
             df=timeseries_df,
-            columns={"abc": "qwerty"},
+            columns=["qwerty"],
+            rename={"abc": "qwerty"},
         )
 
     def test_diff(self):
@@ -210,7 +221,7 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertListEqual(series_to_list(post_df["y1"]), [-1.0, -1.0, -1.0, None])
 
         self.assertRaises(
-            ChartDataValidationError,
+            QueryObjectValidationError,
             proc.diff,
             df=timeseries_df,
             columns={"abc": "abc"},
@@ -232,7 +243,7 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertListEqual(series_to_list(post_df["y"]), [1.0, 1.0, 1.0, 1.0])
 
         self.assertRaises(
-            ChartDataValidationError,
+            QueryObjectValidationError,
             proc.cum,
             df=timeseries_df,
             columns={"y": "y"},

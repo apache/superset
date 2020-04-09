@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Dict, KeysView, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 from flask_babel import gettext as _
 from pandas import DataFrame, NamedAgg
 
-from superset.exceptions import ChartDataValidationError
+from superset.exceptions import QueryObjectValidationError
 
 SUPPORTED_NUMPY_FUNCTIONS = (
     "average",
@@ -32,7 +32,10 @@ SUPPORTED_NUMPY_FUNCTIONS = (
     "max",
     "mean",
     "median",
-    "nansum" "nanmin" "nanmax" "nanmean",
+    "nansum",
+    "nanmin",
+    "nanmax",
+    "nanmean",
     "nanmedian",
     "min",
     "percentile",
@@ -44,40 +47,54 @@ SUPPORTED_NUMPY_FUNCTIONS = (
 )
 
 
-def _validate_columns(
-    df: DataFrame, columns: Union[KeysView[str], Sequence[str]]
-) -> None:
-    """
-    Ensure that all columns are present in the DataFrame
+def validate_column_args(*argnames: str) -> Callable:
+    def wrapper(fn):
+        def wrapped(df, **options):
+            columns = df.columns.tolist()
+            for name in argnames:
+                if name in options and not all(
+                    elem in columns for elem in options[name]
+                ):
+                    raise QueryObjectValidationError(
+                        _("Referenced columns not available in DataFrame.")
+                    )
+            return fn(df, **options)
 
-    :param df: Base DataFrame
-    :param columns: column existence to check in `df`
-    """
-    if not all(elem in df.columns.tolist() for elem in columns):
-        raise ChartDataValidationError(
-            _(
-                "Referenced columns not available in DataFrame. "
-                "Columns in DataFrame: %(df_cols)s. Referenced columns: %(columns)s",
-                df_cols=list(df.columns),
-                columns=list(columns),
-            )
-        )
+        return wrapped
+
+    return wrapper
 
 
-def _get_aggregate_funcs(aggregates: Dict[str, Dict[str, Any]],) -> Dict[str, NamedAgg]:
+def _get_aggregate_funcs(
+    df: DataFrame, aggregates: Dict[str, Dict[str, Any]],
+) -> Dict[str, NamedAgg]:
     """
     Converts a set of aggregate config objects into functions that pandas can use as
     aggregators. Currently only numpy aggregators are supported.
 
+    :param df: DataFrame on which to perform aggregate operation.
     :param aggregates: Mapping from column name to aggregat config.
     :return: Mapping from metric name to function that takes a single input argument.
     """
     agg_funcs: Dict[str, NamedAgg] = {}
     for name, agg_obj in aggregates.items():
         column = agg_obj.get("column", name)
-        operator = agg_obj.get("operator") or "sum"
+        if column not in df:
+            raise QueryObjectValidationError(
+                _(
+                    "Column referenced by aggregate is undefined: %(column)s",
+                    column=column,
+                )
+            )
+        if "operator" not in agg_obj:
+            raise QueryObjectValidationError(
+                _("Operator undefined for aggregator: %(name)s", name=name,)
+            )
+        operator = agg_obj.get("operator", "sum")
         if operator not in SUPPORTED_NUMPY_FUNCTIONS:
-            raise ChartDataValidationError("Unsupported numpy function: %")
+            raise QueryObjectValidationError(
+                _("Unsupported numpy function: %(operator)s", operator=operator,)
+            )
         func = getattr(np, operator)
         options = agg_obj.get("options", {})
         agg_funcs[name] = NamedAgg(column=column, aggfunc=partial(func, **options))
@@ -111,6 +128,7 @@ def _append_columns(
     )
 
 
+@validate_column_args("index", "columns", "aggregates")
 def pivot(  # pylint: disable=too-many-arguments
     df: DataFrame,
     index: List[str],
@@ -142,25 +160,26 @@ def pivot(  # pylint: disable=too-many-arguments
     :return: A pivot table
     :raises ChartDataValidationError: If the request in incorrect
     """
-    _validate_columns(df, index)
-    _validate_columns(df, columns)
-    _validate_columns(df, aggregates.keys())
     if not index:
-        raise ChartDataValidationError(_("Pivot operation requires at least one index"))
+        raise QueryObjectValidationError(
+            _("Pivot operation requires at least one index")
+        )
     if not columns:
-        raise ChartDataValidationError(
+        raise QueryObjectValidationError(
             _("Pivot operation requires at least one column")
         )
     if not aggregates:
-        raise ChartDataValidationError(_("Pivot operation specifying aggregates"))
+        raise QueryObjectValidationError(
+            _("Pivot operation must include at least one aggregate")
+        )
 
     if column_fill_value:
         df[columns] = df[columns].fillna(value=column_fill_value)
 
-    aggregate_funcs = _get_aggregate_funcs(aggregates)
+    aggregate_funcs = _get_aggregate_funcs(df, aggregates)
 
     # TODO (villebro): Pandas 1.0.3 doesn't yet support NamedAgg in pivot_table.
-    #  Remove once support is added.
+    #  Remove once/if support is added.
     aggfunc = {na.column: na.aggfunc for na in aggregate_funcs.values()}
 
     df = df.pivot_table(
@@ -180,6 +199,7 @@ def pivot(  # pylint: disable=too-many-arguments
     return df
 
 
+@validate_column_args("groupby")
 def aggregate(
     df: DataFrame, groupby: List[str], aggregates: Dict[str, Dict[str, Any]]
 ) -> DataFrame:
@@ -192,12 +212,12 @@ def aggregate(
            aggregate values.
     :raises ChartDataValidationError: If the request in incorrect
     """
-    _validate_columns(df, groupby)
     aggregates = aggregates or {}
-    aggregate_funcs = _get_aggregate_funcs(aggregates)
+    aggregate_funcs = _get_aggregate_funcs(df, aggregates)
     return df.groupby(by=groupby).agg(**aggregate_funcs).reset_index()
 
 
+@validate_column_args("columns")
 def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
     """
     Sort a DataFrame.
@@ -208,10 +228,10 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
     :return: Sorted DataFrame
     :raises ChartDataValidationError: If the request in incorrect
     """
-    _validate_columns(df, columns.keys())
     return df.sort_values(by=list(columns.keys()), ascending=list(columns.values()))
 
 
+@validate_column_args("columns")
 def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
     columns: Dict[str, str],
@@ -239,15 +259,14 @@ def rolling(  # pylint: disable=too-many-arguments
     :return: DataFrame with the rolling columns
     :raises ChartDataValidationError: If the request in incorrect
     """
-    _validate_columns(df, columns.keys())
     df_rolling = df[columns.keys()]
     if not hasattr(df_rolling, rolling_type):
-        raise ChartDataValidationError(
+        raise QueryObjectValidationError(
             _("Unsupported rolling_type: %(type)s", type=rolling_type)
         )
     kwargs: Dict[str, Union[str, int]] = {}
     if not window:
-        raise ChartDataValidationError(_("Undefined window for rolling operation"))
+        raise QueryObjectValidationError(_("Undefined window for rolling operation"))
 
     kwargs["window"] = window
     if min_periods is not None:
@@ -265,24 +284,31 @@ def rolling(  # pylint: disable=too-many-arguments
     return df
 
 
-def select(df: DataFrame, columns: Dict[str, str],) -> DataFrame:
+@validate_column_args("columns", "rename")
+def select(
+    df: DataFrame, columns: List[str], rename: Optional[Dict[str, str]] = None
+) -> DataFrame:
     """
     Only select a subset of columns in the original dataset. Can be useful for
     removing unnecessary intermediate results, renaming and reordering columns.
 
     :param df: DataFrame on which the rolling period will be based.
-    :param columns: Columns on which to perform dff, mapping the
-                    column name to its alias. For instance, `{'y': 'y'}` will return
-                    a DataFrame with only the contents of column `y`,
-                    while `{'y': 'y2'}` return a DataFrame with the column `y2`
-                    containing the values from column `y`.
+    :param columns: Columns which to select from the DataFrame, in the desired order.
+                    If columns are renamed, the new column name should be referenced
+                    here.
+    :param rename: columns which to rename, mapping source column to target column.
+                   For instance, `{'y': 'y2'}` will rename the column `y` to
+                   `y2`.
     :return: Subset of columns in original DataFrame
     :raises ChartDataValidationError: If the request in incorrect
     """
-    _validate_columns(df, columns.keys())
-    return df[columns.keys()].rename(columns=columns)
+    df_select = df[columns]
+    if rename is not None:
+        df_select = df_select.rename(columns=rename)
+    return df_select
 
 
+@validate_column_args("columns")
 def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame:
     """
 
@@ -296,12 +322,12 @@ def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame
     :return: DataFrame with diffed columns
     :raises ChartDataValidationError: If the request in incorrect
     """
-    _validate_columns(df, columns.keys())
     df_diff = df[columns.keys()]
     df_diff = df_diff.diff(periods=periods)
     return _append_columns(df, df_diff, columns)
 
 
+@validate_column_args("columns")
 def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
     """
 
@@ -317,7 +343,7 @@ def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
     df_cum = df[columns.keys()]
     operation = "cum" + operator
     if not hasattr(df_cum, operation):
-        raise ChartDataValidationError(
+        raise QueryObjectValidationError(
             _("Unsupported cumulative operator: %(operator)s", operator=operator)
         )
     return _append_columns(df, getattr(df_cum, operation)(), columns)
