@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '@superset-ui/validator';
+import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
   controlPanelSections: [
@@ -49,13 +49,13 @@ export default {
     groupby: {
       label: t('Source'),
       multi: false,
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
       description: t('Choose a source'),
     },
     columns: {
       label: t('Target'),
       multi: false,
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
       description: t('Choose a target'),
     },
   },

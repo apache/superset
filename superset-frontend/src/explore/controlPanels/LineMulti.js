@@ -19,7 +19,7 @@
 import { t } from '@superset-ui/translation';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { nonEmpty } from '@superset-ui/validator';
+import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
   requiresTime: true,
@@ -65,7 +65,7 @@ export default {
               type: 'SelectAsyncControl',
               multi: true,
               label: t('Left Axis chart(s)'),
-              validators: [nonEmpty],
+              validators: [validateNonEmpty],
               default: [],
               description: t('Choose one or more charts for left axis'),
               dataEndpoint:

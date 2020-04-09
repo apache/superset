@@ -68,7 +68,7 @@ import {
   formatSelectOptions,
   mainMetric,
 } from '../modules/utils';
-import { integer, nonEmpty } from '@superset-ui/validator';
+import { validateInteger, validateNonEmpty } from '@superset-ui/validator';
 import ColumnOption from '../components/ColumnOption';
 import { TIME_FILTER_LABELS } from './constants';
 
@@ -153,7 +153,7 @@ const metrics = {
   type: 'MetricsControl',
   multi: true,
   label: t('Metrics'),
-  validators: [nonEmpty],
+  validators: [validateNonEmpty],
   default: c => {
     const metric = mainMetric(c.savedMetrics);
     return metric ? [metric] : null;
@@ -423,7 +423,7 @@ export const controls = {
     type: 'SelectControl',
     label: t('Longitude'),
     default: 1,
-    validators: [nonEmpty],
+    validators: [validateNonEmpty],
     description: t('Select the longitude column'),
     mapStateToProps: state => ({
       choices: columnChoices(state.datasource),
@@ -434,7 +434,7 @@ export const controls = {
     type: 'SelectControl',
     label: t('Latitude'),
     default: 1,
-    validators: [nonEmpty],
+    validators: [validateNonEmpty],
     description: t('Select the latitude column'),
     mapStateToProps: state => ({
       choices: columnChoices(state.datasource),
@@ -444,7 +444,7 @@ export const controls = {
   polygon: {
     type: 'SelectControl',
     label: t('Polygon Column'),
-    validators: [nonEmpty],
+    validators: [validateNonEmpty],
     description: t(
       'Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points',
     ),
@@ -677,7 +677,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Row limit'),
-    validators: [integer],
+    validators: [validateInteger],
     default: 10000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
@@ -686,7 +686,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Series limit'),
-    validators: [integer],
+    validators: [validateInteger],
     choices: formatSelectOptions(SERIES_LIMITS),
     description: t(
       'Limits the number of time series that get displayed. A sub query ' +
@@ -766,7 +766,7 @@ export const controls = {
     label: t('Entity'),
     default: null,
     multi: false,
-    validators: [nonEmpty],
+    validators: [validateNonEmpty],
     description: t('This defines the element to be plotted on the chart'),
   },
 
@@ -874,7 +874,7 @@ export const controls = {
     clearable: false,
     choices: formatSelectOptions(['markdown', 'html']),
     default: 'markdown',
-    validators: [nonEmpty],
+    validators: [validateNonEmpty],
     description: t('Pick your favorite markup language'),
   },
 
@@ -1225,7 +1225,7 @@ export const controls = {
   column_collection: {
     type: 'CollectionControl',
     label: t('Time Series Columns'),
-    validators: [nonEmpty],
+    validators: [validateNonEmpty],
     controlName: 'TimeSeriesColumnControl',
   },
 

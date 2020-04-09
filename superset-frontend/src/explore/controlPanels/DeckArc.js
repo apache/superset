@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
-import { nonEmpty, integer } from '../validators';
+import { validateNonEmpty, validateInteger } from '@superset-ui/validator';
 import { columnChoices, PRIMARY_COLOR } from '../controls';
 import { formatSelectOptions } from '../../modules/utils';
 import {
@@ -47,7 +47,7 @@ export default {
             config: {
               type: 'SpatialControl',
               label: t('Start Longitude & Latitude'),
-              validators: [nonEmpty],
+              validators: [validateNonEmpty],
               description: t('Point to your spatial columns'),
               mapStateToProps: state => ({
                 choices: columnChoices(state.datasource),
@@ -59,7 +59,7 @@ export default {
             config: {
               type: 'SpatialControl',
               label: t('End Longitude & Latitude'),
-              validators: [nonEmpty],
+              validators: [validateNonEmpty],
               description: t('Point to your spatial columns'),
               mapStateToProps: state => ({
                 choices: columnChoices(state.datasource),
@@ -112,7 +112,7 @@ export default {
               type: 'SelectControl',
               freeForm: true,
               label: t('Stroke Width'),
-              validators: [integer],
+              validators: [validateInteger],
               default: null,
               renderTrigger: true,
               choices: formatSelectOptions([1, 2, 3, 4, 5]),
