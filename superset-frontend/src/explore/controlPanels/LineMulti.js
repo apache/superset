@@ -19,7 +19,7 @@
 import { t } from '@superset-ui/translation';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { nonEmpty } from '@superset-ui/validators';
+import { nonEmpty } from '@superset-ui/validator';
 
 export default {
   requiresTime: true,

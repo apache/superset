@@ -22,7 +22,7 @@ import {
   formatSelectOptions,
   // mainMetric,
 } from '../../modules/utils';
-import { integer } from '@superset-ui/validators';
+import { integer } from '@superset-ui/validator';
 import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 
 export default {

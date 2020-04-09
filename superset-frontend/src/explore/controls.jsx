@@ -68,7 +68,7 @@ import {
   formatSelectOptions,
   mainMetric,
 } from '../modules/utils';
-import { integer, nonEmpty } from '@superset-ui/validators';
+import { integer, nonEmpty } from '@superset-ui/validator';
 import ColumnOption from '../components/ColumnOption';
 import { TIME_FILTER_LABELS } from './constants';
 

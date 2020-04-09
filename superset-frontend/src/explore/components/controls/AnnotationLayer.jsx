@@ -40,7 +40,7 @@ import ANNOTATION_TYPES, {
 
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
-import { nonEmpty } from '@superset-ui/validators';
+import { nonEmpty } from '@superset-ui/validator';
 import './AnnotationLayer.less';
 
 const AUTOMATIC_COLOR = '';

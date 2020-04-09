@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '@superset-ui/validators';
+import { nonEmpty } from '@superset-ui/validator';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
 import { formatSelectOptions } from '../../modules/utils';
 

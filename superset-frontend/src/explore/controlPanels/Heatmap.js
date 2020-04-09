@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '@superset-ui/validators';
+import { nonEmpty } from '@superset-ui/validator';
 import { formatSelectOptionsForRange } from '../../modules/utils';
 
 const sortAxisChoices = [

@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
-import { nonEmpty } from '@superset-ui/validators';
+import { nonEmpty } from '@superset-ui/validator';
 import {
   filterNulls,
   autozoom,
