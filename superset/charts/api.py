@@ -17,7 +17,8 @@
 import logging
 from typing import Any
 
-from flask import g, request, Response
+import simplejson
+from flask import g, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -41,8 +42,12 @@ from superset.charts.schemas import (
     ChartPutSchema,
     get_delete_ids_schema,
 )
+from superset.common.query_context import QueryContext
 from superset.constants import RouteMethod
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
+from superset.utils.core import json_int_dttm_ser
 from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.filters import FilterRelatedOwners
 
@@ -59,6 +64,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "data",
     }
     class_permission_name = "SliceModelView"
     show_columns = [
@@ -348,3 +354,112 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/data", methods=["POST"])
+    @event_logger.log_this
+    @protect()
+    @safe
+    def data(self) -> Response:
+        """
+        Takes a query context constructed in the client and returns payload
+        data response for the given query.
+        ---
+        post:
+          description: >-
+            Takes a query context constructed in the client and returns payload data
+            response for the given query.
+          requestBody:
+            description: Query context schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    datasource:
+                      type: object
+                      description: The datasource where the query will run
+                      properties:
+                        id:
+                          type: integer
+                        type:
+                          type: string
+                    queries:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          granularity:
+                            type: string
+                          groupby:
+                            type: array
+                            items:
+                              type: string
+                          metrics:
+                            type: array
+                            items:
+                              type: object
+                          filters:
+                            type: array
+                            items:
+                              type: string
+                          row_limit:
+                            type: integer
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cache_key:
+                          type: string
+                        cached_dttm:
+                          type: string
+                        cache_timeout:
+                          type: integer
+                        error:
+                          type: string
+                        is_cached:
+                          type: boolean
+                        query:
+                          type: string
+                        status:
+                          type: string
+                        stacktrace:
+                          type: string
+                        rowcount:
+                          type: integer
+                        data:
+                          type: array
+                          items:
+                            type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            query_context = QueryContext(**request.json)
+        except KeyError:
+            return self.response_400(message="Request is incorrect")
+        try:
+            security_manager.assert_query_context_permission(query_context)
+        except SupersetSecurityException:
+            return self.response_401()
+        payload_json = query_context.get_payload()
+        response_data = simplejson.dumps(
+            payload_json, default=json_int_dttm_ser, ignore_nan=True
+        )
+        resp = make_response(response_data, 200)
+        resp.headers["Content-Type"] = "application/json; charset=utf-8"
+        return resp
