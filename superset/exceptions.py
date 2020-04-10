@@ -68,3 +68,7 @@ class CertificateException(SupersetException):
 
 class DatabaseNotFound(SupersetException):
     status = 400
+
+
+class QueryObjectValidationError(SupersetException):
+    status = 400
