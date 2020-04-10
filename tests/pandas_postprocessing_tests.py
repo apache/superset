@@ -47,6 +47,7 @@ class PostProcessingTestCase(SupersetTestCase):
     def test_pivot(self):
         aggregates = {"idx_nulls": {"operator": "sum"}}
 
+        # regular pivot
         df = proc.pivot(
             df=categories_df,
             index=["name"],
@@ -60,6 +61,7 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertEqual(len(df), 101)
         self.assertEqual(df.sum()[0], 315)
 
+        # regular pivot
         df = proc.pivot(
             df=categories_df,
             index=["dept"],
@@ -68,6 +70,7 @@ class PostProcessingTestCase(SupersetTestCase):
         )
         self.assertEqual(len(df), 5)
 
+        # fill value
         df = proc.pivot(
             df=categories_df,
             index=["name"],
@@ -77,6 +80,7 @@ class PostProcessingTestCase(SupersetTestCase):
         )
         self.assertEqual(df.sum()[0], 382)
 
+        # invalid index reference
         self.assertRaises(
             QueryObjectValidationError,
             proc.pivot,
@@ -85,6 +89,8 @@ class PostProcessingTestCase(SupersetTestCase):
             columns=["dept"],
             aggregates=aggregates,
         )
+
+        # invalid column reference
         self.assertRaises(
             QueryObjectValidationError,
             proc.pivot,
@@ -93,14 +99,8 @@ class PostProcessingTestCase(SupersetTestCase):
             columns=["abc"],
             aggregates=aggregates,
         )
-        self.assertRaises(
-            QueryObjectValidationError,
-            proc.pivot,
-            df=categories_df,
-            index=["dept"],
-            columns=["abc"],
-            aggregates={"abc": {"operator": "sum"}},
-        )
+
+        # invalid aggregate options
         self.assertRaises(
             QueryObjectValidationError,
             proc.pivot,
@@ -143,6 +143,7 @@ class PostProcessingTestCase(SupersetTestCase):
         )
 
     def test_rolling(self):
+        # sum rolling type
         post_df = proc.rolling(
             df=timeseries_df,
             columns={"y": "y"},
@@ -154,16 +155,18 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
         self.assertListEqual(series_to_list(post_df["y"]), [1.0, 3.0, 5.0, 7.0])
 
+        # mean rolling type with alias
         post_df = proc.rolling(
             df=timeseries_df,
             rolling_type="mean",
-            columns={"y": "y"},
+            columns={"y": "y_mean"},
             window=10,
             min_periods=0,
         )
-        self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
-        self.assertListEqual(series_to_list(post_df["y"]), [1.0, 1.5, 2.0, 2.5])
+        self.assertListEqual(post_df.columns.tolist(), ["label", "y", "y_mean"])
+        self.assertListEqual(series_to_list(post_df["y_mean"]), [1.0, 1.5, 2.0, 2.5])
 
+        # count rolling type
         post_df = proc.rolling(
             df=timeseries_df,
             rolling_type="count",
@@ -174,7 +177,19 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
         self.assertListEqual(series_to_list(post_df["y"]), [1.0, 2.0, 3.0, 4.0])
 
-        # incorrect type
+        # quantile rolling type
+        post_df = proc.rolling(
+            df=timeseries_df,
+            columns={"y": "q1"},
+            rolling_type="quantile",
+            rolling_type_options={"quantile": 0.25},
+            window=10,
+            min_periods=0,
+        )
+        self.assertListEqual(post_df.columns.tolist(), ["label", "y", "q1"])
+        self.assertListEqual(series_to_list(post_df["q1"]), [1.0, 1.25, 1.5, 1.75])
+
+        # incorrect rolling type
         self.assertRaises(
             QueryObjectValidationError,
             proc.rolling,
@@ -184,21 +199,37 @@ class PostProcessingTestCase(SupersetTestCase):
             window=2,
         )
 
+        # incorrect rolling type options
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.rolling,
+            df=timeseries_df,
+            columns={"y": "y"},
+            rolling_type="quantile",
+            rolling_type_options={"abc": 123},
+            window=2,
+        )
+
     def test_select(self):
+        # reorder columns
         post_df = proc.select(df=timeseries_df, columns=["y", "label"])
         self.assertListEqual(post_df.columns.tolist(), ["y", "label"])
 
+        # one column
         post_df = proc.select(df=timeseries_df, columns=["label"])
         self.assertListEqual(post_df.columns.tolist(), ["label"])
 
+        # rename one column
         post_df = proc.select(df=timeseries_df, columns=["y"], rename={"y": "y1"})
         self.assertListEqual(post_df.columns.tolist(), ["y1"])
 
+        # rename one and leave one unchanged
         post_df = proc.select(
             df=timeseries_df, columns=["label", "y"], rename={"y": "y1"}
         )
         self.assertListEqual(post_df.columns.tolist(), ["label", "y1"])
 
+        # invalid columns
         self.assertRaises(
             QueryObjectValidationError,
             proc.select,
@@ -208,18 +239,22 @@ class PostProcessingTestCase(SupersetTestCase):
         )
 
     def test_diff(self):
+        # overwrite column
         post_df = proc.diff(df=timeseries_df, columns={"y": "y"})
         self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
         self.assertListEqual(series_to_list(post_df["y"]), [None, 1.0, 1.0, 1.0])
 
+        # add column
         post_df = proc.diff(df=timeseries_df, columns={"y": "y1"})
         self.assertListEqual(post_df.columns.tolist(), ["label", "y", "y1"])
         self.assertListEqual(series_to_list(post_df["y"]), [1.0, 2.0, 3.0, 4.0])
         self.assertListEqual(series_to_list(post_df["y1"]), [None, 1.0, 1.0, 1.0])
 
+        # look ahead
         post_df = proc.diff(df=timeseries_df, columns={"y": "y1"}, periods=-1)
         self.assertListEqual(series_to_list(post_df["y1"]), [-1.0, -1.0, -1.0, None])
 
+        # invalid column reference
         self.assertRaises(
             QueryObjectValidationError,
             proc.diff,
@@ -228,20 +263,24 @@ class PostProcessingTestCase(SupersetTestCase):
         )
 
     def test_cum(self):
+        # create new column (cumsum)
         post_df = proc.cum(df=timeseries_df, columns={"y": "y2"}, operator="sum",)
         self.assertListEqual(post_df.columns.tolist(), ["label", "y", "y2"])
         self.assertListEqual(series_to_list(post_df["label"]), ["x", "y", "z", "q"])
         self.assertListEqual(series_to_list(post_df["y"]), [1.0, 2.0, 3.0, 4.0])
         self.assertListEqual(series_to_list(post_df["y2"]), [1.0, 3.0, 6.0, 10.0])
 
+        # overwrite column (cumprod)
         post_df = proc.cum(df=timeseries_df, columns={"y": "y"}, operator="prod",)
         self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
         self.assertListEqual(series_to_list(post_df["y"]), [1.0, 2.0, 6.0, 24.0])
 
+        # overwrite column (cummin)
         post_df = proc.cum(df=timeseries_df, columns={"y": "y"}, operator="min",)
         self.assertListEqual(post_df.columns.tolist(), ["label", "y"])
         self.assertListEqual(series_to_list(post_df["y"]), [1.0, 1.0, 1.0, 1.0])
 
+        # invalid operator
         self.assertRaises(
             QueryObjectValidationError,
             proc.cum,

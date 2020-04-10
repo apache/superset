@@ -306,7 +306,16 @@ def rolling(  # pylint: disable=too-many-arguments
         raise QueryObjectValidationError(
             _("Invalid rolling_type: %(type)s", type=rolling_type)
         )
-    df_rolling = getattr(df_rolling, rolling_type)(**rolling_type_options)
+    try:
+        df_rolling = getattr(df_rolling, rolling_type)(**rolling_type_options)
+    except TypeError:
+        raise QueryObjectValidationError(
+            _(
+                "Invalid options for %(rolling_type)s: %(options)s",
+                rolling_type=rolling_type,
+                options=rolling_type_options,
+            )
+        )
     df = _append_columns(df, df_rolling, columns)
     if min_periods:
         df = df[min_periods:]
@@ -344,8 +353,8 @@ def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame
     :param df: DataFrame on which the diff will be based.
     :param columns: columns on which to perform diff, mapping source column to
            target column. For instance, `{'y': 'y'}` will replace the column `y` with
-           the rollong value in `y`, while `{'y': 'y2'}` will add a column `y2` based
-           on rolling values calculated from `y`, leaving the original column `y`
+           the diff value in `y`, while `{'y': 'y2'}` will add a column `y2` based
+           on diff values calculated from `y`, leaving the original column `y`
            unchanged.
     :param periods: periods to shift for calculating difference.
     :return: DataFrame with diffed columns
@@ -363,8 +372,8 @@ def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
     :param df: DataFrame on which the cumulative operation will be based.
     :param columns: columns on which to perform a cumulative operation, mapping source
            column to target column. For instance, `{'y': 'y'}` will replace the column
-           `y` with the rollong value in `y`, while `{'y': 'y2'}` will add a column
-           `y2` based on rolling values calculated from `y`, leaving the original
+           `y` with the cumulative value in `y`, while `{'y': 'y2'}` will add a column
+           `y2` based on cumulative values calculated from `y`, leaving the original
            column `y` unchanged.
     :param operator: cumulative operator, e.g. `sum`, `prod`, `min`, `max`
     :return:
