@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function getEffectiveExtraFilters(filters, filterOperators) {
-  filterOperators = filterOperators || {};
+export default function getEffectiveExtraFilters(filters) {
   return Object.entries(filters).map(([column, values]) => ({
     col: column,
-    op: filterOperators[column] || 'in',
+    op: 'in',
     val: values,
   }));
 }

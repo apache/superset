@@ -63,3 +63,4 @@ CACHE_CONFIG = {
     'CACHE_REDIS_URL': "redis://%s:%s/1" % (REDIS_HOST, REDIS_PORT)
 }
 
+PUBLIC_ROLE_LIKE_GAMMA = True
