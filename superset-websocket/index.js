@@ -9,6 +9,7 @@ const server = http.createServer();
 const wss = new WebSocket.Server({ noServer: true });
 
 let channels = {};
+let redisRequestCount = 0;
 
 /* 
 NOT using Redis Stream consumer groups due to the fact that they only read
@@ -68,6 +69,7 @@ function loadDataFromStream(channel, startId) {
   }).finally(() => {
     const lastId = channels[channel].lastId || startId;
     const nextId = incrementId(lastId);   // XRANGE ids are inclusive
+    redisRequestCount++;
     // console.log(`loaded ${lastId}, nextId ${nextId}`);
     loadDataFromStream(channel, nextId);
   });
@@ -91,8 +93,7 @@ wss.on('connection', function connection(ws, request) {
 });
 
 server.on('upgrade', function upgrade(request, socket, head) {
-    console.log('request.headers', request.headers);
-    // console.log('request', request);
+    // console.log('request.headers', request.headers);
     const url = new URL(request.url, 'http://0.0.0.0');
     const queryParams = url.searchParams;
     console.log('queryParams', queryParams);
@@ -116,3 +117,8 @@ server.on('upgrade', function upgrade(request, socket, head) {
 
 server.listen(8080);
 console.log('websocket server started on 8080');
+
+setInterval(() => {
+  console.log('total connected sockets', wss.clients.size);
+  console.log('redis request count', redisRequestCount);
+}, 1000)
