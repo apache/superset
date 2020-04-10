@@ -1,7 +1,7 @@
 ---
 name: SIP
 about: Superset Improvement Proposal
-labels: #SIP
+labels: "#SIP"
 
 ---
 
