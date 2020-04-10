@@ -1132,6 +1132,7 @@ class SqlaTable(Model, BaseDatasource):
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
         self.add_missing_metrics(metrics)
+
         db.session.merge(self)
         if commit:
             db.session.commit()
