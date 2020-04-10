@@ -51,7 +51,7 @@ class QueryContext:
     custom_cache_timeout: Optional[int]
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
-    # a vanilla python type https://github.com/python/mypy/issues/5288
+    #  a vanilla python type https://github.com/python/mypy/issues/5288
     def __init__(
         self,
         datasource: Dict[str, Any],
@@ -70,8 +70,8 @@ class QueryContext:
         """Returns a pandas dataframe based on the query object"""
 
         # Here, we assume that all the queries will use the same datasource, which is
-        # is a valid assumption for current setting. In a long term, we may or maynot
-        # support multiple queries from different data source.
+        # a valid assumption for current setting. In the long term, we may
+        # support multiple queries from different data sources.
 
         timestamp_format = None
         if self.datasource.type == "table":
@@ -105,6 +105,9 @@ class QueryContext:
                 self.df_metrics_to_num(df, query_object)
 
             df.replace([np.inf, -np.inf], np.nan)
+
+        df = query_object.exec_post_processing(df)
+
         return {
             "query": result.query,
             "status": result.status,
