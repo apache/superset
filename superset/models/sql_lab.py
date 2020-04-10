@@ -120,6 +120,7 @@ class Query(Model, ExtraJSONMixin):
             "startDttm": self.start_time,
             "state": self.status.lower(),
             "tab": self.tab_name,
+            "tempSchema": self.tmp_schema_name,
             "tempTable": self.tmp_table_name,
             "userId": self.user_id,
             "user": user_label(self.user),

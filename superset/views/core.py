@@ -98,6 +98,7 @@ from .base import (
     BaseSupersetView,
     check_ownership,
     common_bootstrap_payload,
+    create_table_permissions,
     CsvResponse,
     data_payload_response,
     DeleteMixin,
@@ -108,6 +109,7 @@ from .base import (
     json_error_response,
     json_success,
     SupersetModelView,
+    validate_sqlatable,
 )
 from .utils import (
     apply_display_max_row_limit,
@@ -1954,6 +1956,48 @@ class Superset(BaseSupersetView):
             logger.exception(utils.error_msg_from_exception(ex))
             return json_error_response(utils.error_msg_from_exception(ex))
         return Response(status=201)
+
+    @has_access
+    @expose("/get_or_create_table/", methods=["POST"])
+    @event_logger.log_this
+    def sqllab_table_viz(self):
+        """ Gets or creates a table object with attributes passed to the API.
+
+        It expects the json with params:
+        * datasourceName - e.g. table name, required
+        * dbId - database id, required
+        * schema - table schema, optional
+        * templateParams - params for the Jinja templating syntax, optional
+        :return: Response
+        """
+        SqlaTable = ConnectorRegistry.sources["table"]
+        data = json.loads(request.form.get("data"))
+        table_name = data.get("datasourceName")
+        database_id = data.get("dbId")
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
+        if not table:
+            # Create table if doesn't exist.
+            with db.session.no_autoflush:
+                table = SqlaTable(table_name=table_name, owners=[g.user])
+                table.database_id = database_id
+                table.database = (
+                    db.session.query(models.Database).filter_by(id=database_id).one()
+                )
+                table.schema = data.get("schema")
+                table.template_params = data.get("templateParams")
+                # needed for the table validation.
+                validate_sqlatable(table)
+
+            db.session.add(table)
+            table.fetch_metadata()
+            create_table_permissions(table)
+            db.session.commit()
+
+        return json_success(json.dumps({"table_id": table.id}))
 
     @has_access
     @expose("/sqllab_viz/", methods=["POST"])
