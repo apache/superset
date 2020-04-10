@@ -23,7 +23,7 @@ from pandas import DataFrame, NamedAgg
 
 from superset.exceptions import QueryObjectValidationError
 
-SUPPORTED_NUMPY_FUNCTIONS = (
+WHITELIST_NUMPY_FUNCTIONS = (
     "average",
     "argmin",
     "argmax",
@@ -44,6 +44,29 @@ SUPPORTED_NUMPY_FUNCTIONS = (
     "std",
     "sum",
     "var",
+)
+
+WHITELIST_ROLLING_FUNCTIONS = (
+    "count",
+    "corr",
+    "cov",
+    "kurt",
+    "max",
+    "mean",
+    "median",
+    "min",
+    "std",
+    "skew",
+    "sum",
+    "var",
+    "quantile",
+)
+
+WHITELIST_CUMULATIVE_FUNCTIONS = (
+    "cummax",
+    "cummin",
+    "cumprod",
+    "cumsum",
 )
 
 
@@ -91,9 +114,9 @@ def _get_aggregate_funcs(
                 _("Operator undefined for aggregator: %(name)s", name=name,)
             )
         operator = agg_obj["operator"]
-        if operator not in SUPPORTED_NUMPY_FUNCTIONS:
+        if operator not in WHITELIST_NUMPY_FUNCTIONS or not hasattr(np, operator):
             raise QueryObjectValidationError(
-                _("Unsupported numpy function: %(operator)s", operator=operator,)
+                _("Invalid numpy function: %(operator)s", operator=operator,)
             )
         func = getattr(np, operator)
         options = agg_obj.get("options", {})
@@ -237,6 +260,7 @@ def rolling(  # pylint: disable=too-many-arguments
     columns: Dict[str, str],
     rolling_type: str,
     window: int,
+    rolling_type_options: Optional[Dict[str, Any]] = None,
     center: bool = False,
     win_type: Optional[str] = None,
     min_periods: Optional[int] = None,
@@ -252,6 +276,8 @@ def rolling(  # pylint: disable=too-many-arguments
            on rolling values calculated from `y`, leaving the original column `y`
            unchanged.
     :param rolling_type: Type of rolling window. Any numpy function will work.
+    :param rolling_type_options: Optional options to pass to rolling method. Needed
+           for e.g. quantile operation.
     :param center: Should the label be at the center of the window.
     :param win_type: Type of window function.
     :param window: Size of the window.
@@ -259,11 +285,8 @@ def rolling(  # pylint: disable=too-many-arguments
     :return: DataFrame with the rolling columns
     :raises ChartDataValidationError: If the request in incorrect
     """
+    rolling_type_options = rolling_type_options or {}
     df_rolling = df[columns.keys()]
-    if not hasattr(df_rolling, rolling_type):
-        raise QueryObjectValidationError(
-            _("Unsupported rolling_type: %(type)s", type=rolling_type)
-        )
     kwargs: Dict[str, Union[str, int]] = {}
     if not window:
         raise QueryObjectValidationError(_("Undefined window for rolling operation"))
@@ -277,7 +300,13 @@ def rolling(  # pylint: disable=too-many-arguments
         kwargs["win_type"] = win_type
 
     df_rolling = df_rolling.rolling(**kwargs)
-    df_rolling = getattr(df_rolling, rolling_type)()
+    if rolling_type not in WHITELIST_ROLLING_FUNCTIONS or not hasattr(
+        df_rolling, rolling_type
+    ):
+        raise QueryObjectValidationError(
+            _("Invalid rolling_type: %(type)s", type=rolling_type)
+        )
+    df_rolling = getattr(df_rolling, rolling_type)(**rolling_type_options)
     df = _append_columns(df, df_rolling, columns)
     if min_periods:
         df = df[min_periods:]
@@ -342,8 +371,10 @@ def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
     """
     df_cum = df[columns.keys()]
     operation = "cum" + operator
-    if not hasattr(df_cum, operation):
+    if operation not in WHITELIST_CUMULATIVE_FUNCTIONS or not hasattr(
+        df_cum, operation
+    ):
         raise QueryObjectValidationError(
-            _("Unsupported cumulative operator: %(operator)s", operator=operator)
+            _("Invalid cumulative operator: %(operator)s", operator=operator)
         )
     return _append_columns(df, getattr(df_cum, operation)(), columns)
