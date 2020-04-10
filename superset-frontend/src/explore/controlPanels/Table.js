@@ -191,7 +191,9 @@ export default {
               label: t('Hide Cell Bars'),
               renderTrigger: true,
               default: false,
-              description: t('Disable display of bar chart background elements in table columns'),
+              description: t(
+                'Disable display of bar chart background elements in table columns',
+              ),
             },
           },
           null,
