@@ -1249,3 +1249,23 @@ export function createDatasource(vizOptions) {
       });
   };
 }
+
+export function createCtasDatasource(vizOptions) {
+  return dispatch => {
+    dispatch(createDatasourceStarted());
+    return SupersetClient.post({
+      endpoint: '/superset/get_or_create_table/',
+      postPayload: { data: vizOptions },
+    })
+      .then(({ json }) => {
+        dispatch(createDatasourceSuccess(json));
+
+        return json;
+      })
+      .catch(() => {
+        const errorMsg = t('An error occurred while creating the data source');
+        dispatch(createDatasourceFailed(errorMsg));
+        return Promise.reject(new Error(errorMsg));
+      });
+  };
+}
