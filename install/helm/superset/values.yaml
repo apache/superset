@@ -26,6 +26,22 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+initContainers: 
+  - name: wait-for-postgres
+    image: busybox:latest
+    imagePullPolicy: IfNotPresent
+    env:
+      - name: DB_HOST
+        valueFrom:
+          secretKeyRef:
+            name: superset-secret
+            key: db_host
+      - name: DB_PORT
+        valueFrom:
+          secretKeyRef:
+            name: superset-secret
+            key: db_port
+    command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
 service:
   type: NodePort
   port: 8088
@@ -71,17 +87,15 @@ supersetNode:
 
 init:
   enabled: true
-  waitImage:
-    repository: busybox
-    tag: latest
-    pullPolicy: IfNotPresent
   initscript: |-
+    superset db upgrade && \
+    superset init && \
     superset fab create-admin \
                     --username admin \
                       --firstname Superset \
                       --lastname Admin \
                       --email admin@superset.com \
-                      --password admin; superset db upgrade;superset init
+                      --password admin || true
 ##
 ## Configuration values for the postgresql dependency.
 ## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md

@@ -49,24 +49,6 @@ Create chart name and version as used by the chart label.
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "superset.wait-for-postgres" -}}
-- name: wait-for-postgres
-  image: "{{ .Values.init.waitImage.repository }}:{{ .Values.init.waitImage.tag }}"
-  imagePullPolicy: {{ .Values.init.waitImage.pullPolicy }}
-  env:
-    - name: DB_HOST
-      valueFrom:
-        secretKeyRef:
-          name: superset-secret
-          key: db_host
-    - name: DB_PORT
-      valueFrom:
-        secretKeyRef:
-          name: superset-secret
-          key: db_port
-  command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
-{{- end -}}
-
 {{- define "superset-connections.script" }}
 import os
 from werkzeug.contrib.cache import RedisCache
