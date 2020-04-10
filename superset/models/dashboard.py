@@ -350,9 +350,10 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         # override the dashboard
         existing_dashboard = None
         for dash in session.query(Dashboard).all():
-            if (
-                "remote_id" in dash.params_dict
-                and dash.params_dict["remote_id"] == dashboard_to_import.id
+            if "remote_id" in dash.params_dict and (
+                dash.params_dict["remote_id"]
+                == dashboard_to_import.params_dict["remote_id"]
+                or dash.dashboard_title == dashboard_to_import.dashboard_title
             ):
                 existing_dashboard = dash
 
