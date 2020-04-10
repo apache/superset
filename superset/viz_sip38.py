@@ -371,7 +371,7 @@ class BaseViz:
             "druid_time_origin": form_data.get("druid_time_origin", ""),
             "having": form_data.get("having", ""),
             "having_druid": form_data.get("having_filters", []),
-            "time_grain_sqla": form_data.get("time_grain_sqla", ""),
+            "time_grain_sqla": form_data.get("time_grain_sqla"),
             "time_range_endpoints": form_data.get("time_range_endpoints"),
             "where": form_data.get("where", ""),
         }
@@ -472,10 +472,10 @@ class BaseViz:
                     self.status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
-                except Exception as e:
-                    logger.exception(e)
+                except Exception as ex:
+                    logger.exception(ex)
                     logger.error(
-                        "Error reading cache: " + utils.error_msg_from_exception(e)
+                        "Error reading cache: " + utils.error_msg_from_exception(ex)
                     )
                 logger.info("Serving from cache")
 
@@ -487,10 +487,10 @@ class BaseViz:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
-            except Exception as e:
-                logger.exception(e)
+            except Exception as ex:
+                logger.exception(ex)
                 if not self.error_message:
-                    self.error_message = "{}".format(e)
+                    self.error_message = "{}".format(ex)
                 self.status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
@@ -510,12 +510,13 @@ class BaseViz:
 
                     stats_logger.incr("set_cache_key")
                     cache.set(cache_key, cache_value, timeout=self.cache_timeout)
-                except Exception as e:
+                except Exception as ex:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
                     logger.warning("Could not cache key {}".format(cache_key))
-                    logger.exception(e)
+                    logger.exception(ex)
                     cache.delete(cache_key)
+
         return {
             "cache_key": self._any_cache_key,
             "cached_dttm": self._any_cached_dttm,
@@ -525,6 +526,8 @@ class BaseViz:
             "form_data": self.form_data,
             "is_cached": self._any_cache_key is not None,
             "query": self.query,
+            "from_dttm": self.from_dttm if hasattr(self, "from_dttm") else None,
+            "to_dttm": self.to_dttm if hasattr(self, "to_dttm") else None,
             "status": self.status,
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
@@ -662,17 +665,18 @@ class TableViz(BaseViz):
             self.form_data.get("percent_metrics") or []
         )
 
-        df = pd.concat(
-            [
-                df[non_percent_metric_columns],
-                (
-                    df[percent_metric_columns]
-                    .div(df[percent_metric_columns].sum())
-                    .add_prefix("%")
-                ),
-            ],
-            axis=1,
-        )
+        if not df.empty:
+            df = pd.concat(
+                [
+                    df[non_percent_metric_columns],
+                    (
+                        df[percent_metric_columns]
+                        .div(df[percent_metric_columns].sum())
+                        .add_prefix("%")
+                    ),
+                ],
+                axis=1,
+            )
 
         data = self.handle_js_int_overflow(
             dict(records=df.to_dict(orient="records"), columns=list(df.columns))
@@ -2280,6 +2284,20 @@ class BaseDeckGLViz(BaseViz):
         for column in sorted(spatial_columns):
             filter_ = to_adhoc({"col": column, "op": "IS NOT NULL", "val": ""})
             fd["adhoc_filters"].append(filter_)
+
+    def query_obj(self):
+        fd = self.form_data
+
+        # add NULL filters
+        if fd.get("filter_nulls", True):
+            self.add_null_filters()
+
+        d = super().query_obj()
+
+        metrics = self.get_metrics()
+        if metrics:
+            d["metrics"] = metrics
+        return d
 
     def get_js_columns(self, d):
         cols = self.form_data.get("js_columns") or []
