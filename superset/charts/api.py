@@ -36,7 +36,7 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.update import UpdateChartCommand
-from superset.charts.filters import ChartFilter
+from superset.charts.filters import ChartFilter, ChartNameOrDescriptionFilter
 from superset.charts.schemas import (
     ChartPostSchema,
     ChartPutSchema,
@@ -111,6 +111,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     )
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
+    search_filters = {"slice_name": [ChartNameOrDescriptionFilter]}
 
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]
