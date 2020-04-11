@@ -3400,9 +3400,9 @@
   integrity sha512-t9ZmXOcpVxywRw86YtIC54g7M9puRh8hFedRvVfHKf5YyOP6pSxA0TvpXpfseXSCInoW4P7bggTrSDiUOs4g5w==
 
 "@types/datatables.net@^1.10.18":
-  version "1.10.18"
-  resolved "https://registry.yarnpkg.com/@types/datatables.net/-/datatables.net-1.10.18.tgz#620c318cdd4a4a11b2e1c619b6747745a25c1d8d"
-  integrity sha512-uz80YsSHTLGd14/A3P4+EIp4n5SqBIbjtd2Hl7SwsXl/9zpsXzE2OY+sz0Gm8TF2jPfsKl0+9yB7/8RtoD3qoA==
+  version "1.10.19"
+  resolved "https://registry.yarnpkg.com/@types/datatables.net/-/datatables.net-1.10.19.tgz#17c5f94433f761086131c6c8dc055a0e1099d1f9"
+  integrity sha512-WuzgytEmsIpVYZbkce+EvK1UqBI7/cwcC/WgYeAtXdq2zi+yWzJwMT5Yb6irAiOi52DBjeAEeRt3bYzFYvHWCQ==
   dependencies:
     "@types/jquery" "*"
 
