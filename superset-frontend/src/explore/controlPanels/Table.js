@@ -185,15 +185,13 @@ export default {
         ],
         [
           {
-            name: 'hide_cell_bars',
+            name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Hide Cell Bars'),
+              label: t('Show Cell Bars'),
               renderTrigger: true,
-              default: false,
-              description: t(
-                'Disable display of bar chart background elements in table columns',
-              ),
+              default: true,
+              description: t('Enable to display bar chart background elements in table columns'),
             },
           },
           null,
