@@ -566,6 +566,56 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 5)
 
+    def test_get_charts_custom_filter(self):
+        """
+            Chart API: Test get charts custom filter
+        """
+        admin = self.get_user("admin")
+        chart1 = self.insert_chart("foo", [admin.id], 1, description="ZY_bar")
+        chart2 = self.insert_chart("zy_foo", [admin.id], 1, description="desc1")
+        chart3 = self.insert_chart("foo", [admin.id], 1, description="desc1zy_")
+        chart4 = self.insert_chart("bar", [admin.id], 1, description="foo")
+
+        arguments = {
+            "filters": [
+                {"col": "slice_name", "opr": "name_or_description", "value": "zy_"}
+            ],
+            "order_column": "slice_name",
+            "order_direction": "asc",
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 3)
+
+        expected_response = [
+            {"description": "ZY_bar", "slice_name": "foo",},
+            {"description": "desc1zy_", "slice_name": "foo",},
+            {"description": "desc1", "slice_name": "zy_foo",},
+        ]
+        for index, item in enumerate(data["result"]):
+            self.assertEqual(
+                item["description"], expected_response[index]["description"]
+            )
+            self.assertEqual(item["slice_name"], expected_response[index]["slice_name"])
+
+        self.logout()
+        self.login(username="gamma")
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 0)
+
+        # rollback changes
+        db.session.delete(chart1)
+        db.session.delete(chart2)
+        db.session.delete(chart3)
+        db.session.delete(chart4)
+        db.session.commit()
+
     def test_get_charts_page(self):
         """
             Chart API: Test get charts filter
