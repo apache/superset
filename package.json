@@ -1,0 +1,14 @@
+{
+  "name": "Utility360",
+  "version": "1.0.0",
+  "description": "Utility360 is a modern, enterprise-ready business intelligence web application",
+  "author": "Hexstream",
+  "dependencies": {
+    
+  },
+  "scripts": {
+    "start": "docker-compose up",
+    "start:build": "docker-compose up --build",
+    "stop": "docker-compose down"
+  }
+}
