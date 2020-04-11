@@ -51,7 +51,7 @@
     "@superset-ui/translation": "0.12.13",
     "@types/storybook__react": "5.2.1",
     "bootstrap": "^3.4.1",
-    "core-js": "3.6.4",
+    "core-js": "3.6.5",
     "gh-pages": "^2.2.0",
     "jquery": "^3.4.1",
     "react": "^16.6.0",
