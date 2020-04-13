@@ -1293,24 +1293,50 @@ class Superset(BaseSupersetView):
         database = db.session.query(models.Database).filter_by(id=db_id).one()
 
         if schema:
-            tables = (
-                database.get_all_table_names_in_schema(
-                    schema=schema,
-                    force=force_refresh,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
+            # edit by wuyl to fix spark-sql table info
+            if db_id in [7]:
+                from pyhive import hive
+                cursor = hive.connect(host='172.31.21.50', port=10001, username='hive', database=schema).cursor()
+
+                query = 'show tables'
+                if schema is not None:
+                    query += ' in %s' % schema
+
+                cursor.execute(query)
+
+                data = cursor.fetchall()
+
+                tables = [utils.DatasourceName(table=tup[1], schema=schema) for tup in data]
+
+                views = (
+                        database.get_all_view_names_in_schema(
+                            schema=schema,
+                            force=force_refresh,
+                            cache=database.table_cache_enabled,
+                            cache_timeout=database.table_cache_timeout,
+                        )
+                        or []
                 )
-                or []
-            )
-            views = (
-                database.get_all_view_names_in_schema(
-                    schema=schema,
-                    force=force_refresh,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
+
+            else:
+                tables = (
+                    database.get_all_table_names_in_schema(
+                        schema=schema,
+                        force=force_refresh,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
+                    or []
                 )
-                or []
-            )
+                views = (
+                    database.get_all_view_names_in_schema(
+                        schema=schema,
+                        force=force_refresh,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
+                    or []
+                )
         else:
             tables = database.get_all_table_names_in_database(
                 cache=True, force=False, cache_timeout=24 * 60 * 60
