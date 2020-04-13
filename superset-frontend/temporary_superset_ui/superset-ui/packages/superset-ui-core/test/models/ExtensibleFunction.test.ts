@@ -1,11 +1,20 @@
 import { ExtensibleFunction } from '../../src';
 
 describe('ExtensibleFunction', () => {
+  interface Func1 {
+    (): number;
+  }
+
   class Func1 extends ExtensibleFunction {
     constructor(x: unknown) {
       super(() => x); // closure
     }
   }
+
+  interface Func2 {
+    (): number;
+  }
+
   class Func2 extends ExtensibleFunction {
     x: unknown;
 
