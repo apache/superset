@@ -30,6 +30,13 @@ module.exports = {
   plugins: ['prettier', 'react'],
   overrides: [
     {
+      files: ['cypress-base/**/*'],
+      rules: {
+        'import/no-unresolved': 0,
+        'global-require': 0,
+      }
+    },
+    {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
       extends: [
