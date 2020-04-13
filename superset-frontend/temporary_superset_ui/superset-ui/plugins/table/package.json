@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-table",
-  "version": "0.12.13",
+  "version": "0.12.14",
   "description": "Superset Legacy Chart - Table",
   "sideEffects": [
     "*.css"
