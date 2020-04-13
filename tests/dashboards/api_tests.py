@@ -192,7 +192,9 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         arguments = {
             "filters": [
                 {"col": "dashboard_title", "opr": "title_or_slug", "value": "zy_"}
-            ]
+            ],
+            "order_column": "dashboard_title",
+            "order_direction": "asc",
         }
         self.login(username="admin")
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
@@ -200,6 +202,17 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 3)
+
+        expected_response = [
+            {"slug": "ZY_bar", "dashboard_title": "foo",},
+            {"slug": "slug1zy_", "dashboard_title": "foo",},
+            {"slug": "slug1", "dashboard_title": "zy_foo",},
+        ]
+        for index, item in enumerate(data["result"]):
+            self.assertEqual(item["slug"], expected_response[index]["slug"])
+            self.assertEqual(
+                item["dashboard_title"], expected_response[index]["dashboard_title"]
+            )
 
         self.logout()
         self.login(username="gamma")
