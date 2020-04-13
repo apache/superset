@@ -24,7 +24,7 @@ import simplejson as json
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset import app
+from superset import app, is_feature_enabled
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import core as utils, pandas_postprocessing
 from superset.views.utils import get_time_range_endpoints
