@@ -21,6 +21,7 @@ from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
@@ -417,7 +418,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(thumbnail_query_schema)
-    def thumbnail(self, pk: int, digest: str, **kwargs: Dict[str, bool]) -> Response:
+    def thumbnail(
+        self, pk: int, digest: str, **kwargs: Dict[str, bool]
+    ) -> WerkzeugResponse:
         """Get Dashboard thumbnail
         ---
         get:

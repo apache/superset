@@ -211,9 +211,7 @@ class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart.id}/thumbnail/1234/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 302)
-        self.assertRedirects(
-            rv, f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
-        )
+        self.assertRedirects(rv, f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/")
 
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_cached_dashboard_screenshot(self):
