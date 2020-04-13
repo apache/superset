@@ -45,6 +45,9 @@ describe('TimeFormatter', () => {
     it('handles undefined', () => {
       expect(formatter.format(undefined)).toEqual('undefined');
     });
+    it('handles number, treating it as a timestamp', () => {
+      expect(formatter.format(PREVIEW_TIME.getTime())).toEqual('2017');
+    });
     it('otherwise returns formatted value', () => {
       expect(formatter.format(PREVIEW_TIME)).toEqual('2017');
     });
