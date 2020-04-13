@@ -65,7 +65,7 @@ function mergeCreateFilterValues(list: Filter[], updateList: FilterValue[]) {
   return list.map(({ id, operator }) => {
     const update = updateList.find(obj => obj.id === id);
 
-    return { id, operator, value: update && update.value };
+    return { id, operator, value: update?.value };
   });
 }
 
@@ -88,8 +88,8 @@ export function extractInputValue(inputType: Filter['input'], event: any) {
 }
 
 export function getDefaultFilterOperator(filter: Filter): string {
-  if (filter.operator) return filter.operator;
-  if (filter.operators && filter.operators.length) {
+  if (filter?.operator) return filter.operator;
+  if (filter?.operators?.length) {
     return filter.operators[0].value;
   }
   return '';
@@ -212,11 +212,10 @@ export function useListViewState({
   const filtersApplied = internalFilters.every(
     ({ id, value, operator }, index) =>
       id &&
-      filters[index] &&
-      filters[index].id === id &&
-      filters[index].value === value &&
+      filters[index]?.id === id &&
+      filters[index]?.value === value &&
       // @ts-ignore
-      filters[index].operator === operator,
+      filters[index]?.operator === operator,
   );
 
   const updateInternalFilter = (index: number, update: object) =>
