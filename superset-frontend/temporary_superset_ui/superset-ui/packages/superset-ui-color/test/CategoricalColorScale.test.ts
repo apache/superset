@@ -1,3 +1,4 @@
+import { ScaleOrdinal } from 'd3-scale';
 import CategoricalColorScale from '../src/CategoricalColorScale';
 
 describe('CategoricalColorScale', () => {
@@ -99,11 +100,70 @@ describe('CategoricalColorScale', () => {
       });
     });
   });
+
+  describe('.copy()', () => {
+    it('returns a copy', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      const copy = scale.copy();
+      expect(copy).not.toBe(scale);
+      expect(copy('cat')).toEqual(scale('cat'));
+      expect(copy.domain()).toEqual(scale.domain());
+      expect(copy.range()).toEqual(scale.range());
+      expect(copy.unknown()).toEqual(scale.unknown());
+    });
+  });
+  describe('.domain()', () => {
+    it('when called without argument, returns domain', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale.getColor('pig');
+      expect(scale.domain()).toEqual(['pig']);
+    });
+    it('when called with argument, sets domain', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale.domain(['dog', 'pig', 'cat']);
+      expect(scale('pig')).toEqual('red');
+    });
+  });
+  describe('.range()', () => {
+    it('when called without argument, returns range', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      expect(scale.range()).toEqual(['blue', 'red', 'green']);
+    });
+    it('when called with argument, sets range', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale.range(['pink', 'gray', 'yellow']);
+      expect(scale.range()).toEqual(['pink', 'gray', 'yellow']);
+    });
+  });
+  describe('.unknown()', () => {
+    it('when called without argument, returns output for unknown value', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale.unknown('#666');
+      expect(scale.unknown()).toEqual('#666');
+    });
+    it('when called with argument, sets output for unknown value', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale.unknown('#222');
+      expect(scale.unknown()).toEqual('#222');
+    });
+  });
+
   describe('a CategoricalColorScale instance is also a color function itself', () => {
     it('scale(value) returns color similar to calling scale.getColor(value)', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale.getColor('pig')).toBe(scale('pig'));
       expect(scale.getColor('cat')).toBe(scale('cat'));
+    });
+  });
+
+  describe("is compatible with D3's ScaleOrdinal", () => {
+    it('passes type check', () => {
+      const scale: ScaleOrdinal<{ toString(): string }, string> = new CategoricalColorScale([
+        'blue',
+        'red',
+        'green',
+      ]);
+      expect(scale('pig')).toBe('blue');
     });
   });
 });
