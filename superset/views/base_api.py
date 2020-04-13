@@ -18,7 +18,7 @@ import functools
 import logging
 from typing import cast, Dict, Set, Tuple, Type, Union
 
-from flask import request
+from flask import request, Response
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
@@ -153,6 +153,33 @@ class BaseSupersetModelRestApi(ModelRestApi):
     def incr_stats(self, action: str, func_name: str) -> None:
         self.stats_logger.incr(f"{self.__class__.__name__}.{func_name}.{action}")
 
+    def info_headless(self, **kwargs) -> Response:
+        self.incr_stats("init", self.info.__name__)
+        response = super().info_headless(**kwargs)
+        if response.status_code == 200:
+            self.incr_stats("success", self.get.__name__)
+        else:
+            self.incr_stats("error", self.get.__name__)
+        return response
+
+    def get_headless(self, pk, **kwargs) -> Response:
+        self.incr_stats("init", self.get.__name__)
+        response = super().get_headless(pk, **kwargs)
+        if response.status_code == 200:
+            self.incr_stats("success", self.get.__name__)
+        else:
+            self.incr_stats("error", self.get.__name__)
+        return response
+
+    def get_list_headless(self, **kwargs) -> Response:
+        self.incr_stats("init", self.get_list.__name__)
+        response = super().get_list_headless(**kwargs)
+        if response.status_code == 200:
+            self.incr_stats("success", self.get.__name__)
+        else:
+            self.incr_stats("error", self.get.__name__)
+        return response
+
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
     @safe
@@ -207,7 +234,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        self.incr_stats("init", self.related.__name__)
         if column_name not in self.allowed_rel_fields:
+            self.incr_stats("error", self.related.__name__)
             return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination
@@ -215,6 +244,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         try:
             datamodel = self.datamodel.get_related_interface(column_name)
         except KeyError:
+            self.incr_stats("error", self.related.__name__)
             return self.response_404()
         page, page_size = self._sanitize_page_args(page, page_size)
         # handle ordering
@@ -234,6 +264,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
             {"value": datamodel.get_pk_value(value), "text": str(value)}
             for value in values
         ]
+        self.incr_stats("success", self.related.__name__)
         return self.response(200, count=count, result=result)
 
 
