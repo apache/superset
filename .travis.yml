@@ -20,9 +20,6 @@ jobs:
       python: 3.6
       env:
         - TOXENV=fossa
-      install:
-        - pip install --upgrade pip
-        - pip install tox
     - language: python
       python: 3.6
       env:
@@ -32,46 +29,53 @@ jobs:
         apt:
           packages:
             - openjdk-8-jdk
-      install:
-        - pip install --upgrade pip
-        - pip install tox
     - language: python
       python: 3.6
       env: TOXENV=cypress-dashboard
       services:
-        - redis-server
+        - redis
       before_install:
         - nvm install 10.14.2
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF ui,cypress
     - language: python
       python: 3.6
       env: TOXENV=cypress-explore
       services:
-        - redis-server
+        - redis
       before_install:
         - nvm install 10.14.2
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF ui,cypress
     - language: python
       python: 3.6
       env: TOXENV=cypress-sqllab
       services:
-        - redis-server
+        - redis
       before_install:
         - nvm install 10.14.2
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF ui,cypress
     - language: python
       python: 3.6
       env: TOXENV=py36-mysql
       services:
         - mysql
-        - redis-server
+        - redis
       before_script:
         - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
         - mysql -u root -e "DROP DATABASE IF EXISTS sqllab_test_db; CREATE DATABASE sqllab_test_db DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
         - mysql -u root -e "DROP DATABASE IF EXISTS admin_database; CREATE DATABASE admin_database DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
         - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
         - mysql -u root -e "GRANT ALL ON *.* TO 'mysqluser'@'localhost';"
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF unittest,python,mysql
     - language: python
       env: TOXENV=javascript
       before_install:
         - nvm install 10.14.2
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF unittest,javascript
     - language: python
       python: 3.6
       env: TOXENV=black
@@ -85,13 +89,15 @@ jobs:
       python: 3.6
       env: TOXENV=py36-sqlite
       services:
-        - redis-server
+        - redis
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF unittest,python,sqllite
     - language: python
       python: 3.6
       env: TOXENV=py36-postgres
       services:
         - postgresql
-        - redis-server
+        - redis
       before_script:
         - psql -U postgres -c "DROP DATABASE IF EXISTS superset;"
         - psql -U postgres -c "CREATE DATABASE superset;"
@@ -102,6 +108,8 @@ jobs:
         - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
         - psql -U postgres superset -c "GRANT ALL PRIVILEGES ON SCHEMA sqllab_test_db to postgresuser";
         - psql -U postgres superset -c "GRANT ALL PRIVILEGES ON SCHEMA admin_database to postgresuser";
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF unittest,python,postgres
     - language: python
       python: 3.6
       env: TOXENV=pylint
@@ -111,8 +119,6 @@ jobs:
 
 script:
   - tox
-after_success:
-  - codecov
 cache:
   pip: true
   directories:
@@ -126,4 +132,4 @@ addons:
       - libgconf-2-4
 install:
   - pip install --upgrade pip
-  - pip install codecov tox
+  - pip install tox
