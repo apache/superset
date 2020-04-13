@@ -62,13 +62,13 @@ import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
 } from '@superset-ui/color';
+import { validateInteger, validateNonEmpty } from '@superset-ui/validator';
 
 import {
   formatSelectOptionsForRange,
   formatSelectOptions,
   mainMetric,
 } from '../modules/utils';
-import { validateInteger, validateNonEmpty } from '@superset-ui/validator';
 import ColumnOption from '../components/ColumnOption';
 import { TIME_FILTER_LABELS } from './constants';
 

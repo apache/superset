@@ -17,8 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { validateNonEmpty, validateInteger } from '@superset-ui/validator';
+import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { columnChoices, PRIMARY_COLOR } from '../controls';
 import { formatSelectOptions } from '../../modules/utils';
 import {

@@ -51,7 +51,7 @@ export default class TextControl extends React.Component {
     // Validation & casting
     const errors = [];
     if (value !== '' && this.props.isFloat) {
-      const error = numeric(value);
+      const error = validateNumeric(value);
       if (error) {
         errors.push(error);
       } else {
@@ -59,7 +59,7 @@ export default class TextControl extends React.Component {
       }
     }
     if (value !== '' && this.props.isInt) {
-      const error = integer(value);
+      const error = validateInteger(value);
       if (error) {
         errors.push(error);
       } else {

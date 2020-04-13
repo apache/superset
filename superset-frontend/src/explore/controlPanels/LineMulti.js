@@ -17,9 +17,9 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
   requiresTime: true,

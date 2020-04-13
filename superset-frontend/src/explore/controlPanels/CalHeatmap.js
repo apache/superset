@@ -17,12 +17,12 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { validateInteger } from '@superset-ui/validator';
 import {
   // formatSelectOptionsForRange,
   formatSelectOptions,
   // mainMetric,
 } from '../../modules/utils';
-import { validateInteger } from '@superset-ui/validator';
 import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 
 export default {

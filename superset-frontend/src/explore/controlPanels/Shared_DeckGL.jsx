@@ -21,11 +21,10 @@
 
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 import ColumnOption from '../../components/ColumnOption';
 import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
 import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
-
-import { validateNonEmpty } from '@superset-ui/validator';
 
 const timeColumnOption = {
   verbose_name: 'Time',

@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 import { NVD3TimeSeries } from './sections';
 import OptionDescription from '../../components/OptionDescription';
-import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
   controlPanelSections: [
