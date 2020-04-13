@@ -289,6 +289,7 @@ DEFAULT_FEATURE_FLAGS = {
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
+    "LIST_VIEWS_NEW_UI": False,
 }
 
 # This is merely a default.

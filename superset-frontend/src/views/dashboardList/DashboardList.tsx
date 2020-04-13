@@ -32,6 +32,7 @@ import {
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const PAGE_SIZE = 25;
 
@@ -123,6 +124,10 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   get canExport() {
     return this.hasPerm('can_mulexport');
+  }
+
+  get isNewUIEnabled() {
+    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_NEW_UI);
   }
 
   initialSort = [{ id: 'changed_on', desc: true }];
@@ -378,6 +383,39 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   updateFilters = () => {
     const { filterOperators, owners } = this.state;
+
+    if (this.isNewUIEnabled) {
+      return this.setState({
+        filters: [
+          {
+            Header: 'Owner',
+            id: 'owners',
+            input: 'select',
+            operator: 'rel_m_m',
+            unfilteredLabel: 'All',
+            selects: owners.map(({ text: label, value }) => ({ label, value })),
+          },
+          {
+            Header: 'Published',
+            id: 'published',
+            input: 'select',
+            operator: 'eq',
+            unfilteredLabel: 'Any',
+            selects: [
+              { label: 'Published', value: true },
+              { label: 'Unpublished', value: false },
+            ],
+          },
+          {
+            Header: 'Search',
+            id: 'dashboard_title',
+            input: 'search',
+            operator: 'title_or_slug',
+          },
+        ],
+      });
+    }
+
     const convertFilter = ({
       name: label,
       operator,
@@ -386,7 +424,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       operator: string;
     }) => ({ label, value: operator });
 
-    this.setState({
+    return this.setState({
       filters: [
         {
           Header: 'Dashboard',
@@ -481,6 +519,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                       initialSort={this.initialSort}
                       filters={filters}
                       bulkActions={bulkActions}
+                      useNewUIFilters={this.isNewUIEnabled}
                     />
                   </>
                 );
