@@ -21,6 +21,7 @@ import { ChartProps } from '@superset-ui/chart';
 const basicFormData = {
   alignPn: false,
   colorPn: false,
+  showCellBars: true,
   includeSearch: false,
   orderDesc: true,
   pageLength: 0,
