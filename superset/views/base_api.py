@@ -16,7 +16,8 @@
 # under the License.
 import functools
 import logging
-from typing import cast, Dict, Set, Tuple, Type, Union
+from timeit import default_timer
+from typing import Any, cast, Dict, Optional, Set, Tuple, Type, Union
 
 from flask import request, Response
 from flask_appbuilder import ModelRestApi
@@ -37,6 +38,21 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
+
+
+def statsd_incr(f):
+    """
+        Handle sending all statsd metrics from the REST API
+    """
+
+    def wraps(self, *args: Any, **kwargs: Any) -> Response:
+        start = default_timer()
+        response = f(self, *args, **kwargs)
+        stop = default_timer()
+        self.send_stats_metrics(response, f.__name__, stop - start)
+        return response
+
+    return functools.update_wrapper(wraps, f)
 
 
 def check_ownership_and_item_exists(f):
@@ -151,38 +167,74 @@ class BaseSupersetModelRestApi(ModelRestApi):
         return filters
 
     def incr_stats(self, action: str, func_name: str) -> None:
+        """
+            Proxy function for statsd.incr to impose a key structure for REST API's
+        :param action: String with an action name eg: error, success
+        :param func_name: The function name
+        """
         self.stats_logger.incr(f"{self.__class__.__name__}.{func_name}.{action}")
 
-    def info_headless(self, **kwargs) -> Response:
-        self.incr_stats("init", self.info.__name__)
-        response = super().info_headless(**kwargs)
-        if response.status_code == 200:
-            self.incr_stats("success", self.get.__name__)
+    def timing_stats(self, action: str, func_name: str, value: float) -> None:
+        """
+            Proxy function for statsd.incr to impose a key structure for REST API's
+        :param action: String with an action name eg: error, success
+        :param func_name: The function name
+        :param value: A float with the time it took for the endpoint to execute
+        """
+        self.stats_logger.timing(
+            f"{self.__class__.__name__}.{func_name}.{action}", value
+        )
+
+    def send_stats_metrics(
+        self, response: Response, key: str, time_delta: Optional[float] = None
+    ) -> None:
+        """
+            Helper function to handle sending statsd metrics
+        :param response: flask response object, will evaluate if it was an error
+        :param key: The function name
+        :param time_delta: Optional time it took for the endpoint to execute
+        """
+        if 200 <= response.status_code < 400:
+            self.incr_stats("success", key)
         else:
-            self.incr_stats("error", self.get.__name__)
+            self.incr_stats("error", key)
+        if time_delta:
+            self.timing_stats("time", key, time_delta)
+
+    def info_headless(self, **kwargs) -> Response:
+        """
+            Add statsd metrics to builtin FAB _info endpoint
+        """
+        start = default_timer()
+        response = super().info_headless(**kwargs)
+        stop = default_timer()
+        self.send_stats_metrics(response, self.info.__name__, stop - start)
         return response
 
     def get_headless(self, pk, **kwargs) -> Response:
-        self.incr_stats("init", self.get.__name__)
+        """
+            Add statsd metrics to builtin FAB GET endpoint
+        """
+        start = default_timer()
         response = super().get_headless(pk, **kwargs)
-        if response.status_code == 200:
-            self.incr_stats("success", self.get.__name__)
-        else:
-            self.incr_stats("error", self.get.__name__)
+        stop = default_timer()
+        self.send_stats_metrics(response, self.get.__name__, stop - start)
         return response
 
     def get_list_headless(self, **kwargs) -> Response:
-        self.incr_stats("init", self.get_list.__name__)
+        """
+            Add statsd metrics to builtin FAB GET list endpoint
+        """
+        start = default_timer()
         response = super().get_list_headless(**kwargs)
-        if response.status_code == 200:
-            self.incr_stats("success", self.get.__name__)
-        else:
-            self.incr_stats("error", self.get.__name__)
+        stop = default_timer()
+        self.send_stats_metrics(response, self.get_list.__name__, stop - start)
         return response
 
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
     @safe
+    @statsd_incr
     @rison(get_related_schema)
     def related(self, column_name: str, **kwargs):
         """Get related fields data
@@ -234,7 +286,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.related.__name__)
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
             return self.response_404()
@@ -244,7 +295,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
         try:
             datamodel = self.datamodel.get_related_interface(column_name)
         except KeyError:
-            self.incr_stats("error", self.related.__name__)
             return self.response_404()
         page, page_size = self._sanitize_page_args(page, page_size)
         # handle ordering
@@ -264,7 +314,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
             {"value": datamodel.get_pk_value(value), "text": str(value)}
             for value in values
         ]
-        self.incr_stats("success", self.related.__name__)
         return self.response(200, count=count, result=result)
 
 

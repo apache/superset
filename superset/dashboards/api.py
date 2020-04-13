@@ -45,7 +45,11 @@ from superset.dashboards.schemas import (
 )
 from superset.models.dashboard import Dashboard
 from superset.views.base import generate_download_headers
-from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    RelatedFieldFilter,
+    statsd_incr,
+)
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -126,6 +130,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/", methods=["POST"])
     @protect()
     @safe
+    @statsd_incr
     def post(self) -> Response:
         """Creates a new Dashboard
         ---
@@ -160,30 +165,25 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.post.__name__)
         if not request.is_json:
-            self.incr_stats("error", self.post.__name__)
             return self.response_400(message="Request is not JSON")
         item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
         if item.errors:
-            self.incr_stats("error", self.post.__name__)
             return self.response_400(message=item.errors)
         try:
             new_model = CreateDashboardCommand(g.user, item.data).run()
-            self.incr_stats("success", self.post.__name__)
             return self.response(201, id=new_model.id, result=item.data)
         except DashboardInvalidError as ex:
-            self.incr_stats("error", self.post.__name__)
             return self.response_422(message=ex.normalized_messages())
         except DashboardCreateFailedError as ex:
             logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
-            self.incr_stats("error", self.post.__name__)
             return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
     @safe
+    @statsd_incr
     def put(  # pylint: disable=too-many-return-statements, arguments-differ
         self, pk: int
     ) -> Response:
@@ -229,36 +229,29 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.put.__name__)
         if not request.is_json:
-            self.incr_stats("error", self.put.__name__)
             return self.response_400(message="Request is not JSON")
         item = self.edit_model_schema.load(request.json)
         # This validates custom Schema with custom validations
         if item.errors:
-            self.incr_stats("error", self.put.__name__)
             return self.response_400(message=item.errors)
         try:
             changed_model = UpdateDashboardCommand(g.user, pk, item.data).run()
-            self.incr_stats("success", self.put.__name__)
             return self.response(200, id=changed_model.id, result=item.data)
         except DashboardNotFoundError:
-            self.incr_stats("error", self.put.__name__)
             return self.response_404()
         except DashboardForbiddenError:
-            self.incr_stats("error", self.put.__name__)
             return self.response_403()
         except DashboardInvalidError as ex:
-            self.incr_stats("error", self.put.__name__)
             return self.response_422(message=ex.normalized_messages())
         except DashboardUpdateFailedError as ex:
             logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
-            self.incr_stats("error", self.put.__name__)
             return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
     @safe
+    @statsd_incr
     def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Deletes a Dashboard
         ---
@@ -291,25 +284,21 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.delete.__name__)
         try:
             DeleteDashboardCommand(g.user, pk).run()
-            self.incr_stats("success", self.delete.__name__)
             return self.response(200, message="OK")
         except DashboardNotFoundError:
-            self.incr_stats("error", self.delete.__name__)
             return self.response_404()
         except DashboardForbiddenError:
-            self.incr_stats("error", self.delete.__name__)
             return self.response_403()
         except DashboardDeleteFailedError as ex:
             logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
-            self.incr_stats("error", self.delete.__name__)
             return self.response_422(message=str(ex))
 
     @expose("/", methods=["DELETE"])
     @protect()
     @safe
+    @statsd_incr
     @rison(get_delete_ids_schema)
     def bulk_delete(
         self, **kwargs: Any
@@ -349,11 +338,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.bulk_delete.__name__)
         item_ids = kwargs["rison"]
         try:
             BulkDeleteDashboardCommand(g.user, item_ids).run()
-            self.incr_stats("success", self.bulk_delete.__name__)
             return self.response(
                 200,
                 message=ngettext(
@@ -363,18 +350,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 ),
             )
         except DashboardNotFoundError:
-            self.incr_stats("error", self.bulk_delete.__name__)
             return self.response_404()
         except DashboardForbiddenError:
-            self.incr_stats("error", self.bulk_delete.__name__)
             return self.response_403()
         except DashboardBulkDeleteFailedError as ex:
-            self.incr_stats("error", self.bulk_delete.__name__)
             return self.response_422(message=str(ex))
 
     @expose("/export/", methods=["GET"])
     @protect()
     @safe
+    @statsd_incr
     @rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
         """Export dashboards
@@ -409,7 +394,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.bulk_delete.__name__)
         query = self.datamodel.session.query(Dashboard).filter(
             Dashboard.id.in_(kwargs["rison"])
         )
@@ -422,5 +406,4 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         resp.headers["Content-Disposition"] = generate_download_headers("json")[
             "Content-Disposition"
         ]
-        self.incr_stats("success", self.bulk_delete.__name__)
         return resp
