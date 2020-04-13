@@ -3,7 +3,13 @@ import { TimeFormatFunction } from './types';
 
 export const PREVIEW_TIME = new Date(Date.UTC(2017, 1, 14, 11, 22, 33));
 
-export default class TimeFormatter extends ExtensibleFunction {
+// Use type augmentation to indicate that
+// an instance of TimeFormatter is also a function
+interface TimeFormatter {
+  (value: Date | number | null | undefined): string;
+}
+
+class TimeFormatter extends ExtensibleFunction {
   id: string;
 
   label: string;
@@ -21,7 +27,7 @@ export default class TimeFormatter extends ExtensibleFunction {
     formatFunc: TimeFormatFunction;
     useLocalTime?: boolean;
   }) {
-    super((value: Date | null | undefined) => this.format(value));
+    super((value: Date | number | null | undefined) => this.format(value));
 
     const {
       id = isRequired('config.id'),
@@ -38,15 +44,17 @@ export default class TimeFormatter extends ExtensibleFunction {
     this.useLocalTime = useLocalTime;
   }
 
-  format(value: Date | null | undefined) {
+  format(value: Date | number | null | undefined) {
     if (value === null || value === undefined) {
       return `${value}`;
     }
 
-    return this.formatFunc(value);
+    return this.formatFunc(value instanceof Date ? value : new Date(value));
   }
 
   preview(value: Date = PREVIEW_TIME) {
     return `${value.toUTCString()} => ${this.format(value)}`;
   }
 }
+
+export default TimeFormatter;
