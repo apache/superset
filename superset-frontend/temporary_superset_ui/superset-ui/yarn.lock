@@ -17214,9 +17214,9 @@ yeoman-environment@^2.3.4, yeoman-environment@^2.8.1:
     untildify "^3.0.3"
 
 yeoman-generator@^4.0.0, yeoman-generator@^4.7.2:
-  version "4.8.0"
-  resolved "https://registry.yarnpkg.com/yeoman-generator/-/yeoman-generator-4.8.0.tgz#d2631376205f0e626036eee82c2a8855aafe82c1"
-  integrity sha512-3olXkJbFbTJGvq63Cv1ZEhiYv5avQYCqqlLvI1vLqHOgKjtyLW/R4LgmIPjI2oaYhJ2+HM08e+iq6KTwnl9j+w==
+  version "4.8.2"
+  resolved "https://registry.yarnpkg.com/yeoman-generator/-/yeoman-generator-4.8.2.tgz#054e6123251bf92f7fd5aa91bfdf6a18632559c9"
+  integrity sha512-4kJAf2u5mee8yO7Ph6e64KLHeC7sCSYPCP7YcCUjussBFzoMEqJ2+Dn2Yj41rBLArSBBmZOQ/e2bMYlh6qQ9ag==
   dependencies:
     async "^2.6.2"
     chalk "^2.4.2"
