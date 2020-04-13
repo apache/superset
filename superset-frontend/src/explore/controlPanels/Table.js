@@ -183,6 +183,21 @@ export default {
             },
           },
         ],
+        [
+          {
+            name: 'show_cell_bars',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Cell Bars'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Enable to display bar chart background elements in table columns',
+              ),
+            },
+          },
+          null,
+        ],
       ],
     },
   ],
