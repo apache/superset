@@ -162,10 +162,10 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { published },
         },
       }: any) => (
-        <span className="no-wrap">
-          {published ? <i className="fa fa-check" /> : ''}
-        </span>
-      ),
+          <span className="no-wrap">
+            {published ? <i className="fa fa-check" /> : ''}
+          </span>
+        ),
       Header: t('Published'),
       accessor: 'published',
       sortable: true,
@@ -410,7 +410,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             Header: 'Search',
             id: 'dashboard_title',
             input: 'search',
-            operator: 'ct',
+            operator: 'title_or_slug',
           },
         ],
       });
