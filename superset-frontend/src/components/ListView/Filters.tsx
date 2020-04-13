@@ -19,9 +19,9 @@
 import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { withTheme } from 'emotion-theming';
-// @ts-ignore
-import Select from 'react-select';
 
+import StyledSelect from 'src/components/StyledSelect';
+import SearchInput from 'src/components/SearchInput';
 import { Filter, Filters, FilterValue, InternalFilter } from './types';
 
 interface BaseFilter {
@@ -33,33 +33,6 @@ interface SelectFilterProps extends BaseFilter {
   selects: Filter['selects'];
   emptyLabel?: string;
 }
-
-const StyledSelect = styled(Select)`
-  display: inline;
-  &.is-focused:not(.is-open) > .Select-control {
-    border: none;
-    box-shadow: none;
-  }
-  .Select-control {
-    display: inline-table;
-    border: none;
-    width: 100px;
-    &:focus,
-    &:hover {
-      border: none;
-      box-shadow: none;
-    }
-
-    .Select-arrow-zone {
-      padding-left: 10px;
-    }
-  }
-  .Select-menu-outer {
-    margin-top: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-`;
 
 const FilterContainer = styled.div`
   display: inline;
@@ -119,16 +92,6 @@ interface SearchHeaderProps extends BaseFilter {
   Header: string;
   onSubmit: (val: string) => void;
 }
-
-const SearchInput = styled.input`
-  background-color: #fff;
-  background-image: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  padding: 4px 8px;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-`;
 
 function SearchFilter({ Header, initialValue, onSubmit }: SearchHeaderProps) {
   const [value, setValue] = useState(initialValue || '');

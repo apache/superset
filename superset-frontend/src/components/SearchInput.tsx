@@ -16,28 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module.exports = {
-  testRegex: '\\/spec\\/.*(_spec|\\.test)\\.(j|t)sx?$',
-  moduleNameMapper: {
-    '\\.(css|less)$': '<rootDir>/spec/__mocks__/styleMock.js',
-    '\\.(gif|ttf|eot|svg)$': '<rootDir>/spec/__mocks__/fileMock.js',
-    '^src/(.*)$': '<rootDir>/src/$1',
-  },
-  setupFilesAfterEnv: ['<rootDir>/spec/helpers/shim.js'],
-  testURL: 'http://localhost',
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
-  coverageDirectory: '<rootDir>/coverage/',
-  transform: {
-    '^.+\\.jsx?$': 'babel-jest',
-    '^.+\\.tsx?$': 'ts-jest',
-  },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  globals: {
-    'ts-jest': {
-      babelConfig: true,
-      diagnostics: {
-        warnOnly: true,
-      },
-    },
-  },
-};
+import styled from '@emotion/styled';
+
+export default styled.input`
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  padding: 4px 8px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+`;

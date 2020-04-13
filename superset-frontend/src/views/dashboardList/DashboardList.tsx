@@ -162,10 +162,10 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { published },
         },
       }: any) => (
-          <span className="no-wrap">
-            {published ? <i className="fa fa-check" /> : ''}
-          </span>
-        ),
+        <span className="no-wrap">
+          {published ? <i className="fa fa-check" /> : ''}
+        </span>
+      ),
       Header: t('Published'),
       accessor: 'published',
       sortable: true,
