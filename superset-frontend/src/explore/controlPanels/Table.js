@@ -191,7 +191,9 @@ export default {
               label: t('Show Cell Bars'),
               renderTrigger: true,
               default: true,
-              description: t('Enable to display bar chart background elements in table columns'),
+              description: t(
+                'Enable to display bar chart background elements in table columns',
+              ),
             },
           },
           null,
