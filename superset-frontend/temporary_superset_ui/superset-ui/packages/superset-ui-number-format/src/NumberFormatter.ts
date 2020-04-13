@@ -11,7 +11,13 @@ export interface NumberFormatterConfig {
   isInvalid?: boolean;
 }
 
-export default class NumberFormatter extends ExtensibleFunction {
+// Use type augmentation to indicate that
+// an instance of NumberFormatter is also a function
+interface NumberFormatter {
+  (value: number | null | undefined): string;
+}
+
+class NumberFormatter extends ExtensibleFunction {
   id: string;
 
   label: string;
@@ -57,3 +63,5 @@ export default class NumberFormatter extends ExtensibleFunction {
     return `${value} => ${this.format(value)}`;
   }
 }
+
+export default NumberFormatter;
