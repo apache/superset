@@ -62,7 +62,10 @@ import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
 } from '@superset-ui/color';
-import { legacyValidateInteger, validateNonEmpty } from '@superset-ui/validator';
+import {
+  legacyValidateInteger,
+  validateNonEmpty,
+} from '@superset-ui/validator';
 
 import {
   formatSelectOptionsForRange,

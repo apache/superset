@@ -17,7 +17,10 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { validateNonEmpty, legacyValidateInteger } from '@superset-ui/validator';
+import {
+  validateNonEmpty,
+  legacyValidateInteger,
+} from '@superset-ui/validator';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { columnChoices, PRIMARY_COLOR } from '../controls';
 import { formatSelectOptions } from '../../modules/utils';

@@ -19,7 +19,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup, FormControl } from 'react-bootstrap';
-import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/validator';
+import {
+  legacyValidateNumber,
+  legacyValidateInteger,
+} from '@superset-ui/validator';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
