@@ -24,6 +24,7 @@ import {
   showBrush,
   showLegend,
   showControls,
+  xAxisLabel,
 } from './Shared_NVD3';
 
 export default {
@@ -61,7 +62,7 @@ export default {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'bottom_margin'],
+        [xAxisLabel, 'bottom_margin'],
         ['x_ticks_layout', 'x_axis_format'],
         ['x_axis_showminmax', null],
       ],

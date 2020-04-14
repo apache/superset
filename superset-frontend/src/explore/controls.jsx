@@ -765,13 +765,6 @@ export const controls = {
     default: '',
   },
 
-  x_axis_label: {
-    type: 'TextControl',
-    label: t('X Axis Label'),
-    renderTrigger: true,
-    default: '',
-  },
-
   y_axis_label: {
     type: 'TextControl',
     label: t('Y Axis Label'),

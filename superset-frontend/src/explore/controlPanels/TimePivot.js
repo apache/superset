@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { lineInterpolation, showLegend } from './Shared_NVD3';
+import { lineInterpolation, showLegend, xAxisLabel } from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -73,7 +73,7 @@ export default {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'bottom_margin'],
+        [xAxisLabel, 'bottom_margin'],
         ['x_axis_showminmax', 'x_axis_format'],
       ],
     },

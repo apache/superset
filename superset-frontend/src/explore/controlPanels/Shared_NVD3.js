@@ -103,3 +103,14 @@ export const showControls = {
     ),
   },
 };
+
+
+export const xAxisLabel = {
+  name:  'x_axis_label',
+  config: {
+    type: 'TextControl',
+    label: t('X Axis Label'),
+    renderTrigger: true,
+    default: '',
+  },
+}
