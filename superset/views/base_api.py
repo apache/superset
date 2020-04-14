@@ -210,7 +210,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
     @safe
-    @statsd_incr
+    @statsd_metrics
     @rison(get_related_schema)
     def related(self, column_name: str, **kwargs):
         """Get related fields data

@@ -85,7 +85,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard = self.insert_dashboard("title", "slug1", [admin.id])
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 200)
         expected_result = {
             "changed_by": None,
@@ -120,6 +120,15 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_info_dashboard(self):
+        """
+            Dashboard API: Test info
+        """
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/_info"
+        rv = self.get_assert_metric(uri, "info")
+        self.assertEqual(rv.status_code, 200)
+
     def test_get_dashboard_not_found(self):
         """
             Dashboard API: Test get dashboard not found
@@ -127,7 +136,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         max_id = db.session.query(func.max(Dashboard.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/dashboard/{max_id + 1}"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 404)
 
     def test_get_dashboard_no_data_access(self):
@@ -159,7 +168,8 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "filters": [{"col": "dashboard_title", "opr": "sw", "value": "ti"}]
         }
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
+
+        rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 1)
@@ -258,7 +268,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_id = self.insert_dashboard("title", "slug1", [admin_id]).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model, None)
@@ -281,7 +291,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         argument = dashboard_ids
         uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "bulk_delete")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
@@ -468,7 +478,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         }
         self.login(username="admin")
         uri = "api/v1/dashboard/"
-        rv = self.client.post(uri, json=dashboard_data)
+        rv = self.post_assert_metric(uri, dashboard_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Dashboard).get(data.get("id"))
@@ -520,7 +530,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_data = {"dashboard_title": "a" * 600}
         self.login(username="admin")
         uri = "api/v1/dashboard/"
-        rv = self.client.post(uri, json=dashboard_data)
+        rv = self.post_assert_metric(uri, dashboard_data, "post")
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
@@ -603,7 +613,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
-        rv = self.client.put(uri, json=self.dashboard_data)
+        rv = self.put_assert_metric(uri, self.dashboard_data, "put")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Dashboard).get(dashboard_id)
         self.assertEqual(model.dashboard_title, self.dashboard_data["dashboard_title"])
@@ -801,7 +811,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="alpha2", password="password")
         dashboard_data = {"dashboard_title": "title1_changed", "slug": "slug1 changed"}
         uri = f"api/v1/dashboard/{dashboard.id}"
-        rv = self.client.put(uri, json=dashboard_data)
+        rv = self.put_assert_metric(uri, dashboard_data, "put")
         self.assertEqual(rv.status_code, 403)
         db.session.delete(dashboard)
         db.session.delete(user_alpha1)
@@ -815,8 +825,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         argument = [1, 2]
         uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
-
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "export")
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(
             rv.headers["Content-Disposition"],
