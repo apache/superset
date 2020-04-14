@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
   controlPanelSections: [
@@ -48,7 +48,7 @@ export default {
       label: t('Numeric Columns'),
       description: t('Select the numeric columns to draw the histogram'),
       multi: true,
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
     },
     link_length: {
       label: t('No of Bins'),
