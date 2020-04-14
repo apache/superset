@@ -115,8 +115,6 @@ class BaseViz:
         self.results: Optional[QueryResult] = None
         self.error_message: Optional[str] = None
         self.force = force
-        self.from_ddtm: Optional[datetime] = None
-        self.to_dttm: Optional[datetime] = None
 
         # Keeping track of whether some data came from cache
         # this is useful to trigger the <CachedLabel /> when
@@ -486,8 +484,8 @@ class BaseViz:
             "form_data": self.form_data,
             "is_cached": self._any_cache_key is not None,
             "query": self.query,
-            "from_dttm": self.from_dttm,
-            "to_dttm": self.to_dttm,
+            "from_dttm": self.from_dttm if hasattr(self, "from_ddtm") else None,
+            "to_dttm": self.to_dttm if hasattr(self, "to_dttm") else None,
             "status": self.status,
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
