@@ -182,3 +182,14 @@ export const yAxisBounds = {
     ),
   },
 };
+
+export const xAxisShowminmax = {
+  name: 'x_axis_showminmax',
+  config: {
+    type: 'CheckboxControl',
+    label: t('X bounds'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to display the min and max values of the X-axis'),
+  },
+}
