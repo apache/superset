@@ -1305,9 +1305,9 @@ class Superset(BaseSupersetView):
                 cursor.execute(query)
 
                 data = cursor.fetchall()
-                print(data)
-
                 tables = [utils.DatasourceName(table=tup[1], schema=schema) for tup in data]
+                logging.info("#################")
+                logging.info("data"+str(tables))
 
                 views = (
                         database.get_all_view_names_in_schema(
