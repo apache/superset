@@ -165,7 +165,7 @@ export const yLogScale = {
     renderTrigger: true,
     description: t('Use a log scale for the Y-axis'),
   },
-}
+};
 
 export const yAxisBounds = {
   name: 'y_axis_bounds',
@@ -181,4 +181,4 @@ export const yAxisBounds = {
         "narrow the data's extent.",
     ),
   },
-}
+};

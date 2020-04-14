@@ -24,7 +24,7 @@ import {
   bottomMargin,
   xTicksLayout,
   xAxisFormat,
-  yLogScale
+  yLogScale,
 } from './Shared_NVD3';
 
 export default {

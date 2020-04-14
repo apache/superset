@@ -29,7 +29,7 @@ import {
   xTicksLayout,
   xAxisFormat,
   yLogScale,
-  yAxisBounds
+  yAxisBounds,
 } from './Shared_NVD3';
 
 export default {

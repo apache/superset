@@ -123,19 +123,22 @@ export default {
             },
           },
         ],
-        [{
-          name: 'y_axis_bounds',
-          config: {
-            type: 'BoundsControl',
-            label: t('Value bounds'),
-            renderTrigger: true,
-            default: [null, null],
-            description: t(
-              'Hard value bounds applied for color coding. Is only relevant ' +
-                'and applied when the normalization is applied against the whole heatmap.',
-            ),
-      
-          }, 'y_axis_format'],
+        [
+          {
+            name: 'y_axis_bounds',
+            config: {
+              type: 'BoundsControl',
+              label: t('Value bounds'),
+              renderTrigger: true,
+              default: [null, null],
+              description: t(
+                'Hard value bounds applied for color coding. Is only relevant ' +
+                  'and applied when the normalization is applied against the whole heatmap.',
+              ),
+            },
+          },
+          'y_axis_format',
+        ],
         [
           {
             name: 'show_legend',
