@@ -17,7 +17,7 @@
 # isort:skip_file
 import json
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import tests.test_app
 import superset.connectors.druid.models as models
@@ -50,6 +50,11 @@ def emplace(metrics_dict, metric_name, is_postagg=False):
 
 
 # Unit tests that can be run without initializing base tests
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    {"SIP_38_VIZ_REARCHITECTURE": True},
+    clear=True,
+)
 class DruidFuncTestCase(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
@@ -407,7 +412,7 @@ class DruidFuncTestCase(SupersetTestCase):
         aggs = []
         post_aggs = ["some_agg"]
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
-        groupby = []
+        columns = []
         metrics = ["metric1"]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder = Mock()
@@ -419,7 +424,7 @@ class DruidFuncTestCase(SupersetTestCase):
             None,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             client=client,
             filter=[],
             row_limit=100,
@@ -456,7 +461,7 @@ class DruidFuncTestCase(SupersetTestCase):
         all_metrics = []
         post_aggs = ["some_agg"]
         ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
-        groupby = []
+        columns = []
         metrics = [
             {
                 "expressionType": "SIMPLE",
@@ -476,7 +481,7 @@ class DruidFuncTestCase(SupersetTestCase):
             None,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             client=client,
             filter=[],
             row_limit=100,
@@ -513,7 +518,7 @@ class DruidFuncTestCase(SupersetTestCase):
         aggs = ["metric1"]
         post_aggs = ["some_agg"]
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
-        groupby = ["col1"]
+        columns = ["col1"]
         metrics = ["metric1"]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder.last_query.query_dict = {"mock": 0}
@@ -523,7 +528,7 @@ class DruidFuncTestCase(SupersetTestCase):
             None,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             timeseries_limit=100,
             client=client,
             order_desc=True,
@@ -547,7 +552,7 @@ class DruidFuncTestCase(SupersetTestCase):
             None,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             client=client,
             order_desc=False,
             filter=[],
@@ -611,7 +616,7 @@ class DruidFuncTestCase(SupersetTestCase):
         aggs = []
         post_aggs = ["some_agg"]
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
-        groupby = ["col1", "col2"]
+        columns = ["col1", "col2"]
         metrics = ["metric1"]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder = Mock()
@@ -623,7 +628,7 @@ class DruidFuncTestCase(SupersetTestCase):
             None,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             client=client,
             row_limit=100,
             filter=[],
@@ -1016,7 +1021,7 @@ class DruidFuncTestCase(SupersetTestCase):
         ds.columns = [dim1, dim2]
         ds.metrics = list(metrics_dict.values())
 
-        groupby = ["dim1"]
+        columns = ["dim1"]
         metrics = ["count1"]
         granularity = "all"
         # get the counts of the top 5 'dim1's, order by 'sum1'
@@ -1025,7 +1030,7 @@ class DruidFuncTestCase(SupersetTestCase):
             granularity,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             timeseries_limit=5,
             timeseries_limit_metric="sum1",
             client=client,
@@ -1046,7 +1051,7 @@ class DruidFuncTestCase(SupersetTestCase):
             granularity,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             timeseries_limit=5,
             timeseries_limit_metric="div1",
             client=client,
@@ -1061,14 +1066,14 @@ class DruidFuncTestCase(SupersetTestCase):
         self.assertEqual({"count1", "sum1", "sum2"}, set(aggregations.keys()))
         self.assertEqual({"div1"}, set(post_aggregations.keys()))
 
-        groupby = ["dim1", "dim2"]
+        columns = ["dim1", "dim2"]
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
         ds.run_query(
             metrics,
             granularity,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             timeseries_limit=5,
             timeseries_limit_metric="sum1",
             client=client,
@@ -1089,7 +1094,7 @@ class DruidFuncTestCase(SupersetTestCase):
             granularity,
             from_dttm,
             to_dttm,
-            groupby=groupby,
+            groupby=columns,
             timeseries_limit=5,
             timeseries_limit_metric="div1",
             client=client,
