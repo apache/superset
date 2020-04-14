@@ -16,17 +16,23 @@
 # under the License.
 # pylint: disable=R
 import hashlib
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
 import simplejson as json
+from flask_babel import gettext as _
+from pandas import DataFrame
 
-from superset import app
-from superset.utils import core as utils
+from superset import app, is_feature_enabled
+from superset.exceptions import QueryObjectValidationError
+from superset.utils import core as utils, pandas_postprocessing
 from superset.views.utils import get_time_range_endpoints
 
+logger = logging.getLogger(__name__)
+
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
-# https://github.com/python/mypy/issues/5288
+#  https://github.com/python/mypy/issues/5288
 
 
 class QueryObject:
@@ -50,6 +56,7 @@ class QueryObject:
     extras: Dict
     columns: List[str]
     orderby: List[List]
+    post_processing: List[Dict[str, Any]]
 
     def __init__(
         self,
@@ -67,9 +74,11 @@ class QueryObject:
         extras: Optional[Dict] = None,
         columns: Optional[List[str]] = None,
         orderby: Optional[List[List]] = None,
+        post_processing: Optional[List[Dict[str, Any]]] = None,
         relative_start: str = app.config["DEFAULT_RELATIVE_START_TIME"],
         relative_end: str = app.config["DEFAULT_RELATIVE_END_TIME"],
     ):
+        is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
             relative_start=relative_start,
@@ -80,9 +89,11 @@ class QueryObject:
         self.is_timeseries = is_timeseries
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
-        self.groupby = groupby or []
+        self.post_processing = post_processing or []
+        if not is_sip_38:
+            self.groupby = groupby or []
 
-        # Temporal solution for backward compatability issue due the new format of
+        # Temporary solution for backward compatibility issue due the new format of
         # non-ad-hoc metric which needs to adhere to superset-ui per
         # https://git.io/Jvm7P.
         self.metrics = [
@@ -101,6 +112,13 @@ class QueryObject:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
 
         self.columns = columns or []
+        if is_sip_38 and groupby:
+            self.columns += groupby
+            logger.warning(
+                f"The field groupby is deprecated. Viz plugins should "
+                f"pass all selectables via the columns field"
+            )
+
         self.orderby = orderby or []
 
     def to_dict(self) -> Dict[str, Any]:
@@ -109,7 +127,6 @@ class QueryObject:
             "from_dttm": self.from_dttm,
             "to_dttm": self.to_dttm,
             "is_timeseries": self.is_timeseries,
-            "groupby": self.groupby,
             "metrics": self.metrics,
             "row_limit": self.row_limit,
             "filter": self.filter,
@@ -120,6 +137,9 @@ class QueryObject:
             "columns": self.columns,
             "orderby": self.orderby,
         }
+        if not is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
+            query_object_dict["groupby"] = self.groupby
+
         return query_object_dict
 
     def cache_key(self, **extra: Any) -> str:
@@ -138,9 +158,37 @@ class QueryObject:
         if self.time_range:
             cache_dict["time_range"] = self.time_range
         json_data = self.json_dumps(cache_dict, sort_keys=True)
+        if self.post_processing:
+            cache_dict["post_processing"] = self.post_processing
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
     def json_dumps(self, obj: Any, sort_keys: bool = False) -> str:
         return json.dumps(
             obj, default=utils.json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
         )
+
+    def exec_post_processing(self, df: DataFrame) -> DataFrame:
+        """
+        Perform post processing operations on DataFrame.
+
+        :param df: DataFrame returned from database model.
+        :return: new DataFrame to which all post processing operations have been
+                 applied
+        :raises ChartDataValidationError: If the post processing operation in incorrect
+        """
+        for post_process in self.post_processing:
+            operation = post_process.get("operation")
+            if not operation:
+                raise QueryObjectValidationError(
+                    _("`operation` property of post processing object undefined")
+                )
+            if not hasattr(pandas_postprocessing, operation):
+                raise QueryObjectValidationError(
+                    _(
+                        "Unsupported post processing operation: %(operation)s",
+                        type=operation,
+                    )
+                )
+            options = post_process.get("options", {})
+            df = getattr(pandas_postprocessing, operation)(df, **options)
+        return df

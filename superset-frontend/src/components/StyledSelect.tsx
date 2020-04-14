@@ -16,28 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module.exports = {
-  testRegex: '\\/spec\\/.*(_spec|\\.test)\\.(j|t)sx?$',
-  moduleNameMapper: {
-    '\\.(css|less)$': '<rootDir>/spec/__mocks__/styleMock.js',
-    '\\.(gif|ttf|eot|svg)$': '<rootDir>/spec/__mocks__/fileMock.js',
-    '^src/(.*)$': '<rootDir>/src/$1',
-  },
-  setupFilesAfterEnv: ['<rootDir>/spec/helpers/shim.js'],
-  testURL: 'http://localhost',
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
-  coverageDirectory: '<rootDir>/coverage/',
-  transform: {
-    '^.+\\.jsx?$': 'babel-jest',
-    '^.+\\.tsx?$': 'ts-jest',
-  },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  globals: {
-    'ts-jest': {
-      babelConfig: true,
-      diagnostics: {
-        warnOnly: true,
-      },
-    },
-  },
-};
+import styled from '@emotion/styled';
+// @ts-ignore
+import Select from 'react-select';
+
+export default styled(Select)`
+  display: inline;
+  &.is-focused:not(.is-open) > .Select-control {
+    border: none;
+    box-shadow: none;
+  }
+  .Select-control {
+    display: inline-table;
+    border: none;
+    width: 100px;
+    &:focus,
+    &:hover {
+      border: none;
+      box-shadow: none;
+    }
+
+    .Select-arrow-zone {
+      padding-left: 10px;
+    }
+  }
+  .Select-menu-outer {
+    margin-top: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+`;

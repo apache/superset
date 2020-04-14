@@ -289,8 +289,10 @@ DEFAULT_FEATURE_FLAGS = {
     "THUMBNAILS": False,
     "REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
+    "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
+    "LIST_VIEWS_NEW_UI": False,
 }
 
 # This is merely a default.

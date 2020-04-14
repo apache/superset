@@ -32,7 +32,11 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
-from superset.viz import BaseViz, viz_types
+
+if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
+    from superset.viz_sip38 import BaseViz, viz_types  # type: ignore
+else:
+    from superset.viz import BaseViz, viz_types  # type: ignore
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
