@@ -14,19 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import functools
 import logging
 from typing import cast, Dict, Set, Tuple, Type, Union
 
-from flask import request
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
-from sqlalchemy.exc import SQLAlchemyError
-
-from superset.exceptions import SupersetSecurityException
-from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -37,26 +31,6 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
-
-
-def check_ownership_and_item_exists(f):
-    """
-    A Decorator that checks if an object exists and is owned by the current user
-    """
-
-    def wraps(self, pk):
-        item = self.datamodel.get(
-            pk, self._base_filters  # pylint: disable=protected-access
-        )
-        if not item:
-            return self.response_404()
-        try:
-            check_ownership(item)
-        except SupersetSecurityException as ex:
-            return self.response(403, message=str(ex))
-        return f(self, item)
-
-    return functools.update_wrapper(wraps, f)
 
 
 class RelatedFieldFilter:
@@ -235,155 +209,3 @@ class BaseSupersetModelRestApi(ModelRestApi):
             for value in values
         ]
         return self.response(200, count=count, result=result)
-
-
-class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
-    @expose("/<pk>", methods=["PUT"])
-    @protect()
-    @check_ownership_and_item_exists
-    @safe
-    def put(self, item):  # pylint: disable=arguments-differ
-        """Changes a owned Model
-        ---
-        put:
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            description: Model schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-          responses:
-            200:
-              description: Item changed
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if not request.is_json:
-            self.response_400(message="Request is not JSON")
-        item = self.edit_model_schema.load(request.json, instance=item)
-        if item.errors:
-            return self.response_422(message=item.errors)
-        try:
-            self.datamodel.edit(item.data, raise_exception=True)
-            return self.response(
-                200, result=self.edit_model_schema.dump(item.data, many=False).data
-            )
-        except SQLAlchemyError as ex:
-            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
-            return self.response_422(message=str(ex))
-
-    @expose("/", methods=["POST"])
-    @protect()
-    @safe
-    def post(self):
-        """Creates a new owned Model
-        ---
-        post:
-          requestBody:
-            description: Model schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-          responses:
-            201:
-              description: Model added
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
-        item = self.add_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_422(message=item.errors)
-        try:
-            self.datamodel.add(item.data, raise_exception=True)
-            return self.response(
-                201,
-                result=self.add_model_schema.dump(item.data, many=False).data,
-                id=item.data.id,
-            )
-        except SQLAlchemyError as ex:
-            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
-            return self.response_422(message=str(ex))
-
-    @expose("/<pk>", methods=["DELETE"])
-    @protect()
-    @check_ownership_and_item_exists
-    @safe
-    def delete(self, item):  # pylint: disable=arguments-differ
-        """Deletes owned Model
-        ---
-        delete:
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          responses:
-            200:
-              description: Model delete
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            self.datamodel.delete(item, raise_exception=True)
-            return self.response(200, message="OK")
-        except SQLAlchemyError as ex:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
-            return self.response_422(message=str(ex))
