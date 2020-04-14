@@ -23,13 +23,19 @@ import simplejson as json
 from flask import request
 
 import superset.models.core as models
-from superset import app, db, viz
+from superset import app, db, is_feature_enabled
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetException
 from superset.legacy import update_time_range
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import QueryStatus, TimeRangeEndpoint
+
+if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
+    from superset import viz_sip38 as viz  # type: ignore
+else:
+    from superset import viz  # type: ignore
+
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []
 if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:

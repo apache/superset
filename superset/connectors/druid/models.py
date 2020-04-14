@@ -48,7 +48,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy_utils import EncryptedType
 
-from superset import conf, db, security_manager
+from superset import conf, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.exceptions import SupersetException
@@ -84,6 +84,7 @@ try:
 except ImportError:
     pass
 
+IS_SIP_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
 DRUID_TZ = conf.get("DRUID_TZ")
 POST_AGG_TYPE = "postagg"
 metadata = Model.metadata  # pylint: disable=no-member
@@ -1082,11 +1083,11 @@ class DruidDatasource(Model, BaseDatasource):
         return aggregations
 
     def get_dimensions(
-        self, groupby: List[str], columns_dict: Dict[str, DruidColumn]
+        self, columns: List[str], columns_dict: Dict[str, DruidColumn]
     ) -> List[Union[str, Dict]]:
         dimensions = []
-        groupby = [gb for gb in groupby if gb in columns_dict]
-        for column_name in groupby:
+        columns = [col for col in columns if col in columns_dict]
+        for column_name in columns:
             col = columns_dict.get(column_name)
             dim_spec = col.dimension_spec if col else None
             dimensions.append(dim_spec or column_name)
@@ -1137,11 +1138,12 @@ class DruidDatasource(Model, BaseDatasource):
 
     def run_query(  # druid
         self,
-        groupby,
         metrics,
         granularity,
         from_dttm,
         to_dttm,
+        columns=None,
+        groupby=None,
         filter=None,
         is_timeseries=True,
         timeseries_limit=None,
@@ -1151,7 +1153,6 @@ class DruidDatasource(Model, BaseDatasource):
         inner_to_dttm=None,
         orderby=None,
         extras=None,
-        columns=None,
         phase=2,
         client=None,
         order_desc=True,
@@ -1188,7 +1189,11 @@ class DruidDatasource(Model, BaseDatasource):
         )
 
         # the dimensions list with dimensionSpecs expanded
-        dimensions = self.get_dimensions(groupby, columns_dict)
+
+        dimensions = self.get_dimensions(
+            columns if IS_SIP_38 else groupby, columns_dict
+        )
+
         extras = extras or {}
         qry = dict(
             datasource=self.datasource_name,
@@ -1214,7 +1219,9 @@ class DruidDatasource(Model, BaseDatasource):
 
         order_direction = "descending" if order_desc else "ascending"
 
-        if columns:
+        if (IS_SIP_38 and not metrics and "__time" not in columns) or (
+            not IS_SIP_38 and columns
+        ):
             columns.append("__time")
             del qry["post_aggregations"]
             del qry["aggregations"]
@@ -1224,11 +1231,20 @@ class DruidDatasource(Model, BaseDatasource):
             qry["granularity"] = "all"
             qry["limit"] = row_limit
             client.scan(**qry)
-        elif len(groupby) == 0 and not having_filters:
+        elif (IS_SIP_38 and columns) or (
+            not IS_SIP_38 and len(groupby) == 0 and not having_filters
+        ):
             logger.info("Running timeseries query for no groupby values")
             del qry["dimensions"]
             client.timeseries(**qry)
-        elif not having_filters and len(groupby) == 1 and order_desc:
+        elif (
+            not having_filters
+            and order_desc
+            and (
+                (IS_SIP_38 and len(columns) == 1)
+                or (not IS_SIP_38 and len(groupby) == 1)
+            )
+        ):
             dim = list(qry["dimensions"])[0]
             logger.info("Running two-phase topn query for dimension [{}]".format(dim))
             pre_qry = deepcopy(qry)
@@ -1279,7 +1295,10 @@ class DruidDatasource(Model, BaseDatasource):
             qry["metric"] = list(qry["aggregations"].keys())[0]
             client.topn(**qry)
             logger.info("Phase 2 Complete")
-        elif len(groupby) > 0 or having_filters:
+        elif (
+            having_filters
+            or ((IS_SIP_38 and columns) or (not IS_SIP_38 and len(groupby))) > 0
+        ):
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             logger.info("Running groupby query for dimensions [{}]".format(dimensions))
@@ -1364,8 +1383,8 @@ class DruidDatasource(Model, BaseDatasource):
         return query_str
 
     @staticmethod
-    def homogenize_types(df: pd.DataFrame, groupby_cols: Iterable[str]) -> pd.DataFrame:
-        """Converting all GROUPBY columns to strings
+    def homogenize_types(df: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
+        """Converting all columns to strings
 
         When grouping by a numeric (say FLOAT) column, pydruid returns
         strings in the dataframe. This creates issues downstream related
@@ -1374,7 +1393,7 @@ class DruidDatasource(Model, BaseDatasource):
         Here we replace None with <NULL> and make the whole series a
         str instead of an object.
         """
-        df[groupby_cols] = df[groupby_cols].fillna(NULL_STRING).astype("unicode")
+        df[columns] = df[columns].fillna(NULL_STRING).astype("unicode")
         return df
 
     def query(self, query_obj: Dict) -> QueryResult:
@@ -1390,7 +1409,9 @@ class DruidDatasource(Model, BaseDatasource):
                 df=df, query=query_str, duration=datetime.now() - qry_start_dttm
             )
 
-        df = self.homogenize_types(df, query_obj.get("groupby", []))
+        df = self.homogenize_types(
+            df, query_obj.get("columns" if IS_SIP_38 else "groupby", [])
+        )
         df.columns = [
             DTTM_ALIAS if c in ("timestamp", "__time") else c for c in df.columns
         ]
@@ -1405,7 +1426,9 @@ class DruidDatasource(Model, BaseDatasource):
         cols: List[str] = []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
-        cols += query_obj.get("groupby") or []
+
+        if not IS_SIP_38:
+            cols += query_obj.get("groupby") or []
         cols += query_obj.get("columns") or []
         cols += query_obj.get("metrics") or []
 
