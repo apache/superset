@@ -213,19 +213,6 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  y_axis_bounds: {
-    type: 'BoundsControl',
-    label: t('Y Axis Bounds'),
-    renderTrigger: true,
-    default: [null, null],
-    description: t(
-      'Bounds for the Y-axis. When left empty, the bounds are ' +
-        'dynamically defined based on the min/max of the data. Note that ' +
-        "this feature will only expand the axis range. It won't " +
-        "narrow the data's extent.",
-    ),
-  },
-
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),

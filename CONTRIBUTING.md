@@ -1061,7 +1061,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | ------------------- | --------------- | ---------------------------- |
 | `left_margin`       | _number_        | The **Left Margin** widget   |
 | `y_axis_2_label`    | _N/A_           | _Deprecated?_                |
-| `y_axis_bounds`     | _array(string)_ | The **Y Axis Bounds** widget |
 | `y_axis_format`     | _string_        | The **Y Axis Format** widget |
 | `y_axis_label`      | _string_        | The **Y Axis Label** widget  |
 | `y_axis_showminmax` | _boolean_       | The **Y bounds** widget      |

@@ -123,7 +123,19 @@ export default {
             },
           },
         ],
-        ['y_axis_bounds', 'y_axis_format'],
+        [{
+          name: 'y_axis_bounds',
+          config: {
+            type: 'BoundsControl',
+            label: t('Value bounds'),
+            renderTrigger: true,
+            default: [null, null],
+            description: t(
+              'Hard value bounds applied for color coding. Is only relevant ' +
+                'and applied when the normalization is applied against the whole heatmap.',
+            ),
+      
+          }, 'y_axis_format'],
         [
           {
             name: 'show_legend',
@@ -184,14 +196,6 @@ export default {
     normalized: t(
       'Whether to apply a normal distribution based on rank on the color scale',
     ),
-    y_axis_bounds: {
-      label: t('Value bounds'),
-      renderTrigger: true,
-      description: t(
-        'Hard value bounds applied for color coding. Is only relevant ' +
-          'and applied when the normalization is applied against the whole heatmap.',
-      ),
-    },
     y_axis_format: {
       label: t('Value Format'),
     },

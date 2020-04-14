@@ -155,3 +155,30 @@ export const xAxisFormat = {
     description: D3_FORMAT_DOCS,
   },
 };
+
+export const yLogScale = {
+  name: 'y_log_scale',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Y Log Scale'),
+    default: false,
+    renderTrigger: true,
+    description: t('Use a log scale for the Y-axis'),
+  },
+}
+
+export const yAxisBounds = {
+  name: 'y_axis_bounds',
+  config: {
+    type: 'BoundsControl',
+    label: t('Y Axis Bounds'),
+    renderTrigger: true,
+    default: [null, null],
+    description: t(
+      'Bounds for the Y-axis. When left empty, the bounds are ' +
+        'dynamically defined based on the min/max of the data. Note that ' +
+        "this feature will only expand the axis range. It won't " +
+        "narrow the data's extent.",
+    ),
+  },
+}
