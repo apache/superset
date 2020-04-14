@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { validateNonEmpty } from '@superset-ui/validator';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import {
   filterNulls,
@@ -69,7 +69,7 @@ export default {
     size: {
       label: t('Weight'),
       description: t("Metric used as a weight for the grid's coloring"),
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
     },
     time_grain_sqla: timeGrainSqlaAnimationOverrides,
   },
