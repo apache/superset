@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { validateNonEmpty, validateInteger } from '@superset-ui/validator';
+import { validateNonEmpty, legacyValidateInteger } from '@superset-ui/validator';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { columnChoices, PRIMARY_COLOR } from '../controls';
 import { formatSelectOptions } from '../../modules/utils';
@@ -112,7 +112,7 @@ export default {
               type: 'SelectControl',
               freeForm: true,
               label: t('Stroke Width'),
-              validators: [validateInteger],
+              validators: [legacyValidateInteger],
               default: null,
               renderTrigger: true,
               choices: formatSelectOptions([1, 2, 3, 4, 5]),

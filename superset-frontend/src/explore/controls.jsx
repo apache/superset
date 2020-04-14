@@ -62,7 +62,7 @@ import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
 } from '@superset-ui/color';
-import { validateInteger, validateNonEmpty } from '@superset-ui/validator';
+import { legacyValidateInteger, validateNonEmpty } from '@superset-ui/validator';
 
 import {
   formatSelectOptionsForRange,
@@ -677,7 +677,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Row limit'),
-    validators: [validateInteger],
+    validators: [legacyValidateInteger],
     default: 10000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
@@ -686,7 +686,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Series limit'),
-    validators: [validateInteger],
+    validators: [legacyValidateInteger],
     choices: formatSelectOptions(SERIES_LIMITS),
     description: t(
       'Limits the number of time series that get displayed. A sub query ' +
