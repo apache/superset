@@ -1,3 +1,112 @@
+# [0.0.0](https://github.com/apache-superset/superset-ui/compare/v0.12.15...v0.0.0) (2020-04-14)
+
+
+
+## [0.12.15](https://github.com/apache-superset/superset-ui/compare/v0.12.14...v0.12.15) (2020-04-13)
+
+
+### Features
+
+* make CategoricalScale compatible with D3 ScaleOrdinal ([#357](https://github.com/apache-superset/superset-ui/issues/357)) ([b802974](https://github.com/apache-superset/superset-ui/commit/b8029741d87b97f93d8bf43c649983f14693635d))
+* make time formatter handle number and fix formatters type warnings ([#358](https://github.com/apache-superset/superset-ui/issues/358)) ([aaf17ac](https://github.com/apache-superset/superset-ui/commit/aaf17ac0a5da7895796ca4f3dde75e7c259b1d9b))
+
+
+
+## [0.12.14](https://github.com/apache-superset/superset-ui/compare/v0.12.13...v0.12.14) (2020-04-13)
+
+
+### Features
+
+* add calendar package and storybook ([#356](https://github.com/apache-superset/superset-ui/issues/356)) ([daf47bd](https://github.com/apache-superset/superset-ui/commit/daf47bd03f78adde3d5eb003cda0d7071c3473da))
+* allow toggling of table viz's bar chart backgrounds ([#352](https://github.com/apache-superset/superset-ui/issues/352)) ([5d5ade9](https://github.com/apache-superset/superset-ui/commit/5d5ade93d4f2fd3d5b8ae52823d26d51aef6fead))
+
+
+
+## [0.12.13](https://github.com/apache-superset/superset-ui/compare/v0.12.12...v0.12.13) (2020-04-07)
+
+
+### Bug Fixes
+
+* **legacy-plugin-chart-table:** time column formating ([#340](https://github.com/apache-superset/superset-ui/issues/340)) ([6c7f710](https://github.com/apache-superset/superset-ui/commit/6c7f7106cc0e84eacd16f7f2e86ffc619ffe075a))
+* new line at end ([e8d59e5](https://github.com/apache-superset/superset-ui/commit/e8d59e532c0e7f0ecccebaed26ee6b9d4e309f28))
+
+
+### Features
+
+* add validator to umbrella package ([#327](https://github.com/apache-superset/superset-ui/issues/327)) ([b1a02b9](https://github.com/apache-superset/superset-ui/commit/b1a02b9ef64a70b7fb3d5dc9a599ea337866aba4))
+
+
+### Reverts
+
+* Revert "build: try to merge superset-ui-plugins" ([6be7b2f](https://github.com/apache-superset/superset-ui/commit/6be7b2f007fc241fbf641553d5852db778588fda))
+* Revert "build: clean up tsbuild.info, too" ([39d983a](https://github.com/apache-superset/superset-ui/commit/39d983a9a5ac1819f23cd1a547a8d0fbe54d29a8))
+
+
+
+## [0.12.12](https://github.com/apache-superset/superset-ui/compare/v0.12.11...v0.12.12) (2020-04-01)
+
+
+### Features
+
+* add validator package ([#322](https://github.com/apache-superset/superset-ui/issues/322)) ([ea78a4e](https://github.com/apache-superset/superset-ui/commit/ea78a4e41a9e1e4b7f3fb86c9d61020c89652804))
+
+
+
+## [0.12.11](https://github.com/apache-superset/superset-ui/compare/v0.12.10...v0.12.11) (2020-03-06)
+
+
+### Bug Fixes
+
+* small rendering for no results message ([#309](https://github.com/apache-superset/superset-ui/issues/309)) ([e7ff68c](https://github.com/apache-superset/superset-ui/commit/e7ff68c48d2d3e1a7df30967a74c7695d3837894))
+
+
+
+## [0.12.10](https://github.com/apache-superset/superset-ui/compare/v0.12.9...v0.12.10) (2020-03-04)
+
+
+### Features
+
+* add more support for undefined format to number and time formatters ([#308](https://github.com/apache-superset/superset-ui/issues/308)) ([44ad062](https://github.com/apache-superset/superset-ui/commit/44ad062dd02d080362dac28782c0327cc9fa3445))
+
+
+
+## [0.12.9](https://github.com/apache-superset/superset-ui/compare/v0.12.8...v0.12.9) (2020-03-04)
+
+
+### Features
+
+* make formatTime and formatNumber handle undefined format ([#307](https://github.com/apache-superset/superset-ui/issues/307)) ([768cfd5](https://github.com/apache-superset/superset-ui/commit/768cfd5f627a82b5dfcc0546001a54aa0ff0323c))
+
+
+
+## [0.12.8](https://github.com/apache-superset/superset-ui/compare/v0.12.7...v0.12.8) (2020-03-04)
+
+
+### Features
+
+* add NoResultsComponent to charts ([#305](https://github.com/apache-superset/superset-ui/issues/305)) ([42060a0](https://github.com/apache-superset/superset-ui/commit/42060a0e7addd808153f13a27947310f2a7a477d))
+* **number-format:** bump pretty-ms to 5.1.0 ([#262](https://github.com/apache-superset/superset-ui/issues/262)) ([0d3746e](https://github.com/apache-superset/superset-ui/commit/0d3746ea254d8d957cc3a3ba21dfd4cbc405c55a))
+
+
+
+## [0.12.7](https://github.com/apache-superset/superset-ui/compare/v0.12.6...v0.12.7) (2019-11-20)
+
+
+### Bug Fixes
+
+* **dimension:** set 0 width/height in createHiddenSvgNode ([#261](https://github.com/apache-superset/superset-ui/issues/261)) ([7170f48](https://github.com/apache-superset/superset-ui/commit/7170f4826a79c5cf90ffc45247821872785d2f66))
+
+
+
+## [0.12.6](https://github.com/apache-superset/superset-ui/compare/v0.12.5...v0.12.6) (2019-11-20)
+
+
+### Bug Fixes
+
+* typing issues surfaced by typescript 3.7 ([#260](https://github.com/apache-superset/superset-ui/issues/260)) ([a72c3dd](https://github.com/apache-superset/superset-ui/commit/a72c3dd491d63e16434453d21b2307cc0598130c))
+
+
+
 ## [0.12.5](https://github.com/apache-superset/superset-ui/compare/v0.12.4...v0.12.5) (2019-11-19)
 
 
