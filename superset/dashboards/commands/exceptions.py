@@ -41,6 +41,7 @@ class DashboardInvalidError(CommandInvalidError):
 
 
 class DashboardNotFoundError(CommandException):
+    status = 404
     message = _("Dashboard not found.")
 
 

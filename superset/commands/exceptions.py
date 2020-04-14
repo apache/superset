@@ -69,7 +69,7 @@ class DeleteFailedError(CommandException):
 
 
 class ForbiddenError(CommandException):
-    status = 500
+    status = 403
     message = "Action is forbidden"
 
 

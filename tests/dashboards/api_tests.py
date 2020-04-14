@@ -420,7 +420,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "Forbidden"}
+        expected_response = {"message": "Changing this Dashboard is forbidden"}
         self.assertEqual(response, expected_response)
 
         # nothing is deleted in bulk with a list of owned and not owned dashboards
@@ -429,7 +429,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 403)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "Forbidden"}
+        expected_response = {"message": "Changing this Dashboard is forbidden"}
         self.assertEqual(response, expected_response)
 
         for dashboard in dashboards:

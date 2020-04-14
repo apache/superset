@@ -18,7 +18,7 @@ import logging
 from typing import Any
 
 from flask import g, make_response, request, Response
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
@@ -26,15 +26,6 @@ from superset.constants import RouteMethod
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
 from superset.dashboards.commands.create import CreateDashboardCommand
 from superset.dashboards.commands.delete import DeleteDashboardCommand
-from superset.dashboards.commands.exceptions import (
-    DashboardBulkDeleteFailedError,
-    DashboardCreateFailedError,
-    DashboardDeleteFailedError,
-    DashboardForbiddenError,
-    DashboardInvalidError,
-    DashboardNotFoundError,
-    DashboardUpdateFailedError,
-)
 from superset.dashboards.commands.update import UpdateDashboardCommand
 from superset.dashboards.filters import DashboardFilter, DashboardTitleOrSlugFilter
 from superset.dashboards.schemas import (
@@ -125,7 +116,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @expose("/", methods=["POST"])
     @protect()
-    @safe
     def post(self) -> Response:
         """Creates a new Dashboard
         ---
@@ -166,18 +156,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         if item.errors:
             return self.response_400(message=item.errors)
-        try:
-            new_model = CreateDashboardCommand(g.user, item.data).run()
-            return self.response(201, id=new_model.id, result=item.data)
-        except DashboardInvalidError as ex:
-            return self.response_422(message=ex.normalized_messages())
-        except DashboardCreateFailedError as ex:
-            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
-            return self.response_422(message=str(ex))
+        new_model = CreateDashboardCommand(g.user, item.data).run()
+        return self.response(201, id=new_model.id, result=item.data)
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
-    @safe
     def put(  # pylint: disable=too-many-return-statements, arguments-differ
         self, pk: int
     ) -> Response:
@@ -229,22 +212,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         if item.errors:
             return self.response_400(message=item.errors)
-        try:
-            changed_model = UpdateDashboardCommand(g.user, pk, item.data).run()
-            return self.response(200, id=changed_model.id, result=item.data)
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardInvalidError as ex:
-            return self.response_422(message=ex.normalized_messages())
-        except DashboardUpdateFailedError as ex:
-            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
-            return self.response_422(message=str(ex))
+        changed_model = UpdateDashboardCommand(g.user, pk, item.data).run()
+        return self.response(200, id=changed_model.id, result=item.data)
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
-    @safe
     def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Deletes a Dashboard
         ---
@@ -277,20 +249,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            DeleteDashboardCommand(g.user, pk).run()
-            return self.response(200, message="OK")
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardDeleteFailedError as ex:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
-            return self.response_422(message=str(ex))
+        DeleteDashboardCommand(g.user, pk).run()
+        return self.response(200, message="OK")
 
     @expose("/", methods=["DELETE"])
     @protect()
-    @safe
     @rison(get_delete_ids_schema)
     def bulk_delete(
         self, **kwargs: Any
@@ -331,26 +294,18 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         item_ids = kwargs["rison"]
-        try:
-            BulkDeleteDashboardCommand(g.user, item_ids).run()
-            return self.response(
-                200,
-                message=ngettext(
-                    f"Deleted %(num)d dashboard",
-                    f"Deleted %(num)d dashboards",
-                    num=len(item_ids),
-                ),
-            )
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardBulkDeleteFailedError as ex:
-            return self.response_422(message=str(ex))
+        BulkDeleteDashboardCommand(g.user, item_ids).run()
+        return self.response(
+            200,
+            message=ngettext(
+                f"Deleted %(num)d dashboard",
+                f"Deleted %(num)d dashboards",
+                num=len(item_ids),
+            ),
+        )
 
     @expose("/export/", methods=["GET"])
     @protect()
-    @safe
     @rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
         """Export dashboards

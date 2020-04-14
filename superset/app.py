@@ -26,6 +26,7 @@ from flask_compress import Compress
 from flask_wtf import CSRFProtect
 
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.errors import init_global_error_handlers
 from superset.extensions import (
     _event_logger,
     APP_DIR,
@@ -454,6 +455,7 @@ class SupersetAppInitializer:
         if flask_app_mutator:
             flask_app_mutator(self.flask_app)
 
+        init_global_error_handlers(self.flask_app)
         self.init_views()
 
     def init_app(self) -> None:
