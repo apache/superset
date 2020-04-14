@@ -62,7 +62,7 @@ export const lineInterpolation = {
 };
 
 export const showBrush = {
-  name:   'show_brush',
+  name: 'show_brush',
   config: {
     type: 'SelectControl',
     label: t('Show Range Filter'),
@@ -76,9 +76,9 @@ export const showBrush = {
     ],
     description: t('Whether to display the time range interactive selector'),
   },
-}
+};
 
-export const  showLegend = {
+export const showLegend = {
   name: 'show_legend',
   config: {
     type: 'CheckboxControl',
@@ -87,4 +87,19 @@ export const  showLegend = {
     default: true,
     description: t('Whether to display the legend (toggles)'),
   },
-} 
+};
+
+export const showControls = {
+  name: 'show_controls',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Extra Controls'),
+    renderTrigger: true,
+    default: false,
+    description: t(
+      'Whether to show extra controls or not. Extra controls ' +
+        'include things like making mulitBar charts stacked ' +
+        'or side by side.',
+    ),
+  },
+};

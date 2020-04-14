@@ -302,18 +302,6 @@ export const controls = {
     description: t('Sort bars by x labels.'),
   },
 
-  show_controls: {
-    type: 'CheckboxControl',
-    label: t('Extra Controls'),
-    renderTrigger: true,
-    default: false,
-    description: t(
-      'Whether to show extra controls or not. Extra controls ' +
-        'include things like making mulitBar charts stacked ' +
-        'or side by side.',
-    ),
-  },
-
   reduce_x_ticks: {
     type: 'CheckboxControl',
     label: t('Reduce X ticks'),

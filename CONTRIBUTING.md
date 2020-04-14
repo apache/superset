@@ -1142,7 +1142,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `series`                        | _N/A_ |       |
 | `show_bar_value`                | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
-| `show_controls`                 | _N/A_ |       |
 | `show_labels`                   | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |

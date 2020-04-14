@@ -19,7 +19,12 @@
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { lineInterpolation, showBrush, showLegend } from './Shared_NVD3';
+import {
+  lineInterpolation,
+  showBrush,
+  showLegend,
+  showControls,
+} from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -49,7 +54,7 @@ export default {
           },
         ],
         ['color_scheme', 'label_colors'],
-        ['rich_tooltip', 'show_controls'],
+        ['rich_tooltip', showControls],
       ],
     },
     {

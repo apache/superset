@@ -98,7 +98,7 @@ export default {
         ['y_axis_bounds', 'y_axis_format'],
         [
           {
-            name:   'show_legend',
+            name: 'show_legend',
             config: {
               type: 'CheckboxControl',
               label: t('Legend'),

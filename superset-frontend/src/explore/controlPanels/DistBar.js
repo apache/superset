@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { showLegend } from './Shared_NVD3';
+import { showLegend, showControls } from './Shared_NVD3';
 import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
@@ -42,7 +42,7 @@ export default {
         [showLegend, 'show_bar_value'],
         ['bar_stacked', 'order_bars'],
         ['y_axis_format', 'y_axis_label'],
-        ['show_controls', null],
+        [showControls, null],
       ],
     },
     {

@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { lineInterpolation, shoeLegend } from './Shared_NVD3';
+import { lineInterpolation, showLegend } from './Shared_NVD3';
 
 export default {
   requiresTime: true,

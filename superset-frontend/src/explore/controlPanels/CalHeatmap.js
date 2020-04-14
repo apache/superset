@@ -145,16 +145,19 @@ export default {
             },
           },
         ],
-        [{
-          name:   'show_legend',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Legend'),
-            renderTrigger: true,
-            default: true,
-            description: t('Whether to display the legend (toggles)'),
+        [
+          {
+            name: 'show_legend',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Legend'),
+              renderTrigger: true,
+              default: true,
+              description: t('Whether to display the legend (toggles)'),
+            },
           },
-        }, 'show_values'],
+          'show_values',
+        ],
         [
           {
             name: 'show_metric_name',
