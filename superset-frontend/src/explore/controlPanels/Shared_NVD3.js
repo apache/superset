@@ -59,4 +59,4 @@ export const lineInterpolation = {
     default: 'linear',
     description: t('Line interpolation as defined by d3.js'),
   },
-}
+};
