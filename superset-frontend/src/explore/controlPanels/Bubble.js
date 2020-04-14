@@ -24,6 +24,7 @@ import {
   bottomMargin,
   xTicksLayout,
   xAxisFormat,
+  yLogScale
 } from './Shared_NVD3';
 
 export default {
@@ -84,7 +85,7 @@ export default {
       controlSetRows: [
         ['y_axis_label', bottomMargin],
         ['y_axis_format', null],
-        ['y_log_scale', 'y_axis_showminmax'],
+        [yLogScale, 'y_axis_showminmax'],
       ],
     },
   ],

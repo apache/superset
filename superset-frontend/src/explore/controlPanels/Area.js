@@ -28,6 +28,7 @@ import {
   bottomMargin,
   xTicksLayout,
   xAxisFormat,
+  yLogScale
 } from './Shared_NVD3';
 
 export default {
@@ -75,7 +76,7 @@ export default {
       expanded: true,
       controlSetRows: [
         ['y_axis_format', 'y_axis_bounds'],
-        ['y_log_scale', null],
+        [yLogScale, null],
       ],
     },
     NVD3TimeSeries[1],

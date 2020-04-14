@@ -889,14 +889,6 @@ export const controls = {
     ),
   },
 
-  y_log_scale: {
-    type: 'CheckboxControl',
-    label: t('Y Log Scale'),
-    default: false,
-    renderTrigger: true,
-    description: t('Use a log scale for the Y-axis'),
-  },
-
   log_scale: {
     type: 'CheckboxControl',
     label: t('Log Scale'),

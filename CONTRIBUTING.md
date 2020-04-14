@@ -1066,7 +1066,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `y_axis_label`      | _string_        | The **Y Axis Label** widget  |
 | `y_axis_showminmax` | _boolean_       | The **Y bounds** widget      |
 | `y_axis_zero`       | _N/A_           | _Deprecated?_                |
-| `y_log_scale`       | _boolean_       | The **Y Log Scale** widget   |
 
 Note the `y_axis_format` is defined under various section for some charts.
 
