@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { validateNonEmpty } from '@superset-ui/validator';
 import { formatSelectOptionsForRange } from '../../modules/utils';
 
 const sortAxisChoices = [
@@ -139,10 +139,10 @@ export default {
   ],
   controlOverrides: {
     all_columns_x: {
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
     },
     all_columns_y: {
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
     },
     normalized: t(
       'Whether to apply a normal distribution based on rank on the color scale',

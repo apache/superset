@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { validateNonEmpty } from '@superset-ui/validator';
 import {
   filterNulls,
   autozoom,
@@ -65,7 +65,7 @@ export default {
     size: {
       label: t('Height'),
       description: t('Metric used to control height'),
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
     },
   },
 };
