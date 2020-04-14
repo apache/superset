@@ -780,7 +780,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
 def get_email_address_list(address_string: str) -> List[str]:
     address_string_list: List[str] = []
     if isinstance(address_string, str):
-        address_string_list = re.split(",|\n|\t| |;", address_string)
+        address_string_list = re.split(",|\s|;", address_string)
     return [x.strip() for x in address_string_list if x.strip()]
 
 
