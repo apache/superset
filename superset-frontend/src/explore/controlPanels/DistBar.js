@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { showLegend } from './Shared_NVD3';
 import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
@@ -38,7 +39,7 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['show_legend', 'show_bar_value'],
+        [showLegend, 'show_bar_value'],
         ['bar_stacked', 'order_bars'],
         ['y_axis_format', 'y_axis_label'],
         ['show_controls', null],

@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { lineInterpolation } from './Shared_NVD3';
+import { lineInterpolation, shoeLegend } from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -65,7 +65,7 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['show_legend', lineInterpolation],
+        [showLegend, lineInterpolation],
         ['color_picker', null],
       ],
     },

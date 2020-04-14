@@ -880,34 +880,12 @@ export const controls = {
     ),
   },
 
-  show_brush: {
-    type: 'SelectControl',
-    label: t('Show Range Filter'),
-    renderTrigger: true,
-    clearable: false,
-    default: 'auto',
-    choices: [
-      ['yes', 'Yes'],
-      ['no', 'No'],
-      ['auto', 'Auto'],
-    ],
-    description: t('Whether to display the time range interactive selector'),
-  },
-
   table_filter: {
     type: 'CheckboxControl',
     label: t('Emit Filter Events'),
     renderTrigger: true,
     default: false,
     description: t('Whether to apply filter when items are clicked'),
-  },
-
-  show_legend: {
-    type: 'CheckboxControl',
-    label: t('Legend'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to display the legend (toggles)'),
   },
 
   send_time_range: {

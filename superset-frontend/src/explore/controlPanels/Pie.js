@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { showLegend } from './Shared_NVD3';
 
 export default {
   controlPanelSections: [
@@ -65,7 +66,7 @@ export default {
               description: t('Do you want a donut or a pie?'),
             },
           },
-          'show_legend',
+          showLegend,
         ],
         [
           'show_labels',

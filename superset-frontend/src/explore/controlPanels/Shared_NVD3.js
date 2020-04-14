@@ -60,3 +60,31 @@ export const lineInterpolation = {
     description: t('Line interpolation as defined by d3.js'),
   },
 };
+
+export const showBrush = {
+  name:   'show_brush',
+  config: {
+    type: 'SelectControl',
+    label: t('Show Range Filter'),
+    renderTrigger: true,
+    clearable: false,
+    default: 'auto',
+    choices: [
+      ['yes', 'Yes'],
+      ['no', 'No'],
+      ['auto', 'Auto'],
+    ],
+    description: t('Whether to display the time range interactive selector'),
+  },
+}
+
+export const  showLegend = {
+  name: 'show_legend',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Legend'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to display the legend (toggles)'),
+  },
+} 

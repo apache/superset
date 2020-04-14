@@ -97,7 +97,16 @@ export default {
         ['left_margin', 'bottom_margin'],
         ['y_axis_bounds', 'y_axis_format'],
         [
-          'show_legend',
+          {
+            name:   'show_legend',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Legend'),
+              renderTrigger: true,
+              default: true,
+              description: t('Whether to display the legend (toggles)'),
+            },
+          },
           {
             name: 'show_perc',
             config: {

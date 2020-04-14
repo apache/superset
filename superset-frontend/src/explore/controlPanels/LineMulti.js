@@ -20,7 +20,7 @@ import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { lineInterpolation } from './Shared_NVD3';
+import { lineInterpolation, showLegend } from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -42,7 +42,7 @@ export default {
           },
           null,
         ],
-        ['show_legend', 'show_markers'],
+        [showLegend, 'show_markers'],
         [lineInterpolation, null],
       ],
     },

@@ -1047,8 +1047,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `number_format`       | _string_  | The **Number format** widget                     |
 | `rich_tooltip`        | _boolean_ | The **Rich Tooltip** widget                      |
 | `send_time_range`     | _boolean_ | The **Show Markers** widget                      |
-| `show_brush`          | _string_  | The **Show Range Filter** widget                 |
-| `show_legend`         | _boolean_ | The **Legend** widget                            |
 | `show_markers`        | _string_  | The **Show Markers** widget                      |
 
 ### X Axis
@@ -1143,7 +1141,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `select_country`                | _N/A_ |       |
 | `series`                        | _N/A_ |       |
 | `show_bar_value`                | _N/A_ |       |
-| `show_brush`                    | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
 | `show_controls`                 | _N/A_ |       |
 | `show_labels`                   | _N/A_ |       |

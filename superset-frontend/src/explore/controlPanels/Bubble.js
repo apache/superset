@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { showLegend } from './Shared_NVD3';
 
 export default {
   label: t('Bubble Chart'),
@@ -39,7 +40,7 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['show_legend', null],
+        [showLegend, null],
       ],
     },
     {
