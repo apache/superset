@@ -33,6 +33,7 @@ import {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const PAGE_SIZE = 25;
 
@@ -111,6 +112,10 @@ class ChartList extends React.PureComponent<Props, State> {
     return this.hasPerm('can_delete');
   }
 
+  get isNewUIEnabled() {
+    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_NEW_UI);
+  }
+
   initialSort = [{ id: 'changed_on', desc: true }];
 
   columns = [
@@ -173,6 +178,10 @@ class ChartList extends React.PureComponent<Props, State> {
     },
     {
       accessor: 'owners',
+      hidden: true,
+    },
+    {
+      accessor: 'datasource',
       hidden: true,
     },
     {
@@ -311,11 +320,24 @@ class ChartList extends React.PureComponent<Props, State> {
       },
       loading: true,
     });
-    const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
-      col,
-      opr,
-      value,
-    }));
+    const filterExps = filters
+      .map(({ id: col, operator: opr, value }) => ({
+        col,
+        opr,
+        value,
+      }))
+      .reduce((acc, fltr) => {
+        if (fltr.col === 'datasource' && typeof fltr.value === 'object') {
+          const { datasource_id: dsId, datasource_type: dsType } =
+            fltr.value || {};
+          return [
+            ...acc,
+            { ...fltr, col: 'datasource_id', value: dsId },
+            { ...fltr, col: 'datasource_type', value: dsType },
+          ];
+        }
+        return [...acc, fltr];
+      }, []);
 
     const queryParams = JSON.stringify({
       order_column: sortBy[0].id,
@@ -339,8 +361,58 @@ class ChartList extends React.PureComponent<Props, State> {
       });
   };
 
-  updateFilters = () => {
+  updateFilters = async () => {
     const { filterOperators, owners } = this.state;
+
+    if (this.isNewUIEnabled) {
+      const { json: vizTypesJson = {} } = await SupersetClient.get({
+        endpoint: '/api/v1/chart/viz_types',
+      });
+      const vizTypes = vizTypesJson?.result;
+
+      const { json: datasourcesJson = {} } = await SupersetClient.get({
+        endpoint: '/api/v1/chart/datasources',
+      });
+      const datasources = datasourcesJson?.result;
+
+      this.setState({
+        filters: [
+          {
+            Header: 'Owner',
+            id: 'owners',
+            input: 'select',
+            operator: 'rel_m_m',
+            unfilteredLabel: 'All',
+            selects: owners.map(({ text: label, value }) => ({ label, value })),
+          },
+          {
+            Header: 'Viz Type',
+            id: 'viz_type',
+            input: 'select',
+            operator: 'eq',
+            unfilteredLabel: 'All',
+            selects: vizTypes,
+          },
+          {
+            Header: 'Dataset',
+            id: 'datasource',
+            input: 'select',
+            operator: 'eq',
+            unfilteredLabel: 'All',
+            selects: datasources,
+          },
+          {
+            Header: 'Search',
+            id: 'slice_name',
+            input: 'search',
+            operator: 'name_or_description',
+          },
+        ],
+      });
+
+      return;
+    }
+
     const convertFilter = ({
       name: label,
       operator,
@@ -435,6 +507,7 @@ class ChartList extends React.PureComponent<Props, State> {
                     initialSort={this.initialSort}
                     filters={filters}
                     bulkActions={bulkActions}
+                    useNewUIFilters={this.isNewUIEnabled}
                   />
                 );
               }}

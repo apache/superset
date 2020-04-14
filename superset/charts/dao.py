@@ -15,14 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.charts.filters import ChartFilter
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.dao.base import BaseDAO
 from superset.extensions import db
 from superset.models.slice import Slice
+
+if TYPE_CHECKING:
+    # pylint: disable=unused-import
+    from superset.connectors.base.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
 
@@ -51,3 +56,25 @@ class ChartDAO(BaseDAO):
             if commit:
                 db.session.rollback()
             raise ex
+
+    @staticmethod
+    def fetch_unique_column_values(column_name: str) -> List:
+        return [
+            val[0]
+            for val in db.session.query(getattr(Slice, column_name)).distinct().all()
+        ]
+
+    @staticmethod
+    def fetch_unique_datasources() -> Optional[List["BaseDatasource"]]:
+        groups = (
+            db.session.query(Slice.datasource_type, Slice.datasource_id)
+            .group_by(Slice.datasource_type, Slice.datasource_id)
+            .all()
+        )
+        datasources = [
+            ConnectorRegistry.get_datasource(
+                session=db.session, datasource_type=ds[0], datasource_id=ds[1]
+            )
+            for ds in groups
+        ]
+        return datasources
