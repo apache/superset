@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { showLegend, showControls, xAxisLabel } from './Shared_NVD3';
+import { showLegend, showControls, xAxisLabel, bottomMargin } from './Shared_NVD3';
 
 export default {
   controlPanelSections: [
@@ -49,7 +49,7 @@ export default {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        [xAxisLabel, 'bottom_margin'],
+        [xAxisLabel, bottomMargin],
         ['x_ticks_layout', 'reduce_x_ticks'],
       ],
     },

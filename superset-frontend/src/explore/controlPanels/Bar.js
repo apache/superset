@@ -24,7 +24,8 @@ import {
   showBrush,
   showLegend,
   showControls,
-  xAxisLabel
+  xAxisLabel,
+  bottomMargin
 } from './Shared_NVD3';
 
 export default {
@@ -39,14 +40,14 @@ export default {
         [showBrush, showLegend, 'show_bar_value'],
         ['rich_tooltip', 'bar_stacked'],
         [lineInterpolation, showControls],
-        ['bottom_margin'],
+        [bottomMargin],
       ],
     },
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        [xAxisLabel, 'bottom_margin'],
+        [xAxisLabel, bottomMargin],
         ['x_ticks_layout', 'x_axis_format'],
         ['x_axis_showminmax', 'reduce_x_ticks'],
       ],
