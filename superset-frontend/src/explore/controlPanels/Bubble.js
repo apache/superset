@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { showLegend, xAxisLabel, bottomMargin } from './Shared_NVD3';
+import { showLegend, xAxisLabel, bottomMargin, xTicksLayout } from './Shared_NVD3';
 
 export default {
   label: t('Bubble Chart'),
@@ -48,7 +48,7 @@ export default {
       expanded: true,
       controlSetRows: [
         [xAxisLabel, 'left_margin'],
-        ['x_axis_format', 'x_ticks_layout'],
+        ['x_axis_format', xTicksLayout],
         [
           {
             name: 'x_log_scale',

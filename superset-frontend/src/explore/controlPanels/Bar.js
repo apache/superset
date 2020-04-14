@@ -25,7 +25,8 @@ import {
   showLegend,
   showControls,
   xAxisLabel,
-  bottomMargin
+  bottomMargin,
+  xTicksLayout,
 } from './Shared_NVD3';
 
 export default {
@@ -48,7 +49,7 @@ export default {
       expanded: true,
       controlSetRows: [
         [xAxisLabel, bottomMargin],
-        ['x_ticks_layout', 'x_axis_format'],
+        [xTicksLayout, 'x_axis_format'],
         ['x_axis_showminmax', 'reduce_x_ticks'],
       ],
     },

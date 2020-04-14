@@ -104,19 +104,18 @@ export const showControls = {
   },
 };
 
-
 export const xAxisLabel = {
-  name:  'x_axis_label',
+  name: 'x_axis_label',
   config: {
     type: 'TextControl',
     label: t('X Axis Label'),
     renderTrigger: true,
     default: '',
   },
-}
+};
 
 export const bottomMargin = {
-  name:   'bottom_margin',
+  name: 'bottom_margin',
   config: {
     type: 'SelectControl',
     clearable: false,
@@ -129,4 +128,17 @@ export const bottomMargin = {
       'Bottom margin, in pixels, allowing for more room for axis labels',
     ),
   },
-}
+};
+
+export const xTicksLayout = {
+  name: 'x_ticks_layout',
+  config: {
+    type: 'SelectControl',
+    label: t('X Tick Layout'),
+    choices: formatSelectOptions(['auto', 'flat', '45°', 'staggered']),
+    default: 'auto',
+    clearable: false,
+    renderTrigger: true,
+    description: t('The way the ticks are laid out on the X-axis'),
+  },
+};

@@ -453,16 +453,6 @@ export const controls = {
     ),
   },
 
-  x_ticks_layout: {
-    type: 'SelectControl',
-    label: t('X Tick Layout'),
-    choices: formatSelectOptions(['auto', 'flat', '45°', 'staggered']),
-    default: 'auto',
-    clearable: false,
-    renderTrigger: true,
-    description: t('The way the ticks are laid out on the X-axis'),
-  },
-
   left_margin: {
     type: 'SelectControl',
     freeForm: true,

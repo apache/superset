@@ -18,7 +18,12 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { showLegend, showControls, xAxisLabel, bottomMargin } from './Shared_NVD3';
+import {
+  showLegend,
+  showControls,
+  xAxisLabel,
+  bottomMargin,
+} from './Shared_NVD3';
 
 export default {
   controlPanelSections: [

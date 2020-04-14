@@ -94,21 +94,32 @@ export default {
           },
           'normalize_across',
         ],
-        ['left_margin', {
-          name:   'bottom_margin',
-          config: {
-            type: 'SelectControl',
-            clearable: false,
-            freeForm: true,
-            label: t('Bottom Margin'),
-            choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
-            default: 'auto',
-            renderTrigger: true,
-            description: t(
-              'Bottom margin, in pixels, allowing for more room for axis labels',
-            ),
+        [
+          'left_margin',
+          {
+            name: 'bottom_margin',
+            config: {
+              type: 'SelectControl',
+              clearable: false,
+              freeForm: true,
+              label: t('Bottom Margin'),
+              choices: formatSelectOptions([
+                'auto',
+                50,
+                75,
+                100,
+                125,
+                150,
+                200,
+              ]),
+              default: 'auto',
+              renderTrigger: true,
+              description: t(
+                'Bottom margin, in pixels, allowing for more room for axis labels',
+              ),
+            },
           },
-        }],
+        ],
         ['y_axis_bounds', 'y_axis_format'],
         [
           {

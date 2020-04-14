@@ -1055,7 +1055,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | -------------------- | --------- | ---------------------------- |
 | `x_axis_format`      | _string_  | The **X Axis Format** widget |
 | `x_axis_showminmax`  | _boolean_ | The **X bounds** widget      |
-| `x_ticks_layout`     | _string_  | The **X Tick Layout** widget |
 
 ### Y Axis
 
