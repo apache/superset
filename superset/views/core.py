@@ -1294,7 +1294,7 @@ class Superset(BaseSupersetView):
 
         if schema:
             # edit by wuyl to fix spark-sql table info
-            if db_id in [7]:
+            if db_id in [5,7]:
                 from pyhive import hive
                 cursor = hive.connect(host='172.31.21.50', port=10001, username='hive', database=schema).cursor()
 
