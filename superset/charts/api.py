@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=line-too-long
 import logging
 from typing import Any, Dict
 
@@ -41,6 +42,7 @@ from superset.charts.commands.exceptions import (
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.filters import ChartFilter, ChartNameOrDescriptionFilter
 from superset.charts.schemas import (
+    CHART_DATA_SCHEMAS,
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
@@ -381,42 +383,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
             Takes a query context constructed in the client and returns payload data
             response for the given query.
           requestBody:
-            description: Query context schema
+            description: >-
+              A query context consists of a datasource from which to fetch data
+              and one or many query objects.
             required: true
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    datasource:
-                      type: object
-                      description: The datasource where the query will run
-                      properties:
-                        id:
-                          type: integer
-                        type:
-                          type: string
-                    queries:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          granularity:
-                            type: string
-                          groupby:
-                            type: array
-                            items:
-                              type: string
-                          metrics:
-                            type: array
-                            items:
-                              type: object
-                          filters:
-                            type: array
-                            items:
-                              type: string
-                          row_limit:
-                            type: integer
+                  $ref: "#/components/schemas/ChartDataQueryContext"
           responses:
             200:
               description: Query result
@@ -533,3 +507,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
+
+    def add_apispec_components(self, api_spec):
+        for chart_type in CHART_DATA_SCHEMAS:
+            api_spec.components.schema(
+                chart_type.__name__, schema=chart_type,
+            )
+        super().add_apispec_components(api_spec)
