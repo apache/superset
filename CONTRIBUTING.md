@@ -1042,7 +1042,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `color_picker`        | _object_  | The **Fixed Color** widget                       |
 | `global_opacity`      | _number_  | The **Opacity** widget                           |
 | `label_colors`        | _object_  | The **Color Scheme** widget                      |
-| `line_interpolation`  | _string_  | The **Line Style** widget                        |
 | `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
 | `number_format`       | _string_  | The **Number format** widget                     |

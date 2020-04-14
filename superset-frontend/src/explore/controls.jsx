@@ -855,22 +855,6 @@ export const controls = {
     description: t('Pick your favorite markup language'),
   },
 
-  line_interpolation: {
-    type: 'SelectControl',
-    label: t('Line Style'),
-    renderTrigger: true,
-    choices: formatSelectOptions([
-      'linear',
-      'basis',
-      'cardinal',
-      'monotone',
-      'step-before',
-      'step-after',
-    ]),
-    default: 'linear',
-    description: t('Line interpolation as defined by d3.js'),
-  },
-
   code: {
     type: 'TextAreaControl',
     label: t('Code'),

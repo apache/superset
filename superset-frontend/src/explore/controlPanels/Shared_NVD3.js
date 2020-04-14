@@ -21,6 +21,7 @@
 
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { formatSelectOptions } from '../../modules/utils';
 // import ColumnOption from '../../components/ColumnOption';
 // import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
 // import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
@@ -40,3 +41,22 @@ import { t } from '@superset-ui/translation';
   PieChartPlugin,
   TimePivotChartPlugin,
 */
+
+export const lineInterpolation = {
+  name: 'line_interpolation',
+  config: {
+    type: 'SelectControl',
+    label: t('Line Style'),
+    renderTrigger: true,
+    choices: formatSelectOptions([
+      'linear',
+      'basis',
+      'cardinal',
+      'monotone',
+      'step-before',
+      'step-after',
+    ]),
+    default: 'linear',
+    description: t('Line interpolation as defined by d3.js'),
+  },
+}
