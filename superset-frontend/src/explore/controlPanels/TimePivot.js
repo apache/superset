@@ -26,6 +26,7 @@ import {
   xAxisFormat,
   yLogScale,
   yAxisBounds,
+  xAxisShowminmax,
 } from './Shared_NVD3';
 
 export default {
@@ -83,7 +84,7 @@ export default {
       controlSetRows: [
         [xAxisLabel, bottomMargin],
         [
-          'x_axis_showminmax',
+          xAxisShowminmax,
           {
             ...xAxisFormat,
             default: 'SMART_NUMBER',

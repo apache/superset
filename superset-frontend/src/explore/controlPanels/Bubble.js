@@ -25,6 +25,7 @@ import {
   xTicksLayout,
   xAxisFormat,
   yLogScale,
+  xAxisShowminmax,
 } from './Shared_NVD3';
 
 export default {
@@ -75,7 +76,7 @@ export default {
               description: t('Use a log scale for the X-axis'),
             },
           },
-          'x_axis_showminmax',
+          xAxisShowminmax,
         ],
       ],
     },

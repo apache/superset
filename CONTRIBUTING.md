@@ -1049,12 +1049,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `send_time_range`     | _boolean_ | The **Show Markers** widget                      |
 | `show_markers`        | _string_  | The **Show Markers** widget                      |
 
-### X Axis
-
-| Field                | Type      | Notes                        |
-| -------------------- | --------- | ---------------------------- |
-| `x_axis_showminmax`  | _boolean_ | The **X bounds** widget      |
-
 ### Y Axis
 
 | Field               | Type            | Notes                        |

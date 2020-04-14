@@ -850,14 +850,6 @@ export const controls = {
     description: t('Whether to display the numerical values within the cells'),
   },
 
-  x_axis_showminmax: {
-    type: 'CheckboxControl',
-    label: t('X bounds'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to display the min and max values of the X-axis'),
-  },
-
   y_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('Y bounds'),
