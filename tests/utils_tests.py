@@ -40,6 +40,7 @@ from superset.utils.core import (
     datetime_f,
     format_timedelta,
     get_iterable,
+    get_email_address_list,
     get_or_create_db,
     get_since_until,
     get_stacktrace,
@@ -1238,3 +1239,13 @@ class UtilsTestCase(SupersetTestCase):
         expected_filename = hashlib.md5(ssl_certificate.encode("utf-8")).hexdigest()
         self.assertIn(expected_filename, path)
         self.assertTrue(os.path.exists(path))
+
+    def test_get_email_address_list(self):
+        self.assertEqual(get_email_address_list("a@a"), ["a@a"])
+        self.assertEqual(get_email_address_list(" a@a "), ["a@a"])
+        self.assertEqual(get_email_address_list("a@a\n"), ["a@a"])
+        self.assertEqual(get_email_address_list(",a@a;"), ["a@a"])
+        self.assertEqual(
+            get_email_address_list(",a@a; b@b c@c a-c@c; d@d, f@f"),
+            ["a@a", "b@b", "c@c", "a-c@c", "d@d", "f@f"],
+        )
