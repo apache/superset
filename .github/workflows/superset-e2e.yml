@@ -22,7 +22,6 @@ jobs:
       REDIS_PORT: 16379
       CI: github-actions
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
     services:
       postgres:
         image: postgres:10-alpine
@@ -67,10 +66,7 @@ jobs:
         sleep 3 # wait for the Flask app to start
 
         cd ${{ github.workspace }}/superset-frontend/cypress-base/
-        npm run cypress -- run \
-          --browser ${{ matrix.browser }} --spec "${{ env.CYPRESS_PATH }}" \
-          --record --group "${{ env.CYPRESS_GROUP }}" \
-          --ci-build-id ${{ github.event_name }}-${{ github.run_id }}
+        npm run cypress -- run --browser ${{ matrix.browser }} --spec "${{ env.CYPRESS_PATH }}" --record false
 
     - name: Cypress run SQL Lab (with backend persist)
       env:
@@ -85,7 +81,4 @@ jobs:
         sleep 3 # wait for the Flask app to start
 
         cd ${{ github.workspace }}/superset-frontend/cypress-base/
-        npm run cypress -- run \
-          --browser ${{ matrix.browser }} --spec "${{ env.CYPRESS_PATH }}" \
-          --record --group "${{ env.CYPRESS_GROUP }}" \
-          --ci-build-id ${{ github.event_name }}-${{ github.run_id }}
+        npm run cypress -- run --browser ${{ matrix.browser }} --spec "${{ env.CYPRESS_PATH }}" --record false
