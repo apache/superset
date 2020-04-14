@@ -22,7 +22,6 @@ jobs:
       REDIS_PORT: 16379
       CI: github-actions
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
     services:
       postgres:
         image: postgres:10-alpine
@@ -69,7 +68,7 @@ jobs:
         cd ${{ github.workspace }}/superset-frontend/cypress-base/
         npm run cypress -- run \
           --browser ${{ matrix.browser }} --spec "${{ env.CYPRESS_PATH }}" \
-          --record --group "${{ env.CYPRESS_GROUP }}" \
+          --record false --group "${{ env.CYPRESS_GROUP }}" \
           --ci-build-id ${{ github.event_name }}-${{ github.run_id }}
 
     - name: Cypress run SQL Lab (with backend persist)
@@ -87,5 +86,5 @@ jobs:
         cd ${{ github.workspace }}/superset-frontend/cypress-base/
         npm run cypress -- run \
           --browser ${{ matrix.browser }} --spec "${{ env.CYPRESS_PATH }}" \
-          --record --group "${{ env.CYPRESS_GROUP }}" \
+          --record false --group "${{ env.CYPRESS_GROUP }}" \
           --ci-build-id ${{ github.event_name }}-${{ github.run_id }}
