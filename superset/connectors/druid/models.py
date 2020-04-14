@@ -1190,10 +1190,9 @@ class DruidDatasource(Model, BaseDatasource):
 
         # the dimensions list with dimensionSpecs expanded
 
-        if IS_SIP_38:
-            dimensions = self.get_dimensions(columns, columns_dict)
-        else:
-            dimensions = self.get_dimensions(groupby, columns_dict)
+        dimensions = self.get_dimensions(
+            columns if IS_SIP_38 else groupby, columns_dict
+        )
 
         extras = extras or {}
         qry = dict(
@@ -1220,12 +1219,8 @@ class DruidDatasource(Model, BaseDatasource):
 
         order_direction = "descending" if order_desc else "ascending"
 
-        if (
-            IS_SIP_38
-            and not metrics
-            and "__time" not in columns
-            or not IS_SIP_38
-            and columns
+        if (IS_SIP_38 and not metrics and "__time" not in columns) or (
+            not IS_SIP_38 and columns
         ):
             columns.append("__time")
             del qry["post_aggregations"]
@@ -1236,12 +1231,8 @@ class DruidDatasource(Model, BaseDatasource):
             qry["granularity"] = "all"
             qry["limit"] = row_limit
             client.scan(**qry)
-        elif (
-            IS_SIP_38
-            and columns
-            or not IS_SIP_38
-            and len(groupby) == 0
-            and not having_filters
+        elif (IS_SIP_38 and columns) or (
+            not IS_SIP_38 and len(groupby) == 0 and not having_filters
         ):
             logger.info("Running timeseries query for no groupby values")
             del qry["dimensions"]
@@ -1249,7 +1240,10 @@ class DruidDatasource(Model, BaseDatasource):
         elif (
             not having_filters
             and order_desc
-            and (IS_SIP_38 and len(columns) == 1 or not IS_SIP_38 and len(groupby) == 1)
+            and (
+                (IS_SIP_38 and len(columns) == 1)
+                or (not IS_SIP_38 and len(groupby) == 1)
+            )
         ):
             dim = list(qry["dimensions"])[0]
             logger.info("Running two-phase topn query for dimension [{}]".format(dim))
@@ -1303,7 +1297,7 @@ class DruidDatasource(Model, BaseDatasource):
             logger.info("Phase 2 Complete")
         elif (
             having_filters
-            or (IS_SIP_38 and columns or not IS_SIP_38 and len(groupby)) > 0
+            or ((IS_SIP_38 and columns) or (not IS_SIP_38 and len(groupby))) > 0
         ):
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query

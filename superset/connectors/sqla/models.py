@@ -751,13 +751,9 @@ class SqlaTable(Model, BaseDatasource):
                 )
             )
         if (
-            is_sip_38
-            and not metrics
+            not metrics
             and not columns
-            or not is_sip_38
-            and not groupby
-            and not metrics
-            and not columns
+            and (is_sip_38 or (not is_sip_38 and not groupby))
         ):
             raise Exception(_("Empty query?"))
         metrics_exprs: List[ColumnElement] = []
@@ -777,12 +773,9 @@ class SqlaTable(Model, BaseDatasource):
         select_exprs: List[Column] = []
         groupby_exprs_sans_timestamp: OrderedDict = OrderedDict()
 
-        if is_sip_38 and metrics and columns or not is_sip_38 and groupby:
+        if (is_sip_38 and metrics and columns) or (not is_sip_38 and groupby):
             # dedup columns while preserving order
-            if is_sip_38:
-                groupby = list(dict.fromkeys(columns))
-            else:
-                groupby = list(dict.fromkeys(groupby))
+            groupby = list(dict.fromkeys(columns if is_sip_38 else groupby))
 
             select_exprs = []
             for s in groupby:
@@ -841,7 +834,7 @@ class SqlaTable(Model, BaseDatasource):
 
         tbl = self.get_from_clause(template_processor)
 
-        if is_sip_38 and metrics or not is_sip_38 and not columns:
+        if (is_sip_38 and metrics) or (not is_sip_38 and not columns):
             qry = qry.group_by(*groupby_exprs_with_timestamp.values())
 
         where_clause_and = []
@@ -904,14 +897,7 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
 
-        if (
-            is_sip_38
-            and not orderby
-            and metrics
-            or not is_sip_38
-            and not orderby
-            and not columns
-        ):
+        if not orderby and ((is_sip_38 and metrics) or (not is_sip_38 and not columns)):
             orderby = [(main_metric_expr, not order_desc)]
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
@@ -934,16 +920,10 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.limit(row_limit)
 
         if (
-            is_sip_38
-            and is_timeseries
+            is_timeseries
             and timeseries_limit
-            and columns
             and not time_groupby_inline
-            or not is_sip_38
-            and is_timeseries
-            and timeseries_limit
-            and groupby
-            and not time_groupby_inline
+            and ((is_sip_38 and columns) or (not is_sip_38 and groupby))
         ):
             if self.database.db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
