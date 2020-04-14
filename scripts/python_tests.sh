@@ -16,12 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+set -e
 
-# This is the recommended way to install FOSSA's cli per the docs:
-# https://docs.fossa.com/docs/travisci#section-add-fossa-steps-to-travisyml
-curl -s -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
+export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.superset_test_config}
+echo "Superset config module: $SUPERSET_CONFIG"
 
-# This key is a push-only API key, also recommended for public projects
-# https://docs.fossa.com/docs/api-reference#section-push-only-api-token
-export FOSSA_API_KEY="${FOSSA_API_KEY:-f72e93645bdfeab94bd227c7bbdda4ef}"
-fossa analyze
+superset db upgrade
+superset init
+nosetests --stop tests/load_examples_test.py
+nosetests --stop --exclude=load_examples_test tests
