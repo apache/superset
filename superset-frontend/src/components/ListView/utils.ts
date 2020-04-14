@@ -33,7 +33,13 @@ import {
   useQueryParams,
 } from 'use-query-params';
 
-import { FetchDataConfig, InternalFilter, SortColumn } from './types';
+import {
+  FetchDataConfig,
+  Filter,
+  FilterValue,
+  InternalFilter,
+  SortColumn,
+} from './types';
 
 export class ListViewError extends Error {
   name = 'ListViewError';
@@ -55,17 +61,22 @@ function updateInList(list: any[], index: number, update: any): any[] {
   ];
 }
 
-// convert filters from UI objects to data objects
-export function convertFilters(fts: InternalFilter[]) {
-  return fts
-    .filter((ft: InternalFilter) => ft.value)
-    .map(ft => ({ operator: ft.operator, ...ft }));
+function mergeCreateFilterValues(list: Filter[], updateList: FilterValue[]) {
+  return list.map(({ id, operator }) => {
+    const update = updateList.find(obj => obj.id === id);
+
+    return { id, operator, value: update?.value };
+  });
 }
 
-export function extractInputValue(
-  inputType: 'text' | 'textarea' | 'checkbox' | 'select' | undefined,
-  event: any,
-) {
+// convert filters from UI objects to data objects
+export function convertFilters(fts: InternalFilter[]): FilterValue[] {
+  return fts
+    .filter(f => typeof f.value !== 'undefined')
+    .map(({ value, operator, id }) => ({ value, operator, id }));
+}
+
+export function extractInputValue(inputType: Filter['input'], event: any) {
   if (!inputType || inputType === 'text') {
     return event.currentTarget.value;
   }
@@ -76,6 +87,13 @@ export function extractInputValue(
   return null;
 }
 
+export function getDefaultFilterOperator(filter: Filter): string {
+  if (filter?.operator) return filter.operator;
+  if (filter?.operators?.length) {
+    return filter.operators[0].value;
+  }
+  return '';
+}
 interface UseListViewConfig {
   fetchData: (conf: FetchDataConfig) => any;
   columns: any[];
@@ -84,6 +102,7 @@ interface UseListViewConfig {
   initialPageSize: number;
   initialSort?: SortColumn[];
   bulkSelectMode?: boolean;
+  initialFilters?: Filter[];
   bulkSelectColumnConfig?: {
     id: string;
     Header: (conf: any) => React.ReactNode;
@@ -97,6 +116,7 @@ export function useListViewState({
   data,
   count,
   initialPageSize,
+  initialFilters = [],
   initialSort = [],
   bulkSelectMode = false,
   bulkSelectColumnConfig,
@@ -123,10 +143,13 @@ export function useListViewState({
     sortBy: initialSortBy,
   };
 
-  const columnsWithSelect = useMemo(
-    () => (bulkSelectMode ? [bulkSelectColumnConfig, ...columns] : columns),
-    [bulkSelectMode, columns],
-  );
+  const columnsWithSelect = useMemo(() => {
+    // add exact filter type so filters with falsey values are not filtered out
+    const columnsWithFilter = columns.map(f => ({ ...f, filter: 'exact' }));
+    return bulkSelectMode
+      ? [bulkSelectColumnConfig, ...columnsWithFilter]
+      : columnsWithFilter;
+  }, [bulkSelectMode, columns]);
 
   const {
     getTableProps,
@@ -166,6 +189,14 @@ export function useListViewState({
   );
 
   useEffect(() => {
+    if (initialFilters.length) {
+      setInternalFilters(
+        mergeCreateFilterValues(initialFilters, query.filters),
+      );
+    }
+  }, [initialFilters]);
+
+  useEffect(() => {
     const queryParams: any = {
       filters: internalFilters,
       pageIndex,
@@ -175,22 +206,41 @@ export function useListViewState({
       queryParams.sortOrder = sortBy[0].desc ? 'desc' : 'asc';
     }
     setQuery(queryParams);
-
     fetchData({ pageIndex, pageSize, sortBy, filters });
   }, [fetchData, pageIndex, pageSize, sortBy, filters]);
 
   const filtersApplied = internalFilters.every(
     ({ id, value, operator }, index) =>
       id &&
-      filters[index] &&
-      filters[index].id === id &&
-      filters[index].value === value &&
+      filters[index]?.id === id &&
+      filters[index]?.value === value &&
       // @ts-ignore
-      filters[index].operator === operator,
+      filters[index]?.operator === operator,
   );
+
+  const updateInternalFilter = (index: number, update: object) =>
+    setInternalFilters(updateInList(internalFilters, index, update));
+
+  const applyFilterValue = (index: number, value: any) => {
+    // skip redunundant updates
+    if (internalFilters[index].value === value) {
+      return;
+    }
+    const update = { ...internalFilters[index], value };
+    const updatedFilters = updateInList(internalFilters, index, update);
+    setInternalFilters(updatedFilters);
+    setAllFilters(convertFilters(updatedFilters));
+  };
+
+  const removeFilterAndApply = (index: number) => {
+    const updated = removeFromList(internalFilters, index);
+    setInternalFilters(updated);
+    setAllFilters(convertFilters(updated));
+  };
 
   return {
     applyFilters: () => setAllFilters(convertFilters(internalFilters)),
+    removeFilterAndApply,
     canNextPage,
     canPreviousPage,
     filtersApplied,
@@ -205,7 +255,7 @@ export function useListViewState({
     setAllFilters,
     setInternalFilters,
     state: { pageIndex, pageSize, sortBy, filters, internalFilters },
-    updateInternalFilter: (index: number, update: object) =>
-      setInternalFilters(updateInList(internalFilters, index, update)),
+    updateInternalFilter,
+    applyFilterValue,
   };
 }

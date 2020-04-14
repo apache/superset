@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=R
 import hashlib
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
@@ -23,10 +24,12 @@ import simplejson as json
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset import app
+from superset import app, is_feature_enabled
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import core as utils, pandas_postprocessing
 from superset.views.utils import get_time_range_endpoints
+
+logger = logging.getLogger(__name__)
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 #  https://github.com/python/mypy/issues/5288
@@ -75,6 +78,7 @@ class QueryObject:
         relative_start: str = app.config["DEFAULT_RELATIVE_START_TIME"],
         relative_end: str = app.config["DEFAULT_RELATIVE_END_TIME"],
     ):
+        is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
             relative_start=relative_start,
@@ -85,8 +89,9 @@ class QueryObject:
         self.is_timeseries = is_timeseries
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
-        self.groupby = groupby or []
         self.post_processing = post_processing or []
+        if not is_sip_38:
+            self.groupby = groupby or []
 
         # Temporary solution for backward compatibility issue due the new format of
         # non-ad-hoc metric which needs to adhere to superset-ui per
@@ -107,6 +112,13 @@ class QueryObject:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
 
         self.columns = columns or []
+        if is_sip_38 and groupby:
+            self.columns += groupby
+            logger.warning(
+                f"The field groupby is deprecated. Viz plugins should "
+                f"pass all selectables via the columns field"
+            )
+
         self.orderby = orderby or []
 
     def to_dict(self) -> Dict[str, Any]:
@@ -115,7 +127,6 @@ class QueryObject:
             "from_dttm": self.from_dttm,
             "to_dttm": self.to_dttm,
             "is_timeseries": self.is_timeseries,
-            "groupby": self.groupby,
             "metrics": self.metrics,
             "row_limit": self.row_limit,
             "filter": self.filter,
@@ -126,6 +137,9 @@ class QueryObject:
             "columns": self.columns,
             "orderby": self.orderby,
         }
+        if not is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
+            query_object_dict["groupby"] = self.groupby
+
         return query_object_dict
 
     def cache_key(self, **extra: Any) -> str:

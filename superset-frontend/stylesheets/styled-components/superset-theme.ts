@@ -16,28 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module.exports = {
-  testRegex: '\\/spec\\/.*(_spec|\\.test)\\.(j|t)sx?$',
-  moduleNameMapper: {
-    '\\.(css|less)$': '<rootDir>/spec/__mocks__/styleMock.js',
-    '\\.(gif|ttf|eot|svg)$': '<rootDir>/spec/__mocks__/fileMock.js',
-    '^src/(.*)$': '<rootDir>/src/$1',
-  },
-  setupFilesAfterEnv: ['<rootDir>/spec/helpers/shim.js'],
-  testURL: 'http://localhost',
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
-  coverageDirectory: '<rootDir>/coverage/',
-  transform: {
-    '^.+\\.jsx?$': 'babel-jest',
-    '^.+\\.tsx?$': 'ts-jest',
-  },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  globals: {
-    'ts-jest': {
-      babelConfig: true,
-      diagnostics: {
-        warnOnly: true,
-      },
+import styled, { CreateStyled } from '@emotion/styled';
+
+const defaultTheme = {
+  borderRadius: '4px',
+  colors: {
+    primary: {
+      base: '#20A7C9',
+    },
+    secondary: {
+      base: '#444E7C',
+      dark1: '#363E63',
+      dark2: '#282E4A',
+      dark3: '#1B1F31',
+      light1: '#8E94B0',
+      light2: '#B4B8CA',
+      light3: '#D9DBE4',
+      light4: '#ECEEF2',
+      light5: '#F5F5F8',
     },
   },
+  gridUnit: '4px',
 };
+
+export default styled as CreateStyled<typeof defaultTheme>;
+
+export const supersetTheme = defaultTheme;

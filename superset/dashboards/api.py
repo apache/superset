@@ -48,7 +48,7 @@ from superset.views.base import generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
-    statsd_incr,
+    statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
 
@@ -130,7 +130,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/", methods=["POST"])
     @protect()
     @safe
-    @statsd_incr
+    @statsd_metrics
     def post(self) -> Response:
         """Creates a new Dashboard
         ---
@@ -183,7 +183,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>", methods=["PUT"])
     @protect()
     @safe
-    @statsd_incr
+    @statsd_metrics
     def put(  # pylint: disable=too-many-return-statements, arguments-differ
         self, pk: int
     ) -> Response:
@@ -251,7 +251,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>", methods=["DELETE"])
     @protect()
     @safe
-    @statsd_incr
+    @statsd_metrics
     def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Deletes a Dashboard
         ---
@@ -298,7 +298,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/", methods=["DELETE"])
     @protect()
     @safe
-    @statsd_incr
+    @statsd_metrics
     @rison(get_delete_ids_schema)
     def bulk_delete(
         self, **kwargs: Any
@@ -359,7 +359,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/export/", methods=["GET"])
     @protect()
     @safe
-    @statsd_incr
+    @statsd_metrics
     @rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
         """Export dashboards
