@@ -117,8 +117,9 @@ export default () =>
         .last()
         .find('.editable-title input')
         .click();
-      cy.wait('@boxplotRequest');
-      cy.get('.grid-container .box_plot').should('be.exist');
+
+      // should exist a visible box_plot element
+      cy.get('.grid-container .box_plot');
     });
 
     it('should send new queries when tab becomes visible', () => {
@@ -166,6 +167,7 @@ export default () =>
         .last()
         .find('.editable-title input')
         .click();
+
       cy.wait('@boxplotRequest').then(xhr => {
         const requestFormData = xhr.request.body;
         const requestParams = JSON.parse(requestFormData.get('form_data'));
@@ -190,11 +192,12 @@ export default () =>
       // trigger 1 new query
       cy.wait('@treemapRequest');
 
-      // no other requests occurred
+      // make sure query API not requested multiple times
       cy.on('fail', err => {
-        expect(err.message).to.include('Timed out retrying');
+        expect(err.message).to.include('timed out waiting');
         return false;
       });
+
       cy.wait('@boxplotRequest', { timeout: 1000 }).then(() => {
         throw new Error('Unexpected API call.');
       });
