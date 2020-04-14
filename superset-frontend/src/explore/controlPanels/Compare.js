@@ -19,7 +19,12 @@
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { xAxisLabel, bottomMargin, xTicksLayout } from './Shared_NVD3';
+import {
+  xAxisLabel,
+  bottomMargin,
+  xTicksLayout,
+  xAxisFormat,
+} from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -35,7 +40,7 @@ export default {
       expanded: true,
       controlSetRows: [
         [xAxisLabel, bottomMargin],
-        [xTicksLayout, 'x_axis_format'],
+        [xTicksLayout, xAxisFormat],
         ['x_axis_showminmax', null],
       ],
     },
@@ -51,12 +56,6 @@ export default {
     NVD3TimeSeries[1],
     annotations,
   ],
-  controlOverrides: {
-    x_axis_format: {
-      choices: D3_TIME_FORMAT_OPTIONS,
-      default: 'smart_date',
-    },
-  },
   sectionOverrides: {
     druidTimeSeries: {
       controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],

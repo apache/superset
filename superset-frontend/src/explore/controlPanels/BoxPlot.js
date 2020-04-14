@@ -55,7 +55,12 @@ export default {
             config: {
               type: 'SelectControl',
               label: t('X Tick Layout'),
-              choices: formatSelectOptions(['auto', 'flat', '45°', 'staggered']),
+              choices: formatSelectOptions([
+                'auto',
+                'flat',
+                '45°',
+                'staggered',
+              ]),
               default: 'auto',
               clearable: false,
               renderTrigger: true,

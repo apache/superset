@@ -27,6 +27,7 @@ import {
   xAxisLabel,
   bottomMargin,
   xTicksLayout,
+  xAxisFormat,
 } from './Shared_NVD3';
 
 export default {
@@ -49,7 +50,7 @@ export default {
       expanded: true,
       controlSetRows: [
         [xAxisLabel, bottomMargin],
-        [xTicksLayout, 'x_axis_format'],
+        [xTicksLayout, xAxisFormat],
         ['x_axis_showminmax', 'reduce_x_ticks'],
       ],
     },
@@ -65,12 +66,6 @@ export default {
     NVD3TimeSeries[1],
     annotations,
   ],
-  controlOverrides: {
-    x_axis_format: {
-      choices: D3_TIME_FORMAT_OPTIONS,
-      default: 'smart_date',
-    },
-  },
   sectionOverrides: {
     druidTimeSeries: {
       controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],

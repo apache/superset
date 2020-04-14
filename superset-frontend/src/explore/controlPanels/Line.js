@@ -26,6 +26,7 @@ import {
   xAxisLabel,
   bottomMargin,
   xTicksLayout,
+  xAxisFormat,
 } from './Shared_NVD3';
 
 export default {
@@ -47,7 +48,7 @@ export default {
       expanded: true,
       controlSetRows: [
         [xAxisLabel, bottomMargin],
-        [xTicksLayout, 'x_axis_format'],
+        [xTicksLayout, xAxisFormat],
         ['x_axis_showminmax', null],
       ],
     },
@@ -64,10 +65,6 @@ export default {
     annotations,
   ],
   controlOverrides: {
-    x_axis_format: {
-      choices: D3_TIME_FORMAT_OPTIONS,
-      default: 'smart_date',
-    },
     row_limit: {
       default: 50000,
     },

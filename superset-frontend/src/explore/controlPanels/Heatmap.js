@@ -18,7 +18,10 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { formatSelectOptionsForRange } from '../../modules/utils';
+import {
+  formatSelectOptionsForRange,
+  formatSelectOptions,
+} from '../../modules/utils';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],

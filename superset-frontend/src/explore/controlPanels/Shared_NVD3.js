@@ -23,7 +23,7 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import { formatSelectOptions } from '../../modules/utils';
 // import ColumnOption from '../../components/ColumnOption';
-// import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
+import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 // import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
 
 // import { nonEmpty } from '../validators';
@@ -140,5 +140,18 @@ export const xTicksLayout = {
     clearable: false,
     renderTrigger: true,
     description: t('The way the ticks are laid out on the X-axis'),
+  },
+};
+
+export const xAxisFormat = {
+  name: 'x_axis_format',
+  config: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('X Axis Format'),
+    renderTrigger: true,
+    choices: D3_TIME_FORMAT_OPTIONS,
+    default: 'smart_date',
+    description: D3_FORMAT_DOCS,
   },
 };

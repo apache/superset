@@ -1053,7 +1053,6 @@ The filter-box configuration references column names (via the `column` key) and 
 
 | Field                | Type      | Notes                        |
 | -------------------- | --------- | ---------------------------- |
-| `x_axis_format`      | _string_  | The **X Axis Format** widget |
 | `x_axis_showminmax`  | _boolean_ | The **X bounds** widget      |
 
 ### Y Axis

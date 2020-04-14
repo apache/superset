@@ -749,16 +749,6 @@ export const controls = {
     default: '',
   },
 
-  x_axis_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('X Axis Format'),
-    renderTrigger: true,
-    default: 'SMART_NUMBER',
-    choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
   y_axis_format: {
     type: 'SelectControl',
     freeForm: true,
