@@ -62,7 +62,7 @@
     "enzyme-to-json": "^3.4.3",
     "fast-glob": "^3.0.1",
     "fs-extra": "^9.0.0",
-    "husky": "^4.2.1",
+    "husky": "^4.2.5",
     "identity-obj-proxy": "^3.0.0",
     "jest-mock-console": "^1.0.0",
     "lerna": "^3.15.0",
@@ -194,14 +194,12 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+      "pre-commit": "lint-staged"
     }
   },
   "lint-staged": {
     "./{packages,plugins}/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}": [
-      "yarn prettier --write",
-      "git add"
+      "yarn prettier --write"
     ]
   }
 }
