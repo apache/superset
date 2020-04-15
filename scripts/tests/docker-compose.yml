@@ -1,0 +1,34 @@
+version: '2'
+services:
+  redis:
+    image: redis:3.2
+    ports:
+      - 6379:6379
+    volumes:
+      - redis:/data
+
+  postgres:
+    image: postgres:9
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_PASSWORD: pguserpassword
+      POSTGRES_USER: postgresuser
+    ports:
+      - 5432:5432
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_DATABASE: superset
+      MYSQL_USER: mysqluser
+      MYSQL_PASSWORD: mysqluserpassword
+      MYSQL_ROOT_PASSWORD: root-password
+    ports:
+      - 3306:3306
+    networks:
+      - default
+    volumes:
+      - ./mysqlconf:/etc/mysql/conf.d
+
+volumes:
+  redis:
+    external: false
