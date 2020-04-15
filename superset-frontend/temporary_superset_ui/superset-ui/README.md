@@ -3,7 +3,6 @@
 [![Codecov branch](https://img.shields.io/codecov/c/github/apache-superset/superset-ui/master.svg?style=flat-square)](https://codecov.io/gh/apache-superset/superset-ui/branch/master)
 [![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui/master.svg?style=flat-square)](https://travis-ci.com/apache-superset/superset-ui)
 [![David](https://img.shields.io/david/dev/apache-superset/superset-ui.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui?type=dev)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/442ee2b7-3148-4d06-baae-255536d3acac/deploy-status)](https://app.netlify.com/sites/superset-ui/deploys)
 
 Collection of packages that power the
 [Apache Superset](https://github.com/apache/incubator-superset) UI, and can be used to craft custom
@@ -13,7 +12,7 @@ data applications that leverage a Superset backend :chart_with_upwards_trend:
 
 Most recent release: https://apache-superset.github.io/superset-ui/
 
-Current master: https://superset-ui.netlify.com
+Current master: https://superset-ui.now.sh/
 
 ## Packages
 
