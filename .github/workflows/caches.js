@@ -21,6 +21,17 @@
 const workspaceDirectory = process.env.GITHUB_WORKSPACE;
 const homeDirectory = process.env.HOME;
 
+const assetsConfig = {
+  path: [`${workspaceDirectory}/superset/static/assets`],
+  hashFiles: [
+    `${workspaceDirectory}/superset-frontend/src/**/*`,
+    `${workspaceDirectory}/superset-frontend/*.js`,
+    `${workspaceDirectory}/superset-frontend/*.json`,
+  ],
+  // dont use restore keys as it may give an invalid older build
+  restoreKeys: '',
+};
+
 // Multi-layer cache definition
 module.exports = {
   pip: {
@@ -31,18 +42,11 @@ module.exports = {
     path: [`${homeDirectory}/.npm`],
     hashFiles: ['superset-frontend/package-lock.json'],
   },
-  assets: {
-    path: [
-      `${workspaceDirectory}/superset/static/assets`,
-    ],
-    hashFiles: [
-      `${workspaceDirectory}/superset-frontend/src/**/*`,
-      `${workspaceDirectory}/superset-frontend/*.json`,
-      `${workspaceDirectory}/superset-frontend/*.js`,
-    ],
-    // dont use restore keys as it may give an invalid older build
-    restoreKeys: ''
-  },
+  assets: assetsConfig,
+  // use separate cache for instrumented JS files and regular assets
+  // one is built with `npm run build`,
+  // another is built with `npm run build-instrumented`
+  'instrumented-assets': assetsConfig,
   cypress: {
     path: [`${homeDirectory}/.cache/Cypress`],
     hashFiles: [

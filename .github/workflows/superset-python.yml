@@ -10,7 +10,6 @@ jobs:
         python-version: [3.6]
     env:
       PYTHON_LINT_TARGET: setup.py superset tests
-      CI: github-actions
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -19,7 +18,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@ddf7d7f
+      uses: apache-superset/cached-dependencies@adc6f73
     - name: black
       run: black --check $(echo $PYTHON_LINT_TARGET)
     - name: mypy
@@ -62,7 +61,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@ddf7d7f
+      uses: apache-superset/cached-dependencies@adc6f73
       with:
         run: |
           pip-install
@@ -75,7 +74,7 @@ jobs:
         ./scripts/python_tests.sh
     - name: Upload code coverage
       run: |
-        bash <(curl -s https://codecov.io/bash) -cF unittest,python,postgres
+        bash <(curl -s https://codecov.io/bash) -cF python
 
   test-mysql:
     runs-on: ubuntu-18.04
@@ -105,7 +104,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@ddf7d7f
+      uses: apache-superset/cached-dependencies@adc6f73
       with:
         run: |
           pip-install
@@ -118,7 +117,7 @@ jobs:
         ./scripts/python_tests.sh
     - name: Upload code coverage
       run: |
-        bash <(curl -s https://codecov.io/bash) -cF unittest,python,mysql
+        bash <(curl -s https://codecov.io/bash) -cF python
 
   test-sqlite:
     runs-on: ubuntu-18.04
@@ -141,7 +140,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@ddf7d7f
+      uses: apache-superset/cached-dependencies@adc6f73
       with:
         run: |
           pip-install
@@ -154,4 +153,4 @@ jobs:
         ./scripts/python_tests.sh
     - name: Upload code coverage
       run: |
-        bash <(curl -s https://codecov.io/bash) -cF unittest,python,sqlite
+        bash <(curl -s https://codecov.io/bash) -cF python
