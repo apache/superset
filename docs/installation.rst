@@ -647,6 +647,74 @@ section in `config.py`:
 This will cache all the charts in the top 5 most popular dashboards every hour.
 For other strategies, check the `superset/tasks/cache.py` file.
 
+Caching Thumbnails
+------------------
+
+This is an optional feature that can be turned on by activating it's feature flag on config:
+
+.. code-block:: python
+
+    FEATURE_FLAGS = {
+        "THUMBNAILS": True,
+        "THUMBNAILS_SQLA_LISTENERS": True,
+    }
+
+
+For this feature you will need a cache system and celery workers. All thumbnails are store on cache and are processed
+asynchronously by the workers.
+
+An example config where images are stored on S3 could be:
+
+.. code-block:: python
+
+    from flask import Flask
+    from s3cache.s3cache import S3Cache
+
+    ...
+
+    class CeleryConfig(object):
+        BROKER_URL = "redis://localhost:6379/0"
+        CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+        CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+        CELERYD_PREFETCH_MULTIPLIER = 10
+        CELERY_ACKS_LATE = True
+
+
+    CELERY_CONFIG = CeleryConfig
+
+    def init_thumbnail_cache(app: Flask) -> S3Cache:
+        return S3Cache("bucket_name", 'thumbs_cache/')
+
+
+    THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
+    # Async selenium thumbnail task will use the following user
+    THUMBNAIL_SELENIUM_USER = "Admin"
+
+Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`
+
+You can override the base URL for selenium using:
+
+.. code-block:: python
+
+    WEBDRIVER_BASEURL = "https://superset.company.com"
+
+
+Additional selenium web drive config can be set using `WEBDRIVER_CONFIGURATION`
+
+You can implement a custom function to authenticate selenium, the default uses flask-login session cookie.
+An example of a custom function signature:
+
+.. code-block:: python
+
+    def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
+        pass
+
+
+Then on config:
+
+.. code-block:: python
+
+    WEBDRIVER_AUTH_FUNC = auth_driver
 
 Deeper SQLAlchemy integration
 -----------------------------

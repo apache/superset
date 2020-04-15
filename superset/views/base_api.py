@@ -22,6 +22,8 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 
+from superset.stats_logger import BaseStatsLogger
+
 logger = logging.getLogger(__name__)
 get_related_schema = {
     "type": "object",
@@ -57,6 +59,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         "bulk_delete": "delete",
         "info": "list",
         "related": "list",
+        "thumbnail": "list",
         "refresh": "edit",
         "data": "list",
     }
@@ -88,9 +91,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
     """  # pylint: disable=pointless-string-statement
     allowed_rel_fields: Set[str] = set()
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.stats_logger = None
+        self.stats_logger = BaseStatsLogger()
 
     def create_blueprint(self, appbuilder, *args, **kwargs):
         self.stats_logger = self.appbuilder.get_app.config["STATS_LOGGER"]
