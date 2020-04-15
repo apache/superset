@@ -115,7 +115,7 @@ class BaseViz:
         self.results: Optional[QueryResult] = None
         self.error_message: Optional[str] = None
         self.force = force
-        self.from_ddtm: Optional[datetime] = None
+        self.from_dttm: Optional[datetime] = None
         self.to_dttm: Optional[datetime] = None
 
         # Keeping track of whether some data came from cache

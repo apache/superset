@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { validateNonEmpty } from '@superset-ui/validator';
 import { formatSelectOptionsForRange } from '../../modules/utils';
 
 export default {
@@ -78,7 +78,7 @@ export default {
     },
     all_columns_x: {
       label: t('Column containing event names'),
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
       default: control =>
         control.choices && control.choices.length > 0
           ? control.choices[0][0]

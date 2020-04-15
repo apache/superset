@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { validateNonEmpty } from '@superset-ui/validator';
 import { viewport } from './Shared_DeckGL';
 
 export default {
@@ -35,7 +35,7 @@ export default {
               type: 'SelectAsyncControl',
               multi: true,
               label: t('deck.gl charts'),
-              validators: [nonEmpty],
+              validators: [validateNonEmpty],
               default: [],
               description: t(
                 'Pick a set of deck.gl charts to layer on top of one another',

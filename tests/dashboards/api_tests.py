@@ -109,6 +109,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "url": f"/superset/dashboard/slug1/",
             "slug": "slug1",
             "table_names": "",
+            "thumbnail_url": dashboard.thumbnail_url,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])

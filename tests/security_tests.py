@@ -833,10 +833,11 @@ class RowLevelSecurityTests(SupersetTestCase):
         self.rls_entry.table = (
             session.query(SqlaTable).filter_by(table_name="birth_names").first()
         )
-        self.rls_entry.clause = "gender = 'male'"
+        self.rls_entry.clause = "gender = 'boy'"
         self.rls_entry.roles.append(
             security_manager.find_role("Gamma")
         )  # db.session.query(Role).filter_by(name="Gamma").first())
+        self.rls_entry.roles.append(security_manager.find_role("Alpha"))
         db.session.add(self.rls_entry)
 
         db.session.commit()
@@ -849,7 +850,7 @@ class RowLevelSecurityTests(SupersetTestCase):
     # Do another test to make sure it doesn't alter another query
     def test_rls_filter_alters_query(self):
         g.user = self.get_user(
-            username="gamma"
+            username="alpha"
         )  # self.login() doesn't actually set the user
         tbl = self.get_table_by_name("birth_names")
         query_obj = dict(
@@ -864,7 +865,7 @@ class RowLevelSecurityTests(SupersetTestCase):
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertIn("gender = 'male'", sql)
+        self.assertIn("gender = 'boy'", sql)
 
     def test_rls_filter_doesnt_alter_query(self):
         g.user = self.get_user(
@@ -883,4 +884,4 @@ class RowLevelSecurityTests(SupersetTestCase):
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertNotIn("gender = 'male'", sql)
+        self.assertNotIn("gender = 'boy'", sql)
