@@ -205,4 +205,4 @@ export const richTooltip = {
       'The rich tooltip shows a list of all series for that point in time',
     ),
   },
-},
+};
