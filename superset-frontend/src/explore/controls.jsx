@@ -257,28 +257,12 @@ export const controls = {
     ),
   },
 
-  bar_stacked: {
-    type: 'CheckboxControl',
-    label: t('Stacked Bars'),
-    renderTrigger: true,
-    default: false,
-    description: null,
-  },
-
   show_markers: {
     type: 'CheckboxControl',
     label: t('Show Markers'),
     renderTrigger: true,
     default: false,
     description: t('Show data points as circle markers on the lines'),
-  },
-
-  show_bar_value: {
-    type: 'CheckboxControl',
-    label: t('Bar Values'),
-    default: false,
-    renderTrigger: true,
-    description: t('Show the value on top of the bar'),
   },
 
   order_bars: {

@@ -1076,7 +1076,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `add_to_dash`                   | _N/A_ |       |
 | `all_columns_y`                 | _N/A_ |       |
 | `annotation_layers`             | _N/A_ |       |
-| `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
@@ -1127,7 +1126,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `schema`                        | _N/A_ |       |
 | `select_country`                | _N/A_ |       |
 | `series`                        | _N/A_ |       |
-| `show_bar_value`                | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
 | `show_labels`                   | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |

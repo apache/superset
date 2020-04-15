@@ -206,3 +206,25 @@ export const richTooltip = {
     ),
   },
 };
+
+export const showBarValue = {
+  name: 'show_bar_value',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Bar Values'),
+    default: false,
+    renderTrigger: true,
+    description: t('Show the value on top of the bar'),
+  },
+};
+
+export const barStacked = {
+  name: 'bar_stacked',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Stacked Bars'),
+    renderTrigger: true,
+    default: false,
+    description: null,
+  },
+};

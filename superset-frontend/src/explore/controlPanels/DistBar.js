@@ -24,6 +24,8 @@ import {
   xAxisLabel,
   bottomMargin,
   xTicksLayout,
+  showBarValue,
+  barStacked,
 } from './Shared_NVD3';
 
 export default {
@@ -45,8 +47,8 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        [showLegend, 'show_bar_value'],
-        ['bar_stacked', 'order_bars'],
+        [showLegend, showBarValue],
+        [barStacked, 'order_bars'],
         ['y_axis_format', 'y_axis_label'],
         [showControls, null],
       ],
