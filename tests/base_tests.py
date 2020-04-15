@@ -333,7 +333,8 @@ class SupersetTestCase(TestCase):
 
     def get_assert_metric(self, uri: str, func_name: str) -> Response:
         """
-            Simple client get with an extra assertion for statsd metrics
+        Simple client get with an extra assertion for statsd metrics
+
         :param uri: The URI to use for the HTTP GET
         :param func_name: The function name that the HTTP GET triggers
         for the statsd metric assertion
@@ -351,7 +352,8 @@ class SupersetTestCase(TestCase):
 
     def delete_assert_metric(self, uri: str, func_name: str) -> Response:
         """
-            Simple client delete with an extra assertion for statsd metrics
+        Simple client delete with an extra assertion for statsd metrics
+
         :param uri: The URI to use for the HTTP DELETE
         :param func_name: The function name that the HTTP DELETE triggers
         for the statsd metric assertion
@@ -369,7 +371,8 @@ class SupersetTestCase(TestCase):
 
     def post_assert_metric(self, uri: str, data: Dict, func_name: str) -> Response:
         """
-            Simple client post with an extra assertion for statsd metrics
+        Simple client post with an extra assertion for statsd metrics
+
         :param uri: The URI to use for the HTTP POST
         :param data: The JSON data payload to be posted
         :param func_name: The function name that the HTTP POST triggers
@@ -388,7 +391,8 @@ class SupersetTestCase(TestCase):
 
     def put_assert_metric(self, uri: str, data: Dict, func_name: str) -> Response:
         """
-            Simple client put with an extra assertion for statsd metrics
+        Simple client put with an extra assertion for statsd metrics
+
         :param uri: The URI to use for the HTTP PUT
         :param data: The JSON data payload to be posted
         :param func_name: The function name that the HTTP PUT triggers
