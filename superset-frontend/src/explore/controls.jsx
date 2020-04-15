@@ -273,20 +273,6 @@ export const controls = {
     description: t('Sort bars by x labels.'),
   },
 
-  reduce_x_ticks: {
-    type: 'CheckboxControl',
-    label: t('Reduce X ticks'),
-    renderTrigger: true,
-    default: false,
-    description: t(
-      'Reduces the number of X-axis ticks to be rendered. ' +
-        'If true, the x-axis will not overflow and labels may be ' +
-        'missing. If false, a minimum width will be applied ' +
-        'to columns and the width may overflow into an ' +
-        'horizontal scroll.',
-    ),
-  },
-
   secondary_metric: {
     ...metric,
     label: t('Color Metric'),
@@ -710,13 +696,6 @@ export const controls = {
       'The URL, this control is templated, so you can integrate ' +
         '{{ width }} and/or {{ height }} in your URL string.',
     ),
-    default: '',
-  },
-
-  y_axis_label: {
-    type: 'TextControl',
-    label: t('Y Axis Label'),
-    renderTrigger: true,
     default: '',
   },
 

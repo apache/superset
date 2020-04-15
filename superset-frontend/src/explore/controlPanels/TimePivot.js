@@ -97,7 +97,7 @@ export default {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_label', 'left_margin'],
+        [yAxisLabel, 'left_margin'],
         ['y_axis_showminmax', yLogScale],
         ['y_axis_format', yAxisBounds],
       ],

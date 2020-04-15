@@ -27,6 +27,7 @@ import {
   yLogScale,
   yAxisBounds,
   xAxisShowminmax,
+  yAxisLabel,
 } from './Shared_NVD3';
 
 export default {
@@ -51,7 +52,7 @@ export default {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_label', 'left_margin'],
+        [yAxisLabel, 'left_margin'],
         ['y_axis_showminmax', yLogScale],
         ['y_axis_format', yAxisBounds],
       ],

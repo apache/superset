@@ -34,6 +34,8 @@ import {
   richTooltip,
   showBarValue,
   barStacked,
+  reduceXTicks,
+  yAxisLabel,
 } from './Shared_NVD3';
 
 export default {
@@ -57,14 +59,14 @@ export default {
       controlSetRows: [
         [xAxisLabel, bottomMargin],
         [xTicksLayout, xAxisFormat],
-        [xAxisShowminmax, 'reduce_x_ticks'],
+        [xAxisShowminmax, reduceXTicks],
       ],
     },
     {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_label', 'left_margin'],
+        [yAxisLabel, 'left_margin'],
         ['y_axis_showminmax', yLogScale],
         ['y_axis_format', yAxisBounds],
       ],

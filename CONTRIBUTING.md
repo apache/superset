@@ -1055,8 +1055,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `left_margin`       | _number_        | The **Left Margin** widget   |
 | `y_axis_2_label`    | _N/A_           | _Deprecated?_                |
 | `y_axis_format`     | _string_        | The **Y Axis Format** widget |
-| `y_axis_label`      | _string_        | The **Y Axis Label** widget  |
-| `y_axis_showminmax` | _boolean_       | The **Y bounds** widget      |
 | `y_axis_zero`       | _N/A_           | _Deprecated?_                |
 
 Note the `y_axis_format` is defined under various section for some charts.
@@ -1114,7 +1112,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
 | `rdo_save`                      | _N/A_ |       |
-| `reduce_x_ticks`                | _N/A_ |       |
 | `refresh_frequency`             | _N/A_ |       |
 | `remote_id`                     | _N/A_ |       |
 | `resample_fillmethod`           | _N/A_ |       |

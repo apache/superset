@@ -42,6 +42,17 @@ import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
   TimePivotChartPlugin,
 */
 
+export const yAxisShowMinmax = {
+  name: 'y_axis_showminmax',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Y bounds'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to display the min and max values of the Y-axis'),
+  }
+};
+
 export const lineInterpolation = {
   name: 'line_interpolation',
   config: {
@@ -228,3 +239,30 @@ export const barStacked = {
     description: null,
   },
 };
+
+export const reduceXTicks = {
+  name: 'reduce_x_ticks',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Reduce X ticks'),
+    renderTrigger: true,
+    default: false,
+    description: t(
+      'Reduces the number of X-axis ticks to be rendered. ' +
+        'If true, the x-axis will not overflow and labels may be ' +
+        'missing. If false, a minimum width will be applied ' +
+        'to columns and the width may overflow into an ' +
+        'horizontal scroll.',
+    ),
+  }
+}
+
+export const yAxisLabel = {
+  name: 'y_axis_label',
+  config: {
+    type: 'TextControl',
+    label: t('Y Axis Label'),
+    renderTrigger: true,
+    default: '',
+  },
+}

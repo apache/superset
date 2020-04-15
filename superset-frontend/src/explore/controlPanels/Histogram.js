@@ -47,7 +47,15 @@ export default {
               default: '',
             },
           },
-          'y_axis_label',
+          {
+            name: yAxisLabel,
+            config: {
+              type: 'TextControl',
+              label: t('Y Axis Label'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
         ],
         ['global_opacity'],
         ['normalized'],
