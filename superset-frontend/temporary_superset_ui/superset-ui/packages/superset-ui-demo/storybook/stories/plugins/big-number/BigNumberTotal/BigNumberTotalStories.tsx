@@ -24,7 +24,7 @@ import data from './data';
 new BigNumberTotalChartPlugin().configure({ key: 'big-number-total' }).register();
 
 export default {
-  title: 'Legacy Preset|big-number',
+  title: 'Legacy Chart Plugins|legacy-preset-big-number/BigNumberTotal',
 };
 
 export const totalBasic = () => (
