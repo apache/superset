@@ -1,13 +1,6 @@
 name: Frontend
 
-on:
-  push:
-    branches: [ master ]
-    paths:
-    - superset-frontend/**
-  pull_request:
-    paths:
-    - superset-frontend/**
+on: [push, pull_request]
 
 jobs:
   frontend-build:
