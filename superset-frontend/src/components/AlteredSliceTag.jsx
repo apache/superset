@@ -20,12 +20,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
 import { isEqual, isEmpty } from 'lodash';
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import getControlsInventory from 'src/utils/chartControlsInventory';
 import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 import ModalTrigger from './ModalTrigger';
 import { safeStringify } from '../utils/safeStringify';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
-
 
 const propTypes = {
   origFormData: PropTypes.object.isRequired,
@@ -54,17 +54,9 @@ export default class AlteredSliceTag extends React.Component {
     super(props);
     const diffs = this.getDiffs(props);
 
-    const controlsMap = {};
-    const sections = getChartControlPanelRegistry().get(this.props.origFormData.viz_type).controlPanelSections.forEach(section => {
-      section.controlSetRows.forEach(row => {
-        row.forEach(control => {
-          controlsMap[control.name] = control.config;
-        })
-      })
-    });
+    const controlsMap = getControlsInventory(this.props.origFormData.viz_type);
 
-    this.state = { diffs, hasDiffs: !isEmpty(diffs), controlsMap};
-
+    this.state = { diffs, hasDiffs: !isEmpty(diffs), controlsMap };
   }
 
   UNSAFE_componentWillReceiveProps(newProps) {
@@ -81,7 +73,7 @@ export default class AlteredSliceTag extends React.Component {
     // current form data and the saved form data
     const ofd = props.origFormData;
     const cfd = props.currentFormData;
-    
+
     const fdKeys = Object.keys(cfd);
     const diffs = {};
     for (const fdKey of fdKeys) {
@@ -111,7 +103,10 @@ export default class AlteredSliceTag extends React.Component {
       return 'N/A';
     } else if (value === null) {
       return 'null';
-    } else if (this.state.controlsMap[key] && this.state.controlsMap[key].type === 'AdhocFilterControl') {
+    } else if (
+      this.state.controlsMap[key] &&
+      this.state.controlsMap[key].type === 'AdhocFilterControl'
+    ) {
       if (!value.length) {
         return '[]';
       }
@@ -124,9 +119,15 @@ export default class AlteredSliceTag extends React.Component {
           return `${v.subject} ${v.operator} ${filterVal}`;
         })
         .join(', ');
-    } else if (this.state.controlsMap[key] && this.state.controlsMap[key].type === 'BoundsControl') {
+    } else if (
+      this.state.controlsMap[key] &&
+      this.state.controlsMap[key].type === 'BoundsControl'
+    ) {
       return `Min: ${value[0]}, Max: ${value[1]}`;
-    } else if (this.state.controlsMap[key] && this.state.controlsMap[key].type === 'CollectionControl') {
+    } else if (
+      this.state.controlsMap[key] &&
+      this.state.controlsMap[key].type === 'CollectionControl'
+    ) {
       return value.map(v => safeStringify(v)).join(', ');
     } else if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
@@ -146,7 +147,11 @@ export default class AlteredSliceTag extends React.Component {
         <Tr key={key}>
           <Td
             column="control"
-            data={(this.state.controlsMap[key] && this.state.controlsMap[key].label) || key}
+            data={
+              (this.state.controlsMap[key] &&
+                this.state.controlsMap[key].label) ||
+              key
+            }
           />
           <Td column="before">{this.formatValue(diffs[key].before, key)}</Td>
           <Td column="after">{this.formatValue(diffs[key].after, key)}</Td>
