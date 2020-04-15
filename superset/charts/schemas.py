@@ -23,6 +23,10 @@ from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+thumbnail_query_schema = {
+    "type": "object",
+    "properties": {"force": {"type": "boolean"}},
+}
 
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:

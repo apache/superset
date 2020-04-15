@@ -15,14 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from typing import Any, Dict
 
 import simplejson
-from flask import g, make_response, request, Response
+from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from werkzeug.wrappers import Response as WerkzeugResponse
+from werkzeug.wsgi import FileWrapper
 
+from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.delete import DeleteChartCommand
@@ -41,13 +44,16 @@ from superset.charts.schemas import (
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
+    thumbnail_query_schema,
 )
 from superset.common.query_context import QueryContext
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
+from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.core import json_int_dttm_ser
+from superset.utils.screenshots import ChartScreenshot
 from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.filters import FilterRelatedOwners
 
@@ -130,6 +136,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
     }
     allowed_rel_fields = {"owners"}
+
+    def __init__(self) -> None:
+        if is_feature_enabled("THUMBNAILS"):
+            self.include_route_methods = self.include_route_methods | {"thumbnail"}
+        super().__init__()
 
     @expose("/", methods=["POST"])
     @protect()
@@ -440,13 +451,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
                             type: object
             400:
               $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+            """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -464,3 +471,65 @@ class ChartRestApi(BaseSupersetModelRestApi):
         resp = make_response(response_data, 200)
         resp.headers["Content-Type"] = "application/json; charset=utf-8"
         return resp
+
+    @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
+    @protect()
+    @rison(thumbnail_query_schema)
+    @safe
+    def thumbnail(
+        self, pk: int, digest: str, **kwargs: Dict[str, bool]
+    ) -> WerkzeugResponse:
+        """Get Chart thumbnail
+        ---
+        get:
+          description: Compute or get already computed chart thumbnail from cache
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: path
+            schema:
+              type: string
+            name: sha
+          responses:
+            200:
+              description: Chart thumbnail image
+              content:
+               image/*:
+                 schema:
+                   type: string
+                   format: binary
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = self.datamodel.get(pk, self._base_filters)
+        if not chart:
+            return self.response_404()
+        if kwargs["rison"].get("force", False):
+            cache_chart_thumbnail.delay(chart.id, force=True)
+            return self.response(202, message="OK Async")
+        # fetch the chart screenshot using the current user and cache if set
+        screenshot = ChartScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        # If not screenshot then send request to compute thumb to celery
+        if not screenshot:
+            cache_chart_thumbnail.delay(chart.id, force=True)
+            return self.response(202, message="OK Async")
+        # If digests
+        if chart.digest != digest:
+            return redirect(
+                url_for(
+                    f"{self.__class__.__name__}.thumbnail", pk=pk, digest=chart.digest
+                )
+            )
+        return Response(
+            FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
+        )
