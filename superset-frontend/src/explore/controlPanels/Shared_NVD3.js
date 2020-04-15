@@ -22,15 +22,11 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { formatSelectOptions } from '../../modules/utils';
-// import ColumnOption from '../../components/ColumnOption';
 import {
   D3_TIME_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
 } from '../controls';
-// import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
-
-// import { nonEmpty } from '../validators';
 
 /*
   Plugins in question:
