@@ -16,14 +16,15 @@
 # under the License.
 import functools
 import logging
-from timeit import default_timer
-from typing import Any, Callable, cast, Dict, Optional, Set, Tuple, Type, Union
+from typing import Any, cast, Dict, Optional, Set, Tuple, Type, Union
 
 from flask import Response
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
+
+from superset.utils.core import time_function
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -34,20 +35,6 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
-
-
-def time_function(func: Callable, *args, **kwargs) -> Tuple[float, Any]:
-    """
-        Measures the amount of time a function takes to execute in ms
-    :param func: The function execution time to measure
-    :param args: args to be passed to the function
-    :param kwargs: kwargs to be passed to the function
-    :return: A tuple with the duration and response from the function
-    """
-    start = default_timer()
-    response = func(*args, **kwargs)
-    stop = default_timer()
-    return stop - start, response
 
 
 def statsd_metrics(f):

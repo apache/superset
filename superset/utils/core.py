@@ -39,6 +39,7 @@ from enum import Enum
 from time import struct_time
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterator,
     List,
@@ -49,6 +50,7 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+from timeit import default_timer
 from urllib.parse import unquote_plus
 
 import bleach
@@ -1223,6 +1225,21 @@ def create_ssl_cert_file(certificate: str) -> str:
         cert_file.write(certificate)
         cert_file.close()
     return path
+
+
+def time_function(func: Callable, *args, **kwargs) -> Tuple[float, Any]:
+    """
+    Measures the amount of time a function takes to execute in ms
+
+    :param func: The function execution time to measure
+    :param args: args to be passed to the function
+    :param kwargs: kwargs to be passed to the function
+    :return: A tuple with the duration and response from the function
+    """
+    start = default_timer()
+    response = func(*args, **kwargs)
+    stop = default_timer()
+    return stop - start, response
 
 
 def MediumText() -> Variant:
