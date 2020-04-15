@@ -1007,7 +1007,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | Field             | Type     | Notes                                               |
 | ----------------- | -------- | --------------------------------------------------- |
 | `metric_2`        | -        | The **Right Axis Metric** widget. See Query section |
-| `y_axis_2_format` | _string_ | The **Right Axis Format** widget                    |
 
 ### Query
 
@@ -1044,8 +1043,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
 | `number_format`       | _string_  | The **Number format** widget                     |
-| `send_time_range`     | _boolean_ | The **Show Markers** widget                      |
-| `show_markers`        | _string_  | The **Show Markers** widget                      |
 
 ### Y Axis
 
@@ -1104,7 +1101,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `new_slice_name`                | _N/A_ |       |
 | `normalize_across`              | _N/A_ |       |
 | `num_period_compare`            | _N/A_ |       |
-| `order_bars`                    | _N/A_ |       |
 | `order_desc`                    | _N/A_ |       |
 | `pandas_aggfunc`                | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |

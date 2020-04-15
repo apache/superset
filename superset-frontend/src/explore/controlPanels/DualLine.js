@@ -19,7 +19,7 @@
 import { t } from '@superset-ui/translation';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import { xAxisFormat } from './Shared_NVD3';
+import { xAxisFormat, yAxis2Format } from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -37,7 +37,7 @@ export default {
     {
       label: t('Y Axis 2'),
       expanded: true,
-      controlSetRows: [['metric_2', 'y_axis_2_format']],
+      controlSetRows: [['metric_2', yAxis2Format]],
     },
     {
       label: t('Query'),

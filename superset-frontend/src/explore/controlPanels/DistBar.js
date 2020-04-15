@@ -50,7 +50,19 @@ export default {
       controlSetRows: [
         ['color_scheme', 'label_colors'],
         [showLegend, showBarValue],
-        [barStacked, 'order_bars'],
+        [
+          barStacked,
+          {
+            name: 'order_bars',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Bars'),
+              default: false,
+              renderTrigger: true,
+              description: t('Sort bars by x labels.'),
+            },
+          },
+        ],
         ['y_axis_format', yAxisLabel],
         [showControls, null],
       ],

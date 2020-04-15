@@ -34,6 +34,7 @@ import {
   yAxisShowMinmax,
   richTooltip,
   leftMargin,
+  showMarkers,
 } from './Shared_NVD3';
 
 export default {
@@ -45,8 +46,21 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        [showBrush, 'send_time_range', showLegend],
-        [richTooltip, 'show_markers'],
+        [
+          showBrush,
+          {
+            name: 'send_time_range',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Propagate'),
+              renderTrigger: true,
+              default: false,
+              description: t('Send range filter events to other charts'),
+            },
+          },
+          showLegend,
+        ],
+        [richTooltip, showMarkers],
         [lineInterpolation],
       ],
     },

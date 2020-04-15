@@ -23,12 +23,18 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import { formatSelectOptions } from '../../modules/utils';
 // import ColumnOption from '../../components/ColumnOption';
-import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
+import {
+  D3_TIME_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  D3_FORMAT_OPTIONS,
+} from '../controls';
 // import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
 
 // import { nonEmpty } from '../validators';
 
 /*
+  Plugins in question:
+  
   AreaChartPlugin,
   BarChartPlugin,
   BubbleChartPlugin,
@@ -41,6 +47,29 @@ import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
   PieChartPlugin,
   TimePivotChartPlugin,
 */
+
+export const yAxis2Format = {
+  name: 'y_axis_2_format',
+  config: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Right Axis Format'),
+    default: 'SMART_NUMBER',
+    choices: D3_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+  },
+};
+
+export const showMarkers = {
+  name: 'show_markers',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show Markers'),
+    renderTrigger: true,
+    default: false,
+    description: t('Show data points as circle markers on the lines'),
+  },
+};
 
 export const leftMargin = {
   name: 'left_margin',

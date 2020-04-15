@@ -28,6 +28,8 @@ import {
   xTicksLayout,
   xAxisFormat,
   xAxisShowMinmax,
+  showMarkers,
+  yAxis2Format,
 } from './Shared_NVD3';
 
 export default {
@@ -50,7 +52,7 @@ export default {
           },
           null,
         ],
-        [showLegend, 'show_markers'],
+        [showLegend, showMarkers],
         [lineInterpolation, null],
       ],
     },
@@ -125,7 +127,7 @@ export default {
               },
             },
           },
-          'y_axis_2_format',
+          yAxis2Format,
         ],
       ],
     },

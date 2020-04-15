@@ -257,22 +257,6 @@ export const controls = {
     ),
   },
 
-  show_markers: {
-    type: 'CheckboxControl',
-    label: t('Show Markers'),
-    renderTrigger: true,
-    default: false,
-    description: t('Show data points as circle markers on the lines'),
-  },
-
-  order_bars: {
-    type: 'CheckboxControl',
-    label: t('Sort Bars'),
-    default: false,
-    renderTrigger: true,
-    description: t('Sort bars by x labels.'),
-  },
-
   secondary_metric: {
     ...metric,
     label: t('Color Metric'),
@@ -703,15 +687,6 @@ export const controls = {
     },
   },
 
-  y_axis_2_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Right Axis Format'),
-    default: 'SMART_NUMBER',
-    choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
   date_time_format: {
     type: 'SelectControl',
     freeForm: true,
@@ -763,14 +738,6 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Whether to apply filter when items are clicked'),
-  },
-
-  send_time_range: {
-    type: 'CheckboxControl',
-    label: t('Propagate'),
-    renderTrigger: true,
-    default: false,
-    description: t('Send range filter events to other charts'),
   },
 
   show_values: {
