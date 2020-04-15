@@ -17,7 +17,7 @@
 import functools
 import logging
 from timeit import default_timer
-from typing import Any, cast, Dict, Optional, Set, Tuple, Type, Union
+from typing import Any, cast, Callable, Dict, Optional, Set, Tuple, Type, Union
 
 from flask import Response
 from flask_appbuilder import ModelRestApi
@@ -36,16 +36,28 @@ get_related_schema = {
 }
 
 
+def time_function(func: Callable, *args, **kwargs) -> Tuple[float, Any]:
+    """
+        Measures the amount of time a function takes to execute in ms
+    :param func: The function execution time to measure
+    :param args: args to be passed to the function
+    :param kwargs: kwargs to be passed to the function
+    :return: A tuple with the duration and response from the function
+    """
+    start = default_timer()
+    response = func(*args, **kwargs)
+    stop = default_timer()
+    return stop - start, response
+
+
 def statsd_metrics(f):
     """
         Handle sending all statsd metrics from the REST API
     """
 
     def wraps(self, *args: Any, **kwargs: Any) -> Response:
-        start = default_timer()
-        response = f(self, *args, **kwargs)
-        stop = default_timer()
-        self.send_stats_metrics(response, f.__name__, stop - start)
+        duration, response = time_function(f, self, *args, **kwargs)
+        self.send_stats_metrics(response, f.__name__, duration)
         return response
 
     return functools.update_wrapper(wraps, f)
@@ -181,30 +193,24 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
             Add statsd metrics to builtin FAB _info endpoint
         """
-        start = default_timer()
-        response = super().info_headless(**kwargs)
-        stop = default_timer()
-        self.send_stats_metrics(response, self.info.__name__, stop - start)
+        duration, response = time_function(super().info_headless, **kwargs)
+        self.send_stats_metrics(response, self.info.__name__, duration)
         return response
 
     def get_headless(self, pk, **kwargs) -> Response:
         """
             Add statsd metrics to builtin FAB GET endpoint
         """
-        start = default_timer()
-        response = super().get_headless(pk, **kwargs)
-        stop = default_timer()
-        self.send_stats_metrics(response, self.get.__name__, stop - start)
+        duration, response = time_function(super().get_headless, pk, **kwargs)
+        self.send_stats_metrics(response, self.get.__name__, duration)
         return response
 
     def get_list_headless(self, **kwargs) -> Response:
         """
             Add statsd metrics to builtin FAB GET list endpoint
         """
-        start = default_timer()
-        response = super().get_list_headless(**kwargs)
-        stop = default_timer()
-        self.send_stats_metrics(response, self.get_list.__name__, stop - start)
+        duration, response = time_function(super().get_list_headless, **kwargs)
+        self.send_stats_metrics(response, self.get_list.__name__, duration)
         return response
 
     @expose("/related/<column_name>", methods=["GET"])
