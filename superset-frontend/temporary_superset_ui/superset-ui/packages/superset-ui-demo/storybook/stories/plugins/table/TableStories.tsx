@@ -65,7 +65,7 @@ function loadData(props: SuperChartProps, pageSize = 50, targetSize = 2042) {
 }
 
 export default {
-  title: 'Legacy Chart Plugins|table',
+  title: 'Legacy Chart Plugins|legacy-plugin-chart-table',
 };
 
 export const basic = () => (

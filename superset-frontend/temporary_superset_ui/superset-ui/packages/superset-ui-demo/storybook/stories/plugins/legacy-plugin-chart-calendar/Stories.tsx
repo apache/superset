@@ -1,7 +1,6 @@
-/* eslint-disable sort-keys, no-magic-numbers */
 import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
-import CalendarChartPlugin from '../../../../../../plugins/legacy-plugin-chart-calendar';
+import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import data from './data';
 // eslint-disable-next-line import/extensions
 import dummyDatasource from '../../../shared/dummyDatasource';
@@ -9,7 +8,7 @@ import dummyDatasource from '../../../shared/dummyDatasource';
 new CalendarChartPlugin().configure({ key: 'calendar' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins|CalendarChartPlugin',
+  title: 'Legacy Chart Plugins|legacy-plugin-chart-calendar',
 };
 
 export const basic = () => (

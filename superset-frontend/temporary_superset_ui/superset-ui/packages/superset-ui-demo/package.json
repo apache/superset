@@ -39,6 +39,8 @@
     "@superset-ui/chart": "0.12.14",
     "@superset-ui/color": "0.12.15",
     "@superset-ui/connection": "0.12.14",
+    "@superset-ui/legacy-plugin-chart-calendar": "^0.12.14",
+    "@superset-ui/legacy-plugin-chart-chord": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-sankey": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-sunburst": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-table": "0.12.14",
