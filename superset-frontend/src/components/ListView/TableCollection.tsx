@@ -85,7 +85,11 @@ export default function TableCollection({
                 const columnCellProps = cell.column.cellProps || {};
 
                 return (
-                  <td {...cell.getCellProps()} {...columnCellProps}>
+                  <td
+                    className="table-cell"
+                    {...cell.getCellProps()}
+                    {...columnCellProps}
+                  >
                     <span>{cell.render('Cell')}</span>
                   </td>
                 );
