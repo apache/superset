@@ -31,6 +31,7 @@ import {
   yLogScale,
   yAxisBounds,
   xAxisShowminmax,
+  richTooltip,
 } from './Shared_NVD3';
 
 export default {
@@ -43,7 +44,7 @@ export default {
       controlSetRows: [
         ['color_scheme', 'label_colors'],
         [showBrush, showLegend, 'show_bar_value'],
-        ['rich_tooltip', 'bar_stacked'],
+        [richTooltip, 'bar_stacked'],
         [lineInterpolation, showControls],
         [bottomMargin],
       ],

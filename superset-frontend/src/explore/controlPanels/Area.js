@@ -31,6 +31,7 @@ import {
   yLogScale,
   yAxisBounds,
   xAxisShowminmax,
+  richTooltip,
 } from './Shared_NVD3';
 
 export default {
@@ -61,7 +62,7 @@ export default {
           },
         ],
         ['color_scheme', 'label_colors'],
-        ['rich_tooltip', showControls],
+        [richTooltip, showControls],
       ],
     },
     {

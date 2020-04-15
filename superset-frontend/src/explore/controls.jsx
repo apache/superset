@@ -858,16 +858,6 @@ export const controls = {
     description: t('Whether to display the min and max values of the Y-axis'),
   },
 
-  rich_tooltip: {
-    type: 'CheckboxControl',
-    label: t('Rich Tooltip'),
-    renderTrigger: true,
-    default: true,
-    description: t(
-      'The rich tooltip shows a list of all series for that point in time',
-    ),
-  },
-
   log_scale: {
     type: 'CheckboxControl',
     label: t('Log Scale'),

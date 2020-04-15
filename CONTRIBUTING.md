@@ -1045,7 +1045,6 @@ The filter-box configuration references column names (via the `column` key) and 
 | `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
 | `number_format`       | _string_  | The **Number format** widget                     |
-| `rich_tooltip`        | _boolean_ | The **Rich Tooltip** widget                      |
 | `send_time_range`     | _boolean_ | The **Show Markers** widget                      |
 | `show_markers`        | _string_  | The **Show Markers** widget                      |
 

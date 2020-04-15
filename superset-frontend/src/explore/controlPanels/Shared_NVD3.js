@@ -192,4 +192,17 @@ export const xAxisShowminmax = {
     default: false,
     description: t('Whether to display the min and max values of the X-axis'),
   },
-}
+};
+
+export const richTooltip = {
+  name: 'rich_tooltip',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Rich Tooltip'),
+    renderTrigger: true,
+    default: true,
+    description: t(
+      'The rich tooltip shows a list of all series for that point in time',
+    ),
+  },
+},
