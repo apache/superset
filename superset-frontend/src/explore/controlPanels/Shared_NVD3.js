@@ -42,6 +42,22 @@ import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
   TimePivotChartPlugin,
 */
 
+export const leftMargin = {
+  name: 'left_margin',
+  config: {
+    type: 'SelectControl',
+    freeForm: true,
+    clearable: false,
+    label: t('Left Margin'),
+    choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
+    default: 'auto',
+    renderTrigger: true,
+    description: t(
+      'Left margin, in pixels, allowing for more room for axis labels',
+    ),
+  },
+};
+
 export const yAxisShowMinmax = {
   name: 'y_axis_showminmax',
   config: {
@@ -50,7 +66,7 @@ export const yAxisShowMinmax = {
     renderTrigger: true,
     default: false,
     description: t('Whether to display the min and max values of the Y-axis'),
-  }
+  },
 };
 
 export const lineInterpolation = {
@@ -194,7 +210,7 @@ export const yAxisBounds = {
   },
 };
 
-export const xAxisShowminmax = {
+export const xAxisShowMinmax = {
   name: 'x_axis_showminmax',
   config: {
     type: 'CheckboxControl',
@@ -254,8 +270,8 @@ export const reduceXTicks = {
         'to columns and the width may overflow into an ' +
         'horizontal scroll.',
     ),
-  }
-}
+  },
+};
 
 export const yAxisLabel = {
   name: 'y_axis_label',
@@ -265,4 +281,4 @@ export const yAxisLabel = {
     renderTrigger: true,
     default: '',
   },
-}
+};

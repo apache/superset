@@ -26,7 +26,10 @@ import {
   xAxisFormat,
   yLogScale,
   yAxisBounds,
-  xAxisShowminmax,
+  xAxisShowMinmax,
+  yAxisShowMinmax,
+  yAxisLabel,
+  leftMargin,
 } from './Shared_NVD3';
 
 export default {
@@ -84,7 +87,7 @@ export default {
       controlSetRows: [
         [xAxisLabel, bottomMargin],
         [
-          xAxisShowminmax,
+          xAxisShowMinmax,
           {
             ...xAxisFormat,
             default: 'SMART_NUMBER',
@@ -97,8 +100,8 @@ export default {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        [yAxisLabel, 'left_margin'],
-        ['y_axis_showminmax', yLogScale],
+        [yAxisLabel, leftMargin],
+        [yAxisShowMinmax, yLogScale],
         ['y_axis_format', yAxisBounds],
       ],
     },

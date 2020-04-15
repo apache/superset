@@ -410,19 +410,6 @@ export const controls = {
     ),
   },
 
-  left_margin: {
-    type: 'SelectControl',
-    freeForm: true,
-    clearable: false,
-    label: t('Left Margin'),
-    choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
-    default: 'auto',
-    renderTrigger: true,
-    description: t(
-      'Left margin, in pixels, allowing for more room for axis labels',
-    ),
-  },
-
   granularity: {
     type: 'SelectControl',
     freeForm: true,
@@ -552,14 +539,6 @@ export const controls = {
       // only display this option when a time range is selected
       return timeRange && timeRange !== 'No filter';
     },
-  },
-
-  max_bubble_size: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Max Bubble Size'),
-    default: '25',
-    choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
   },
 
   number_format: {
@@ -811,14 +790,6 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Whether to display the numerical values within the cells'),
-  },
-
-  y_axis_showminmax: {
-    type: 'CheckboxControl',
-    label: t('Y bounds'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to display the min and max values of the Y-axis'),
   },
 
   log_scale: {

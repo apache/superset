@@ -29,8 +29,11 @@ import {
   xAxisFormat,
   yLogScale,
   yAxisBounds,
-  xAxisShowminmax,
+  yAxisLabel,
+  xAxisShowMinmax,
+  yAxisShowMinmax,
   richTooltip,
+  leftMargin,
 } from './Shared_NVD3';
 
 export default {
@@ -53,15 +56,15 @@ export default {
       controlSetRows: [
         [xAxisLabel, bottomMargin],
         [xTicksLayout, xAxisFormat],
-        [xAxisShowminmax, null],
+        [xAxisShowMinmax, null],
       ],
     },
     {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        [yAxisLabel, 'left_margin'],
-        ['y_axis_showminmax', yLogScale],
+        [yAxisLabel, leftMargin],
+        [yAxisShowMinmax, yLogScale],
         ['y_axis_format', yAxisBounds],
       ],
     },

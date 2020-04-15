@@ -98,7 +98,29 @@ export default {
           'normalize_across',
         ],
         [
-          'left_margin',
+          {
+            name: 'left_margin',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              clearable: false,
+              label: t('Left Margin'),
+              choices: formatSelectOptions([
+                'auto',
+                50,
+                75,
+                100,
+                125,
+                150,
+                200,
+              ]),
+              default: 'auto',
+              renderTrigger: true,
+              description: t(
+                'Left margin, in pixels, allowing for more room for axis labels',
+              ),
+            },
+          },
           {
             name: 'bottom_margin',
             config: {

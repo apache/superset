@@ -1019,7 +1019,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `contribution`                                                                                         | _boolean_                                         | The **Contribution** widget                       |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
-| `max_bubble_size`                                                                                      | _number_                                          | The **Max Bubble Size** widget                    |
 | `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
 | `order_asc`                                                                                            | _boolean_                                         | The **Sort Descending** widget                    |
 | `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                          |
@@ -1052,7 +1051,6 @@ The filter-box configuration references column names (via the `column` key) and 
 
 | Field               | Type            | Notes                        |
 | ------------------- | --------------- | ---------------------------- |
-| `left_margin`       | _number_        | The **Left Margin** widget   |
 | `y_axis_2_label`    | _N/A_           | _Deprecated?_                |
 | `y_axis_format`     | _string_        | The **Y Axis Format** widget |
 | `y_axis_zero`       | _N/A_           | _Deprecated?_                |

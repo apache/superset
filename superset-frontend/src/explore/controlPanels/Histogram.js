@@ -48,7 +48,7 @@ export default {
             },
           },
           {
-            name: yAxisLabel,
+            name: 'y_axis_label',
             config: {
               type: 'TextControl',
               label: t('Y Axis Label'),

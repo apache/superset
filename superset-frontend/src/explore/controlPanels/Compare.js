@@ -21,13 +21,15 @@ import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
 import {
   xAxisLabel,
+  yAxisLabel,
   bottomMargin,
   xTicksLayout,
   xAxisFormat,
   yLogScale,
   yAxisBounds,
-  xAxisShowminmax,
-  yAxisLabel,
+  xAxisShowMinmax,
+  yAxisShowMinmax,
+  leftMargin,
 } from './Shared_NVD3';
 
 export default {
@@ -45,15 +47,15 @@ export default {
       controlSetRows: [
         [xAxisLabel, bottomMargin],
         [xTicksLayout, xAxisFormat],
-        [xAxisShowminmax, null],
+        [xAxisShowMinmax, null],
       ],
     },
     {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        [yAxisLabel, 'left_margin'],
-        ['y_axis_showminmax', yLogScale],
+        [yAxisLabel, leftMargin],
+        [yAxisShowMinmax, yLogScale],
         ['y_axis_format', yAxisBounds],
       ],
     },
