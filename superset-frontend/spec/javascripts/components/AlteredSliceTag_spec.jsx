@@ -27,6 +27,7 @@ import TooltipWrapper from '../../../src/components/TooltipWrapper';
 
 const defaultProps = {
   origFormData: {
+    viz_type: 'altered_slice_tag_spec',
     adhoc_filters: [
       {
         clause: 'WHERE',
