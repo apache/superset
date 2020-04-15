@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/dimension",
-  "version": "0.12.14",
+  "version": "0.12.18",
   "description": "Superset UI dimension",
   "sideEffects": false,
   "main": "lib/index.js",
