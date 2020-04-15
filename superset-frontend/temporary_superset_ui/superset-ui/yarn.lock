@@ -6827,6 +6827,11 @@ d3-shape@^1.0.6, d3-shape@^1.2.0, d3-shape@^1.3.7:
   dependencies:
     d3-path "1"
 
+d3-svg-legend@^1.x:
+  version "1.13.0"
+  resolved "https://registry.yarnpkg.com/d3-svg-legend/-/d3-svg-legend-1.13.0.tgz#6217478c9add9d62cb333617e1961311a41a4db3"
+  integrity sha1-YhdHjJrdnWLLMzYX4ZYTEaQaTbM=
+
 d3-time-format@2, d3-time-format@^2.2.0, d3-time-format@^2.2.1, d3-time-format@^2.2.2, d3-time-format@^2.2.3:
   version "2.2.3"
   resolved "https://registry.yarnpkg.com/d3-time-format/-/d3-time-format-2.2.3.tgz#0c9a12ee28342b2037e5ea1cf0b9eb4dd75f29cb"
@@ -12009,6 +12014,11 @@ multimatch@^4.0.0:
     array-union "^2.1.0"
     arrify "^2.0.1"
     minimatch "^3.0.4"
+
+mustache@^4.0.0:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/mustache/-/mustache-4.0.1.tgz#d99beb031701ad433338e7ea65e0489416c854a2"
+  integrity sha512-yL5VE97+OXn4+Er3THSmTdCFCtx5hHWzrolvH+JObZnUYwuaG7XV+Ch4fR2cIrcYI0tFHxS7iyFYl14bW8y2sA==
 
 mute-stream@0.0.7:
   version "0.0.7"

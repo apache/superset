@@ -8,6 +8,10 @@ const packages = readdirSync(basePath).filter(name => {
   return stat.isSymbolicLink();
 });
 
+const PLUGIN_PACKAGES_PATH_REGEXP = new RegExp(
+  `${path.resolve(__dirname, '../../../plugins/(legacy-)*(plugin|preset)-')}.+/src`,
+);
+
 module.exports = {
   addons: [
     '@storybook/preset-typescript',
@@ -20,6 +24,17 @@ module.exports = {
     '../storybook/stories/**/*Stories.[tj]sx',
   ],
   webpackFinal: config => {
+
+    // Make sure babel is applied to the package src
+    // These are excluded by the default rule
+    // because they reside in node_modules
+    config.module.rules.push({
+      include: PLUGIN_PACKAGES_PATH_REGEXP,
+      exclude: /node_modules/,
+      test: /\.jsx?$/,
+      use: config.module.rules[0].use,
+    });
+
     config.module.rules.push({
       test: /\.tsx?$/,
       use: [
@@ -30,7 +45,8 @@ module.exports = {
     });
 
     config.resolve.extensions.push('.ts', '.tsx');
-    // let webpack know where to find the source code
+
+    // Let webpack know where to find the source code
     Object.assign(config.resolve.alias, {
       ...packages.reduce(
         (acc, name) => ({
