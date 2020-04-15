@@ -31,6 +31,7 @@
 // https://on.cypress.io/configuration
 // ***********************************************************
 
+import '@cypress/code-coverage/support';
 import './commands';
 
 // The following is a workaround for Cypress not supporting fetch.

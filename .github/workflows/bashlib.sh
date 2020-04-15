@@ -15,6 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+set -e
+
+ASSETS_MANIFEST="$GITHUB_WORKSPACE/superset/static/assets/manifest.json"
 
 # Echo only when not in parallel mode
 say() {
@@ -67,41 +70,27 @@ build-assets() {
   say "::endgroup::"
 }
 
-npm-build() {
-  if [[ $1 = '--no-cache' ]]; then
-    build-assets
+build-assets-cached() {
+  cache-restore assets
+  if [[ -f "$ASSETS_MANIFEST" ]]; then
+    echo 'Skip frontend build because static assets already exist.'
   else
-    cache-restore assets
-    if [[ -f $GITHUB_WORKSPACE/superset/static/assets/manifest.json ]]; then
-      echo 'Skip frontend build because static assets already exist.'
-    else
-      build-assets
-      cache-save assets
-    fi
+    build-assets
+    cache-save assets
   fi
 }
 
-cypress-install() {
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
+build-instrumented-assets() {
+  cd "$GITHUB_WORKSPACE/superset-frontend"
 
-  cache-restore cypress
-
-  say "::group::Install Cypress"
-  npm ci
-  say "::endgroup::"
-
-  cache-save cypress
-}
-
-testdata() {
-  cd "$GITHUB_WORKSPACE"
-  say "::group::Load test data"
-  # must specify PYTHONPATH to make `tests.superset_test_config` importable
-  export PYTHONPATH="$GITHUB_WORKSPACE"
-  superset db upgrade
-  superset load_test_users
-  superset load_examples --load-test-data
-  superset init
+  say "::group::Build static assets with JS instrumented for test coverage"
+  cache-restore instrumented-assets
+  if [[ -f "$ASSETS_MANIFEST" ]]; then
+    echo 'Skip frontend build because instrumented static assets already exist.'
+  else
+    npm run build-instrumented -- --no-progress
+    cache-save instrumented-assets
+  fi
   say "::endgroup::"
 }
 
@@ -130,4 +119,85 @@ setup-mysql() {
     FLUSH PRIVILEGES;
 EOF
   say "::endgroup::"
+}
+
+testdata() {
+  cd "$GITHUB_WORKSPACE"
+  say "::group::Load test data"
+  # must specify PYTHONPATH to make `tests.superset_test_config` importable
+  export PYTHONPATH="$GITHUB_WORKSPACE"
+  superset db upgrade
+  superset load_test_users
+  superset load_examples --load-test-data
+  superset init
+  say "::endgroup::"
+}
+
+codecov() {
+  say "::group::Upload code coverage for $page"
+  local codecovScript="${HOME}/codecov.sh"
+  # download bash script if needed
+  if [[ ! -f "$codecovScript" ]]; then
+    curl -s https://codecov.io/bash > "$codecovScript"
+  fi
+  bash "$codecovScript" $@
+  say "::endgroup::"
+}
+
+cypress-install() {
+  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
+
+  cache-restore cypress
+
+  say "::group::Install Cypress"
+  npm ci
+  say "::endgroup::"
+
+  cache-save cypress
+}
+
+# Run Cypress and upload coverage reports
+cypress-run() {
+  local page="$1"
+  local group="$1$2" # Use $2 as suffix
+  local record=""
+
+  if [[ ! -z $CYPRESS_RECORD_KEY ]]; then
+    # additional flags for Cypress dashboard recording
+    record="--record --group \"$group\" --tag \"${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}\""
+  fi
+
+  say "::group::Run Cypress tests for $page"
+  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base/"
+  # don't add quotes to $record because we do want word splitting
+  npm run cypress -- run --spec "cypress/integration/$page/*" $record
+  say "::endgroup::"
+
+  # Upload code coverage separately so each page can have separate flags
+  # -c will clean existing coverage reports, -F means add flags
+  codecov -cF "cypress,${page}"
+}
+
+cypress-run-all() {
+  # Start Flask and run it in background
+  # --no-debugger means disable the interactive debugger on the 500 page
+  # so errors can print to stderr.
+  flask run --no-debugger --with-threads -p 8081 &
+
+  sleep 3 # wait for the Flask app to start
+  for page in dashboard explore sqllab; do
+    cypress-run $page
+  done
+
+  # Return SQL Lab tests with with backend persist enabled
+  export SUPERSET_CONFIG=tests.superset_test_config_sqllab_backend_persist
+
+  kill %1 # exit and restart Flask
+  flask run --no-debugger --with-threads -p 8081 &
+
+  sleep 3
+  cypress-run sqllab " (Backend persist)"
+
+  # make sure the program exits
+  kill %1
 }
