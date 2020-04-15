@@ -1,0 +1,32 @@
+{
+  "name": "@superset-ui/style",
+  "version": "0.12.13",
+  "description": "Component styles for Superset",
+  "author": "Aaron Suddjian <aaron@preset.io>",
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "license": "Apache-2.0",
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "sideEffects": false,
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "dependencies": {
+    "@emotion/core": "^10.0.28",
+    "@emotion/styled": "^10.0.27"
+  }
+}
