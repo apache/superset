@@ -23,6 +23,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import signal
 import smtplib
 import tempfile
@@ -783,14 +784,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
 def get_email_address_list(address_string: str) -> List[str]:
     address_string_list: List[str] = []
     if isinstance(address_string, str):
-        if "," in address_string:
-            address_string_list = address_string.split(",")
-        elif "\n" in address_string:
-            address_string_list = address_string.split("\n")
-        elif ";" in address_string:
-            address_string_list = address_string.split(";")
-        else:
-            address_string_list = [address_string]
+        address_string_list = re.split(",|\s|;", address_string)
     return [x.strip() for x in address_string_list if x.strip()]
 
 
