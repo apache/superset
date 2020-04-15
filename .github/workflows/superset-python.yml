@@ -1,23 +1,6 @@
 name: Python
 
-on:
-  # only build on direct push to `master` branch
-  push:
-    branches: [ master ]
-    paths:
-    - ./**/*.py
-    - superset/**
-    - tests/**
-    - requirements*.txt
-  # but also build on pull requests to any branch
-  # (the so-called feature branch)
-  pull_request:
-    paths:
-    - ./**/*.py
-    - superset/**
-    - tests/**
-    - setup.py
-    - requirements*.txt
+on: [push, pull_request]
 
 jobs:
   lint:
