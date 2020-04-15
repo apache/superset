@@ -63,7 +63,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Apache Superset"
-copyright = "Copyright © 2019 The Apache Software Foundation, Licensed under the Apache License, Version 2.0."
+copyright = "Copyright © 2020 The Apache Software Foundation, Licensed under the Apache License, Version 2.0."
 author = u"Apache Superset Dev"
 
 # The version info for the project you're documenting, acts as replacement for
