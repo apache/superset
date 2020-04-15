@@ -17,6 +17,8 @@ Current master: https://superset-ui.netlify.com
 
 ## Packages
 
+### Core packages
+
 | Package                                                                                                                               | Version                                                                                                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [@superset-ui/superset-ui](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-superset-ui)               | [![Version](https://img.shields.io/npm/v/@superset-ui/superset-ui.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/superset-ui.svg?style=flat-square)               |
@@ -31,6 +33,16 @@ Current master: https://superset-ui.netlify.com
 | [@superset-ui/query](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-query)                           | [![Version](https://img.shields.io/npm/v/@superset-ui/query.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/query.svg?style=flat-square)                           |
 | [@superset-ui/time-format](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-time-format)               | [![Version](https://img.shields.io/npm/v/@superset-ui/time-format.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/time-format.svg?style=flat-square)               |
 | [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation)               | [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)               |
+
+
+### Chart plugin packages
+
+| Package                                                                                                                                                                                   | Version                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [@superset-ui/legacy-preset-chart-big-number](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-preset-chart-big-number)                     | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-big-number.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-big-number.svg?style=flat-square)                     |
+| [@superset-ui/legacy-plugin-chart-calendar](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-calendar)                         | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-calendar.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-calendar.svg?style=flat-square)                         |
+| [@superset-ui/legacy-plugin-chart-table](https://github.com/apache-superset/superset-ui-plugins/tree/master/packages/superset-ui-legacy-plugin-chart-table)                               | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-table.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-table.svg?style=flat-square)                               |
+
 
 ## Contribution and development guide
 
