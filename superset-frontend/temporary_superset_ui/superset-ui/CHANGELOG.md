@@ -1,5 +1,18 @@
-# [0.0.0](https://github.com/apache-superset/superset-ui/compare/v0.12.15...v0.0.0) (2020-04-14)
+## [0.12.17](https://github.com/apache-superset/superset-ui/compare/v0.12.16...v0.12.17) (2020-04-15)
 
+
+### Bug Fixes
+
+* publish settings ([341c122](https://github.com/apache-superset/superset-ui/commit/341c122cb4f2b59c31b590a9146cf9976597888d))
+
+
+
+## [0.12.16](https://github.com/apache-superset/superset-ui/compare/v0.12.15...v0.12.16) (2020-04-15)
+
+
+### Features
+
+* style package for theming and styled components ([#362](https://github.com/apache-superset/superset-ui/issues/362)) ([316c913](https://github.com/apache-superset/superset-ui/commit/316c913afc8d571bf2d30004b3254c977bf59d2b))
 
 
 ## [0.12.15](https://github.com/apache-superset/superset-ui/compare/v0.12.14...v0.12.15) (2020-04-13)
