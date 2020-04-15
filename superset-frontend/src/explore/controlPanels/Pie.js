@@ -69,7 +69,19 @@ export default {
           showLegend,
         ],
         [
-          'show_labels',
+          {
+            name: 'show_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Labels'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Whether to display the labels. Note that the label only displays when the the 5% ' +
+                  'threshold.',
+              ),
+            },
+          },
           {
             name: 'labels_outside',
             config: {

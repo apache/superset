@@ -773,17 +773,6 @@ export const controls = {
     description: t('Send range filter events to other charts'),
   },
 
-  show_labels: {
-    type: 'CheckboxControl',
-    label: t('Show Labels'),
-    renderTrigger: true,
-    default: true,
-    description: t(
-      'Whether to display the labels. Note that the label only displays when the the 5% ' +
-        'threshold.',
-    ),
-  },
-
   show_values: {
     type: 'CheckboxControl',
     label: t('Show Values'),
