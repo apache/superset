@@ -17,7 +17,7 @@
 import functools
 import logging
 from timeit import default_timer
-from typing import Any, cast, Callable, Dict, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, Optional, Set, Tuple, Type, Union
 
 from flask import Response
 from flask_appbuilder import ModelRestApi
