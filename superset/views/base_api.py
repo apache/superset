@@ -40,7 +40,7 @@ get_related_schema = {
 
 def statsd_metrics(f):
     """
-        Handle sending all statsd metrics from the REST API
+    Handle sending all statsd metrics from the REST API
     """
 
     def wraps(self, *args: Any, **kwargs: Any) -> Response:
@@ -145,7 +145,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     def incr_stats(self, action: str, func_name: str) -> None:
         """
-            Proxy function for statsd.incr to impose a key structure for REST API's
+        Proxy function for statsd.incr to impose a key structure for REST API's
+
         :param action: String with an action name eg: error, success
         :param func_name: The function name
         """
@@ -153,7 +154,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     def timing_stats(self, action: str, func_name: str, value: float) -> None:
         """
-            Proxy function for statsd.incr to impose a key structure for REST API's
+        Proxy function for statsd.incr to impose a key structure for REST API's
+
         :param action: String with an action name eg: error, success
         :param func_name: The function name
         :param value: A float with the time it took for the endpoint to execute
@@ -166,7 +168,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self, response: Response, key: str, time_delta: Optional[float] = None
     ) -> None:
         """
-            Helper function to handle sending statsd metrics
+        Helper function to handle sending statsd metrics
+
         :param response: flask response object, will evaluate if it was an error
         :param key: The function name
         :param time_delta: Optional time it took for the endpoint to execute
@@ -180,7 +183,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     def info_headless(self, **kwargs) -> Response:
         """
-            Add statsd metrics to builtin FAB _info endpoint
+        Add statsd metrics to builtin FAB _info endpoint
         """
         duration, response = time_function(super().info_headless, **kwargs)
         self.send_stats_metrics(response, self.info.__name__, duration)
@@ -188,7 +191,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     def get_headless(self, pk, **kwargs) -> Response:
         """
-            Add statsd metrics to builtin FAB GET endpoint
+        Add statsd metrics to builtin FAB GET endpoint
         """
         duration, response = time_function(super().get_headless, pk, **kwargs)
         self.send_stats_metrics(response, self.get.__name__, duration)
@@ -196,7 +199,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     def get_list_headless(self, **kwargs) -> Response:
         """
-            Add statsd metrics to builtin FAB GET list endpoint
+        Add statsd metrics to builtin FAB GET list endpoint
         """
         duration, response = time_function(super().get_list_headless, **kwargs)
         self.send_stats_metrics(response, self.get_list.__name__, duration)
