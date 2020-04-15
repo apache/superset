@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- 
+
 import memoize from 'lodash/memoize';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import controls from '../explore/controls';
