@@ -18,10 +18,11 @@
 """Unit tests for Superset"""
 import imp
 import json
-from typing import Union
-from unittest.mock import Mock
+from typing import Union, Dict
+from unittest.mock import Mock, patch
 
 import pandas as pd
+from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 
@@ -35,6 +36,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import get_example_database
+from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
 
@@ -328,3 +330,81 @@ class SupersetTestCase(TestCase):
     def get_dash_by_slug(self, dash_slug):
         sesh = db.session()
         return sesh.query(Dashboard).filter_by(slug=dash_slug).first()
+
+    def get_assert_metric(self, uri: str, func_name: str) -> Response:
+        """
+        Simple client get with an extra assertion for statsd metrics
+
+        :param uri: The URI to use for the HTTP GET
+        :param func_name: The function name that the HTTP GET triggers
+        for the statsd metric assertion
+        :return: HTTP Response
+        """
+        with patch.object(
+            BaseSupersetModelRestApi, "incr_stats", return_value=None
+        ) as mock_method:
+            rv = self.client.get(uri)
+        if 200 <= rv.status_code < 400:
+            mock_method.assert_called_once_with("success", func_name)
+        else:
+            mock_method.assert_called_once_with("error", func_name)
+        return rv
+
+    def delete_assert_metric(self, uri: str, func_name: str) -> Response:
+        """
+        Simple client delete with an extra assertion for statsd metrics
+
+        :param uri: The URI to use for the HTTP DELETE
+        :param func_name: The function name that the HTTP DELETE triggers
+        for the statsd metric assertion
+        :return: HTTP Response
+        """
+        with patch.object(
+            BaseSupersetModelRestApi, "incr_stats", return_value=None
+        ) as mock_method:
+            rv = self.client.delete(uri)
+        if 200 <= rv.status_code < 400:
+            mock_method.assert_called_once_with("success", func_name)
+        else:
+            mock_method.assert_called_once_with("error", func_name)
+        return rv
+
+    def post_assert_metric(self, uri: str, data: Dict, func_name: str) -> Response:
+        """
+        Simple client post with an extra assertion for statsd metrics
+
+        :param uri: The URI to use for the HTTP POST
+        :param data: The JSON data payload to be posted
+        :param func_name: The function name that the HTTP POST triggers
+        for the statsd metric assertion
+        :return: HTTP Response
+        """
+        with patch.object(
+            BaseSupersetModelRestApi, "incr_stats", return_value=None
+        ) as mock_method:
+            rv = self.client.post(uri, json=data)
+        if 200 <= rv.status_code < 400:
+            mock_method.assert_called_once_with("success", func_name)
+        else:
+            mock_method.assert_called_once_with("error", func_name)
+        return rv
+
+    def put_assert_metric(self, uri: str, data: Dict, func_name: str) -> Response:
+        """
+        Simple client put with an extra assertion for statsd metrics
+
+        :param uri: The URI to use for the HTTP PUT
+        :param data: The JSON data payload to be posted
+        :param func_name: The function name that the HTTP PUT triggers
+        for the statsd metric assertion
+        :return: HTTP Response
+        """
+        with patch.object(
+            BaseSupersetModelRestApi, "incr_stats", return_value=None
+        ) as mock_method:
+            rv = self.client.put(uri, json=data)
+        if 200 <= rv.status_code < 400:
+            mock_method.assert_called_once_with("success", func_name)
+        else:
+            mock_method.assert_called_once_with("error", func_name)
+        return rv
