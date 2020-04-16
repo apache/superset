@@ -23,7 +23,7 @@ from apispec import APISpec
 from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext as _, ngettext
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -434,7 +434,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             query_context, errors = ChartDataQueryContextSchema().load(request.json)
             if errors:
-                raise self.response_400(message=_("Request is incorrect"))
+                return self.response_400(
+                    message=_("Request is incorrect: %(error)s", error=errors)
+                )
         except KeyError:
             return self.response_400(message="Request is incorrect")
         try:

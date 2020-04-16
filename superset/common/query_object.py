@@ -47,9 +47,9 @@ class QueryObject:
     is_timeseries: bool
     time_shift: Optional[timedelta]
     groupby: List[str]
-    metrics: List[Union[Dict, str]]
+    metrics: List[Union[Dict[str, Any], str]]
     row_limit: int
-    filter: List[str]
+    filter: List[Dict[str, Any]]
     timeseries_limit: int
     timeseries_limit_metric: Optional[Dict]
     order_desc: bool
@@ -61,9 +61,9 @@ class QueryObject:
     def __init__(
         self,
         granularity: str,
-        metrics: List[Union[Dict, str]],
+        metrics: List[Union[Dict[str, Any], str]],
         groupby: Optional[List[str]] = None,
-        filters: Optional[List[str]] = None,
+        filters: Optional[List[Dict[str, Any]]] = None,
         time_range: Optional[str] = None,
         time_shift: Optional[str] = None,
         is_timeseries: bool = False,

@@ -219,7 +219,8 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     )
     win_type = fields.String(
         description="Type of window function. See "
-        "[SciPy window functions](https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows) "
+        "[SciPy window functions](https://docs.scipy.org/doc/scipy/reference"
+        "/signal.windows.html#module-scipy.signal.windows) "
         "for more details. Some window functions require passing "
         "additional parameters to `rolling_type_options`. For instance, "
         "to use `gaussian`, the parameter `std` needs to be provided.",
@@ -359,7 +360,7 @@ class ChartDataFilterSchema(Schema):
     col = fields.String(
         description="The column to filter.", required=True, example="country"
     )
-    op = fields.String(
+    op = fields.String(  # pylint: disable=invalid-name
         description="The comparison operator.",
         enum=[filter_op.value for filter_op in utils.FilterOperationType],
         required=True,
@@ -373,6 +374,7 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
+
     time_range_endpoints = fields.List(
         fields.String(enum=["INCLUSIVE", "EXCLUSIVE"]),
         description="A list with two values, stating if start/end should be "
@@ -394,7 +396,7 @@ class ChartDataExtrasSchema(Schema):
 
 
 class ChartDataQueryObjectSchema(Schema):
-    filters = fields.Nested(ChartDataFilterSchema())
+    filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
     granularity = fields.String(
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
@@ -416,22 +418,22 @@ class ChartDataQueryObjectSchema(Schema):
         ],
         required=False,
         example="P1D",
-        groupby=fields.List(
-            fields.String(description="Columns by which to group the query.",),
-        ),
+    )
+    groupby = fields.List(
+        fields.String(description="Columns by which to group the query.",),
     )
     metrics = fields.List(
-        # TODO: add string type when support for `anyOf` is added to Marshmallow.
-        #  strings are used to reference matrics stored in the datasource.
-        fields.Nested(ChartDataAdhocMetricSchema),
+        fields.Raw(),
         description="Aggregate expressions. Metrics can be passed as both "
         "references to datasource metrics (strings), or ad-hoc metrics"
-        "which are defined only within the query object.",
+        "which are defined only within the query object. See "
+        "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
     )
     post_processing = fields.List(
         fields.Nested(ChartDataPostProcessingOperationSchema),
         description="Post processing operations to be applied to the result set. "
         "Operations are applied to the result set in sequential order.",
+        required=False,
     )
     time_range = fields.String(
         description="A time rage, either expressed as a colon separated string "
@@ -494,16 +496,21 @@ class ChartDataQueryContextSchema(Schema):
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
 
+    # pylint: disable=no-self-use
     @post_load
     def make_query_context(self, data: Dict[str, Any]) -> QueryContext:
-        return QueryContext(**data)
+        query_context = QueryContext(**data)
+        return query_context
+
+    # pylint: enable=no-self-use
 
 
 CHART_DATA_SCHEMAS = (
     ChartDataQueryContextSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
-    #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not yet
-    #  supported by Marshmallow/apispec, this is not currently possible.
+    #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not
+    #  by Marshmallow<3, this is not currently possible.
+    ChartDataAdhocMetricSchema,
     ChartDataAggregateOptionsSchema,
     ChartDataPivotOptionsSchema,
     ChartDataRollingOptionsSchema,
