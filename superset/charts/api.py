@@ -50,7 +50,6 @@ from superset.charts.schemas import (
     get_delete_ids_schema,
     thumbnail_query_schema,
 )
-from superset.common.query_context import QueryContext
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
@@ -434,6 +433,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is not JSON")
         try:
             query_context, errors = ChartDataQueryContextSchema().load(request.json)
+            if errors:
+                raise self.response_400(message=_("Request is incorrect"))
         except KeyError:
             return self.response_400(message="Request is incorrect")
         try:
