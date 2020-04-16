@@ -82,9 +82,12 @@ export default {
         [xAxisLabel, leftMargin],
         [
           {
-            ...xAxisFormat,
-            default: 'SMART_NUMBER',
-            choices: D3_FORMAT_OPTIONS,
+            name: xAxisFormat.name,
+            config: {
+              ...xAxisFormat.config,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+            }
           },
           xTicksLayout,
         ],
