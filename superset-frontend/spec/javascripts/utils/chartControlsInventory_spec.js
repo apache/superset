@@ -18,7 +18,7 @@
  */
 
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import getControlsInventory from 'src/utils/chartControlsInventory';
+import getControlsForVizType from 'src/utils/chartControlsInventory';
 
 const fakePluginControls = {
   controlPanelSections: [
@@ -77,7 +77,7 @@ describe('chartControlsInventory', () => {
   });
 
   it('returns a map of the controls', () => {
-    expect(getControlsInventory('chart_controls_inventory_fake')).toEqual({
+    expect(getControlsForVizType('chart_controls_inventory_fake')).toEqual({
       url_params: {
         type: 'HiddenControl',
         label: 'URL Parameters',

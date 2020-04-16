@@ -21,7 +21,7 @@ import memoize from 'lodash/memoize';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import controls from '../explore/controls';
 
-const getControlsInventory = memoize(vizType => {
+const getControlsForVizType = memoize(vizType => {
   const controlsMap = {};
   getChartControlPanelRegistry()
     .get(vizType)
@@ -43,4 +43,4 @@ const getControlsInventory = memoize(vizType => {
   return controlsMap;
 });
 
-export default getControlsInventory;
+export default getControlsForVizType;

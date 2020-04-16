@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
 import { isEqual, isEmpty } from 'lodash';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import getControlsInventory from 'src/utils/chartControlsInventory';
+import getControlsForVizType from 'src/utils/chartControlsInventory';
 import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 import ModalTrigger from './ModalTrigger';
@@ -54,7 +54,7 @@ export default class AlteredSliceTag extends React.Component {
     super(props);
     const diffs = this.getDiffs(props);
 
-    const controlsMap = getControlsInventory(this.props.origFormData.viz_type);
+    const controlsMap = getControlsForVizType(this.props.origFormData.viz_type);
 
     this.state = { diffs, hasDiffs: !isEmpty(diffs), controlsMap };
   }
