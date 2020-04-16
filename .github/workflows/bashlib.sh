@@ -22,7 +22,7 @@ ASSETS_MANIFEST="$GITHUB_WORKSPACE/superset/static/assets/manifest.json"
 
 # Echo only when not in parallel mode
 say() {
-  if [[ $(echo $INPUT_PARALLEL | tr a-z A-Z) != 'TRUE' ]]; then
+  if [[ $(echo "$INPUT_PARALLEL" | tr '[:lower:]' '[:upper:]') != 'TRUE' ]]; then
     echo "$1"
   fi
 }
@@ -141,7 +141,7 @@ codecov() {
   if [[ ! -f "$codecovScript" ]]; then
     curl -s https://codecov.io/bash > "$codecovScript"
   fi
-  bash "$codecovScript" $@
+  bash "$codecovScript" "$@"
   say "::endgroup::"
 }
 
@@ -168,10 +168,10 @@ cypress-run() {
 
   say "::group::Run Cypress for [$page]"
   if [[ -z $CYPRESS_RECORD_KEY ]]; then
-    $cypress --spec "cypress/integration/$page" --browser ${browser}
+    $cypress --spec "cypress/integration/$page" --browser "$browser"
   else
     # additional flags for Cypress dashboard recording
-    $cypress --spec "cypress/integration/$page" --browser ${browser} --record \
+    $cypress --spec "cypress/integration/$page" --browser "$browser" --record \
       --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}"
   fi
 
@@ -186,7 +186,7 @@ cypress-run-all() {
   local flasklog="${HOME}/flask.log"
   local port=8081
 
-  nohup flask run --no-debugger -p $port > $flasklog 2>&1 < /dev/null &
+  nohup flask run --no-debugger -p $port > "$flasklog" 2>&1 < /dev/null &
   local flaskProcessId=$!
 
   cypress-run "*/*"
@@ -197,7 +197,7 @@ cypress-run-all() {
 
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
-  cat $flasklog
+  cat "$flasklog"
   say "::endgroup::"
 
   # Rerun SQL Lab tests with backend persist enabled
@@ -205,14 +205,14 @@ cypress-run-all() {
 
   # Restart Flask with new configs
   kill $flaskProcessId
-  nohup flask run --no-debugger -p $port > $flasklog 2>&1 < /dev/null &
+  nohup flask run --no-debugger -p $port > "$flasklog" 2>&1 < /dev/null &
   local flaskProcessId=$!
 
   cypress-run "sqllab/*" "Backend persist"
   codecov -cF "cypress"
 
   say "::group::Flask log for backend persist"
-  cat $flasklog
+  cat "$flasklog"
   say "::endgroup::"
 
   # make sure the program exits
