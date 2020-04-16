@@ -33,7 +33,6 @@ import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKe
 import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
 import { TIME_FILTER_LABELS } from '../../explore/constants';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
-import getControlsInventory from '../../utils/chartControlsInventory';
 
 import './FilterBox.less';
 
@@ -121,9 +120,8 @@ class FilterBox extends React.Component {
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
-    const controlsMap = getControlsInventory(controlName);
     const control = {
-      ...controlsMap[controlName],
+      ...controls[controlName], // TODO: make these controls ('druid_time_origin', 'granularity', 'granularity_sqla', 'time_grain_sqla') accessible from getControlsInventory.
       name: controlName,
       key: `control-${controlName}`,
       value: selectedValues[TIME_FILTER_MAP[controlName]],
