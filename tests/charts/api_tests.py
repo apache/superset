@@ -87,20 +87,20 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_delete_chart(self):
         """
-            Chart API: Test delete
+        Chart API: Test delete
         """
         admin_id = self.get_user("admin").id
         chart_id = self.insert_chart("name", [admin_id], 1).id
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
         self.assertEqual(model, None)
 
     def test_delete_bulk_charts(self):
         """
-            Chart API: Test delete bulk
+        Chart API: Test delete bulk
         """
         admin_id = self.get_user("admin").id
         chart_count = 4
@@ -112,7 +112,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         argument = chart_ids
         uri = f"api/v1/chart/?q={prison.dumps(argument)}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "bulk_delete")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"message": f"Deleted {chart_count} charts"}
@@ -123,7 +123,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_delete_bulk_chart_bad_request(self):
         """
-            Chart API: Test delete bulk bad request
+        Chart API: Test delete bulk bad request
         """
         chart_ids = [1, "a"]
         self.login(username="admin")
@@ -144,7 +144,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_delete_bulk_charts_not_found(self):
         """
-            Chart API: Test delete bulk not found
+        Chart API: Test delete bulk not found
         """
         max_id = db.session.query(func.max(Slice.id)).scalar()
         chart_ids = [max_id + 1, max_id + 2]
@@ -156,7 +156,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_delete_chart_admin_not_owned(self):
         """
-            Chart API: Test admin delete not owned
+        Chart API: Test admin delete not owned
         """
         gamma_id = self.get_user("gamma").id
         chart_id = self.insert_chart("title", [gamma_id], 1).id
@@ -170,7 +170,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_delete_bulk_chart_admin_not_owned(self):
         """
-            Chart API: Test admin delete bulk not owned
+        Chart API: Test admin delete bulk not owned
         """
         gamma_id = self.get_user("gamma").id
         chart_count = 4
@@ -195,7 +195,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_delete_chart_not_owned(self):
         """
-            Chart API: Test delete try not owned
+        Chart API: Test delete try not owned
         """
         user_alpha1 = self.create_user(
             "alpha1", "password", "Alpha", email="alpha1@superset.org"
@@ -215,7 +215,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_delete_bulk_chart_not_owned(self):
         """
-            Chart API: Test delete bulk try not owned
+        Chart API: Test delete bulk try not owned
         """
         user_alpha1 = self.create_user(
             "alpha1", "password", "Alpha", email="alpha1@superset.org"
@@ -262,7 +262,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_create_chart(self):
         """
-            Chart API: Test create chart
+        Chart API: Test create chart
         """
         admin_id = self.get_user("admin").id
         chart_data = {
@@ -278,7 +278,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"
-        rv = self.client.post(uri, json=chart_data)
+        rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Slice).get(data.get("id"))
@@ -287,7 +287,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_create_simple_chart(self):
         """
-            Chart API: Test create simple chart
+        Chart API: Test create simple chart
         """
         chart_data = {
             "slice_name": "title1",
@@ -305,7 +305,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_create_chart_validate_owners(self):
         """
-            Chart API: Test create validate owners
+        Chart API: Test create validate owners
         """
         chart_data = {
             "slice_name": "title1",
@@ -323,7 +323,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_create_chart_validate_params(self):
         """
-            Chart API: Test create validate params json
+        Chart API: Test create validate params json
         """
         chart_data = {
             "slice_name": "title1",
@@ -338,7 +338,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_create_chart_validate_datasource(self):
         """
-            Chart API: Test create validate datasource
+        Chart API: Test create validate datasource
         """
         self.login(username="admin")
         chart_data = {
@@ -368,7 +368,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_update_chart(self):
         """
-            Chart API: Test update
+        Chart API: Test update
         """
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
@@ -387,7 +387,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         }
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
-        rv = self.client.put(uri, json=chart_data)
+        rv = self.put_assert_metric(uri, chart_data, "put")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
         related_dashboard = db.session.query(Dashboard).get(1)
@@ -407,7 +407,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_update_chart_new_owner(self):
         """
-            Chart API: Test update set new owner to current user
+        Chart API: Test update set new owner to current user
         """
         gamma = self.get_user("gamma")
         admin = self.get_user("admin")
@@ -424,7 +424,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_update_chart_not_owned(self):
         """
-            Chart API: Test update not owned
+        Chart API: Test update not owned
         """
         user_alpha1 = self.create_user(
             "alpha1", "password", "Alpha", email="alpha1@superset.org"
@@ -446,7 +446,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_update_chart_validate_datasource(self):
         """
-            Chart API: Test update validate datasource
+        Chart API: Test update validate datasource
         """
         admin = self.get_user("admin")
         chart = self.insert_chart("title", [admin.id], 1)
@@ -472,7 +472,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_update_chart_validate_owners(self):
         """
-            Chart API: Test update validate owners
+        Chart API: Test update validate owners
         """
         chart_data = {
             "slice_name": "title1",
@@ -490,7 +490,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_chart(self):
         """
-            Chart API: Test get chart
+        Chart API: Test get chart
         """
         admin = self.get_user("admin")
         chart = self.insert_chart("title", [admin.id], 1)
@@ -521,17 +521,17 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_chart_not_found(self):
         """
-            Chart API: Test get chart not found
+         Chart API: Test get chart not found
         """
         chart_id = 1000
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 404)
 
     def test_get_chart_no_data_access(self):
         """
-            Chart API: Test get chart without data access
+         Chart API: Test get chart without data access
         """
         self.login(username="gamma")
         chart_no_access = (
@@ -545,30 +545,30 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_charts(self):
         """
-            Chart API: Test get charts
+         Chart API: Test get charts
         """
         self.login(username="admin")
         uri = f"api/v1/chart/"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 33)
 
     def test_get_charts_filter(self):
         """
-            Chart API: Test get charts filter
+         Chart API: Test get charts filter
         """
         self.login(username="admin")
         arguments = {"filters": [{"col": "slice_name", "opr": "sw", "value": "G"}]}
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 5)
 
     def test_get_charts_custom_filter(self):
         """
-            Chart API: Test get charts custom filter
+         Chart API: Test get charts custom filter
         """
         admin = self.get_user("admin")
         chart1 = self.insert_chart("foo", [admin.id], 1, description="ZY_bar")
@@ -618,7 +618,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_charts_page(self):
         """
-            Chart API: Test get charts filter
+         Chart API: Test get charts filter
         """
         # Assuming we have 33 sample charts
         self.login(username="admin")
@@ -638,7 +638,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_charts_no_data_access(self):
         """
-            Chart API: Test get charts no data access
+         Chart API: Test get charts no data access
         """
         self.login(username="gamma")
         uri = f"api/v1/chart/"
