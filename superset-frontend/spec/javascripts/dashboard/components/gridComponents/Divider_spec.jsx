@@ -26,8 +26,8 @@ import DragDroppable from '../../../../../src/dashboard/components/dnd/DragDropp
 import Divider from '../../../../../src/dashboard/components/gridComponents/Divider';
 import newComponentFactory from '../../../../../src/dashboard/util/newComponentFactory';
 import {
-  DIVIDER_TYPE,
   DASHBOARD_GRID_TYPE,
+  DIVIDER_TYPE,
 } from '../../../../../src/dashboard/util/componentTypes';
 
 import WithDragDropContext from '../../helpers/WithDragDropContext';

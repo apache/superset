@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { NavDropdown, MenuItem } from 'react-bootstrap';
+import { MenuItem, NavDropdown } from 'react-bootstrap';
 
 const propTypes = {
   locale: PropTypes.string.isRequired,

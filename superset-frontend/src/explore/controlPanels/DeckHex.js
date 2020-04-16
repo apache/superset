@@ -22,16 +22,16 @@ import {
   formatSelectOptionsForRange,
 } from '../../modules/utils';
 import {
-  filterNulls,
   autozoom,
+  extruded,
+  filterNulls,
+  gridSize,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
-  extruded,
-  gridSize,
-  viewport,
+  jsTooltip,
   spatial,
+  viewport,
 } from './Shared_DeckGL';
 
 export default {

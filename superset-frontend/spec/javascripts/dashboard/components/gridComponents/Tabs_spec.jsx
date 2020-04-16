@@ -20,7 +20,7 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount, shallow } from 'enzyme';
 import sinon from 'sinon';
-import { Tabs as BootstrapTabs, Tab as BootstrapTab } from 'react-bootstrap';
+import { Tab as BootstrapTab, Tabs as BootstrapTabs } from 'react-bootstrap';
 
 import DashboardComponent from '../../../../../src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';

@@ -23,15 +23,15 @@ import VirtualizedSelect from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
+import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
 import {
-  OPERATORS,
-  TABLE_ONLY_OPERATORS,
   DRUID_ONLY_OPERATORS,
   HAVING_OPERATORS,
   MULTI_OPERATORS,
+  OPERATORS,
+  TABLE_ONLY_OPERATORS,
 } from '../constants';
 import FilterDefinitionOption from './FilterDefinitionOption';
 import OnPasteSelect from '../../components/OnPasteSelect';

@@ -25,30 +25,30 @@ import isDashboardLoading from '../util/isDashboardLoading';
 import { dashboardInfoChanged } from '../actions/dashboardInfo';
 
 import {
-  setEditMode,
-  showBuilderPane,
-  fetchFaveStar,
-  saveFaveStar,
-  savePublished,
   fetchCharts,
-  updateCss,
+  fetchFaveStar,
+  maxUndoHistoryToast,
   onChange,
   saveDashboardRequest,
+  saveFaveStar,
+  savePublished,
+  setEditMode,
   setMaxUndoHistoryExceeded,
-  maxUndoHistoryToast,
   setRefreshFrequency,
+  showBuilderPane,
+  updateCss,
 } from '../actions/dashboardState';
 
 import {
-  undoLayoutAction,
-  redoLayoutAction,
-  updateDashboardTitle,
   dashboardTitleChanged,
+  redoLayoutAction,
+  undoLayoutAction,
+  updateDashboardTitle,
 } from '../actions/dashboardLayout';
 
 import {
-  addSuccessToast,
   addDangerToast,
+  addSuccessToast,
   addWarningToast,
 } from '../../messageToasts/actions';
 

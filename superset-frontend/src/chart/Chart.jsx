@@ -20,8 +20,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { Alert } from 'react-bootstrap';
 
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { LOG_ACTIONS_RENDER_CHART_CONTAINER, Logger } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';

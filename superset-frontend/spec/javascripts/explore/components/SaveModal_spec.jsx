@@ -21,8 +21,8 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
 
-import { shallow, mount } from 'enzyme';
-import { Modal, Button, Radio } from 'react-bootstrap';
+import { mount, shallow } from 'enzyme';
+import { Button, Modal, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 

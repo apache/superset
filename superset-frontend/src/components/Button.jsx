@@ -21,8 +21,8 @@ import PropTypes from 'prop-types';
 import { kebabCase } from 'lodash';
 import {
   Button as BootstrapButton,
-  Tooltip,
   OverlayTrigger,
+  Tooltip,
 } from 'react-bootstrap';
 
 const propTypes = {

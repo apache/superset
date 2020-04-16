@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Popover, OverlayTrigger } from 'react-bootstrap';
+import { OverlayTrigger, Popover } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 import Button from '../../components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';

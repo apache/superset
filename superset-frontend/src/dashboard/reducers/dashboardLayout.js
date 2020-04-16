@@ -17,10 +17,10 @@
  * under the License.
  */
 import {
-  DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
-  NEW_COMPONENTS_SOURCE_ID,
   DASHBOARD_HEADER_ID,
+  DASHBOARD_ROOT_ID,
+  NEW_COMPONENTS_SOURCE_ID,
 } from '../util/constants';
 import componentIsResizable from '../util/componentIsResizable';
 import findParentId from '../util/findParentId';
@@ -30,17 +30,17 @@ import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
 import shouldWrapChildInRow from '../util/shouldWrapChildInRow';
-import { ROW_TYPE, TAB_TYPE, TABS_TYPE } from '../util/componentTypes';
+import { ROW_TYPE, TABS_TYPE, TAB_TYPE } from '../util/componentTypes';
 
 import {
+  CREATE_COMPONENT,
+  CREATE_TOP_LEVEL_TABS,
+  DASHBOARD_TITLE_CHANGED,
+  DELETE_COMPONENT,
+  DELETE_TOP_LEVEL_TABS,
+  MOVE_COMPONENT,
   UPDATE_COMPONENTS,
   UPDATE_COMPONENTS_PARENTS_LIST,
-  DELETE_COMPONENT,
-  CREATE_COMPONENT,
-  MOVE_COMPONENT,
-  CREATE_TOP_LEVEL_TABS,
-  DELETE_TOP_LEVEL_TABS,
-  DASHBOARD_TITLE_CHANGED,
 } from '../actions/dashboardLayout';
 
 const actionHandlers = {

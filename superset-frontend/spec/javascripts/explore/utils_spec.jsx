@@ -20,8 +20,8 @@ import sinon from 'sinon';
 
 import URI from 'urijs';
 import {
-  getExploreUrlAndPayload,
   getExploreLongUrl,
+  getExploreUrlAndPayload,
 } from '../../../src/explore/exploreUtils';
 import * as hostNamesConfig from '../../../src/utils/hostNamesConfig';
 

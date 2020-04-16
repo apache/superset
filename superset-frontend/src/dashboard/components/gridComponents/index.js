@@ -18,13 +18,13 @@
  */
 import {
   CHART_TYPE,
-  MARKDOWN_TYPE,
   COLUMN_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
+  MARKDOWN_TYPE,
   ROW_TYPE,
-  TAB_TYPE,
   TABS_TYPE,
+  TAB_TYPE,
 } from '../../util/componentTypes';
 
 import ChartHolder from './ChartHolder';

@@ -20,15 +20,15 @@ import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import {
-  filterNulls,
   autozoom,
+  filterNulls,
+  gridSize,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
-  gridSize,
-  viewport,
+  jsTooltip,
   spatial,
+  viewport,
 } from './Shared_DeckGL';
 
 export default {

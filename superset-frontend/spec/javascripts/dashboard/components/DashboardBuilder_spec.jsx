@@ -18,7 +18,7 @@
  */
 import { Provider } from 'react-redux';
 import React from 'react';
-import { shallow, mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import sinon from 'sinon';
 
 import { ParentSize } from '@vx/responsive';

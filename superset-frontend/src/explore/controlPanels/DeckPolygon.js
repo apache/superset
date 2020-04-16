@@ -20,26 +20,26 @@ import { t } from '@superset-ui/translation';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import { formatSelectOptions } from '../../modules/utils';
 import {
-  filterNulls,
   autozoom,
+  extruded,
+  fillColorPicker,
+  filled,
+  filterNulls,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
+  jsTooltip,
   legendFormat,
   legendPosition,
   lineColumn,
-  fillColorPicker,
-  strokeColorPicker,
-  filled,
-  stroked,
-  extruded,
-  viewport,
-  pointRadiusFixed,
-  multiplier,
-  lineWidth,
   lineType,
+  lineWidth,
+  multiplier,
+  pointRadiusFixed,
   reverseLongLat,
+  strokeColorPicker,
+  stroked,
+  viewport,
 } from './Shared_DeckGL';
 
 export default {

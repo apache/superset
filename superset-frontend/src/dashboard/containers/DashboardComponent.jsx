@@ -30,8 +30,8 @@ import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
 import {
   createComponent,
   deleteComponent,
-  updateComponents,
   handleComponentDrop,
+  updateComponents,
 } from '../actions/dashboardLayout';
 import { setDirectPathToChild } from '../actions/dashboardState';
 import { logEvent } from '../../logger/actions';

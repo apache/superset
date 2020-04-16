@@ -19,10 +19,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  FormGroup,
   ControlLabel,
-  HelpBlock,
   FormControl,
+  FormGroup,
+  HelpBlock,
   OverlayTrigger,
   Tooltip,
 } from 'react-bootstrap';

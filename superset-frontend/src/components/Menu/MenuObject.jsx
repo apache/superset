@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { NavItem, NavDropdown, MenuItem } from 'react-bootstrap';
+import { MenuItem, NavDropdown, NavItem } from 'react-bootstrap';
 
 const propTypes = {
   label: PropTypes.string.isRequired,

@@ -24,7 +24,7 @@ import { Alert, ProgressBar } from 'react-bootstrap';
 import FilterableTable from '../../../src/components/FilterableTable/FilterableTable';
 import ExploreResultsButton from '../../../src/SqlLab/components/ExploreResultsButton';
 import ResultSet from '../../../src/SqlLab/components/ResultSet';
-import { queries, stoppedQuery, runningQuery, cachedQuery } from './fixtures';
+import { cachedQuery, queries, runningQuery, stoppedQuery } from './fixtures';
 
 describe('ResultSet', () => {
   const clearQuerySpy = sinon.spy();

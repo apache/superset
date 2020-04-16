@@ -18,14 +18,14 @@
  */
 import {
   DASHBOARD_GRID_TYPE,
-  HEADER_TYPE,
   DASHBOARD_ROOT_TYPE,
+  HEADER_TYPE,
 } from '../util/componentTypes';
 
 import {
-  DASHBOARD_ROOT_ID,
-  DASHBOARD_HEADER_ID,
   DASHBOARD_GRID_ID,
+  DASHBOARD_HEADER_ID,
+  DASHBOARD_ROOT_ID,
 } from '../util/constants';
 
 export default {

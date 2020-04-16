@@ -17,9 +17,9 @@
  * under the License.
  */
 import {
+  NULL_STRING,
   optionFromValue,
   prepareCopyToClipboardTabularData,
-  NULL_STRING,
 } from '../../../src/utils/common';
 
 describe('utils/common', () => {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
-import { selectResultsTab, assertSQLLabResultsAreEqual } from './sqllab.helper';
+import { assertSQLLabResultsAreEqual, selectResultsTab } from './sqllab.helper';
 
 export default () => {
   describe('SqlLab query panel', () => {

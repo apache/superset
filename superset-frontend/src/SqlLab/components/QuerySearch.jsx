@@ -26,10 +26,10 @@ import { SupersetClient } from '@superset-ui/connection';
 import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';
 import {
-  now,
-  epochTimeXHoursAgo,
   epochTimeXDaysAgo,
+  epochTimeXHoursAgo,
   epochTimeXYearsAgo,
+  now,
 } from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';

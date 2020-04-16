@@ -21,7 +21,7 @@ import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
+import { LOG_ACTIONS_RENDER_CHART, Logger } from '../logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,

@@ -17,11 +17,11 @@
  * under the License.
  */
 import {
+  epochTimeXDaysAgo,
+  epochTimeXHoursAgo,
+  epochTimeXYearsAgo,
   fDuration,
   now,
-  epochTimeXHoursAgo,
-  epochTimeXDaysAgo,
-  epochTimeXYearsAgo,
 } from '../../../src/modules/dates';
 
 describe('fDuration', () => {

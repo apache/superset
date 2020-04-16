@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TAB_TYPE, DASHBOARD_GRID_TYPE } from '../componentTypes';
+import { DASHBOARD_GRID_TYPE, TAB_TYPE } from '../componentTypes';
 import { DASHBOARD_ROOT_ID } from '../constants';
 import findNonTabChildChartIds from './findNonTabChildChartIds';
 

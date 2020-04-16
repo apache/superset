@@ -23,8 +23,8 @@ import { shallow } from 'enzyme';
 import { FormGroup } from 'react-bootstrap';
 
 import AdhocFilter, {
-  EXPRESSION_TYPES,
   CLAUSES,
+  EXPRESSION_TYPES,
 } from '../../../../src/explore/AdhocFilter';
 import AdhocFilterEditPopoverSqlTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSqlTabContent';
 

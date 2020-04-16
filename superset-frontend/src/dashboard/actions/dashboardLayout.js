@@ -22,11 +22,11 @@ import { t } from '@superset-ui/translation';
 import { addWarningToast } from '../../messageToasts/actions';
 import { updateLayoutComponents } from './dashboardFilters';
 import { setUnsavedChanges } from './dashboardState';
-import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
+import { ROW_TYPE, TABS_TYPE } from '../util/componentTypes';
 import {
+  DASHBOARD_HEADER_ID,
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
-  DASHBOARD_HEADER_ID,
 } from '../util/constants';
 import dropOverflowsParent from '../util/dropOverflowsParent';
 import findParentId from '../util/findParentId';

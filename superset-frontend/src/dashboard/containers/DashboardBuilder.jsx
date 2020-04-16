@@ -22,8 +22,8 @@ import DashboardBuilder from '../components/DashboardBuilder';
 
 import {
   setColorSchemeAndUnsavedChanges,
-  showBuilderPane,
   setDirectPathToChild,
+  showBuilderPane,
 } from '../actions/dashboardState';
 import {
   deleteTopLevelTabs,

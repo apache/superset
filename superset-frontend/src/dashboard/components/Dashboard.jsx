@@ -25,9 +25,9 @@ import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId
 import DashboardBuilder from '../containers/DashboardBuilder';
 import {
   chartPropShape,
-  slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
+  slicePropShape,
 } from '../util/propShapes';
 import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
 import OmniContainer from '../../components/OmniContainer';

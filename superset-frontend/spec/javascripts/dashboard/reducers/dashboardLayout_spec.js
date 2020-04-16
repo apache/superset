@@ -19,12 +19,12 @@
 import layoutReducer from '../../../../src/dashboard/reducers/dashboardLayout';
 
 import {
-  UPDATE_COMPONENTS,
-  DELETE_COMPONENT,
   CREATE_COMPONENT,
-  MOVE_COMPONENT,
   CREATE_TOP_LEVEL_TABS,
+  DELETE_COMPONENT,
   DELETE_TOP_LEVEL_TABS,
+  MOVE_COMPONENT,
+  UPDATE_COMPONENTS,
 } from '../../../../src/dashboard/actions/dashboardLayout';
 
 import {
@@ -32,16 +32,16 @@ import {
   DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
   ROW_TYPE,
-  TAB_TYPE,
   TABS_TYPE,
+  TAB_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 
 import {
-  DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
+  DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
-  NEW_TABS_ID,
   NEW_ROW_ID,
+  NEW_TABS_ID,
 } from '../../../../src/dashboard/util/constants';
 
 describe('dashboardLayout reducer', () => {

@@ -17,8 +17,8 @@
  * under the License.
  */
 import {
-  WORLD_HEALTH_DASHBOARD,
   CHECK_DASHBOARD_FAVORITE_ENDPOINT,
+  WORLD_HEALTH_DASHBOARD,
 } from './dashboard.helper';
 
 export default () =>

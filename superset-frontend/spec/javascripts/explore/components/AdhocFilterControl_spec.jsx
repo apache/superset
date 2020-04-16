@@ -22,8 +22,8 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
 import AdhocFilter, {
-  EXPRESSION_TYPES,
   CLAUSES,
+  EXPRESSION_TYPES,
 } from '../../../../src/explore/AdhocFilter';
 import AdhocFilterControl from '../../../../src/explore/components/controls/AdhocFilterControl';
 import AdhocMetric from '../../../../src/explore/AdhocMetric';

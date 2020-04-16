@@ -23,8 +23,8 @@ import { shallow } from 'enzyme';
 import { Button, Popover, Tab, Tabs } from 'react-bootstrap';
 
 import AdhocFilter, {
-  EXPRESSION_TYPES,
   CLAUSES,
+  EXPRESSION_TYPES,
 } from '../../../../src/explore/AdhocFilter';
 import AdhocMetric from '../../../../src/explore/AdhocMetric';
 import AdhocFilterEditPopover from '../../../../src/explore/components/AdhocFilterEditPopover';

@@ -21,10 +21,10 @@ import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
 import {
   Checkbox,
-  FormGroup,
-  InputGroup,
   Form,
   FormControl,
+  FormGroup,
+  InputGroup,
   Label,
   OverlayTrigger,
   Tooltip,
@@ -47,10 +47,10 @@ import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import {
-  STATE_BSSTYLE_MAP,
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
+  STATE_BSSTYLE_MAP,
 } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';

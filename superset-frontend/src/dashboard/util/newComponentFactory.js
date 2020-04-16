@@ -30,9 +30,9 @@ import {
 } from './componentTypes';
 
 import {
-  MEDIUM_HEADER,
   BACKGROUND_TRANSPARENT,
   GRID_DEFAULT_CHART_WIDTH,
+  MEDIUM_HEADER,
 } from './constants';
 
 const typeToDefaultMetaData = {

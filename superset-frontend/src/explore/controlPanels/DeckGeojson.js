@@ -18,22 +18,22 @@
  */
 import { t } from '@superset-ui/translation';
 import {
-  validateNonEmpty,
   legacyValidateInteger,
+  validateNonEmpty,
 } from '@superset-ui/validator';
 import { formatSelectOptions } from '../../modules/utils';
 import { columnChoices } from '../controls';
 import {
+  extruded,
+  fillColorPicker,
+  filled,
   filterNulls,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
-  fillColorPicker,
+  jsTooltip,
   strokeColorPicker,
-  filled,
   stroked,
-  extruded,
   viewport,
 } from './Shared_DeckGL';
 

@@ -23,7 +23,7 @@ import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import DragDroppable from './dnd/DragDroppable';
 
-import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
+import { GRID_COLUMN_COUNT, GRID_GUTTER_SIZE } from '../util/constants';
 
 const propTypes = {
   depth: PropTypes.number.isRequired,

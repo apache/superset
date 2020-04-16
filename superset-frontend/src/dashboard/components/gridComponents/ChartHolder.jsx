@@ -28,13 +28,13 @@ import HoverMenu from '../menu/HoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
 import getChartAndLabelComponentIdFromPath from '../../util/getChartAndLabelComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
-import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 
 import {
-  GRID_MIN_COLUMN_COUNT,
-  GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
+  GRID_MIN_COLUMN_COUNT,
+  GRID_MIN_ROW_UNITS,
 } from '../../util/constants';
 
 const CHART_MARGIN = 32;

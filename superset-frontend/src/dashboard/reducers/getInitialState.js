@@ -33,12 +33,12 @@ import { buildActiveFilters } from '../util/activeDashboardFilters';
 import {
   BUILDER_PANE_TYPE,
   DASHBOARD_HEADER_ID,
-  GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
+  GRID_DEFAULT_CHART_WIDTH,
 } from '../util/constants';
 import {
-  DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
+  DASHBOARD_HEADER_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
 import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';

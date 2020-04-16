@@ -19,9 +19,9 @@
 import React from 'react';
 import { hot } from 'react-hot-loader/root';
 import thunk from 'redux-thunk';
-import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
+import { applyMiddleware, combineReducers, compose, createStore } from 'redux';
 import { Provider } from 'react-redux';
-import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
+import { Route, BrowserRouter as Router, Switch } from 'react-router-dom';
 import { ThemeProvider } from 'emotion-theming';
 
 import { initFeatureFlags } from 'src/featureFlags';

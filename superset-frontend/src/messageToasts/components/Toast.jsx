@@ -25,10 +25,10 @@ import React from 'react';
 import { toastShape } from '../propShapes';
 
 import {
+  DANGER_TOAST,
   INFO_TOAST,
   SUCCESS_TOAST,
   WARNING_TOAST,
-  DANGER_TOAST,
 } from '../constants';
 
 const propTypes = {

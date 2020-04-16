@@ -17,21 +17,21 @@
  * under the License.
  */
 import {
+  CHART_TYPE,
+  COLUMN_TYPE,
   DASHBOARD_GRID_TYPE,
   DASHBOARD_HEADER_TYPE,
   DASHBOARD_ROOT_TYPE,
+  MARKDOWN_TYPE,
+  ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
-  CHART_TYPE,
-  ROW_TYPE,
-  COLUMN_TYPE,
-  MARKDOWN_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 
 import {
-  DASHBOARD_ROOT_ID,
-  DASHBOARD_HEADER_ID,
   DASHBOARD_GRID_ID,
+  DASHBOARD_HEADER_ID,
+  DASHBOARD_ROOT_ID,
 } from '../../../../src/dashboard/util/constants';
 
 import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';

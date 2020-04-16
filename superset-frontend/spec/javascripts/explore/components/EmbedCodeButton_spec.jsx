@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { shallow, mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 import sinon from 'sinon';
 

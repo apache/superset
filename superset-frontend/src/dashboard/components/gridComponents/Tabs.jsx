@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Tabs as BootstrapTabs, Tab as BootstrapTab } from 'react-bootstrap';
+import { Tab as BootstrapTab, Tabs as BootstrapTabs } from 'react-bootstrap';
 
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
@@ -29,7 +29,7 @@ import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import getDirectPathToTabIndex from '../../util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
-import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import { DASHBOARD_ROOT_ID, NEW_TAB_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TAB_TYPE } from '../../util/componentTypes';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from '../../../logger/LogUtils';

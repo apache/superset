@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col, Row, FormGroup, FormControl } from 'react-bootstrap';
+import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import ControlHeader from '../ControlHeader';
 

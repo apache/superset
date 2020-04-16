@@ -30,8 +30,8 @@ import QuerySearch from './QuerySearch';
 import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
-  LOCALSTORAGE_WARNING_THRESHOLD,
   LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
+  LOCALSTORAGE_WARNING_THRESHOLD,
 } from '../constants';
 import * as Actions from '../actions/sqlLab';
 

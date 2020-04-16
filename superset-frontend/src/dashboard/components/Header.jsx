@@ -33,15 +33,15 @@ import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 import { chartPropShape } from '../util/propShapes';
 import {
   BUILDER_PANE_TYPE,
-  UNDO_LIMIT,
-  SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
+  SAVE_TYPE_OVERWRITE,
+  UNDO_LIMIT,
 } from '../util/constants';
 import { safeStringify } from '../../utils/safeStringify';
 
 import {
-  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from '../../logger/LogUtils';
 import PropertiesModal from './PropertiesModal';

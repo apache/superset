@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { now, fDuration } from '../modules/dates';
+import { fDuration, now } from '../modules/dates';
 
 const propTypes = {
   endTime: PropTypes.number,

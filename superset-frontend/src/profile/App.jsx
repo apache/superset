@@ -19,7 +19,7 @@
 import React from 'react';
 import { hot } from 'react-hot-loader/root';
 import thunk from 'redux-thunk';
-import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
+import { applyMiddleware, combineReducers, compose, createStore } from 'redux';
 import { Provider } from 'react-redux';
 
 import App from './components/App';

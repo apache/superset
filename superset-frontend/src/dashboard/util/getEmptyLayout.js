@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_ROOT_TYPE, DASHBOARD_GRID_TYPE } from './componentTypes';
+import { DASHBOARD_GRID_TYPE, DASHBOARD_ROOT_TYPE } from './componentTypes';
 
 import {
   DASHBOARD_GRID_ID,

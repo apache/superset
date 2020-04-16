@@ -23,8 +23,8 @@ import { shallow } from 'enzyme';
 import { Label, OverlayTrigger } from 'react-bootstrap';
 
 import AdhocFilter, {
-  EXPRESSION_TYPES,
   CLAUSES,
+  EXPRESSION_TYPES,
 } from '../../../../src/explore/AdhocFilter';
 import AdhocFilterOption from '../../../../src/explore/components/AdhocFilterOption';
 

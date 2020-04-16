@@ -17,7 +17,7 @@
  * under the License.
  */
 import isValidChild from './isValidChild';
-import { TAB_TYPE, TABS_TYPE } from './componentTypes';
+import { TABS_TYPE, TAB_TYPE } from './componentTypes';
 
 export const DROP_TOP = 'DROP_TOP';
 export const DROP_RIGHT = 'DROP_RIGHT';

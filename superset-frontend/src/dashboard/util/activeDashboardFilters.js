@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isEmpty } from 'lodash';
-import { mapValues, flow, keyBy } from 'lodash/fp';
+import { flow, keyBy, mapValues } from 'lodash/fp';
 
 import {
   getChartIdAndColumnFromFilterKey,

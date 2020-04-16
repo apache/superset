@@ -22,10 +22,10 @@ import thunk from 'redux-thunk';
 import URI from 'urijs';
 
 import { Tab } from 'react-bootstrap';
-import { shallow, mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import { table, initialState } from './fixtures';
+import { initialState, table } from './fixtures';
 import TabbedSqlEditors from '../../../src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
 

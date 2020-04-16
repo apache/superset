@@ -21,41 +21,41 @@ import sinon from 'sinon';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 
 import {
-  UPDATE_COMPONENTS,
-  updateComponents,
-  DELETE_COMPONENT,
-  deleteComponent,
   CREATE_COMPONENT,
   CREATE_TOP_LEVEL_TABS,
-  createTopLevelTabs,
+  DELETE_COMPONENT,
   DELETE_TOP_LEVEL_TABS,
-  deleteTopLevelTabs,
-  resizeComponent,
   MOVE_COMPONENT,
+  UPDATE_COMPONENTS,
+  createTopLevelTabs,
+  deleteComponent,
+  deleteTopLevelTabs,
   handleComponentDrop,
-  updateDashboardTitle,
-  undoLayoutAction,
   redoLayoutAction,
+  resizeComponent,
+  undoLayoutAction,
+  updateComponents,
+  updateDashboardTitle,
 } from '../../../../src/dashboard/actions/dashboardLayout';
 
 import { setUnsavedChanges } from '../../../../src/dashboard/actions/dashboardState';
 import * as dashboardFilters from '../../../../src/dashboard/actions/dashboardFilters';
 import {
-  addWarningToast,
   ADD_TOAST,
+  addWarningToast,
 } from '../../../../src/messageToasts/actions';
 
 import {
+  CHART_TYPE,
   DASHBOARD_GRID_TYPE,
   ROW_TYPE,
-  CHART_TYPE,
   TABS_TYPE,
   TAB_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 
 import {
-  DASHBOARD_HEADER_ID,
   DASHBOARD_GRID_ID,
+  DASHBOARD_HEADER_ID,
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
   NEW_ROW_ID,

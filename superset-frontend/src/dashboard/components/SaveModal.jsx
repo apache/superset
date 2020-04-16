@@ -25,7 +25,7 @@ import { t } from '@superset-ui/translation';
 
 import ModalTrigger from '../../components/ModalTrigger';
 import Checkbox from '../../components/Checkbox';
-import { SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
+import { SAVE_TYPE_NEWDASHBOARD, SAVE_TYPE_OVERWRITE } from '../util/constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

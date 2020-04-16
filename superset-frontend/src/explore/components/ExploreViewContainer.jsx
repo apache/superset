@@ -27,7 +27,7 @@ import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
-import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
+import { getExploreLongUrl, getExploreUrlAndPayload } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
 import { chartPropShape } from '../../dashboard/util/propShapes';
@@ -37,8 +37,8 @@ import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import * as logActions from '../../logger/actions/';
 import {
-  LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
+  LOG_ACTIONS_MOUNT_EXPLORER,
 } from '../../logger/LogUtils';
 import Hotkeys from '../../components/Hotkeys';
 

@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import { dashboardFilters } from '../fixtures/mockDashboardFilters';
-import { filterId, column } from '../fixtures/mockSliceEntities';
+import { column, filterId } from '../fixtures/mockSliceEntities';
 import FilterIndicatorGroup from '../../../../src/dashboard/components/FilterIndicatorGroup';
 import FilterBadgeIcon from '../../../../src/components/FilterBadgeIcon';
 

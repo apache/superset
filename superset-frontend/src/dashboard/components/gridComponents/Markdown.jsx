@@ -31,13 +31,13 @@ import ResizableContainer from '../resizable/ResizableContainer';
 import MarkdownModeDropdown from '../menu/MarkdownModeDropdown';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
-import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import {
+  GRID_BASE_UNIT,
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
-  GRID_BASE_UNIT,
 } from '../../util/constants';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../../../logger/LogUtils';
+import { LOG_ACTIONS_RENDER_CHART, Logger } from '../../../logger/LogUtils';
 
 const propTypes = {
   id: PropTypes.string.isRequired,

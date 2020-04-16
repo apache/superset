@@ -18,8 +18,8 @@
  */
 import getChartIdsFromLayout from '../../../../src/dashboard/util/getChartIdsFromLayout';
 import {
-  ROW_TYPE,
   CHART_TYPE,
+  ROW_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 
 describe('getChartIdsFromLayout', () => {

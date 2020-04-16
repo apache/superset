@@ -21,8 +21,8 @@ import { NEW_COMPONENTS_SOURCE_ID } from '../../../../src/dashboard/util/constan
 import {
   CHART_TYPE,
   COLUMN_TYPE,
-  ROW_TYPE,
   HEADER_TYPE,
+  ROW_TYPE,
   TAB_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 

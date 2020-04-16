@@ -41,8 +41,8 @@ import findTabIndexByComponentId from '../util/findTabIndexByComponentId';
 import {
   BUILDER_PANE_TYPE,
   DASHBOARD_GRID_ID,
-  DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
+  DASHBOARD_ROOT_ID,
 } from '../util/constants';
 import getDirectPathToTabIndex from '../util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from '../util/getLeafComponentIdFromPath';

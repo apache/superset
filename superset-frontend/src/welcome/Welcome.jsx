@@ -18,9 +18,9 @@
  */
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Panel, Row, Col, Tabs, Tab, FormControl } from 'react-bootstrap';
+import { Col, FormControl, Panel, Row, Tab, Tabs } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import { useQueryParam, StringParam } from 'use-query-params';
+import { StringParam, useQueryParam } from 'use-query-params';
 import RecentActivity from '../profile/components/RecentActivity';
 import Favorites from '../profile/components/Favorites';
 import DashboardTable from './DashboardTable';

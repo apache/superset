@@ -21,14 +21,14 @@ import isValidChild from '../../../../src/dashboard/util/isValidChild';
 import {
   CHART_TYPE as CHART,
   COLUMN_TYPE as COLUMN,
-  DASHBOARD_GRID_TYPE as GRID,
-  DASHBOARD_ROOT_TYPE as ROOT,
   DIVIDER_TYPE as DIVIDER,
+  DASHBOARD_GRID_TYPE as GRID,
   HEADER_TYPE as HEADER,
   MARKDOWN_TYPE as MARKDOWN,
+  DASHBOARD_ROOT_TYPE as ROOT,
   ROW_TYPE as ROW,
-  TABS_TYPE as TABS,
   TAB_TYPE as TAB,
+  TABS_TYPE as TABS,
 } from '../../../../src/dashboard/util/componentTypes';
 
 const getIndentation = depth =>

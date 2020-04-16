@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label, Popover, OverlayTrigger } from 'react-bootstrap';
+import { Label, OverlayTrigger, Popover } from 'react-bootstrap';
 import { decimal2sexagesimal } from 'geolib';
 
 import TextControl from './TextControl';

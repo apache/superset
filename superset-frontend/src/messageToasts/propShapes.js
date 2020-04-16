@@ -19,10 +19,10 @@
 import PropTypes from 'prop-types';
 
 import {
+  DANGER_TOAST,
   INFO_TOAST,
   SUCCESS_TOAST,
   WARNING_TOAST,
-  DANGER_TOAST,
 } from './constants';
 
 // eslint-disable-next-line import/prefer-default-export

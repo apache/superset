@@ -29,8 +29,8 @@ import DragDroppable from '../../../../../src/dashboard/components/dnd/DragDropp
 import Header from '../../../../../src/dashboard/components/gridComponents/Header';
 import newComponentFactory from '../../../../../src/dashboard/util/newComponentFactory';
 import {
-  HEADER_TYPE,
   DASHBOARD_GRID_TYPE,
+  HEADER_TYPE,
 } from '../../../../../src/dashboard/util/componentTypes';
 
 import WithDragDropContext from '../../helpers/WithDragDropContext';

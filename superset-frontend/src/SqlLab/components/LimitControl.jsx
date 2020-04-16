@@ -20,9 +20,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {
   Button,
-  Label,
-  FormGroup,
   FormControl,
+  FormGroup,
+  Label,
   Overlay,
   Popover,
 } from 'react-bootstrap';

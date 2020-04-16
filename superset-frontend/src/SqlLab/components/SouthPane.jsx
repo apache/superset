@@ -23,15 +23,15 @@ import { Alert, Label, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { t } from '@superset-ui/translation';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 import * as Actions from '../actions/sqlLab';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import {
-  STATUS_OPTIONS,
-  STATE_BSSTYLE_MAP,
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
+  STATE_BSSTYLE_MAP,
+  STATUS_OPTIONS,
 } from '../constants';
 
 const TAB_HEIGHT = 44;

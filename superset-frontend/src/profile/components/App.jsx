@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col, Row, Tabs, Tab, Panel } from 'react-bootstrap';
+import { Col, Panel, Row, Tab, Tabs } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
 import Favorites from './Favorites';

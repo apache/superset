@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { SMALL_HEADER, MEDIUM_HEADER, LARGE_HEADER } from './constants';
+import { LARGE_HEADER, MEDIUM_HEADER, SMALL_HEADER } from './constants';
 
 export default [
   {

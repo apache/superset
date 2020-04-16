@@ -19,12 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Row,
-  Col,
   Button,
+  Col,
   Label,
   OverlayTrigger,
   Popover,
+  Row,
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 

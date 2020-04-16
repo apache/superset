@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
+import { Alert, Badge, Col, Label, Tab, Tabs, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';

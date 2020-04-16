@@ -21,19 +21,19 @@
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
-  getExploreUrlAndPayload,
   getAnnotationJsonUrl,
+  getExploreUrlAndPayload,
   postForm,
 } from '../explore/exploreUtils';
 import {
-  requiresQuery,
   ANNOTATION_SOURCE_TYPES,
+  requiresQuery,
 } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
 import { logEvent } from '../logger/actions';
-import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
+import { LOG_ACTIONS_LOAD_CHART, Logger } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain as allowDomainSharding } from '../utils/hostNamesConfig';
 

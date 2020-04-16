@@ -17,9 +17,9 @@
  * under the License.
  */
 import {
-  DASHBOARD_GRID_TYPE,
   CHART_TYPE,
   COLUMN_TYPE,
+  DASHBOARD_GRID_TYPE,
   MARKDOWN_TYPE,
   TAB_TYPE,
 } from './componentTypes';

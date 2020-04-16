@@ -68,8 +68,8 @@ import {
 } from '@superset-ui/validator';
 
 import {
-  formatSelectOptionsForRange,
   formatSelectOptions,
+  formatSelectOptionsForRange,
   mainMetric,
 } from '../modules/utils';
 import ColumnOption from '../components/ColumnOption';

@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { StickyContainer, Sticky } from 'react-sticky';
+import { Sticky, StickyContainer } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
 import InsertComponentPane, {

@@ -28,7 +28,7 @@ import VirtualizedSelect from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
 
 import sqlKeywords from '../../SqlLab/utils/sqlKeywords';
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
+import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
 import OnPasteSelect from '../../components/OnPasteSelect';

@@ -19,9 +19,9 @@
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { t } from '@superset-ui/translation';
 import {
+  applyMapStateToPropsToControl,
   getControlConfig,
   getControlState,
-  applyMapStateToPropsToControl,
 } from '../../../src/explore/controlUtils';
 
 describe('controlUtils', () => {

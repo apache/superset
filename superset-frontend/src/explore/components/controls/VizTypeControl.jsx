@@ -19,12 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Label,
-  Row,
   Col,
   FormControl,
+  Label,
   Modal,
   OverlayTrigger,
+  Row,
   Tooltip,
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';

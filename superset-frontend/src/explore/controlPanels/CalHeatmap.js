@@ -23,7 +23,7 @@ import {
   formatSelectOptions,
   // mainMetric,
 } from '../../modules/utils';
-import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
+import { D3_FORMAT_DOCS, D3_TIME_FORMAT_OPTIONS } from '../controls';
 
 export default {
   requiresTime: true,

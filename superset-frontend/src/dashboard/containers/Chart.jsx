@@ -20,8 +20,8 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import {
-  toggleExpandSlice,
   setFocusedFilterField,
+  toggleExpandSlice,
   unsetFocusedFilterField,
 } from '../actions/dashboardState';
 import { updateComponents } from '../actions/dashboardLayout';

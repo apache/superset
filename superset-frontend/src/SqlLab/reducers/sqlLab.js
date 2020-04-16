@@ -22,13 +22,13 @@ import getInitialState from './getInitialState';
 import * as actions from '../actions/sqlLab';
 import { now } from '../../modules/dates';
 import {
-  addToObject,
-  alterInObject,
-  alterInArr,
-  removeFromArr,
-  getFromArr,
   addToArr,
+  addToObject,
+  alterInArr,
+  alterInObject,
   extendArr,
+  getFromArr,
+  removeFromArr,
 } from '../../reduxUtils';
 
 export default function sqlLabReducer(state = {}, action) {

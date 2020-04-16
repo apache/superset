@@ -19,16 +19,16 @@
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import {
-  filterNulls,
   autozoom,
+  extruded,
+  filterNulls,
+  gridSize,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
-  extruded,
-  gridSize,
-  viewport,
+  jsTooltip,
   spatial,
+  viewport,
 } from './Shared_DeckGL';
 
 export default {

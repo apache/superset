@@ -19,21 +19,21 @@
 /* eslint-disable camelcase */
 import {
   ADD_FILTER,
-  REMOVE_FILTER,
   CHANGE_FILTER,
+  REMOVE_FILTER,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../../../../src/dashboard/actions/dashboardFilters';
 import dashboardFiltersReducer, {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
 } from '../../../../src/dashboard/reducers/dashboardFilters';
 import {
-  emptyFilters,
   dashboardFilters,
+  emptyFilters,
 } from '../fixtures/mockDashboardFilters';
 import {
-  sliceEntitiesForDashboard,
-  filterId,
   column,
+  filterId,
+  sliceEntitiesForDashboard,
 } from '../fixtures/mockSliceEntities';
 import { filterComponent } from '../fixtures/mockDashboardLayout';
 import * as activeDashboardFilters from '../../../../src/dashboard/util/activeDashboardFilters';

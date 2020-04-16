@@ -21,7 +21,7 @@ import { Modal } from 'react-bootstrap';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Omnibar from 'omnibar';
 import { LOG_ACTIONS_OMNIBAR_TRIGGERED } from '../logger/LogUtils';
 

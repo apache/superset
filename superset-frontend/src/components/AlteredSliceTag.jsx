@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
-import { isEqual, isEmpty } from 'lodash';
+import { Table, Td, Th, Thead, Tr } from 'reactable-arc';
+import { isEmpty, isEqual } from 'lodash';
 import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 import { controls } from '../explore/controls';

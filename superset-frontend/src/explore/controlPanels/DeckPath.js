@@ -18,17 +18,17 @@
  */
 import { t } from '@superset-ui/translation';
 import {
-  filterNulls,
   autozoom,
+  filterNulls,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
+  jsTooltip,
   lineColumn,
-  viewport,
-  lineWidth,
   lineType,
+  lineWidth,
   reverseLongLat,
+  viewport,
 } from './Shared_DeckGL';
 
 export default {

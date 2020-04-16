@@ -33,10 +33,10 @@ import CheckboxControl from './CheckboxControl';
 
 import ANNOTATION_TYPES, {
   ANNOTATION_SOURCE_TYPES,
+  ANNOTATION_SOURCE_TYPES_METADATA,
   ANNOTATION_TYPES_METADATA,
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
-  ANNOTATION_SOURCE_TYPES_METADATA,
 } from '../../../modules/AnnotationTypes';
 
 import PopoverSection from '../../../components/PopoverSection';

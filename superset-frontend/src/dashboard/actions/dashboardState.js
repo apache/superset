@@ -21,7 +21,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
-import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
+import { addChart, refreshChart, removeChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import {
@@ -33,9 +33,9 @@ import { applyDefaultFormData } from '../../explore/store';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import {
+  addDangerToast,
   addSuccessToast,
   addWarningToast,
-  addDangerToast,
 } from '../../messageToasts/actions';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from '../actions/dashboardLayout';
 import serializeActiveFilterValues from '../util/serializeActiveFilterValues';

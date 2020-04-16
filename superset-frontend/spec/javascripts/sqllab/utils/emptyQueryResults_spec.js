@@ -17,11 +17,11 @@
  * under the License.
  */
 import {
-  emptyQueryResults,
   clearQueryEditors,
+  emptyQueryResults,
 } from '../../../../src/SqlLab/utils/reduxStateToLocalStorageHelper';
 import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../../../../src/SqlLab/constants';
-import { queries, defaultQueryEditor } from '../fixtures';
+import { defaultQueryEditor, queries } from '../fixtures';
 
 describe('reduxStateToLocalStorageHelper', () => {
   const queriesObj = {};

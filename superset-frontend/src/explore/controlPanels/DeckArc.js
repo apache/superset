@@ -18,20 +18,20 @@
  */
 import { t } from '@superset-ui/translation';
 import {
-  validateNonEmpty,
   legacyValidateInteger,
+  validateNonEmpty,
 } from '@superset-ui/validator';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
-import { columnChoices, PRIMARY_COLOR } from '../controls';
+import { PRIMARY_COLOR, columnChoices } from '../controls';
 import { formatSelectOptions } from '../../modules/utils';
 import {
-  filterNulls,
   autozoom,
   dimension,
+  filterNulls,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
+  jsTooltip,
   legendFormat,
   legendPosition,
   viewport,

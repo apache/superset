@@ -19,7 +19,7 @@
 import PropTypes from 'prop-types';
 
 import { OPERATORS } from '../constants';
-import { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
+import { CLAUSES, EXPRESSION_TYPES } from '../AdhocFilter';
 
 export default PropTypes.oneOfType([
   PropTypes.shape({

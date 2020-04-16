@@ -17,12 +17,12 @@
  * under the License.
  */
 import findParentId from './findParentId';
-import { GRID_MIN_COLUMN_COUNT, GRID_COLUMN_COUNT } from './constants';
+import { GRID_COLUMN_COUNT, GRID_MIN_COLUMN_COUNT } from './constants';
 import {
-  ROW_TYPE,
+  CHART_TYPE,
   COLUMN_TYPE,
   MARKDOWN_TYPE,
-  CHART_TYPE,
+  ROW_TYPE,
 } from './componentTypes';
 
 function getTotalChildWidth({ id, components }) {

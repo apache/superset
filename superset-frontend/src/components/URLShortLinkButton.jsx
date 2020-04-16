@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Popover, OverlayTrigger } from 'react-bootstrap';
+import { OverlayTrigger, Popover } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import CopyToClipboard from './CopyToClipboard';
 import { getShortUrl } from '../utils/common';

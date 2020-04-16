@@ -22,8 +22,8 @@ import { ListGroup, ListGroupItem } from 'react-bootstrap';
 import shortid from 'shortid';
 import {
   SortableContainer,
-  SortableHandle,
   SortableElement,
+  SortableHandle,
   arrayMove,
 } from 'react-sortable-hoc';
 

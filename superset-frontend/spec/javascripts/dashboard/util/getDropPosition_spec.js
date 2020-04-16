@@ -17,10 +17,10 @@
  * under the License.
  */
 import getDropPosition, {
-  DROP_TOP,
-  DROP_RIGHT,
   DROP_BOTTOM,
   DROP_LEFT,
+  DROP_RIGHT,
+  DROP_TOP,
 } from '../../../../src/dashboard/util/getDropPosition';
 
 import {

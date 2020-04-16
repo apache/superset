@@ -21,7 +21,7 @@ import { shallow } from 'enzyme';
 
 import { dashboardFilters } from '../fixtures/mockDashboardFilters';
 import { sliceId as chartId } from '../fixtures/mockChartQueries';
-import { filterId, column } from '../fixtures/mockSliceEntities';
+import { column, filterId } from '../fixtures/mockSliceEntities';
 import FilterIndicatorsContainer from '../../../../src/dashboard/components/FilterIndicatorsContainer';
 import FilterIndicator from '../../../../src/dashboard/components/FilterIndicator';
 import * as colorMap from '../../../../src/dashboard/util/dashboardFiltersColorMap';

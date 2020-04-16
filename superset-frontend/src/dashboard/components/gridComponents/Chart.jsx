@@ -23,7 +23,7 @@ import { exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
-import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import { chartPropShape, slicePropShape } from '../../util/propShapes';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,

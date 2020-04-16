@@ -19,10 +19,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Sparkline,
+  HorizontalReferenceLine,
   LineSeries,
   PointSeries,
-  HorizontalReferenceLine,
+  Sparkline,
   VerticalReferenceLine,
   WithTooltip,
 } from '@data-ui/sparkline';

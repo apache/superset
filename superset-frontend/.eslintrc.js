@@ -159,6 +159,7 @@ module.exports = {
     'react/jsx-fragments': 1,
     'react/prop-types': 0,
     'prettier/prettier': 'error',
+    'sort-imports' : 1,
   },
   settings: {
     'import/resolver': 'webpack',

@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow, mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 
 import CheckboxControl from '../../../../src/explore/components/controls/CheckboxControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';

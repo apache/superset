@@ -17,8 +17,8 @@
  * under the License.
  */
 import AdhocFilter, {
-  EXPRESSION_TYPES,
   CLAUSES,
+  EXPRESSION_TYPES,
 } from '../../../src/explore/AdhocFilter';
 
 describe('AdhocFilter', () => {

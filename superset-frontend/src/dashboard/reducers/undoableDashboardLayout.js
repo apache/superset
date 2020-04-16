@@ -19,14 +19,14 @@
 import undoable, { includeAction } from 'redux-undo';
 import { UNDO_LIMIT } from '../util/constants';
 import {
-  UPDATE_COMPONENTS,
-  DELETE_COMPONENT,
   CREATE_COMPONENT,
   CREATE_TOP_LEVEL_TABS,
+  DELETE_COMPONENT,
   DELETE_TOP_LEVEL_TABS,
-  RESIZE_COMPONENT,
-  MOVE_COMPONENT,
   HANDLE_COMPONENT_DROP,
+  MOVE_COMPONENT,
+  RESIZE_COMPONENT,
+  UPDATE_COMPONENTS,
 } from '../actions/dashboardLayout';
 
 import dashboardLayout from './dashboardLayout';

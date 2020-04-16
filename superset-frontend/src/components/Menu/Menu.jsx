@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
-import { Nav, Navbar, NavItem } from 'react-bootstrap';
+import { Nav, NavItem, Navbar } from 'react-bootstrap';
 import MenuObject from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';

@@ -19,10 +19,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  OverlayTrigger,
-  Popover,
   ListGroup,
   ListGroupItem,
+  OverlayTrigger,
+  Popover,
 } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { t } from '@superset-ui/translation';

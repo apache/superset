@@ -23,7 +23,7 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import ColumnOption from '../../components/ColumnOption';
-import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
+import { D3_FORMAT_OPTIONS, PRIMARY_COLOR, columnChoices } from '../controls';
 import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
 
 const timeColumnOption = {

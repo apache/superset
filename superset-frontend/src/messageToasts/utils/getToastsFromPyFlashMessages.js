@@ -17,7 +17,7 @@
  * under the License.
  */
 import { addToast } from '../actions';
-import { INFO_TOAST, SUCCESS_TOAST, DANGER_TOAST } from '../constants';
+import { DANGER_TOAST, INFO_TOAST, SUCCESS_TOAST } from '../constants';
 
 export default function toastsFromPyFlashMessages(flashMessages = []) {
   const toasts = [];

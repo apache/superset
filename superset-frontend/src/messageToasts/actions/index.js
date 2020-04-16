@@ -19,10 +19,10 @@
 import shortid from 'shortid';
 
 import {
+  DANGER_TOAST,
   INFO_TOAST,
   SUCCESS_TOAST,
   WARNING_TOAST,
-  DANGER_TOAST,
 } from '../constants';
 
 export function getToastUuid(type) {

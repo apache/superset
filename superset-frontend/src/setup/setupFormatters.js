@@ -17,10 +17,10 @@
  * under the License.
  */
 import {
+  NumberFormats,
   createDurationFormatter,
   getNumberFormatter,
   getNumberFormatterRegistry,
-  NumberFormats,
 } from '@superset-ui/number-format';
 import {
   getTimeFormatterRegistry,

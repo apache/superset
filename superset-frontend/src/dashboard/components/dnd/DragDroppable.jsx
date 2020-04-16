@@ -25,10 +25,10 @@ import cx from 'classnames';
 import { componentShape } from '../../util/propShapes';
 import { dragConfig, dropConfig } from './dragDroppableConfig';
 import {
-  DROP_TOP,
-  DROP_RIGHT,
   DROP_BOTTOM,
   DROP_LEFT,
+  DROP_RIGHT,
+  DROP_TOP,
 } from '../../util/getDropPosition';
 
 const propTypes = {

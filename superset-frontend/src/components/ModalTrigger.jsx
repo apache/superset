@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Modal, MenuItem } from 'react-bootstrap';
+import { MenuItem, Modal } from 'react-bootstrap';
 import cx from 'classnames';
 
 import Button from './Button';

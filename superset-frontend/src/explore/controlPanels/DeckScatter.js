@@ -20,19 +20,19 @@ import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
 import {
-  filterNulls,
   autozoom,
   dimension,
+  filterNulls,
   jsColumns,
   jsDataMutator,
-  jsTooltip,
   jsOnclickHref,
+  jsTooltip,
   legendFormat,
   legendPosition,
-  viewport,
-  spatial,
-  pointRadiusFixed,
   multiplier,
+  pointRadiusFixed,
+  spatial,
+  viewport,
 } from './Shared_DeckGL';
 
 export default {

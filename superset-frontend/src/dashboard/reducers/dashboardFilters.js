@@ -19,11 +19,11 @@
 /* eslint-disable camelcase */
 import {
   ADD_FILTER,
-  REMOVE_FILTER,
   CHANGE_FILTER,
+  REMOVE_FILTER,
+  UPDATE_DASHBOARD_FILTERS_SCOPE,
   UPDATE_DIRECT_PATH_TO_FILTER,
   UPDATE_LAYOUT_COMPONENTS,
-  UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../actions/dashboardFilters';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 import { DASHBOARD_ROOT_ID } from '../util/constants';

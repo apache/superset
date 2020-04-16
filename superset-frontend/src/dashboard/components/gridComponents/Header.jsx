@@ -32,7 +32,7 @@ import PopoverDropdown from '../menu/PopoverDropdown';
 import headerStyleOptions from '../../util/headerStyleOptions';
 import backgroundStyleOptions from '../../util/backgroundStyleOptions';
 import { componentShape } from '../../util/propShapes';
-import { SMALL_HEADER, BACKGROUND_TRANSPARENT } from '../../util/constants';
+import { BACKGROUND_TRANSPARENT, SMALL_HEADER } from '../../util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
