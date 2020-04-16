@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict
 
 import simplejson
+from apispec import APISpec
 from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -508,7 +509,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
 
-    def add_apispec_components(self, api_spec):
+    def add_apispec_components(self, api_spec: APISpec) -> None:
         for chart_type in CHART_DATA_SCHEMAS:
             api_spec.components.schema(
                 chart_type.__name__, schema=chart_type,

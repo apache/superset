@@ -24,7 +24,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from distutils.version import LooseVersion
 from multiprocessing.pool import ThreadPool
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import cast, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import pandas as pd
 import sqlalchemy as sa
@@ -1490,7 +1490,7 @@ class DruidDatasource(Model, BaseDatasource):
         filters = None
         for flt in raw_filters:
             col: Optional[str] = flt.get("col")
-            op: Optional[str] = flt.get["op"].upper() if "op" in flt else None
+            op: Optional[str] = flt["op"].upper() if "op" in flt else None
             eq: Optional[FilterValues] = flt.get("val")
             if (
                 not col
@@ -1526,9 +1526,11 @@ class DruidDatasource(Model, BaseDatasource):
                 target_column_is_numeric=is_numeric_col,
             )
 
+            if eq is None:
+                continue
             # For these two ops, could have used Dimension,
             # but it doesn't support extraction functions
-            if op == FilterOperationType.EQUALS.value:
+            elif op == FilterOperationType.EQUALS.value:
                 cond = Filter(
                     dimension=col, value=eq, extraction_function=extraction_fn
                 )
@@ -1536,7 +1538,8 @@ class DruidDatasource(Model, BaseDatasource):
                 cond = ~Filter(
                     dimension=col, value=eq, extraction_function=extraction_fn
                 )
-            elif op in (FilterOperationType.IN.value, FilterOperationType.NOT_IN.value):
+            elif is_list_target:
+                eq = cast(list, eq)
                 fields = []
                 # ignore the filter if it has no value
                 if not len(eq):

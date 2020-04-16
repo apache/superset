@@ -75,14 +75,17 @@ class QueryObject:
         columns: Optional[List[str]] = None,
         orderby: Optional[List[List]] = None,
         post_processing: Optional[List[Dict[str, Any]]] = None,
-        relative_start: str = app.config["DEFAULT_RELATIVE_START_TIME"],
-        relative_end: str = app.config["DEFAULT_RELATIVE_END_TIME"],
     ):
+        extras = extras or {}
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
-            relative_start=relative_start,
-            relative_end=relative_end,
+            relative_start=extras.get(
+                "relative_start", app.config["DEFAULT_RELATIVE_START_TIME"]
+            ),
+            relative_end=extras.get(
+                "relative_end", app.config["DEFAULT_RELATIVE_END_TIME"]
+            ),
             time_range=time_range,
             time_shift=time_shift,
         )
@@ -106,7 +109,7 @@ class QueryObject:
         self.timeseries_limit = timeseries_limit
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
-        self.extras = extras or {}
+        self.extras = extras
 
         if app.config["SIP_15_ENABLED"] and "time_range_endpoints" not in self.extras:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})

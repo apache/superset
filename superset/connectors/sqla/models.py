@@ -860,7 +860,7 @@ class SqlaTable(Model, BaseDatasource):
                     utils.FilterOperationType.NOT_IN.value,
                 ):
                     cond = col_obj.get_sqla_col().in_(eq)
-                    if NULL_STRING in eq:
+                    if isinstance(eq, str) and NULL_STRING in eq:
                         cond = or_(cond, col_obj.get_sqla_col() is None)
                     if op == utils.FilterOperationType.NOT_IN.value:
                         cond = ~cond

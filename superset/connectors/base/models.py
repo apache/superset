@@ -25,7 +25,7 @@ from sqlalchemy.orm import foreign, Query, relationship
 from superset.constants import NULL_STRING
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.models.slice import Slice
-from superset.typing import FilterValues
+from superset.typing import FilterValue, FilterValues
 from superset.utils import core as utils
 
 METRIC_FORM_DATA_PARAMS = [
@@ -305,8 +305,11 @@ class BaseDatasource(
         values: Optional[FilterValues],
         target_column_is_numeric: bool = False,
         is_list_target: bool = False,
-    ):
-        def handle_single_value(value):
+    ) -> Optional[FilterValues]:
+        if values is None:
+            return None
+
+        def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             # backward compatibility with previous <select> components
             if isinstance(value, str):
                 value = value.strip("\t\n'\"")
@@ -321,11 +324,11 @@ class BaseDatasource(
             return value
 
         if isinstance(values, (list, tuple)):
-            values = [handle_single_value(v) for v in values]
+            values = [handle_single_value(v) for v in values]  # type: ignore
         else:
             values = handle_single_value(values)
         if is_list_target and not isinstance(values, (tuple, list)):
-            values = [values]
+            values = [values]  # type: ignore
         elif not is_list_target and isinstance(values, (tuple, list)):
             if values:
                 values = values[0]

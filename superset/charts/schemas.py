@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Union
+from typing import Any, Union
 
 from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
@@ -114,7 +114,7 @@ class ChartDataAdhocMetric(Schema):
 
 
 class ChartDataAggregateConfig(fields.Dict):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             description="The keys are the name of the aggregate column to be created, "
             "and the values specify the details of how to apply the "
@@ -138,7 +138,7 @@ class ChartDataAggregateConfig(fields.Dict):
 
 
 class ChartDataPostProcessingOperationOptions(Schema):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
 
@@ -370,8 +370,29 @@ class ChartDataQueryObjectFilter(Schema):
     )
 
 
+class ChartDataQueryObjectExtras(Schema):
+    time_range_endpoints = fields.List(
+        fields.String(enum=["INCLUSIVE", "EXCLUSIVE"]),
+        description="A list with two values, stating if start/end should be "
+        "inclusive/exclusive.",
+        required=False,
+    )
+    relative_start = fields.String(
+        description="Start time for relative time deltas. "
+        'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
+        enum=["today", "now"],
+        required=False,
+    )
+    relative_end = fields.String(
+        description="End time for relative time deltas. "
+        'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
+        enum=["today", "now"],
+        required=False,
+    )
+
+
 class ChartDataQueryObject(Schema):
-    filters = ChartDataQueryObjectFilter()
+    filters = fields.Nested(ChartDataQueryObjectFilter())
     granularity = fields.String(
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
@@ -410,51 +431,61 @@ class ChartDataQueryObject(Schema):
         description="Post processing operations to be applied to the result set. "
         "Operations are applied to the result set in sequential order.",
     )
+    time_range = fields.String(
+        description="A time rage, either expressed as a colon separated string "
+        "`since : until`. Valid formats for `since` and `until` are: \n"
+        "- ISO 8601\n"
+        "- X days/years/hours/day/year/weeks\n"
+        "- X days/years/hours/day/year/weeks ago\n"
+        "- X days/years/hours/day/year/weeks from now\n"
+        "\n"
+        "Additionally, the following freeform can be used:\n"
+        "\n"
+        "- Last day\n"
+        "- Last week\n"
+        "- Last month\n"
+        "- Last quarter\n"
+        "- Last year\n"
+        "- No filter\n"
+        "- Last X seconds/minutes/hours/days/weeks/months/years\n"
+        "- Next X seconds/minutes/hours/days/weeks/months/years\n",
+        required=False,
+        example="Last week",
+    )
+    time_shift = fields.String(
+        description="A human-readable date/time string. "
+        "Please refer to [parsdatetime](https://github.com/bear/parsedatetime) "
+        "documentation for details on valid values.",
+        required=False,
+    )
+    is_timeseries = fields.Boolean(
+        description="Is the `query_object` a timeseries.", required=False
+    )
+    timeseries_limit = fields.Integer(
+        description="Maximum row count for timeseries queries. Default: `0`",
+        required=False,
+    )
+    row_limit = fields.Integer(
+        description='Maximum row count. Default: `config["ROW_LIMIT"]`', required=False,
+    )
+    order_desc = fields.Boolean(
+        description="Reverse order. Default: `false`", required=False
+    )
+    extras = fields.Dict(description=" Default: `{}`", required=False)
+    columns = fields.List(fields.String(), description="", required=False,)
+    orderby = fields.List(
+        fields.List(fields.Raw()),
+        description="Expects a list of lists where the first element is the column "
+        "name which to sort by, and the second element is a boolean ",
+        required=False,
+        example=[["my_col_1", False], ["my_col_2", True]],
+    )
 
 
 class ChartDataDatasource(Schema):
     description = "Chart datasource"
     id = fields.Integer(description="Datasource id", required=True,)
     type = fields.String(description="Datasource type", enum=["druid", "sql"])
-
-
-def shape_schema_serialization_disambiguation(base_object, parent_obj):
-    class_to_schema = {
-        ChartDataDatasource.__name__: ChartDataDatasource,
-        ChartDataQueryContext.__name__: ChartDataQueryContext,
-    }
-    try:
-        return class_to_schema[base_object.__class__.__name__]()
-    except KeyError:
-        pass
-
-    raise TypeError(
-        "Could not detect type. "
-        "Did not have a base or a length. "
-        "Are you sure this is a shape?"
-    )
-
-
-def shape_schema_deserialization_disambiguation(object_dict, parent_object_dict):
-    if object_dict.get("base"):
-        return ChartDataDatasource()
-    elif object_dict.get("length"):
-        return ChartDataQueryContext()
-
-    raise TypeError(
-        "Could not detect type. "
-        "Did not have a base or a length. "
-        "Are you sure this is a shape?"
-    )
-
-
-class ContrivedShapeClass(object):
-    def __init__(self, main, others):
-        self.main = main
-        self.others = others
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
 
 
 class ChartDataQueryContext(Schema):
