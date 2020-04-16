@@ -94,8 +94,8 @@ export default {
               ...xAxisFormat.config,
               default: 'SMART_NUMBER',
               choices: D3_FORMAT_OPTIONS,
-            }
-          }
+            },
+          },
         ],
       ],
     },
