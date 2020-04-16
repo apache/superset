@@ -52,7 +52,7 @@ export default () =>
       });
     });
 
-    it.skip('should apply filter', () => {
+    it('should apply filter', () => {
       cy.get('.Select-placeholder')
         .contains('Select [region]')
         .click()
