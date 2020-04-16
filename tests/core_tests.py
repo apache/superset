@@ -610,7 +610,9 @@ class CoreTests(SupersetTestCase):
     def test_warm_up_cache(self):
         slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
-        self.assertEqual(data, [{"slice_id": slc.id, "slice_name": slc.slice_name}])
+        self.assertEqual(
+            data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+        )
 
         data = self.get_json_resp(
             "/superset/warm_up_cache?table_name=energy_usage&db_name=main"
