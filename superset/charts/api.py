@@ -54,10 +54,10 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.core import json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
-from superset.views.base_api import ( 
-  BaseSupersetModelRestApi, 
-  RelatedFieldFilter, 
-  statsd_metrics,
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    RelatedFieldFilter,
+    statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
 
