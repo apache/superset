@@ -33,7 +33,8 @@ const getControlsInventory = memoize(vizType => {
             // For now, we have to look in controls.jsx to get the config for some controls.
             // Once everything is migrated out, delete this if statement.
             controlsMap[control] = controls[control];
-          } else {
+          } else if (control.name && control.config) {
+            // condition needed because there are elements, e.g. <hr /> in some control configs (I'm looking at you, FilterBox!)
             controlsMap[control.name] = control.config;
           }
         });
