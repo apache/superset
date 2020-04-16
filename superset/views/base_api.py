@@ -14,15 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import functools
 import logging
-from typing import cast, Dict, Set, Tuple, Type, Union
+from typing import Any, cast, Dict, Optional, Set, Tuple, Type, Union
 
+from flask import Response
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 
 from superset.stats_logger import BaseStatsLogger
+from superset.utils.core import time_function
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -33,6 +36,19 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
+
+
+def statsd_metrics(f):
+    """
+    Handle sending all statsd metrics from the REST API
+    """
+
+    def wraps(self, *args: Any, **kwargs: Any) -> Response:
+        duration, response = time_function(f, self, *args, **kwargs)
+        self.send_stats_metrics(response, f.__name__, duration)
+        return response
+
+    return functools.update_wrapper(wraps, f)
 
 
 class RelatedFieldFilter:
@@ -128,11 +144,71 @@ class BaseSupersetModelRestApi(ModelRestApi):
         return filters
 
     def incr_stats(self, action: str, func_name: str) -> None:
+        """
+        Proxy function for statsd.incr to impose a key structure for REST API's
+
+        :param action: String with an action name eg: error, success
+        :param func_name: The function name
+        """
         self.stats_logger.incr(f"{self.__class__.__name__}.{func_name}.{action}")
+
+    def timing_stats(self, action: str, func_name: str, value: float) -> None:
+        """
+        Proxy function for statsd.incr to impose a key structure for REST API's
+
+        :param action: String with an action name eg: error, success
+        :param func_name: The function name
+        :param value: A float with the time it took for the endpoint to execute
+        """
+        self.stats_logger.timing(
+            f"{self.__class__.__name__}.{func_name}.{action}", value
+        )
+
+    def send_stats_metrics(
+        self, response: Response, key: str, time_delta: Optional[float] = None
+    ) -> None:
+        """
+        Helper function to handle sending statsd metrics
+
+        :param response: flask response object, will evaluate if it was an error
+        :param key: The function name
+        :param time_delta: Optional time it took for the endpoint to execute
+        """
+        if 200 <= response.status_code < 400:
+            self.incr_stats("success", key)
+        else:
+            self.incr_stats("error", key)
+        if time_delta:
+            self.timing_stats("time", key, time_delta)
+
+    def info_headless(self, **kwargs) -> Response:
+        """
+        Add statsd metrics to builtin FAB _info endpoint
+        """
+        duration, response = time_function(super().info_headless, **kwargs)
+        self.send_stats_metrics(response, self.info.__name__, duration)
+        return response
+
+    def get_headless(self, pk, **kwargs) -> Response:
+        """
+        Add statsd metrics to builtin FAB GET endpoint
+        """
+        duration, response = time_function(super().get_headless, pk, **kwargs)
+        self.send_stats_metrics(response, self.get.__name__, duration)
+        return response
+
+    def get_list_headless(self, **kwargs) -> Response:
+        """
+        Add statsd metrics to builtin FAB GET list endpoint
+        """
+        duration, response = time_function(super().get_list_headless, **kwargs)
+        self.send_stats_metrics(response, self.get_list.__name__, duration)
+        return response
 
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
     @safe
+    @statsd_metrics
     @rison(get_related_schema)
     def related(self, column_name: str, **kwargs):
         """Get related fields data
@@ -185,6 +261,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
               $ref: '#/components/responses/500'
         """
         if column_name not in self.allowed_rel_fields:
+            self.incr_stats("error", self.related.__name__)
             return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination
