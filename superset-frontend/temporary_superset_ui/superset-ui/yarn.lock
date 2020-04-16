@@ -6900,7 +6900,7 @@ data-urls@^1.1.0:
     whatwg-mimetype "^2.2.0"
     whatwg-url "^7.0.0"
 
-datatables.net-bs@^1.10.20:
+datatables.net-bs@^1.10.15, datatables.net-bs@^1.10.20:
   version "1.10.20"
   resolved "https://registry.yarnpkg.com/datatables.net-bs/-/datatables.net-bs-1.10.20.tgz#4a54a65527013aa8bb98eb7fa27d6231f7dc1bee"
   integrity sha512-NsMoOOYZ6NlteOpzhltw21lXsNdhjIMbIOxnqmcrb62ntl8eL9pYzk2AeiDXBlIKY4e550ZrExCq3CYKQ9myEg==
@@ -7179,6 +7179,13 @@ discontinuous-range@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/discontinuous-range/-/discontinuous-range-1.0.0.tgz#e38331f0844bba49b9a9cb71c771585aab1bc65a"
   integrity sha1-44Mx8IRLukm5qctxx3FYWqsbxlo=
+
+distributions@^1.0.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/distributions/-/distributions-1.1.0.tgz#012973634ef6dd595a525ab1b397d217131c0ea5"
+  integrity sha512-mufW9T1kRlzLVAaekUhgdfcMgX2r/zYQmJx3sGdUAwe0/JSQWey0XgqiDtfUUqYcr/QWHCnBd2M/v45tS/+YAQ==
+  dependencies:
+    mathfn "^1.0.0"
 
 doctrine@1.5.0:
   version "1.5.0"
@@ -11557,6 +11564,11 @@ math-expression-evaluator@^1.2.14:
   resolved "https://registry.yarnpkg.com/math-expression-evaluator/-/math-expression-evaluator-1.2.22.tgz#c14dcb3d8b4d150e5dcea9c68c8dad80309b0d5e"
   integrity sha512-L0j0tFVZBQQLeEjmWOvDLoRciIY8gQGWahvkztXUal8jH8R5Rlqo9GCvgqvXcy9LQhEWdQCVvzqAbxgYNt4blQ==
 
+mathfn@^1.0.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/mathfn/-/mathfn-1.1.0.tgz#5b88048479508cd693a8131125f621d8b75b8352"
+  integrity sha512-glxPY9PZqaoGUySN1QOVnKfnWH4Az2PnHEYMRVWUnR1RZpWTLNzdCm7RxEiEJ0SJ7G95ruF6Q2/1s/LuQnhXyg==
+
 md5.js@^1.3.4:
   version "1.3.5"
   resolved "https://registry.yarnpkg.com/md5.js/-/md5.js-1.3.5.tgz#b5d07b8e3216e3e27cd728d72f70d1e6a342005f"
@@ -13843,6 +13855,11 @@ react@^16.6.0, react@^16.8.3, react@^16.9.0:
     loose-envify "^1.1.0"
     object-assign "^4.1.1"
     prop-types "^15.6.2"
+
+reactable-arc@0.15.0:
+  version "0.15.0"
+  resolved "https://registry.yarnpkg.com/reactable-arc/-/reactable-arc-0.15.0.tgz#b9e145f58c787227bced894cd9c1611b37c20f3c"
+  integrity sha512-XH1mryI/xvbYb3lCVOU3rx/KRacDE0PDa45KazL/PPTM0AgPZ/awVmCAxRi179BpjbStk7cgCyFjI2oYJ28E8A==
 
 reactcss@^1.2.0:
   version "1.2.3"
