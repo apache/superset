@@ -6,6 +6,7 @@ export * from '@superset-ui/core';
 export * from '@superset-ui/dimension';
 export * from '@superset-ui/number-format';
 export * from '@superset-ui/query';
+export * from '@superset-ui/style';
 export * from '@superset-ui/time-format';
 export * from '@superset-ui/translation';
 export * from '@superset-ui/validator';

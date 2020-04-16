@@ -10,6 +10,7 @@ import {
   getTimeFormatterRegistry,
   t,
   validateInteger,
+  supersetTheme,
 } from '../src';
 
 describe('@superset-ui/superset-ui', () => {
@@ -36,6 +37,9 @@ describe('@superset-ui/superset-ui', () => {
   });
   it('should export @superset-ui/query', () => {
     expect(buildQueryContext).toBeDefined();
+  });
+  it('should export @superset-ui/style', () => {
+    expect(supersetTheme).toBeDefined();
   });
   it('should export @superset-ui/time-format', () => {
     expect(getTimeFormatterRegistry).toBeDefined();
