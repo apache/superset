@@ -1694,6 +1694,8 @@ class Superset(BaseSupersetView):
                 .all()
             )
 
+        result = []
+
         for slc in slices:
             try:
                 form_data = get_form_data(slc.id, use_slice_data=True)[0]
@@ -1707,15 +1709,18 @@ class Superset(BaseSupersetView):
                     form_data=form_data,
                     force=True,
                 )
-                obj.get_json()
+                payload = obj.get_payload()
+                error = payload["error"]
+                status = payload["status"]
             except Exception as ex:
-                logger.exception("Failed to warm up cache")
-                return json_error_response(utils.error_msg_from_exception(ex))
-        return json_success(
-            json.dumps(
-                [{"slice_id": slc.id, "slice_name": slc.slice_name} for slc in slices]
+                error = utils.error_msg_from_exception(ex)
+                status = None
+
+            result.append(
+                {"slice_id": slc.id, "viz_error": error, "viz_status": status}
             )
-        )
+
+        return json_success(json.dumps(result))
 
     @has_access_api
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
