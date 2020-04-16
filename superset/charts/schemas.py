@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Union
+from typing import Any, Dict, Union
 
-from marshmallow import fields, Schema, ValidationError
+from marshmallow import fields, post_load, Schema, ValidationError
 from marshmallow.validate import Length
 
+from superset.common.query_context import QueryContext
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
@@ -61,14 +62,14 @@ class ChartPutSchema(Schema):
     dashboards = fields.List(fields.Integer())
 
 
-class ChartDataColumn(Schema):
+class ChartDataColumnSchema(Schema):
     column_name = fields.String(
         description="The name of the target column", example="mycol",
     )
     type = fields.String(description="Type of target column", example="BIGINT",)
 
 
-class ChartDataAdhocMetric(Schema):
+class ChartDataAdhocMetricSchema(Schema):
     """
     Ad-hoc metrics are used to define metrics outside the datasource.
     """
@@ -84,7 +85,7 @@ class ChartDataAdhocMetric(Schema):
         required=False,
         enum=["AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM"],
     )
-    column = fields.Nested(ChartDataColumn)
+    column = fields.Nested(ChartDataColumnSchema)
     sqlExpression = fields.String(
         description="The metric as defined by a SQL aggregate expression. "
         "Only required for SQL expression type.",
@@ -113,17 +114,18 @@ class ChartDataAdhocMetric(Schema):
     )
 
 
-class ChartDataAggregateConfig(fields.Dict):
+class ChartDataAggregateConfigField(fields.Dict):
     def __init__(self) -> None:
         super().__init__(
             description="The keys are the name of the aggregate column to be created, "
             "and the values specify the details of how to apply the "
             "aggregation. If an operator requires additional options, "
-            "these can be passed here to be unpacked in the operator call. The following "
-            "numpy operators are supported: average, argmin, argmax, cumsum, cumprod, "
-            "max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, "
-            "percentile, prod, product, std, sum, var. Any options required by the "
-            "operator can be passed to the `options` object.\n\n"
+            "these can be passed here to be unpacked in the operator call. The "
+            "following numpy operators are supported: average, argmin, argmax, cumsum, "
+            "cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, "
+            "min, percentile, prod, product, std, sum, var. Any options required by "
+            "the operator can be passed to the `options` object.\n"
+            "\n"
             "In the example, a new column `first_quantile` is created based on values "
             "in the column `my_col` using the `percentile` operator with "
             "the `q=0.25` parameter.",
@@ -137,12 +139,12 @@ class ChartDataAggregateConfig(fields.Dict):
         )
 
 
-class ChartDataPostProcessingOperationOptions(Schema):
+class ChartDataPostProcessingOperationOptionsSchema(Schema):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
 
-class ChartDataPostProcessingAggregateOptions(ChartDataPostProcessingOperationOptions):
+class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
     Aggregate operation config.
     """
@@ -156,10 +158,10 @@ class ChartDataPostProcessingAggregateOptions(ChartDataPostProcessingOperationOp
             required=True,
         ),
     )
-    aggregates = ChartDataAggregateConfig()
+    aggregates = ChartDataAggregateConfigField()
 
 
-class ChartDataPostProcessingRollingOptions(ChartDataPostProcessingOperationOptions):
+class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
     Rolling operation config.
     """
@@ -248,7 +250,7 @@ class ChartDataPostProcessingRollingOptions(ChartDataPostProcessingOperationOpti
     )
 
 
-class ChartDataPostProcessingSelectOptions(ChartDataPostProcessingOperationOptions):
+class ChartDataSelectOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
     Sort operation config.
     """
@@ -268,7 +270,7 @@ class ChartDataPostProcessingSelectOptions(ChartDataPostProcessingOperationOptio
     )
 
 
-class ChartDataPostProcessingSortOptions(ChartDataPostProcessingOperationOptions):
+class ChartDataSortOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
     Sort operation config.
     """
@@ -279,10 +281,10 @@ class ChartDataPostProcessingSortOptions(ChartDataPostProcessingOperationOptions
         example={"country": True, "gender": False},
         required=True,
     )
-    aggregates = ChartDataAggregateConfig()
+    aggregates = ChartDataAggregateConfigField()
 
 
-class ChartDataPostProcessingPivotOptions(ChartDataPostProcessingOperationOptions):
+class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
     Pivot operation config.
     """
@@ -323,10 +325,10 @@ class ChartDataPostProcessingPivotOptions(ChartDataPostProcessingOperationOption
         description="Name of marginal distribution row/column. (default: `All`)",
         required=False,
     )
-    aggregates = ChartDataAggregateConfig()
+    aggregates = ChartDataAggregateConfigField()
 
 
-class ChartDataPostProcessingOperation(Schema):
+class ChartDataPostProcessingOperationSchema(Schema):
     operation = fields.String(
         description="Post processing operation type",
         required=True,
@@ -334,7 +336,7 @@ class ChartDataPostProcessingOperation(Schema):
         example="aggregate",
     )
     options = fields.Nested(
-        ChartDataPostProcessingOperationOptions(),
+        ChartDataPostProcessingOperationOptionsSchema(),
         description="Options specifying how to perform the operation. Please refer "
         "to the respective post processing operation option schemas. "
         "For example, `ChartDataPostProcessingOperationOptions` specifies "
@@ -353,7 +355,7 @@ class ChartDataPostProcessingOperation(Schema):
     )
 
 
-class ChartDataQueryObjectFilter(Schema):
+class ChartDataFilterSchema(Schema):
     col = fields.String(
         description="The column to filter.", required=True, example="country"
     )
@@ -370,7 +372,7 @@ class ChartDataQueryObjectFilter(Schema):
     )
 
 
-class ChartDataQueryObjectExtras(Schema):
+class ChartDataExtrasSchema(Schema):
     time_range_endpoints = fields.List(
         fields.String(enum=["INCLUSIVE", "EXCLUSIVE"]),
         description="A list with two values, stating if start/end should be "
@@ -391,8 +393,8 @@ class ChartDataQueryObjectExtras(Schema):
     )
 
 
-class ChartDataQueryObject(Schema):
-    filters = fields.Nested(ChartDataQueryObjectFilter())
+class ChartDataQueryObjectSchema(Schema):
+    filters = fields.Nested(ChartDataFilterSchema())
     granularity = fields.String(
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
@@ -421,13 +423,13 @@ class ChartDataQueryObject(Schema):
     metrics = fields.List(
         # TODO: add string type when support for `anyOf` is added to Marshmallow.
         #  strings are used to reference matrics stored in the datasource.
-        fields.Nested(ChartDataAdhocMetric),
+        fields.Nested(ChartDataAdhocMetricSchema),
         description="Aggregate expressions. Metrics can be passed as both "
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object.",
     )
     post_processing = fields.List(
-        fields.Nested(ChartDataPostProcessingOperation),
+        fields.Nested(ChartDataPostProcessingOperationSchema),
         description="Post processing operations to be applied to the result set. "
         "Operations are applied to the result set in sequential order.",
     )
@@ -482,25 +484,29 @@ class ChartDataQueryObject(Schema):
     )
 
 
-class ChartDataDatasource(Schema):
+class ChartDataDatasourceSchema(Schema):
     description = "Chart datasource"
     id = fields.Integer(description="Datasource id", required=True,)
     type = fields.String(description="Datasource type", enum=["druid", "sql"])
 
 
-class ChartDataQueryContext(Schema):
-    datasource = fields.Nested(ChartDataDatasource)
-    queries = fields.List(fields.Nested(ChartDataQueryObject))
+class ChartDataQueryContextSchema(Schema):
+    datasource = fields.Nested(ChartDataDatasourceSchema)
+    queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
+
+    @post_load
+    def make_query_context(self, data: Dict[str, Any]) -> QueryContext:
+        return QueryContext(**data)
 
 
 CHART_DATA_SCHEMAS = (
-    ChartDataQueryContext,
+    ChartDataQueryContextSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
     #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not yet
     #  supported by Marshmallow/apispec, this is not currently possible.
-    ChartDataPostProcessingAggregateOptions,
-    ChartDataPostProcessingPivotOptions,
-    ChartDataPostProcessingRollingOptions,
-    ChartDataPostProcessingSelectOptions,
-    ChartDataPostProcessingSortOptions,
+    ChartDataAggregateOptionsSchema,
+    ChartDataPivotOptionsSchema,
+    ChartDataRollingOptionsSchema,
+    ChartDataSelectOptionsSchema,
+    ChartDataSortOptionsSchema,
 )

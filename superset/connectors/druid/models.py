@@ -1526,11 +1526,9 @@ class DruidDatasource(Model, BaseDatasource):
                 target_column_is_numeric=is_numeric_col,
             )
 
-            if eq is None:
-                continue
             # For these two ops, could have used Dimension,
             # but it doesn't support extraction functions
-            elif op == FilterOperationType.EQUALS.value:
+            if op == FilterOperationType.EQUALS.value:
                 cond = Filter(
                     dimension=col, value=eq, extraction_function=extraction_fn
                 )

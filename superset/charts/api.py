@@ -44,6 +44,7 @@ from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.filters import ChartFilter, ChartNameOrDescriptionFilter
 from superset.charts.schemas import (
     CHART_DATA_SCHEMAS,
+    ChartDataQueryContextSchema,
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
@@ -432,7 +433,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
-            query_context = QueryContext(**request.json)
+            query_context, errors = ChartDataQueryContextSchema().load(request.json)
         except KeyError:
             return self.response_400(message="Request is incorrect")
         try:
