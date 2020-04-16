@@ -19,12 +19,22 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { NVD3TimeSeries } from './sections';
 import OptionDescription from '../../components/OptionDescription';
 
 export default {
   controlPanelSections: [
-    NVD3TimeSeries[0],
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        ['metrics'],
+        ['adhoc_filters'],
+        ['groupby'],
+        ['limit', 'timeseries_limit_metric'],
+        ['order_desc', 'contribution'],
+        ['row_limit', null],
+      ],
+    },
     {
       label: t('Time Series Options'),
       expanded: true,
