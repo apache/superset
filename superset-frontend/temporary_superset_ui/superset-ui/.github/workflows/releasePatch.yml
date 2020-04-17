@@ -1,8 +1,9 @@
 name: Publish package
 
 on:
-  watch:
-    types: [started]
+  push:
+    tags:
+      - 'trigger-patch-test.*'
 
 jobs:
   authorize:
