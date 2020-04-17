@@ -2,6 +2,8 @@ name: Node.js CI
 
 on:
   push:
+    branches:
+      - '*'
     tags-ignore:
       - 'trigger-patch-test.*'
   pull_request:
