@@ -1051,7 +1051,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | -------------- | -------- | ------------ |
 | `color_scheme` | _string_ |              |
 | `slice_id`     | _number_ | The slice ID |
-| `url_params`   | _object_ |              |
 
 ### Unclassified
 
