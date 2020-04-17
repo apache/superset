@@ -185,7 +185,16 @@ export default {
             },
           },
         ],
-        ['show_values', 'normalized'],
+        ['show_values', {
+          name: 'normalized',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Normalized'),
+            renderTrigger: true,
+            description: t('Whether to normalize the histogram'),
+            default: false,
+          },
+        }],
         [
           {
             name: 'sort_x_axis',
