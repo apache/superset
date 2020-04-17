@@ -657,7 +657,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.post(uri, json=query_context)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data[0]["rowcount"], 100)
+        self.assertEqual(data["result"][0]["rowcount"], 100)
 
     def test_invalid_chart_data(self):
         """

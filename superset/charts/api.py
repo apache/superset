@@ -391,39 +391,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/ChartDataQueryContext"
+                  $ref: "#/components/schemas/ChartDataQueryContextSchema"
           responses:
             200:
               description: Query result
               content:
                 application/json:
                   schema:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        cache_key:
-                          type: string
-                        cached_dttm:
-                          type: string
-                        cache_timeout:
-                          type: integer
-                        error:
-                          type: string
-                        is_cached:
-                          type: boolean
-                        query:
-                          type: string
-                        status:
-                          type: string
-                        stacktrace:
-                          type: string
-                        rowcount:
-                          type: integer
-                        data:
-                          type: array
-                          items:
-                            type: object
+                    $ref: "#/components/schemas/ChartDataResponseSchema"
             400:
               $ref: '#/components/responses/400'
             500:
@@ -445,7 +420,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_401()
         payload_json = query_context.get_payload()
         response_data = simplejson.dumps(
-            payload_json, default=json_int_dttm_ser, ignore_nan=True
+            {"result": payload_json}, default=json_int_dttm_ser, ignore_nan=True
         )
         resp = make_response(response_data, 200)
         resp.headers["Content-Type"] = "application/json; charset=utf-8"

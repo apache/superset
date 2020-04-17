@@ -337,7 +337,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
         example="aggregate",
     )
     options = fields.Nested(
-        ChartDataPostProcessingOperationOptionsSchema(),
+        ChartDataPostProcessingOperationOptionsSchema,
         description="Options specifying how to perform the operation. Please refer "
         "to the respective post processing operation option schemas. "
         "For example, `ChartDataPostProcessingOperationOptions` specifies "
@@ -505,8 +505,58 @@ class ChartDataQueryContextSchema(Schema):
     # pylint: enable=no-self-use
 
 
+class ChartDataResponseResult(Schema):
+    cache_key = fields.String(
+        description="Unique cache key for query object", required=True, allow_none=True,
+    )
+    cached_dttm = fields.String(
+        description="Cache timestamp", required=True, allow_none=True,
+    )
+    cache_timeout = fields.Integer(
+        description="Cache timeout in following order: custom timeout, datasource "
+        "timeout, default config timeout.",
+        required=True,
+        allow_none=True,
+    )
+    error = fields.String(description="Error", allow_none=True,)
+    is_cached = fields.Boolean(
+        description="Is the result cached", required=True, allow_none=None,
+    )
+    query = fields.String(
+        description="The executed query statement", required=True, allow_none=False,
+    )
+    status = fields.String(
+        description="Status of the query",
+        enum=[
+            "stopped",
+            "failed",
+            "pending",
+            "running",
+            "scheduled",
+            "success",
+            "timed_out",
+        ],
+        allow_none=False,
+    )
+    stacktrace = fields.String(
+        desciption="Stacktrace if there was an error", allow_none=True,
+    )
+    rowcount = fields.Integer(
+        description="Amount of rows in result set", allow_none=False,
+    )
+    data = fields.List(fields.Dict(), description="A list with results")
+
+
+class ChartDataResponseSchema(Schema):
+    result = fields.List(
+        fields.Nested(ChartDataResponseResult),
+        description="A list of results for each corresponding query in the request.",
+    )
+
+
 CHART_DATA_SCHEMAS = (
     ChartDataQueryContextSchema,
+    ChartDataResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
     #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not
     #  by Marshmallow<3, this is not currently possible.
