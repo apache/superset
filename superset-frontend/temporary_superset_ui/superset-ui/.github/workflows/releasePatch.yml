@@ -19,8 +19,9 @@ jobs:
     - uses: actions/checkout@v2
       with:
         # pulls all commits (needed for lerna / semantic release to correctly version)
-        fetch-depth: "0"
-    - run: |
+        fetch-depth: 0
+    - name: Get tags and filter trigger tags
+      run: |
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
         git tag -d `git tag | grep -E '^trigger-'`
 
