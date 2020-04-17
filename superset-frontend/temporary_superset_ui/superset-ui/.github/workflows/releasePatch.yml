@@ -18,6 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
+        ref: 'master'
         # pulls all commits (needed for lerna / semantic release to correctly version)
         fetch-depth: 0
     - name: Get tags and filter trigger tags
