@@ -18,7 +18,7 @@
  */
 
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import getControlsForVizType from 'src/utils/chartControlsInventory';
+import getControlsForVizType from 'src/utils/getControlsForVizType';
 
 const fakePluginControls = {
   controlPanelSections: [
@@ -68,7 +68,7 @@ const fakePluginControls = {
   ],
 };
 
-describe('chartControlsInventory', () => {
+describe('getControlsForVizType', () => {
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue(
       'chart_controls_inventory_fake',
