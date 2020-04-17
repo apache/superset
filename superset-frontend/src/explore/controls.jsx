@@ -922,16 +922,6 @@ export const controls = {
     ),
   },
 
-  instant_filtering: {
-    type: 'CheckboxControl',
-    label: t('Instant Filtering'),
-    renderTrigger: true,
-    default: true,
-    description:
-      'Whether to apply filters as they change, or wait for ' +
-      'users to hit an [Apply] button',
-  },
-
   show_brush: {
     type: 'SelectControl',
     label: t('Show Range Filter'),
@@ -944,41 +934,6 @@ export const controls = {
       ['auto', 'Auto'],
     ],
     description: t('Whether to display the time range interactive selector'),
-  },
-
-  date_filter: {
-    type: 'CheckboxControl',
-    label: t('Date Filter'),
-    default: true,
-    description: t('Whether to include a time filter'),
-  },
-
-  show_sqla_time_granularity: {
-    type: 'CheckboxControl',
-    label: t('Show SQL Granularity Dropdown'),
-    default: false,
-    description: t('Check to include SQL Granularity dropdown'),
-  },
-
-  show_sqla_time_column: {
-    type: 'CheckboxControl',
-    label: t('Show SQL Time Column'),
-    default: false,
-    description: t('Check to include Time Column dropdown'),
-  },
-
-  show_druid_time_granularity: {
-    type: 'CheckboxControl',
-    label: t('Show Druid Granularity Dropdown'),
-    default: false,
-    description: t('Check to include Druid Granularity dropdown'),
-  },
-
-  show_druid_time_origin: {
-    type: 'CheckboxControl',
-    label: t('Show Druid Time Origin'),
-    default: false,
-    description: t('Check to include Time Origin dropdown'),
   },
 
   table_filter: {
