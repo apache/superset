@@ -18,7 +18,10 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { formatSelectOptionsForRange } from '../../modules/utils';
+import {
+  formatSelectOptionsForRange,
+  formatSelectOptions,
+} from '../../modules/utils';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],
@@ -94,10 +97,81 @@ export default {
           },
           'normalize_across',
         ],
-        ['left_margin', 'bottom_margin'],
-        ['y_axis_bounds', 'y_axis_format'],
         [
-          'show_legend',
+          {
+            name: 'left_margin',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              clearable: false,
+              label: t('Left Margin'),
+              choices: formatSelectOptions([
+                'auto',
+                50,
+                75,
+                100,
+                125,
+                150,
+                200,
+              ]),
+              default: 'auto',
+              renderTrigger: true,
+              description: t(
+                'Left margin, in pixels, allowing for more room for axis labels',
+              ),
+            },
+          },
+          {
+            name: 'bottom_margin',
+            config: {
+              type: 'SelectControl',
+              clearable: false,
+              freeForm: true,
+              label: t('Bottom Margin'),
+              choices: formatSelectOptions([
+                'auto',
+                50,
+                75,
+                100,
+                125,
+                150,
+                200,
+              ]),
+              default: 'auto',
+              renderTrigger: true,
+              description: t(
+                'Bottom margin, in pixels, allowing for more room for axis labels',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_bounds',
+            config: {
+              type: 'BoundsControl',
+              label: t('Value bounds'),
+              renderTrigger: true,
+              default: [null, null],
+              description: t(
+                'Hard value bounds applied for color coding. Is only relevant ' +
+                  'and applied when the normalization is applied against the whole heatmap.',
+              ),
+            },
+          },
+          'y_axis_format',
+        ],
+        [
+          {
+            name: 'show_legend',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Legend'),
+              renderTrigger: true,
+              default: true,
+              description: t('Whether to display the legend (toggles)'),
+            },
+          },
           {
             name: 'show_perc',
             config: {
@@ -147,14 +221,6 @@ export default {
     normalized: t(
       'Whether to apply a normal distribution based on rank on the color scale',
     ),
-    y_axis_bounds: {
-      label: t('Value bounds'),
-      renderTrigger: true,
-      description: t(
-        'Hard value bounds applied for color coding. Is only relevant ' +
-          'and applied when the normalization is applied against the whole heatmap.',
-      ),
-    },
     y_axis_format: {
       label: t('Value Format'),
     },

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { showLegend } from './Shared_NVD3';
 
 export default {
   controlPanelSections: [
@@ -65,10 +66,22 @@ export default {
               description: t('Do you want a donut or a pie?'),
             },
           },
-          'show_legend',
+          showLegend,
         ],
         [
-          'show_labels',
+          {
+            name: 'show_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Labels'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Whether to display the labels. Note that the label only displays when the the 5% ' +
+                  'threshold.',
+              ),
+            },
+          },
           {
             name: 'labels_outside',
             config: {

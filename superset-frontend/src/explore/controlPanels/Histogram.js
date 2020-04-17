@@ -37,7 +37,26 @@ export default {
       controlSetRows: [
         ['color_scheme', 'label_colors'],
         ['link_length'],
-        ['x_axis_label', 'y_axis_label'],
+        [
+          {
+            name: 'x_axis_label',
+            config: {
+              type: 'TextControl',
+              label: t('X Axis Label'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+          {
+            name: 'y_axis_label',
+            config: {
+              type: 'TextControl',
+              label: t('Y Axis Label'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+        ],
         ['global_opacity'],
         ['normalized'],
       ],

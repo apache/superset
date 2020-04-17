@@ -1007,7 +1007,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | Field             | Type     | Notes                                               |
 | ----------------- | -------- | --------------------------------------------------- |
 | `metric_2`        | -        | The **Right Axis Metric** widget. See Query section |
-| `y_axis_2_format` | _string_ | The **Right Axis Format** widget                    |
 
 ### Query
 
@@ -1019,7 +1018,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `contribution`                                                                                         | _boolean_                                         | The **Contribution** widget                       |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
-| `max_bubble_size`                                                                                      | _number_                                          | The **Max Bubble Size** widget                    |
 | `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
 | `order_asc`                                                                                            | _boolean_                                         | The **Sort Descending** widget                    |
 | `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                          |
@@ -1042,38 +1040,17 @@ The filter-box configuration references column names (via the `column` key) and 
 | `color_picker`        | _object_  | The **Fixed Color** widget                       |
 | `global_opacity`      | _number_  | The **Opacity** widget                           |
 | `label_colors`        | _object_  | The **Color Scheme** widget                      |
-| `line_interpolation`  | _string_  | The **Line Style** widget                        |
 | `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
 | `number_format`       | _string_  | The **Number format** widget                     |
-| `rich_tooltip`        | _boolean_ | The **Rich Tooltip** widget                      |
-| `send_time_range`     | _boolean_ | The **Show Markers** widget                      |
-| `show_brush`          | _string_  | The **Show Range Filter** widget                 |
-| `show_legend`         | _boolean_ | The **Legend** widget                            |
-| `show_markers`        | _string_  | The **Show Markers** widget                      |
-
-### X Axis
-
-| Field                | Type      | Notes                        |
-| -------------------- | --------- | ---------------------------- |
-| `bottom_margin`      | _string_  | The **Bottom Margin** widget |
-| `x_axis_format`      | _string_  | The **X Axis Format** widget |
-| `x_axis_label`       | _string_  | The **X Axis Label** widget  |
-| `x_axis_showminmax`  | _boolean_ | The **X bounds** widget      |
-| `x_ticks_layout`     | _string_  | The **X Tick Layout** widget |
 
 ### Y Axis
 
 | Field               | Type            | Notes                        |
 | ------------------- | --------------- | ---------------------------- |
-| `left_margin`       | _number_        | The **Left Margin** widget   |
 | `y_axis_2_label`    | _N/A_           | _Deprecated?_                |
-| `y_axis_bounds`     | _array(string)_ | The **Y Axis Bounds** widget |
 | `y_axis_format`     | _string_        | The **Y Axis Format** widget |
-| `y_axis_label`      | _string_        | The **Y Axis Label** widget  |
-| `y_axis_showminmax` | _boolean_       | The **Y bounds** widget      |
 | `y_axis_zero`       | _N/A_           | _Deprecated?_                |
-| `y_log_scale`       | _boolean_       | The **Y Log Scale** widget   |
 
 Note the `y_axis_format` is defined under various section for some charts.
 
@@ -1092,7 +1069,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `add_to_dash`                   | _N/A_ |       |
 | `all_columns_y`                 | _N/A_ |       |
 | `annotation_layers`             | _N/A_ |       |
-| `bar_stacked`                   | _N/A_ |       |
 | `cache_timeout`                 | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
@@ -1125,13 +1101,11 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `new_slice_name`                | _N/A_ |       |
 | `normalize_across`              | _N/A_ |       |
 | `num_period_compare`            | _N/A_ |       |
-| `order_bars`                    | _N/A_ |       |
 | `order_desc`                    | _N/A_ |       |
 | `pandas_aggfunc`                | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
 | `rdo_save`                      | _N/A_ |       |
-| `reduce_x_ticks`                | _N/A_ |       |
 | `refresh_frequency`             | _N/A_ |       |
 | `remote_id`                     | _N/A_ |       |
 | `resample_fillmethod`           | _N/A_ |       |
@@ -1143,11 +1117,7 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `schema`                        | _N/A_ |       |
 | `select_country`                | _N/A_ |       |
 | `series`                        | _N/A_ |       |
-| `show_bar_value`                | _N/A_ |       |
-| `show_brush`                    | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
-| `show_controls`                 | _N/A_ |       |
-| `show_labels`                   | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
