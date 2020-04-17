@@ -1,62 +1,63 @@
-import { Value } from 'vega-lite/build/src/channeldef';
 import { CSSProperties } from 'react';
-import { ChannelInput } from '../../encodeable/types/Channel';
-import AbstractEncoder from '../../encodeable/AbstractEncoder';
+import { EncodingConfig, LegendGroupInformation, LegendItemInformation } from 'encodable';
 
-export type LegendItemInfo<Encoding> = {
-  field: string;
-  value: ChannelInput;
-  encodedValues: Partial<Record<keyof Encoding, Value | undefined>>;
+export type LegendItemMarkRendererProps<Config extends EncodingConfig> = {
+  group: LegendGroupInformation<Config>;
+  item: LegendItemInformation<Config>;
 };
 
-export type LegendItemMarkRendererType<Encoding> = React.ComponentType<{
-  item: LegendItemInfo<Encoding>;
-}>;
-
-export type LegendItemLabelRendererType<Encoding> = React.ComponentType<{
-  item: LegendItemInfo<Encoding>;
-}>;
-
-export type LegendItemRendererProps<Encoding> = {
-  item: LegendItemInfo<Encoding>;
-  MarkRenderer?: LegendItemMarkRendererType<Encoding>;
-  LabelRenderer?: LegendItemLabelRendererType<Encoding>;
-};
-
-export type LegendItemRendererType<Encoding> = React.ComponentType<
-  LegendItemRendererProps<Encoding>
+export type LegendItemMarkRendererType<Config extends EncodingConfig> = React.ComponentType<
+  LegendItemMarkRendererProps<Config>
 >;
 
-export type LegendGroupRendererProps<Encoding> = {
-  items: LegendItemInfo<Encoding>[];
-  ItemRenderer?: LegendItemRendererType<Encoding>;
-  ItemMarkRenderer?: LegendItemMarkRendererType<Encoding>;
-  ItemLabelRenderer?: LegendItemLabelRendererType<Encoding>;
+export type LegendItemLabelRendererProps<
+  Config extends EncodingConfig
+> = LegendItemMarkRendererProps<Config>;
+
+export type LegendItemLabelRendererType<Config extends EncodingConfig> = React.ComponentType<
+  LegendItemLabelRendererProps<Config>
+>;
+
+export type LegendItemRendererProps<Config extends EncodingConfig> = {
+  group: LegendGroupInformation<Config>;
+  item: LegendItemInformation<Config>;
+  MarkRenderer?: LegendItemMarkRendererType<Config>;
+  LabelRenderer?: LegendItemLabelRendererType<Config>;
+};
+
+export type LegendItemRendererType<Config extends EncodingConfig> = React.ComponentType<
+  LegendItemRendererProps<Config>
+>;
+
+export type LegendGroupRendererProps<Config extends EncodingConfig> = {
+  group: LegendGroupInformation<Config>;
+  ItemRenderer?: LegendItemRendererType<Config>;
+  ItemMarkRenderer?: LegendItemMarkRendererType<Config>;
+  ItemLabelRenderer?: LegendItemLabelRendererType<Config>;
   style?: CSSProperties;
 };
 
-export type LegendGroupRendererType<Encoding> = React.ComponentType<
-  LegendGroupRendererProps<Encoding>
+export type LegendGroupRendererType<Config extends EncodingConfig> = React.ComponentType<
+  LegendGroupRendererProps<Config>
 >;
 
-export type LegendRendererProps<Encoding> = {
-  groups: LegendItemInfo<Encoding>[][];
-  LegendGroupRenderer?: LegendGroupRendererType<Encoding>;
-  LegendItemRenderer?: LegendItemRendererType<Encoding>;
-  LegendItemMarkRenderer?: LegendItemMarkRendererType<Encoding>;
-  LegendItemLabelRenderer?: LegendItemLabelRendererType<Encoding>;
+export type LegendRendererProps<Config extends EncodingConfig> = {
+  groups: LegendGroupInformation<Config>[];
+  LegendGroupRenderer?: LegendGroupRendererType<Config>;
+  LegendItemRenderer?: LegendItemRendererType<Config>;
+  LegendItemMarkRenderer?: LegendItemMarkRendererType<Config>;
+  LegendItemLabelRenderer?: LegendItemLabelRendererType<Config>;
   style?: CSSProperties;
 };
 
-export type LegendRendererType<Encoder> = React.ComponentType<LegendRendererProps<Encoder>>;
+export type LegendRendererType<Config extends EncodingConfig> = React.ComponentType<
+  LegendRendererProps<Config>
+>;
 
-export type LegendHooks<
-  Encoder,
-  Encoding = Encoder extends AbstractEncoder<any, infer Encoding> ? Encoding : never
-> = {
-  LegendRenderer?: LegendRendererType<Encoding>;
-  LegendGroupRenderer?: LegendGroupRendererType<Encoding>;
-  LegendItemRenderer?: LegendItemRendererType<Encoding>;
-  LegendItemMarkRenderer?: LegendItemMarkRendererType<Encoding>;
-  LegendItemLabelRenderer?: LegendItemLabelRendererType<Encoding>;
+export type LegendHooks<Config extends EncodingConfig> = {
+  LegendRenderer?: LegendRendererType<Config>;
+  LegendGroupRenderer?: LegendGroupRendererType<Config>;
+  LegendItemRenderer?: LegendItemRendererType<Config>;
+  LegendItemMarkRenderer?: LegendItemMarkRendererType<Config>;
+  LegendItemLabelRenderer?: LegendItemLabelRendererType<Config>;
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { isDefined } from '@superset-ui/core';
 import { TooltipFrame, TooltipTable } from '@superset-ui/chart-composition';
-import Encoder from './Encoder';
+import { BoxPlotEncoder } from './Encoder';
 import { BoxPlotDataRow } from './types';
 
 export default function DefaultTooltipRenderer({
@@ -11,13 +11,12 @@ export default function DefaultTooltipRenderer({
 }: {
   datum: BoxPlotDataRow;
   color: string;
-  encoder: Encoder;
+  encoder: BoxPlotEncoder;
 }) {
   const { label, min, max, median, firstQuartile, thirdQuartile, outliers } = datum;
   const { channels } = encoder;
 
-  const formatValue =
-    channels.y.definition.type === 'nominal' ? channels.x.formatValue : channels.y.formatValue;
+  const { formatValue } = channels.y;
 
   const data = [];
   if (isDefined(min)) {

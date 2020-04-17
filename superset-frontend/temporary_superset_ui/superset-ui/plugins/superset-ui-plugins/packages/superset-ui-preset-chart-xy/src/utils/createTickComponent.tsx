@@ -1,6 +1,6 @@
 import React, { CSSProperties } from 'react';
 import { Dimension } from '@superset-ui/dimension';
-import { AxisLayout } from '../encodeable/AxisAgent';
+import { AxisLayout } from './computeAxisLayout';
 
 export default function createTickComponent({
   axisWidth,

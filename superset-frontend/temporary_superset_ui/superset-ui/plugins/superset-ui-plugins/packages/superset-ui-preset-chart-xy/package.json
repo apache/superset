@@ -31,31 +31,23 @@
   "dependencies": {
     "@data-ui/theme": "^0.0.84",
     "@data-ui/xy-chart": "^0.0.84",
-    "@types/d3-scale": "^2.1.1",
     "@vx/axis": "^0.0.195",
-    "@vx/group": "^0.0.194",
-    "@vx/legend": "^0.0.194",
-    "@vx/responsive": "^0.0.195",
+    "@vx/legend": "^0.0.195",
     "@vx/scale": "^0.0.195",
-    "@vx/shape": "^0.0.194",
     "csstype": "^2.6.3",
-    "d3-array": "^2.1.0",
-    "d3-scale": "^3.0.0",
+    "encodable": "^0.3.4",
     "lodash": "^4.17.11",
-    "prop-types": "^15.6.2",
-    "reselect": "^4.0.0",
-    "vega": "^5.8.1",
-    "vega-lite": "~4.1.1"
+    "reselect": "^4.0.0"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.12.0",
     "@superset-ui/chart-composition": "^0.12.0",
-    "@superset-ui/color": "^0.12.0",
+    "@superset-ui/color": "^0.12.15",
     "@superset-ui/core": "^0.12.0",
     "@superset-ui/dimension": "^0.12.0",
-    "@superset-ui/number-format": "^0.12.0",
+    "@superset-ui/number-format": "^0.12.15",
     "@superset-ui/query": "^0.12.0",
-    "@superset-ui/time-format": "^0.12.0",
+    "@superset-ui/time-format": "^0.12.15",
     "@superset-ui/translation": "^0.12.0",
     "react": "^16.2"
   }

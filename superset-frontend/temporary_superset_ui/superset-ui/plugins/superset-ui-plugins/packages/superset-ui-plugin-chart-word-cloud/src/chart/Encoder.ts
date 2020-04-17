@@ -1,5 +1,4 @@
-import { createEncoderFactory } from 'encodable';
-import { DeriveEncoding } from 'encodable/lib/types/Encoding';
+import { createEncoderFactory, DeriveEncoding } from 'encodable';
 
 type WordCloudEncodingConfig = {
   color: ['Color', string];
