@@ -30,7 +30,18 @@ export default {
         ['color_scheme', 'label_colors'],
         ['number_format', 'date_time_format'],
         [
-          'rich_tooltip',
+          {
+            name: 'rich_tooltip',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Rich Tooltip'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'The rich tooltip shows a list of all series for that point in time',
+              ),
+            },
+          },
           {
             name: 'rose_area_proportion',
             config: {

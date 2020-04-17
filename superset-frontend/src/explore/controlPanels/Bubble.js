@@ -17,6 +17,20 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { D3_FORMAT_OPTIONS } from '../controls';
+import { formatSelectOptions } from '../../modules/utils';
+import {
+  showLegend,
+  xAxisLabel,
+  yAxisLabel,
+  bottomMargin,
+  xTicksLayout,
+  xAxisFormat,
+  yLogScale,
+  xAxisShowMinmax,
+  yAxisShowMinmax,
+  leftMargin,
+} from './Shared_NVD3';
 
 export default {
   label: t('Bubble Chart'),
@@ -30,7 +44,26 @@ export default {
         ['y'],
         ['adhoc_filters'],
         ['size'],
-        ['max_bubble_size'],
+        [
+          {
+            name: 'max_bubble_size',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Max Bubble Size'),
+              default: '25',
+              choices: formatSelectOptions([
+                '5',
+                '10',
+                '15',
+                '25',
+                '50',
+                '75',
+                '100',
+              ]),
+            },
+          },
+        ],
         ['limit', null],
       ],
     },
@@ -39,15 +72,25 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['show_legend', null],
+        [showLegend, null],
       ],
     },
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'left_margin'],
-        ['x_axis_format', 'x_ticks_layout'],
+        [xAxisLabel, leftMargin],
+        [
+          {
+            name: xAxisFormat.name,
+            config: {
+              ...xAxisFormat.config,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+            },
+          },
+          xTicksLayout,
+        ],
         [
           {
             name: 'x_log_scale',
@@ -59,7 +102,7 @@ export default {
               description: t('Use a log scale for the X-axis'),
             },
           },
-          'x_axis_showminmax',
+          xAxisShowMinmax,
         ],
       ],
     },
@@ -67,9 +110,9 @@ export default {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_label', 'bottom_margin'],
+        [yAxisLabel, bottomMargin],
         ['y_axis_format', null],
-        ['y_log_scale', 'y_axis_showminmax'],
+        [yLogScale, yAxisShowMinmax],
       ],
     },
   ],
