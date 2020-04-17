@@ -31,8 +31,8 @@
     "postrelease": "lerna run deploy-demo",
     "list-changed-packages": "lerna changed",
     "manual-release": "lerna publish --force-publish && yarn postrelease",
-    "ci:create-patch-version": "lerna version patch --create-release github --yes",
-    "ci:create-minor-version": "lerna version minor --create-release github --yes",
+    "ci:create-patch-version": "lerna version patch --yes",
+    "ci:create-minor-version": "lerna version minor --yes",
     "ci:create-conventional-version": "lerna version --conventional-commits --create-release github --yes",
     "ci:release-from-tag": "lerna publish from-package --yes",
     "ci:release-conventional": "lerna publish --conventional-commits --create-release github --yes"
