@@ -35,6 +35,7 @@ import {
   stroked,
   extruded,
   viewport,
+  mapboxStyle,
 } from './Shared_DeckGL';
 
 export default {
@@ -66,7 +67,7 @@ export default {
     {
       label: t('Map'),
       controlSetRows: [
-        ['mapbox_style', viewport],
+        [mapboxStyle, viewport],
         // TODO [autozoom, null], // import { autozoom } from './Shared_DeckGL'
       ],
     },

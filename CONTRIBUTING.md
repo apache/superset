@@ -1029,7 +1029,6 @@ The `metric` (or equivalent) and `timeseries_limit_metric` fields are all compos
 | Field                 | Type      | Notes                                            |
 | --------------------- | --------- | ------------------------------------------------ |
 | `color_picker`        | _object_  | The **Fixed Color** widget                       |
-| `global_opacity`      | _number_  | The **Opacity** widget                           |
 | `label_colors`        | _object_  | The **Color Scheme** widget                      |
 | `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
@@ -1079,8 +1078,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `label`                         | _N/A_ |       |
 | `linear_color_scheme`           | _N/A_ |       |
 | `log_scale`                     | _N/A_ |       |
-| `mapbox_label`                  | _N/A_ |       |
-| `mapbox_style`                  | _N/A_ |       |
 | `markup_type`                   | _N/A_ |       |
 | `min_periods`                   | _N/A_ |       |
 | `new_dashboard_name`            | _N/A_ |       |
@@ -1110,4 +1107,3 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `timed_refresh_immune_slices`   | _N/A_ |       |
 | `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
-| `viewport_zoom`                 | _N/A_ |       |
