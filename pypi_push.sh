@@ -22,5 +22,12 @@ rm superset/static/assets/*
 cd superset-frontend/
 npm ci && npm run build
 cd ../..
+echo "----------------------"
+echo "Compiling translations"
+echo "----------------------"
+flask fab babel-compile --target superset/translations
+echo "----------------------"
+echo "Creating distribution "
+echo "----------------------"
 python setup.py sdist
 echo "RUN: twine upload dist/apache-superset-{SUPERSET_VERSION}.tar.gz"
