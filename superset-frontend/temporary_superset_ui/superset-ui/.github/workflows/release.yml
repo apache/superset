@@ -80,7 +80,7 @@ jobs:
       run: |
         git update-index --assume-unchanged .npmrc
         git tag -d `git tag | grep -E '^trigger-'`
-        yarn ci:release-from-tag && yarn postrelease
+        yarn ci:release-from-tag
       env:
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
