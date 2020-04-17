@@ -2,8 +2,8 @@ name: Publish package
 
 on:
   push:
-    tags:
-      - 'trigger-patch-test.*'
+    branches:
+      - 'master'
 
 jobs:
   build:
@@ -18,12 +18,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: 'master'
         # pulls all commits (needed for lerna / semantic release to correctly version)
         fetch-depth: 0
     - name: Get tags and filter trigger tags
       run: |
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+        git fetch --prune --unshallow
         git tag -d `git tag | grep -E '^trigger-'`
 
     - name: Use Node.js ${{ matrix.node-version }}
@@ -54,10 +54,10 @@ jobs:
 
     - name: Install dependencies
       run: yarn install --frozen-lockfile
-    # - name: Build packages
-    #   run: yarn build
-    # - name: Run unit tests
-    #   run: yarn test
+    - name: Build packages
+      run: yarn build
+    - name: Run unit tests
+      run: yarn test
 
     - name: List changed packages
       run: yarn list-changed-packages
@@ -76,9 +76,13 @@ jobs:
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # - name: Bump version and publish package(s)
-    #   run: |
-    #     yarn ci:create-patch-version
-    #     yarn ci:release-from-tag
-    #   env:
-    #     GH_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+    - name: Bump version and publish package(s)
+      run: |
+        git update-index --assume-unchanged .npmrc
+        git tag -d `git tag | grep -E '^trigger-'`
+        yarn ci:create-patch-version
+        yarn ci:release-from-tag
+      env:
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
