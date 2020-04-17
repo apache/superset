@@ -96,7 +96,7 @@ def _get_aggregate_funcs(
     aggregators. Currently only numpy aggregators are supported.
 
     :param df: DataFrame on which to perform aggregate operation.
-    :param aggregates: Mapping from column name to aggregat config.
+    :param aggregates: Mapping from column name to aggregate config.
     :return: Mapping from metric name to function that takes a single input argument.
     """
     agg_funcs: Dict[str, NamedAgg] = {}
@@ -276,12 +276,13 @@ def rolling(  # pylint: disable=too-many-arguments
            on rolling values calculated from `y`, leaving the original column `y`
            unchanged.
     :param rolling_type: Type of rolling window. Any numpy function will work.
+    :param window: Size of the window.
     :param rolling_type_options: Optional options to pass to rolling method. Needed
            for e.g. quantile operation.
     :param center: Should the label be at the center of the window.
     :param win_type: Type of window function.
-    :param window: Size of the window.
-    :param min_periods:
+    :param min_periods: The minimum amount of periods required for a row to be included
+                        in the result set.
     :return: DataFrame with the rolling columns
     :raises ChartDataValidationError: If the request in incorrect
     """
@@ -332,7 +333,7 @@ def select(
 
     :param df: DataFrame on which the rolling period will be based.
     :param columns: Columns which to select from the DataFrame, in the desired order.
-                    If columns are renamed, the new column name should be referenced
+                    If columns are renamed, the old column name should be referenced
                     here.
     :param rename: columns which to rename, mapping source column to target column.
                    For instance, `{'y': 'y2'}` will rename the column `y` to

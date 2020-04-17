@@ -25,6 +25,7 @@ from sqlalchemy.orm import foreign, Query, relationship
 from superset.constants import NULL_STRING
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
 from superset.models.slice import Slice
+from superset.typing import FilterValue, FilterValues
 from superset.utils import core as utils
 
 METRIC_FORM_DATA_PARAMS = [
@@ -301,28 +302,33 @@ class BaseDatasource(
 
     @staticmethod
     def filter_values_handler(
-        values, target_column_is_numeric=False, is_list_target=False
-    ):
-        def handle_single_value(v):
+        values: Optional[FilterValues],
+        target_column_is_numeric: bool = False,
+        is_list_target: bool = False,
+    ) -> Optional[FilterValues]:
+        if values is None:
+            return None
+
+        def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             # backward compatibility with previous <select> components
-            if isinstance(v, str):
-                v = v.strip("\t\n'\"")
+            if isinstance(value, str):
+                value = value.strip("\t\n'\"")
                 if target_column_is_numeric:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
-                    v = utils.string_to_num(v)
-                if v == NULL_STRING:
+                    value = utils.cast_to_num(value)
+                if value == NULL_STRING:
                     return None
-                elif v == "<empty string>":
+                elif value == "<empty string>":
                     return ""
-            return v
+            return value
 
         if isinstance(values, (list, tuple)):
-            values = [handle_single_value(v) for v in values]
+            values = [handle_single_value(v) for v in values]  # type: ignore
         else:
             values = handle_single_value(values)
         if is_list_target and not isinstance(values, (tuple, list)):
-            values = [values]
+            values = [values]  # type: ignore
         elif not is_list_target and isinstance(values, (tuple, list)):
             if values:
                 values = values[0]
