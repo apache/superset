@@ -1,5 +1,5 @@
 import React, { CSSProperties, PureComponent } from 'react';
-import AbstractEncoder from '../../encodeable/AbstractEncoder';
+import { EncodingConfig } from 'encodable';
 import { LegendRendererProps } from './types';
 import DefaultLegendGroup from './DefaultLegendGroup';
 
@@ -13,10 +13,10 @@ const LEGEND_CONTAINER_STYLE: CSSProperties = {
   position: 'relative',
 };
 
-export type Props<Encoder> = LegendRendererProps<Encoder>;
+export type Props<Config extends EncodingConfig> = LegendRendererProps<Config>;
 
-export default class DefaultLegend<Encoder extends AbstractEncoder<any, any>> extends PureComponent<
-  Props<Encoder>
+export default class DefaultLegend<Config extends EncodingConfig> extends PureComponent<
+  Props<Config>
 > {
   render() {
     const {
@@ -35,15 +35,17 @@ export default class DefaultLegend<Encoder extends AbstractEncoder<any, any>> ex
 
     return (
       <div style={combinedStyle}>
-        {groups.map(items => (
-          <LegendGroupRenderer
-            key={items[0].field}
-            items={items}
-            ItemRenderer={LegendItemRenderer}
-            ItemMarkRenderer={LegendItemMarkRenderer}
-            ItemLabelRenderer={LegendItemLabelRenderer}
-          />
-        ))}
+        {groups
+          .filter(group => 'items' in group && group.items.length > 0)
+          .map(group => (
+            <LegendGroupRenderer
+              key={group.field}
+              group={group}
+              ItemRenderer={LegendItemRenderer}
+              ItemMarkRenderer={LegendItemMarkRenderer}
+              ItemLabelRenderer={LegendItemLabelRenderer}
+            />
+          ))}
       </div>
     );
   }

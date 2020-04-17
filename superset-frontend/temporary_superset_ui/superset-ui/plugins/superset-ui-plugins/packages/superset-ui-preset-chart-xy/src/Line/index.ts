@@ -8,7 +8,7 @@ export default class LineChartPlugin extends ChartPlugin<ChartFormData> {
   constructor() {
     super({
       buildQuery,
-      loadChart: () => import('./Line'),
+      loadChart: () => import('../components/Line/Line'),
       metadata: createMetadata(),
       transformProps,
     });

@@ -1,13 +1,12 @@
 import React from 'react';
-import AbstractEncoder from '../../encodeable/AbstractEncoder';
+import { Encoder, EncodingConfig, Dataset } from 'encodable';
 import { LegendHooks } from './types';
 import DefaultLegend from './DefaultLegend';
-import { Dataset } from '../../encodeable/types/Data';
 
-export default function createRenderLegend<Encoder extends AbstractEncoder<any, any, any>>(
-  encoder: Encoder,
+export default function createRenderLegend<Config extends EncodingConfig>(
+  encoder: Encoder<Config>,
   data: Dataset,
-  props: LegendHooks<Encoder>,
+  props: LegendHooks<Config>,
 ) {
   if (encoder.hasLegend()) {
     const {
@@ -20,7 +19,7 @@ export default function createRenderLegend<Encoder extends AbstractEncoder<any, 
 
     return () => (
       <LegendRenderer
-        groups={encoder.getLegendInfos(data)}
+        groups={encoder.getLegendInformation(data)}
         LegendGroupRenderer={LegendGroupRenderer}
         LegendItemRenderer={LegendItemRenderer}
         LegendItemMarkRenderer={LegendItemMarkRenderer}

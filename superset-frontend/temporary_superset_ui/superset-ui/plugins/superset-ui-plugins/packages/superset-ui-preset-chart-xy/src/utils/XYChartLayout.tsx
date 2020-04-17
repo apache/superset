@@ -2,33 +2,32 @@ import React, { ReactNode, CSSProperties } from 'react';
 import { XAxis, YAxis } from '@data-ui/xy-chart';
 import { Margin, mergeMargin, Dimension } from '@superset-ui/dimension';
 import { ChartFrame } from '@superset-ui/chart-composition';
+import { ChannelEncoder, PlainObject, Value, XFieldDef, YFieldDef } from 'encodable';
 import createTickComponent from './createTickComponent';
-import ChannelEncoder from '../encodeable/ChannelEncoder';
-import { XFieldDef, YFieldDef } from '../encodeable/types/ChannelDef';
-import { PlainObject } from '../encodeable/types/Data';
-import { DEFAULT_LABEL_ANGLE } from './constants';
-import { AxisLayout } from '../encodeable/AxisAgent';
+import computeAxisLayout, { AxisLayout } from './computeAxisLayout';
+
+export const DEFAULT_LABEL_ANGLE = 40;
 
 // Additional margin to avoid content hidden behind scroll bar
 const OVERFLOW_MARGIN = 8;
 
-export interface XYChartLayoutConfig {
+export interface XYChartLayoutConfig<XOutput extends Value, YOutput extends Value> {
   width: number;
   height: number;
   minContentWidth?: number;
   minContentHeight?: number;
   margin: Margin;
-  xEncoder: ChannelEncoder<XFieldDef>;
+  xEncoder: ChannelEncoder<XFieldDef<XOutput>, XOutput>;
   xTickSize?: number;
   xTickTextStyle?: CSSProperties;
   autoAdjustXMargin?: boolean;
-  yEncoder: ChannelEncoder<YFieldDef>;
+  yEncoder: ChannelEncoder<YFieldDef<YOutput>, YOutput>;
   yTickSize?: number;
   yTickTextStyle?: CSSProperties;
   autoAdjustYMargin?: boolean;
 }
 
-export default class XYChartLayout {
+export default class XYChartLayout<XOutput extends Value, YOutput extends Value> {
   chartWidth: number;
 
   chartHeight: number;
@@ -39,15 +38,15 @@ export default class XYChartLayout {
 
   margin: Margin;
 
-  xEncoder: ChannelEncoder<XFieldDef>;
+  xEncoder: ChannelEncoder<XFieldDef<XOutput>, XOutput>;
 
   xLayout?: AxisLayout;
 
-  yEncoder: ChannelEncoder<YFieldDef>;
+  yEncoder: ChannelEncoder<YFieldDef<YOutput>, YOutput>;
 
   yLayout?: AxisLayout;
 
-  constructor(config: XYChartLayoutConfig) {
+  constructor(config: XYChartLayoutConfig<XOutput, YOutput>) {
     const {
       width,
       height,
@@ -68,9 +67,9 @@ export default class XYChartLayout {
     this.yEncoder = yEncoder;
 
     if (typeof yEncoder.axis !== 'undefined') {
-      this.yLayout = yEncoder.axis.computeLayout({
+      this.yLayout = computeAxisLayout(yEncoder.axis, {
         axisWidth: Math.max(height - margin.top - margin.bottom),
-        tickSize: yEncoder.axis.config.tickSize ?? yTickSize,
+        defaultTickSize: yTickSize,
         tickTextStyle: yTickTextStyle,
       });
     }
@@ -80,10 +79,9 @@ export default class XYChartLayout {
     const innerWidth = Math.max(width - secondMargin.left - secondMargin.right, minContentWidth);
 
     if (typeof xEncoder.axis !== 'undefined') {
-      this.xLayout = xEncoder.axis.computeLayout({
+      this.xLayout = computeAxisLayout(xEncoder.axis, {
         axisWidth: innerWidth,
-        labelAngle: this.recommendXLabelAngle(xEncoder.axis.config.orient as 'top' | 'bottom'),
-        tickSize: xEncoder.axis.config.tickSize ?? xTickSize,
+        defaultTickSize: xTickSize,
         tickTextStyle: xTickTextStyle,
       });
     }
@@ -113,17 +111,6 @@ export default class XYChartLayout {
     this.margin = finalMargin;
   }
 
-  recommendXLabelAngle(xOrient: 'top' | 'bottom' = 'bottom') {
-    const { axis } = this.yEncoder;
-
-    return !this.yLayout ||
-      (typeof axis !== 'undefined' &&
-        ((axis.config.orient === 'right' && xOrient === 'bottom') ||
-          (axis.config.orient === 'left' && xOrient === 'top')))
-      ? DEFAULT_LABEL_ANGLE
-      : -DEFAULT_LABEL_ANGLE;
-  }
-
   renderChartWithFrame(renderChart: (input: Dimension) => ReactNode) {
     return (
       <ChartFrame
@@ -146,7 +133,7 @@ export default class XYChartLayout {
         numTicks={axis.config.tickCount}
         orientation={axis.config.orient}
         tickComponent={createTickComponent(this.xLayout)}
-        tickFormat={axis.getFormat()}
+        tickFormat={axis.formatValue}
         {...props}
       />
     ) : null;
@@ -161,7 +148,7 @@ export default class XYChartLayout {
         labelOffset={this.yLayout.labelOffset}
         numTicks={axis.config.tickCount}
         orientation={axis.config.orient}
-        tickFormat={axis.getFormat()}
+        tickFormat={axis.formatValue}
         {...props}
       />
     ) : null;
