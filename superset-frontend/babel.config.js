@@ -65,5 +65,9 @@ module.exports = {
       ],
       plugins: ['babel-plugin-dynamic-import-node'],
     },
+    // build instrumented code for testing code coverage with Cypress
+    instrumented: {
+      plugins: ['istanbul'],
+    },
   },
 };
