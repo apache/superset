@@ -292,7 +292,7 @@ with the changes on `CHANGELOG.md` and `UPDATING.md`.
 
 ### Publishing a Convenience Release to PyPI
 
-Using the final release tarball, unpack it and run ./pypi_push.sh 
+Using the final release tarball, unpack it and run `./pypi_push.sh`.
 This script will build the Javascript bundle and echo the twine command 
 allowing you to publish to PyPI. You may need to ask a fellow committer to grant
 you access to it if you don't have access already. Make sure to create
