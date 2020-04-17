@@ -30,10 +30,9 @@ Current master: https://superset-ui.now.sh/
 | [@superset-ui/generator-superset](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-generator-superset) | [![Version](https://img.shields.io/npm/v/@superset-ui/generator-superset.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/generator-superset.svg?style=flat-square) |
 | [@superset-ui/number-format](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-number-format)           | [![Version](https://img.shields.io/npm/v/@superset-ui/number-format.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/number-format.svg?style=flat-square)           |
 | [@superset-ui/query](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-query)                           | [![Version](https://img.shields.io/npm/v/@superset-ui/query.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/query.svg?style=flat-square)                           |
-| [@superset-ui/style](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-style)               | [![Version](https://img.shields.io/npm/v/@superset-ui/style.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/style.svg?style=flat-square)               |
+| [@superset-ui/style](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-style)                           | [![Version](https://img.shields.io/npm/v/@superset-ui/style.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/style.svg?style=flat-square)                           |
 | [@superset-ui/time-format](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-time-format)               | [![Version](https://img.shields.io/npm/v/@superset-ui/time-format.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/time-format.svg?style=flat-square)               |
 | [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation)               | [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)               |
-
 
 ### Chart plugin packages
 
@@ -42,9 +41,8 @@ Current master: https://superset-ui.now.sh/
 packages are extracted with minimal changes (almost as-is). They also depend on legacy API
 (`viz.py`) to function.
 
-
-| Package                                                                                                                                                                                   | Version                                                                                                                                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Package                                                                                                                                                              | Version                                                                                                                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [@superset-ui/legacy-preset-chart-big-number](https://github.com/apache-superset/superset-ui/tree/master/plugins/legacy-preset-chart-big-number)                     | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-big-number.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-big-number.svg?style=flat-square)                     |
 | [@superset-ui/legacy-preset-chart-nvd3](https://github.com/apache-superset/superset-ui/tree/master/plugins/legacy-preset-chart-nvd3)                                 | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-nvd3.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-nvd3.svg?style=flat-square)                                 |
 | [@superset-ui/legacy-plugin-chart-calendar](https://github.com/apache-superset/superset-ui/tree/master/plugins/legacy-plugin-chart-calendar)                         | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-calendar.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-calendar.svg?style=flat-square)                         |
@@ -71,18 +69,16 @@ packages are extracted with minimal changes (almost as-is). They also depend on 
 | [@superset-ui/legacy-plugin-chart-word-cloud](https://github.com/apache-superset/superset-ui/tree/master/plugins/legacy-plugin-chart-word-cloud)                     | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-word-cloud.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-word-cloud.svg?style=flat-square)                     |
 | [@superset-ui/legacy-plugin-chart-world-map](https://github.com/apache-superset/superset-ui/tree/master/plugins/legacy-plugin-chart-world-map)                       | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-world-map.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-world-map.svg?style=flat-square)                       |
 
+`@superset-ui/plugin-*` packages are newer and higher quality in general. A key difference that they
+do not depend on `viz.py` (which contain visualization-specific python code) and interface with
+`/api/v1/query/`, a new generic endpoint instead meant to serve all visualizations, instead. Also
+should be written in Typescript.
 
-`@superset-ui/plugin-*` packages are newer and higher quality in general.
-A key difference that they do not depend on `viz.py` (which contain visualization-specific python code)
-and interface with `/api/v1/query/`, a new generic endpoint instead meant to serve all visualizations, instead.
-Also should be written in Typescript.
-
-| Package                                                                                                                                                 | Version                                                                                                                                                                                        | Note         |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| [@superset-ui/plugin-chart-word-cloud](https://github.com/apache-superset/superset-ui/tree/master/plugins/plugin-chart-word-cloud) | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square) |              |
-| [@superset-ui/plugin-chart-table](https://github.com/apache-superset/superset-ui/tree/master/plugins/plugin-chart-table)           | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-table.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/plugin-chart-table.svg?style=flat-square)           |              |
-| [@superset-ui/preset-chart-xy](https://github.com/apache-superset/superset-ui/tree/master/plugins/preset-chart-xy)                 | [![Version](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square)                 |  |
-
+| Package                                                                                                                            | Version                                                                                                                                                                                        | Note |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| [@superset-ui/plugin-chart-word-cloud](https://github.com/apache-superset/superset-ui/tree/master/plugins/plugin-chart-word-cloud) | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square) |      |
+| [@superset-ui/plugin-chart-table](https://github.com/apache-superset/superset-ui/tree/master/plugins/plugin-chart-table)           | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-table.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/plugin-chart-table.svg?style=flat-square)           |      |
+| [@superset-ui/preset-chart-xy](https://github.com/apache-superset/superset-ui/tree/master/plugins/preset-chart-xy)                 | [![Version](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/preset-chart-xy.svg?style=flat-square)                 |      |
 
 ## Contribution and development guide
 
