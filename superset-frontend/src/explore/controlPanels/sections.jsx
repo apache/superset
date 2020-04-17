@@ -33,7 +33,15 @@ export const datasourceAndVizType = {
   controlSetRows: [
     ['datasource'],
     ['viz_type'],
-    ['slice_id', 'cache_timeout', 'url_params', 'time_range_endpoints'],
+    ['slice_id', 'cache_timeout', 'url_params', {
+      name: 'time_range_endpoints',
+      config: {
+        type: 'HiddenControl',
+        label: t('Time range endpoints'),
+        hidden: true,
+        description: t('Time range endpoints (SIP-15)'),
+      },
+    }],
   ],
 };
 

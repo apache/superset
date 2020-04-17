@@ -887,13 +887,6 @@ export const controls = {
     description: t('Extra parameters for use in jinja templated queries'),
   },
 
-  time_range_endpoints: {
-    type: 'HiddenControl',
-    label: t('Time range endpoints'),
-    hidden: true,
-    description: t('Time range endpoints (SIP-15)'),
-  },
-
   color_scheme: {
     type: 'ColorSchemeControl',
     label: t('Color Scheme'),

@@ -976,7 +976,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `granularity_sqla`     | _string_        | The SQLA **Time Column** widget       |
 | `time_grain_sqla`      | _string_        | The SQLA **Time Grain** widget        |
 | `time_range`           | _string_        | The **Time range** widget             |
-| `time_range_endpoints` | _array(string)_ | Used by SIP-15 [HIDDEN]               |
 
 ### GROUP BY
 
