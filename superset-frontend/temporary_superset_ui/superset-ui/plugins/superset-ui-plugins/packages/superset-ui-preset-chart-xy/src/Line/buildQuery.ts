@@ -1,11 +1,11 @@
 import { buildQueryContext } from '@superset-ui/query';
 import ChartFormData from './ChartFormData';
-import Encoder from './Encoder';
+import { lineEncoderFactory } from '../components/Line/Encoder';
 
 export default function buildQuery(formData: ChartFormData) {
   const queryContext = buildQueryContext(formData);
   const { encoding } = formData;
-  const encoder = new Encoder({ encoding });
+  const encoder = lineEncoderFactory.create(encoding);
 
   queryContext.queries.forEach(query => {
     const q = query;

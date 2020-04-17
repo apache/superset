@@ -5,7 +5,7 @@ import transformProps from './transformProps';
 export default class LineChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('../ScatterPlot'),
+      loadChart: () => import('../../components/ScatterPlot/ScatterPlot'),
       metadata: createMetadata(true),
       transformProps,
     });

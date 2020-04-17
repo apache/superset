@@ -6,8 +6,8 @@
   "scripts": {
     "build": "yarn babel && yarn type && yarn build:assets",
     "babel": "yarn babel:cjs && yarn babel:esm",
-    "babel:cjs": "nimbus babel --clean --workspaces=\"@superset-ui/!(plugins-demo)\"",
-    "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(plugins-demo)\" --esm",
+    "babel:cjs": "nimbus babel --clean --workspaces=\"@superset-ui/!(plugins-demo)\" --config-file=../../babel.config.js",
+    "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(plugins-demo)\" --esm --config-file=../../babel.config.js",
     "build:assets": "node ./scripts/buildAssets.js",
     "clean": "rm -rf ./packages/**/{lib,esm}",
     "commit": "superset-commit",
@@ -42,14 +42,14 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@airbnb/config-babel": "^2.1.3",
-    "@airbnb/config-eslint": "^2.1.3",
-    "@airbnb/config-jest": "^2.1.3",
-    "@airbnb/config-prettier": "^2.0.4",
-    "@airbnb/config-typescript": "^2.1.2",
-    "@airbnb/nimbus": "^2.1.3",
+    "@airbnb/config-babel": "^2.2.2",
+    "@airbnb/config-eslint": "^2.5.1",
+    "@airbnb/config-jest": "^2.2.2",
+    "@airbnb/config-prettier": "^2.1.1",
+    "@airbnb/config-typescript": "^2.2.2",
+    "@airbnb/nimbus": "^2.2.3",
     "@superset-ui/commit-config": "^0.0.9",
-    "@superset-ui/superset-ui": "^0.12.5",
+    "@superset-ui/superset-ui": "^0.12.15",
     "@types/enzyme": "^3.10.3",
     "@types/jest": "^25.1.3",
     "@types/jsdom": "^12.2.4",
@@ -86,7 +86,7 @@
   ],
   "nimbus": {
     "drivers": [
-      "babel",
+      { "driver": "babel", "strategy": "none" },
       "eslint",
       "jest",
       "prettier",
@@ -105,6 +105,9 @@
       "setupFilesAfterEnv": [
         "@airbnb/config-jest/enzyme",
         "./scripts/setupJest.js"
+      ],
+      "transformIgnorePatterns": [
+        "node_modules/(?!(vega-lite|lodash-es))"
       ],
       "coverageThreshold": {
         "global": {

@@ -1,5 +1,7 @@
-import { BoxPlotChartPlugin as LegacyBoxPlotChartPlugin } from '../../../../../superset-ui-preset-chart-xy/esm/legacy';
-import { BoxPlotChartPlugin } from '../../../../../superset-ui-preset-chart-xy';
+import {
+  BoxPlotChartPlugin,
+  LegacyBoxPlotChartPlugin,
+} from '../../../../../superset-ui-preset-chart-xy';
 import Stories from './stories/Basic';
 import LegacyStories from './stories/Legacy';
 import { BOX_PLOT_PLUGIN_LEGACY_TYPE, BOX_PLOT_PLUGIN_TYPE } from './constants';

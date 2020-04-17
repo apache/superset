@@ -23,7 +23,7 @@ import transformProps from './transformProps';
 export default class BoxPlotChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('../BoxPlot'),
+      loadChart: () => import('../../components/BoxPlot/BoxPlot'),
       metadata: createMetadata(true),
       transformProps,
     });

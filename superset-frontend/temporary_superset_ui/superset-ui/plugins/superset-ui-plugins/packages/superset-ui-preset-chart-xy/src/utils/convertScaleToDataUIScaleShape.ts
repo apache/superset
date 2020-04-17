@@ -1,5 +1,4 @@
-import { Value } from 'vega-lite/build/src/channeldef';
-import { Scale } from '../encodeable/types/Scale';
+import { Value, ScaleConfig } from 'encodable';
 
 type DataUIScaleType = 'time' | 'timeUtc' | 'linear' | 'band';
 
@@ -15,7 +14,7 @@ interface DataUIScale {
 }
 
 function isCompatibleDomainOrRange(
-  array: Scale['domain'] | Scale['range'],
+  array: ScaleConfig['domain'] | ScaleConfig['range'],
 ): array is number[] | string[] {
   return (
     typeof array !== 'undefined' &&
@@ -28,8 +27,10 @@ function isCompatibleDomainOrRange(
  * Convert encodeable scale object into @data-ui's scale config
  * @param scale
  */
-export default function convertScaleToDataUIScale<Output extends Value>(scale: Scale<Output>) {
-  const { type, domain, range, nice, paddingInner, paddingOuter } = scale;
+export default function convertScaleToDataUIScale<Output extends Value>(
+  scale: ScaleConfig<Output>,
+) {
+  const { type, domain, range } = scale;
 
   let outputType: DataUIScaleType;
 
@@ -48,14 +49,14 @@ export default function convertScaleToDataUIScale<Output extends Value>(scale: S
   if (isCompatibleDomainOrRange(range)) {
     output.range = range;
   }
-  if (typeof nice !== 'undefined') {
-    output.nice = nice;
+  if ('nice' in scale && typeof scale.nice === 'boolean') {
+    output.nice = scale.nice;
   }
-  if (typeof paddingInner !== 'undefined') {
-    output.paddingInner = paddingInner;
+  if ('paddingInner' in scale && typeof scale.paddingInner !== 'undefined') {
+    output.paddingInner = scale.paddingInner;
   }
-  if (typeof paddingOuter !== 'undefined') {
-    output.paddingOuter = paddingOuter;
+  if ('paddingOuter' in scale && typeof scale.paddingOuter !== 'undefined') {
+    output.paddingOuter = scale.paddingOuter;
   }
 
   return output;
