@@ -1,13 +1,25 @@
 name: Publish package
 
 on:
-  push:
-    tags:
-      - 'trigger-patch-test.*'
+  watch
+    types: [started]
 
 jobs:
+  authorize:
+    name: Check publish permission
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: octokit/request-action@v2.0.0
+      with:
+        route: GET /repos/:repository/collaborators/${{ github.actor }}
+        repository: ${{ github.repository }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     name: Bump version and publish package(s)
+    needs: [authorize]
 
     runs-on: ubuntu-latest
 
@@ -20,6 +32,7 @@ jobs:
       with:
         # pulls all commits (needed for lerna / semantic release to correctly version)
         fetch-depth: "0"
+    - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
@@ -66,8 +79,7 @@ jobs:
         npm whoami
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git remote set-url origin "https://${GITHUB_TOKEN}@github.com/apache-superset/superset-ui.git" >
-          /dev/null 2>&1
+        git remote set-url origin "https://${GITHUB_TOKEN}@github.com/apache-superset/superset-ui.git" > /dev/null 2>&1
       env:
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
