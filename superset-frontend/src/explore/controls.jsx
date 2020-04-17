@@ -922,14 +922,5 @@ export const controls = {
     controlName: 'TimeSeriesColumnControl',
   },
 
-  filter_configs: {
-    type: 'CollectionControl',
-    label: 'Filters',
-    description: t('Filter configuration for the filter box'),
-    validators: [],
-    controlName: 'FilterBoxItemControl',
-    mapStateToProps: ({ datasource }) => ({ datasource }),
-  },
-  
 };
 export default controls;
