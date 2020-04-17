@@ -1,4 +1,4 @@
-name: Node.js CI
+name: build-and-test-workflow
 
 on:
   push:
