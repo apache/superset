@@ -49,10 +49,10 @@ jobs:
 
     - name: Install dependencies
       run: yarn install --frozen-lockfile
-    - name: Build packages
-      run: yarn build
-    - name: Run unit tests
-      run: yarn test
+    # - name: Build packages
+    #   run: yarn build
+    # - name: Run unit tests
+    #   run: yarn test
 
     - name: List changed packages
       run: yarn list-changed-packages
@@ -62,16 +62,19 @@ jobs:
         yarn logout
         echo "@superset-ui:registry=http://registry.npmjs.org/" > .npmrc
         echo "registry=http://registry.npmjs.org/" >> .npmrc
-        echo "//registry.npmjs.org/:_authToken=\${{ secrets.NPM_TOKEN }}" >> $HOME/.npmrc 2> /dev/null
+        echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> $HOME/.npmrc 2> /dev/null
         npm whoami
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git remote set-url origin "https://${{ secrets.GITHUB_TOKEN }}@github.com/apache-superset/superset-ui.git" >
+        git remote set-url origin "https://${GITHUB_TOKEN}@github.com/apache-superset/superset-ui.git" >
           /dev/null 2>&1
-
-    - name: Bump version and publish package(s)
-      run: |
-        yarn ci:create-patch-version
-        yarn ci:release-from-tag
       env:
-        GH_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # - name: Bump version and publish package(s)
+    #   run: |
+    #     yarn ci:create-patch-version
+    #     yarn ci:release-from-tag
+    #   env:
+    #     GH_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
