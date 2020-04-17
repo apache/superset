@@ -6,21 +6,8 @@ on:
       - 'trigger-patch-test.*'
 
 jobs:
-  authorize:
-    name: Check publish permission
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: octokit/request-action@v2.0.0
-      with:
-        route: GET /repos/:repository/collaborators/${{ github.actor }}
-        repository: ${{ github.repository }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build:
     name: Bump version and publish package(s)
-    needs: [authorize]
 
     runs-on: ubuntu-latest
 
@@ -33,7 +20,9 @@ jobs:
       with:
         # pulls all commits (needed for lerna / semantic release to correctly version)
         fetch-depth: "0"
-    - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+    - run: |
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+        git tag -d `git tag | grep -E '^trigger-'`
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
