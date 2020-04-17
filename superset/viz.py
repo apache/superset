@@ -395,6 +395,12 @@ class BaseViz:
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         cache_dict["rls"] = security_manager.get_rls_ids(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
+
+        url_params = self.form_data.get("url_params")
+
+        if url_params:
+            cache_dict["url_params"] = url_params
+
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
