@@ -57,17 +57,6 @@ export default {
             },
           },
         ],
-        [{
-          name: 'global_opacity',
-          config: {
-            type: 'TextControl',
-            label: t('Opacity'),
-            default: 1,
-            isFloat: true,
-            description: t('Opacity of the bars. Between 0 and 1'),
-            renderTrigger: true,
-          },
-        }],
         [
           {
             name: 'normalized',

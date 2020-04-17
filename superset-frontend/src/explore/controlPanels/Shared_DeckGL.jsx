@@ -411,4 +411,4 @@ export const mapboxStyle = {
     default: 'mapbox://styles/mapbox/light-v9',
     description: t('Base layer map style'),
   },
-}
+};
