@@ -60,7 +60,6 @@ export default {
               description: t('Check to include SQL Granularity dropdown'),
             },
           },
-          ,
           {
             name: 'show_sqla_time_column',
             config: {
