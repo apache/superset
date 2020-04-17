@@ -27,7 +27,7 @@
     "postrelease": "lerna run deploy-demo",
     "storybook": "cd packages/superset-ui-plugins-demo && yarn storybook"
   },
-  "repository": "https://github.com/apache-superset/superset-ui-plugins.git",
+  "repository": "https://github.com/apache-superset/superset-ui.git",
   "keywords": [
     "apache",
     "superset",
