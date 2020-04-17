@@ -21,7 +21,7 @@ git branch
 rm superset/static/assets/*
 cd superset-frontend/
 npm ci && npm run build
-cd ../..
+cd ../
 echo "----------------------"
 echo "Compiling translations"
 echo "----------------------"
