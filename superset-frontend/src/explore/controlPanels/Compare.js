@@ -19,6 +19,18 @@
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import {
+  xAxisLabel,
+  yAxisLabel,
+  bottomMargin,
+  xTicksLayout,
+  xAxisFormat,
+  yLogScale,
+  yAxisBounds,
+  xAxisShowMinmax,
+  yAxisShowMinmax,
+  leftMargin,
+} from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -33,29 +45,23 @@ export default {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'bottom_margin'],
-        ['x_ticks_layout', 'x_axis_format'],
-        ['x_axis_showminmax', null],
+        [xAxisLabel, bottomMargin],
+        [xTicksLayout, xAxisFormat],
+        [xAxisShowMinmax, null],
       ],
     },
     {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_label', 'left_margin'],
-        ['y_axis_showminmax', 'y_log_scale'],
-        ['y_axis_format', 'y_axis_bounds'],
+        [yAxisLabel, leftMargin],
+        [yAxisShowMinmax, yLogScale],
+        ['y_axis_format', yAxisBounds],
       ],
     },
     NVD3TimeSeries[1],
     annotations,
   ],
-  controlOverrides: {
-    x_axis_format: {
-      choices: D3_TIME_FORMAT_OPTIONS,
-      default: 'smart_date',
-    },
-  },
   sectionOverrides: {
     druidTimeSeries: {
       controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],

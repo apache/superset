@@ -18,6 +18,17 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
+import {
+  showLegend,
+  showControls,
+  xAxisLabel,
+  bottomMargin,
+  xTicksLayout,
+  showBarValue,
+  barStacked,
+  reduceXTicks,
+  yAxisLabel,
+} from './Shared_NVD3';
 
 export default {
   controlPanelSections: [
@@ -38,18 +49,30 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['show_legend', 'show_bar_value'],
-        ['bar_stacked', 'order_bars'],
-        ['y_axis_format', 'y_axis_label'],
-        ['show_controls', null],
+        [showLegend, showBarValue],
+        [
+          barStacked,
+          {
+            name: 'order_bars',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Bars'),
+              default: false,
+              renderTrigger: true,
+              description: t('Sort bars by x labels.'),
+            },
+          },
+        ],
+        ['y_axis_format', yAxisLabel],
+        [showControls, null],
       ],
     },
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'bottom_margin'],
-        ['x_ticks_layout', 'reduce_x_ticks'],
+        [xAxisLabel, bottomMargin],
+        [xTicksLayout, reduceXTicks],
       ],
     },
   ],
