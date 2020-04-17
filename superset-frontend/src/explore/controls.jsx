@@ -855,13 +855,6 @@ export const controls = {
     description: t('The id of the active chart'),
   },
 
-  cache_timeout: {
-    type: 'HiddenControl',
-    label: t('Cache Timeout (seconds)'),
-    hidden: true,
-    description: t('The number of seconds before expiring the cache'),
-  },
-
   color_scheme: {
     type: 'ColorSchemeControl',
     label: t('Color Scheme'),

@@ -33,7 +33,15 @@ export const datasourceAndVizType = {
   controlSetRows: [
     ['datasource'],
     ['viz_type'],
-    ['slice_id', 'cache_timeout', {
+    ['slice_id', {
+      name: 'cache_timeout',
+      config: {
+        type: 'HiddenControl',
+        label: t('Cache Timeout (seconds)'),
+        hidden: true,
+        description: t('The number of seconds before expiring the cache'),
+      },
+    }, {
       name: 'url_params',
       config: {
         type: 'HiddenControl',
