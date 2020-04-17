@@ -33,7 +33,15 @@ export const datasourceAndVizType = {
   controlSetRows: [
     ['datasource'],
     ['viz_type'],
-    ['slice_id', {
+    [{
+      name: 'slice_id',
+      config: {
+        type: 'HiddenControl',
+        label: t('Chart ID'),
+        hidden: true,
+        description: t('The id of the active chart'),
+      },
+    }, {
       name: 'cache_timeout',
       config: {
         type: 'HiddenControl',
@@ -76,7 +84,17 @@ export const sqlaTimeSeries = {
 export const annotations = {
   label: t('Annotations and Layers'),
   expanded: true,
-  controlSetRows: [['annotation_layers']],
+  controlSetRows: [[{
+    name: 'annotation_layers',
+    config: {
+      type: 'AnnotationLayerControl',
+      label: '',
+      default: [],
+      description: 'Annotation Layers',
+      renderTrigger: true,
+      tabOverride: 'data',
+    },
+  }]],
 };
 
 export const NVD3TimeSeries = [

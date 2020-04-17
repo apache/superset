@@ -824,15 +824,6 @@ export const controls = {
     description: t('Pick a color'),
   },
 
-  annotation_layers: {
-    type: 'AnnotationLayerControl',
-    label: '',
-    default: [],
-    description: 'Annotation Layers',
-    renderTrigger: true,
-    tabOverride: 'data',
-  },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),
@@ -846,13 +837,6 @@ export const controls = {
       datasource: state.datasource,
     }),
     provideFormDataToProps: true,
-  },
-
-  slice_id: {
-    type: 'HiddenControl',
-    label: t('Chart ID'),
-    hidden: true,
-    description: t('The id of the active chart'),
   },
 
   color_scheme: {
