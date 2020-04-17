@@ -25,4 +25,6 @@ DbapiDescriptionRow = Tuple[
 ]
 DbapiDescription = Union[List[DbapiDescriptionRow], Tuple[DbapiDescriptionRow, ...]]
 DbapiResult = List[Union[List[Any], Tuple[Any, ...]]]
+FilterValue = Union[float, int, str]
+FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
 VizData = Optional[Union[List[Any], Dict[Any, Any]]]

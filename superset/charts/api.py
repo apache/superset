@@ -18,10 +18,11 @@ import logging
 from typing import Any, Dict
 
 import simplejson
+from apispec import APISpec
 from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext as _, ngettext
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -41,12 +42,13 @@ from superset.charts.commands.exceptions import (
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.filters import ChartFilter, ChartNameOrDescriptionFilter
 from superset.charts.schemas import (
+    CHART_DATA_SCHEMAS,
+    ChartDataQueryContextSchema,
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
     thumbnail_query_schema,
 )
-from superset.common.query_context import QueryContext
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
@@ -381,74 +383,21 @@ class ChartRestApi(BaseSupersetModelRestApi):
             Takes a query context constructed in the client and returns payload data
             response for the given query.
           requestBody:
-            description: Query context schema
+            description: >-
+              A query context consists of a datasource from which to fetch data
+              and one or many query objects.
             required: true
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    datasource:
-                      type: object
-                      description: The datasource where the query will run
-                      properties:
-                        id:
-                          type: integer
-                        type:
-                          type: string
-                    queries:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          granularity:
-                            type: string
-                          groupby:
-                            type: array
-                            items:
-                              type: string
-                          metrics:
-                            type: array
-                            items:
-                              type: object
-                          filters:
-                            type: array
-                            items:
-                              type: string
-                          row_limit:
-                            type: integer
+                  $ref: "#/components/schemas/ChartDataQueryContextSchema"
           responses:
             200:
               description: Query result
               content:
                 application/json:
                   schema:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        cache_key:
-                          type: string
-                        cached_dttm:
-                          type: string
-                        cache_timeout:
-                          type: integer
-                        error:
-                          type: string
-                        is_cached:
-                          type: boolean
-                        query:
-                          type: string
-                        status:
-                          type: string
-                        stacktrace:
-                          type: string
-                        rowcount:
-                          type: integer
-                        data:
-                          type: array
-                          items:
-                            type: object
+                    $ref: "#/components/schemas/ChartDataResponseSchema"
             400:
               $ref: '#/components/responses/400'
             500:
@@ -457,7 +406,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
-            query_context = QueryContext(**request.json)
+            query_context, errors = ChartDataQueryContextSchema().load(request.json)
+            if errors:
+                return self.response_400(
+                    message=_("Request is incorrect: %(error)s", error=errors)
+                )
         except KeyError:
             return self.response_400(message="Request is incorrect")
         try:
@@ -466,7 +419,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_401()
         payload_json = query_context.get_payload()
         response_data = simplejson.dumps(
-            payload_json, default=json_int_dttm_ser, ignore_nan=True
+            {"result": payload_json}, default=json_int_dttm_ser, ignore_nan=True
         )
         resp = make_response(response_data, 200)
         resp.headers["Content-Type"] = "application/json; charset=utf-8"
@@ -533,3 +486,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
+
+    def add_apispec_components(self, api_spec: APISpec) -> None:
+        for chart_type in CHART_DATA_SCHEMAS:
+            api_spec.components.schema(
+                chart_type.__name__, schema=chart_type,
+            )
+        super().add_apispec_components(api_spec)
