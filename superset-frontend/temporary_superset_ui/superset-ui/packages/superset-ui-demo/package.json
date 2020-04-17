@@ -40,6 +40,7 @@
     "@superset-ui/color": "0.12.19",
     "@superset-ui/connection": "0.12.19",
     "@superset-ui/legacy-plugin-chart-calendar": "0.12.20",
+    "@superset-ui/legacy-plugin-chart-country-map": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-chord": "0.12.20",
     "@superset-ui/legacy-plugin-chart-force-directed": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-heatmap": "0.12.20",
