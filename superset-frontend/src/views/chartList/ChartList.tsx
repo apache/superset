@@ -327,9 +327,12 @@ class ChartList extends React.PureComponent<Props, State> {
         value,
       }))
       .reduce((acc, fltr) => {
-        if (fltr.col === 'datasource' && typeof fltr.value === 'object') {
-          const { datasource_id: dsId, datasource_type: dsType } =
-            fltr.value || {};
+        if (
+          fltr.col === 'datasource' &&
+          fltr.value &&
+          typeof fltr.value === 'object'
+        ) {
+          const { datasource_id: dsId, datasource_type: dsType } = fltr.value;
           return [
             ...acc,
             { ...fltr, col: 'datasource_id', value: dsId },
