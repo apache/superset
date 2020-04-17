@@ -1,6 +1,6 @@
 import React from 'react';
 import cloudLayout, { Word } from 'd3-cloud';
-import { PlainObject } from 'encodable/lib/types/Data';
+import { PlainObject } from 'encodable';
 import { WordCloudEncoding, wordCloudEncoderFactory } from './Encoder';
 
 export const ROTATION = {

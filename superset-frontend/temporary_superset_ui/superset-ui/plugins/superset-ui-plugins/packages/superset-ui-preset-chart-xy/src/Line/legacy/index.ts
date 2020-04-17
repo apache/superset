@@ -5,7 +5,7 @@ import createMetadata from '../createMetadata';
 export default class LineChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('../Line'),
+      loadChart: () => import('../../components/Line/Line'),
       metadata: createMetadata(true),
       transformProps,
     });

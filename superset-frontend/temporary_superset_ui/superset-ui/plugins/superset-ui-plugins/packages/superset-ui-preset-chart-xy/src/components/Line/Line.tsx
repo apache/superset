@@ -12,19 +12,24 @@ import { chartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { WithLegend } from '@superset-ui/chart-composition';
 import { createSelector } from 'reselect';
-import Encoder, { Encoding, ChannelOutput } from './Encoder';
-import { Dataset, PlainObject } from '../encodeable/types/Data';
-import { PartialSpec } from '../encodeable/types/Specification';
+import { Dataset, PlainObject } from 'encodable';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
-import createMarginSelector, { DEFAULT_MARGIN } from '../utils/selectors/createMarginSelector';
-import convertScaleToDataUIScale from '../utils/convertScaleToDataUIScaleShape';
-import createXYChartLayoutWithTheme from '../utils/createXYChartLayoutWithTheme';
-import createEncoderSelector from '../encodeable/createEncoderSelector';
-import createRenderLegend from '../components/legend/createRenderLegend';
-import { LegendHooks } from '../components/legend/types';
+import createMarginSelector, { DEFAULT_MARGIN } from '../../utils/createMarginSelector';
+import convertScaleToDataUIScale from '../../utils/convertScaleToDataUIScaleShape';
+import createXYChartLayoutWithTheme from '../../utils/createXYChartLayoutWithTheme';
+import createRenderLegend from '../legend/createRenderLegend';
+import { LegendHooks } from '../legend/types';
+import {
+  lineEncoderFactory,
+  LineEncoder,
+  LineEncoding,
+  LineEncodingConfig,
+  LineChannelOutputs,
+} from './Encoder';
+import DefaultLegendItemMarkRenderer from './DefaultLegendItemMarkRenderer';
 
 export interface TooltipProps {
-  encoder: Encoder;
+  encoder: LineEncoder;
   allSeries: Series[];
   datum: SeriesValue;
   series: {
@@ -35,6 +40,8 @@ export interface TooltipProps {
 
 const defaultProps = {
   className: '',
+  encoding: {},
+  LegendItemMarkRenderer: DefaultLegendItemMarkRenderer,
   margin: DEFAULT_MARGIN,
   theme: chartTheme,
   TooltipRenderer: DefaultTooltipRenderer,
@@ -44,11 +51,12 @@ const defaultProps = {
 export type FormDataProps = {
   margin?: Margin;
   theme?: typeof chartTheme;
-} & PartialSpec<Encoding>;
+  encoding?: Partial<LineEncoding>;
+};
 
 export type HookProps = {
   TooltipRenderer?: React.ComponentType<TooltipProps>;
-} & LegendHooks<Encoder>;
+} & LegendHooks<LineEncodingConfig>;
 
 type Props = {
   className?: string;
@@ -61,10 +69,10 @@ type Props = {
 
 export interface Series {
   key: string;
-  fill: ChannelOutput<'fill'>;
-  stroke: ChannelOutput<'stroke'>;
-  strokeDasharray: ChannelOutput<'strokeDasharray'>;
-  strokeWidth: ChannelOutput<'strokeWidth'>;
+  fill: LineChannelOutputs['fill'];
+  stroke: LineChannelOutputs['stroke'];
+  strokeDasharray: LineChannelOutputs['strokeDasharray'];
+  strokeWidth: LineChannelOutputs['strokeWidth'];
   values: SeriesValue[];
 }
 
@@ -78,10 +86,10 @@ export interface SeriesValue {
 const CIRCLE_STYLE = { strokeWidth: 1.5 };
 
 export default class LineChart extends PureComponent<Props> {
-  private createEncoder = createEncoderSelector(Encoder);
+  private createEncoder = lineEncoderFactory.createSelector();
 
   private createAllSeries = createSelector(
-    (input: { encoder: Encoder; data: Dataset }) => input.encoder,
+    (input: { encoder: LineEncoder; data: Dataset }) => input.encoder,
     input => input.data,
     (encoder, data) => {
       const { channels } = encoder;
@@ -94,17 +102,17 @@ export default class LineChart extends PureComponent<Props> {
         const key = fieldNames.map(f => firstDatum[f]).join(',');
         const series: Series = {
           key: key.length === 0 ? channels.y.getTitle() : key,
-          fill: channels.fill.encode(firstDatum, false),
-          stroke: channels.stroke.encode(firstDatum, '#222'),
-          strokeDasharray: channels.strokeDasharray.encode(firstDatum, ''),
-          strokeWidth: channels.strokeWidth.encode(firstDatum, 1),
+          fill: channels.fill.encodeDatum(firstDatum, false),
+          stroke: channels.stroke.encodeDatum(firstDatum, '#222'),
+          strokeDasharray: channels.strokeDasharray.encodeDatum(firstDatum, ''),
+          strokeWidth: channels.strokeWidth.encodeDatum(firstDatum, 1),
           values: [],
         };
 
         series.values = seriesData
           .map(v => ({
-            x: channels.x.get<number | Date>(v),
-            y: channels.y.get<number>(v),
+            x: channels.x.getValueFromDatum<Date | number>(v),
+            y: channels.y.getValueFromDatum<number>(v),
             data: v,
             parent: series,
           }))
@@ -125,12 +133,6 @@ export default class LineChart extends PureComponent<Props> {
   private createMargin = createMarginSelector();
 
   static defaultProps = defaultProps;
-
-  constructor(props: Props) {
-    super(props);
-
-    this.renderChart = this.renderChart.bind(this);
-  }
 
   // eslint-disable-next-line class-methods-use-this
   renderSeries(allSeries: Series[]) {
@@ -177,21 +179,14 @@ export default class LineChart extends PureComponent<Props> {
     return filledSeries.concat(unfilledSeries);
   }
 
-  renderChart(dim: Dimension) {
+  renderChart = (dim: Dimension) => {
     const { width, height } = dim;
-    const { data, margin, theme, TooltipRenderer } = this.props;
+    const { data, margin, theme, TooltipRenderer, encoding } = this.props;
 
-    const encoder = this.createEncoder(this.props);
+    const encoder = this.createEncoder(encoding);
     const { channels } = encoder;
 
-    if (typeof channels.x.scale !== 'undefined') {
-      const xDomain = channels.x.getDomain(data);
-      channels.x.scale.setDomain(xDomain);
-    }
-    if (typeof channels.y.scale !== 'undefined') {
-      const yDomain = channels.y.getDomain(data);
-      channels.y.scale.setDomain(yDomain);
-    }
+    encoder.setDomainFromDataset(data);
 
     const allSeries = this.createAllSeries({ encoder, data });
 
@@ -244,8 +239,8 @@ export default class LineChart extends PureComponent<Props> {
             renderTooltip={null}
             theme={theme}
             tooltipData={tooltipData}
-            xScale={convertScaleToDataUIScale(channels.x.scale!.config)}
-            yScale={convertScaleToDataUIScale(channels.y.scale!.config)}
+            xScale={convertScaleToDataUIScale(channels.x.definition.scale as any)}
+            yScale={convertScaleToDataUIScale(channels.y.definition.scale as any)}
             onMouseMove={onMouseMove}
             onMouseLeave={onMouseLeave}
           >
@@ -272,12 +267,10 @@ export default class LineChart extends PureComponent<Props> {
         )}
       </WithTooltip>
     ));
-  }
+  };
 
   render() {
-    const { className, data, width, height } = this.props;
-
-    const encoder = this.createEncoder(this.props);
+    const { className, data, width, height, encoding } = this.props;
 
     return (
       <WithLegend
@@ -285,7 +278,7 @@ export default class LineChart extends PureComponent<Props> {
         width={width}
         height={height}
         position="top"
-        renderLegend={createRenderLegend(encoder, data, this.props)}
+        renderLegend={createRenderLegend(this.createEncoder(encoding), data, this.props)}
         renderChart={this.renderChart}
       />
     );

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/chart';
-import { RawBoxPlotDataRow, BoxPlotDataRow } from '../types';
+import { RawBoxPlotDataRow, BoxPlotDataRow } from '../../components/BoxPlot/types';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, datasource = {}, formData, queryData } = chartProps;

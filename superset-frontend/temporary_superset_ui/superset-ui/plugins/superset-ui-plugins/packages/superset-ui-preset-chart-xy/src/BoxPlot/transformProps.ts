@@ -1,7 +1,7 @@
 import { pick } from 'lodash';
 import { ChartProps } from '@superset-ui/chart';
-import { BoxPlotDataRow, RawBoxPlotDataRow } from './types';
-import { HookProps } from './BoxPlot';
+import { BoxPlotDataRow, RawBoxPlotDataRow } from '../components/BoxPlot/types';
+import { HookProps } from '../components/BoxPlot/BoxPlot';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, queryData } = chartProps;

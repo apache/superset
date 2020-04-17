@@ -28,7 +28,7 @@ export default [
           vizType: 'bubble',
           x: 'sum__SP_RUR_TOTL_ZS',
           xAxisFormat: '.3s',
-          xAxisLabel: 'x-axis label',
+          xAxisLabel: 'x-axis label test',
           xAxisShowminmax: false,
           xLogScale: false,
           xTicksLayout: 'auto',

@@ -1,6 +1,6 @@
 import { pick } from 'lodash';
 import { ChartProps } from '@superset-ui/chart';
-import { HookProps, FormDataProps } from './Line';
+import { HookProps, FormDataProps } from '../components/Line/Line';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, queryData } = chartProps;
@@ -12,7 +12,7 @@ export default function transformProps(chartProps: ChartProps) {
    * Use type-check to make sure the field names are expected ones
    * and only pick these fields to pass to the chart.
    */
-  const fieldsFromFormData: (keyof FormDataProps)[] = ['encoding', 'margin', 'options', 'theme'];
+  const fieldsFromFormData: (keyof FormDataProps)[] = ['encoding', 'margin', 'theme'];
 
   const fieldsFromHooks: (keyof HookProps)[] = [
     'TooltipRenderer',
