@@ -2,9 +2,9 @@ name: Node.js CI
 
 on:
   push:
+    tags-ignore:
+      - 'trigger-patch-test.*'
   pull_request:
-  tags-ignore:
-    - 'trigger-patch-test.*'
 
 jobs:
   build:
