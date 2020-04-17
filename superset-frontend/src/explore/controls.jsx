@@ -915,12 +915,5 @@ export const controls = {
     }),
   },
 
-  column_collection: {
-    type: 'CollectionControl',
-    label: t('Time Series Columns'),
-    validators: [validateNonEmpty],
-    controlName: 'TimeSeriesColumnControl',
-  },
-
 };
 export default controls;

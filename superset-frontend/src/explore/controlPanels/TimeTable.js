@@ -28,7 +28,15 @@ export default {
         ['adhoc_filters'],
         ['groupby'],
         ['limit'],
-        ['column_collection'],
+        [{
+          name: 'column_collection',
+          config: {
+            type: 'CollectionControl',
+            label: t('Time Series Columns'),
+            validators: [validateNonEmpty],
+            controlName: 'TimeSeriesColumnControl',
+          },
+        }],
         ['url'],
       ],
     },

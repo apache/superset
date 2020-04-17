@@ -1064,7 +1064,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `cache_timeout`                 | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
-| `column_collection`             | _N/A_ |       |
 | `comparison type`               | _N/A_ |       |
 | `contribution`                  | _N/A_ |       |
 | `country_fieldtype`             | _N/A_ |       |
