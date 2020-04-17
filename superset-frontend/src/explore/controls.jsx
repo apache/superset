@@ -817,12 +817,12 @@ export const controls = {
     dontRefreshOnChange: true,
   },
 
-  color: {
-    type: 'ColorPickerControl',
-    label: t('Color'),
-    default: PRIMARY_COLOR,
-    description: t('Pick a color'),
-  },
+  // color: {
+  //   type: 'ColorPickerControl',
+  //   label: t('Color'),
+  //   default: PRIMARY_COLOR,
+  //   description: t('Pick a color'),
+  // },
 
   adhoc_filters: {
     type: 'AdhocFilterControl',
