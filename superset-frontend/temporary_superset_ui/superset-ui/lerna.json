@@ -7,17 +7,19 @@
   ],
   "useWorkspaces": true,
   "version": "0.12.19",
+  "ignoreChanges": [
+    "**/*.md",
+    "**/*.spec.tsx?",
+    "**/*.spec.jsx?",
+    "**/__mocks__/**"
+  ],
   "command": {
     "publish": {
-      "ignoreChanges": [
-        "**/*.md",
-        "**/*.spec.tsx?",
-        "**/*.spec.jsx?"
-      ],
       "message": "chore(release): publish %s",
       "graphType": "all"
     },
     "version": {
+      "message": "chore(release): publish %s",
       "exact": true
     }
   }

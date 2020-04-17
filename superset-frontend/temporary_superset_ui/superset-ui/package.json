@@ -24,13 +24,18 @@
     "test": "yarn jest",
     "test:watch": "yarn lint:fix && yarn jest --watch",
     "type": "nimbus typescript --build --reference-workspaces",
-    "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn install && yarn test",
+    "prepare-release": "git checkout master && git pull --rebase origin master && yarn install && yarn test",
     "prerelease": "yarn build",
     "pretest": "yarn lint",
     "release": "yarn prepare-release && lerna publish && yarn postrelease",
-    "force-release": "lerna publish --force-publish && yarn postrelease",
     "postrelease": "lerna run deploy-demo",
-    "release-from-ci": "lerna publish --conventional-commits --create-release github --yes"
+    "list-changed-packages": "lerna changed",
+    "manual-release": "lerna publish --force-publish && yarn postrelease",
+    "ci:create-patch-version": "lerna version patch --create-release github --yes",
+    "ci:create-minor-version": "lerna version minor --create-release github --yes",
+    "ci:create-conventional-version": "lerna version --conventional-commits --create-release github --yes",
+    "ci:release-from-tag": "lerna publish from-package --yes",
+    "ci:release-conventional": "lerna publish --conventional-commits --create-release github --yes"
   },
   "repository": "https://github.com/apache-superset/superset-ui.git",
   "keywords": [
