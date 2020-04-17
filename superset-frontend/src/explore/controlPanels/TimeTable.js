@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
   controlPanelSections: [
@@ -28,15 +29,17 @@ export default {
         ['adhoc_filters'],
         ['groupby'],
         ['limit'],
-        [{
-          name: 'column_collection',
-          config: {
-            type: 'CollectionControl',
-            label: t('Time Series Columns'),
-            validators: [validateNonEmpty],
-            controlName: 'TimeSeriesColumnControl',
+        [
+          {
+            name: 'column_collection',
+            config: {
+              type: 'CollectionControl',
+              label: t('Time Series Columns'),
+              validators: [validateNonEmpty],
+              controlName: 'TimeSeriesColumnControl',
+            },
           },
-        }],
+        ],
         ['url'],
       ],
     },

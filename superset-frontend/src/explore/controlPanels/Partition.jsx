@@ -20,6 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import OptionDescription from '../../components/OptionDescription';
+import { NVD3TimeSeries } from './sections';
 
 export default {
   controlPanelSections: [

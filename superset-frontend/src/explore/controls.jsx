@@ -859,6 +859,5 @@ export const controls = {
       colorScheme: state.form_data.color_scheme,
     }),
   },
-
 };
 export default controls;

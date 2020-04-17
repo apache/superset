@@ -78,26 +78,28 @@ export default {
             },
           },
         ],
-        [{
-          name: 'time_range_fixed',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Fix to selected Time Range'),
-            description: t(
-              'Fix the trend line to the full time range specified in case filtered results do not include the start or end dates',
-            ),
-            renderTrigger: true,
-            visibility(props) {
-              const {
-                time_range: timeRange,
-                viz_type: vizType,
-                show_trend_line: showTrendLine,
-              } = props.form_data;
-              // only display this option when a time range is selected
-              return timeRange && timeRange !== 'No filter';
+        [
+          {
+            name: 'time_range_fixed',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Fix to selected Time Range'),
+              description: t(
+                'Fix the trend line to the full time range specified in case filtered results do not include the start or end dates',
+              ),
+              renderTrigger: true,
+              visibility(props) {
+                const {
+                  time_range: timeRange,
+                  viz_type: vizType,
+                  show_trend_line: showTrendLine,
+                } = props.form_data;
+                // only display this option when a time range is selected
+                return timeRange && timeRange !== 'No filter';
+              },
             },
           },
-        }],
+        ],
       ],
     },
     {

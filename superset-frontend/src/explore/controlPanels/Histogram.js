@@ -58,16 +58,18 @@ export default {
           },
         ],
         ['global_opacity'],
-        [{
-          name: 'normalized',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Normalized'),
-            renderTrigger: true,
-            description: t('Whether to normalize the histogram'),
-            default: false,
+        [
+          {
+            name: 'normalized',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Normalized'),
+              renderTrigger: true,
+              description: t('Whether to normalize the histogram'),
+              default: false,
+            },
           },
-        }],
+        ],
       ],
     },
   ],

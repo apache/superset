@@ -22,6 +22,5 @@ import { t } from '@superset-ui/translation';
 
 export const foo = {
   name: 'foo_control',
-  config: {
-  },
+  config: {},
 };
