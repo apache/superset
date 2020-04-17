@@ -12,6 +12,8 @@
     "shortid": "^2.2.15"
   },
   "devDependencies": {
-    "cypress": "^4.3.0"
+    "@cypress/code-coverage": "^3.1.0",
+    "cypress": "4.3.0",
+    "eslint-plugin-cypress": "^2.10.3"
   }
 }

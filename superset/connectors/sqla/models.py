@@ -843,43 +843,53 @@ class SqlaTable(Model, BaseDatasource):
             if not all([flt.get(s) for s in ["col", "op"]]):
                 continue
             col = flt["col"]
-            op = flt["op"]
+            op = flt["op"].upper()
             col_obj = cols.get(col)
             if col_obj:
-                is_list_target = op in ("in", "not in")
+                is_list_target = op in (
+                    utils.FilterOperationType.IN.value,
+                    utils.FilterOperationType.NOT_IN.value,
+                )
                 eq = self.filter_values_handler(
-                    flt.get("val"),
+                    values=flt.get("val"),
                     target_column_is_numeric=col_obj.is_numeric,
                     is_list_target=is_list_target,
                 )
-                if op in ("in", "not in"):
+                if op in (
+                    utils.FilterOperationType.IN.value,
+                    utils.FilterOperationType.NOT_IN.value,
+                ):
                     cond = col_obj.get_sqla_col().in_(eq)
-                    if NULL_STRING in eq:
-                        cond = or_(cond, col_obj.get_sqla_col() == None)
-                    if op == "not in":
+                    if isinstance(eq, str) and NULL_STRING in eq:
+                        cond = or_(cond, col_obj.get_sqla_col() is None)
+                    if op == utils.FilterOperationType.NOT_IN.value:
                         cond = ~cond
                     where_clause_and.append(cond)
                 else:
                     if col_obj.is_numeric:
-                        eq = utils.string_to_num(flt["val"])
-                    if op == "==":
+                        eq = utils.cast_to_num(flt["val"])
+                    if op == utils.FilterOperationType.EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() == eq)
-                    elif op == "!=":
+                    elif op == utils.FilterOperationType.NOT_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() != eq)
-                    elif op == ">":
+                    elif op == utils.FilterOperationType.GREATER_THAN.value:
                         where_clause_and.append(col_obj.get_sqla_col() > eq)
-                    elif op == "<":
+                    elif op == utils.FilterOperationType.LESS_THAN.value:
                         where_clause_and.append(col_obj.get_sqla_col() < eq)
-                    elif op == ">=":
+                    elif op == utils.FilterOperationType.GREATER_THAN_OR_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() >= eq)
-                    elif op == "<=":
+                    elif op == utils.FilterOperationType.LESS_THAN_OR_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() <= eq)
-                    elif op == "LIKE":
+                    elif op == utils.FilterOperationType.LIKE.value:
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
-                    elif op == "IS NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() == None)
-                    elif op == "IS NOT NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() != None)
+                    elif op == utils.FilterOperationType.IS_NULL.value:
+                        where_clause_and.append(col_obj.get_sqla_col() is None)
+                    elif op == utils.FilterOperationType.IS_NOT_NULL.value:
+                        where_clause_and.append(col_obj.get_sqla_col() is None)
+                    else:
+                        raise Exception(
+                            _("Invalid filter operation type: %(op)s", op=op)
+                        )
 
         where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:

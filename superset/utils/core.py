@@ -198,28 +198,30 @@ def parse_js_uri_path_item(
     return unquote_plus(item) if unquote and item else item
 
 
-def string_to_num(s: str):
-    """Converts a string to an int/float
+def cast_to_num(value: Union[float, int, str]) -> Optional[Union[float, int]]:
+    """Casts a value to an int/float
 
-    Returns ``None`` if it can't be converted
-
-    >>> string_to_num('5')
+    >>> cast_to_num('5')
     5
-    >>> string_to_num('5.2')
+    >>> cast_to_num('5.2')
     5.2
-    >>> string_to_num(10)
+    >>> cast_to_num(10)
     10
-    >>> string_to_num(10.1)
+    >>> cast_to_num(10.1)
     10.1
-    >>> string_to_num('this is not a string') is None
+    >>> cast_to_num('this is not a string') is None
     True
+
+    :param value: value to be converted to numeric representation
+    :returns: value cast to `int` if value is all digits, `float` if `value` is
+              decimal value and `None`` if it can't be converted
     """
-    if isinstance(s, (int, float)):
-        return s
-    if s.isdigit():
-        return int(s)
+    if isinstance(value, (int, float)):
+        return value
+    if value.isdigit():
+        return int(value)
     try:
-        return float(s)
+        return float(value)
     except ValueError:
         return None
 
@@ -1346,3 +1348,22 @@ class DbColumnType(Enum):
     NUMERIC = 0
     STRING = 1
     TEMPORAL = 2
+
+
+class FilterOperationType(str, Enum):
+    """
+    Filter operation type
+    """
+
+    EQUALS = "=="
+    NOT_EQUALS = "!="
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    GREATER_THAN_OR_EQUALS = ">="
+    LESS_THAN_OR_EQUALS = "<="
+    LIKE = "LIKE"
+    IS_NULL = "IS NULL"
+    IS_NOT_NULL = "IS NOT NULL"
+    IN = "IN"
+    NOT_IN = "NOT IN"
+    REGEX = "REGEX"

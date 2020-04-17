@@ -657,7 +657,18 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.post(uri, json=query_context)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data[0]["rowcount"], 100)
+        self.assertEqual(data["result"][0]["rowcount"], 100)
+
+    def test_invalid_chart_data(self):
+        """
+            Query API: Test chart data query
+        """
+        self.login(username="admin")
+        query_context = self._get_query_context()
+        query_context["datasource"] = "abc"
+        uri = "api/v1/chart/data"
+        rv = self.client.post(uri, json=query_context)
+        self.assertEqual(rv.status_code, 400)
 
     def test_query_exec_not_allowed(self):
         """

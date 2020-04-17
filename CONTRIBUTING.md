@@ -970,7 +970,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 | Field                  | Type            | Notes                                 |
 | ---------------------- | --------------- | ------------------------------------- |
-| `date_filter`          | _N/A_           | _Deprecated?_                         |
 | `date_time_format`     | _N/A_           | _Deprecated?_                         |
 | `druid_time_origin`    | _string_        | The Druid **Origin** widget           |
 | `granularity`          | _string_        | The Druid **Time Granularity** widget |
@@ -1101,7 +1100,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `comparison type`               | _N/A_ |       |
 | `contribution`                  | _N/A_ |       |
 | `country_fieldtype`             | _N/A_ |       |
-| `date_filter`                   | _N/A_ |       |
 | `default_filters`               | _N/A_ |       |
 | `entity`                        | _N/A_ |       |
 | `expanded_slices`               | _N/A_ |       |
@@ -1116,7 +1114,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `flt_op_1`                      | _N/A_ |       |
 | `goto_dash`                     | _N/A_ |       |
 | `import_time`                   | _N/A_ |       |
-| `instant_filtering`             | _N/A_ |       |
 | `label`                         | _N/A_ |       |
 | `linear_color_scheme`           | _N/A_ |       |
 | `log_scale`                     | _N/A_ |       |
@@ -1150,11 +1147,7 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_brush`                    | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
 | `show_controls`                 | _N/A_ |       |
-| `show_druid_time_granularity`   | _N/A_ |       |
-| `show_druid_time_origin`        | _N/A_ |       |
 | `show_labels`                   | _N/A_ |       |
-| `show_sqla_time_column`         | _N/A_ |       |
-| `show_sqla_time_granularity`    | _N/A_ |       |
 | `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |

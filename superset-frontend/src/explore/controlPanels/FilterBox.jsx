@@ -27,9 +27,69 @@ export default {
       controlSetRows: [
         ['filter_configs'],
         [<hr />],
-        ['date_filter', 'instant_filtering'],
-        ['show_sqla_time_granularity', 'show_sqla_time_column'],
-        ['show_druid_time_granularity', 'show_druid_time_origin'],
+        [
+          {
+            name: 'date_filter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Date Filter'),
+              default: true,
+              description: t('Whether to include a time filter'),
+            },
+          },
+          {
+            name: 'instant_filtering',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Instant Filtering'),
+              renderTrigger: true,
+              default: true,
+              description:
+                'Whether to apply filters as they change, or wait for ' +
+                'users to hit an [Apply] button',
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_sqla_time_granularity',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show SQL Granularity Dropdown'),
+              default: false,
+              description: t('Check to include SQL Granularity dropdown'),
+            },
+          },
+          {
+            name: 'show_sqla_time_column',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show SQL Time Column'),
+              default: false,
+              description: t('Check to include Time Column dropdown'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_druid_time_granularity',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Druid Granularity Dropdown'),
+              default: false,
+              description: t('Check to include Druid Granularity dropdown'),
+            },
+          },
+          {
+            name: 'show_druid_time_origin',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Druid Time Origin'),
+              default: false,
+              description: t('Check to include Time Origin dropdown'),
+            },
+          },
+        ],
         ['adhoc_filters'],
       ],
     },
