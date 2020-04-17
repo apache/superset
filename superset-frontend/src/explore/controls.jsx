@@ -745,23 +745,6 @@ export const controls = {
     description: t('Compute the contribution to the total'),
   },
 
-  comparison_type: {
-    type: 'SelectControl',
-    label: t('Calculation type'),
-    default: 'values',
-    choices: [
-      ['values', 'Actual Values'],
-      ['absolute', 'Absolute difference'],
-      ['percentage', 'Percentage change'],
-      ['ratio', 'Ratio'],
-    ],
-    description: t(
-      'How to display time shifts: as individual lines; as the ' +
-        'absolute difference between the main time series and each time shift; ' +
-        'as the percentage change; or as the ratio between series and time shifts.',
-    ),
-  },
-
   // color: {
   //   type: 'ColorPickerControl',
   //   label: t('Color'),
