@@ -552,13 +552,6 @@ export const controls = {
     }),
   },
 
-  order_desc: {
-    type: 'CheckboxControl',
-    label: t('Sort Descending'),
-    default: true,
-    description: t('Whether to sort descending or ascending'),
-  },
-
   series: {
     ...groupByControl,
     label: t('Series'),

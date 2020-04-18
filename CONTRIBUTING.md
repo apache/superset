@@ -1078,7 +1078,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `new_slice_name`                | _N/A_ |       |
 | `normalize_across`              | _N/A_ |       |
 | `num_period_compare`            | _N/A_ |       |
-| `order_desc`                    | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
 | `rdo_save`                      | _N/A_ |       |

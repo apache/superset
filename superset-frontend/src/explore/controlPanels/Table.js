@@ -66,7 +66,15 @@ export default {
               default: false,
             },
           },
-          'order_desc',
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
+            },
+          },
         ],
       ],
     },

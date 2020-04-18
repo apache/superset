@@ -30,7 +30,15 @@ export default {
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
         [
-          'order_desc',
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
+            },
+          },
           {
             name: 'contribution',
             config: {
