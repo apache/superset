@@ -1075,7 +1075,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `import_time`                   | _N/A_ |       |
 | `label`                         | _N/A_ |       |
 | `linear_color_scheme`           | _N/A_ |       |
-| `markup_type`                   | _N/A_ |       |
 | `min_periods`                   | _N/A_ |       |
 | `new_dashboard_name`            | _N/A_ |       |
 | `new_slice_name`                | _N/A_ |       |

@@ -679,16 +679,6 @@ export const controls = {
     description: D3_FORMAT_DOCS,
   },
 
-  markup_type: {
-    type: 'SelectControl',
-    label: t('Markup Type'),
-    clearable: false,
-    choices: formatSelectOptions(['markdown', 'html']),
-    default: 'markdown',
-    validators: [validateNonEmpty],
-    description: t('Pick your favorite markup language'),
-  },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),

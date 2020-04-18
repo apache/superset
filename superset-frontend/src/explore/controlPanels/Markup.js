@@ -24,7 +24,20 @@ export default {
       label: t('Code'),
       expanded: true,
       controlSetRows: [
-        ['markup_type'],
+        [
+          {
+            name: 'markup_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Markup Type'),
+              clearable: false,
+              choices: formatSelectOptions(['markdown', 'html']),
+              default: 'markdown',
+              validators: [validateNonEmpty],
+              description: t('Pick your favorite markup language'),
+            },
+          },
+        ],
         [
           {
             name: 'code',
