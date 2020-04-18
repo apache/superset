@@ -24,22 +24,24 @@ export default {
       label: t('Code'),
       expanded: true,
       controlSetRows: [
-        ['markup_type'], 
-        [{
-          name: 'code',
-          config: {
-            type: 'TextAreaControl',
-            label: t('Code'),
-            description: t('Put your code here'),
-            mapStateToProps: state => ({
-              language:
-                state.controls && state.controls.markup_type
-                  ? state.controls.markup_type.value
-                  : 'markdown',
-            }),
-            default: '',
+        ['markup_type'],
+        [
+          {
+            name: 'code',
+            config: {
+              type: 'TextAreaControl',
+              label: t('Code'),
+              description: t('Put your code here'),
+              mapStateToProps: state => ({
+                language:
+                  state.controls && state.controls.markup_type
+                    ? state.controls.markup_type.value
+                    : 'markdown',
+              }),
+              default: '',
+            },
           },
-        }]
+        ],
       ],
     },
   ],
