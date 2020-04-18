@@ -25,7 +25,20 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['all_columns_x'],
+        [{
+          name:   'all_columns_x',
+          config: {
+            type: 'SelectControl',
+            label: t('Numeric Columns'),
+            default: null,
+            description: t('Select the numeric columns to draw the histogram'),
+            mapStateToProps: state => ({
+              choices: columnChoices(state.datasource),
+            }),
+            multi: true,
+            validators: [validateNonEmpty],
+          },
+        }],
         ['adhoc_filters'],
         ['row_limit'],
         ['groupby'],
@@ -92,12 +105,4 @@ export default {
       ],
     },
   ],
-  controlOverrides: {
-    all_columns_x: {
-      label: t('Numeric Columns'),
-      description: t('Select the numeric columns to draw the histogram'),
-      multi: true,
-      validators: [validateNonEmpty],
-    },
-  },
 };

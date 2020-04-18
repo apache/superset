@@ -26,7 +26,18 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['all_columns_x', {
+        [{
+          name:   'all_columns_x',
+          config: {
+            type: 'SelectControl',
+            label: t('Longitude'),
+            default: null,
+            description: t('Column containing longitude data'),
+            mapStateToProps: state => ({
+              choices: columnChoices(state.datasource),
+            }),
+          },
+        }, {
           name: 'all_columns_y',
           config: {
             type: 'SelectControl',
@@ -288,10 +299,6 @@ export default {
     },
   ],
   controlOverrides: {
-    all_columns_x: {
-      label: t('Longitude'),
-      description: t('Column containing longitude data'),
-    },
     groupby: {
       description: t(
         'One or many controls to group by. If grouping, latitude ' +

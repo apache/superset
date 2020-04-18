@@ -36,7 +36,19 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['all_columns_x', {
+        [{
+          name:   'all_columns_x',
+          config: {
+            type: 'SelectControl',
+            label: 'X',
+            default: null,
+            description: t('Columns to display'),
+            mapStateToProps: state => ({
+              choices: columnChoices(state.datasource),
+            }),
+            validators: [validateNonEmpty],
+          },
+        }, {
           name: 'all_columns_y',
           config: {
             type: 'SelectControl',
@@ -247,9 +259,6 @@ export default {
     },
   ],
   controlOverrides: {
-    all_columns_x: {
-      validators: [validateNonEmpty],
-    },
     normalized: t(
       'Whether to apply a normal distribution based on rank on the color scale',
     ),

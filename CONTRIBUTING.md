@@ -1011,7 +1011,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | Field                                                                                                  | Type                                              | Notes                                             |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
 | `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
-| `all_columns_x`                                                                                        | _array(string)_                                   | The **Numeric Columns** widget                    |
 | `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |

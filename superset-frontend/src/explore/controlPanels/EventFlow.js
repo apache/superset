@@ -27,7 +27,23 @@ export default {
       label: t('Event definition'),
       controlSetRows: [
         ['entity'],
-        ['all_columns_x'],
+        [{
+          name:   'all_columns_x',
+          config: {
+            type: 'SelectControl',
+            label: t('Column containing event names'),
+            default: control =>
+            control.choices && control.choices.length > 0
+              ? control.choices[0][0]
+              : null,
+              },
+            description: t('Columns to display'),
+            mapStateToProps: state => ({
+              choices: columnChoices(state.datasource),
+            }),
+            validators: [validateNonEmpty],
+
+        }],
         ['row_limit'],
         [
           {
@@ -75,14 +91,6 @@ export default {
     entity: {
       label: t('Column containing entity ids'),
       description: t('e.g., a "user id" column'),
-    },
-    all_columns_x: {
-      label: t('Column containing event names'),
-      validators: [validateNonEmpty],
-      default: control =>
-        control.choices && control.choices.length > 0
-          ? control.choices[0][0]
-          : null,
     },
     row_limit: {
       label: t('Event count limit'),
