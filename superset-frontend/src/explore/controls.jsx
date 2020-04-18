@@ -570,16 +570,6 @@ export const controls = {
     ),
   },
 
-  rolling_periods: {
-    type: 'TextControl',
-    label: t('Periods'),
-    isInt: true,
-    description: t(
-      'Defines the size of the rolling window function, ' +
-        'relative to the time granularity selected',
-    ),
-  },
-
   series: {
     ...groupByControl,
     label: t('Series'),

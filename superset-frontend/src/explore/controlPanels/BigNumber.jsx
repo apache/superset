@@ -118,7 +118,18 @@ export default {
         [<h1 className="section-header">{t('Rolling Window')}</h1>],
         [
           'rolling_type',
-          'rolling_periods',
+          {
+            name:   'rolling_periods',
+            config: {
+              type: 'TextControl',
+              label: t('Periods'),
+              isInt: true,
+              description: t(
+                'Defines the size of the rolling window function, ' +
+                  'relative to the time granularity selected',
+              ),
+            },
+          },
           {
             name: 'min_periods',
             config: {
