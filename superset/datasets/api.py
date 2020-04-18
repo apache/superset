@@ -352,8 +352,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/refresh", methods=["PUT"])
     @protect()
-    @statsd_metrics
     @safe
+    @statsd_metrics
     def refresh(self, pk: int) -> Response:
         """Refresh a Dataset
         ---
