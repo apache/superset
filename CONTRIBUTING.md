@@ -1014,7 +1014,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
 | `all_columns_x`                                                                                        | _array(string)_                                   | The **Numeric Columns** widget                    |
 | `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
-| `contribution`                                                                                         | _boolean_                                         | The **Contribution** widget                       |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
 | `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
@@ -1059,7 +1058,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
 | `comparison type`               | _N/A_ |       |
-| `contribution`                  | _N/A_ |       |
 | `country_fieldtype`             | _N/A_ |       |
 | `default_filters`               | _N/A_ |       |
 | `entity`                        | _N/A_ |       |

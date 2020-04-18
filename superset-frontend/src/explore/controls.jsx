@@ -738,20 +738,6 @@ export const controls = {
     description: t('Use a log scale'),
   },
 
-  contribution: {
-    type: 'CheckboxControl',
-    label: t('Contribution'),
-    default: false,
-    description: t('Compute the contribution to the total'),
-  },
-
-  // color: {
-  //   type: 'ColorPickerControl',
-  //   label: t('Color'),
-  //   default: PRIMARY_COLOR,
-  //   description: t('Pick a color'),
-  // },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),
