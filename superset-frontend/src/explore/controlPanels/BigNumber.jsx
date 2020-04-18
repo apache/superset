@@ -116,7 +116,25 @@ export default {
       expanded: false,
       controlSetRows: [
         [<h1 className="section-header">{t('Rolling Window')}</h1>],
-        ['rolling_type', 'rolling_periods', 'min_periods'],
+        [
+          'rolling_type',
+          'rolling_periods',
+          {
+            name: 'min_periods',
+            config: {
+              type: 'TextControl',
+              label: t('Min Periods'),
+              isInt: true,
+              description: t(
+                'The minimum number of rolling periods required to show ' +
+                  'a value. For instance if you do a cumulative sum on 7 days ' +
+                  'you may want your "Min Period" to be 7, so that all data points ' +
+                  'shown are the total of 7 periods. This will hide the "ramp up" ' +
+                  'taking place over the first 7 periods',
+              ),
+            },
+          },
+        ],
       ],
     },
   ],
