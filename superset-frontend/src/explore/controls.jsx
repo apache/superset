@@ -702,18 +702,6 @@ export const controls = {
     default: '',
   },
 
-  pandas_aggfunc: {
-    type: 'SelectControl',
-    label: t('Aggregation function'),
-    clearable: false,
-    choices: formatSelectOptions(['sum', 'mean', 'min', 'max', 'std', 'var']),
-    default: 'sum',
-    description: t(
-      'Aggregate function to apply when pivoting and ' +
-        'computing the total rows and columns',
-    ),
-  },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),

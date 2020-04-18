@@ -35,7 +35,20 @@ export default {
       label: t('Pivot Options'),
       controlSetRows: [
         [
-          'pandas_aggfunc',
+          {
+            name: 'pandas_aggfunc',
+            config: {
+              type: 'SelectControl',
+              label: t('Aggregation function'),
+              clearable: false,
+              choices: formatSelectOptions(['sum', 'mean', 'min', 'max', 'std', 'var']),
+              default: 'sum',
+              description: t(
+                'Aggregate function to apply when pivoting and ' +
+                  'computing the total rows and columns',
+              ),
+            },
+          },
           {
             name: 'pivot_margins',
             config: {
