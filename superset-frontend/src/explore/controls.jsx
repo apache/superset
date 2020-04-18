@@ -241,63 +241,12 @@ export const controls = {
     isLinear: true,
   },
 
-  normalize_across: {
-    type: 'SelectControl',
-    label: t('Normalize Across'),
-    choices: [
-      ['heatmap', 'heatmap'],
-      ['x', 'x'],
-      ['y', 'y'],
-    ],
-    default: 'heatmap',
-    description: t(
-      'Color will be rendered based on a ratio ' +
-        'of the cell against the sum of across this ' +
-        'criteria',
-    ),
-  },
-
   secondary_metric: {
     ...metric,
     label: t('Color Metric'),
     default: null,
     validators: [],
     description: t('A metric to use for color'),
-  },
-  select_country: {
-    type: 'SelectControl',
-    label: t('Country Name'),
-    default: 'France',
-    choices: [
-      'Belgium',
-      'Brazil',
-      'Bulgaria',
-      'China',
-      'Egypt',
-      'France',
-      'Germany',
-      'India',
-      'Iran',
-      'Italy',
-      'Japan',
-      'Korea',
-      'Liechtenstein',
-      'Morocco',
-      'Myanmar',
-      'Netherlands',
-      'Portugal',
-      'Russia',
-      'Singapore',
-      'Spain',
-      'Switzerland',
-      'Thailand',
-      'Timorleste',
-      'Uk',
-      'Ukraine',
-      'Usa',
-      'Zambia',
-    ].map(s => [s, s]),
-    description: t('The name of the country that Superset should display'),
   },
 
   groupby: groupByControl,
@@ -306,57 +255,6 @@ export const controls = {
     ...groupByControl,
     label: t('Columns'),
     description: t('One or many controls to pivot as columns'),
-  },
-
-  all_columns: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Columns'),
-    default: [],
-    description: t('Columns to display'),
-    optionRenderer: c => <ColumnOption column={c} showType />,
-    valueRenderer: c => <ColumnOption column={c} />,
-    valueKey: 'column_name',
-    allowAll: true,
-    mapStateToProps: state => ({
-      options: state.datasource ? state.datasource.columns : [],
-    }),
-    commaChoosesOption: false,
-    freeForm: true,
-  },
-
-  longitude: {
-    type: 'SelectControl',
-    label: t('Longitude'),
-    default: 1,
-    validators: [validateNonEmpty],
-    description: t('Select the longitude column'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
-  latitude: {
-    type: 'SelectControl',
-    label: t('Latitude'),
-    default: 1,
-    validators: [validateNonEmpty],
-    description: t('Select the latitude column'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
-  polygon: {
-    type: 'SelectControl',
-    label: t('Polygon Column'),
-    validators: [validateNonEmpty],
-    description: t(
-      'Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points',
-    ),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
   },
 
   druid_time_origin: {

@@ -18,6 +18,8 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
+import { columnChoices } from '../controls';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
@@ -25,20 +27,24 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [{
-          name:   'all_columns_x',
-          config: {
-            type: 'SelectControl',
-            label: t('Numeric Columns'),
-            default: null,
-            description: t('Select the numeric columns to draw the histogram'),
-            mapStateToProps: state => ({
-              choices: columnChoices(state.datasource),
-            }),
-            multi: true,
-            validators: [validateNonEmpty],
+        [
+          {
+            name: 'all_columns_x',
+            config: {
+              type: 'SelectControl',
+              label: t('Numeric Columns'),
+              default: null,
+              description: t(
+                'Select the numeric columns to draw the histogram',
+              ),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+              multi: true,
+              validators: [validateNonEmpty],
+            },
           },
-        }],
+        ],
         ['adhoc_filters'],
         ['row_limit'],
         ['groupby'],
@@ -49,27 +55,29 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        [{
-          name: 'link_length',
-          config: {
-            type: 'SelectControl',
-            renderTrigger: true,
-            freeForm: true,
-            label: t('No of Bins'),
-            default: 5,
-            choices: formatSelectOptions([
-              '10',
-              '25',
-              '50',
-              '75',
-              '100',
-              '150',
-              '200',
-              '250',
-            ]),
-            description: t('Select the number of bins for the histogram'),
+        [
+          {
+            name: 'link_length',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: true,
+              freeForm: true,
+              label: t('No of Bins'),
+              default: 5,
+              choices: formatSelectOptions([
+                '10',
+                '25',
+                '50',
+                '75',
+                '100',
+                '150',
+                '200',
+                '250',
+              ]),
+              description: t('Select the number of bins for the histogram'),
+            },
           },
-        }],
+        ],
         [
           {
             name: 'x_axis_label',

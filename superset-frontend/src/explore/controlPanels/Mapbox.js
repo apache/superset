@@ -26,29 +26,32 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [{
-          name:   'all_columns_x',
-          config: {
-            type: 'SelectControl',
-            label: t('Longitude'),
-            default: null,
-            description: t('Column containing longitude data'),
-            mapStateToProps: state => ({
-              choices: columnChoices(state.datasource),
-            }),
+        [
+          {
+            name: 'all_columns_x',
+            config: {
+              type: 'SelectControl',
+              label: t('Longitude'),
+              default: null,
+              description: t('Column containing longitude data'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
           },
-        }, {
-          name: 'all_columns_y',
-          config: {
-            type: 'SelectControl',
-            label: t('Latitude'),
-            default: null,
-            description: t('Column containing latitude data'),
-            mapStateToProps: state => ({
-              choices: columnChoices(state.datasource),
-            }),
+          {
+            name: 'all_columns_y',
+            config: {
+              type: 'SelectControl',
+              label: t('Latitude'),
+              default: null,
+              description: t('Column containing latitude data'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
           },
-        }],
+        ],
         [
           {
             name: 'clustering_radius',

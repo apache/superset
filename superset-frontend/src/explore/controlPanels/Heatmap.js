@@ -22,6 +22,7 @@ import {
   formatSelectOptionsForRange,
   formatSelectOptions,
 } from '../../modules/utils';
+import { columnChoices } from '../controls';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],
@@ -36,31 +37,34 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [{
-          name:   'all_columns_x',
-          config: {
-            type: 'SelectControl',
-            label: 'X',
-            default: null,
-            description: t('Columns to display'),
-            mapStateToProps: state => ({
-              choices: columnChoices(state.datasource),
-            }),
-            validators: [validateNonEmpty],
+        [
+          {
+            name: 'all_columns_x',
+            config: {
+              type: 'SelectControl',
+              label: 'X',
+              default: null,
+              description: t('Columns to display'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+              validators: [validateNonEmpty],
+            },
           },
-        }, {
-          name: 'all_columns_y',
-          config: {
-            type: 'SelectControl',
-            label: 'Y',
-            default: null,
-            description: t('Columns to display'),
-            mapStateToProps: state => ({
-              choices: columnChoices(state.datasource),
-            }),
-            validators: [validateNonEmpty],
+          {
+            name: 'all_columns_y',
+            config: {
+              type: 'SelectControl',
+              label: 'Y',
+              default: null,
+              description: t('Columns to display'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+              validators: [validateNonEmpty],
+            },
           },
-        }],
+        ],
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
@@ -119,7 +123,24 @@ export default {
               ),
             },
           },
-          'normalize_across',
+          {
+            name: 'normalize_across',
+            config: {
+              type: 'SelectControl',
+              label: t('Normalize Across'),
+              choices: [
+                ['heatmap', 'heatmap'],
+                ['x', 'x'],
+                ['y', 'y'],
+              ],
+              default: 'heatmap',
+              description: t(
+                'Color will be rendered based on a ratio ' +
+                  'of the cell against the sum of across this ' +
+                  'criteria',
+              ),
+            },
+          },
         ],
         [
           {

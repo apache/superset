@@ -31,7 +31,46 @@ export default {
       expanded: true,
       controlSetRows: [
         [
-          'select_country',
+          {
+            name: 'select_country',
+            config: {
+              type: 'SelectControl',
+              label: t('Country Name'),
+              default: 'France',
+              choices: [
+                'Belgium',
+                'Brazil',
+                'Bulgaria',
+                'China',
+                'Egypt',
+                'France',
+                'Germany',
+                'India',
+                'Iran',
+                'Italy',
+                'Japan',
+                'Korea',
+                'Liechtenstein',
+                'Morocco',
+                'Myanmar',
+                'Netherlands',
+                'Portugal',
+                'Russia',
+                'Singapore',
+                'Spain',
+                'Switzerland',
+                'Thailand',
+                'Timorleste',
+                'Uk',
+                'Ukraine',
+                'Usa',
+                'Zambia',
+              ].map(s => [s, s]),
+              description: t(
+                'The name of the country that Superset should display',
+              ),
+            },
+          },
           {
             name: 'number_format',
             config: {

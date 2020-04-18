@@ -989,7 +989,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 | Field           | Type            | Notes                   |
 | --------------- | --------------- | ----------------------- |
-| `all_columns`   | _array(string)_ | The **Columns** widget  |
 | `order_by_cols` | _array(string)_ | The **Ordering** widget |
 | `row_limit`     | -               | See Query section       |
 
@@ -1072,7 +1071,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `linear_color_scheme`           | _N/A_ |       |
 | `new_dashboard_name`            | _N/A_ |       |
 | `new_slice_name`                | _N/A_ |       |
-| `normalize_across`              | _N/A_ |       |
 | `num_period_compare`            | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
@@ -1084,7 +1082,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `rose_area_proportion`          | _N/A_ |       |
 | `save_to_dashboard_id`          | _N/A_ |       |
 | `schema`                        | _N/A_ |       |
-| `select_country`                | _N/A_ |       |
 | `series`                        | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
