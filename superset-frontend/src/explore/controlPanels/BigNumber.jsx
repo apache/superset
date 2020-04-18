@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/translation';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from './Shared_BigNumber';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
