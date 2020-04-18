@@ -424,25 +424,6 @@ export const controls = {
     ),
   },
 
-  link_length: {
-    type: 'SelectControl',
-    renderTrigger: true,
-    freeForm: true,
-    label: t('Link Length'),
-    default: '200',
-    choices: formatSelectOptions([
-      '10',
-      '25',
-      '50',
-      '75',
-      '100',
-      '150',
-      '200',
-      '250',
-    ]),
-    description: t('Link length in the force layout'),
-  },
-
   granularity_sqla: {
     type: 'SelectControl',
     label: TIME_FILTER_LABELS.granularity_sqla,

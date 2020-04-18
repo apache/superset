@@ -36,7 +36,27 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['link_length'],
+        [{
+          name: 'link_length',
+          config: {
+            type: 'SelectControl',
+            renderTrigger: true,
+            freeForm: true,
+            label: t('No of Bins'),
+            default: 5,
+            choices: formatSelectOptions([
+              '10',
+              '25',
+              '50',
+              '75',
+              '100',
+              '150',
+              '200',
+              '250',
+            ]),
+            description: t('Select the number of bins for the histogram'),
+          },
+        }],
         [
           {
             name: 'x_axis_label',
@@ -78,11 +98,6 @@ export default {
       description: t('Select the numeric columns to draw the histogram'),
       multi: true,
       validators: [validateNonEmpty],
-    },
-    link_length: {
-      label: t('No of Bins'),
-      description: t('Select the number of bins for the histogram'),
-      default: 5,
     },
   },
 };

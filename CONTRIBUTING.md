@@ -1028,7 +1028,6 @@ The `metric` (or equivalent) and `timeseries_limit_metric` fields are all compos
 | --------------------- | --------- | ------------------------------------------------ |
 | `color_picker`        | _object_  | The **Fixed Color** widget                       |
 | `label_colors`        | _object_  | The **Color Scheme** widget                      |
-| `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
 
 ### Y Axis
