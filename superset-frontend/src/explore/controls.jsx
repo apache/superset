@@ -507,16 +507,6 @@ export const controls = {
     }),
   },
 
-  number_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Number format'),
-    renderTrigger: true,
-    default: 'SMART_NUMBER',
-    choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
   row_limit: {
     type: 'SelectControl',
     freeForm: true,
