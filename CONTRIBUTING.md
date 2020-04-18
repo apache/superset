@@ -1098,7 +1098,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `select_country`                | _N/A_ |       |
 | `series`                        | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
-| `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `table_filter`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |

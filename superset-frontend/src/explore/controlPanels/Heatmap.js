@@ -186,7 +186,16 @@ export default {
           },
         ],
         [
-          'show_values',
+          {
+            name:   'show_values',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Values'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the numerical values within the cells'),
+            },
+          },
           {
             name: 'normalized',
             config: {
