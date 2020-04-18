@@ -41,7 +41,7 @@ import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
 import TreemapChartPlugin from '@superset-ui/legacy-plugin-chart-treemap';
-import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
+import WordCloudChartPlugin from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 // There is a known issue with bubble chart that the bubbles will not show up.
 // (<path d="NaN" />)

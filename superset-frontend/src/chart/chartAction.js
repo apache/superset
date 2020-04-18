@@ -20,6 +20,10 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
+import {
+  getChartBuildQueryRegistry,
+  getChartMetadataRegistry,
+} from '@superset-ui/chart';
 import { SupersetClient } from '@superset-ui/connection';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
@@ -202,6 +206,49 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
+function legacyChartRequestConfig(
+  formData,
+  force,
+  method,
+  dashboardId,
+  requestParams,
+) {
+  const { url, payload } = getExploreUrlAndPayload({
+    formData,
+    endpointType: 'json',
+    force,
+    allowDomainSharding,
+    method,
+    requestParams: dashboardId ? { dashboard_id: dashboardId } : {},
+  });
+  const querySettings = {
+    ...requestParams,
+    url,
+    postPayload: { form_data: payload },
+  };
+
+  const clientMethod =
+    method === 'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
+      ? SupersetClient.get
+      : SupersetClient.post;
+
+  return clientMethod(querySettings);
+}
+
+async function v1ChartRequestConfig(formData, requestParams) {
+  const url = '/api/v1/chart/data';
+  const buildQuery = await getChartBuildQueryRegistry().get(formData.viz_type);
+  const payload = buildQuery(formData);
+  const querySettings = {
+    ...requestParams,
+    endpoint: url,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  };
+
+  return SupersetClient.post(querySettings);
+}
+
 export function exploreJSON(
   formData,
   force = false,
@@ -210,40 +257,38 @@ export function exploreJSON(
   method,
   dashboardId,
 ) {
-  return dispatch => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'json',
-      force,
-      allowDomainSharding,
-      method,
-      requestParams: dashboardId ? { dashboard_id: dashboardId } : {},
-    });
+  return async dispatch => {
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
-    const { signal } = controller;
 
-    dispatch(chartUpdateStarted(controller, payload, key));
+    const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
 
-    let querySettings = {
-      url,
-      postPayload: { form_data: payload },
-      signal,
+    let requestParams = {
+      signal: controller.signal,
       timeout: timeout * 1000,
     };
+
     if (allowDomainSharding) {
-      querySettings = {
-        ...querySettings,
+      requestParams = {
+        ...requestParams,
         mode: 'cors',
         credentials: 'include',
       };
     }
 
-    const clientMethod =
-      method === 'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
-        ? SupersetClient.get
-        : SupersetClient.post;
-    const queryPromise = clientMethod(querySettings)
+    const queryPromiseRaw = useLegacyApi
+      ? legacyChartRequestConfig(
+          formData,
+          force,
+          method,
+          dashboardId,
+          requestParams,
+        )
+      : await v1ChartRequestConfig(formData, requestParams);
+
+    dispatch(chartUpdateStarted(controller, formData, key));
+
+    const queryPromiseCaught = queryPromiseRaw
       .then(({ json }) => {
         dispatch(
           logEvent(LOG_ACTIONS_LOAD_CHART, {
@@ -300,9 +345,9 @@ export function exploreJSON(
     const annotationLayers = formData.annotation_layers || [];
 
     return Promise.all([
-      queryPromise,
+      queryPromiseCaught,
       dispatch(triggerQuery(false, key)),
-      dispatch(updateQueryFormData(payload, key)),
+      dispatch(updateQueryFormData(formData, key)),
       ...annotationLayers.map(x =>
         dispatch(runAnnotationQuery(x, timeout, formData, key)),
       ),
