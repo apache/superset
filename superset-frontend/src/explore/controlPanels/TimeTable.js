@@ -40,19 +40,26 @@ export default {
             },
           },
         ],
-        ['url'],
+        [
+          {
+            name: 'url',
+            config: {
+              type: 'TextControl',
+              label: t('URL'),
+              description: t(
+                "Templated link, it's possible to include {{ metric }} " +
+                  'or other values coming from the controls.',
+              ),
+              default: '',
+            },
+          },
+        ],
       ],
     },
   ],
   controlOverrides: {
     groupby: {
       multiple: false,
-    },
-    url: {
-      description: t(
-        "Templated link, it's possible to include {{ metric }} " +
-          'or other values coming from the controls.',
-      ),
     },
   },
   sectionOverrides: {

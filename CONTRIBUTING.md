@@ -1097,5 +1097,4 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `show_bubbles`                  | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
-| `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |

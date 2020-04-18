@@ -634,16 +634,6 @@ export const controls = {
     default: null,
   },
 
-  url: {
-    type: 'TextControl',
-    label: t('URL'),
-    description: t(
-      'The URL, this control is templated, so you can integrate ' +
-        '{{ width }} and/or {{ height }} in your URL string.',
-    ),
-    default: '',
-  },
-
   y_axis_format: {
     type: 'SelectControl',
     freeForm: true,
