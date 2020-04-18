@@ -121,20 +121,29 @@ export default {
             },
           },
         ],
-        [{
-          name: 'pandas_aggfunc',
-          config: {
-            type: 'SelectControl',
-            label: t('Cluster label aggregator'),
-            clearable: false,
-            choices: formatSelectOptions(['sum', 'mean', 'min', 'max', 'std', 'var']),
-            default: 'sum',
-            description: t(
-              'Aggregate function applied to the list of points ' +
-                'in each cluster to produce the cluster label.',
-            ),
+        [
+          {
+            name: 'pandas_aggfunc',
+            config: {
+              type: 'SelectControl',
+              label: t('Cluster label aggregator'),
+              clearable: false,
+              choices: formatSelectOptions([
+                'sum',
+                'mean',
+                'min',
+                'max',
+                'std',
+                'var',
+              ]),
+              default: 'sum',
+              description: t(
+                'Aggregate function applied to the list of points ' +
+                  'in each cluster to produce the cluster label.',
+              ),
+            },
           },
-        }],
+        ],
       ],
     },
     {

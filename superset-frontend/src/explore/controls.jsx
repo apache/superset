@@ -689,19 +689,6 @@ export const controls = {
     description: t('Pick your favorite markup language'),
   },
 
-  code: {
-    type: 'TextAreaControl',
-    label: t('Code'),
-    description: t('Put your code here'),
-    mapStateToProps: state => ({
-      language:
-        state.controls && state.controls.markup_type
-          ? state.controls.markup_type.value
-          : 'markdown',
-    }),
-    default: '',
-  },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),
