@@ -714,14 +714,6 @@ export const controls = {
     ),
   },
 
-  table_filter: {
-    type: 'CheckboxControl',
-    label: t('Emit Filter Events'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to apply filter when items are clicked'),
-  },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),

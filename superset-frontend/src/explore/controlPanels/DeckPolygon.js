@@ -122,7 +122,16 @@ export default {
           },
         ],
         [
-          'table_filter',
+          {
+            name: 'table_filter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Emit Filter Events'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to apply filter when items are clicked'),
+            },
+          },
           {
             name: 'toggle_polygons',
             config: {

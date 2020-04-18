@@ -41,15 +41,17 @@ export default {
         ['groupby'],
         ['columns'],
         ['row_limit'],
-        [{
-          name: 'contribution',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Contribution'),
-            default: false,
-            description: t('Compute the contribution to the total'),
+        [
+          {
+            name: 'contribution',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Contribution'),
+              default: false,
+              description: t('Compute the contribution to the total'),
+            },
           },
-        }],
+        ],
       ],
     },
     {

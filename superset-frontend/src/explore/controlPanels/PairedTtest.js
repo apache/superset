@@ -29,15 +29,18 @@ export default {
         ['adhoc_filters'],
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
-        ['order_desc', {
-          name: 'contribution',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Contribution'),
-            default: false,
-            description: t('Compute the contribution to the total'),
+        [
+          'order_desc',
+          {
+            name: 'contribution',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Contribution'),
+              default: false,
+              description: t('Compute the contribution to the total'),
+            },
           },
-        }],
+        ],
         ['row_limit', null],
       ],
     },
