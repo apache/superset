@@ -1051,7 +1051,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | Field                           | Type  | Notes |
 | ------------------------------- | ----- | ----- |
 | `add_to_dash`                   | _N/A_ |       |
-| `all_columns_y`                 | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
 | `comparison type`               | _N/A_ |       |

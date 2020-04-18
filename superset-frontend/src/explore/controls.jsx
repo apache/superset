@@ -369,16 +369,6 @@ export const controls = {
     }),
   },
 
-  all_columns_y: {
-    type: 'SelectControl',
-    label: 'Y',
-    default: null,
-    description: t('Columns to display'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
   druid_time_origin: {
     type: 'SelectControl',
     freeForm: true,

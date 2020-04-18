@@ -36,7 +36,19 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['all_columns_x', 'all_columns_y'],
+        ['all_columns_x', {
+          name: 'all_columns_y',
+          config: {
+            type: 'SelectControl',
+            label: 'Y',
+            default: null,
+            description: t('Columns to display'),
+            mapStateToProps: state => ({
+              choices: columnChoices(state.datasource),
+            }),
+            validators: [validateNonEmpty],
+          },
+        }],
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
@@ -236,9 +248,6 @@ export default {
   ],
   controlOverrides: {
     all_columns_x: {
-      validators: [validateNonEmpty],
-    },
-    all_columns_y: {
       validators: [validateNonEmpty],
     },
     normalized: t(
