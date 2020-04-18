@@ -669,16 +669,6 @@ export const controls = {
     },
   },
 
-  date_time_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Date Time Format'),
-    renderTrigger: true,
-    default: 'smart_date',
-    choices: D3_TIME_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),

@@ -970,7 +970,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 | Field                  | Type            | Notes                                 |
 | ---------------------- | --------------- | ------------------------------------- |
-| `date_time_format`     | _N/A_           | _Deprecated?_                         |
 | `druid_time_origin`    | _string_        | The Druid **Origin** widget           |
 | `granularity`          | _string_        | The Druid **Time Granularity** widget |
 | `granularity_sqla`     | _string_        | The SQLA **Time Column** widget       |

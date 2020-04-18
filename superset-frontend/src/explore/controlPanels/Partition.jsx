@@ -21,6 +21,7 @@ import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import OptionDescription from '../../components/OptionDescription';
 import { NVD3TimeSeries } from './sections';
+import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 
 export default {
   controlPanelSections: [
@@ -121,7 +122,21 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['number_format', 'date_time_format'],
+        [
+          'number_format',
+          {
+            name: 'date_time_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Date Time Format'),
+              renderTrigger: true,
+              default: 'smart_date',
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
         [
           {
             name: 'partition_limit',
