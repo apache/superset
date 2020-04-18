@@ -148,7 +148,16 @@ export default {
           },
         ],
         [
-          'log_scale',
+          {
+            name:   'log_scale',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Log Scale'),
+              default: false,
+              renderTrigger: true,
+              description: t('Use a log scale'),
+            },
+          },
           {
             name: 'equal_date_size',
             config: {

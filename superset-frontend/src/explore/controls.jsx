@@ -730,14 +730,6 @@ export const controls = {
     description: t('Whether to display the numerical values within the cells'),
   },
 
-  log_scale: {
-    type: 'CheckboxControl',
-    label: t('Log Scale'),
-    default: false,
-    renderTrigger: true,
-    description: t('Use a log scale'),
-  },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),
