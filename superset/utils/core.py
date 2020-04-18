@@ -143,7 +143,7 @@ class _memoized:
         self.func = func
         self.cache = {}
         self.is_method = False
-        self.watch = watch
+        self.watch = watch or []
 
     def __call__(self, *args, **kwargs):
         key = [args, frozenset(kwargs.items())]
@@ -172,7 +172,7 @@ class _memoized:
         return functools.partial(self.__call__, obj)
 
 
-def memoized(func=None, watch=None):
+def memoized(func: Optional[Callable] = None, watch: Optional[List[str]] = None):
     if func:
         return _memoized(func)
     else:
