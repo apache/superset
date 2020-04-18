@@ -1086,7 +1086,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `remote_id`                     | _N/A_ |       |
 | `resample_fillmethod`           | _N/A_ |       |
 | `resample_how`                  | _N/A_ |       |
-| `rolling_type`                  | _N/A_ |       |
 | `rose_area_proportion`          | _N/A_ |       |
 | `save_to_dashboard_id`          | _N/A_ |       |
 | `schema`                        | _N/A_ |       |

@@ -559,17 +559,6 @@ export const controls = {
     description: t('Whether to sort descending or ascending'),
   },
 
-  rolling_type: {
-    type: 'SelectControl',
-    label: t('Rolling Function'),
-    default: 'None',
-    choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
-    description: t(
-      'Defines a rolling window function to apply, works along ' +
-        'with the [Periods] text box',
-    ),
-  },
-
   series: {
     ...groupByControl,
     label: t('Series'),

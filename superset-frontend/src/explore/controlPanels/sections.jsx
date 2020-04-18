@@ -140,9 +140,27 @@ export const NVD3TimeSeries = [
     controlSetRows: [
       [<h1 className="section-header">{t('Rolling Window')}</h1>],
       [
-        'rolling_type',
         {
-          name:   'rolling_periods',
+          name: 'rolling_type',
+          config: {
+            type: 'SelectControl',
+            label: t('Rolling Function'),
+            default: 'None',
+            choices: formatSelectOptions([
+              'None',
+              'mean',
+              'sum',
+              'std',
+              'cumsum',
+            ]),
+            description: t(
+              'Defines a rolling window function to apply, works along ' +
+                'with the [Periods] text box',
+            ),
+          },
+        },
+        {
+          name: 'rolling_periods',
           config: {
             type: 'TextControl',
             label: t('Periods'),
