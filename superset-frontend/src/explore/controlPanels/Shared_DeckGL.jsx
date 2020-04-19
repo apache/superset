@@ -21,11 +21,10 @@
 
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 import ColumnOption from '../../components/ColumnOption';
 import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
 import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
-
-import { nonEmpty } from '../validators';
 
 const timeColumnOption = {
   verbose_name: 'Time',
@@ -230,7 +229,7 @@ export const lineColumn = {
     mapStateToProps: state => ({
       choices: columnChoices(state.datasource),
     }),
-    validators: [nonEmpty],
+    validators: [validateNonEmpty],
   },
 };
 
@@ -336,7 +335,7 @@ export const spatial = {
   config: {
     type: 'SpatialControl',
     label: t('Longitude & Latitude'),
-    validators: [nonEmpty],
+    validators: [validateNonEmpty],
     description: t('Point to your spatial columns'),
     mapStateToProps: state => ({
       choices: columnChoices(state.datasource),

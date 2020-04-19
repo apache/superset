@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { nonEmpty } from '../validators';
+import { validateNonEmpty } from '@superset-ui/validator';
 
 export default {
   controlPanelSections: [
@@ -37,7 +37,26 @@ export default {
       controlSetRows: [
         ['color_scheme', 'label_colors'],
         ['link_length'],
-        ['x_axis_label', 'y_axis_label'],
+        [
+          {
+            name: 'x_axis_label',
+            config: {
+              type: 'TextControl',
+              label: t('X Axis Label'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+          {
+            name: 'y_axis_label',
+            config: {
+              type: 'TextControl',
+              label: t('Y Axis Label'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+        ],
         ['global_opacity'],
         ['normalized'],
       ],
@@ -48,7 +67,7 @@ export default {
       label: t('Numeric Columns'),
       description: t('Select the numeric columns to draw the histogram'),
       multi: true,
-      validators: [nonEmpty],
+      validators: [validateNonEmpty],
     },
     link_length: {
       label: t('No of Bins'),

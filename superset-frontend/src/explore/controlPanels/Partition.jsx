@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 import { NVD3TimeSeries } from './sections';
 import OptionDescription from '../../components/OptionDescription';
-import { nonEmpty } from '../validators';
 
 export default {
   controlPanelSections: [
@@ -35,7 +35,7 @@ export default {
             config: {
               type: 'SelectControl',
               label: t('Options'),
-              validators: [nonEmpty],
+              validators: [validateNonEmpty],
               default: 'not_time',
               valueKey: 'value',
               options: [
@@ -143,7 +143,20 @@ export default {
             },
           },
         ],
-        ['rich_tooltip'],
+        [
+          {
+            name: 'rich_tooltip',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Rich Tooltip'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'The rich tooltip shows a list of all series for that point in time',
+              ),
+            },
+          },
+        ],
       ],
     },
     NVD3TimeSeries[1],

@@ -103,7 +103,7 @@ Installation & Configuration
 Resources
 -------------
 * [Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
-* [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
+* [Docker image](https://hub.docker.com/r/preset/superset/)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 * [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
 * [Join our Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)

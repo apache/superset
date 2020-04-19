@@ -249,7 +249,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
                             "AMA",
                             "PLW",
                         ],
-                        "operator": "not in",
+                        "operator": "NOT IN",
                         "subject": "country_code",
                     }
                 ],

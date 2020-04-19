@@ -23,6 +23,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import signal
 import smtplib
 import tempfile
@@ -37,8 +38,10 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum
 from time import struct_time
+from timeit import default_timer
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterator,
     List,
@@ -195,28 +198,30 @@ def parse_js_uri_path_item(
     return unquote_plus(item) if unquote and item else item
 
 
-def string_to_num(s: str):
-    """Converts a string to an int/float
+def cast_to_num(value: Union[float, int, str]) -> Optional[Union[float, int]]:
+    """Casts a value to an int/float
 
-    Returns ``None`` if it can't be converted
-
-    >>> string_to_num('5')
+    >>> cast_to_num('5')
     5
-    >>> string_to_num('5.2')
+    >>> cast_to_num('5.2')
     5.2
-    >>> string_to_num(10)
+    >>> cast_to_num(10)
     10
-    >>> string_to_num(10.1)
+    >>> cast_to_num(10.1)
     10.1
-    >>> string_to_num('this is not a string') is None
+    >>> cast_to_num('this is not a string') is None
     True
+
+    :param value: value to be converted to numeric representation
+    :returns: value cast to `int` if value is all digits, `float` if `value` is
+              decimal value and `None`` if it can't be converted
     """
-    if isinstance(s, (int, float)):
-        return s
-    if s.isdigit():
-        return int(s)
+    if isinstance(value, (int, float)):
+        return value
+    if value.isdigit():
+        return int(value)
     try:
-        return float(s)
+        return float(value)
     except ValueError:
         return None
 
@@ -271,6 +276,10 @@ def parse_human_datetime(s):
 
 def dttm_from_timetuple(d: struct_time) -> datetime:
     return datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
+
+
+def md5_hex(data: str) -> str:
+    return hashlib.md5(data.encode()).hexdigest()
 
 
 class DashboardEncoder(json.JSONEncoder):
@@ -779,14 +788,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
 def get_email_address_list(address_string: str) -> List[str]:
     address_string_list: List[str] = []
     if isinstance(address_string, str):
-        if "," in address_string:
-            address_string_list = address_string.split(",")
-        elif "\n" in address_string:
-            address_string_list = address_string.split("\n")
-        elif ";" in address_string:
-            address_string_list = address_string.split(";")
-        else:
-            address_string_list = [address_string]
+        address_string_list = re.split(",|\s|;", address_string)
     return [x.strip() for x in address_string_list if x.strip()]
 
 
@@ -1225,6 +1227,21 @@ def create_ssl_cert_file(certificate: str) -> str:
     return path
 
 
+def time_function(func: Callable, *args, **kwargs) -> Tuple[float, Any]:
+    """
+    Measures the amount of time a function takes to execute in ms
+
+    :param func: The function execution time to measure
+    :param args: args to be passed to the function
+    :param kwargs: kwargs to be passed to the function
+    :return: A tuple with the duration and response from the function
+    """
+    start = default_timer()
+    response = func(*args, **kwargs)
+    stop = default_timer()
+    return stop - start, response
+
+
 def MediumText() -> Variant:
     return Text().with_variant(MEDIUMTEXT(), "mysql")
 
@@ -1331,3 +1348,22 @@ class DbColumnType(Enum):
     NUMERIC = 0
     STRING = 1
     TEMPORAL = 2
+
+
+class FilterOperationType(str, Enum):
+    """
+    Filter operation type
+    """
+
+    EQUALS = "=="
+    NOT_EQUALS = "!="
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    GREATER_THAN_OR_EQUALS = ">="
+    LESS_THAN_OR_EQUALS = "<="
+    LIKE = "LIKE"
+    IS_NULL = "IS NULL"
+    IS_NOT_NULL = "IS NOT NULL"
+    IN = "IN"
+    NOT_IN = "NOT IN"
+    REGEX = "REGEX"

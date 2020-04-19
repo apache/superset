@@ -212,5 +212,19 @@ describe('getFilterScopeFromNodesTree', () => {
         immune: [],
       });
     });
+
+    it('mixed row level tab and chart scope', () => {
+      const checkedChartIds = [103, 105, 102];
+      expect(
+        getFilterScopeFromNodesTree({
+          filterKey: '107_region',
+          nodes,
+          checkedChartIds,
+        }),
+      ).toEqual({
+        scope: ['TAB-E4mJaZ-uQM', 'TAB-rLYu-Cryu'],
+        immune: [101],
+      });
+    });
   });
 });

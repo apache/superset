@@ -49,7 +49,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 
-from superset import app, db, security_manager
+from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
@@ -696,11 +696,12 @@ class SqlaTable(Model, BaseDatasource):
 
     def get_sqla_query(  # sqla
         self,
-        groupby,
         metrics,
         granularity,
         from_dttm,
         to_dttm,
+        columns=None,
+        groupby=None,
         filter=None,
         is_timeseries=True,
         timeseries_limit=15,
@@ -710,7 +711,6 @@ class SqlaTable(Model, BaseDatasource):
         inner_to_dttm=None,
         orderby=None,
         extras=None,
-        columns=None,
         order_desc=True,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
@@ -723,6 +723,7 @@ class SqlaTable(Model, BaseDatasource):
             "filter": filter,
             "columns": {col.column_name: col for col in self.columns},
         }
+        is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
@@ -749,7 +750,11 @@ class SqlaTable(Model, BaseDatasource):
                     "and is required by this type of chart"
                 )
             )
-        if not groupby and not metrics and not columns:
+        if (
+            not metrics
+            and not columns
+            and (is_sip_38 or (not is_sip_38 and not groupby))
+        ):
             raise Exception(_("Empty query?"))
         metrics_exprs: List[ColumnElement] = []
         for m in metrics:
@@ -768,9 +773,9 @@ class SqlaTable(Model, BaseDatasource):
         select_exprs: List[Column] = []
         groupby_exprs_sans_timestamp: OrderedDict = OrderedDict()
 
-        if groupby:
+        if (is_sip_38 and metrics and columns) or (not is_sip_38 and groupby):
             # dedup columns while preserving order
-            groupby = list(dict.fromkeys(groupby))
+            groupby = list(dict.fromkeys(columns if is_sip_38 else groupby))
 
             select_exprs = []
             for s in groupby:
@@ -829,7 +834,7 @@ class SqlaTable(Model, BaseDatasource):
 
         tbl = self.get_from_clause(template_processor)
 
-        if not columns:
+        if (is_sip_38 and metrics) or (not is_sip_38 and not columns):
             qry = qry.group_by(*groupby_exprs_with_timestamp.values())
 
         where_clause_and = []
@@ -838,43 +843,53 @@ class SqlaTable(Model, BaseDatasource):
             if not all([flt.get(s) for s in ["col", "op"]]):
                 continue
             col = flt["col"]
-            op = flt["op"]
+            op = flt["op"].upper()
             col_obj = cols.get(col)
             if col_obj:
-                is_list_target = op in ("in", "not in")
+                is_list_target = op in (
+                    utils.FilterOperationType.IN.value,
+                    utils.FilterOperationType.NOT_IN.value,
+                )
                 eq = self.filter_values_handler(
-                    flt.get("val"),
+                    values=flt.get("val"),
                     target_column_is_numeric=col_obj.is_numeric,
                     is_list_target=is_list_target,
                 )
-                if op in ("in", "not in"):
+                if op in (
+                    utils.FilterOperationType.IN.value,
+                    utils.FilterOperationType.NOT_IN.value,
+                ):
                     cond = col_obj.get_sqla_col().in_(eq)
-                    if NULL_STRING in eq:
-                        cond = or_(cond, col_obj.get_sqla_col() == None)
-                    if op == "not in":
+                    if isinstance(eq, str) and NULL_STRING in eq:
+                        cond = or_(cond, col_obj.get_sqla_col() is None)
+                    if op == utils.FilterOperationType.NOT_IN.value:
                         cond = ~cond
                     where_clause_and.append(cond)
                 else:
                     if col_obj.is_numeric:
-                        eq = utils.string_to_num(flt["val"])
-                    if op == "==":
+                        eq = utils.cast_to_num(flt["val"])
+                    if op == utils.FilterOperationType.EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() == eq)
-                    elif op == "!=":
+                    elif op == utils.FilterOperationType.NOT_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() != eq)
-                    elif op == ">":
+                    elif op == utils.FilterOperationType.GREATER_THAN.value:
                         where_clause_and.append(col_obj.get_sqla_col() > eq)
-                    elif op == "<":
+                    elif op == utils.FilterOperationType.LESS_THAN.value:
                         where_clause_and.append(col_obj.get_sqla_col() < eq)
-                    elif op == ">=":
+                    elif op == utils.FilterOperationType.GREATER_THAN_OR_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() >= eq)
-                    elif op == "<=":
+                    elif op == utils.FilterOperationType.LESS_THAN_OR_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() <= eq)
-                    elif op == "LIKE":
+                    elif op == utils.FilterOperationType.LIKE.value:
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
-                    elif op == "IS NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() == None)
-                    elif op == "IS NOT NULL":
-                        where_clause_and.append(col_obj.get_sqla_col() != None)
+                    elif op == utils.FilterOperationType.IS_NULL.value:
+                        where_clause_and.append(col_obj.get_sqla_col() is None)
+                    elif op == utils.FilterOperationType.IS_NOT_NULL.value:
+                        where_clause_and.append(col_obj.get_sqla_col() is None)
+                    else:
+                        raise Exception(
+                            _("Invalid filter operation type: %(op)s", op=op)
+                        )
 
         where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
@@ -892,7 +907,7 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
 
-        if not orderby and not columns:
+        if not orderby and ((is_sip_38 and metrics) or (not is_sip_38 and not columns)):
             orderby = [(main_metric_expr, not order_desc)]
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
@@ -914,7 +929,12 @@ class SqlaTable(Model, BaseDatasource):
         if row_limit:
             qry = qry.limit(row_limit)
 
-        if is_timeseries and timeseries_limit and groupby and not time_groupby_inline:
+        if (
+            is_timeseries
+            and timeseries_limit
+            and not time_groupby_inline
+            and ((is_sip_38 and columns) or (not is_sip_38 and groupby))
+        ):
             if self.database.db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
@@ -972,7 +992,6 @@ class SqlaTable(Model, BaseDatasource):
                 prequery_obj = {
                     "is_timeseries": False,
                     "row_limit": timeseries_limit,
-                    "groupby": groupby,
                     "metrics": metrics,
                     "granularity": granularity,
                     "from_dttm": inner_from_dttm or from_dttm,
@@ -983,6 +1002,9 @@ class SqlaTable(Model, BaseDatasource):
                     "columns": columns,
                     "order_desc": True,
                 }
+                if not is_sip_38:
+                    prequery_obj["groupby"] = groupby
+
                 result = self.query(prequery_obj)
                 prequeries.append(result.query)
                 dimensions = [

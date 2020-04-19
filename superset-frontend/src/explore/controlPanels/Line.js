@@ -19,6 +19,23 @@
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import {
+  lineInterpolation,
+  showBrush,
+  showLegend,
+  xAxisLabel,
+  bottomMargin,
+  xTicksLayout,
+  xAxisFormat,
+  yLogScale,
+  yAxisBounds,
+  yAxisLabel,
+  xAxisShowMinmax,
+  yAxisShowMinmax,
+  richTooltip,
+  leftMargin,
+  showMarkers,
+} from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -29,37 +46,46 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['show_brush', 'send_time_range', 'show_legend'],
-        ['rich_tooltip', 'show_markers'],
-        ['line_interpolation'],
+        [
+          showBrush,
+          {
+            name: 'send_time_range',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Propagate'),
+              renderTrigger: true,
+              default: false,
+              description: t('Send range filter events to other charts'),
+            },
+          },
+          showLegend,
+        ],
+        [richTooltip, showMarkers],
+        [lineInterpolation],
       ],
     },
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'bottom_margin'],
-        ['x_ticks_layout', 'x_axis_format'],
-        ['x_axis_showminmax', null],
+        [xAxisLabel, bottomMargin],
+        [xTicksLayout, xAxisFormat],
+        [xAxisShowMinmax, null],
       ],
     },
     {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_label', 'left_margin'],
-        ['y_axis_showminmax', 'y_log_scale'],
-        ['y_axis_format', 'y_axis_bounds'],
+        [yAxisLabel, leftMargin],
+        [yAxisShowMinmax, yLogScale],
+        ['y_axis_format', yAxisBounds],
       ],
     },
     NVD3TimeSeries[1],
     annotations,
   ],
   controlOverrides: {
-    x_axis_format: {
-      choices: D3_TIME_FORMAT_OPTIONS,
-      default: 'smart_date',
-    },
     row_limit: {
       default: 50000,
     },

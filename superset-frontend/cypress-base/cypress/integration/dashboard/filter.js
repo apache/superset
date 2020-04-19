@@ -20,9 +20,12 @@ import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 export default () =>
   describe('dashboard filter', () => {
-    let sliceIds = [];
     let filterId;
-    let dashboardId;
+    let aliases;
+
+    const getAlias = id => {
+      return `@slice_${id}`;
+    };
 
     beforeEach(() => {
       cy.server();
@@ -33,41 +36,32 @@ export default () =>
       cy.get('#app').then(data => {
         const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
         const dashboard = bootstrapData.dashboard_data;
-        dashboardId = dashboard.id;
-        sliceIds = dashboard.slices.map(slice => slice.slice_id);
+        const sliceIds = dashboard.slices.map(slice => slice.slice_id);
         filterId = dashboard.slices.find(
           slice => slice.form_data.viz_type === 'filter_box',
         ).slice_id;
+        aliases = sliceIds.map(id => {
+          const alias = getAlias(id);
+          const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
+          cy.route('POST', url).as(alias.slice(1));
+          return alias;
+        });
+
+        // wait the initial page load requests
+        cy.wait(aliases);
       });
     });
 
     it('should apply filter', () => {
-      const aliases = [];
-
-      const formData = `{"slice_id":${filterId}}`;
-      const filterRoute = `/superset/explore_json/?form_data=${formData}&dashboard_id=${dashboardId}`;
-      cy.route('POST', filterRoute).as('fetchFilter');
-      cy.wait('@fetchFilter');
-      sliceIds
-        .filter(id => parseInt(id, 10) !== filterId)
-        .forEach(id => {
-          const alias = `getJson_${id}`;
-          aliases.push(`@${alias}`);
-
-          cy.route(
-            'POST',
-            `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboardId}`,
-          ).as(alias);
-        });
-
-      // select filter_box and apply
-      cy.get('.Select-control')
-        .first()
+      cy.get('.Select-placeholder')
+        .contains('Select [region]')
+        .click()
+        .next()
         .find('input')
-        .first()
         .type('South Asia{enter}', { force: true });
 
-      cy.wait(aliases).then(requests => {
+      // wait again after applied filters
+      cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
         requests.forEach(xhr => {
           const requestFormData = xhr.request.body;
           const requestParams = JSON.parse(requestFormData.get('form_data'));

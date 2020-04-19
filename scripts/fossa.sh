@@ -19,8 +19,9 @@
 
 # This is the recommended way to install FOSSA's cli per the docs:
 # https://docs.fossa.com/docs/travisci#section-add-fossa-steps-to-travisyml
-curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
+curl -s -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
 
 # This key is a push-only API key, also recommended for public projects
 # https://docs.fossa.com/docs/api-reference#section-push-only-api-token
-FOSSA_API_KEY="f72e93645bdfeab94bd227c7bbdda4ef" fossa
+export FOSSA_API_KEY="${FOSSA_API_KEY:-f72e93645bdfeab94bd227c7bbdda4ef}"
+fossa analyze

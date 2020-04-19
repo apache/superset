@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from subprocess import Popen
 from sys import stdout
+from typing import Type, Union
 
 import click
 import yaml
@@ -452,6 +453,78 @@ def flower(port, address):
     print(Fore.YELLOW + cmd)
     print(Fore.BLUE + "-=" * 40)
     Popen(cmd, shell=True).wait()
+
+
+@superset.command()
+@with_appcontext
+@click.option(
+    "--asynchronous",
+    "-a",
+    is_flag=True,
+    default=False,
+    help="Trigger commands to run remotely on a worker",
+)
+@click.option(
+    "--dashboards_only",
+    "-d",
+    is_flag=True,
+    default=False,
+    help="Only process dashboards",
+)
+@click.option(
+    "--charts_only", "-c", is_flag=True, default=False, help="Only process charts"
+)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    default=False,
+    help="Force refresh, even if previously cached",
+)
+@click.option("--model_id", "-i", multiple=True)
+def compute_thumbnails(
+    asynchronous: bool,
+    dashboards_only: bool,
+    charts_only: bool,
+    force: bool,
+    model_id: int,
+):
+    """Compute thumbnails"""
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tasks.thumbnails import (
+        cache_chart_thumbnail,
+        cache_dashboard_thumbnail,
+    )
+
+    def compute_generic_thumbnail(
+        friendly_type: str,
+        model_cls: Union[Type[Dashboard], Type[Slice]],
+        model_id: int,
+        compute_func,
+    ):
+        query = db.session.query(model_cls)
+        if model_id:
+            query = query.filter(model_cls.id.in_(model_id))
+        dashboards = query.all()
+        count = len(dashboards)
+        for i, model in enumerate(dashboards):
+            if asynchronous:
+                func = compute_func.delay
+                action = "Triggering"
+            else:
+                func = compute_func
+                action = "Processing"
+            msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
+            click.secho(msg, fg="green")
+            func(model.id, force=force)
+
+    if not charts_only:
+        compute_generic_thumbnail(
+            "dashboard", Dashboard, model_id, cache_dashboard_thumbnail
+        )
+    if not dashboards_only:
+        compute_generic_thumbnail("chart", Slice, model_id, cache_chart_thumbnail)
 
 
 @superset.command()

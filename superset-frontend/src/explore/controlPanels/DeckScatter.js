@@ -17,8 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
-import { nonEmpty } from '../validators';
 import {
   filterNulls,
   autozoom,
@@ -99,7 +99,7 @@ export default {
               type: 'TextControl',
               label: t('Minimum Radius'),
               isFloat: true,
-              validators: [nonEmpty],
+              validators: [validateNonEmpty],
               renderTrigger: true,
               default: 2,
               description: t(
@@ -114,7 +114,7 @@ export default {
               type: 'TextControl',
               label: t('Maximum Radius'),
               isFloat: true,
-              validators: [nonEmpty],
+              validators: [validateNonEmpty],
               renderTrigger: true,
               default: 250,
               description: t(
