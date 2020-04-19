@@ -206,7 +206,7 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
-function legacyChartRequestConfig(
+function legacyChartDataRequest(
   formData,
   force,
   method,
@@ -235,7 +235,7 @@ function legacyChartRequestConfig(
   return clientMethod(querySettings);
 }
 
-async function v1ChartRequestConfig(formData, requestParams) {
+async function v1ChartDataRequest(formData, requestParams) {
   const url = '/api/v1/chart/data';
   const buildQuery = await getChartBuildQueryRegistry().get(formData.viz_type);
   const payload = buildQuery(formData);
@@ -277,14 +277,14 @@ export function exploreJSON(
     }
 
     const queryPromiseRaw = useLegacyApi
-      ? legacyChartRequestConfig(
+      ? legacyChartDataRequest(
           formData,
           force,
           method,
           dashboardId,
           requestParams,
         )
-      : await v1ChartRequestConfig(formData, requestParams);
+      : v1ChartDataRequest(formData, requestParams);
 
     dispatch(chartUpdateStarted(controller, formData, key));
 
