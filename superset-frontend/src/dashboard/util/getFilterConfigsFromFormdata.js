@@ -18,12 +18,29 @@
  */
 /* eslint-disable camelcase */
 import { TIME_FILTER_MAP } from '../../visualizations/FilterBox/FilterBox';
-import {
-  FILTER_CONFIG_ATTRIBUTES,
-  TIME_FILTER_LABELS,
-} from '../../explore/constants';
+import { TIME_FILTER_LABELS } from '../../explore/constants';
 
-export default function getFilterConfigsFromFormdata(form_data = {}) {
+/**
+ * Parse filters for Table chart. All non-metric columns are considered
+ * filterable values.
+ */
+function getFilterConfigsFromTableChart(form_data = {}) {
+  const { groupby = [], all_columns = [] } = form_data;
+  const configs = { columns: {}, labels: {} };
+  // `groupby` is from GROUP BY mode (aggregations)
+  // `all_columns` is from NOT GROUP BY mode (raw records)
+  const columns = groupby.concat(all_columns);
+  columns.forEach(column => {
+    configs.columns[column] = undefined;
+    configs.labels[column] = column;
+  });
+  return configs;
+}
+
+/**
+ * Parse filter configs for FilterBox.
+ */
+function getFilterConfigsFromFilterBox(form_data = {}) {
   const {
     date_filter,
     filter_configs = [],
@@ -31,84 +48,58 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
     show_druid_time_origin,
     show_sqla_time_column,
     show_sqla_time_granularity,
+    table_filter,
   } = form_data;
-  let configs = filter_configs.reduce(
-    ({ columns, labels }, config) => {
-      let defaultValues = config[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
-      // defaultValue could be ; separated values,
-      // could be null or ''
-      if (
-        config[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE] &&
-        config[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]
-      ) {
-        defaultValues = config.defaultValue.split(';');
-      }
-      const updatedColumns = {
-        ...columns,
-        [config.column]: config.vals || defaultValues,
-      };
-      const updatedLabels = {
-        ...labels,
-        [config.column]: config.label,
-      };
+  const configs = { columns: {}, labels: {} };
 
-      return {
-        columns: updatedColumns,
-        labels: updatedLabels,
-      };
-    },
-    { columns: {}, labels: {} },
-  );
+  filter_configs.forEach(({ column, label, defaultValue, multiple, vals }) => {
+    // treat empty string as undefined, too
+    const defaultValues =
+      multiple && defaultValue ? defaultValue.split(';') : defaultValue;
+    configs.columns[column] = vals || defaultValues;
+    configs.labels[column] = label;
+  });
 
   if (date_filter) {
-    let updatedColumns = {
-      ...configs.columns,
-      [TIME_FILTER_MAP.time_range]: form_data.time_range,
-    };
-    const updatedLabels = {
-      ...configs.labels,
-      ...Object.entries(TIME_FILTER_MAP).reduce(
-        (map, [key, value]) => ({
-          ...map,
-          [value]: TIME_FILTER_LABELS[key],
-        }),
-        {},
-      ),
-    };
-
+    configs.columns[TIME_FILTER_MAP.time_range] = form_data.time_range;
+    // a map from frontend enum key to backend column
+    Object.entries(TIME_FILTER_MAP).forEach(([key, column]) => {
+      configs.labels[column] = TIME_FILTER_LABELS[key];
+    });
     if (show_sqla_time_granularity) {
-      updatedColumns = {
-        ...updatedColumns,
-        [TIME_FILTER_MAP.time_grain_sqla]: form_data.time_grain_sqla,
-      };
+      configs.columns[TIME_FILTER_MAP.time_grain_sqla] =
+        form_data.time_grain_sqla;
     }
-
     if (show_sqla_time_column) {
-      updatedColumns = {
-        ...updatedColumns,
-        [TIME_FILTER_MAP.granularity_sqla]: form_data.granularity_sqla,
-      };
+      configs.columns[TIME_FILTER_MAP.granularity_sqla] =
+        form_data.granularity_sqla;
     }
-
     if (show_druid_time_granularity) {
-      updatedColumns = {
-        ...updatedColumns,
-        [TIME_FILTER_MAP.granularity]: form_data.granularity,
-      };
+      configs.columns[TIME_FILTER_MAP.granularity] = form_data.granularity;
     }
-
     if (show_druid_time_origin) {
-      updatedColumns = {
-        ...updatedColumns,
-        [TIME_FILTER_MAP.druid_time_origin]: form_data.druid_time_origin,
-      };
+      configs.columns[TIME_FILTER_MAP.druid_time_origin] =
+        form_data.druid_time_origin;
     }
+  }
+  return configs;
+}
 
-    configs = {
-      ...configs,
-      columns: updatedColumns,
-      labels: updatedLabels,
-    };
+export default function getFilterConfigsFromFormdata(
+  form_data = {},
+  filters = undefined,
+) {
+  const configs = form_data.table_filter
+    ? getFilterConfigsFromTableChart(form_data)
+    : getFilterConfigsFromFilterBox(form_data);
+
+  // if current chart has preselected filters, update it
+  if (filters) {
+    Object.keys(filters).forEach(column => {
+      if (column in configs.columns && filters[column]) {
+        configs.columns[column] = filters[column];
+      }
+    });
   }
   return configs;
 }

@@ -46,6 +46,7 @@ import getEmptyLayout from '../util/getEmptyLayout';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
 import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
+import isFilterChart from '../util/isFilterChart';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
 export default function (bootstrapData) {
@@ -107,7 +108,7 @@ export default function (bootstrapData) {
   const slices = {};
   const sliceIds = new Set();
   dashboard.slices.forEach(slice => {
-    const key = slice.slice_id;
+    const sliceId = slice.slice_id;
     if (['separator', 'markup'].indexOf(slice.form_data.viz_type) === -1) {
       const form_data = {
         ...slice.form_data,
@@ -116,15 +117,15 @@ export default function (bootstrapData) {
           ...urlParams,
         },
       };
-      chartQueries[key] = {
+      chartQueries[sliceId] = {
         ...chart,
-        id: key,
+        id: sliceId,
         form_data,
         formData: applyDefaultFormData(form_data),
       };
 
-      slices[key] = {
-        slice_id: key,
+      slices[sliceId] = {
+        slice_id: sliceId,
         slice_url: slice.slice_url,
         slice_name: slice.slice_name,
         form_data: slice.form_data,
@@ -138,10 +139,10 @@ export default function (bootstrapData) {
         changed_on: new Date(slice.changed_on).getTime(),
       };
 
-      sliceIds.add(key);
+      sliceIds.add(sliceId);
 
       // if there are newly added slices from explore view, fill slices into 1 or more rows
-      if (!chartIdToLayoutId[key] && layout[parentId]) {
+      if (!chartIdToLayoutId[sliceId] && layout[parentId]) {
         if (
           newSlicesContainerWidth === 0 ||
           newSlicesContainerWidth + GRID_DEFAULT_CHART_WIDTH > GRID_COLUMN_COUNT
@@ -170,24 +171,15 @@ export default function (bootstrapData) {
       }
 
       // build DashboardFilters for interactive filter features
-      if (slice.form_data.viz_type === 'filter_box') {
-        const configs = getFilterConfigsFromFormdata(slice.form_data);
-        let columns = configs.columns;
-        const labels = configs.labels;
-        if (preselectFilters[key]) {
-          Object.keys(columns).forEach(col => {
-            if (preselectFilters[key][col]) {
-              columns = {
-                ...columns,
-                [col]: preselectFilters[key][col],
-              };
-            }
-          });
-        }
+      if (isFilterChart(slice)) {
+        const { columns, labels } = getFilterConfigsFromFormdata(
+          slice.form_data,
+          preselectFilters[sliceId],
+        );
 
         const scopesByChartId = Object.keys(columns).reduce((map, column) => {
           const scopeSettings = {
-            ...filterScopes[key],
+            ...filterScopes[sliceId],
           };
           const { scope, immune } = {
             ...DASHBOARD_FILTER_SCOPE_GLOBAL,
@@ -203,12 +195,12 @@ export default function (bootstrapData) {
           };
         }, {});
 
-        const componentId = chartIdToLayoutId[key];
+        const componentId = chartIdToLayoutId[sliceId];
         const directPathToFilter = (layout[componentId].parents || []).slice();
         directPathToFilter.push(componentId);
-        dashboardFilters[key] = {
+        dashboardFilters[sliceId] = {
           ...dashboardFilter,
-          chartId: key,
+          chartId: sliceId,
           componentId,
           datasourceId: slice.form_data.datasource,
           filterName: slice.slice_name,
@@ -225,7 +217,7 @@ export default function (bootstrapData) {
     // sync layout names with current slice names in case a slice was edited
     // in explore since the layout was updated. name updates go through layout for undo/redo
     // functionality and python updates slice names based on layout upon dashboard save
-    const layoutId = chartIdToLayoutId[key];
+    const layoutId = chartIdToLayoutId[sliceId];
     if (layoutId && layout[layoutId]) {
       layout[layoutId].meta.sliceName = slice.slice_name;
     }

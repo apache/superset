@@ -40,6 +40,7 @@ import {
 import { UPDATE_COMPONENTS_PARENTS_LIST } from '../actions/dashboardLayout';
 import serializeActiveFilterValues from '../util/serializeActiveFilterValues';
 import serializeFilterScopes from '../util/serializeFilterScopes';
+import isFilterChart from '../util/isFilterChart';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 import { safeStringify } from '../../utils/safeStringify';
 
@@ -285,7 +286,7 @@ export function addSliceToDashboard(id, component) {
     ]).then(() => {
       dispatch(addSlice(selectedSlice));
 
-      if (selectedSlice && selectedSlice.viz_type === 'filter_box') {
+      if (selectedSlice && isFilterChart(selectedSlice)) {
         dispatch(addFilter(id, component, selectedSlice.form_data));
       }
     });
@@ -295,7 +296,7 @@ export function addSliceToDashboard(id, component) {
 export function removeSliceFromDashboard(id) {
   return (dispatch, getState) => {
     const sliceEntity = getState().sliceEntities.slices[id];
-    if (sliceEntity && sliceEntity.viz_type === 'filter_box') {
+    if (sliceEntity && isFilterChart(sliceEntity)) {
       dispatch(removeFilter(id));
     }
 
