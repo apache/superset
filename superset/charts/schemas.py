@@ -402,7 +402,8 @@ class ChartDataExtrasSchema(Schema):
         "AND operator.",
         required=False,
     )
-    having_druid = fields.String(
+    having_druid = fields.List(
+        fields.Dict(),
         description="HAVING filters to be added to legacy Druid datasource queries.",
         required=False,
     )
@@ -441,6 +442,7 @@ class ChartDataQueryObjectSchema(Schema):
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object. See "
         "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+        required=False,
     )
     post_processing = fields.List(
         fields.Nested(ChartDataPostProcessingOperationSchema),

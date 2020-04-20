@@ -72,8 +72,8 @@ class QueryObject:
 
     def __init__(
         self,
-        granularity: str,
-        metrics: List[Union[Dict[str, Any], str]],
+        granularity: Optional[str] = None,
+        metrics: Optional[List[Union[Dict[str, Any], str]]] = None,
         groupby: Optional[List[str]] = None,
         filters: Optional[List[Dict[str, Any]]] = None,
         time_range: Optional[str] = None,
@@ -89,6 +89,7 @@ class QueryObject:
         post_processing: Optional[List[Dict[str, Any]]] = None,
         **kwargs: Any,
     ):
+        metrics = metrics or []
         extras = extras or {}
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         self.granularity = granularity
