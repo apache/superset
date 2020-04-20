@@ -19,6 +19,11 @@ under the License.
 
 # Utility script to run tests faster
 
+By default tests will be run using the Postgres container defined at the `docker-compose` file on the root of the repo,
+so prior to using this script make sure to launch the dev containers.
+
+You can use a different DB backend by defining `SUPERSET__SQLALCHEMY_DATABASE_URI` env var.
+
 ## Use:
 
 From the superset repo root directory:
@@ -40,12 +45,7 @@ scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts
 scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts --no-init
 ```
 
-- Same has above but using MySQL backend
+- Example for not recreating the test DB (will still run all the tests init procedures)
 ```$bash
-scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts --no-init --mysql
-```
-
-- Example for not using the "provided" containers, you have your own probably
-```$bash
-scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts --no-docker
+scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts --no-reset-db
 ```

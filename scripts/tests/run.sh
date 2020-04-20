@@ -19,13 +19,20 @@
 
 set -e
 
-function restart_docker() {
-  docker-compose -f "${SCRIPT_DIR}"/docker-compose.yml down
-  docker-compose -f "${SCRIPT_DIR}"/docker-compose.yml up -d --force-recreate
-  # Bad way to wait for the db's to start
-  sleep 5
+#
+# Reset test DATABASE
+#
+function reset_db() {
+  echo --------------------
+  echo Reseting test DB
+  echo --------------------
+  docker exec -i preset_fork_superset_db_1 bash -c "/usr/bin/psql -h 127.0.0.1 -U ${DB_USER} -w -c 'DROP DATABASE ${DB_NAME};'"
+  docker exec -i preset_fork_superset_db_1 bash -c "/usr/bin/psql -h 127.0.0.1 -U ${DB_USER} -w -c 'CREATE DATABASE ${DB_NAME};'"
 }
 
+#
+# Run init test procedures
+#
 function test_init() {
   echo --------------------
   echo Upgrading
@@ -42,8 +49,6 @@ function test_init() {
 }
 
 
-SCRIPT_DIR=$(dirname "$0")
-
 if [[ "$#" -eq  "0" ]]
 then
   echo "No argument suplied"
@@ -51,33 +56,36 @@ then
   echo use:
   echo "run.sh <test module name> [options]"
   echo "[options]:"
-  echo "--mysql: Use MySQL container on tests"
   echo "--no-init: Dont restart docker and no db migrations, superset init and test data"
-  echo "--no-docker: Dont restart docker"
+  echo "--no-reset-db: Recreates test database (DROP, CREATE)"
   exit 1
 fi
 
-export SUPERSET__SQLALCHEMY_DATABASE_URI=${SUPERSET__SQLALCHEMY_DATABASE_URI:-postgresql+psycopg2://postgresuser:pguserpassword@localhost/superset}
+#
+# Init global vars
+#
+DB_NAME="test"
+DB_USER="superset"
+DB_PASSWORD="superset"
+export SUPERSET__SQLALCHEMY_DATABASE_URI=${SUPERSET__SQLALCHEMY_DATABASE_URI:-postgresql+psycopg2://"${DB_USER}":"${DB_PASSWORD}"@localhost/"${DB_NAME}"}
 export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.superset_test_config}
 RUN_INIT=1
-RUN_DOCKER=1
+RUN_RESET_DB=1
 TEST_MODULE="${1}"
+
+# Shift to pass the first cmd parameter for the test module
 shift 1
 
 PARAMS=""
 while (( "$#" )); do
   case "$1" in
-    --mysql)
-      export SUPERSET__SQLALCHEMY_DATABASE_URI="mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8"
-      shift 1
-      ;;
     --no-init)
       RUN_INIT=0
-      RUN_DOCKER=0
+      RUN_RESET_DB=0
       shift 1
       ;;
-    --no-docker)
-      RUN_DOCKER=0
+    --no-reset-db)
+      RUN_RESET_DB=0
       shift 1
       ;;
     --) # end argument parsing
@@ -99,14 +107,14 @@ echo ------------------------------------
 echo DB_URI="${SUPERSET__SQLALCHEMY_DATABASE_URI}"
 echo Superset config module="${SUPERSET_CONFIG}"
 echo Run init procedures=$RUN_INIT
-echo Run Docker=$RUN_DOCKER
+echo Run reset DB=$RUN_RESET_DB
 echo Test to run:"${TEST_MODULE}"
 echo ------------------------------------
 
 
-if [ $RUN_DOCKER -eq 1 ]
+if [ $RUN_RESET_DB -eq 1 ]
 then
-  restart_docker
+  reset_db
 fi
 
 if [ $RUN_INIT -eq 1 ]
