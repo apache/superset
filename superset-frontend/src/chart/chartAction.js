@@ -290,12 +290,14 @@ export function exploreJSON(
 
     const queryPromiseCaught = queryPromiseRaw
       .then(({ json }) => {
+        // new API returns an object with an array of restults
+        const result = useLegacyApi ? json : json.result[0];
         dispatch(
           logEvent(LOG_ACTIONS_LOAD_CHART, {
             slice_id: key,
-            is_cached: json.is_cached,
+            is_cached: result.is_cached,
             force_refresh: force,
-            row_count: json.rowcount,
+            row_count: result.rowcount,
             datasource: formData.datasource,
             start_offset: logStart,
             ts: new Date().getTime(),
@@ -303,12 +305,12 @@ export function exploreJSON(
             has_extra_filters:
               formData.extra_filters && formData.extra_filters.length > 0,
             viz_type: formData.viz_type,
-            data_age: json.is_cached
-              ? moment(new Date()).diff(moment.utc(json.cached_dttm))
+            data_age: result.is_cached
+              ? moment(new Date()).diff(moment.utc(result.cached_dttm))
               : null,
           }),
         );
-        return dispatch(chartUpdateSucceeded(json, key));
+        return dispatch(chartUpdateSucceeded(result, key));
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {
