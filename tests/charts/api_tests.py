@@ -654,14 +654,14 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         query_context = self._get_query_context()
         uri = "api/v1/chart/data"
-        rv = self.client.post(uri, json=query_context)
+        rv = self.post_assert_metric(uri, query_context, "post")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["result"][0]["rowcount"], 100)
 
     def test_invalid_chart_data(self):
         """
-            Query API: Test chart data query
+        Query API: Test chart data query
         """
         self.login(username="admin")
         query_context = self._get_query_context()
@@ -677,5 +677,5 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="gamma")
         query_context = self._get_query_context()
         uri = "api/v1/chart/data"
-        rv = self.client.post(uri, json=query_context)
+        rv = self.post_assert_metric(uri, query_context, "post")
         self.assertEqual(rv.status_code, 401)
