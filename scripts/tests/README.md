@@ -28,18 +28,18 @@ You can use a different DB backend by defining `SUPERSET__SQLALCHEMY_DATABASE_UR
 
 From the superset repo root directory:
 
-- Example run a single module, will launch (or clean relaunch) Redis and Postgres:
+- Example run a single test module:
 ```$bash
 scripts/tests/run.sh tests.charts.api_tests
 ```
 
-- Example run a single test, will launch (or clean relaunch) Redis and Postgres:
+- Example run a single test:
 ```$bash
 scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts
 ```
 
-- Example run a single test, without any init procedures. Init procedures include
-  relaunching containers, db upgrade, superset init, loading example data. If your tests
+- Example run a single test, without any init procedures. Init procedures include:
+  resetting test database, db upgrade, superset init, loading example data. If your tests
   are idempotent, after the first run, subsequent runs are really fast
 ```$bash
 scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts --no-init
