@@ -287,7 +287,7 @@ DEFAULT_FEATURE_FLAGS = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    "REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD": False,
+    "REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD": True,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,

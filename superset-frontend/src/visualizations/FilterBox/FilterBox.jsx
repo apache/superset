@@ -121,7 +121,7 @@ class FilterBox extends React.Component {
   getControlData(controlName) {
     const { selectedValues } = this.state;
     const control = {
-      ...controls[controlName],
+      ...controls[controlName], // TODO: make these controls ('druid_time_origin', 'granularity', 'granularity_sqla', 'time_grain_sqla') accessible from getControlsForVizType.
       name: controlName,
       key: `control-${controlName}`,
       value: selectedValues[TIME_FILTER_MAP[controlName]],

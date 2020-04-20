@@ -18,7 +18,7 @@
 import hashlib
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 import simplejson as json
 from flask_babel import gettext as _
@@ -33,6 +33,18 @@ logger = logging.getLogger(__name__)
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 #  https://github.com/python/mypy/issues/5288
+
+
+class DeprecatedExtrasField(NamedTuple):
+    name: str
+    extras_name: str
+
+
+DEPRECATED_EXTRAS_FIELDS = (
+    DeprecatedExtrasField(name="where", extras_name="where"),
+    DeprecatedExtrasField(name="having", extras_name="having"),
+    DeprecatedExtrasField(name="having_filters", extras_name="having_druid"),
+)
 
 
 class QueryObject:
@@ -75,6 +87,7 @@ class QueryObject:
         columns: Optional[List[str]] = None,
         orderby: Optional[List[List]] = None,
         post_processing: Optional[List[Dict[str, Any]]] = None,
+        **kwargs: Any,
     ):
         extras = extras or {}
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
@@ -123,6 +136,17 @@ class QueryObject:
             )
 
         self.orderby = orderby or []
+
+        # move deprecated fields to extras
+        for field in DEPRECATED_EXTRAS_FIELDS:
+            if field.name in kwargs:
+                logger.warning(
+                    f"The field `{field.name} is deprecated, and should be "
+                    f"passed to `extras` via the `{field.extras_name}` property"
+                )
+                value = kwargs[field.name]
+                if value:
+                    self.extras[field.extras_name] = value
 
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {

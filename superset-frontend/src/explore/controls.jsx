@@ -213,19 +213,6 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  y_axis_bounds: {
-    type: 'BoundsControl',
-    label: t('Y Axis Bounds'),
-    renderTrigger: true,
-    default: [null, null],
-    description: t(
-      'Bounds for the Y-axis. When left empty, the bounds are ' +
-        'dynamically defined based on the min/max of the data. Note that ' +
-        "this feature will only expand the axis range. It won't " +
-        "narrow the data's extent.",
-    ),
-  },
-
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
@@ -270,64 +257,6 @@ export const controls = {
     ),
   },
 
-  bar_stacked: {
-    type: 'CheckboxControl',
-    label: t('Stacked Bars'),
-    renderTrigger: true,
-    default: false,
-    description: null,
-  },
-
-  show_markers: {
-    type: 'CheckboxControl',
-    label: t('Show Markers'),
-    renderTrigger: true,
-    default: false,
-    description: t('Show data points as circle markers on the lines'),
-  },
-
-  show_bar_value: {
-    type: 'CheckboxControl',
-    label: t('Bar Values'),
-    default: false,
-    renderTrigger: true,
-    description: t('Show the value on top of the bar'),
-  },
-
-  order_bars: {
-    type: 'CheckboxControl',
-    label: t('Sort Bars'),
-    default: false,
-    renderTrigger: true,
-    description: t('Sort bars by x labels.'),
-  },
-
-  show_controls: {
-    type: 'CheckboxControl',
-    label: t('Extra Controls'),
-    renderTrigger: true,
-    default: false,
-    description: t(
-      'Whether to show extra controls or not. Extra controls ' +
-        'include things like making mulitBar charts stacked ' +
-        'or side by side.',
-    ),
-  },
-
-  reduce_x_ticks: {
-    type: 'CheckboxControl',
-    label: t('Reduce X ticks'),
-    renderTrigger: true,
-    default: false,
-    description: t(
-      'Reduces the number of X-axis ticks to be rendered. ' +
-        'If true, the x-axis will not overflow and labels may be ' +
-        'missing. If false, a minimum width will be applied ' +
-        'to columns and the width may overflow into an ' +
-        'horizontal scroll.',
-    ),
-  },
-
   secondary_metric: {
     ...metric,
     label: t('Color Metric'),
@@ -369,32 +298,6 @@ export const controls = {
       'Zambia',
     ].map(s => [s, s]),
     description: t('The name of the country that Superset should display'),
-  },
-
-  freq: {
-    type: 'SelectControl',
-    label: t('Frequency'),
-    default: 'W-MON',
-    freeForm: true,
-    clearable: false,
-    choices: [
-      ['AS', 'Year (freq=AS)'],
-      ['52W-MON', '52 weeks starting Monday (freq=52W-MON)'],
-      ['W-SUN', '1 week starting Sunday (freq=W-SUN)'],
-      ['W-MON', '1 week starting Monday (freq=W-MON)'],
-      ['D', 'Day (freq=D)'],
-      ['4W-MON', '4 weeks (freq=4W-MON)'],
-    ],
-    description: t(
-      `The periodicity over which to pivot time. Users can provide
-      "Pandas" offset alias.
-      Click on the info bubble for more details on accepted "freq" expressions.`,
-    ),
-    tooltipOnClick: () => {
-      window.open(
-        'https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases',
-      );
-    },
   },
 
   groupby: groupByControl,
@@ -488,42 +391,6 @@ export const controls = {
     description: t(
       'Defines the origin where time buckets start, ' +
         'accepts natural dates as in `now`, `sunday` or `1970-01-01`',
-    ),
-  },
-
-  bottom_margin: {
-    type: 'SelectControl',
-    clearable: false,
-    freeForm: true,
-    label: t('Bottom Margin'),
-    choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
-    default: 'auto',
-    renderTrigger: true,
-    description: t(
-      'Bottom margin, in pixels, allowing for more room for axis labels',
-    ),
-  },
-
-  x_ticks_layout: {
-    type: 'SelectControl',
-    label: t('X Tick Layout'),
-    choices: formatSelectOptions(['auto', 'flat', '45°', 'staggered']),
-    default: 'auto',
-    clearable: false,
-    renderTrigger: true,
-    description: t('The way the ticks are laid out on the X-axis'),
-  },
-
-  left_margin: {
-    type: 'SelectControl',
-    freeForm: true,
-    clearable: false,
-    label: t('Left Margin'),
-    choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
-    default: 'auto',
-    renderTrigger: true,
-    description: t(
-      'Left margin, in pixels, allowing for more room for axis labels',
     ),
   },
 
@@ -656,14 +523,6 @@ export const controls = {
       // only display this option when a time range is selected
       return timeRange && timeRange !== 'No filter';
     },
-  },
-
-  max_bubble_size: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Max Bubble Size'),
-    default: '25',
-    choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
   },
 
   number_format: {
@@ -803,30 +662,6 @@ export const controls = {
     default: '',
   },
 
-  x_axis_label: {
-    type: 'TextControl',
-    label: t('X Axis Label'),
-    renderTrigger: true,
-    default: '',
-  },
-
-  y_axis_label: {
-    type: 'TextControl',
-    label: t('Y Axis Label'),
-    renderTrigger: true,
-    default: '',
-  },
-
-  x_axis_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('X Axis Format'),
-    renderTrigger: true,
-    default: 'SMART_NUMBER',
-    choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
   y_axis_format: {
     type: 'SelectControl',
     freeForm: true,
@@ -852,15 +687,6 @@ export const controls = {
     },
   },
 
-  y_axis_2_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Right Axis Format'),
-    default: 'SMART_NUMBER',
-    choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
   date_time_format: {
     type: 'SelectControl',
     freeForm: true,
@@ -879,22 +705,6 @@ export const controls = {
     default: 'markdown',
     validators: [validateNonEmpty],
     description: t('Pick your favorite markup language'),
-  },
-
-  line_interpolation: {
-    type: 'SelectControl',
-    label: t('Line Style'),
-    renderTrigger: true,
-    choices: formatSelectOptions([
-      'linear',
-      'basis',
-      'cardinal',
-      'monotone',
-      'step-before',
-      'step-after',
-    ]),
-    default: 'linear',
-    description: t('Line interpolation as defined by d3.js'),
   },
 
   code: {
@@ -922,20 +732,6 @@ export const controls = {
     ),
   },
 
-  show_brush: {
-    type: 'SelectControl',
-    label: t('Show Range Filter'),
-    renderTrigger: true,
-    clearable: false,
-    default: 'auto',
-    choices: [
-      ['yes', 'Yes'],
-      ['no', 'No'],
-      ['auto', 'Auto'],
-    ],
-    description: t('Whether to display the time range interactive selector'),
-  },
-
   table_filter: {
     type: 'CheckboxControl',
     label: t('Emit Filter Events'),
@@ -944,73 +740,12 @@ export const controls = {
     description: t('Whether to apply filter when items are clicked'),
   },
 
-  show_legend: {
-    type: 'CheckboxControl',
-    label: t('Legend'),
-    renderTrigger: true,
-    default: true,
-    description: t('Whether to display the legend (toggles)'),
-  },
-
-  send_time_range: {
-    type: 'CheckboxControl',
-    label: t('Propagate'),
-    renderTrigger: true,
-    default: false,
-    description: t('Send range filter events to other charts'),
-  },
-
-  show_labels: {
-    type: 'CheckboxControl',
-    label: t('Show Labels'),
-    renderTrigger: true,
-    default: true,
-    description: t(
-      'Whether to display the labels. Note that the label only displays when the the 5% ' +
-        'threshold.',
-    ),
-  },
-
   show_values: {
     type: 'CheckboxControl',
     label: t('Show Values'),
     renderTrigger: true,
     default: false,
     description: t('Whether to display the numerical values within the cells'),
-  },
-
-  x_axis_showminmax: {
-    type: 'CheckboxControl',
-    label: t('X bounds'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to display the min and max values of the X-axis'),
-  },
-
-  y_axis_showminmax: {
-    type: 'CheckboxControl',
-    label: t('Y bounds'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to display the min and max values of the Y-axis'),
-  },
-
-  rich_tooltip: {
-    type: 'CheckboxControl',
-    label: t('Rich Tooltip'),
-    renderTrigger: true,
-    default: true,
-    description: t(
-      'The rich tooltip shows a list of all series for that point in time',
-    ),
-  },
-
-  y_log_scale: {
-    type: 'CheckboxControl',
-    label: t('Y Log Scale'),
-    default: false,
-    renderTrigger: true,
-    description: t('Use a log scale for the Y-axis'),
   },
 
   log_scale: {

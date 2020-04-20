@@ -19,6 +19,20 @@
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import {
+  lineInterpolation,
+  showBrush,
+  showLegend,
+  showControls,
+  xAxisLabel,
+  bottomMargin,
+  xTicksLayout,
+  xAxisFormat,
+  yLogScale,
+  yAxisBounds,
+  xAxisShowMinmax,
+  richTooltip,
+} from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -28,9 +42,9 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['show_brush', 'show_legend'],
+        [showBrush, showLegend],
         [
-          'line_interpolation',
+          lineInterpolation,
           {
             name: 'stacked_style',
             config: {
@@ -48,34 +62,30 @@ export default {
           },
         ],
         ['color_scheme', 'label_colors'],
-        ['rich_tooltip', 'show_controls'],
+        [richTooltip, showControls],
       ],
     },
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'bottom_margin'],
-        ['x_ticks_layout', 'x_axis_format'],
-        ['x_axis_showminmax', null],
+        [xAxisLabel, bottomMargin],
+        [xTicksLayout, xAxisFormat],
+        [xAxisShowMinmax, null],
       ],
     },
     {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_format', 'y_axis_bounds'],
-        ['y_log_scale', null],
+        ['y_axis_format', yAxisBounds],
+        [yLogScale, null],
       ],
     },
     NVD3TimeSeries[1],
     annotations,
   ],
   controlOverrides: {
-    x_axis_format: {
-      default: 'smart_date',
-      choices: D3_TIME_FORMAT_OPTIONS,
-    },
     color_scheme: {
       renderTrigger: false,
     },

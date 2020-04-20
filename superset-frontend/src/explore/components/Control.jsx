@@ -70,6 +70,7 @@ export default class Control extends React.PureComponent {
     this.setState({ hovered });
   }
   render() {
+    if (!this.props.type) return null; // this catches things like <hr/> elements (not a control!) shoved into the control panel configs.
     const ControlType = controlMap[this.props.type];
     const divStyle = this.props.hidden ? { display: 'none' } : null;
     return (

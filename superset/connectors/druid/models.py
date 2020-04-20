@@ -24,7 +24,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from distutils.version import LooseVersion
 from multiprocessing.pool import ThreadPool
-from typing import cast, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, cast, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import pandas as pd
 import sqlalchemy as sa
@@ -1639,7 +1639,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         return cond
 
-    def get_having_filters(self, raw_filters: List[Dict]) -> "Having":
+    def get_having_filters(self, raw_filters: List[Dict[str, Any]]) -> "Having":
         filters = None
         reversed_op_map = {
             FilterOperationType.NOT_EQUALS.value: FilterOperationType.EQUALS.value,
