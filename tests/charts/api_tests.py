@@ -664,7 +664,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         query_context = self._get_query_context()
         uri = "api/v1/chart/data"
-        rv = self.post_assert_metric(uri, query_context, "post")
+        rv = self.post_assert_metric(uri, query_context, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["result"][0]["rowcount"], 100)
@@ -687,5 +687,5 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="gamma")
         query_context = self._get_query_context()
         uri = "api/v1/chart/data"
-        rv = self.post_assert_metric(uri, query_context, "post")
+        rv = self.post_assert_metric(uri, query_context, "data")
         self.assertEqual(rv.status_code, 401)
