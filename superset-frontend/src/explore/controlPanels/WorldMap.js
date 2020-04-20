@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
@@ -66,7 +67,26 @@ export default {
           },
         ],
         ['secondary_metric'],
-        ['max_bubble_size'],
+        [
+          {
+            name: 'max_bubble_size',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Max Bubble Size'),
+              default: '25',
+              choices: formatSelectOptions([
+                '5',
+                '10',
+                '15',
+                '25',
+                '50',
+                '75',
+                '100',
+              ]),
+            },
+          },
+        ],
       ],
     },
   ],

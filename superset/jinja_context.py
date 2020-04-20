@@ -24,6 +24,7 @@ from jinja2.sandbox import SandboxedEnvironment
 
 from superset import jinja_base_context
 from superset.extensions import jinja_context_manager
+from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
 
 
 def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
@@ -80,8 +81,6 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
         - you want to have the ability for filter inside the main query for speed
           purposes
 
-    This searches for "filters" and "extra_filters" in ``form_data`` for a match
-
     Usage example::
 
         SELECT action, count(*) as times
@@ -93,19 +92,26 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
     :param default: default value to return if there's no matching columns
     :return: returns a list of filter values
     """
-    form_data = json.loads(request.form.get("form_data", "{}"))
-    return_val = []
-    for filter_type in ["filters", "extra_filters"]:
-        if filter_type not in form_data:
-            continue
 
-        for f in form_data[filter_type]:
-            if f["col"] == column:
-                if isinstance(f["val"], list):
-                    for v in f["val"]:
-                        return_val.append(v)
-                else:
-                    return_val.append(f["val"])
+    form_data = json.loads(request.form.get("form_data", "{}"))
+    convert_legacy_filters_into_adhoc(form_data)
+    merge_extra_filters(form_data)
+
+    return_val = [
+        comparator
+        for filter in form_data.get("adhoc_filters", [])
+        for comparator in (
+            filter["comparator"]
+            if isinstance(filter["comparator"], list)
+            else [filter["comparator"]]
+        )
+        if (
+            filter.get("expressionType") == "SIMPLE"
+            and filter.get("clause") == "WHERE"
+            and filter.get("subject") == column
+            and filter.get("comparator")
+        )
+    ]
 
     if return_val:
         return return_val

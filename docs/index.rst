@@ -112,7 +112,7 @@ The following RDBMS are currently supported:
 - `ClickHouse <https://clickhouse.yandex/>`_
 - `CockroachDB <https://www.cockroachlabs.com/>`_
 - `Dremio <https://dremio.com/>`_
-- `Elasticsearch <https://www.elastic.co/products/elasticsearch/>`_
+- `Elasticsearch <https://www.elastic.co/elasticsearch/>`_
 - `Exasol <https://www.exasol.com/>`_
 - `Google Sheets <https://www.google.com/sheets/about/>`_
 - `Greenplum <https://greenplum.org/>`_

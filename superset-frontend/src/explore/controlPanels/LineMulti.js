@@ -20,6 +20,17 @@ import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import {
+  lineInterpolation,
+  showLegend,
+  xAxisLabel,
+  bottomMargin,
+  xTicksLayout,
+  xAxisFormat,
+  xAxisShowMinmax,
+  showMarkers,
+  yAxis2Format,
+} from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -41,17 +52,17 @@ export default {
           },
           null,
         ],
-        ['show_legend', 'show_markers'],
-        ['line_interpolation', null],
+        [showLegend, showMarkers],
+        [lineInterpolation, null],
       ],
     },
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'bottom_margin'],
-        ['x_ticks_layout', 'x_axis_format'],
-        ['x_axis_showminmax', null],
+        [xAxisLabel, bottomMargin],
+        [xTicksLayout, xAxisFormat],
+        [xAxisShowMinmax, null],
       ],
     },
     {
@@ -116,7 +127,7 @@ export default {
               },
             },
           },
-          'y_axis_2_format',
+          yAxis2Format,
         ],
       ],
     },

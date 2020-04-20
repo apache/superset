@@ -393,6 +393,19 @@ class ChartDataExtrasSchema(Schema):
         enum=["today", "now"],
         required=False,
     )
+    where = fields.String(
+        description="WHERE clause to be added to queries using AND operator.",
+        required=False,
+    )
+    having = fields.String(
+        description="HAVING clause to be added to aggregate queries using "
+        "AND operator.",
+        required=False,
+    )
+    having_druid = fields.String(
+        description="HAVING filters to be added to legacy Druid datasource queries.",
+        required=False,
+    )
 
 
 class ChartDataQueryObjectSchema(Schema):
@@ -483,6 +496,27 @@ class ChartDataQueryObjectSchema(Schema):
         "name which to sort by, and the second element is a boolean ",
         required=False,
         example=[["my_col_1", False], ["my_col_2", True]],
+    )
+    where = fields.String(
+        description="WHERE clause to be added to queries using AND operator."
+        "This field is deprecated, and should be passed to `extras`.",
+        required=False,
+        deprecated=True,
+    )
+    having = fields.String(
+        description="HAVING clause to be added to aggregate queries using "
+        "AND operator. This field is deprecated, and should be passed "
+        "to `extras`.",
+        required=False,
+        deprecated=True,
+    )
+    having_filters = fields.List(
+        fields.Dict(),
+        description="HAVING filters to be added to legacy Druid datasource queries. "
+        "This field is deprecated, and should be passed to `extras` "
+        "as `filters_druid`.",
+        required=False,
+        deprecated=True,
     )
 
 

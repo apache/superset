@@ -212,13 +212,6 @@ export default {
           'in each cluster to produce the cluster label.',
       ),
     },
-    rich_tooltip: {
-      label: t('Tooltip'),
-      description: t(
-        'Show a tooltip when hovering over points and clusters ' +
-          'describing the label',
-      ),
-    },
     groupby: {
       description: t(
         'One or many controls to group by. If grouping, latitude ' +
