@@ -58,23 +58,5 @@ class ChartDAO(BaseDAO):
             raise ex
 
     @staticmethod
-    def fetch_unique_column_values(column_name: str) -> List:
-        return [
-            val[0]
-            for val in db.session.query(getattr(Slice, column_name)).distinct().all()
-        ]
-
-    @staticmethod
-    def fetch_unique_datasources() -> Optional[List["BaseDatasource"]]:
-        groups = (
-            db.session.query(Slice.datasource_type, Slice.datasource_id)
-            .group_by(Slice.datasource_type, Slice.datasource_id)
-            .all()
-        )
-        datasources = [
-            ConnectorRegistry.get_datasource(
-                session=db.session, datasource_type=ds[0], datasource_id=ds[1]
-            )
-            for ds in groups
-        ]
-        return datasources
+    def fetch_all_datasources() -> List["BaseDatasource"]:
+        return ConnectorRegistry.get_all_datasources(db.session)

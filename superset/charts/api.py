@@ -503,52 +503,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
         super().add_apispec_components(api_spec)
 
-    @expose("/viz_types", methods=["GET"])
-    @protect()
-    @safe
-    def viz_types(self) -> Response:
-        """Get unique viz_type values
-        ---
-        get:
-          responses:
-            200:
-              description: charts unique viz_type data
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      count:
-                        type: integer
-                      result:
-                        type: object
-                        properties:
-                          label:
-                            type: string
-                          value:
-                            type: string
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        values = ChartDAO.fetch_unique_column_values("viz_type")
-        result = [{"label": val, "value": val} for val in values]
-        return self.response(200, count=len(result), result=result)
-
     @expose("/datasources", methods=["GET"])
     @protect()
     @safe
     def datasources(self) -> Response:
-        """Get unique viz_type values
+        """Get available datasources
         ---
         get:
           responses:
@@ -584,7 +543,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        datasources = ChartDAO.fetch_unique_datasources()
+        datasources = ChartDAO.fetch_all_datasources()
         if not datasources:
             return self.response(200, count=0, result=[])
 

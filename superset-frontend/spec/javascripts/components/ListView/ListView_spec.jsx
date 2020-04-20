@@ -36,6 +36,10 @@ const mockedProps = {
       sortable: true,
     },
     {
+      accessor: 'age',
+      Header: 'Age',
+    },
+    {
       accessor: 'name',
       Header: 'Name',
     },
@@ -287,6 +291,7 @@ Array [
 });
 
 describe('ListView with new UI filters', () => {
+  const fetchSelectsMock = jest.fn(() => []);
   const newFiltersProps = {
     ...mockedProps,
     useNewUIFilters: true,
@@ -304,6 +309,13 @@ describe('ListView with new UI filters', () => {
         input: 'search',
         operator: 'ct',
       },
+      {
+        Header: 'Age',
+        id: 'age',
+        input: 'select',
+        fetchSelects: fetchSelectsMock,
+        operator: 'eq',
+      },
     ],
   };
 
@@ -320,11 +332,15 @@ describe('ListView with new UI filters', () => {
     expect(wrapper.find(ListViewFilters)).toHaveLength(1);
   });
 
+  it('fetched selects if function is provided', () => {
+    expect(fetchSelectsMock).toHaveBeenCalled();
+  });
+
   it('calls fetchData on filter', () => {
     act(() => {
       wrapper
         .find('[data-test="filters-select"]')
-        .last()
+        .first()
         .props()
         .onChange({ value: 'bar' });
     });
@@ -332,7 +348,7 @@ describe('ListView with new UI filters', () => {
     act(() => {
       wrapper
         .find('[data-test="filters-search"]')
-        .last()
+        .first()
         .props()
         .onChange({ currentTarget: { value: 'something' } });
     });
@@ -348,42 +364,42 @@ describe('ListView with new UI filters', () => {
     });
 
     expect(newFiltersProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-  Array [
-    Object {
-      "filters": Array [
-        Object {
-          "id": "id",
-          "operator": "eq",
-          "value": "bar",
-        },
-      ],
-      "pageIndex": 0,
-      "pageSize": 1,
-      "sortBy": Array [],
-    },
-  ]
-  `);
+Array [
+  Object {
+    "filters": Array [
+      Object {
+        "id": "id",
+        "operator": "eq",
+        "value": "bar",
+      },
+    ],
+    "pageIndex": 0,
+    "pageSize": 1,
+    "sortBy": Array [],
+  },
+]
+`);
 
     expect(newFiltersProps.fetchData.mock.calls[1]).toMatchInlineSnapshot(`
-  Array [
-    Object {
-      "filters": Array [
-        Object {
-          "id": "id",
-          "operator": "eq",
-          "value": "bar",
-        },
-        Object {
-          "id": "name",
-          "operator": "ct",
-          "value": "something",
-        },
-      ],
-      "pageIndex": 0,
-      "pageSize": 1,
-      "sortBy": Array [],
-    },
-  ]
-  `);
+Array [
+  Object {
+    "filters": Array [
+      Object {
+        "id": "id",
+        "operator": "eq",
+        "value": "bar",
+      },
+      Object {
+        "id": "name",
+        "operator": "ct",
+        "value": "something",
+      },
+    ],
+    "pageIndex": 0,
+    "pageSize": 1,
+    "sortBy": Array [],
+  },
+]
+`);
   });
 });

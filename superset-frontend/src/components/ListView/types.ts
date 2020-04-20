@@ -36,6 +36,8 @@ export interface Filter {
   input?: 'text' | 'textarea' | 'select' | 'checkbox' | 'search';
   unfilteredLabel?: string;
   selects?: Select[];
+  onFilterOpen?: () => void;
+  fetchSelects?: () => Promise<Select[]>;
 }
 
 export type Filters = Filter[];

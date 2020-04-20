@@ -689,17 +689,6 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.post(uri, json=query_context)
         self.assertEqual(rv.status_code, 401)
 
-    def test_viz_types(self):
-        """
-            Chart API: Test get viz_types
-        """
-        self.login(username="admin")
-        uri = "api/v1/chart/viz_types"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 20)
-
     def test_datasources(self):
         """
             Chart API: Test get datasources
@@ -709,4 +698,4 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 4)
+        self.assertEqual(data["count"], 6)
