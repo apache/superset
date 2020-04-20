@@ -43,6 +43,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       uses: apache-superset/cached-dependencies@adc6f73
+      with:
+        run: |
+          pip-install
+          pip install -r docs/requirements.txt
     - name: Copy Images
       run: cp -r superset-frontend/images/ docs/_static/images/
     - name: Build documentation
