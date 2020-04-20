@@ -29,6 +29,29 @@ jobs:
       # `-j 0` run Pylint in parallel
       run: pylint -j 0 superset
 
+  docs:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@adc6f73
+      with:
+        run: |
+          pip-install
+          pip install -r docs/requirements.txt
+    - name: Copy Images
+      run: cp -r superset-frontend/images/ docs/_static/images/
+    - name: Build documentation
+      run: sphinx-build -b html docs _build/html -W
+
   test-postgres:
     runs-on: ubuntu-18.04
     strategy:

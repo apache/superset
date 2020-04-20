@@ -14,6 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-sphinx==2.1.2
-sphinx_autodoc_typehints==1.6.0
+sphinx==3.0.1
+sphinx_autodoc_typehints==1.10.3
 sphinx-rtd-theme==0.4.3
