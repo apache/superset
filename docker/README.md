@@ -28,14 +28,14 @@ Docker is an easy way to get started with Superset.
 
 ## Configuration
 
-The `/app/pythonpath` folder is mounted from [./docker/pythonpath_dev](./docker/pythonpath_dev) 
-which contains a base configuration [./docker/pythonpath/superset_config.py](./docker/pythonpath/superset_config.py) 
+The `/app/pythonpath` folder is mounted from [./pythonpath_dev](./pythonpath_dev) 
+which contains a base configuration [./pythonpath_dev/superset_config.py](./pythonpath_dev/superset_config.py) 
 intended for use with local development.
 
 ### Local overrides
 
-In order to override configuration settings locally, simply make a copy of [./docker/pythonpath/superset_config_local.example](./docker/pythonpath/superset_config_local.example)
-into [./docker/pythonpath/superset_config_docker.py](./docker/pythonpath/superset_config_docker.py) (git ignored) and fill in your overrides.
+In order to override configuration settings locally, simply make a copy of [./pythonpath_dev/superset_config_local.example](./pythonpath_dev/superset_config_local.example)
+into [./pythonpath_dev/superset_config_docker.py](./pythonpath/superset_config_docker.py) (git ignored) and fill in your overrides.
 
 ### Local packages
 
@@ -64,6 +64,10 @@ docker-compose up
 
 After several minutes for superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088) 
 to start your journey.
+
+To check the progression of the init procedures run:
+
+`docker logs preset_fork_superset_superset-init_1 -f`
 
 ## Developing
 
