@@ -291,6 +291,10 @@ export function exploreJSON(
     const queryPromiseCaught = queryPromiseRaw
       .then(({ json }) => {
         // new API returns an object with an array of restults
+        // problem: json holds a list of results, when before we were just getting one result.
+        // `queryResponse` state is used all over the place.
+        // How to make the entire app compatible with multiple results?
+        // For now just use the first result.
         const result = useLegacyApi ? json : json.result[0];
         dispatch(
           logEvent(LOG_ACTIONS_LOAD_CHART, {
