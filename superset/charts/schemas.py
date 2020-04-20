@@ -525,7 +525,7 @@ class ChartDataQueryObjectSchema(Schema):
 class ChartDataDatasourceSchema(Schema):
     description = "Chart datasource"
     id = fields.Integer(description="Datasource id", required=True,)
-    type = fields.String(description="Datasource type", enum=["druid", "sql"])
+    type = fields.String(description="Datasource type", enum=["druid", "table"])
 
 
 class ChartDataQueryContextSchema(Schema):
