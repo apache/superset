@@ -24,7 +24,7 @@ from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import and_, func
 
 from superset import db, utils
-from superset.jinja_context import current_user_id, current_username
+from superset.jinja_context import ExtraCache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
@@ -36,7 +36,10 @@ from .base import BaseSupersetView, json_success
 def process_template(content):
     env = SandboxedEnvironment()
     template = env.from_string(content)
-    context = {"current_user_id": current_user_id, "current_username": current_username}
+    context = {
+        "current_user_id": ExtraCache.current_user_id,
+        "current_username": ExtraCache.current_username,
+    }
     return template.render(context)
 
 

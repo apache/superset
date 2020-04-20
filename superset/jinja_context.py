@@ -17,6 +17,7 @@
 """Defines the templating context for SQL Lab"""
 import inspect
 import json
+import re
 from typing import Any, List, Optional, Tuple
 
 from flask import g, request
@@ -25,51 +26,6 @@ from jinja2.sandbox import SandboxedEnvironment
 from superset import jinja_base_context
 from superset.extensions import jinja_context_manager
 from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
-
-
-def url_param(param: str, default: Optional[str] = None) -> Optional[Any]:
-    """Read a url or post parameter and use it in your SQL Lab query
-
-    When in SQL Lab, it's possible to add arbitrary URL "query string"
-    parameters, and use those in your SQL code. For instance you can
-    alter your url and add `?foo=bar`, as in
-    `{domain}/superset/sqllab?foo=bar`. Then if your query is something like
-    SELECT * FROM foo = '{{ url_param('foo') }}', it will be parsed at
-    runtime and replaced by the value in the URL.
-
-    As you create a visualization form this SQL Lab query, you can pass
-    parameters in the explore view as well as from the dashboard, and
-    it should carry through to your queries.
-
-    Default values for URL parameters can be defined in chart metdata by
-    adding the key-value pair `url_params: {'foo': 'bar'}`
-
-    :param param: the parameter to lookup
-    :param default: the value to return in the absence of the parameter
-    """
-    if request.args.get(param):
-        return request.args.get(param, default)
-    # Supporting POST as well as get
-    form_data = request.form.get("form_data")
-    if isinstance(form_data, str):
-        form_data = json.loads(form_data)
-        url_params = form_data.get("url_params") or {}
-        return url_params.get(param, default)
-    return default
-
-
-def current_user_id() -> Optional[int]:
-    """The id of the user who is currently logged in"""
-    if hasattr(g, "user") and g.user:
-        return g.user.id
-    return None
-
-
-def current_username() -> Optional[str]:
-    """The username of the user who is currently logged in"""
-    if g.user:
-        return g.user.username
-    return None
 
 
 def filter_values(column: str, default: Optional[str] = None) -> List[str]:
@@ -122,33 +78,63 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
     return []
 
 
-class CacheKeyWrapper:  # pylint: disable=too-few-public-methods
-    """ Dummy class that exposes a method used to store additional values used in
-     calculation of query object cache keys"""
+class ExtraCache:
+    """
+    Dummy class that exposes a method used to store additional values used in
+    calculation of query object cache keys.
+    """
+
+    # Regular expression for detecting the presence of templated methods which could
+    # be added to the cache key.
+    regex = re.compile(
+        r"\{\{.*("
+        r"current_user_id\(.*\)|"
+        r"current_username\(.*\)|"
+        r"cache_key_wrapper\(.*\)|"
+        r"url_param\(.*\)"
+        r").*\}\}"
+    )
 
     def __init__(self, extra_cache_keys: Optional[List[Any]] = None):
         self.extra_cache_keys = extra_cache_keys
 
+    def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
+        """
+        Return the user ID of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The user ID
+        """
+
+        if hasattr(g, "user") and g.user:
+            if add_to_cache_keys:
+                self.cache_key_wrapper(g.user.id)
+            return g.user.id
+        return None
+
+    def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
+        """
+        Return the username of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The username
+        """
+
+        if g.user:
+            if add_to_cache_keys:
+                self.cache_key_wrapper(g.user.username)
+            return g.user.username
+        return None
+
     def cache_key_wrapper(self, key: Any) -> Any:
-        """ Adds values to a list that is added to the query object used for calculating
-        a cache key.
+        """
+        Adds values to a list that is added to the query object used for calculating a
+        cache key.
 
         This is needed if the following applies:
             - Caching is enabled
             - The query is dynamically generated using a jinja template
-            - A username or similar is used as a filter in the query
-
-        Example when using a SQL query as a data source ::
-
-            SELECT action, count(*) as times
-            FROM logs
-            WHERE logged_in_user = '{{ cache_key_wrapper(current_username()) }}'
-            GROUP BY action
-
-        This will ensure that the query results that were cached by `user_1` will
-        **not** be seen by `user_2`, as the `cache_key` for the query will be
-        different. ``cache_key_wrapper`` can be used similarly for regular table data
-        sources by adding a `Custom SQL` filter.
+            - A `JINJA_CONTEXT_ADDONS` or similar is used as a filter in the query
 
         :param key: Any value that should be considered when calculating the cache key
         :return: the original value ``key`` passed to the function
@@ -156,6 +142,44 @@ class CacheKeyWrapper:  # pylint: disable=too-few-public-methods
         if self.extra_cache_keys is not None:
             self.extra_cache_keys.append(key)
         return key
+
+    def url_param(
+        self, param: str, default: Optional[str] = None, add_to_cache_keys: bool = True
+    ) -> Optional[Any]:
+        """
+        Read a url or post parameter and use it in your SQL Lab query.
+
+        When in SQL Lab, it's possible to add arbitrary URL "query string" parameters,
+        and use those in your SQL code. For instance you can alter your url and add
+        `?foo=bar`, as in `{domain}/superset/sqllab?foo=bar`. Then if your query is
+        something like SELECT * FROM foo = '{{ url_param('foo') }}', it will be parsed
+        at runtime and replaced by the value in the URL.
+
+        As you create a visualization form this SQL Lab query, you can pass parameters
+        in the explore view as well as from the dashboard, and it should carry through
+        to your queries.
+
+        Default values for URL parameters can be defined in chart metadata by adding the
+        key-value pair `url_params: {'foo': 'bar'}`
+
+        :param param: the parameter to lookup
+        :param default: the value to return in the absence of the parameter
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The URL parameters
+        """
+
+        if request.args.get(param):
+            return request.args.get(param, default)
+        # Supporting POST as well as get
+        form_data = request.form.get("form_data")
+        if isinstance(form_data, str):
+            form_data = json.loads(form_data)
+            url_params = form_data.get("url_params") or {}
+            result = url_params.get(param, default)
+            if add_to_cache_keys:
+                self.cache_key_wrapper(result)
+            return result
+        return default
 
 
 class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
@@ -190,11 +214,14 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
             self.schema = query.schema
         elif table:
             self.schema = table.schema
+
+        extra_cache = ExtraCache(extra_cache_keys)
+
         self.context = {
-            "url_param": url_param,
-            "current_user_id": current_user_id,
-            "current_username": current_username,
-            "cache_key_wrapper": CacheKeyWrapper(extra_cache_keys).cache_key_wrapper,
+            "url_param": extra_cache.url_param,
+            "current_user_id": extra_cache.current_user_id,
+            "current_username": extra_cache.current_username,
+            "cache_key_wrapper": extra_cache.cache_key_wrapper,
             "filter_values": filter_values,
             "form_data": {},
         }
