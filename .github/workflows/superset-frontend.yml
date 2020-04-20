@@ -17,6 +17,7 @@ jobs:
       working-directory: ./superset-frontend
       run: |
         npm run lint
+        npm run prettier-check
     - name: unit tests
       working-directory: ./superset-frontend
       run: |
