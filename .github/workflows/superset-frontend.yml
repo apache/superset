@@ -13,10 +13,11 @@ jobs:
       uses: apache-superset/cached-dependencies@adc6f73
       with:
         run: npm-install
-    - name: eslint
+    - name: lint
       working-directory: ./superset-frontend
       run: |
         npm run lint
+        npm run prettier-check
     - name: unit tests
       working-directory: ./superset-frontend
       run: |
