@@ -17,7 +17,8 @@
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --colors --progress",
     "build-instrumented": "cross-env NODE_ENV=development BABEL_ENV=instrumented webpack --mode=development --colors --progress",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
-    "lint": "prettier --check '{src,stylesheets}/**/*.{css,less,sass,scss}' && eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx .",
+    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx .",
+    "prettier-check": "prettier --check '{src,stylesheets}/**/*.{css,less,sass,scss}'",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css",
     "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'"
   },
