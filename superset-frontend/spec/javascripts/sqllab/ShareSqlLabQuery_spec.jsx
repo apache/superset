@@ -132,7 +132,8 @@ describe('ShareSqlLabQuery via /kv/store', () => {
         .instance()
         .getCopyUrl()
         .then(() => {
-          expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1);
+          // Fails then retries thrice
+          expect(fetchMock.calls(storeQueryUrl)).toHaveLength(4);
           expect(addDangerToastSpy.mock.calls).toHaveLength(1);
           expect(addDangerToastSpy.mock.calls[0][0]).toBe(error);
 
