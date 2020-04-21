@@ -67,7 +67,7 @@ to start your journey.
 
 To check the progression of the init procedures run:
 
-`docker logs preset_fork_superset_superset-init_1 -f`
+`docker logs superset_init -f`
 
 ## Developing
 
