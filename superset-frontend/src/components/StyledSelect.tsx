@@ -18,9 +18,36 @@
  */
 import styled from '@emotion/styled';
 // @ts-ignore
-import Select from 'react-select';
+import Select, { Async } from 'react-select';
 
 export default styled(Select)`
+  display: inline;
+  &.is-focused:not(.is-open) > .Select-control {
+    border: none;
+    box-shadow: none;
+  }
+  .Select-control {
+    display: inline-table;
+    border: none;
+    width: 100px;
+    &:focus,
+    &:hover {
+      border: none;
+      box-shadow: none;
+    }
+
+    .Select-arrow-zone {
+      padding-left: 10px;
+    }
+  }
+  .Select-menu-outer {
+    margin-top: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+`;
+
+export const AsyncStyledSelect = styled(Async)`
   display: inline;
   &.is-focused:not(.is-open) > .Select-control {
     border: none;

@@ -36,6 +36,8 @@ export interface Filter {
   input?: 'text' | 'textarea' | 'select' | 'checkbox' | 'search';
   unfilteredLabel?: string;
   selects?: Select[];
+  onFilterOpen?: () => void;
+  fetchSelects?: () => Promise<Select[]>;
 }
 
 export type Filters = Filter[];
@@ -43,7 +45,13 @@ export type Filters = Filter[];
 export interface FilterValue {
   id: string;
   operator?: string;
-  value: string | boolean | number | null | undefined;
+  value:
+    | string
+    | boolean
+    | number
+    | null
+    | undefined
+    | { datasource_id: number; datasource_type: string };
 }
 
 export interface FetchDataConfig {

@@ -110,7 +110,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       },
       ([e1, e2]) => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Datasets'),
+          t('An error occurred while fetching datasets'),
         );
         if (e1) {
           console.error(e1);
@@ -326,7 +326,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       })
       .catch(() => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Datasets'),
+          t('An error occurred while fetching datasets'),
         );
       })
       .finally(() => {
