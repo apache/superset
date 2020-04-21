@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Dict, Union
 
-from marshmallow import fields, post_load, Schema, ValidationError
+from marshmallow import fields, post_load, Schema, validate, ValidationError
 from marshmallow.validate import Length
 
 from superset.common.query_context import QueryContext
@@ -77,13 +77,15 @@ class ChartDataAdhocMetricSchema(Schema):
     expressionType = fields.String(
         description="Simple or SQL metric",
         required=True,
-        enum=["SIMPLE", "SQL"],
+        validate=validate.OneOf(choices=("SIMPLE", "SQL")),
         example="SQL",
     )
     aggregate = fields.String(
         description="Aggregation operator. Only required for simple expression types.",
         required=False,
-        enum=["AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM"],
+        validate=validate.OneOf(
+            choices=("AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM")
+        ),
     )
     column = fields.Nested(ChartDataColumnSchema)
     sqlExpression = fields.String(
@@ -178,28 +180,30 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     )
     rolling_type = fields.String(
         description="Type of rolling window. Any numpy function will work.",
-        enum=[
-            "average",
-            "argmin",
-            "argmax",
-            "cumsum",
-            "cumprod",
-            "max",
-            "mean",
-            "median",
-            "nansum",
-            "nanmin",
-            "nanmax",
-            "nanmean",
-            "nanmedian",
-            "min",
-            "percentile",
-            "prod",
-            "product",
-            "std",
-            "sum",
-            "var",
-        ],
+        validate=validate.OneOf(
+            choices=(
+                "average",
+                "argmin",
+                "argmax",
+                "cumsum",
+                "cumprod",
+                "max",
+                "mean",
+                "median",
+                "nansum",
+                "nanmin",
+                "nanmax",
+                "nanmean",
+                "nanmedian",
+                "min",
+                "percentile",
+                "prod",
+                "product",
+                "std",
+                "sum",
+                "var",
+            )
+        ),
         required=True,
         example="percentile",
     )
@@ -225,23 +229,25 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         "additional parameters to `rolling_type_options`. For instance, "
         "to use `gaussian`, the parameter `std` needs to be provided.",
         required=False,
-        enum=[
-            "boxcar",
-            "triang",
-            "blackman",
-            "hamming",
-            "bartlett",
-            "parzen",
-            "bohman",
-            "blackmanharris",
-            "nuttall",
-            "barthann",
-            "kaiser",
-            "gaussian",
-            "general_gaussian",
-            "slepian",
-            "exponential",
-        ],
+        validate=validate.OneOf(
+            choices=(
+                "boxcar",
+                "triang",
+                "blackman",
+                "hamming",
+                "bartlett",
+                "parzen",
+                "bohman",
+                "blackmanharris",
+                "nuttall",
+                "barthann",
+                "kaiser",
+                "gaussian",
+                "general_gaussian",
+                "slepian",
+                "exponential",
+            )
+        ),
     )
     min_periods = fields.Integer(
         description="The minimum amount of periods required for a row to be included "
@@ -333,7 +339,9 @@ class ChartDataPostProcessingOperationSchema(Schema):
     operation = fields.String(
         description="Post processing operation type",
         required=True,
-        enum=["aggregate", "pivot", "rolling", "select", "sort"],
+        validate=validate.OneOf(
+            choices=("aggregate", "pivot", "rolling", "select", "sort")
+        ),
         example="aggregate",
     )
     options = fields.Nested(
@@ -362,7 +370,9 @@ class ChartDataFilterSchema(Schema):
     )
     op = fields.String(  # pylint: disable=invalid-name
         description="The comparison operator.",
-        enum=[filter_op.value for filter_op in utils.FilterOperator],
+        validate=validate.OneOf(
+            choices=[filter_op.value for filter_op in utils.FilterOperator]
+        ),
         required=True,
         example="IN",
     )
@@ -376,21 +386,23 @@ class ChartDataFilterSchema(Schema):
 class ChartDataExtrasSchema(Schema):
 
     time_range_endpoints = fields.List(
-        fields.String(enum=["INCLUSIVE", "EXCLUSIVE"]),
-        description="A list with two values, stating if start/end should be "
-        "inclusive/exclusive.",
-        required=False,
+        fields.String(
+            validate=validate.OneOf(choices=("INCLUSIVE", "EXCLUSIVE")),
+            description="A list with two values, stating if start/end should be "
+            "inclusive/exclusive.",
+            required=False,
+        )
     )
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
-        enum=["today", "now"],
+        validate=validate.OneOf(choices=("today", "now")),
         required=False,
     )
     relative_end = fields.String(
         description="End time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
-        enum=["today", "now"],
+        validate=validate.OneOf(choices=("today", "now")),
         required=False,
     )
     where = fields.String(
@@ -403,7 +415,7 @@ class ChartDataExtrasSchema(Schema):
         required=False,
     )
     having_druid = fields.List(
-        fields.Dict(),
+        fields.Nested(ChartDataFilterSchema),
         description="HAVING filters to be added to legacy Druid datasource queries.",
         required=False,
     )
@@ -411,20 +423,22 @@ class ChartDataExtrasSchema(Schema):
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
         "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
-        enum=[
-            "PT1S",
-            "PT1M",
-            "PT5M",
-            "PT10M",
-            "PT15M",
-            "PT0.5H",
-            "PT1H",
-            "P1D",
-            "P1W",
-            "P1M",
-            "P0.25Y",
-            "P1Y",
-        ],
+        validate=validate.OneOf(
+            choices=(
+                "PT1S",
+                "PT1M",
+                "PT5M",
+                "PT10M",
+                "PT15M",
+                "PT0.5H",
+                "PT1H",
+                "P1D",
+                "P1W",
+                "P1M",
+                "P0.25Y",
+                "P1Y",
+            ),
+        ),
         required=False,
         example="P1D",
     )
@@ -507,7 +521,7 @@ class ChartDataQueryObjectSchema(Schema):
     order_desc = fields.Boolean(
         description="Reverse order. Default: `false`", required=False
     )
-    extras = fields.Dict(description=" Default: `{}`", required=False)
+    extras = fields.Nested(ChartDataExtrasSchema, required=False)
     columns = fields.List(fields.String(), description="", required=False,)
     orderby = fields.List(
         fields.List(fields.Raw()),
@@ -542,7 +556,10 @@ class ChartDataQueryObjectSchema(Schema):
 class ChartDataDatasourceSchema(Schema):
     description = "Chart datasource"
     id = fields.Integer(description="Datasource id", required=True,)
-    type = fields.String(description="Datasource type", enum=["druid", "table"])
+    type = fields.String(
+        description="Datasource type",
+        validate=validate.OneOf(choices=("druid", "table")),
+    )
 
 
 class ChartDataQueryContextSchema(Schema):
@@ -580,15 +597,17 @@ class ChartDataResponseResult(Schema):
     )
     status = fields.String(
         description="Status of the query",
-        enum=[
-            "stopped",
-            "failed",
-            "pending",
-            "running",
-            "scheduled",
-            "success",
-            "timed_out",
-        ],
+        validate=validate.OneOf(
+            choices=(
+                "stopped",
+                "failed",
+                "pending",
+                "running",
+                "scheduled",
+                "success",
+                "timed_out",
+            )
+        ),
         allow_none=False,
     )
     stacktrace = fields.String(

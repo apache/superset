@@ -28,7 +28,6 @@ import pytz
 import random
 import re
 import string
-from typing import Any, Dict
 import unittest
 from unittest import mock, skipUnless
 
@@ -44,8 +43,6 @@ from superset import (
     sql_lab,
     is_feature_enabled,
 )
-from superset.common.query_context import QueryContext
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
@@ -111,61 +108,6 @@ class CoreTests(SupersetTestCase):
         resp = self.client.get("/superset/slice/-1/")
         assert resp.status_code == 404
 
-    def _get_query_context(self) -> Dict[str, Any]:
-        self.login(username="admin")
-        slc = self.get_slice("Girl Name Cloud", db.session)
-        return {
-            "datasource": {"id": slc.datasource_id, "type": slc.datasource_type},
-            "queries": [
-                {
-                    "granularity": "ds",
-                    "groupby": ["name"],
-                    "metrics": [{"label": "sum__num"}],
-                    "filters": [],
-                    "row_limit": 100,
-                }
-            ],
-        }
-
-    def _get_query_context_with_post_processing(self) -> Dict[str, Any]:
-        self.login(username="admin")
-        slc = self.get_slice("Girl Name Cloud", db.session)
-        return {
-            "datasource": {"id": slc.datasource_id, "type": slc.datasource_type},
-            "queries": [
-                {
-                    "granularity": "ds",
-                    "groupby": ["name", "state"],
-                    "metrics": [{"label": "sum__num"}],
-                    "filters": [],
-                    "row_limit": 100,
-                    "post_processing": [
-                        {
-                            "operation": "aggregate",
-                            "options": {
-                                "groupby": ["state"],
-                                "aggregates": {
-                                    "q1": {
-                                        "operator": "percentile",
-                                        "column": "sum__num",
-                                        "options": {"q": 25},
-                                    },
-                                    "median": {
-                                        "operator": "median",
-                                        "column": "sum__num",
-                                    },
-                                },
-                            },
-                        },
-                        {
-                            "operation": "sort",
-                            "options": {"columns": {"q1": False, "state": True},},
-                        },
-                    ],
-                }
-            ],
-        }
-
     def test_viz_cache_key(self):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
@@ -177,45 +119,6 @@ class CoreTests(SupersetTestCase):
 
         qobj["groupby"] = []
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
-
-    def test_cache_key_changes_when_datasource_is_updated(self):
-        qc_dict = self._get_query_context()
-
-        # construct baseline cache_key
-        query_context = QueryContext(**qc_dict)
-        query_object = query_context.queries[0]
-        cache_key_original = query_context.cache_key(query_object)
-
-        # make temporary change and revert it to refresh the changed_on property
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type=qc_dict["datasource"]["type"],
-            datasource_id=qc_dict["datasource"]["id"],
-            session=db.session,
-        )
-        description_original = datasource.description
-        datasource.description = "temporary description"
-        db.session.commit()
-        datasource.description = description_original
-        db.session.commit()
-
-        # create new QueryContext with unchanged attributes and extract new cache_key
-        query_context = QueryContext(**qc_dict)
-        query_object = query_context.queries[0]
-        cache_key_new = query_context.cache_key(query_object)
-
-        # the new cache_key should be different due to updated datasource
-        self.assertNotEqual(cache_key_original, cache_key_new)
-
-    def test_query_context_time_range_endpoints(self):
-        query_context = QueryContext(**self._get_query_context())
-        query_object = query_context.queries[0]
-        extras = query_object.to_dict()["extras"]
-        self.assertTrue("time_range_endpoints" in extras)
-
-        self.assertEquals(
-            extras["time_range_endpoints"],
-            (utils.TimeRangeEndpoint.INCLUSIVE, utils.TimeRangeEndpoint.EXCLUSIVE),
-        )
 
     def test_get_superset_tables_not_allowed(self):
         example_db = utils.get_example_database()
@@ -253,20 +156,6 @@ class CoreTests(SupersetTestCase):
         uri = f"superset/tables/invalid/public/undefined/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
-
-    def test_api_v1_query_endpoint(self):
-        self.login(username="admin")
-        qc_dict = self._get_query_context()
-        data = json.dumps(qc_dict)
-        resp = json.loads(self.get_resp("/api/v1/query/", {"query_context": data}))
-        self.assertEqual(resp[0]["rowcount"], 100)
-
-    def test_api_v1_query_endpoint_with_post_processing(self):
-        self.login(username="admin")
-        qc_dict = self._get_query_context_with_post_processing()
-        data = json.dumps(qc_dict)
-        resp = json.loads(self.get_resp("/api/v1/query/", {"query_context": data}))
-        self.assertEqual(resp[0]["rowcount"], 6)
 
     def test_old_slice_json_endpoint(self):
         self.login(username="admin")

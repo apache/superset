@@ -35,15 +35,19 @@ logger = logging.getLogger(__name__)
 #  https://github.com/python/mypy/issues/5288
 
 
-class DeprecatedExtrasField(NamedTuple):
-    name: str
-    extras_name: str
+class DeprecatedField(NamedTuple):
+    old_name: str
+    new_name: str
 
+
+DEPRECATED_FIELDS = (
+    DeprecatedField(old_name="granularity_sqla", new_name="granularity"),
+)
 
 DEPRECATED_EXTRAS_FIELDS = (
-    DeprecatedExtrasField(name="where", extras_name="where"),
-    DeprecatedExtrasField(name="having", extras_name="having"),
-    DeprecatedExtrasField(name="having_filters", extras_name="having_druid"),
+    DeprecatedField(old_name="where", new_name="where"),
+    DeprecatedField(old_name="having", new_name="having"),
+    DeprecatedField(old_name="having_filters", new_name="having_druid"),
 )
 
 
@@ -132,22 +136,44 @@ class QueryObject:
         if is_sip_38 and groupby:
             self.columns += groupby
             logger.warning(
-                f"The field groupby is deprecated. Viz plugins should "
-                f"pass all selectables via the columns field"
+                f"The field `groupby` is deprecated. Viz plugins should "
+                f"pass all selectables via the `columns` field"
             )
 
         self.orderby = orderby or []
 
-        # move deprecated fields to extras
-        for field in DEPRECATED_EXTRAS_FIELDS:
-            if field.name in kwargs:
+        # rename deprecated fields
+        for field in DEPRECATED_FIELDS:
+            if field.old_name in kwargs:
                 logger.warning(
-                    f"The field `{field.name} is deprecated, and should be "
-                    f"passed to `extras` via the `{field.extras_name}` property"
+                    f"The field `{field.old_name}` is deprecated, please use "
+                    f"`{field.new_name}` instead."
                 )
-                value = kwargs[field.name]
+                value = kwargs[field.old_name]
                 if value:
-                    self.extras[field.extras_name] = value
+                    if hasattr(self, field.new_name):
+                        logger.warning(
+                            f"The field `{field.new_name}` is already populated, "
+                            f"replacing value with contents from `{field.old_name}`."
+                        )
+                    setattr(self, field.new_name, value)
+
+        # move deprecated extras fields to extras
+        for field in DEPRECATED_EXTRAS_FIELDS:
+            if field.old_name in kwargs:
+                logger.warning(
+                    f"The field `{field.old_name}` is deprecated and should be "
+                    f"passed to `extras` via the `{field.new_name}` property."
+                )
+                value = kwargs[field.old_name]
+                if value:
+                    if hasattr(self.extras, field.new_name):
+                        logger.warning(
+                            f"The field `{field.new_name}` is already populated in "
+                            f"`extras`, replacing value with contents "
+                            f"from `{field.old_name}`."
+                        )
+                    self.extras[field.new_name] = value
 
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {
