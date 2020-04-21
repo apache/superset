@@ -36,6 +36,7 @@ version: "3.7"
 services:
   redis:
     image: redis:3.2
+    container_name: superset_cache
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"
@@ -45,6 +46,7 @@ services:
   db:
     env_file: docker/.env
     image: postgres:10
+    container_name: superset_db
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
@@ -52,9 +54,10 @@ services:
       - db_home:/var/lib/postgresql/data
 
   superset:
-    build: *superset-build
-    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
     env_file: docker/.env
+    build: *superset-build
+    container_name: superset_app
+    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
     restart: unless-stopped
     ports:
       - 8088:8088
@@ -63,6 +66,7 @@ services:
 
   superset-init:
     build: *superset-build
+    container_name: superset_init
     command: ["/app/docker-init.sh"]
     env_file: docker/.env
     depends_on: *superset-depends-on
@@ -70,6 +74,7 @@ services:
 
   superset-node:
     image: node:10-jessie
+    container_name: superset_node
     command: ["bash", "-c", "cd /app/superset-frontend && npm install --global webpack webpack-cli && npm install && npm run dev"]
     env_file: docker/.env
     depends_on: *superset-depends-on
@@ -77,6 +82,7 @@ services:
 
   superset-worker:
     build: *superset-build
+    container_name: superset_worker
     command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair"]
     env_file: docker/.env
     restart: unless-stopped
