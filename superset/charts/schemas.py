@@ -407,15 +407,10 @@ class ChartDataExtrasSchema(Schema):
         description="HAVING filters to be added to legacy Druid datasource queries.",
         required=False,
     )
-
-
-class ChartDataQueryObjectSchema(Schema):
-    filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
-    granularity = fields.String(
+    time_grain_sqla = fields.String(
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
-        "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) "
-        "durations.",
+        "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
         enum=[
             "PT1S",
             "PT1M",
@@ -432,6 +427,27 @@ class ChartDataQueryObjectSchema(Schema):
         ],
         required=False,
         example="P1D",
+    )
+    druid_time_origin = fields.String(
+        description="Starting point for time grain counting on legacy Druid "
+        "datasources. Used to change e.g. Monday/Sunday first-day-of-week.",
+        required=False,
+    )
+
+
+class ChartDataQueryObjectSchema(Schema):
+    filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
+    granularity = fields.String(
+        description="Name of temporal column used for time filtering. For legacy Druid "
+        "datasources this defines the time grain.",
+        required=False,
+    )
+    granularity_sqla = fields.String(
+        description="Name of temporal column used for time filtering for SQL "
+        "datasources. This field is deprecated, use `granularity` "
+        "instead.",
+        required=False,
+        deprecated=True,
     )
     groupby = fields.List(
         fields.String(description="Columns by which to group the query.",),
@@ -452,7 +468,8 @@ class ChartDataQueryObjectSchema(Schema):
     )
     time_range = fields.String(
         description="A time rage, either expressed as a colon separated string "
-        "`since : until`. Valid formats for `since` and `until` are: \n"
+        "`since : until` or human readable freeform. Valid formats for "
+        "`since` and `until` are: \n"
         "- ISO 8601\n"
         "- X days/years/hours/day/year/weeks\n"
         "- X days/years/hours/day/year/weeks ago\n"
@@ -501,13 +518,13 @@ class ChartDataQueryObjectSchema(Schema):
     )
     where = fields.String(
         description="WHERE clause to be added to queries using AND operator."
-        "This field is deprecated, and should be passed to `extras`.",
+        "This field is deprecated and should be passed to `extras`.",
         required=False,
         deprecated=True,
     )
     having = fields.String(
         description="HAVING clause to be added to aggregate queries using "
-        "AND operator. This field is deprecated, and should be passed "
+        "AND operator. This field is deprecated and should be passed "
         "to `extras`.",
         required=False,
         deprecated=True,
@@ -515,7 +532,7 @@ class ChartDataQueryObjectSchema(Schema):
     having_filters = fields.List(
         fields.Dict(),
         description="HAVING filters to be added to legacy Druid datasource queries. "
-        "This field is deprecated, and should be passed to `extras` "
+        "This field is deprecated and should be passed to `extras` "
         "as `filters_druid`.",
         required=False,
         deprecated=True,
