@@ -26,12 +26,12 @@
     "access": "public"
   },
   "dependencies": {
-    "@types/react": "^16.7.17",
+    "@types/react": "^16.9.34",
     "@vx/responsive": "^0.0.195",
     "csstype": "^2.6.4"
   },
   "peerDependencies": {
     "@superset-ui/core": "^0.12.0",
-    "react": "^16.7.17"
+    "react": "^16.13.1"
   }
 }

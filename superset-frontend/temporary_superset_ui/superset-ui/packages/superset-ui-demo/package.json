@@ -72,7 +72,7 @@
     "core-js": "3.6.5",
     "gh-pages": "^2.2.0",
     "jquery": "^3.4.1",
-    "react": "^16.6.0",
+    "react": "^16.13.1",
     "storybook-addon-jsx": "^7.1.0"
   },
   "devDependencies": {

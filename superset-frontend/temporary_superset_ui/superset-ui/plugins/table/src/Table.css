@@ -25,6 +25,16 @@
 .superset-legacy-chart-table .dt-metric {
   text-align: right;
 }
+.superset-legacy-chart-table td.dt-is-filter {
+  cursor: pointer;
+}
+.superset-legacy-chart-table td.dt-is-filter:hover {
+  background-color: linen;
+}
+.superset-legacy-chart-table td.dt-is-active-filter,
+.superset-legacy-chart-table td.dt-is-active-filter:hover {
+  background-color: lightcyan;
+}
 .superset-legacy-chart-table div.dataTables_wrapper div.dataTables_paginate {
   line-height: 0;
 }

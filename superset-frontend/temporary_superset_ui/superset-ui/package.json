@@ -62,7 +62,7 @@
     "@types/enzyme": "^3.10.3",
     "@types/jest": "^25.1.1",
     "@types/jsdom": "^12.2.4",
-    "@types/react-test-renderer": "^16.9.0",
+    "@types/react-test-renderer": "^16.9.2",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.4.3",
@@ -73,9 +73,9 @@
     "jest-mock-console": "^1.0.0",
     "lerna": "^3.15.0",
     "lint-staged": "^10.0.3",
-    "react": "^16.9.0",
-    "react-dom": "^16.9.0",
-    "react-test-renderer": "^16.9.0"
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-test-renderer": "^16.13.1"
   },
   "engines": {
     "node": ">=10.10.0",
