@@ -19,10 +19,9 @@ const run = cmd => {
 };
 
 if (glob) {
-  run(`nimbus prettier plugins/${glob}/{src,test}/**/*.{js,jsx,ts,tsx,css}"`);
   // lint is slow, so not turning it on by default
   if (extraArgs.includes('--lint')) {
-    run(`nimbus eslint plugins/${glob}/{src,test}`);
+    run(`nimbus eslint {packages,plugins}/${glob}/{src,test}`);
   }
   run(`nimbus babel --clean --workspaces="@superset-ui/${glob}"`);
   run(`nimbus babel --clean --workspaces="@superset-ui/${glob}" --esm`);

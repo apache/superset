@@ -9,7 +9,7 @@ import {
 import { QueryFormData, Datasource } from '@superset-ui/query';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
-import { QueryData } from '../models/ChartProps';
+import { QueryData } from '../types/QueryResponse';
 import { AnnotationLayerMetadata } from '../types/Annotation';
 import { PlainObject } from '../types/Base';
 
@@ -94,7 +94,10 @@ export default class ChartClient {
           },
           ...options,
         } as RequestConfig)
-        .then(response => response.json as Json);
+        .then(response => {
+          // let's assume response.json always has the shape of QueryData
+          return response.json as QueryData;
+        });
     }
 
     return Promise.reject(new Error(`Unknown chart type: ${visType}`));
