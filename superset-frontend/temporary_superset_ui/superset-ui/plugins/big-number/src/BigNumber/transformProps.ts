@@ -19,25 +19,56 @@
 import * as color from 'd3-color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { ChartProps } from '@superset-ui/chart';
-import getTimeFormatterForGranularity from '../utils/getTimeFormatterForGranularity';
+import getTimeFormatterForGranularity, {
+  TimeGranularity,
+} from '../utils/getTimeFormatterForGranularity';
 
 const TIME_COLUMN = '__timestamp';
 const formatPercentChange = getNumberFormatter(NumberFormats.PERCENT_SIGNED_1_POINT);
 
+export interface DatasourceMetric {
+  label: string;
+  // eslint-disable-next-line camelcase
+  metric_name?: string;
+  d3format?: string;
+}
+
 // we trust both the x (time) and y (big number) to be numeric
-type BigNumberDatum = {
-  [TIME_COLUMN]: number;
+export interface BigNumberDatum {
   [key: string]: number | null;
+}
+
+export type BigNumberFormData = {
+  colorPicker?: {
+    r: number;
+    g: number;
+    b: number;
+  };
+  metric?:
+    | {
+        label: string;
+      }
+    | string;
+  compareLag?: string | number;
+  yAxisFormat?: string;
+  timeGrainSqla?: TimeGranularity;
 };
 
-export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queryData } = chartProps;
+export type BignumberChartProps = ChartProps & {
+  formData: BigNumberFormData;
+  queryData: ChartProps['queryData'] & {
+    data?: BigNumberDatum[];
+  };
+};
+
+export default function transformProps(chartProps: BignumberChartProps) {
+  const { width, height, queryData, formData } = chartProps;
   const {
     colorPicker,
-    compareLag: compareLagInput,
+    compareLag: compareLag_,
     compareSuffix = '',
     headerFontSize,
-    metric,
+    metric = 'value',
     showTrendLine,
     startYAxisAtZero,
     subheader = '',
@@ -47,9 +78,9 @@ export default function transformProps(chartProps: ChartProps) {
     timeRangeFixed = false,
   } = formData;
   let { yAxisFormat } = formData;
-  const { data, from_dttm: fromDatetime, to_dttm: toDatetime } = queryData;
-  const metricName = metric?.label ? metric.label : metric;
-  const compareLag = Number(compareLagInput) || 0;
+  const { data = [], from_dttm: fromDatetime, to_dttm: toDatetime } = queryData;
+  const metricName = typeof metric === 'string' ? metric : metric.label;
+  const compareLag = Number(compareLag_) || 0;
   const supportTrendLine = vizType === 'big_number';
   const supportAndShowTrendLine = supportTrendLine && showTrendLine;
   let formattedSubheader = subheader;
@@ -68,7 +99,8 @@ export default function transformProps(chartProps: ChartProps) {
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
       .map(d => ({ x: d[TIME_COLUMN], y: d[metricName] }))
-      .sort((a, b) => b.x - a.x); // sort in time descending order
+      // sort in time descending order
+      .sort((a, b) => (a.x !== null && b.x !== null ? b.x - a.x : 0));
 
     bigNumber = sortedData[0].y;
     if (bigNumber === null) {
@@ -103,14 +135,11 @@ export default function transformProps(chartProps: ChartProps) {
   }
 
   if (!yAxisFormat && chartProps.datasource && chartProps.datasource.metrics) {
-    chartProps.datasource.metrics.forEach(
-      // eslint-disable-next-line camelcase
-      (metricEntry: { metric_name?: string; d3format: string }) => {
-        if (metricEntry.metric_name === metric && metricEntry.d3format) {
-          yAxisFormat = metricEntry.d3format;
-        }
-      },
-    );
+    chartProps.datasource.metrics.forEach((metricEntry: DatasourceMetric) => {
+      if (metricEntry.metric_name === metric && metricEntry.d3format) {
+        yAxisFormat = metricEntry.d3format;
+      }
+    });
   }
 
   const formatNumber = getNumberFormatter(yAxisFormat);

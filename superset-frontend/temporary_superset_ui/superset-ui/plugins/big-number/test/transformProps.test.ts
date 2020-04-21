@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import transformProps from '../BigNumber/transformProps';
+import { DatasourceType } from '@superset-ui/query';
+import transformProps, {
+  BignumberChartProps,
+  BigNumberDatum,
+} from '../src/BigNumber/transformProps';
+import { TimeGranularity } from '../src/utils/getTimeFormatterForGranularity';
 
 const formData = {
   metric: 'value',
@@ -27,18 +32,27 @@ const formData = {
     a: 1,
   },
   compareLag: 1,
-  timeGrainSqla: 'P0.25Y',
+  timeGrainSqla: 'P0.25Y' as TimeGranularity,
   compareSuffix: 'over last quarter',
   vizType: 'big_number',
   yAxisFormat: '.3s',
 };
 
-function generateProps(data: object[], extraFormData = {}, extraQueryData = {}) {
+function generateProps(
+  data: BigNumberDatum[],
+  extraFormData = {},
+  extraQueryData = {},
+): BignumberChartProps {
   return {
     width: 200,
     height: 500,
     annotationData: {},
     datasource: {
+      id: 0,
+      name: '',
+      type: DatasourceType.Table,
+      columns: [],
+      metrics: [],
       columnFormats: {},
       verboseMap: {},
     },
@@ -94,8 +108,10 @@ describe('BigNumber', () => {
       const propsWithDatasource = {
         ...props,
         datasource: {
+          ...props.datasource,
           metrics: [
             {
+              label: 'value',
               metric_name: 'value',
               d3format: '.2f',
             },

@@ -22,6 +22,8 @@ export type QueryObjectFilterClause = {
 
 export type QueryObjectMetric = {
   label: string;
+  metric_name?: string;
+  d3format?: string;
 } & Partial<AdhocMetric>;
 
 export type QueryObjectExtras = Partial<{

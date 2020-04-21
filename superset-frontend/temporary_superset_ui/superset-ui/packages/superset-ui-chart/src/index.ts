@@ -16,3 +16,4 @@ export { default as getChartTransformPropsRegistry } from './registries/ChartTra
 export { default as ChartDataProvider } from './components/ChartDataProvider';
 
 export * from './types/TransformFunction';
+export * from './types/QueryResponse';

@@ -10,8 +10,15 @@ export enum DatasourceType {
 export interface Datasource {
   id: number;
   name: string;
-  description?: string;
   type: DatasourceType;
   columns: Column[];
   metrics: QueryObjectMetric[];
+  description?: string;
+  // key is column names (labels)
+  columnFormats?: {
+    [key: string]: string;
+  };
+  verboseMap?: {
+    [key: string]: string;
+  };
 }

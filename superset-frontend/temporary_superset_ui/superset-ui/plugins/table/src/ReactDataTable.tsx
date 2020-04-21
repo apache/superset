@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import React, { useEffect, createRef } from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { formatNumber, NumberFormats } from '@superset-ui/number-format';
+import { DataRecordValue } from '@superset-ui/chart';
 import { getTimeFormatter } from '@superset-ui/time-format';
 import { filterXSS } from 'xss';
 
@@ -41,6 +42,10 @@ if (!dt.$) {
 const { PERCENT_3_POINT } = NumberFormats;
 const isProbablyHTML = (text: string) => /<[^>]+>/.test(text);
 
+function isTimeColumn(key: string) {
+  return key === '__timestamp';
+}
+
 export default function ReactDataTable(props: DataTableProps) {
   const {
     data,
@@ -54,23 +59,19 @@ export default function ReactDataTable(props: DataTableProps) {
     percentMetrics,
     showCellBars = true,
     tableTimestampFormat,
-    // orderDesc,
-    // TODO: add back the broken dashboard filters feature
-    // filters = {},
-    // onAddFilter = NOOP,
-    // onRemoveFilter = NOOP,
-    // tableFilter,
-    // timeseriesLimitMetric,
+    emitFilter = false,
+    onChangeFilter = () => {},
+    filters = {},
   } = props;
 
   const formatTimestamp = getTimeFormatter(tableTimestampFormat);
   const metrics = (aggMetrics || [])
     .concat(percentMetrics || [])
     // actual records must be of numeric types as well
-    .filter(m => data[0] && typeof data[0][m] === 'number');
+    .filter(m => data.length > 0 && typeof data[0][m] === 'number');
 
   // check whethere a key is a metric
-  const metricsSet = new Set(aggMetrics);
+  const aggMetricsSet = new Set(aggMetrics);
   const percentMetricsSet = new Set(percentMetrics);
 
   // collect min/max for rendering bars
@@ -109,8 +110,8 @@ export default function ReactDataTable(props: DataTableProps) {
   /**
    * Format text for cell value
    */
-  function cellText(key: string, format: string | undefined, val: any) {
-    if (key === '__timestamp') {
+  function cellText(key: string, format: string | undefined, val: DataRecordValue) {
+    if (isTimeColumn(key)) {
       let value = val;
       if (typeof val === 'string') {
         // force UTC time zone if is an ISO timestamp without timezone
@@ -118,7 +119,7 @@ export default function ReactDataTable(props: DataTableProps) {
         value = val.match(/T(\d{2}:){2}\d{2}$/) ? `${val}Z` : val;
         value = new Date(value);
       }
-      return formatTimestamp(value) as string;
+      return formatTimestamp(value as Date | number | null) as string;
     }
     if (typeof val === 'string') {
       return filterXSS(val, { stripIgnoreTag: true });
@@ -127,11 +128,14 @@ export default function ReactDataTable(props: DataTableProps) {
       // in case percent metric can specify percent format in the future
       return formatNumber(format || PERCENT_3_POINT, val as number);
     }
-    if (metricsSet.has(key)) {
+    if (aggMetricsSet.has(key)) {
       // default format '' will return human readable numbers (e.g. 50M, 33k)
       return formatNumber(format, val as number);
     }
-    return String(val);
+    if (val === null) {
+      return 'N/A';
+    }
+    return val.toString();
   }
 
   /**
@@ -160,6 +164,15 @@ export default function ReactDataTable(props: DataTableProps) {
       `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
       `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
     );
+  }
+
+  function isFilterColumn(key: string) {
+    // anything that is not a metric column is a filter column
+    return !(aggMetricsSet.has(key) || percentMetricsSet.has(key));
+  }
+
+  function isActiveFilterValue(key: string, val: DataRecordValue) {
+    return filters[key]?.includes(val);
   }
 
   const options = {
@@ -191,6 +204,19 @@ export default function ReactDataTable(props: DataTableProps) {
   useEffect(() => {
     const $root = $(rootElem.current as HTMLElement);
     const dataTable = $root.find('table').DataTable(options);
+    const CSS_FILTER_ACTIVE = 'dt-is-active-filter';
+
+    function toggleFilter(key: string, val: DataRecordValue) {
+      const cellSelector = `td[data-key="${key}"][data-sort="${val}"]`;
+      if (isActiveFilterValue(key, val)) {
+        filters[key] = filters[key].filter((x: DataRecordValue) => x !== val);
+        $root.find(cellSelector).removeClass(CSS_FILTER_ACTIVE);
+      } else {
+        filters[key] = [...(filters[key] || []), val];
+        $root.find(cellSelector).addClass(CSS_FILTER_ACTIVE);
+      }
+      onChangeFilter({ ...filters });
+    }
 
     // adjust table height
     const scrollHeadHeight = $root.find('.dataTables_scrollHead').height() || 0;
@@ -198,7 +224,16 @@ export default function ReactDataTable(props: DataTableProps) {
     const searchBarHeight =
       $root.find('.dataTables_length,.dataTables_filter').closest('.row').height() || 0;
     const scrollBodyHeight = viewportHeight - scrollHeadHeight - paginationHeight - searchBarHeight;
+
     $root.find('.dataTables_scrollBody').css('max-height', scrollBodyHeight);
+
+    if (emitFilter) {
+      $root.find('tbody').on('click', 'td.dt-is-filter', function onClickCell(this: HTMLElement) {
+        const { row, column } = dataTable.cell(this).index();
+        const { key } = columns[column];
+        toggleFilter(key, data[row][key]);
+      });
+    }
 
     return () => {
       // there may be weird lifecycle issues, so put destroy in try/catch
@@ -234,21 +269,31 @@ export default function ReactDataTable(props: DataTableProps) {
           >
             {columns.map(({ key, format }) => {
               const val = record[key];
-              const keyIsMetric = metricsSet.has(key);
+              const keyIsAggMetric = aggMetricsSet.has(key);
               const text = cellText(key, format, val);
-              const isHtml = !keyIsMetric && isProbablyHTML(text);
-              const showCellBar = keyIsMetric && showCellBars;
+              const isHtml = !keyIsAggMetric && isProbablyHTML(text);
+              const showCellBar = keyIsAggMetric && showCellBars;
+              let className = '';
+              if (keyIsAggMetric) {
+                className += ' dt-metric';
+              } else if (isFilterColumn(key) && emitFilter) {
+                className += ' dt-is-filter';
+                if (isActiveFilterValue(key, val)) {
+                  className += ' dt-is-active-filter';
+                }
+              }
               return (
                 <td
                   key={key}
                   // only set innerHTML for actual html content, this saves time
                   dangerouslySetInnerHTML={isHtml ? { __html: text } : undefined}
+                  data-key={key}
                   data-sort={val}
-                  className={keyIsMetric ? 'text-right' : ''}
+                  className={className}
                   style={{
                     backgroundImage: showCellBar ? cellBar(key, val as number) : undefined,
                   }}
-                  title={keyIsMetric || percentMetricsSet.has(key) ? String(val) : ''}
+                  title={keyIsAggMetric || percentMetricsSet.has(key) ? String(val) : ''}
                 >
                   {isHtml ? null : text}
                 </td>
