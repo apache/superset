@@ -1,4 +1,5 @@
 import 'whatwg-fetch';
+import fetchRetry from 'fetch-retry';
 import { CallApi } from '../types';
 import { CACHE_AVAILABLE, CACHE_KEY, HTTP_STATUS_NOT_MODIFIED, HTTP_STATUS_OK } from '../constants';
 
@@ -7,6 +8,7 @@ export default function callApi({
   body,
   cache = 'default',
   credentials = 'same-origin',
+  fetchRetryOptions,
   headers,
   method = 'GET',
   mode = 'same-origin',
@@ -16,6 +18,8 @@ export default function callApi({
   stringify = true,
   url,
 }: CallApi): Promise<Response> {
+  const fetchWithRetry = fetchRetry(fetch, fetchRetryOptions);
+
   const request = {
     body,
     cache,
@@ -43,7 +47,7 @@ export default function callApi({
             request.headers = { ...request.headers, 'If-None-Match': etag };
           }
 
-          return fetch(url, request);
+          return fetchWithRetry(url, request);
         })
         .then(response => {
           if (response.status === HTTP_STATUS_NOT_MODIFIED) {
@@ -82,5 +86,5 @@ export default function callApi({
     request.body = formData;
   }
 
-  return fetch(url, request);
+  return fetchWithRetry(url, request);
 }
