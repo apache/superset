@@ -552,7 +552,7 @@ class DatasetApiTests(SupersetTestCase):
         self.login(username="admin")
         table_data = {"table_name": "birth_names"}
         uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.put(uri, json=table_data)
+        rv = self.put_assert_metric(uri, table_data, "put")
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 422)
         expected_response = {
@@ -648,7 +648,7 @@ class DatasetApiTests(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}/refresh"
-        rv = self.client.put(uri)
+        rv = self.put_assert_metric(uri, {}, "refresh")
         self.assertEqual(rv.status_code, 200)
         # Assert the column is restored on refresh
         id_column = (
@@ -668,7 +668,7 @@ class DatasetApiTests(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/dataset/{max_id + 1}/refresh"
-        rv = self.client.put(uri)
+        rv = self.put_assert_metric(uri, {}, "refresh")
         self.assertEqual(rv.status_code, 404)
 
     def test_dataset_item_refresh_not_owned(self):
@@ -678,7 +678,7 @@ class DatasetApiTests(SupersetTestCase):
         dataset = self.insert_default_dataset()
         self.login(username="alpha")
         uri = f"api/v1/dataset/{dataset.id}/refresh"
-        rv = self.client.put(uri)
+        rv = self.put_assert_metric(uri, {}, "refresh")
         self.assertEqual(rv.status_code, 403)
 
         db.session.delete(dataset)
