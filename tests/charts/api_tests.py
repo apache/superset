@@ -566,7 +566,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_charts_filter(self):
         """
-         Chart API: Test get charts filter
+        Chart API: Test get charts filter
         """
         self.login(username="admin")
         arguments = {"filters": [{"col": "slice_name", "opr": "sw", "value": "G"}]}
@@ -578,7 +578,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_charts_custom_filter(self):
         """
-         Chart API: Test get charts custom filter
+        Chart API: Test get charts custom filter
         """
         admin = self.get_user("admin")
         chart1 = self.insert_chart("foo", [admin.id], 1, description="ZY_bar")
