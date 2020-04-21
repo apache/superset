@@ -20,7 +20,7 @@ import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { withTheme } from 'emotion-theming';
 
-import StyledSelect from 'src/components/StyledSelect';
+import StyledSelect, { AsyncStyledSelect } from 'src/components/StyledSelect';
 import SearchInput from 'src/components/SearchInput';
 import { Filter, Filters, FilterValue, InternalFilter } from './types';
 
@@ -32,6 +32,7 @@ interface SelectFilterProps extends BaseFilter {
   onSelect: (selected: any) => any;
   selects: Filter['selects'];
   emptyLabel?: string;
+  fetchSelects?: Filter['fetchSelects'];
 }
 
 const FilterContainer = styled.div`
@@ -51,11 +52,13 @@ function SelectFilter({
   emptyLabel = 'None',
   initialValue,
   onSelect,
+  fetchSelects,
 }: SelectFilterProps) {
   const clearFilterSelect = {
     label: emptyLabel,
     value: CLEAR_SELECT_FILTER_VALUE,
   };
+
   const options = React.useMemo(() => [clearFilterSelect, ...selects], [
     emptyLabel,
     selects,
@@ -73,17 +76,34 @@ function SelectFilter({
       selected.value === CLEAR_SELECT_FILTER_VALUE ? undefined : selected.value,
     );
   };
+  const fetchAndFormatSelects = async () => {
+    if (!fetchSelects) return { options: [clearFilterSelect] };
+    const selectValues = await fetchSelects();
+    return { options: [clearFilterSelect, ...selectValues] };
+  };
 
   return (
     <FilterContainer>
       <Title>{Header}:</Title>
-      <StyledSelect
-        data-test="filters-select"
-        value={value}
-        options={options}
-        onChange={onChange}
-        clearable={false}
-      />
+      {fetchSelects ? (
+        <AsyncStyledSelect
+          data-test="filters-select"
+          value={value}
+          onChange={onChange}
+          loadOptions={fetchAndFormatSelects}
+          placeholder={initialValue || emptyLabel}
+          loadingPlaceholder="Loading..."
+          clearable={false}
+        />
+      ) : (
+        <StyledSelect
+          data-test="filters-select"
+          value={value}
+          options={options}
+          onChange={onChange}
+          clearable={false}
+        />
+      )}
     </FilterContainer>
   );
 }
@@ -134,33 +154,36 @@ function UIFilters({
 }: UIFiltersProps) {
   return (
     <FilterWrapper>
-      {filters.map(({ Header, input, selects, unfilteredLabel }, index) => {
-        const initialValue =
-          internalFilters[index] && internalFilters[index].value;
-        if (input === 'select') {
-          return (
-            <SelectFilter
-              key={Header}
-              Header={Header}
-              selects={selects}
-              emptyLabel={unfilteredLabel}
-              initialValue={initialValue}
-              onSelect={(value: any) => updateFilterValue(index, value)}
-            />
-          );
-        }
-        if (input === 'search') {
-          return (
-            <SearchFilter
-              key={Header}
-              Header={Header}
-              initialValue={initialValue}
-              onSubmit={(value: string) => updateFilterValue(index, value)}
-            />
-          );
-        }
-        return null;
-      })}
+      {filters.map(
+        ({ Header, input, selects, unfilteredLabel, fetchSelects }, index) => {
+          const initialValue =
+            internalFilters[index] && internalFilters[index].value;
+          if (input === 'select') {
+            return (
+              <SelectFilter
+                key={Header}
+                Header={Header}
+                selects={selects}
+                emptyLabel={unfilteredLabel}
+                initialValue={initialValue}
+                fetchSelects={fetchSelects}
+                onSelect={(value: any) => updateFilterValue(index, value)}
+              />
+            );
+          }
+          if (input === 'search') {
+            return (
+              <SearchFilter
+                key={Header}
+                Header={Header}
+                initialValue={initialValue}
+                onSubmit={(value: string) => updateFilterValue(index, value)}
+              />
+            );
+          }
+          return null;
+        },
+      )}
     </FilterWrapper>
   );
 }
