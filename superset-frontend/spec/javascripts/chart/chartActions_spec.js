@@ -141,7 +141,7 @@ describe('chart actions', () => {
       { overwriteRoutes: true },
     );
 
-    const timeoutInSec = 1 / 1000;
+    const timeoutInSec = 100; // Set to a time that is longer than the time this will take to fail
     const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
 
     return actionThunk(dispatch).then(() => {
