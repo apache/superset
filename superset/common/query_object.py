@@ -53,7 +53,7 @@ class QueryObject:
     and druid. The query objects are constructed on the client.
     """
 
-    granularity: str
+    granularity: Optional[str]
     from_dttm: datetime
     to_dttm: datetime
     is_timeseries: bool
