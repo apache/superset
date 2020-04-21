@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import React from 'react';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { t } from '@superset-ui/translation';
 import {
@@ -23,6 +25,7 @@ import {
   getControlState,
   applyMapStateToPropsToControl,
 } from '../../../src/explore/controlUtils';
+import ColumnOption from '../../../src/components/ColumnOption';
 
 describe('controlUtils', () => {
   const state = {
@@ -98,27 +101,31 @@ describe('controlUtils', () => {
           {
             label: t('Chart Options'),
             expanded: true,
-            controlSetRows: [[
-              {
-                name: 'all_columns',
-                config: {
-                  type: 'SelectControl',
-                  multi: true,
-                  label: t('Columns'),
-                  default: [],
-                  description: t('Columns to display'),
-                  optionRenderer: c => <ColumnOption column={c} showType />,
-                  valueRenderer: c => <ColumnOption column={c} />,
-                  valueKey: 'column_name',
-                  allowAll: true,
-                  mapStateToProps: state => ({
-                    options: state.datasource ? state.datasource.columns : [],
-                  }),
-                  commaChoosesOption: false,
-                  freeForm: true,
+            controlSetRows: [
+              [
+                {
+                  name: 'all_columns',
+                  config: {
+                    type: 'SelectControl',
+                    multi: true,
+                    label: t('Columns'),
+                    default: [],
+                    description: t('Columns to display'),
+                    optionRenderer: c => <ColumnOption column={c} showType />,
+                    valueRenderer: c => <ColumnOption column={c} />,
+                    valueKey: 'column_name',
+                    allowAll: true,
+                    mapStateToProps: stateRef => ({
+                      options: stateRef.datasource
+                        ? stateRef.datasource.columns
+                        : [],
+                    }),
+                    commaChoosesOption: false,
+                    freeForm: true,
+                  },
                 },
-              },
-            ],],
+              ],
+            ],
           },
         ],
       });
