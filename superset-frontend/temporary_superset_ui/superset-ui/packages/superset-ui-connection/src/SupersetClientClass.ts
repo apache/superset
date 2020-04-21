@@ -5,6 +5,7 @@ import {
   Credentials,
   CsrfPromise,
   CsrfToken,
+  FetchRetryOptions,
   Headers,
   Host,
   Mode,
@@ -12,11 +13,13 @@ import {
   RequestConfig,
   SupersetClientResponse,
 } from './types';
+import { DEFAULT_FETCH_RETRY_OPTIONS } from './constants';
 
 export default class SupersetClientClass {
   credentials: Credentials;
   csrfToken?: CsrfToken;
   csrfPromise?: CsrfPromise;
+  fetchRetryOptions?: FetchRetryOptions;
   protocol: Protocol;
   host: Host;
   headers: Headers;
@@ -27,6 +30,7 @@ export default class SupersetClientClass {
     protocol = 'http:',
     host = 'localhost',
     headers = {},
+    fetchRetryOptions = {},
     mode = 'same-origin',
     timeout,
     credentials = undefined,
@@ -40,6 +44,7 @@ export default class SupersetClientClass {
     this.credentials = credentials;
     this.csrfToken = csrfToken;
     this.csrfPromise = undefined;
+    this.fetchRetryOptions = { ...DEFAULT_FETCH_RETRY_OPTIONS, ...fetchRetryOptions };
 
     if (typeof this.csrfToken === 'string') {
       this.headers = { ...this.headers, 'X-CSRFToken': this.csrfToken };
@@ -80,6 +85,7 @@ export default class SupersetClientClass {
     body,
     credentials,
     endpoint,
+    fetchRetryOptions,
     headers,
     host,
     method,
@@ -95,6 +101,7 @@ export default class SupersetClientClass {
       callApi({
         body,
         credentials: credentials ?? this.credentials,
+        fetchRetryOptions,
         headers: { ...this.headers, ...headers },
         method,
         mode: mode ?? this.mode,

@@ -6,6 +6,7 @@ import * as constants from '../../src/constants';
 import { LOGIN_GLOB } from '../fixtures/constants';
 import throwIfCalled from '../utils/throwIfCalled';
 import { CallApi } from '../../src/types';
+import { DEFAULT_FETCH_RETRY_OPTIONS } from '../../src/constants';
 
 describe('callApi()', () => {
   beforeAll(() => {
@@ -20,6 +21,8 @@ describe('callApi()', () => {
   const mockPatchUrl = '/mock/patch/url';
   const mockCacheUrl = '/mock/cache/url';
   const mockNotFound = '/mock/notfound';
+  const mockErrorUrl = '/mock/error/url';
+  const mock503 = '/mock/503';
 
   const mockGetPayload = { get: 'payload' };
   const mockPostPayload = { post: 'payload' };
@@ -30,6 +33,7 @@ describe('callApi()', () => {
     body: 'BODY',
     headers: { Etag: 'etag' },
   };
+  const mockErrorPayload = { status: 500, statusText: 'Internal error' };
 
   fetchMock.get(mockGetUrl, mockGetPayload);
   fetchMock.post(mockPostUrl, mockPostPayload);
@@ -37,6 +41,8 @@ describe('callApi()', () => {
   fetchMock.patch(mockPatchUrl, mockPatchPayload);
   fetchMock.get(mockCacheUrl, mockCachePayload);
   fetchMock.get(mockNotFound, { status: 404 });
+  fetchMock.get(mock503, { status: 503 });
+  fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
 
   afterEach(fetchMock.reset);
 
@@ -437,19 +443,47 @@ describe('callApi()', () => {
     });
   });
 
-  it('rejects if the request throws', () => {
-    const mockErrorUrl = '/mock/error/url';
-    const mockErrorPayload = { status: 500, statusText: 'Internal error' };
-    fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
-
+  it('rejects after retrying thrice if the request throws', () => {
     expect.assertions(3);
 
-    return callApi({ url: mockErrorUrl, method: 'GET' })
+    return callApi({
+      fetchRetryOptions: DEFAULT_FETCH_RETRY_OPTIONS,
+      url: mockErrorUrl,
+      method: 'GET',
+    })
+      .then(throwIfCalled)
+      .catch(error => {
+        expect(fetchMock.calls(mockErrorUrl)).toHaveLength(4);
+        expect(error.status).toBe(mockErrorPayload.status);
+        expect(error.statusText).toBe(mockErrorPayload.statusText);
+      });
+  });
+
+  it('rejects without retries if the config is set to 0 retries', () => {
+    expect.assertions(3);
+
+    return callApi({
+      fetchRetryOptions: { retries: 0 },
+      url: mockErrorUrl,
+      method: 'GET',
+    })
       .then(throwIfCalled)
       .catch(error => {
         expect(fetchMock.calls(mockErrorUrl)).toHaveLength(1);
         expect(error.status).toBe(mockErrorPayload.status);
         expect(error.statusText).toBe(mockErrorPayload.statusText);
       });
+  });
+
+  it('rejects after retrying thrice if the request returns a 503', async () => {
+    const url = mock503;
+    const response = await callApi({
+      fetchRetryOptions: DEFAULT_FETCH_RETRY_OPTIONS,
+      url,
+      method: 'GET',
+    });
+    const calls = fetchMock.calls(url);
+    expect(calls).toHaveLength(4);
+    expect(response.status).toEqual(503);
   });
 });

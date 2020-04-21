@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.1.2",
+    "fetch-retry": "^3.1.0",
     "whatwg-fetch": "^3.0.0"
   },
   "publishConfig": {
