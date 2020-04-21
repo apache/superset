@@ -34,10 +34,12 @@ import DatasetList from 'src/views/datasetList/DatasetList';
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
+import setupPlugins from '../setup/setupPlugins';
 import Welcome from './Welcome';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 
 setupApp();
+setupPlugins();
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));

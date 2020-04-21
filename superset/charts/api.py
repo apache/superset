@@ -40,6 +40,7 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.update import UpdateChartCommand
+from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartFilter, ChartNameOrDescriptionFilter
 from superset.charts.schemas import (
     CHART_DATA_SCHEMAS,
@@ -77,6 +78,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "data",
+        "viz_types",
+        "datasources",
     }
     class_permission_name = "SliceModelView"
     show_columns = [
@@ -106,6 +109,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "viz_type",
         "params",
         "cache_timeout",
+        "owners.id",
+        "owners.username",
+        "owners.first_name",
+        "owners.last_name",
     ]
     order_columns = [
         "slice_name",
@@ -119,6 +126,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "viz_type",
         "datasource_name",
+        "datasource_id",
+        "datasource_type",
         "owners",
     )
     base_order = ("changed_on", "desc")
@@ -503,3 +512,56 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 chart_type.__name__, schema=chart_type,
             )
         super().add_apispec_components(api_spec)
+
+    @expose("/datasources", methods=["GET"])
+    @protect()
+    @safe
+    def datasources(self) -> Response:
+        """Get available datasources
+        ---
+        get:
+          responses:
+            200:
+              description: charts unique datasource data
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      result:
+                        type: object
+                        properties:
+                          label:
+                            type: string
+                          value:
+                            type: object
+                            properties:
+                              database_id:
+                                type: integer
+                              database_type:
+                                type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        datasources = ChartDAO.fetch_all_datasources()
+        if not datasources:
+            return self.response(200, count=0, result=[])
+
+        result = [
+            {
+                "label": str(ds),
+                "value": {"datasource_id": ds.id, "datasource_type": ds.type},
+            }
+            for ds in datasources
+        ]
+        return self.response(200, count=len(result), result=result)
