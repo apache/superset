@@ -83,6 +83,8 @@ export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 // input choices & options
 export const D3_FORMAT_OPTIONS = [
   ['SMART_NUMBER', 'Adaptative formating'],
+  [' ', 'Original value'],
+  [',d', ',d (12345.432 => 12,345)'],
   ['.1s', '.1s (12345.432 => 10k)'],
   ['.3s', '.3s (12345.432 => 12.3k)'],
   [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
