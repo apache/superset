@@ -92,6 +92,35 @@ describe('controlUtils', () => {
             label: t('My beautiful colors'),
           },
         },
+      })
+      .registerValue('table', {
+        controlPanelSections: [
+          {
+            label: t('Chart Options'),
+            expanded: true,
+            controlSetRows: [[
+              {
+                name: 'all_columns',
+                config: {
+                  type: 'SelectControl',
+                  multi: true,
+                  label: t('Columns'),
+                  default: [],
+                  description: t('Columns to display'),
+                  optionRenderer: c => <ColumnOption column={c} showType />,
+                  valueRenderer: c => <ColumnOption column={c} />,
+                  valueKey: 'column_name',
+                  allowAll: true,
+                  mapStateToProps: state => ({
+                    options: state.datasource ? state.datasource.columns : [],
+                  }),
+                  commaChoosesOption: false,
+                  freeForm: true,
+                },
+              },
+            ],],
+          },
+        ],
       });
   });
 
