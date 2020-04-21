@@ -4,6 +4,11 @@ export type Body = RequestInit['body'];
 export type Cache = RequestInit['cache'];
 export type Credentials = RequestInit['credentials'];
 export type Endpoint = string;
+export type FetchRetryOptions = {
+  retries?: number;
+  retryDelay?: number | ((attempt: number, error: Error, response: Response) => number);
+  retryOn?: number[] | ((attempt: number, error: Error, response: Response) => boolean);
+};
 export type Headers = { [k: string]: string };
 export type Host = string;
 export type Json = { [k: string]: any };
@@ -21,6 +26,7 @@ export interface CallApi {
   body?: Body;
   cache?: Cache;
   credentials?: Credentials;
+  fetchRetryOptions?: FetchRetryOptions;
   headers?: Headers;
   method?: Method;
   mode?: Mode;
@@ -34,6 +40,7 @@ export interface CallApi {
 export interface RequestBase {
   body?: Body;
   credentials?: Credentials;
+  fetchRetryOptions?: FetchRetryOptions;
   headers?: Headers;
   host?: Host;
   mode?: Mode;
@@ -70,6 +77,7 @@ export type Protocol = 'http:' | 'https:';
 export interface ClientConfig {
   credentials?: Credentials;
   csrfToken?: CsrfToken;
+  fetchRetryOptions?: FetchRetryOptions;
   headers?: Headers;
   host?: Host;
   protocol?: Protocol;
