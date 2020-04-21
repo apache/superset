@@ -1,30 +1,32 @@
 import { createSelector } from 'reselect';
 import { convertKeysToCamelCase } from '@superset-ui/core';
+import { Datasource } from '@superset-ui/query';
 import { HandlerFunction, PlainObject } from '../types/Base';
+import { QueryData, DataRecordFilters } from '../types/QueryResponse';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
-type CamelCaseDatasource = PlainObject;
 type SnakeCaseDatasource = PlainObject;
 type CamelCaseFormData = PlainObject;
 type SnakeCaseFormData = PlainObject;
-export type QueryData = PlainObject;
-/** Initial values for the visualizations, currently used by only filter_box and table */
-type InitialValues = PlainObject;
+type RawFormData = CamelCaseFormData | SnakeCaseFormData;
+
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
 
 /** Optional field for event handlers, renderers */
 type Hooks = {
-  /** handle adding filters  */
-  onAddFilter?: HandlerFunction;
-  /** handle errors  */
+  /**
+   * sync active filters between chart and dashboard, "add" actually
+   * also handles "change" and "remove".
+   */
+  onAddFilter?: (newFilters: DataRecordFilters, merge?: boolean) => void;
+  /** handle errors */
   onError?: HandlerFunction;
   /** use the vis as control to update state */
   setControlValue?: HandlerFunction;
   /** handle tooltip */
   setTooltip?: HandlerFunction;
-  [key: string]: any;
-};
+} & PlainObject;
 
 /**
  * Preferred format for ChartProps config
@@ -37,9 +39,9 @@ export interface ChartPropsConfig {
    * Formerly called "filters", which was misleading because it is actually
    * initial values of the filter_box and table vis
    */
-  initialValues?: InitialValues;
+  initialValues?: DataRecordFilters;
   /** Main configuration of the chart */
-  formData?: SnakeCaseFormData;
+  formData?: RawFormData;
   /** Chart height */
   height?: number;
   /** Programmatic overrides such as event handlers, renderers */
@@ -53,22 +55,20 @@ export interface ChartPropsConfig {
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 600;
 
-export default class ChartProps<
-  FormDataType extends CamelCaseFormData | SnakeCaseFormData = CamelCaseFormData
-> {
+export default class ChartProps {
   static createSelector: () => ChartPropsSelector;
 
   annotationData: AnnotationData;
 
-  datasource: CamelCaseDatasource;
+  datasource: Datasource;
 
   rawDatasource: SnakeCaseDatasource;
 
-  initialValues: InitialValues;
+  initialValues: DataRecordFilters;
 
   formData: CamelCaseFormData;
 
-  rawFormData: SnakeCaseFormData | CamelCaseFormData;
+  rawFormData: RawFormData;
 
   height: number;
 
@@ -82,7 +82,7 @@ export default class ChartProps<
     const {
       annotationData = {},
       datasource = {},
-      formData = {} as FormDataType,
+      formData = {},
       hooks = {},
       initialValues = {},
       queryData = {},

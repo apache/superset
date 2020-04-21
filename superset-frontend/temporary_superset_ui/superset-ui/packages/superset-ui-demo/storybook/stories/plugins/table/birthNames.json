@@ -190,7 +190,7 @@
     "fetch_values_predicate": null,
     "template_params": null
   },
-  "initialValues": {},
+  "activeFilters": {},
   "formData": {
     "datasource": "3__table",
     "viz_type": "table",
@@ -300,7 +300,7 @@
     "table_timestamp_format": "%Y-%m-%d %H:%M:%S",
     "page_length": 0,
     "include_search": true,
-    "table_filter": false,
+    "table_filter": true,
     "align_pn": false,
     "color_pn": true
   },
@@ -419,7 +419,7 @@
       "table_timestamp_format": "%Y-%m-%d %H:%M:%S",
       "page_length": 0,
       "include_search": true,
-      "table_filter": false,
+      "table_filter": true,
       "align_pn": false,
       "color_pn": true,
       "where": "",

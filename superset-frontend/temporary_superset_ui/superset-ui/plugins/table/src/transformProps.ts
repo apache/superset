@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps, DataRecord, DataRecordFilters } from '@superset-ui/chart';
 import { QueryFormDataMetric } from '@superset-ui/query';
-
-interface DataRecord {
-  [key: string]: any;
-}
 
 interface DataColumnMeta {
   // `key` is what is called `label` in the input props
@@ -31,39 +27,51 @@ interface DataColumnMeta {
   format?: string;
 }
 
+interface TableChartData {
+  records: DataRecord[];
+  columns: string[];
+}
+
+interface TableChartFormData {
+  alignPn?: boolean;
+  colorPn?: boolean;
+  includeSearch?: boolean;
+  orderDesc?: boolean;
+  pageLength?: string | number;
+  metrics?: QueryFormDataMetric[] | null;
+  percentMetrics?: QueryFormDataMetric[] | null;
+  showCellBars?: boolean;
+  tableTimestampFormat?: string;
+  tableFilter?: boolean;
+}
+
 export interface DataTableProps {
   // Each object is { field1: value1, field2: value2 }
-  data: DataRecord[];
-  height: number;
   alignPositiveNegative: boolean;
   colorPositiveNegative: boolean;
   columns: DataColumnMeta[];
-  showCellBars: boolean;
-  metrics: string[];
-  percentMetrics: string[];
+  data: DataRecord[];
+  height: number;
   includeSearch: boolean;
+  metrics: string[];
   orderDesc: boolean;
   pageLength: number;
+  percentMetrics: string[];
+  showCellBars: boolean;
   tableTimestampFormat?: string;
-  // TODO: add filters back or clean up
-  // filters: object;
-  // onAddFilter?: (key: string, value: number[]) => void;
-  // onRemoveFilter?: (key: string, value: number[]) => void;
-  // tableFilter: boolean;
   // timeseriesLimitMetric: string | object;
+  // These are dashboard filters, don't be confused with in-chart search filter
+  filters: DataRecordFilters;
+  emitFilter: boolean;
+  onChangeFilter: ChartProps['hooks']['onAddFilter'];
 }
 
-export interface TableChartFormData {
-  alignPn?: boolean;
-  colorPn?: boolean;
-  showCellBars?: boolean;
-  includeSearch?: boolean;
-  orderDesc?: boolean;
-  pageLength?: string;
-  metrics?: QueryFormDataMetric[];
-  percentMetrics?: QueryFormDataMetric[];
-  tableTimestampFormat?: string;
-}
+export type TableChartProps = ChartProps & {
+  formData: TableChartFormData;
+  queryData: ChartProps['queryData'] & {
+    data?: TableChartData;
+  };
+};
 
 /**
  * Consolidate list of metrics to string, identified by its unique identifier
@@ -76,9 +84,15 @@ const consolidateMetricShape = (metric: QueryFormDataMetric) => {
   return metric.label || 'NOT_LABLED';
 };
 
-export default function transformProps(chartProps: ChartProps): DataTableProps {
-  const { height, datasource, formData, queryData } = chartProps;
-
+export default function transformProps(chartProps: TableChartProps): DataTableProps {
+  const {
+    height,
+    datasource,
+    formData,
+    queryData,
+    initialValues: filters = {},
+    hooks: { onAddFilter: onChangeFilter = () => {} },
+  } = chartProps;
   const {
     alignPn = true,
     colorPn = true,
@@ -89,19 +103,19 @@ export default function transformProps(chartProps: ChartProps): DataTableProps {
     metrics: metrics_ = [],
     percentMetrics: percentMetrics_ = [],
     tableTimestampFormat,
-  } = formData as TableChartFormData;
+    tableFilter,
+  } = formData;
   const { columnFormats, verboseMap } = datasource;
-  const {
-    records,
-    columns: columns_,
-  }: { records: DataRecord[]; columns: string[] } = queryData.data;
+  const { records, columns: columns_ } = queryData.data || { records: [], columns: [] };
+
   const metrics = (metrics_ ?? []).map(consolidateMetricShape);
   // percent metrics always starts with a '%' sign.
   const percentMetrics = (percentMetrics_ ?? [])
     .map(consolidateMetricShape)
     .map((x: string) => `%${x}`);
+
   const columns = columns_.map((key: string) => {
-    let label = verboseMap[key] || key;
+    let label = verboseMap?.[key] || key;
     // make sure there is a " " after "%" for percent metrics
     if (label[0] === '%' && label[1] !== ' ') {
       label = `% ${label.slice(1)}`;
@@ -124,7 +138,10 @@ export default function transformProps(chartProps: ChartProps): DataTableProps {
     showCellBars,
     includeSearch,
     orderDesc,
-    pageLength: pageLength ? parseInt(pageLength, 10) : 0,
+    pageLength: typeof pageLength === 'string' ? parseInt(pageLength, 10) || 0 : 0,
     tableTimestampFormat,
+    filters,
+    emitFilter: tableFilter === true,
+    onChangeFilter,
   };
 }
