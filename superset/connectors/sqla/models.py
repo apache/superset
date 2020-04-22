@@ -883,9 +883,9 @@ class SqlaTable(Model, BaseDatasource):
                     elif op == utils.FilterOperationType.LIKE.value:
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
                     elif op == utils.FilterOperationType.IS_NULL.value:
-                        where_clause_and.append(col_obj.get_sqla_col() is None)
+                        where_clause_and.append(col_obj.get_sqla_col() == None)
                     elif op == utils.FilterOperationType.IS_NOT_NULL.value:
-                        where_clause_and.append(col_obj.get_sqla_col() is None)
+                        where_clause_and.append(col_obj.get_sqla_col() != None)
                     else:
                         raise Exception(
                             _("Invalid filter operation type: %(op)s", op=op)
