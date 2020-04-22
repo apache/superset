@@ -53,6 +53,8 @@ export default () =>
     });
 
     it('should apply filter', () => {
+      cy.wait(10);
+
       cy.get('.Select-placeholder')
         .contains('Select [region]')
         .click()
