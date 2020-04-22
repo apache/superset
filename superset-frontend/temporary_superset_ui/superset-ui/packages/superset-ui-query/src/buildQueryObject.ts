@@ -33,6 +33,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
   } = formData;
 
   const groupbySet = new Set([...columns, ...groupby]);
+  const numericRowLimit = Number(row_limit);
 
   const queryObject: QueryObject = {
     extras: processExtras(formData),
@@ -42,7 +43,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     metrics: processMetrics(formData),
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     orderby: [],
-    row_limit: Number(row_limit),
+    row_limit: row_limit == null || isNaN(numericRowLimit) ? undefined : numericRowLimit,
     since,
     time_range,
     timeseries_limit: limit ? Number(limit) : 0,
