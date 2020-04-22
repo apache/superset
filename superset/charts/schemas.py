@@ -362,7 +362,7 @@ class ChartDataFilterSchema(Schema):
     )
     op = fields.String(  # pylint: disable=invalid-name
         description="The comparison operator.",
-        enum=[filter_op.value for filter_op in utils.FilterOperationType],
+        enum=[filter_op.value for filter_op in utils.FilterOperator],
         required=True,
         example="IN",
     )
