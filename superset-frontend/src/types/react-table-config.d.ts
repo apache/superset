@@ -125,7 +125,11 @@ declare module 'react-table' {
     extends UseFiltersColumnProps<D>,
       UseGroupByColumnProps<D>,
       UseResizeColumnsColumnProps<D>,
-      UseSortByColumnProps<D> {}
+      UseSortByColumnProps<D> {
+          hidden?: boolean;
+          sortable?: boolean;
+          cellProps?: any;
+      }
 
   export interface Cell<D extends object = {}>
     extends UseGroupByCellProps<D>,
