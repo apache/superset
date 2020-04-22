@@ -25,7 +25,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { ThemeProvider } from 'emotion-theming';
 
 import { initFeatureFlags } from 'src/featureFlags';
-import { supersetTheme } from 'stylesheets/styled-components/superset-theme';
+import { supersetTheme } from '@superset-ui/style';
 import Menu from 'src/components/Menu/Menu';
 import DashboardList from 'src/views/dashboardList/DashboardList';
 import ChartList from 'src/views/chartList/ChartList';

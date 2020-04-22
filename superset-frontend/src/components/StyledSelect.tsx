@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import styled from '@emotion/styled';
+import styled from '@superset-ui/style';
 // @ts-ignore
 import Select, { Async } from 'react-select';
 
