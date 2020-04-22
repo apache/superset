@@ -26,6 +26,8 @@ import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
 import { areArraysShallowEqual } from 'src/reduxUtils';
+import { ThemeProvider } from 'emotion-theming';
+import { supersetTheme } from '@superset-ui/style';
 
 const mockedProps = {
   title: 'Data Table',
@@ -63,7 +65,10 @@ const mockedProps = {
 };
 
 describe('ListView', () => {
-  const wrapper = mount(<ListView {...mockedProps} />);
+  const wrapper = mount(<ListView {...mockedProps} />, {
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
 
   afterEach(() => {
     mockedProps.fetchData.mockClear();
@@ -281,7 +286,10 @@ Array [
       filters: [...mockedProps.filters, { id: 'some_column' }],
     };
     try {
-      shallow(<ListView {...props} />);
+      shallow(<ListView {...props} />, {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: { theme: supersetTheme },
+      });
     } catch (e) {
       expect(e).toMatchInlineSnapshot(
         `[ListViewError: Invalid filter config, some_column is not present in columns]`,
@@ -319,7 +327,10 @@ describe('ListView with new UI filters', () => {
     ],
   };
 
-  const wrapper = mount(<ListView {...newFiltersProps} />);
+  const wrapper = mount(<ListView {...newFiltersProps} />, {
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
 
   afterEach(() => {
     mockedProps.fetchData.mockClear();

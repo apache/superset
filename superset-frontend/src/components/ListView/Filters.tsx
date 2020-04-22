@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import styled from '@emotion/styled';
+import styled from '@superset-ui/style';
 import { withTheme } from 'emotion-theming';
 
 import StyledSelect, { AsyncStyledSelect } from 'src/components/StyledSelect';

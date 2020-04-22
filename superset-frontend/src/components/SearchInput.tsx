@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import styled from '@emotion/styled';
+import styled from '@superset-ui/style';
 
 export default styled.input`
-  background-color: #fff;
+  background-color: ${({ theme }) => theme.colors.secondary.light5};
   background-image: none;
-  border: 1px solid #ccc;
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
   border-radius: 4px;
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
   padding: 4px 8px;
