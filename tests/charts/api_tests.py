@@ -16,7 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 import json
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import prison
 from sqlalchemy.sql import func
@@ -28,11 +28,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
-from tests.fixtures.query_context import (
-    get_postprocessing_operation,
-    get_query_context,
-    get_query_object,
-)
+from tests.fixtures.query_context import get_query_context
 
 
 class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
@@ -641,9 +637,10 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         Query API: Test chart data query
         """
         self.login(username="admin")
-        query_context = self.get_query_context_payload()
+        table = self.get_table_by_name("birth_names")
+        payload = get_query_context(table.name, table.id, table.type)
         uri = "api/v1/chart/data"
-        rv = self.post_assert_metric(uri, query_context, "data")
+        rv = self.post_assert_metric(uri, payload, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["result"][0]["rowcount"], 100)
@@ -652,17 +649,19 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         """Query API: Test chart data query with invalid schema
         """
         self.login(username="admin")
-        payload = self.get_query_context_payload()
+        table = self.get_table_by_name("birth_names")
+        payload = get_query_context(table.name, table.id, table.type)
         payload["datasource"] = "abc"
         uri = "api/v1/chart/data"
-        rv = self.client.post(uri, json=payload)
+        rv = self.post_assert_metric(uri, payload, "data")
         self.assertEqual(rv.status_code, 400)
 
     def test_chart_data_with_invalid_enum_value(self):
         """Query API: Test chart data query with invalid enum value
         """
         self.login(username="admin")
-        payload = self.get_query_context_payload()
+        table = self.get_table_by_name("birth_names")
+        payload = get_query_context(table.name, table.id, table.type)
         payload["queries"][0]["extras"]["time_range_endpoints"] = [
             "abc",
             "EXCLUSIVE",
@@ -676,7 +675,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         Query API: Test chart data query not allowed
         """
         self.login(username="gamma")
-        payload = self.get_query_context_payload()
+        table = self.get_table_by_name("birth_names")
+        payload = get_query_context(table.name, table.id, table.type)
         uri = "api/v1/chart/data"
         rv = self.post_assert_metric(uri, payload, "data")
         self.assertEqual(rv.status_code, 401)

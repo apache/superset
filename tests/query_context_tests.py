@@ -21,11 +21,16 @@ from superset.common.query_context import QueryContext
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils.core import TimeRangeEndpoint
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.query_context import get_query_context
+from tests.test_app import app
 
 
 class QueryContextTests(SupersetTestCase):
     def test_cache_key_changes_when_datasource_is_updated(self):
-        payload = self.get_query_context_payload()
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
 
         # construct baseline cache_key
         query_context = QueryContext(**payload)
@@ -57,7 +62,10 @@ class QueryContextTests(SupersetTestCase):
         Ensure that time_range_endpoints are populated automatically when missing
         from the payload
         """
-        payload = self.get_query_context_payload()
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
         del payload["queries"][0]["extras"]["time_range_endpoints"]
         query_context = QueryContext(**payload)
         query_object = query_context.queries[0]
@@ -73,7 +81,10 @@ class QueryContextTests(SupersetTestCase):
         """
         Ensure that deprecated fields are converted correctly
         """
-        payload = self.get_query_context_payload()
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
         payload["queries"][0]["granularity_sqla"] = "timecol"
         payload["queries"][0]["having_filters"] = {"col": "a", "op": "==", "val": "b"}
         query_context = QueryContext(**payload)
