@@ -17,14 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Route } from 'react-router-dom';
-import { QueryParamProvider } from 'use-query-params';
 import ReactDOM from 'react-dom';
 import App from './App';
 
-ReactDOM.render(
-  <QueryParamProvider ReactRouterRoute={Route}>
-    <App />
-  </QueryParamProvider>,
-  document.getElementById('app'),
-);
+ReactDOM.render(<App />, document.getElementById('app'));
