@@ -1239,7 +1239,7 @@ def time_function(func: Callable, *args, **kwargs) -> Tuple[float, Any]:
     start = default_timer()
     response = func(*args, **kwargs)
     stop = default_timer()
-    return stop - start, response
+    return (stop - start) * 1000.0, response
 
 
 def MediumText() -> Variant:
