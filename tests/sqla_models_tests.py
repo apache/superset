@@ -20,7 +20,7 @@ from typing import Any, Dict, NamedTuple, List, Tuple, Union
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.models.core import Database
-from superset.utils.core import DbColumnType, get_example_database, FilterOperationType
+from superset.utils.core import DbColumnType, get_example_database, FilterOperator
 
 from .base_tests import SupersetTestCase
 
@@ -117,16 +117,16 @@ class DatabaseModelTestCase(SupersetTestCase):
             expected: str
 
         filters: Tuple[FilterTestCase, ...] = (
-            FilterTestCase(FilterOperationType.IS_NULL, "", "IS NULL"),
-            FilterTestCase(FilterOperationType.IS_NOT_NULL, "", "IS NOT NULL"),
-            FilterTestCase(FilterOperationType.GREATER_THAN, 0, "> 0"),
-            FilterTestCase(FilterOperationType.GREATER_THAN_OR_EQUALS, 0, ">= 0"),
-            FilterTestCase(FilterOperationType.LESS_THAN, 0, "< 0"),
-            FilterTestCase(FilterOperationType.LESS_THAN_OR_EQUALS, 0, "<= 0"),
-            FilterTestCase(FilterOperationType.EQUALS, 0, "= 0"),
-            FilterTestCase(FilterOperationType.NOT_EQUALS, 0, "!= 0"),
-            FilterTestCase(FilterOperationType.IN, ["1", "2"], "IN (1, 2)"),
-            FilterTestCase(FilterOperationType.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
+            FilterTestCase(FilterOperator.IS_NULL, "", "IS NULL"),
+            FilterTestCase(FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
+            FilterTestCase(FilterOperator.GREATER_THAN, 0, "> 0"),
+            FilterTestCase(FilterOperator.GREATER_THAN_OR_EQUALS, 0, ">= 0"),
+            FilterTestCase(FilterOperator.LESS_THAN, 0, "< 0"),
+            FilterTestCase(FilterOperator.LESS_THAN_OR_EQUALS, 0, "<= 0"),
+            FilterTestCase(FilterOperator.EQUALS, 0, "= 0"),
+            FilterTestCase(FilterOperator.NOT_EQUALS, 0, "!= 0"),
+            FilterTestCase(FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
+            FilterTestCase(FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
         )
         table = self.get_table_by_name("birth_names")
         for filter_ in filters:

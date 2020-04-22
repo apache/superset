@@ -84,7 +84,7 @@ try:
     from superset.utils.core import (
         DimSelector,
         DTTM_ALIAS,
-        FilterOperationType,
+        FilterOperator,
         flasher,
     )
 except ImportError:
@@ -1499,8 +1499,8 @@ class DruidDatasource(Model, BaseDatasource):
                     eq is None
                     and op
                     not in (
-                        FilterOperationType.IS_NULL.value,
-                        FilterOperationType.IS_NOT_NULL.value,
+                        FilterOperator.IS_NULL.value,
+                        FilterOperator.IS_NOT_NULL.value,
                     )
                 )
             ):
@@ -1517,8 +1517,8 @@ class DruidDatasource(Model, BaseDatasource):
             cond = None
             is_numeric_col = col in num_cols
             is_list_target = op in (
-                FilterOperationType.IN.value,
-                FilterOperationType.NOT_IN.value,
+                FilterOperator.IN.value,
+                FilterOperator.NOT_IN.value,
             )
             eq = cls.filter_values_handler(
                 eq,
@@ -1528,11 +1528,11 @@ class DruidDatasource(Model, BaseDatasource):
 
             # For these two ops, could have used Dimension,
             # but it doesn't support extraction functions
-            if op == FilterOperationType.EQUALS.value:
+            if op == FilterOperator.EQUALS.value:
                 cond = Filter(
                     dimension=col, value=eq, extraction_function=extraction_fn
                 )
-            elif op == FilterOperationType.NOT_EQUALS.value:
+            elif op == FilterOperator.NOT_EQUALS.value:
                 cond = ~Filter(
                     dimension=col, value=eq, extraction_function=extraction_fn
                 )
@@ -1557,9 +1557,9 @@ class DruidDatasource(Model, BaseDatasource):
                     for s in eq:
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
-                if op == FilterOperationType.NOT_IN.value:
+                if op == FilterOperator.NOT_IN.value:
                     cond = ~cond
-            elif op == FilterOperationType.REGEX.value:
+            elif op == FilterOperator.REGEX.value:
                 cond = Filter(
                     extraction_function=extraction_fn,
                     type="regex",
@@ -1569,7 +1569,7 @@ class DruidDatasource(Model, BaseDatasource):
 
             # For the ops below, could have used pydruid's Bound,
             # but it doesn't support extraction functions
-            elif op == FilterOperationType.GREATER_THAN_OR_EQUALS.value:
+            elif op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
                 cond = Bound(
                     extraction_function=extraction_fn,
                     dimension=col,
@@ -1579,7 +1579,7 @@ class DruidDatasource(Model, BaseDatasource):
                     upper=None,
                     ordering=cls._get_ordering(is_numeric_col),
                 )
-            elif op == FilterOperationType.LESS_THAN_OR_EQUALS.value:
+            elif op == FilterOperator.LESS_THAN_OR_EQUALS.value:
                 cond = Bound(
                     extraction_function=extraction_fn,
                     dimension=col,
@@ -1589,7 +1589,7 @@ class DruidDatasource(Model, BaseDatasource):
                     upper=eq,
                     ordering=cls._get_ordering(is_numeric_col),
                 )
-            elif op == FilterOperationType.GREATER_THAN.value:
+            elif op == FilterOperator.GREATER_THAN.value:
                 cond = Bound(
                     extraction_function=extraction_fn,
                     lowerStrict=True,
@@ -1599,7 +1599,7 @@ class DruidDatasource(Model, BaseDatasource):
                     upper=None,
                     ordering=cls._get_ordering(is_numeric_col),
                 )
-            elif op == FilterOperationType.LESS_THAN.value:
+            elif op == FilterOperator.LESS_THAN.value:
                 cond = Bound(
                     extraction_function=extraction_fn,
                     upperStrict=True,
@@ -1609,9 +1609,9 @@ class DruidDatasource(Model, BaseDatasource):
                     upper=eq,
                     ordering=cls._get_ordering(is_numeric_col),
                 )
-            elif op == FilterOperationType.IS_NULL.value:
+            elif op == FilterOperator.IS_NULL.value:
                 cond = Filter(dimension=col, value="")
-            elif op == FilterOperationType.IS_NOT_NULL.value:
+            elif op == FilterOperator.IS_NOT_NULL.value:
                 cond = ~Filter(dimension=col, value="")
 
             if filters:
@@ -1627,14 +1627,14 @@ class DruidDatasource(Model, BaseDatasource):
 
     def _get_having_obj(self, col: str, op: str, eq: str) -> "Having":
         cond = None
-        if op == FilterOperationType.EQUALS.value:
+        if op == FilterOperator.EQUALS.value:
             if col in self.column_names:
                 cond = DimSelector(dimension=col, value=eq)
             else:
                 cond = Aggregation(col) == eq
-        elif op == FilterOperationType.GREATER_THAN.value:
+        elif op == FilterOperator.GREATER_THAN.value:
             cond = Aggregation(col) > eq
-        elif op == FilterOperationType.LESS_THAN.value:
+        elif op == FilterOperator.LESS_THAN.value:
             cond = Aggregation(col) < eq
 
         return cond
@@ -1642,9 +1642,9 @@ class DruidDatasource(Model, BaseDatasource):
     def get_having_filters(self, raw_filters: List[Dict[str, Any]]) -> "Having":
         filters = None
         reversed_op_map = {
-            FilterOperationType.NOT_EQUALS.value: FilterOperationType.EQUALS.value,
-            FilterOperationType.GREATER_THAN_OR_EQUALS.value: FilterOperationType.LESS_THAN.value,
-            FilterOperationType.LESS_THAN_OR_EQUALS.value: FilterOperationType.GREATER_THAN.value,
+            FilterOperator.NOT_EQUALS.value: FilterOperator.EQUALS.value,
+            FilterOperator.GREATER_THAN_OR_EQUALS.value: FilterOperator.LESS_THAN.value,
+            FilterOperator.LESS_THAN_OR_EQUALS.value: FilterOperator.GREATER_THAN.value,
         }
 
         for flt in raw_filters:
@@ -1655,9 +1655,9 @@ class DruidDatasource(Model, BaseDatasource):
             eq = flt["val"]
             cond = None
             if op in [
-                FilterOperationType.EQUALS.value,
-                FilterOperationType.GREATER_THAN.value,
-                FilterOperationType.LESS_THAN.value,
+                FilterOperator.EQUALS.value,
+                FilterOperator.GREATER_THAN.value,
+                FilterOperator.LESS_THAN.value,
             ]:
                 cond = self._get_having_obj(col, op, eq)
             elif op in reversed_op_map:

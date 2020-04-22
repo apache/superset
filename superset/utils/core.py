@@ -1350,9 +1350,9 @@ class DbColumnType(Enum):
     TEMPORAL = 2
 
 
-class FilterOperationType(str, Enum):
+class FilterOperator(str, Enum):
     """
-    Filter operation type
+    Operators used filter controls
     """
 
     EQUALS = "=="
