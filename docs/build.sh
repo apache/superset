@@ -16,9 +16,7 @@
 # limitations under the License.
 #
 rm -rf _build
-cp -r ../superset-frontend/images/ _static/images/
 make html
-#cp -r ../superset-frontend/images/ _build/html/_static/img/
 rm -rf /tmp/superset-docs
 cp -r _build/html /tmp/superset-docs
 cp -r _build/html ../superset/static/assets/docs
