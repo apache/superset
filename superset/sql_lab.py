@@ -121,10 +121,11 @@ def get_query(query_id, session):
 @contextmanager
 def session_scope(nullpool):
     """Provide a transactional scope around a series of operations."""
+    database_uri = app.config["SQLALCHEMY_DATABASE_URI"]
+    if "sqlite" in database_uri:
+        logger.info("SQLite DB support may not be supported by in future version")
     if nullpool:
-        engine = sqlalchemy.create_engine(
-            app.config["SQLALCHEMY_DATABASE_URI"], poolclass=NullPool
-        )
+        engine = sqlalchemy.create_engine(database_uri, poolclass=NullPool)
         session_class = sessionmaker()
         session_class.configure(bind=engine)
         session = session_class()
