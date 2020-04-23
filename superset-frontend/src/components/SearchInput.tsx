@@ -82,8 +82,13 @@ export default function SearchInput({
         position: relative;
       `}
     >
-      <SearchIcon role="button" onClick={() => onSubmit()} />
+      <SearchIcon
+        data-test="search-submit"
+        role="button"
+        onClick={() => onSubmit()}
+      />
       <StyledInput
+        data-test="search-input"
         onKeyDown={e => {
           if (e.key === 'Enter') {
             onSubmit();
@@ -93,8 +98,8 @@ export default function SearchInput({
         onChange={onChange}
         value={value}
       />
-      {Boolean(value.length) && (
-        <ClearIcon role="button" onClick={() => onClear()} />
+      {value && (
+        <ClearIcon data-test="search-clear" role="button" onClick={() => onClear()} />
       )}
     </div>
   );
