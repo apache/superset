@@ -593,7 +593,7 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "order_column": "slice_name",
             "order_direction": "asc",
             "keys": ["none"],
-            "columns": ["slice_name", "description"]
+            "columns": ["slice_name", "description"],
         }
         self.login(username="admin")
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
