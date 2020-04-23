@@ -366,7 +366,9 @@ class BaseDatasource(
     def default_query(qry) -> Query:
         return qry
 
-    def get_column(self, column_name: str) -> Optional["BaseColumn"]:
+    def get_column(self, column_name: Optional[str]) -> Optional["BaseColumn"]:
+        if not column_name:
+            return None
         for col in self.columns:
             if col.column_name == column_name:
                 return col
