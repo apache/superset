@@ -45,13 +45,7 @@ export type Filters = Filter[];
 export interface FilterValue {
   id: string;
   operator?: string;
-  value:
-    | string
-    | boolean
-    | number
-    | null
-    | undefined
-    | { datasource_id: number; datasource_type: string };
+  value: string | boolean | number | null | undefined;
 }
 
 export interface FetchDataConfig {

@@ -102,7 +102,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       },
       ([e1, e2]) => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Dashboards'),
+          t('An error occurred while fetching Dashboards: %s, %s', e1.statusText, e1.statusText),
         );
         if (e1) {
           console.error(e1);
@@ -162,10 +162,10 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { published },
         },
       }: any) => (
-        <span className="no-wrap">
-          {published ? <i className="fa fa-check" /> : ''}
-        </span>
-      ),
+          <span className="no-wrap">
+            {published ? <i className="fa fa-check" /> : ''}
+          </span>
+        ),
       Header: t('Published'),
       accessor: 'published',
       sortable: true,
@@ -281,9 +281,9 @@ class DashboardList extends React.PureComponent<Props, State> {
           loading: false,
         });
       })
-      .catch(() => {
+      .catch((e) => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Dashboards'),
+          t('An error occurred while fetching dashboards: %s', e.statusText),
         );
       });
   };
@@ -326,7 +326,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       (err: any) => {
         console.error(err);
         this.props.addDangerToast(
-          t('There was an issue deleting the selected dashboards'),
+          t('There was an issue deleting the selected dashboards: ', err.statusText),
         );
       },
     );
@@ -371,9 +371,9 @@ class DashboardList extends React.PureComponent<Props, State> {
       .then(({ json = {} }) => {
         this.setState({ dashboards: json.result, dashboardCount: json.count });
       })
-      .catch(() => {
+      .catch((e) => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Dashboards'),
+          t('An error occurred while fetching dashboards: %s', e.statusText),
         );
       })
       .finally(() => {

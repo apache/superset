@@ -52,7 +52,7 @@ export default styled(Select)`
     .Select-value {
       position: relative;
       padding-right: 2px;
-      max-width: 128px;
+      max-width: 104px;
     }
     .Select-input {
       padding-left: 0;
@@ -107,7 +107,7 @@ export const AsyncStyledSelect = styled(Async)`
     .Select-value {
       position: relative;
       padding-right: 2px;
-      max-width: 128px;
+      max-width: 104px;
     }
     .Select-input {
       padding-left: 0;
