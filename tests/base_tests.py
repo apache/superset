@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 
 from tests.test_app import app  # isort:skip
 from superset import db, security_manager
+from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
@@ -147,7 +148,7 @@ class SupersetTestCase(TestCase):
         return db.session.query(DruidDatasource).filter_by(datasource_name=name).first()
 
     @staticmethod
-    def get_datasource_mock():
+    def get_datasource_mock() -> BaseDatasource:
         datasource = Mock()
         results = Mock()
         results.query = Mock()
