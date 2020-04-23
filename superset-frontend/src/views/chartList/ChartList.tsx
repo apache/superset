@@ -313,6 +313,7 @@ class ChartList extends React.PureComponent<Props, State> {
       },
       loading: true,
     });
+
     const filterExps = filters
       .map(({ id: col, operator: opr, value }) => ({
         col,
