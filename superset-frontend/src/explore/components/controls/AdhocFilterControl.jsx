@@ -21,6 +21,8 @@ import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
 
 import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
+
 import ControlHeader from '../ControlHeader';
 import adhocFilterType from '../../propTypes/adhocFilterType';
 import adhocMetricType from '../../propTypes/adhocMetricType';
@@ -88,6 +90,37 @@ export default class AdhocFilterControl extends React.Component {
       values: filters,
       options: this.optionsForSelect(this.props),
     };
+  }
+
+  componentDidMount() {
+    const { datasource } = this.props;
+    if (datasource && datasource.type === 'table') {
+      const dbId = datasource.database ? datasource.database.id : null;
+      const datasourceName = datasource.datasource_name;
+      const datasourceSchema = datasource.schema;
+
+      if (dbId && datasourceName && datasourceSchema) {
+        SupersetClient.get({
+          endpoint: `/superset/extra_table_metadata/${dbId}/${datasourceName}/${datasourceSchema}/`,
+        }).then(
+          ({ json }) => {
+            if (json && json.partitions) {
+              const latestPartitions = json.partitions.latest;
+              this.valueRenderer = adhocFilter => (
+                <AdhocFilterOption
+                  adhocFilter={adhocFilter}
+                  onFilterEdit={this.onFilterEdit}
+                  options={this.state.options}
+                  datasource={this.props.datasource}
+                  latestPartitions={latestPartitions}
+                />
+              );
+            }
+          },
+          // no error handler, in case of error do not show partition tab
+        );
+      }
+    }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {

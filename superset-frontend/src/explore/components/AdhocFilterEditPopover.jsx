@@ -19,11 +19,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Popover, Tab, Tabs } from 'react-bootstrap';
+import { isEmpty } from 'lodash';
 
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import AdhocFilter, { EXPRESSION_TYPES } from '../AdhocFilter';
 import AdhocFilterEditPopoverSimpleTabContent from './AdhocFilterEditPopoverSimpleTabContent';
+import AdhocFilterEditPopoverPartitionTabContent from './AdhocFilterEditPopoverPartitionTabContent';
 import AdhocFilterEditPopoverSqlTabContent from './AdhocFilterEditPopoverSqlTabContent';
 
 const propTypes = {
@@ -39,6 +41,7 @@ const propTypes = {
     ]),
   ).isRequired,
   datasource: PropTypes.object,
+  latestPartitions: PropTypes.object,
 };
 
 const startingWidth = 300;
@@ -117,6 +120,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       onClose,
       onResize,
       datasource,
+      latestPartitions,
       ...popoverProps
     } = this.props;
 
@@ -146,6 +150,22 @@ export default class AdhocFilterEditPopover extends React.Component {
               onHeightChange={this.adjustHeight}
             />
           </Tab>
+          {!isEmpty(latestPartitions) && !isEmpty(datasource) && (
+            <Tab
+              className="adhoc-filter-edit-tab"
+              eventKey={'PARTITION'}
+              title="Partition"
+            >
+              <AdhocFilterEditPopoverPartitionTabContent
+                adhocFilter={this.state.adhocFilter}
+                datasource={this.props.datasource}
+                onChange={this.onAdhocFilterChange}
+                options={this.props.options}
+                height={this.state.height}
+                latestPartitions={this.props.latestPartitions}
+              />
+            </Tab>
+          )}
           <Tab
             className="adhoc-filter-edit-tab"
             eventKey={EXPRESSION_TYPES.SQL}
