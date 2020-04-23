@@ -385,7 +385,7 @@ class RequestAccessTests(SupersetTestCase):
             )
             self.assertEqual(
                 "[Superset] Access to the datasource {} was granted".format(
-                    self.get_table(ds_1_id).full_name
+                    self.get_table_by_id(ds_1_id).full_name
                 ),
                 call_args[2]["Subject"],
             )
@@ -426,7 +426,7 @@ class RequestAccessTests(SupersetTestCase):
             )
             self.assertEqual(
                 "[Superset] Access to the datasource {} was granted".format(
-                    self.get_table(ds_2_id).full_name
+                    self.get_table_by_id(ds_2_id).full_name
                 ),
                 call_args[2]["Subject"],
             )

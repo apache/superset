@@ -18,16 +18,18 @@
 """Unit tests for Superset"""
 import imp
 import json
-from typing import Union, Dict
+from typing import Dict, Union
 from unittest.mock import Mock, patch
 
 import pandas as pd
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.orm import Session
 
 from tests.test_app import app  # isort:skip
 from superset import db, security_manager
+from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
@@ -103,7 +105,8 @@ class SupersetTestCase(TestCase):
                 session.add(druid_datasource2)
                 session.commit()
 
-    def get_table(self, table_id):
+    @staticmethod
+    def get_table_by_id(table_id: int) -> SqlaTable:
         return db.session.query(SqlaTable).filter_by(id=table_id).one()
 
     @staticmethod
@@ -127,21 +130,25 @@ class SupersetTestCase(TestCase):
         resp = self.get_resp("/login/", data=dict(username=username, password=password))
         self.assertNotIn("User confirmation needed", resp)
 
-    def get_slice(self, slice_name, session):
+    def get_slice(self, slice_name: str, session: Session) -> Slice:
         slc = session.query(Slice).filter_by(slice_name=slice_name).one()
         session.expunge_all()
         return slc
 
-    def get_table_by_name(self, name):
+    @staticmethod
+    def get_table_by_name(name: str) -> SqlaTable:
         return db.session.query(SqlaTable).filter_by(table_name=name).one()
 
-    def get_database_by_id(self, db_id):
+    @staticmethod
+    def get_database_by_id(db_id: int) -> Database:
         return db.session.query(Database).filter_by(id=db_id).one()
 
-    def get_druid_ds_by_name(self, name):
+    @staticmethod
+    def get_druid_ds_by_name(name: str) -> DruidDatasource:
         return db.session.query(DruidDatasource).filter_by(datasource_name=name).first()
 
-    def get_datasource_mock(self):
+    @staticmethod
+    def get_datasource_mock() -> BaseDatasource:
         datasource = Mock()
         results = Mock()
         results.query = Mock()
