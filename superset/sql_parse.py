@@ -60,12 +60,14 @@ class ParsedQuery:
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
-            self.__extract_from_token(statement)
             self._limit = _extract_limit_from_query(statement)
-        self._table_names = self._table_names - self._alias_names
 
     @property
     def tables(self) -> Set[str]:
+        if not self._table_names:
+            for statement in self._parsed:
+                self.__extract_from_token(statement)
+            self._table_names = self._table_names - self._alias_names
         return self._table_names
 
     @property
