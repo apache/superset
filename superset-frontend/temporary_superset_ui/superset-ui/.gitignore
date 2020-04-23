@@ -51,3 +51,7 @@ webpack.config.js
 # Ignore npm lock files, always use yarn.lock instead
 npm-shrinkwrap.json
 package-lock.json
+
+# Ignore yarn.lock in packages
+plugins/*/yarn.lock
+packages/*/yarn.lock
