@@ -193,7 +193,7 @@ export function useListViewState({
   useEffect(() => {
     if (initialFilters.length) {
       setInternalFilters(
-        mergeCreateFilterValues(initialFilters, query.filters),
+        mergeCreateFilterValues(initialFilters, query.filters || []),
       );
     }
   }, [initialFilters]);
