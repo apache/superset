@@ -70,7 +70,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_get_dataset_list(self):
         """
-            Dataset API: Test get dataset list
+        Dataset API: Test get dataset list
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -81,7 +81,7 @@ class DatasetApiTests(SupersetTestCase):
             ]
         }
         uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["count"], 1)
@@ -100,19 +100,19 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_get_dataset_list_gamma(self):
         """
-            Dataset API: Test get dataset list gamma
+        Dataset API: Test get dataset list gamma
         """
         example_db = get_example_database()
         self.login(username="gamma")
         uri = "api/v1/dataset/"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["result"], [])
 
     def test_get_dataset_related_database_gamma(self):
         """
-            Dataset API: Test get dataset related databases gamma
+        Dataset API: Test get dataset related databases gamma
         """
         example_db = get_example_database()
         self.login(username="gamma")
@@ -125,12 +125,12 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_get_dataset_item(self):
         """
-            Dataset API: Test get dataset item
+        Dataset API: Test get dataset item
         """
         table = self.get_birth_names_dataset()
         self.login(username="admin")
         uri = f"api/v1/dataset/{table.id}"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_result = {
@@ -156,16 +156,16 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_get_dataset_info(self):
         """
-            Dataset API: Test get dataset info
+        Dataset API: Test get dataset info
         """
         self.login(username="admin")
         uri = "api/v1/dataset/_info"
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "info")
         self.assertEqual(rv.status_code, 200)
 
     def test_create_dataset_item(self):
         """
-            Dataset API: Test create dataset item
+        Dataset API: Test create dataset item
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -175,7 +175,7 @@ class DatasetApiTests(SupersetTestCase):
             "table_name": "ab_permission",
         }
         uri = "api/v1/dataset/"
-        rv = self.client.post(uri, json=table_data)
+        rv = self.post_assert_metric(uri, table_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
         table_id = data.get("id")
@@ -207,7 +207,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_create_dataset_item_gamma(self):
         """
-            Dataset API: Test create dataset item gamma
+        Dataset API: Test create dataset item gamma
         """
         self.login(username="gamma")
         example_db = get_example_database()
@@ -222,7 +222,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_create_dataset_item_owner(self):
         """
-            Dataset API: Test create item owner
+        Dataset API: Test create item owner
         """
         example_db = get_example_database()
         self.login(username="alpha")
@@ -236,7 +236,7 @@ class DatasetApiTests(SupersetTestCase):
             "owners": [admin.id],
         }
         uri = "api/v1/dataset/"
-        rv = self.client.post(uri, json=table_data)
+        rv = self.post_assert_metric(uri, table_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(SqlaTable).get(data.get("id"))
@@ -247,7 +247,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_create_dataset_item_owners_invalid(self):
         """
-            Dataset API: Test create dataset item owner invalid
+        Dataset API: Test create dataset item owner invalid
         """
         admin = self.get_user("admin")
         example_db = get_example_database()
@@ -259,7 +259,7 @@ class DatasetApiTests(SupersetTestCase):
             "owners": [admin.id, 1000],
         }
         uri = f"api/v1/dataset/"
-        rv = self.client.post(uri, json=table_data)
+        rv = self.post_assert_metric(uri, table_data, "post")
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
         expected_result = {"message": {"owners": ["Owners are invalid"]}}
@@ -267,7 +267,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_create_dataset_validate_uniqueness(self):
         """
-            Dataset API: Test create dataset validate table uniqueness
+        Dataset API: Test create dataset validate table uniqueness
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -277,7 +277,7 @@ class DatasetApiTests(SupersetTestCase):
             "table_name": "birth_names",
         }
         uri = "api/v1/dataset/"
-        rv = self.client.post(uri, json=table_data)
+        rv = self.post_assert_metric(uri, table_data, "post")
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
@@ -286,19 +286,19 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_create_dataset_validate_database(self):
         """
-            Dataset API: Test create dataset validate database exists
+        Dataset API: Test create dataset validate database exists
         """
         self.login(username="admin")
         dataset_data = {"database": 1000, "schema": "", "table_name": "birth_names"}
         uri = "api/v1/dataset/"
-        rv = self.client.post(uri, json=dataset_data)
+        rv = self.post_assert_metric(uri, dataset_data, "post")
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data, {"message": {"database": ["Database does not exist"]}})
 
     def test_create_dataset_validate_tables_exists(self):
         """
-            Dataset API: Test create dataset validate table exists
+        Dataset API: Test create dataset validate table exists
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -308,13 +308,13 @@ class DatasetApiTests(SupersetTestCase):
             "table_name": "does_not_exist",
         }
         uri = "api/v1/dataset/"
-        rv = self.client.post(uri, json=table_data)
+        rv = self.post_assert_metric(uri, table_data, "post")
         self.assertEqual(rv.status_code, 422)
 
     @patch("superset.datasets.dao.DatasetDAO.create")
     def test_create_dataset_sqlalchemy_error(self, mock_dao_create):
         """
-            Dataset API: Test create dataset sqlalchemy error
+        Dataset API: Test create dataset sqlalchemy error
         """
         mock_dao_create.side_effect = DAOCreateFailedError()
         self.login(username="admin")
@@ -325,20 +325,20 @@ class DatasetApiTests(SupersetTestCase):
             "table_name": "ab_permission",
         }
         uri = "api/v1/dataset/"
-        rv = self.client.post(uri, json=dataset_data)
+        rv = self.post_assert_metric(uri, dataset_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(data, {"message": "Dataset could not be created."})
 
     def test_update_dataset_item(self):
         """
-            Dataset API: Test update dataset item
+        Dataset API: Test update dataset item
         """
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         dataset_data = {"description": "changed_description"}
         uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.put(uri, json=dataset_data)
+        rv = self.put_assert_metric(uri, dataset_data, "put")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(SqlaTable).get(dataset.id)
         self.assertEqual(model.description, dataset_data["description"])
@@ -347,7 +347,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_update_dataset_create_column(self):
         """
-            Dataset API: Test update dataset create column
+        Dataset API: Test update dataset create column
         """
         # create example dataset by Command
         dataset = self.insert_default_dataset()
@@ -362,7 +362,7 @@ class DatasetApiTests(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         # Get current cols and append the new column
         self.login(username="admin")
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get")
         data = json.loads(rv.data.decode("utf-8"))
         data["result"]["columns"].append(new_column_data)
         rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
@@ -388,14 +388,14 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_update_dataset_update_column(self):
         """
-            Dataset API: Test update dataset columns
+        Dataset API: Test update dataset columns
         """
         dataset = self.insert_default_dataset()
 
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}"
         # Get current cols and alter one
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "get")
         resp_columns = json.loads(rv.data.decode("utf-8"))["result"]["columns"]
         resp_columns[0]["groupby"] = False
         resp_columns[0]["filterable"] = False
@@ -417,7 +417,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_update_dataset_update_column_uniqueness(self):
         """
-            Dataset API: Test update dataset columns uniqueness
+        Dataset API: Test update dataset columns uniqueness
         """
         dataset = self.insert_default_dataset()
 
@@ -425,7 +425,7 @@ class DatasetApiTests(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         # try to insert a new column ID that already exists
         data = {"columns": [{"column_name": "id", "type": "INTEGER"}]}
-        rv = self.client.put(uri, json=data)
+        rv = self.put_assert_metric(uri, data, "put")
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
         expected_result = {
@@ -437,7 +437,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_update_dataset_update_metric_uniqueness(self):
         """
-            Dataset API: Test update dataset metric uniqueness
+        Dataset API: Test update dataset metric uniqueness
         """
         dataset = self.insert_default_dataset()
 
@@ -445,7 +445,7 @@ class DatasetApiTests(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}"
         # try to insert a new column ID that already exists
         data = {"metrics": [{"metric_name": "count", "expression": "COUNT(*)"}]}
-        rv = self.client.put(uri, json=data)
+        rv = self.put_assert_metric(uri, data, "put")
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
         expected_result = {
@@ -457,7 +457,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_update_dataset_update_column_duplicate(self):
         """
-            Dataset API: Test update dataset columns duplicate
+        Dataset API: Test update dataset columns duplicate
         """
         dataset = self.insert_default_dataset()
 
@@ -470,7 +470,7 @@ class DatasetApiTests(SupersetTestCase):
                 {"column_name": "id", "type": "VARCHAR"},
             ]
         }
-        rv = self.client.put(uri, json=data)
+        rv = self.put_assert_metric(uri, data, "put")
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
         expected_result = {
@@ -482,7 +482,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_update_dataset_update_metric_duplicate(self):
         """
-            Dataset API: Test update dataset metric duplicate
+        Dataset API: Test update dataset metric duplicate
         """
         dataset = self.insert_default_dataset()
 
@@ -495,7 +495,7 @@ class DatasetApiTests(SupersetTestCase):
                 {"metric_name": "dup", "expression": "DIFF_COUNT(*)"},
             ]
         }
-        rv = self.client.put(uri, json=data)
+        rv = self.put_assert_metric(uri, data, "put")
         self.assertEqual(rv.status_code, 422)
         data = json.loads(rv.data.decode("utf-8"))
         expected_result = {
@@ -507,7 +507,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_update_dataset_item_gamma(self):
         """
-            Dataset API: Test update dataset item gamma
+        Dataset API: Test update dataset item gamma
         """
         dataset = self.insert_default_dataset()
         self.login(username="gamma")
@@ -520,39 +520,39 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_update_dataset_item_not_owned(self):
         """
-            Dataset API: Test update dataset item not owned
+        Dataset API: Test update dataset item not owned
         """
         dataset = self.insert_default_dataset()
         self.login(username="alpha")
         table_data = {"description": "changed_description"}
         uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.put(uri, json=table_data)
+        rv = self.put_assert_metric(uri, table_data, "put")
         self.assertEqual(rv.status_code, 403)
         db.session.delete(dataset)
         db.session.commit()
 
     def test_update_dataset_item_owners_invalid(self):
         """
-            Dataset API: Test update dataset item owner invalid
+        Dataset API: Test update dataset item owner invalid
         """
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         table_data = {"description": "changed_description", "owners": [1000]}
         uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.put(uri, json=table_data)
+        rv = self.put_assert_metric(uri, table_data, "put")
         self.assertEqual(rv.status_code, 422)
         db.session.delete(dataset)
         db.session.commit()
 
     def test_update_dataset_item_uniqueness(self):
         """
-            Dataset API: Test update dataset uniqueness
+        Dataset API: Test update dataset uniqueness
         """
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         table_data = {"table_name": "birth_names"}
         uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.put(uri, json=table_data)
+        rv = self.put_assert_metric(uri, table_data, "put")
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 422)
         expected_response = {
@@ -565,7 +565,7 @@ class DatasetApiTests(SupersetTestCase):
     @patch("superset.datasets.dao.DatasetDAO.update")
     def test_update_dataset_sqlalchemy_error(self, mock_dao_update):
         """
-            Dataset API: Test update dataset sqlalchemy error
+        Dataset API: Test update dataset sqlalchemy error
         """
         mock_dao_update.side_effect = DAOUpdateFailedError()
 
@@ -583,7 +583,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_delete_dataset_item(self):
         """
-            Dataset API: Test delete dataset item
+        Dataset API: Test delete dataset item
         """
         dataset = self.insert_default_dataset()
         self.login(username="admin")
@@ -593,19 +593,19 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_delete_item_dataset_not_owned(self):
         """
-            Dataset API: Test delete item not owned
+        Dataset API: Test delete item not owned
         """
         dataset = self.insert_default_dataset()
         self.login(username="alpha")
         uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 403)
         db.session.delete(dataset)
         db.session.commit()
 
     def test_delete_dataset_item_not_authorized(self):
         """
-            Dataset API: Test delete item not authorized
+        Dataset API: Test delete item not authorized
         """
         dataset = self.insert_default_dataset()
         self.login(username="gamma")
@@ -618,14 +618,14 @@ class DatasetApiTests(SupersetTestCase):
     @patch("superset.datasets.dao.DatasetDAO.delete")
     def test_delete_dataset_sqlalchemy_error(self, mock_dao_delete):
         """
-            Dataset API: Test delete dataset sqlalchemy error
+        Dataset API: Test delete dataset sqlalchemy error
         """
         mock_dao_delete.side_effect = DAODeleteFailedError()
 
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(data, {"message": "Dataset could not be deleted."})
@@ -634,7 +634,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_dataset_item_refresh(self):
         """
-            Dataset API: Test item refresh
+        Dataset API: Test item refresh
         """
         dataset = self.insert_default_dataset()
         # delete a column
@@ -648,7 +648,7 @@ class DatasetApiTests(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}/refresh"
-        rv = self.client.put(uri)
+        rv = self.put_assert_metric(uri, {}, "refresh")
         self.assertEqual(rv.status_code, 200)
         # Assert the column is restored on refresh
         id_column = (
@@ -662,23 +662,23 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_dataset_item_refresh_not_found(self):
         """
-            Dataset API: Test item refresh not found dataset
+        Dataset API: Test item refresh not found dataset
         """
         max_id = db.session.query(func.max(SqlaTable.id)).scalar()
 
         self.login(username="admin")
         uri = f"api/v1/dataset/{max_id + 1}/refresh"
-        rv = self.client.put(uri)
+        rv = self.put_assert_metric(uri, {}, "refresh")
         self.assertEqual(rv.status_code, 404)
 
     def test_dataset_item_refresh_not_owned(self):
         """
-            Dataset API: Test item refresh not owned dataset
+        Dataset API: Test item refresh not owned dataset
         """
         dataset = self.insert_default_dataset()
         self.login(username="alpha")
         uri = f"api/v1/dataset/{dataset.id}/refresh"
-        rv = self.client.put(uri)
+        rv = self.put_assert_metric(uri, {}, "refresh")
         self.assertEqual(rv.status_code, 403)
 
         db.session.delete(dataset)
@@ -686,7 +686,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_export_dataset(self):
         """
-            Dataset API: Test export dataset
+        Dataset API: Test export dataset
         :return:
         """
         birth_names_dataset = self.get_birth_names_dataset()
@@ -695,7 +695,7 @@ class DatasetApiTests(SupersetTestCase):
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
 
         self.login(username="admin")
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "export")
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(
             rv.headers["Content-Disposition"],
@@ -719,7 +719,7 @@ class DatasetApiTests(SupersetTestCase):
 
     def test_export_dataset_not_found(self):
         """
-            Dataset API: Test export dataset not found
+        Dataset API: Test export dataset not found
         :return:
         """
         max_id = db.session.query(func.max(SqlaTable.id)).scalar()
@@ -727,12 +727,12 @@ class DatasetApiTests(SupersetTestCase):
         argument = [max_id + 1, 1]
         uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
         self.login(username="admin")
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "export")
         self.assertEqual(rv.status_code, 404)
 
     def test_export_dataset_gamma(self):
         """
-            Dataset API: Test export dataset has gamma
+        Dataset API: Test export dataset has gamma
         :return:
         """
         birth_names_dataset = self.get_birth_names_dataset()
