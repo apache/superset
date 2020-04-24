@@ -256,6 +256,12 @@ class ParsedQuery:
         return str_res
 
     def set_alias(self) -> str:
+        """
+        Returns a new query string where all functions have alias.
+        This is particularly necessary for MSSQL engines.
+
+        :return: String with new aliased SQL query
+        """
         new_sql = ""
         for token in self._parsed[0].tokens:
             # Identifier list (list of columns)

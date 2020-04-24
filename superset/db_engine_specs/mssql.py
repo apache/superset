@@ -16,9 +16,8 @@
 # under the License.
 import logging
 import re
-from typing import TYPE_CHECKING
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
@@ -87,13 +86,5 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     @classmethod
     def apply_limit_to_sql(cls, sql: str, limit: int, database: "Database") -> str:
-        """
-        Alters the SQL statement to apply a LIMIT clause
-
-        :param sql: SQL query
-        :param limit: Maximum number of rows to be returned by the query
-        :param database: Database instance
-        :return: SQL query with limit clause
-        """
         new_sql = ParsedQuery(sql).set_alias()
         return super().apply_limit_to_sql(new_sql, limit, database)
