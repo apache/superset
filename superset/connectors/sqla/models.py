@@ -54,7 +54,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.exceptions import DatabaseNotFound
-from superset.jinja_context import get_template_processor
+from superset.jinja_context import ExtraCache, get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
@@ -1216,18 +1216,17 @@ class SqlaTable(Model, BaseDatasource):
     def default_query(qry) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_calls_to_cache_key_wrapper(self, query_obj: Dict[str, Any]) -> bool:
+    def has_extra_cache_key_calls(self, query_obj: Dict[str, Any]) -> bool:
         """
-        Detects the presence of calls to `cache_key_wrapper` in items in query_obj that
+        Detects the presence of calls to `ExtraCache` methods in items in query_obj that
         can be templated. If any are present, the query must be evaluated to extract
-        additional keys for the cache key. This method is needed to avoid executing
-        the template code unnecessarily, as it may contain expensive calls, e.g. to
-        extract the latest partition of a database.
+        additional keys for the cache key. This method is needed to avoid executing the
+        template code unnecessarily, as it may contain expensive calls, e.g. to extract
+        the latest partition of a database.
 
         :param query_obj: query object to analyze
-        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
+        :return: True if there are call(s) to an `ExtraCache` method, False otherwise
         """
-        regex = re.compile(r"\{\{.*cache_key_wrapper\(.*\).*\}\}")
         templatable_statements: List[str] = []
         if self.sql:
             templatable_statements.append(self.sql)
@@ -1239,20 +1238,20 @@ class SqlaTable(Model, BaseDatasource):
         if "having" in extras:
             templatable_statements.append(extras["having"])
         for statement in templatable_statements:
-            if regex.search(statement):
+            if ExtraCache.regex.search(statement):
                 return True
         return False
 
     def get_extra_cache_keys(self, query_obj: Dict[str, Any]) -> List[Hashable]:
         """
-        The cache key of a SqlaTable needs to consider any keys added by the parent class
-        and any keys added via `cache_key_wrapper`.
+        The cache key of a SqlaTable needs to consider any keys added by the parent
+        class and any keys added via `ExtraCache`.
 
         :param query_obj: query object to analyze
-        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
+        :return: The extra cache keys
         """
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
-        if self.has_calls_to_cache_key_wrapper(query_obj):
+        if self.has_extra_cache_key_calls(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys
