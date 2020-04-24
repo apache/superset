@@ -43,7 +43,11 @@ from superset.datasets.schemas import (
     get_export_ids_schema,
 )
 from superset.views.base import DatasourceFilter, generate_download_headers
-from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    RelatedFieldFilter,
+    statsd_metrics,
+)
 from superset.views.database.filters import DatabaseFilter
 from superset.views.filters import FilterRelatedOwners
 
@@ -128,6 +132,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/", methods=["POST"])
     @protect()
     @safe
+    @statsd_metrics
     def post(self) -> Response:
         """Creates a new Dataset
         ---
@@ -180,6 +185,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>", methods=["PUT"])
     @protect()
     @safe
+    @statsd_metrics
     def put(  # pylint: disable=too-many-return-statements, arguments-differ
         self, pk: int
     ) -> Response:
@@ -247,6 +253,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>", methods=["DELETE"])
     @protect()
     @safe
+    @statsd_metrics
     def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Deletes a Dataset
         ---
@@ -293,6 +300,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/export/", methods=["GET"])
     @protect()
     @safe
+    @statsd_metrics
     @rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
         """Export dashboards
@@ -345,6 +353,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>/refresh", methods=["PUT"])
     @protect()
     @safe
+    @statsd_metrics
     def refresh(self, pk: int) -> Response:
         """Refresh a Dataset
         ---
