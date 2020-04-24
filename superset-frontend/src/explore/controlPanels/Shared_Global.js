@@ -16,36 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// These are control configurations that are shared ONLY within the BigNumber viz plugin repo.
 import { t } from '@superset-ui/translation';
 
-export default {
-  controlPanelSections: [
-    {
-      label: t('Options'),
-      controlSetRows: [
-        [
-          {
-            name: 'url',
-            config: {
-              type: 'TextControl',
-              label: t('URL'),
-              description: t(
-                'The URL, this control is templated, so you can integrate ' +
-                  '{{ width }} and/or {{ height }} in your URL string.',
-              ),
-              default: '',
-            },
-          },
-        ],
-      ],
-    },
-  ],
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [],
-    },
-  },
+export const foo = {
+  name: 'foo_control',
+  config: {},
 };

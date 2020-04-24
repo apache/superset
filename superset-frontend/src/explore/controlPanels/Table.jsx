@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
 import { formatSelectOptions } from '../../modules/utils';
+import ColumnOption from '../../components/ColumnOption';
 
 export default {
   controlPanelSections: [
@@ -66,7 +68,15 @@ export default {
               default: false,
             },
           },
-          'order_desc',
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
+            },
+          },
         ],
       ],
     },
@@ -75,7 +85,27 @@ export default {
       description: t('Use this section if you want to query atomic rows'),
       expanded: true,
       controlSetRows: [
-        ['all_columns'],
+        [
+          {
+            name: 'all_columns',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              label: t('Columns'),
+              default: [],
+              description: t('Columns to display'),
+              optionRenderer: c => <ColumnOption column={c} showType />,
+              valueRenderer: c => <ColumnOption column={c} />,
+              valueKey: 'column_name',
+              allowAll: true,
+              mapStateToProps: state => ({
+                options: state.datasource ? state.datasource.columns : [],
+              }),
+              commaChoosesOption: false,
+              freeForm: true,
+            },
+          },
+        ],
         [
           {
             name: 'order_by_cols',
@@ -157,7 +187,16 @@ export default {
               description: t('Whether to include a client-side search box'),
             },
           },
-          'table_filter',
+          {
+            name: 'table_filter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Emit Filter Events'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to apply filter when items are clicked'),
+            },
+          },
         ],
         [
           {
