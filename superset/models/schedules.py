@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 """Models for scheduled execution of jobs"""
-
 import enum
+from typing import Optional, Type
 
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
@@ -86,9 +86,9 @@ class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
     email_format = Column(Enum(SliceEmailReportFormat))
 
 
-def get_scheduler_model(report_type):
-    if report_type == ScheduleType.dashboard.value:
+def get_scheduler_model(report_type: ScheduleType) -> Optional[Type[EmailSchedule]]:
+    if report_type == ScheduleType.dashboard:
         return DashboardEmailSchedule
-    elif report_type == ScheduleType.slice.value:
+    elif report_type == ScheduleType.slice:
         return SliceEmailSchedule
     return None
