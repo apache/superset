@@ -85,12 +85,9 @@ class ChartList extends React.PureComponent<Props, State> {
           this.updateFilters,
         );
       },
-      (e) => {
+      e => {
         this.props.addDangerToast(
-          t(
-            'An error occurred while fetching charts: %s',
-            e.statusText,
-          ),
+          t('An error occurred while fetching charts: %s', e.statusText),
         );
         console.error(e);
       },
@@ -296,7 +293,10 @@ class ChartList extends React.PureComponent<Props, State> {
       (err: any) => {
         console.error(err);
         this.props.addDangerToast(
-          t('There was an issue deleting the selected charts: %s', err.statusText),
+          t(
+            'There was an issue deleting the selected charts: %s',
+            err.statusText,
+          ),
         );
       },
     );
@@ -326,7 +326,9 @@ class ChartList extends React.PureComponent<Props, State> {
           fltr.value &&
           typeof fltr.value === 'string'
         ) {
-          const { datasource_id: dsId, datasource_type: dsType } = JSON.parse(fltr.value);
+          const { datasource_id: dsId, datasource_type: dsType } = JSON.parse(
+            fltr.value,
+          );
           return [
             ...acc,
             { ...fltr, col: 'datasource_id', value: dsId },
@@ -351,7 +353,7 @@ class ChartList extends React.PureComponent<Props, State> {
         this.setState({ charts: json.result, chartCount: json.count });
       })
       .catch(e => {
-        console.log(e.body)
+        console.log(e.body);
         this.props.addDangerToast(
           t('An error occurred while fetching charts: %s', e.statusText),
         );
@@ -382,8 +384,8 @@ class ChartList extends React.PureComponent<Props, State> {
     owners.map(({ text: label, value }) => ({ label, value }));
 
   stringifyValues = (datasources: any[]) => {
-    return datasources.map(ds => ({ ...ds, value: JSON.stringify(ds.value) }))
-  }
+    return datasources.map(ds => ({ ...ds, value: JSON.stringify(ds.value) }));
+  };
 
   updateFilters = async () => {
     const { filterOperators } = this.state;
@@ -419,7 +421,10 @@ class ChartList extends React.PureComponent<Props, State> {
             input: 'select',
             operator: 'eq',
             unfilteredLabel: 'All',
-            fetchSelects: this.createFetchResource('/api/v1/chart/datasources', this.stringifyValues),
+            fetchSelects: this.createFetchResource(
+              '/api/v1/chart/datasources',
+              this.stringifyValues,
+            ),
           },
           {
             Header: 'Search',
