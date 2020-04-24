@@ -25,7 +25,7 @@ from superset import create_app
 from superset.extensions import celery_app
 
 # Init the Flask app / configure everything
-create_app()
+create_app()  # type: ignore
 
 # Need to import late, as the celery_app will have been setup by "create_app()"
 # pylint: disable=wrong-import-position, unused-import
