@@ -119,7 +119,7 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
 
             expected_sql = (
                 "SELECT TOP 1000 * \n"
-                "FROM (SELECT COUNT(*) as COUNT FROM FOO_TABLE) AS inner_qry"
+                "FROM (SELECT COUNT(*) as COUNT_1 FROM FOO_TABLE) AS inner_qry"
             )
             self.assertEqual(expected_sql, limited_sql)
 
@@ -128,7 +128,7 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
 
             expected_sql = (
                 "SELECT TOP 1000 * \n"
-                "FROM (SELECT COUNT(*) as COUNT, SUM(id) as SUM FROM FOO_TABLE) "
+                "FROM (SELECT COUNT(*) as COUNT_1, SUM(id) as SUM_2 FROM FOO_TABLE) "
                 "AS inner_qry"
             )
             self.assertEqual(expected_sql, limited_sql)
@@ -138,8 +138,17 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
 
             expected_sql = (
                 "SELECT TOP 1000 * \n"
-                "FROM (SELECT COUNT(*) as COUNT, "
+                "FROM (SELECT COUNT(*) as COUNT_1, "
                 "FOO_COL1 FROM FOO_TABLE GROUP BY FOO_COL1)"
+                " AS inner_qry"
+            )
+            self.assertEqual(expected_sql, limited_sql)
+
+            test_sql = "SELECT COUNT(*), COUNT(*) FROM FOO_TABLE"
+            limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, database)
+            expected_sql = (
+                "SELECT TOP 1000 * \n"
+                "FROM (SELECT COUNT(*) as COUNT_1, COUNT(*) as COUNT_2 FROM FOO_TABLE)"
                 " AS inner_qry"
             )
             self.assertEqual(expected_sql, limited_sql)

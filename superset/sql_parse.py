@@ -263,6 +263,7 @@ class ParsedQuery:
         :return: String with new aliased SQL query
         """
         new_sql = ""
+        changed_counter = 1
         for token in self._parsed[0].tokens:
             # Identifier list (list of columns)
             if isinstance(token, IdentifierList) and token.ttype is None:
@@ -270,8 +271,10 @@ class ParsedQuery:
                     # Functions are anonymous on MSSQL
                     if isinstance(identifier, Function) and not identifier.has_alias():
                         identifier.value = (
-                            f"{identifier.value} as {identifier.get_real_name()}"
+                            f"{identifier.value} as"
+                            f" {identifier.get_real_name()}_{changed_counter}"
                         )
+                        changed_counter += 1
                     new_sql += str(identifier.value)
                     # If not last identifier
                     if i != len(list(token.get_identifiers())) - 1:
@@ -279,7 +282,9 @@ class ParsedQuery:
             # Just a lonely function?
             elif isinstance(token, Function) and token.ttype is None:
                 if not token.has_alias():
-                    token.value = f"{token.value} as {token.get_real_name()}"
+                    token.value = (
+                        f"{token.value} as {token.get_real_name()}_{changed_counter}"
+                    )
                 new_sql += str(token.value)
             # Nothing to change, assemble what we have
             else:
