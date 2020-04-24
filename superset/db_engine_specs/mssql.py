@@ -14,13 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import re
+from typing import TYPE_CHECKING
 from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.sql_parse import ParsedQuery
+
+if TYPE_CHECKING:
+    from superset.models.core import Database  # pylint: disable=unused-import
+
+logger = logging.getLogger(__name__)
 
 
 class MssqlEngineSpec(BaseEngineSpec):
@@ -76,3 +84,16 @@ class MssqlEngineSpec(BaseEngineSpec):
             if regex.match(type_):
                 return sqla_type
         return None
+
+    @classmethod
+    def apply_limit_to_sql(cls, sql: str, limit: int, database: "Database") -> str:
+        """
+        Alters the SQL statement to apply a LIMIT clause
+
+        :param sql: SQL query
+        :param limit: Maximum number of rows to be returned by the query
+        :param database: Database instance
+        :return: SQL query with limit clause
+        """
+        new_sql = ParsedQuery(sql).set_alias()
+        return super().apply_limit_to_sql(new_sql, limit, database)

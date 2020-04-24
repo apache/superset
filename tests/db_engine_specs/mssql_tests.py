@@ -94,6 +94,50 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
         for actual, expected in test_cases:
             self.assertEqual(actual, expected)
 
+    def test_apply_limit(self):
+        from superset.models.core import Database
+        from superset.extensions import db
+
+        mssql_database = Database(
+            database_name="mssql_test",
+            sqlalchemy_uri="mssql+pymssql://sa:Password_123@localhost:1433/msdb",
+        )
+        db.session.add(mssql_database)
+        db.session.commit()
+
+        test_sql = "SELECT COUNT(*) FROM FOO_TABLE"
+
+        limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, mssql_database)
+
+        expected_sql = (
+            "SELECT TOP 1000 * \n"
+            "FROM (SELECT COUNT(*) as COUNT FROM FOO_TABLE) AS inner_qry"
+        )
+        self.assertEqual(expected_sql, limited_sql)
+
+        test_sql = "SELECT COUNT(*), SUM(id) FROM FOO_TABLE"
+        limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, mssql_database)
+
+        expected_sql = (
+            "SELECT TOP 1000 * \n"
+            "FROM (SELECT COUNT(*) as COUNT, SUM(id) as SUM FROM FOO_TABLE) "
+            "AS inner_qry"
+        )
+        self.assertEqual(expected_sql, limited_sql)
+
+        test_sql = "SELECT COUNT(*), FOO_COL1 FROM FOO_TABLE GROUP BY FOO_COL1"
+        limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, mssql_database)
+
+        expected_sql = (
+            "SELECT TOP 1000 * \n"
+            "FROM (SELECT COUNT(*) as COUNT, FOO_COL1 FROM FOO_TABLE GROUP BY FOO_COL1)"
+            " AS inner_qry"
+        )
+        self.assertEqual(expected_sql, limited_sql)
+
+        db.session.delete(mssql_database)
+        db.session.commit()
+
     @mock.patch.object(
         MssqlEngineSpec, "pyodbc_rows_to_tuples", return_value="converted"
     )
