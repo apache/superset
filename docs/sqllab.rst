@@ -79,15 +79,15 @@ Superset's Jinja context:
 
 `Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/>`_ can be also be applied where needed.
 
-.. autofunction:: superset.jinja_context.current_user_id
+.. autofunction:: superset.jinja_context.ExtraCache.current_user_id
 
-.. autofunction:: superset.jinja_context.current_username
+.. autofunction:: superset.jinja_context.ExtraCache.current_username
 
-.. autofunction:: superset.jinja_context.url_param
+.. autofunction:: superset.jinja_context.ExtraCache.url_param
 
 .. autofunction:: superset.jinja_context.filter_values
 
-.. autofunction:: superset.jinja_context.CacheKeyWrapper.cache_key_wrapper
+.. autofunction:: superset.jinja_context.ExtraCache.cache_key_wrapper
 
 .. autoclass:: superset.jinja_context.PrestoTemplateProcessor
     :members:
