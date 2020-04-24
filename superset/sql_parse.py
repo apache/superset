@@ -283,7 +283,7 @@ class ParsedQuery:
             elif isinstance(token, Function) and token.ttype is None:
                 if not token.has_alias():
                     token.value = (
-                        f"{token.value} as {token.get_real_name()}_{changed_counter}"
+                        f"{token.value} AS {token.get_real_name()}_{changed_counter}"
                     )
                 new_sql += str(token.value)
             # Nothing to change, assemble what we have
