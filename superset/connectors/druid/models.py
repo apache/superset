@@ -823,6 +823,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         if origin:
             dttm = utils.parse_human_datetime(origin)
+            assert dttm
             granularity["origin"] = dttm.isoformat()
 
         if period_name in iso_8601_dict:
@@ -978,6 +979,7 @@ class DruidDatasource(Model, BaseDatasource):
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
         if self.fetch_values_from:
             from_dttm = utils.parse_human_datetime(self.fetch_values_from)
+            assert from_dttm
         else:
             from_dttm = datetime(1970, 1, 1)
 
