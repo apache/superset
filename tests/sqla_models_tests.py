@@ -17,6 +17,7 @@
 # isort:skip_file
 from typing import Any, Dict, NamedTuple, List, Tuple, Union
 
+import tests.test_app
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.models.core import Database
