@@ -601,7 +601,7 @@ class SqlaTable(Model, BaseDatasource):
 
         if self.fetch_values_predicate:
             tp = self.get_template_processor()
-            qry = qry.where(tp.process_template(self.fetch_values_predicate))
+            qry = qry.where(text(tp.process_template(self.fetch_values_predicate)))
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(qry.compile(engine, compile_kwargs={"literal_binds": True}))
