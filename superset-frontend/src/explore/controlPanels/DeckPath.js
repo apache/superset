@@ -29,6 +29,7 @@ import {
   lineWidth,
   lineType,
   reverseLongLat,
+  mapboxStyle,
 } from './Shared_DeckGL';
 
 export default {
@@ -56,7 +57,7 @@ export default {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        ['mapbox_style', viewport],
+        [mapboxStyle, viewport],
         ['color_picker', lineWidth],
         [reverseLongLat, autozoom],
       ],

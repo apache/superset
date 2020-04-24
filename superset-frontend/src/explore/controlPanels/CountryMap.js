@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 
 export default {
   controlPanelSections: [
@@ -29,7 +30,60 @@ export default {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
-        ['select_country', 'number_format'],
+        [
+          {
+            name: 'select_country',
+            config: {
+              type: 'SelectControl',
+              label: t('Country Name'),
+              default: 'France',
+              choices: [
+                'Belgium',
+                'Brazil',
+                'Bulgaria',
+                'China',
+                'Egypt',
+                'France',
+                'Germany',
+                'India',
+                'Iran',
+                'Italy',
+                'Japan',
+                'Korea',
+                'Liechtenstein',
+                'Morocco',
+                'Myanmar',
+                'Netherlands',
+                'Portugal',
+                'Russia',
+                'Singapore',
+                'Spain',
+                'Switzerland',
+                'Thailand',
+                'Timorleste',
+                'Uk',
+                'Ukraine',
+                'Usa',
+                'Zambia',
+              ].map(s => [s, s]),
+              description: t(
+                'The name of the country that Superset should display',
+              ),
+            },
+          },
+          {
+            name: 'number_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Number format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
         ['linear_color_scheme'],
       ],
     },

@@ -19,12 +19,47 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { NVD3TimeSeries } from './sections';
 import OptionDescription from '../../components/OptionDescription';
+import { NVD3TimeSeries } from './sections';
+import {
+  D3_TIME_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  D3_FORMAT_OPTIONS,
+} from '../controls';
 
 export default {
   controlPanelSections: [
-    NVD3TimeSeries[0],
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        ['metrics'],
+        ['adhoc_filters'],
+        ['groupby'],
+        ['limit', 'timeseries_limit_metric'],
+        [
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
+            },
+          },
+          {
+            name: 'contribution',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Contribution'),
+              default: false,
+              description: t('Compute the contribution to the total'),
+            },
+          },
+        ],
+        ['row_limit', null],
+      ],
+    },
     {
       label: t('Time Series Options'),
       expanded: true,
@@ -99,7 +134,32 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['number_format', 'date_time_format'],
+        [
+          {
+            name: 'number_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Number format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+          {
+            name: 'date_time_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Date Time Format'),
+              renderTrigger: true,
+              default: 'smart_date',
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
         [
           {
             name: 'partition_limit',
@@ -129,7 +189,16 @@ export default {
           },
         ],
         [
-          'log_scale',
+          {
+            name: 'log_scale',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Log Scale'),
+              default: false,
+              renderTrigger: true,
+              description: t('Use a log scale'),
+            },
+          },
           {
             name: 'equal_date_size',
             config: {

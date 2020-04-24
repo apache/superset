@@ -33,6 +33,7 @@ import {
   spatial,
   pointRadiusFixed,
   multiplier,
+  mapboxStyle,
 } from './Shared_DeckGL';
 
 export default {
@@ -62,7 +63,7 @@ export default {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        ['mapbox_style', viewport],
+        [mapboxStyle, viewport],
         [autozoom, null],
       ],
     },
