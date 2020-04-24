@@ -140,6 +140,7 @@ export const NVD3TimeSeries = [
   },
   {
     label: t('Advanced Analytics'),
+    tabOverride: 'data',
     description: t(
       'This section contains options ' +
         'that allow for advanced analytical post processing ' +
