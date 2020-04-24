@@ -156,7 +156,18 @@ export default {
               description: t('Whether to display the legend (toggles)'),
             },
           },
-          'show_values',
+          {
+            name: 'show_values',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Values'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Whether to display the numerical values within the cells',
+              ),
+            },
+          },
         ],
         [
           {
@@ -177,9 +188,6 @@ export default {
   controlOverrides: {
     y_axis_format: {
       label: t('Number Format'),
-    },
-    show_values: {
-      default: false,
     },
   },
 };

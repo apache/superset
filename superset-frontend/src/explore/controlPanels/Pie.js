@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { showLegend } from './Shared_NVD3';
+import { D3_FORMAT_OPTIONS } from '../controls';
 
 export default {
   controlPanelSections: [
@@ -53,7 +54,23 @@ export default {
               description: t('What should be shown on the label?'),
             },
           },
-          'number_format',
+          {
+            name: 'number_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Number format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description:
+                t('D3 format syntax: https://github.com/d3/d3-format') +
+                ' ' +
+                t(
+                  'Only applies when the "Label Type" is not set to a percentage.',
+                ),
+            },
+          },
         ],
         [
           {
@@ -100,12 +117,6 @@ export default {
   controlOverrides: {
     row_limit: {
       default: 25,
-    },
-    number_format: {
-      description:
-        t('D3 format syntax: https://github.com/d3/d3-format') +
-        ' ' +
-        t('Only applies when the "Label Type" is not set to a percentage.'),
     },
   },
 };

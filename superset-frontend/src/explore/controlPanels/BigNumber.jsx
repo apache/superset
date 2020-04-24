@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/translation';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from './Shared_BigNumber';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
@@ -78,7 +79,28 @@ export default {
             },
           },
         ],
-        ['time_range_fixed'],
+        [
+          {
+            name: 'time_range_fixed',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Fix to selected Time Range'),
+              description: t(
+                'Fix the trend line to the full time range specified in case filtered results do not include the start or end dates',
+              ),
+              renderTrigger: true,
+              visibility(props) {
+                const {
+                  time_range: timeRange,
+                  viz_type: vizType,
+                  show_trend_line: showTrendLine,
+                } = props.form_data;
+                // only display this option when a time range is selected
+                return timeRange && timeRange !== 'No filter';
+              },
+            },
+          },
+        ],
       ],
     },
     {
@@ -95,7 +117,54 @@ export default {
       expanded: false,
       controlSetRows: [
         [<h1 className="section-header">{t('Rolling Window')}</h1>],
-        ['rolling_type', 'rolling_periods', 'min_periods'],
+        [
+          {
+            name: 'rolling_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Rolling Function'),
+              default: 'None',
+              choices: formatSelectOptions([
+                'None',
+                'mean',
+                'sum',
+                'std',
+                'cumsum',
+              ]),
+              description: t(
+                'Defines a rolling window function to apply, works along ' +
+                  'with the [Periods] text box',
+              ),
+            },
+          },
+          {
+            name: 'rolling_periods',
+            config: {
+              type: 'TextControl',
+              label: t('Periods'),
+              isInt: true,
+              description: t(
+                'Defines the size of the rolling window function, ' +
+                  'relative to the time granularity selected',
+              ),
+            },
+          },
+          {
+            name: 'min_periods',
+            config: {
+              type: 'TextControl',
+              label: t('Min Periods'),
+              isInt: true,
+              description: t(
+                'The minimum number of rolling periods required to show ' +
+                  'a value. For instance if you do a cumulative sum on 7 days ' +
+                  'you may want your "Min Period" to be 7, so that all data points ' +
+                  'shown are the total of 7 periods. This will hide the "ramp up" ' +
+                  'taking place over the first 7 periods',
+              ),
+            },
+          },
+        ],
       ],
     },
   ],

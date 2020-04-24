@@ -18,6 +18,8 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
+import { columnChoices } from '../controls';
+import { formatSelectOptions } from '../../modules/utils';
 
 export default {
   controlPanelSections: [
@@ -25,7 +27,24 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['all_columns_x'],
+        [
+          {
+            name: 'all_columns_x',
+            config: {
+              type: 'SelectControl',
+              label: t('Numeric Columns'),
+              default: null,
+              description: t(
+                'Select the numeric columns to draw the histogram',
+              ),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+              multi: true,
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
         ['adhoc_filters'],
         ['row_limit'],
         ['groupby'],
@@ -36,7 +55,29 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['link_length'],
+        [
+          {
+            name: 'link_length',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: true,
+              freeForm: true,
+              label: t('No of Bins'),
+              default: 5,
+              choices: formatSelectOptions([
+                '10',
+                '25',
+                '50',
+                '75',
+                '100',
+                '150',
+                '200',
+                '250',
+              ]),
+              description: t('Select the number of bins for the histogram'),
+            },
+          },
+        ],
         [
           {
             name: 'x_axis_label',
@@ -57,26 +98,19 @@ export default {
             },
           },
         ],
-        ['global_opacity'],
-        ['normalized'],
+        [
+          {
+            name: 'normalized',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Normalized'),
+              renderTrigger: true,
+              description: t('Whether to normalize the histogram'),
+              default: false,
+            },
+          },
+        ],
       ],
     },
   ],
-  controlOverrides: {
-    all_columns_x: {
-      label: t('Numeric Columns'),
-      description: t('Select the numeric columns to draw the histogram'),
-      multi: true,
-      validators: [validateNonEmpty],
-    },
-    link_length: {
-      label: t('No of Bins'),
-      description: t('Select the number of bins for the histogram'),
-      default: 5,
-    },
-    global_opacity: {
-      description: t('Opacity of the bars. Between 0 and 1'),
-      renderTrigger: true,
-    },
-  },
 };

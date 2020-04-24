@@ -17,6 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { formatSelectOptions } from '../../modules/utils';
+import { D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 
 export default {
   controlPanelSections: [
@@ -35,7 +37,27 @@ export default {
       label: t('Pivot Options'),
       controlSetRows: [
         [
-          'pandas_aggfunc',
+          {
+            name: 'pandas_aggfunc',
+            config: {
+              type: 'SelectControl',
+              label: t('Aggregation function'),
+              clearable: false,
+              choices: formatSelectOptions([
+                'sum',
+                'mean',
+                'min',
+                'max',
+                'std',
+                'var',
+              ]),
+              default: 'sum',
+              description: t(
+                'Aggregate function to apply when pivoting and ' +
+                  'computing the total rows and columns',
+              ),
+            },
+          },
           {
             name: 'pivot_margins',
             config: {
@@ -48,7 +70,18 @@ export default {
           },
         ],
         [
-          'number_format',
+          {
+            name: 'number_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Number format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
           {
             name: 'combine_metric',
             config: {
