@@ -88,6 +88,7 @@ export const sqlaTimeSeries = {
 
 export const annotations = {
   label: t('Annotations and Layers'),
+  tabOverride: 'data',
   expanded: true,
   controlSetRows: [
     [
