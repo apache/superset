@@ -88,9 +88,7 @@ little bit helps, and credit will always be given.
     - [Y Axis 2](#y-axis-2)
     - [Query](#query)
     - [Filters Configuration](#filters-configuration)
-    - [Options](#options)
     - [Chart Options](#chart-options)
-    - [X Axis](#x-axis)
     - [Y Axis](#y-axis)
     - [Other](#other)
     - [Unclassified](#unclassified)
@@ -805,27 +803,29 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
 ### Improving visualizations
 
-Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins):
+Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
 
 ```bash
-git clone https://github.com/apache-superset/superset-ui-plugins.git
-yarn && yarn build
+git clone https://github.com/apache-superset/superset-ui.git
+cd superset-ui
+yarn
+yarn build
 ```
 
-Then use `npm link` to create a symlink of the source code in `superset-frontend/node_modules`:
+Then use `npm link` to create symlinks of the plugins/superset-ui packages you want to edit in `superset-frontend/node_modules`:
 
 ```bash
 cd incubator-superset/superset-frontend
-npm link ../../superset-ui-plugins/packages/superset-ui-[PLUGIN NAME]
+npm link ../../superset-ui/plugins/[PLUGIN NAME]
 
-# Or to link all plugin packages:
-# npm link ../../superset-ui-plugins/packages/*
+# Or to link all core superset-ui and plugin packages:
+# npm link ../../superset-ui/{packages,plugins}/*
 
 # Start developing
 npm run dev-server
 ```
 
-When plugin packages are linked with `npm link`, the dev server will automatically load files from the plugin's `/src` directory.
+When `superset-ui` packages are linked with `npm link`, the dev server will automatically load a package's source code from its `/src` directory, instead of the built modules in `lib/` or `esm/`.
 
 Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
 
