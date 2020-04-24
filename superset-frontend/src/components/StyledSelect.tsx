@@ -43,11 +43,6 @@ export default styled(Select)`
     }
     .Select-multi-value-wrapper {
       display: flex;
-
-      > .Select-input:first-child {
-        margin-left: 10px;
-        margin-right: 10px;
-      }
     }
     .Select-value {
       position: relative;
@@ -98,11 +93,6 @@ export const AsyncStyledSelect = styled(Async)`
     }
     .Select-multi-value-wrapper {
       display: flex;
-
-      > .Select-input:first-child {
-        margin-left: 10px;
-        margin-right: 10px;
-      }
     }
     .Select-value {
       position: relative;

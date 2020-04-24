@@ -96,14 +96,14 @@ function SelectFilter({
           clearable={false}
         />
       ) : (
-          <StyledSelect
-            data-test="filters-select"
-            value={value}
-            options={options}
-            onChange={onChange}
-            clearable={false}
-          />
-        )}
+        <StyledSelect
+          data-test="filters-select"
+          value={value}
+          options={options}
+          onChange={onChange}
+          clearable={false}
+        />
+      )}
     </FilterContainer>
   );
 }

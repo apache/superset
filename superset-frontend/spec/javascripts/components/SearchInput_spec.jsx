@@ -29,11 +29,12 @@ describe('SearchInput', () => {
     value: '',
   };
 
-  let wrapper;
   const factory = overrideProps => {
     const props = { ...defaultProps, ...(overrideProps || {}) };
     return shallow(<SearchInput {...props} />);
   };
+
+  let wrapper;
 
   beforeAll(() => {
     wrapper = factory();
@@ -53,7 +54,7 @@ describe('SearchInput', () => {
     wrapper
       .find('[data-test="search-input"]')
       .props()
-      .onChange({ currentTarget: { value: value } });
+      .onChange({ currentTarget: { value } });
   };
 
   it('submits on enter', () => {
@@ -80,8 +81,8 @@ describe('SearchInput', () => {
   });
 
   it('clears on clear icon click', () => {
-    const wrapper = factory({ value: 'fizz' });
-    wrapper
+    const wrapper2 = factory({ value: 'fizz' });
+    wrapper2
       .find('[data-test="search-clear"]')
       .props()
       .onClick();

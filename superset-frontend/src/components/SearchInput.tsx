@@ -99,7 +99,11 @@ export default function SearchInput({
         value={value}
       />
       {value && (
-        <ClearIcon data-test="search-clear" role="button" onClick={() => onClear()} />
+        <ClearIcon
+          data-test="search-clear"
+          role="button"
+          onClick={() => onClear()}
+        />
       )}
     </div>
   );
