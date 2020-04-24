@@ -271,7 +271,7 @@ class ParsedQuery:
                     # Functions are anonymous on MSSQL
                     if isinstance(identifier, Function) and not identifier.has_alias():
                         identifier.value = (
-                            f"{identifier.value} as"
+                            f"{identifier.value} AS"
                             f" {identifier.get_real_name()}_{changed_counter}"
                         )
                         changed_counter += 1
