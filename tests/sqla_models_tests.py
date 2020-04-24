@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 from typing import Any, Dict, NamedTuple, List, Tuple, Union
+from unittest.mock import patch
 
 import tests.test_app
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -69,14 +70,10 @@ class DatabaseModelTestCase(SupersetTestCase):
             self.assertEqual(col.is_numeric, db_col_type == DbColumnType.NUMERIC)
             self.assertEqual(col.is_string, db_col_type == DbColumnType.STRING)
 
-    def test_has_extra_cache_keys(self):
-        query = "SELECT '{{ cache_key_wrapper('user_1') }}' as user"
-        table = SqlaTable(
-            table_name="test_has_extra_cache_keys_table",
-            sql=query,
-            database=get_example_database(),
-        )
-        query_obj = {
+    @patch("superset.jinja_context.g")
+    def test_extra_cache_keys(self, flask_g):
+        flask_g.user.username = "abc"
+        base_query_obj = {
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
@@ -84,32 +81,51 @@ class DatabaseModelTestCase(SupersetTestCase):
             "metrics": [],
             "is_timeseries": False,
             "filter": [],
-            "extras": {"where": "(user != '{{ cache_key_wrapper('user_2') }}')"},
         }
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_calls_to_cache_key_wrapper(query_obj))
-        self.assertListEqual(extra_cache_keys, ["user_1", "user_2"])
 
-    def test_has_no_extra_cache_keys(self):
+        # Table with Jinja callable.
+        table = SqlaTable(
+            table_name="test_has_extra_cache_keys_table",
+            sql="SELECT '{{ current_username() }}' as user",
+            database=get_example_database(),
+        )
+
+        query_obj = dict(**base_query_obj, extras={})
+        extra_cache_keys = table.get_extra_cache_keys(query_obj)
+        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        self.assertListEqual(extra_cache_keys, ["abc"])
+
+        # Table with Jinja callable disabled.
+        table = SqlaTable(
+            table_name="test_has_extra_cache_keys_disabled_table",
+            sql="SELECT '{{ current_username(False) }}' as user",
+            database=get_example_database(),
+        )
+        query_obj = dict(**base_query_obj, extras={})
+        extra_cache_keys = table.get_extra_cache_keys(query_obj)
+        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        self.assertListEqual(extra_cache_keys, [])
+
+        # Table with no Jinja callable.
         query = "SELECT 'abc' as user"
         table = SqlaTable(
             table_name="test_has_no_extra_cache_keys_table",
             sql=query,
             database=get_example_database(),
         )
-        query_obj = {
-            "granularity": None,
-            "from_dttm": None,
-            "to_dttm": None,
-            "groupby": ["user"],
-            "metrics": [],
-            "is_timeseries": False,
-            "filter": [],
-            "extras": {"where": "(user != 'abc')"},
-        }
+
+        query_obj = dict(**base_query_obj, extras={"where": "(user != 'abc')"})
         extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertFalse(table.has_calls_to_cache_key_wrapper(query_obj))
+        self.assertFalse(table.has_extra_cache_key_calls(query_obj))
         self.assertListEqual(extra_cache_keys, [])
+
+        # With Jinja callable in SQL expression.
+        query_obj = dict(
+            **base_query_obj, extras={"where": "(user != '{{ current_username() }}')"}
+        )
+        extra_cache_keys = table.get_extra_cache_keys(query_obj)
+        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        self.assertListEqual(extra_cache_keys, ["abc"])
 
     def test_where_operators(self):
         class FilterTestCase(NamedTuple):

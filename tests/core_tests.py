@@ -115,7 +115,6 @@ class CoreTests(SupersetTestCase):
         viz = slc.viz
         qobj = viz.query_obj()
         cache_key = viz.cache_key(qobj)
-        self.assertEqual(cache_key, viz.cache_key(qobj))
 
         qobj["groupby"] = []
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
