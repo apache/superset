@@ -231,6 +231,8 @@ describe('Advanced analytics', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
+    cy.wait(10);
+
     cy.get('span')
       .contains('Advanced Analytics')
       .parent()
@@ -271,6 +273,8 @@ describe('Annotations', () => {
   it('Create formula annotation y-axis goal line', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.wait(10);
 
     cy.get('[data-test=annotation_layers]').within(() => {
       cy.get('button').click();
