@@ -23,13 +23,13 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
+from flask import g
 from sqlalchemy import Column
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
-from wtforms.form import Form
 
 from superset import app, cache, conf
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -105,8 +105,14 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
-    def create_table_from_csv(  # pylint: disable=too-many-locals
-        cls, form: Form, database: "Database"
+    def create_table_from_csv(  # pylint: disable=too-many-arguments,too-many-locals
+        cls,
+        filename: str,
+        table_name: str,
+        schema_name: str,
+        database: "Database",
+        csv_to_df_kwargs: Dict[str, Any],
+        df_to_sql_kwargs: Dict[str, Any],
     ) -> None:
         """Uploads a csv file and creates a superset datasource in Hive."""
 
@@ -128,33 +134,19 @@ class HiveEngineSpec(PrestoEngineSpec):
                 "No upload bucket specified. You can specify one in the config file."
             )
 
-        table_name = form.name.data
-        schema_name = form.schema.data
-
-        if config["UPLOADED_CSV_HIVE_NAMESPACE"]:
-            if "." in table_name or schema_name:
-                raise Exception(
-                    "You can't specify a namespace. "
-                    "All tables will be uploaded to the `{}` namespace".format(
-                        config["HIVE_NAMESPACE"]
-                    )
-                )
-            full_table_name = "{}.{}".format(
-                config["UPLOADED_CSV_HIVE_NAMESPACE"], table_name
-            )
-        else:
-            if "." in table_name and schema_name:
-                raise Exception(
-                    "You can't specify a namespace both in the name of the table "
-                    "and in the schema field. Please remove one"
-                )
-
-            full_table_name = (
-                "{}.{}".format(schema_name, table_name) if schema_name else table_name
+        if "." in table_name and schema_name:
+            raise Exception(
+                "You can't specify a namespace both in the name of the table "
+                "and in the schema field. Please remove one"
             )
 
-        filename = form.csv_file.data.filename
-        upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
+        full_table_name = (
+            "{}.{}".format(schema_name, table_name) if schema_name else table_name
+        )
+
+        upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
+            database, g.user, schema_name
+        )
 
         # Optional dependency
         from tableschema import Table  # pylint: disable=import-error

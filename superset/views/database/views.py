@@ -109,7 +109,8 @@ class CsvToDatabaseView(SimpleFormView):
 
     def form_post(self, form):
         database = form.con.data
-        schema_name = form.schema.data or ""
+        schema_name = form.schema.data
+        table_name = form.name.data
 
         if not schema_allows_csv_upload(database, schema_name):
             message = _(
@@ -121,32 +122,57 @@ class CsvToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
 
-        csv_filename = form.csv_file.data.filename
-        extension = os.path.splitext(csv_filename)[1].lower()
-        path = tempfile.NamedTemporaryFile(
-            dir=app.config["UPLOAD_FOLDER"], suffix=extension, delete=False
+        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(
+            dir=app.config["UPLOAD_FOLDER"],
+            suffix=os.path.splitext(form.csv_file.data.filename)[1].lower(),
+            delete=False,
         ).name
-        form.csv_file.data.filename = path
 
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
-            upload_stream_write(form.csv_file.data, path)
-            table_name = form.name.data
+            upload_stream_write(form.csv_file.data, uploaded_tmp_file_path)
 
             con = form.data.get("con")
             database = (
                 db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
             )
-            database.db_engine_spec.create_table_from_csv(form, database)
+            csv_to_df_kwargs = {
+                "sep": form.sep.data,
+                "header": form.header.data if form.header.data else 0,
+                "index_col": form.index_col.data,
+                "mangle_dupe_cols": form.mangle_dupe_cols.data,
+                "skipinitialspace": form.skipinitialspace.data,
+                "skiprows": form.skiprows.data,
+                "nrows": form.nrows.data,
+                "skip_blank_lines": form.skip_blank_lines.data,
+                "parse_dates": form.parse_dates.data,
+                "infer_datetime_format": form.infer_datetime_format.data,
+                "chunksize": 1000,
+            }
+            df_to_sql_kwargs = {
+                "name": table_name,
+                "if_exists": form.if_exists.data,
+                "index": form.index.data,
+                "index_label": form.index_label.data,
+                "chunksize": 1000,
+            }
+            database.db_engine_spec.create_table_from_csv(
+                uploaded_tmp_file_path,
+                table_name,
+                schema_name,
+                database,
+                csv_to_df_kwargs,
+                df_to_sql_kwargs,
+            )
+
             table = (
                 db.session.query(SqlaTable)
                 .filter_by(
-                    table_name=table_name,
-                    schema=form.schema.data,
-                    database_id=database.id,
+                    table_name=table_name, schema=schema_name, database_id=database.id,
                 )
                 .one_or_none()
             )
+
             if table:
                 table.fetch_metadata()
             if not table:
@@ -154,21 +180,21 @@ class CsvToDatabaseView(SimpleFormView):
                 table.database = database
                 table.database_id = database.id
                 table.user_id = g.user.id
-                table.schema = form.schema.data
+                table.schema = schema_name
                 table.fetch_metadata()
                 db.session.add(table)
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
             try:
-                os.remove(path)
+                os.remove(uploaded_tmp_file_path)
             except OSError:
                 pass
             message = _(
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
-                filename=csv_filename,
+                filename=form.csv_file.data.filename,
                 table_name=form.name.data,
                 db_name=database.database_name,
                 error_msg=str(ex),
@@ -178,13 +204,15 @@ class CsvToDatabaseView(SimpleFormView):
             stats_logger.incr("failed_csv_upload")
             return redirect("/csvtodatabaseview/form")
 
-        os.remove(path)
+        os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
-            csv_filename=csv_filename,
-            table_name=form.name.data,
+            csv_filename=form.csv_file.data.filename,
+            table_name=f"{schema_name}.{form.name.data}"
+            if schema_name
+            else form.name.data,
             db_name=table.database.database_name,
         )
         flash(message, "info")

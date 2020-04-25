@@ -609,6 +609,11 @@ class Database(
     def get_schema_access_for_csv_upload(  # pylint: disable=invalid-name
         self,
     ) -> List[str]:
+        if hasattr(g, "user"):
+            allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](self, g.user)
+            if allowed_databases:
+                return allowed_databases
+
         return self.get_extra().get("schemas_allowed_for_csv_upload", [])
 
     @property
