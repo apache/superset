@@ -94,6 +94,7 @@ export default function SearchInput({
             onSubmit();
           }
         }}
+        onBlur={() => onSubmit()}
         placeholder={placeholder}
         onChange={onChange}
         value={value}
