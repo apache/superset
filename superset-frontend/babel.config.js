@@ -38,13 +38,6 @@ module.exports = {
       '@babel/preset-react',
       { development: process.env.BABEL_ENV === 'development' },
     ],
-    // [
-    //   '@emotion/babel-preset-css-prop',
-    //   {
-    //     autoLabel: true,
-    //     labelFormat: '[local]',
-    //   },
-    // ],
   ],
   plugins: [
     'lodash',
@@ -53,7 +46,6 @@ module.exports = {
     '@babel/plugin-proposal-optional-chaining',
     ['@babel/plugin-transform-runtime', { corejs: 3 }],
     'react-hot-loader/babel',
-    // 'emotion',
   ],
   env: {
     // Setup a different config for tests as they run in node instead of a browser
