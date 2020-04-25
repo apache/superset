@@ -17,10 +17,11 @@
  * under the License.
  */
 import styled from '@superset-ui/style';
+import { css } from '@emotion/core';
 // @ts-ignore
 import Select, { Async } from 'react-select';
 
-export default styled(Select)`
+const styles = css`
   display: block;
   &.is-focused:not(.is-open) > .Select-control {
     border: none;
@@ -70,52 +71,10 @@ export default styled(Select)`
   }
 `;
 
+export default styled(Select)`
+  ${styles}
+`;
+
 export const AsyncStyledSelect = styled(Async)`
-  display: block;
-  &.is-focused:not(.is-open) > .Select-control {
-    border: none;
-    box-shadow: none;
-  }
-
-  &.is-open > .Select-control .Select-arrow {
-    top: 50%;
-  }
-
-  .Select-control {
-    display: inline-flex;
-    border: none;
-    width: 128px;
-    top: -5px;
-    &:focus,
-    &:hover {
-      border: none;
-      box-shadow: none;
-    }
-    .Select-multi-value-wrapper {
-      display: flex;
-    }
-    .Select-value {
-      position: relative;
-      padding-right: 2px;
-      max-width: 104px;
-    }
-    .Select-input {
-      padding-left: 0;
-      padding-right: 8px;
-    }
-    .Select-arrow-zone {
-      width: auto;
-      padding: 0;
-      .Select-arrow {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-      }
-    }
-  }
-  .Select-menu-outer {
-    margin-top: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
+  ${styles}
 `;
