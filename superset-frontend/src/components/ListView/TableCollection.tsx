@@ -19,6 +19,7 @@
 import React from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
+import { css } from '@emotion/core';
 
 interface Props {
   getTableProps: (userProps?: any) => any;
@@ -69,11 +70,10 @@ export default function TableCollection({
       <tbody {...getTableBodyProps()}>
         {rows.map(row => {
           prepareRow(row);
-          const loadingProps = loading ? { className: 'table-row-loader' } : {};
           return (
             <tr
               {...row.getRowProps()}
-              {...loadingProps}
+              className={cx({ 'table-row-loader': loading, 'table-row-selected': row.isSelected })}
               onMouseEnter={() => row.setState && row.setState({ hover: true })}
               onMouseLeave={() =>
                 row.setState && row.setState({ hover: false })
