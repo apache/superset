@@ -56,7 +56,6 @@
   "dependencies": {
     "@babel/runtime-corejs3": "^7.8.4",
     "@data-ui/sparkline": "^0.0.54",
-    "@emotion/babel-preset-css-prop": "^10.0.27",
     "@emotion/core": "^10.0.28",
     "@superset-ui/chart": "^0.12.11",
     "@superset-ui/chart-composition": "^0.12.8",
@@ -167,7 +166,6 @@
     "redux-undo": "^1.0.0-beta9-9-7",
     "regenerator-runtime": "^0.13.3",
     "rison": "^0.1.1",
-    "save-dev": "0.0.1-security",
     "shortid": "^2.2.6",
     "urijs": "^1.18.10",
     "use-query-params": "^0.4.5"
@@ -183,6 +181,7 @@
     "@babel/preset-env": "^7.8.7",
     "@babel/preset-react": "^7.8.3",
     "@babel/register": "^7.8.6",
+    "@emotion/babel-preset-css-prop": "^10.0.27",
     "@hot-loader/react-dom": "^16.13.0",
     "@types/classnames": "^2.2.9",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",

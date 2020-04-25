@@ -38,16 +38,16 @@ const ActionButton: React.FunctionComponent<{ onClick: () => void }> = ({
   onClick,
   children,
 }) => (
-  <Button
-    bsStyle="link"
-    css={css`
+    <Button
+      bsStyle="link"
+      css={css`
       padding: 0;
     `}
-    onClick={onClick}
-  >
-    >{children}
-  </Button>
-);
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
 
 export default function ExpandableList({ items, display = 3 }: Props) {
   const [showingAll, setShowingAll] = useState(false);
