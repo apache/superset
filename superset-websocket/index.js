@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const config = require('./config.json');
 const http = require('http');
 const WebSocket = require('ws');
@@ -9,7 +8,10 @@ const server = http.createServer();
 const wss = new WebSocket.Server({ noServer: true });
 
 let channels = {};
+let lastFirehoseId = '$';
 let redisRequestCount = 0;
+
+const firehoseStream = 'fullstream';
 
 /* 
 NOT using Redis Stream consumer groups due to the fact that they only read
@@ -36,44 +38,70 @@ Stream options:
     - multiple (blocking?) connections to Redis
       - could read multiple streams using the same blocking connection
     - Users could be connected to multiple wss server instances in different browser tabs
+3. Publish events to two streams, one global and one user-specific [SELECTED].
+  Single blocking connection (XREAD) to continuously ready new events on the global stream.
+  Load data from user-specific streams (XRANGE) only upon reconnection to fetch any missed events.
 */
 
-function ts() {
-  return (new Date()).getTime();
-}
-
-function incrementId(id) {
-  // id format: <timestamp-ms>-<sequence-number>, e.g. '1586141297082-0'
-  let prefixTs, seq;
-  [prefixTs, seq] = String(id).split('-');
-  if(seq === undefined) return id;
-  return prefixTs + '-' + (parseInt(seq, 10) + 1);
-}
-
 function sendToChannel(channel, value) {
+  const strData = JSON.stringify(value);
+  if(!channels[channel]) {
+    console.log(`channel ${channel} is unknown, skipping`);
+    return;
+  }
   channels[channel].sockets.forEach(ws => {
-    ws.send(JSON.stringify(value));
+    ws.send(strData);
     channels[channel].lastId = value[0];
   });
-  console.log(`${value} sent to ${channel} with lastId ${channels[channel].lastId}`);
+  console.log(`${strData} sent to ${channel} with lastId ${channels[channel].lastId}`);
 }
 
-function loadDataFromStream(channel, startId) {
-  // console.log('loadDataFromStream', startId);
-  redis.xrange(channel, startId, '+').then(resp => {
-    if(_.isEmpty(resp)) return;
-    console.log('stream response', resp);
-    if(_.isArray(resp)) {
-      resp.forEach((item) => sendToChannel(channel, item));
+async function fetchRangeFromStream({channel, startId, endId, listener}) {
+  console.log('fetchRangeFromStream', channel, startId, endId);
+  try {
+    const reply = await redis.xrange(channel, startId, endId);
+    console.log('*** fetchRangeFromStream reply', reply);
+    if (!reply || !reply.length) return;
+    listener(reply);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function subscribeToStream(stream, listener) {
+  console.log(`subscribeToStream`, stream, listener);
+
+  while (true) {
+    try {
+      console.log('*** lastFirehoseId', lastFirehoseId);
+      const reply = await redis.xread('BLOCK', '5000', 'COUNT', 100, 'STREAMS', stream, lastFirehoseId);
+      console.log('*** firehose reply', reply);
+      if (!reply) {
+        continue
+      }
+      const results = reply[0][1];
+      const {length} = results;
+      if (!results.length) {
+        continue
+      }
+      listener(results)
+      lastFirehoseId = results[length - 1][0]
+    } catch(e) {
+      console.error(e);
+      continue
     }
-  }).finally(() => {
-    const lastId = channels[channel].lastId || startId;
-    const nextId = incrementId(lastId);   // XRANGE ids are inclusive
-    redisRequestCount++;
-    // console.log(`loaded ${lastId}, nextId ${nextId}`);
-    loadDataFromStream(channel, nextId);
+  }
+}
+
+function processStreamResults(results) {
+  console.log('process results', results);
+  results.forEach((item) => {
+    const data = JSON.parse(item[1][1]);
+    console.log('data', data);
+    sendToChannel(data['channel_id'], data);
   });
 }
+
 
 wss.on('connection', function connection(ws, request) {
   if(!ws.channel) return false; // TODO: close socket?
@@ -82,13 +110,21 @@ wss.on('connection', function connection(ws, request) {
     channels[ws.channel].sockets.push(ws)
   } else {
     channels[ws.channel] = {sockets: [ws]};
-    const startId = ws.lastId || ts();
-    loadDataFromStream(ws.channel, startId);
+  }
+
+  console.log('ws.lastId', ws.lastId);
+  if(ws.lastId) {
+    const endId = (lastFirehoseId === '$' ? '+' : lastFirehoseId);
+    fetchRangeFromStream({
+      channel: ws.channel,
+      startId: ws.lastId,   // TODO: inclusive?
+      endId,                // TODO: inclusive?
+      listener: processStreamResults
+    });
   }
   
   ws.on('message', function message(msg) {
     console.log(`Received message ${msg} on channel ${ws.channel}`);
-    // channels[ws.channel].send('test server');
   });
 });
 
@@ -114,6 +150,8 @@ server.on('upgrade', function upgrade(request, socket, head) {
     });
 //   });
 });
+
+subscribeToStream(firehoseStream, processStreamResults);
 
 server.listen(8080);
 console.log('websocket server started on 8080');

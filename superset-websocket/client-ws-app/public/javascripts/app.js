@@ -2,9 +2,20 @@ console.log('hello');
 let socketCount = 0;
 let messageCount = 0;
 
-for (let i=0; i < 100; i++) {
+const numClients = 100;
+
+function ts() {
+    return (new Date()).getTime();
+}
+
+for (let i=0; i < numClients; i++) {
     // Create WebSocket connection.
-    const socket = new WebSocket(`ws://localhost:8080?channel=stream${i}`);
+    const channelPrefix = 'c';
+    const channelId = `${channelPrefix}${i}`;
+    const lastIdReceived = ts();
+    let url = `ws://localhost:8080?channel=${channelId}`;
+    if(lastIdReceived) url += `&last_id=${lastIdReceived}`
+    const socket = new WebSocket(url);
 
     // Connection opened
     socket.addEventListener('open', function (event) {
