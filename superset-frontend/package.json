@@ -10,6 +10,7 @@
   "scripts": {
     "tdd": "NODE_ENV=test jest --watch",
     "test": "NODE_ENV=test jest",
+    "type": "tsc --noEmit",
     "cover": "NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
     "dev-server": "NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --progress",
@@ -17,9 +18,9 @@
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --colors --progress",
     "build-instrumented": "cross-env NODE_ENV=development BABEL_ENV=instrumented webpack --mode=development --colors --progress",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
-    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx .",
+    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . && npm run type",
     "prettier-check": "prettier --check '{src,stylesheets}/**/*.{css,less,sass,scss}'",
-    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css",
+    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css && npm run type",
     "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'"
   },
   "repository": {
