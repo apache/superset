@@ -2,10 +2,10 @@
 const UNARY_OPERATORS = ['IS NOT NULL', 'IS NULL'] as const;
 
 /** List of operators that require another operand that is a single value */
-const BINARY_OPERATORS = ['=', '!=', '>', '<', '>=', '<=', 'like', 'regex'] as const;
+const BINARY_OPERATORS = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'REGEX'] as const;
 
 /** List of operators that require another operand that is a set */
-const SET_OPERATORS = ['in', 'not in'] as const;
+const SET_OPERATORS = ['IN', 'NOT IN'] as const;
 
 //---------------------------------------------------
 // Derived types
