@@ -123,7 +123,10 @@ def session_scope(nullpool):
     """Provide a transactional scope around a series of operations."""
     database_uri = app.config["SQLALCHEMY_DATABASE_URI"]
     if "sqlite" in database_uri:
-        logger.warning("SQLite DB support may not be supported by in future version")
+        logger.warning(
+            "SQLite Database support for metadata databases will be removed \
+            in a future version of Superset."
+        )
     if nullpool:
         engine = sqlalchemy.create_engine(database_uri, poolclass=NullPool)
         session_class = sessionmaker()
