@@ -78,36 +78,32 @@ describe('getControlsForVizType', () => {
   });
 
   it('returns a map of the controls', () => {
-    expect(
-      JSON.stringify(getControlsForVizType('chart_controls_inventory_fake')),
-    ).toEqual(
-      JSON.stringify({
-        label_colors: {
-          type: 'ColorMapControl',
-          label: t('Color Map'),
-          default: {},
-          renderTrigger: true,
-          mapStateToProps: state => ({
-            colorNamespace: state.form_data.color_namespace,
-            colorScheme: state.form_data.color_scheme,
-          }),
-        },
-        y_axis_bounds: {
-          type: 'BoundsControl',
-          label: 'Value bounds',
-          default: [null, null],
-          description: 'Value bounds for the y axis',
-        },
-        adhoc_filters: {
-          type: 'AdhocFilterControl',
-          label: 'Fake Filters',
-          default: null,
-        },
-        column_collection: {
-          type: 'CollectionControl',
-          label: 'Fake Collection Control',
-        },
-      }),
-    );
+    expect(getControlsForVizType('chart_controls_inventory_fake')).toEqual({
+      label_colors: {
+        type: 'ColorMapControl',
+        label: t('Color Map'),
+        default: {},
+        renderTrigger: true,
+        mapStateToProps: state => ({
+          colorNamespace: state.form_data.color_namespace,
+          colorScheme: state.form_data.color_scheme,
+        }),
+      },
+      y_axis_bounds: {
+        type: 'BoundsControl',
+        label: 'Value bounds',
+        default: [null, null],
+        description: 'Value bounds for the y axis',
+      },
+      adhoc_filters: {
+        type: 'AdhocFilterControl',
+        label: 'Fake Filters',
+        default: null,
+      },
+      column_collection: {
+        type: 'CollectionControl',
+        label: 'Fake Collection Control',
+      },
+    });
   });
 });
