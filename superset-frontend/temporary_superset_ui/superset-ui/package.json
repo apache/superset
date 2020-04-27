@@ -6,8 +6,8 @@
   "scripts": {
     "build": "yarn babel && yarn type && yarn build:assets",
     "babel": "yarn babel:cjs && yarn babel:esm",
-    "babel:cjs": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
-    "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\" --esm",
+    "babel:cjs": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\" --config-file=../../babel.config.js",
+    "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\" --esm --config-file=../../babel.config.js",
     "build:assets": "node ./scripts/buildAssets.js",
     "demo": "cd packages/superset-ui-demo && yarn demo:build",
     "demo:clean": "cd packages/superset-ui-demo && yarn demo:clean",
@@ -94,7 +94,7 @@
   ],
   "nimbus": {
     "drivers": [
-      "babel",
+      { "driver": "babel", "strategy": "none" },
       "eslint",
       "jest",
       "prettier",
@@ -114,10 +114,10 @@
       },
       "coverageThreshold": {
         "global": {
-          "branches": 25,
-          "functions": 25,
-          "lines": 25,
-          "statements": 25
+          "branches": 5,
+          "functions": 5,
+          "lines": 5,
+          "statements": 5
         }
       },
       "moduleNameMapper": {
@@ -127,6 +127,9 @@
       "timers": "real",
       "setupFilesAfterEnv": [
         "@airbnb/config-jest/enzyme"
+      ],
+      "transformIgnorePatterns": [
+        "node_modules/(?!(vega-lite|lodash-es))"
       ],
       "testPathIgnorePatterns": [
         "packages/generator-superset/generators"
