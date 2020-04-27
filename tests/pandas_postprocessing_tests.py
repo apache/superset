@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 import math
-from typing import Any, List
+from typing import Any, List, Optional
 
 from pandas import Series
 
@@ -43,7 +43,9 @@ def series_to_list(series: Series) -> List[Any]:
     ]
 
 
-def round_floats(floats: List[float], precision: int) -> List[float]:
+def round_floats(
+    floats: List[Optional[float]], precision: int
+) -> List[Optional[float]]:
     """
     Round list of floats to certain precision
 
