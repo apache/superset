@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 // @ts-ignore
 import { Button } from 'react-bootstrap';
 import { css } from '@emotion/core';
 
 interface Props {
-  items: string[] | React.ElementType[];
+  items: string[] | ReactNode[];
   display?: number;
 }
 
-function intersperse(arr: any[], sep: string | React.ElementType) {
+function intersperse(arr: any[], sep: string | ReactNode) {
   if (arr.length === 0) {
     return [];
   }
@@ -38,16 +38,16 @@ const ActionButton: React.FunctionComponent<{ onClick: () => void }> = ({
   onClick,
   children,
 }) => (
-  <Button
-    bsStyle="link"
-    css={css`
+    <Button
+      bsStyle="link"
+      css={css`
       padding: 0;
     `}
-    onClick={onClick}
-  >
-    {children}
-  </Button>
-);
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
 
 export default function ExpandableList({ items, display = 3 }: Props) {
   const [showingAll, setShowingAll] = useState(false);
