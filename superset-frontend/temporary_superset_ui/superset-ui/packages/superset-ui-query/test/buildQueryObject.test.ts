@@ -1,6 +1,6 @@
 import { buildQueryObject, QueryObject } from '../src';
 
-describe('queryObjectBuilder', () => {
+describe('buildQueryObject', () => {
   let query: QueryObject;
 
   it('should build granularity for sql alchemy datasources', () => {
@@ -62,5 +62,33 @@ describe('queryObjectBuilder', () => {
       timeseries_limit_metric: metric,
     });
     expect(query.timeseries_limit_metric).toEqual({ label: metric });
+  });
+
+  it('should handle null and non-numeric row_limit', () => {
+    const baseQuery = {
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: 'table',
+      row_limit: null,
+    };
+
+    // undefined
+    query = buildQueryObject({ ...baseQuery });
+    expect(query.row_limit).toBeUndefined();
+
+    // null value
+    query = buildQueryObject({ ...baseQuery, row_limit: null });
+    expect(query.row_limit).toBeUndefined();
+
+    query = buildQueryObject({ ...baseQuery, row_limit: 1000 });
+    expect(query.row_limit).toStrictEqual(1000);
+
+    // valid string
+    query = buildQueryObject({ ...baseQuery, row_limit: '200' });
+    expect(query.row_limit).toStrictEqual(200);
+
+    // invalid string
+    query = buildQueryObject({ ...baseQuery, row_limit: 'two hundred' });
+    expect(query.row_limit).toBeUndefined();
   });
 });

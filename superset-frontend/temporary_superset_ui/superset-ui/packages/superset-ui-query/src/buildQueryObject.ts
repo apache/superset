@@ -43,7 +43,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     metrics: processMetrics(formData),
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     orderby: [],
-    row_limit: row_limit == null || isNaN(numericRowLimit) ? undefined : numericRowLimit,
+    row_limit: row_limit == null || Number.isNaN(numericRowLimit) ? undefined : numericRowLimit,
     since,
     time_range,
     timeseries_limit: limit ? Number(limit) : 0,

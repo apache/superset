@@ -1,6 +1,6 @@
 import { buildQueryContext } from '../src';
 
-describe('queryContextBuilder', () => {
+describe('buildQueryContext', () => {
   it('should build datasource for table sources', () => {
     const queryContext = buildQueryContext({
       datasource: '5__table',
