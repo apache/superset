@@ -31,7 +31,7 @@ if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
     SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]
 
 if "sqlite" in SQLALCHEMY_DATABASE_URI:
-    logger.info("SQLite DB support may not be supported by in future version")
+    logger.warning("SQLite DB support may not be supported by in future version")
 
 SQL_MAX_ROW = 666
 SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take affect for the CTA queries

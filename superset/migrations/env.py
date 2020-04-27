@@ -36,7 +36,7 @@ logger = logging.getLogger("alembic.env")
 
 DATABASE_URI = current_app.config["SQLALCHEMY_DATABASE_URI"]
 if "sqlite" in DATABASE_URI:
-    logger.info("SQLite DB support may not be supported by in future version")
+    logger.warning("SQLite DB support may not be supported by in future version")
 config.set_main_option("sqlalchemy.url", DATABASE_URI)
 target_metadata = Base.metadata  # pylint: disable=no-member
 
