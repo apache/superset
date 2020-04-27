@@ -1376,7 +1376,7 @@ class Superset(BaseSupersetView):
         except CertificateException as ex:
             logger.info(ex.message)
             return json_error_response(ex.message)
-        except NoSuchModuleError as ex:
+        except (NoSuchModuleError, ModuleNotFoundError) as ex:
             logger.info("Invalid driver %s", ex)
             driver_name = make_url(uri).drivername
             return json_error_response(

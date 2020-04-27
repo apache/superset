@@ -439,6 +439,25 @@ class CoreTests(SupersetTestCase):
             expected_body,
         )
 
+        data = json.dumps(
+            {
+                "uri": "mssql+pymssql://url",
+                "name": "examples",
+                "impersonate_user": False,
+            }
+        )
+        response = self.client.post(
+            "/superset/testconn", data=data, content_type="application/json"
+        )
+        assert response.status_code == 400
+        assert response.headers["Content-Type"] == "application/json"
+        response_body = json.loads(response.data.decode("utf-8"))
+        expected_body = {"error": "Could not load database driver: mssql+pymssql"}
+        assert response_body == expected_body, "%s != %s" % (
+            response_body,
+            expected_body,
+        )
+
     def test_testconn_unsafe_uri(self, username="admin"):
         self.login(username=username)
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
