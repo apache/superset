@@ -24,7 +24,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
-import StackTraceMessage from '../components/StackTraceMessage';
+import ErrorMessageWithStackTrace from '../components/ErrorMessageWithStackTrace';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
 import './chart.less';
@@ -138,10 +138,10 @@ class Chart extends React.PureComponent {
     });
   }
 
-  renderStackTraceMessage() {
+  renderErrorMessage() {
     const { chartAlert, chartStackTrace, queryResponse } = this.props;
     return (
-      <StackTraceMessage
+      <ErrorMessageWithStackTrace
         message={chartAlert}
         link={queryResponse ? queryResponse.link : null}
         stackTrace={chartStackTrace}
@@ -167,7 +167,7 @@ class Chart extends React.PureComponent {
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
-      return this.renderStackTraceMessage();
+      return this.renderErrorMessage();
     }
     if (errorMessage) {
       return <Alert bsStyle="warning">{errorMessage}</Alert>;
