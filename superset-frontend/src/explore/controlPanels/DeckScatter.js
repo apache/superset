@@ -17,7 +17,24 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 import timeGrainSqlaAnimationOverrides from './timeGrainSqlaAnimationOverrides';
+import {
+  filterNulls,
+  autozoom,
+  dimension,
+  jsColumns,
+  jsDataMutator,
+  jsTooltip,
+  jsOnclickHref,
+  legendFormat,
+  legendPosition,
+  viewport,
+  spatial,
+  pointRadiusFixed,
+  multiplier,
+  mapboxStyle,
+} from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -37,8 +54,8 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['spatial', null],
-        ['row_limit', 'filter_nulls'],
+        [spatial, null],
+        ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
     },
@@ -46,43 +63,100 @@ export default {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        ['autozoom', null],
+        [mapboxStyle, viewport],
+        [autozoom, null],
       ],
     },
     {
       label: t('Point Size'),
       controlSetRows: [
-        ['point_radius_fixed', 'point_unit'],
-        ['min_radius', 'max_radius'],
-        ['multiplier', null],
+        [
+          pointRadiusFixed,
+          {
+            name: 'point_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Point Unit'),
+              default: 'square_m',
+              clearable: false,
+              choices: [
+                ['square_m', 'Square meters'],
+                ['square_km', 'Square kilometers'],
+                ['square_miles', 'Square miles'],
+                ['radius_m', 'Radius in meters'],
+                ['radius_km', 'Radius in kilometers'],
+                ['radius_miles', 'Radius in miles'],
+              ],
+              description: t(
+                'The unit of measure for the specified point radius',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'min_radius',
+            config: {
+              type: 'TextControl',
+              label: t('Minimum Radius'),
+              isFloat: true,
+              validators: [validateNonEmpty],
+              renderTrigger: true,
+              default: 2,
+              description: t(
+                'Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
+                  'insures that the circle respects this minimum radius.',
+              ),
+            },
+          },
+          {
+            name: 'max_radius',
+            config: {
+              type: 'TextControl',
+              label: t('Maximum Radius'),
+              isFloat: true,
+              validators: [validateNonEmpty],
+              renderTrigger: true,
+              default: 250,
+              description: t(
+                'Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+                  'insures that the circle respects this maximum radius.',
+              ),
+            },
+          },
+        ],
+        [multiplier, null],
       ],
     },
     {
       label: t('Point Color'),
       controlSetRows: [
-        ['color_picker', 'legend_position'],
-        [null, 'legend_format'],
-        ['dimension', 'color_scheme', 'label_colors'],
+        ['color_picker', legendPosition],
+        [null, legendFormat],
+        [
+          {
+            ...dimension,
+            label: t('Categorical Color'),
+            description: t(
+              'Pick a dimension from which categorical colors are defined',
+            ),
+          },
+          'color_scheme',
+          'label_colors',
+        ],
       ],
     },
     {
       label: t('Advanced'),
       controlSetRows: [
-        ['js_columns'],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
+        [jsColumns],
+        [jsDataMutator],
+        [jsTooltip],
+        [jsOnclickHref],
       ],
     },
   ],
   controlOverrides: {
-    dimension: {
-      label: t('Categorical Color'),
-      description: t(
-        'Pick a dimension from which categorical colors are defined',
-      ),
-    },
     size: {
       validators: [],
     },

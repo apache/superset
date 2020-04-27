@@ -25,6 +25,7 @@ import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
+import { validateNonEmpty } from '@superset-ui/validator';
 
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';
@@ -40,7 +41,6 @@ import ANNOTATION_TYPES, {
 
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
-import { nonEmpty } from '../../validators';
 import './AnnotationLayer.less';
 
 const AUTOMATIC_COLOR = '';
@@ -215,14 +215,18 @@ export default class AnnotationLayer extends React.PureComponent {
       timeColumn,
       intervalEndColumn,
     } = this.state;
-    const errors = [nonEmpty(name), nonEmpty(annotationType), nonEmpty(value)];
+    const errors = [
+      validateNonEmpty(name),
+      validateNonEmpty(annotationType),
+      validateNonEmpty(value),
+    ];
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
       if (annotationType === ANNOTATION_TYPES.EVENT) {
-        errors.push(nonEmpty(timeColumn));
+        errors.push(validateNonEmpty(timeColumn));
       }
       if (annotationType === ANNOTATION_TYPES.INTERVAL) {
-        errors.push(nonEmpty(timeColumn));
-        errors.push(nonEmpty(intervalEndColumn));
+        errors.push(validateNonEmpty(timeColumn));
+        errors.push(validateNonEmpty(intervalEndColumn));
       }
     }
     errors.push(this.isValidFormula(value, annotationType));

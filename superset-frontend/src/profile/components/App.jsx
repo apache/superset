@@ -49,7 +49,9 @@ export default function App(props) {
               }
             >
               <Panel>
-                <Favorites user={props.user} />
+                <Panel.Body>
+                  <Favorites user={props.user} />
+                </Panel.Body>
               </Panel>
             </Tab>
             <Tab
@@ -61,7 +63,9 @@ export default function App(props) {
               }
             >
               <Panel>
-                <CreatedContent user={props.user} />
+                <Panel.Body>
+                  <CreatedContent user={props.user} />
+                </Panel.Body>
               </Panel>
             </Tab>
             <Tab
@@ -73,7 +77,9 @@ export default function App(props) {
               }
             >
               <Panel>
-                <RecentActivity user={props.user} />
+                <Panel.Body>
+                  <RecentActivity user={props.user} />
+                </Panel.Body>
               </Panel>
             </Tab>
             <Tab
@@ -85,7 +91,9 @@ export default function App(props) {
               }
             >
               <Panel>
-                <Security user={props.user} />
+                <Panel.Body>
+                  <Security user={props.user} />
+                </Panel.Body>
               </Panel>
             </Tab>
           </Tabs>

@@ -18,7 +18,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import simplejson as json
 import yaml
@@ -27,6 +27,7 @@ from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.security.sqla.models import Role, User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
@@ -34,7 +35,15 @@ from sqlalchemy import or_
 from werkzeug.exceptions import HTTPException
 from wtforms.fields.core import Field, UnboundField
 
-from superset import appbuilder, conf, db, get_feature_flags, security_manager
+from superset import (
+    app as superset_app,
+    appbuilder,
+    conf,
+    db,
+    get_feature_flags,
+    security_manager,
+)
+from superset.connectors.sqla import models
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
@@ -52,6 +61,9 @@ FRONTEND_CONF_KEYS = (
     "DISPLAY_MAX_ROW",
 )
 logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
+config = superset_app.config
 
 
 def get_error_msg():
@@ -88,7 +100,9 @@ def data_payload_response(payload_json, has_error=False):
     return json_success(payload_json, status=status)
 
 
-def generate_download_headers(extension, filename=None):
+def generate_download_headers(
+    extension: str, filename: Optional[str] = None
+) -> Dict[str, Any]:
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
@@ -104,8 +118,8 @@ def api(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
             return json_error_response(get_error_msg())
 
     return functools.update_wrapper(wraps, f)
@@ -121,31 +135,65 @@ def handle_api_exception(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except SupersetSecurityException as e:
-            logger.exception(e)
+        except SupersetSecurityException as ex:
+            logger.exception(ex)
             return json_error_response(
-                utils.error_msg_from_exception(e), status=e.status, link=e.link
+                utils.error_msg_from_exception(ex), status=ex.status, link=ex.link
             )
-        except SupersetException as e:
-            logger.exception(e)
+        except SupersetException as ex:
+            logger.exception(ex)
             return json_error_response(
-                utils.error_msg_from_exception(e), status=e.status
+                utils.error_msg_from_exception(ex), status=ex.status
             )
-        except HTTPException as e:
-            logger.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e), status=e.code)
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
+        except HTTPException as ex:
+            logger.exception(ex)
+            return json_error_response(
+                utils.error_msg_from_exception(ex), status=ex.code
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
+            return json_error_response(utils.error_msg_from_exception(ex))
 
     return functools.update_wrapper(wraps, f)
 
 
-def get_datasource_exist_error_msg(full_name):
+def get_datasource_exist_error_msg(full_name: str) -> str:
     return __("Datasource %(name)s already exists", name=full_name)
 
 
-def get_user_roles():
+def validate_sqlatable(table: models.SqlaTable) -> None:
+    """Checks the table existence in the database."""
+    with db.session.no_autoflush:
+        table_query = db.session.query(models.SqlaTable).filter(
+            models.SqlaTable.table_name == table.table_name,
+            models.SqlaTable.schema == table.schema,
+            models.SqlaTable.database_id == table.database.id,
+        )
+        if db.session.query(table_query.exists()).scalar():
+            raise Exception(get_datasource_exist_error_msg(table.full_name))
+
+    # Fail before adding if the table can't be found
+    try:
+        table.get_sqla_table_object()
+    except Exception as ex:
+        logger.exception(f"Got an error in pre_add for {table.name}")
+        raise Exception(
+            _(
+                "Table [%{table}s] could not be found, "
+                "please double check your "
+                "database connection, schema, and "
+                "table name, error: {}"
+            ).format(table.name, str(ex))
+        )
+
+
+def create_table_permissions(table: models.SqlaTable) -> None:
+    security_manager.add_permission_view_menu("datasource_access", table.get_perm())
+    if table.schema:
+        security_manager.add_permission_view_menu("schema_access", table.schema_perm)
+
+
+def get_user_roles() -> List[Role]:
     if g.user.is_anonymous:
         public_role = conf.get("AUTH_ROLE_PUBLIC")
         return [security_manager.find_role(public_role)] if public_role else []
@@ -173,8 +221,8 @@ def menu_data():
                 or f"/profile/{g.user.username}/"
             )
         # when user object has no username
-        except NameError as e:
-            logger.exception(e)
+        except NameError as ex:
+            logger.exception(ex)
 
         if logo_target_path.startswith("/"):
             root_path = f"/superset{logo_target_path}"
@@ -258,8 +306,8 @@ class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-me
 def validate_json(_form, field):
     try:
         json.loads(field.data)
-    except Exception as e:
-        logger.exception(e)
+    except Exception as ex:
+        logger.exception(ex)
         raise Exception(_("json isn't valid"))
 
 
@@ -300,8 +348,8 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
             abort(404)
         try:
             self.pre_delete(item)
-        except Exception as e:  # pylint: disable=broad-except
-            flash(str(e), "danger")
+        except Exception as ex:  # pylint: disable=broad-except
+            flash(str(ex), "danger")
         else:
             view_menu = security_manager.find_view_menu(item.get_perm())
             pvs = (
@@ -335,8 +383,8 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
         for item in items:
             try:
                 self.pre_delete(item)
-            except Exception as e:  # pylint: disable=broad-except
-                flash(str(e), "danger")
+            except Exception as ex:  # pylint: disable=broad-except
+                flash(str(ex), "danger")
             else:
                 self._delete(item.id)
         self.update_redirect()
@@ -365,7 +413,7 @@ class CsvResponse(Response):  # pylint: disable=too-many-ancestors
     charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
 
 
-def check_ownership(obj, raise_if_false=True):
+def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
     """Meant to be used in `pre_update` hooks on models to enforce ownership
 
     Admin have all access, and other users need to be referenced on either
@@ -392,7 +440,7 @@ def check_ownership(obj, raise_if_false=True):
     orig_obj = scoped_session.query(obj.__class__).filter_by(id=obj.id).first()
 
     # Making a list of owners that works across ORM models
-    owners = []
+    owners: List[User] = []
     if hasattr(orig_obj, "owners"):
         owners += orig_obj.owners
     if hasattr(orig_obj, "owner"):

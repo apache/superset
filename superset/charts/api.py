@@ -15,14 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any, Dict
 
-from flask import g, request, Response
-from flask_appbuilder.api import expose, protect, safe
+import simplejson
+from apispec import APISpec
+from flask import g, make_response, redirect, request, Response, url_for
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import gettext as _, ngettext
+from werkzeug.wrappers import Response as WerkzeugResponse
+from werkzeug.wsgi import FileWrapper
 
+from superset import is_feature_enabled, thumbnail_cache
+from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.delete import DeleteChartCommand
 from superset.charts.commands.exceptions import (
+    ChartBulkDeleteFailedError,
     ChartCreateFailedError,
     ChartDeleteFailedError,
     ChartForbiddenError,
@@ -31,10 +40,29 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.update import UpdateChartCommand
-from superset.charts.filters import ChartFilter
-from superset.charts.schemas import ChartPostSchema, ChartPutSchema
+from superset.charts.dao import ChartDAO
+from superset.charts.filters import ChartFilter, ChartNameOrDescriptionFilter
+from superset.charts.schemas import (
+    CHART_DATA_SCHEMAS,
+    ChartDataQueryContextSchema,
+    ChartPostSchema,
+    ChartPutSchema,
+    get_delete_ids_schema,
+    thumbnail_query_schema,
+)
+from superset.constants import RouteMethod
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.tasks.thumbnails import cache_chart_thumbnail
+from superset.utils.core import json_int_dttm_ser
+from superset.utils.screenshots import ChartScreenshot
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    RelatedFieldFilter,
+    statsd_metrics,
+)
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +73,22 @@ class ChartRestApi(BaseSupersetModelRestApi):
     resource_name = "chart"
     allow_browser_login = True
 
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        RouteMethod.EXPORT,
+        RouteMethod.RELATED,
+        "bulk_delete",  # not using RouteMethod since locally defined
+        "data",
+        "viz_types",
+        "datasources",
+    }
     class_permission_name = "SliceModelView"
     show_columns = [
         "slice_name",
         "description",
         "owners.id",
         "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "dashboards.id",
         "dashboards.dashboard_title",
         "viz_type",
@@ -71,6 +109,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "viz_type",
         "params",
         "cache_timeout",
+        "owners.id",
+        "owners.username",
+        "owners.first_name",
+        "owners.last_name",
     ]
     order_columns = [
         "slice_name",
@@ -84,10 +126,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "viz_type",
         "datasource_name",
+        "datasource_id",
+        "datasource_type",
         "owners",
     )
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
+    search_filters = {"slice_name": [ChartNameOrDescriptionFilter]}
 
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]
@@ -102,12 +147,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields_field = {"owners": "first_name"}
+    related_field_filters = {
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
+    }
     allowed_rel_fields = {"owners"}
+
+    def __init__(self) -> None:
+        if is_feature_enabled("THUMBNAILS"):
+            self.include_route_methods = self.include_route_methods | {"thumbnail"}
+        super().__init__()
 
     @expose("/", methods=["POST"])
     @protect()
     @safe
+    @statsd_metrics
     def post(self) -> Response:
         """Creates a new Chart
         ---
@@ -151,15 +204,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateChartCommand(g.user, item.data).run()
             return self.response(201, id=new_model.id, result=item.data)
-        except ChartInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except ChartCreateFailedError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except ChartInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except ChartCreateFailedError as ex:
+            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
     @safe
+    @statsd_metrics
     def put(  # pylint: disable=too-many-return-statements, arguments-differ
         self, pk: int
     ) -> Response:
@@ -218,15 +272,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ChartForbiddenError:
             return self.response_403()
-        except ChartInvalidError as e:
-            return self.response_422(message=e.normalized_messages())
-        except ChartUpdateFailedError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except ChartInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except ChartUpdateFailedError as ex:
+            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
     @protect()
     @safe
+    @statsd_metrics
     def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Deletes a Chart
         ---
@@ -266,6 +321,247 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ChartForbiddenError:
             return self.response_403()
-        except ChartDeleteFailedError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
+        except ChartDeleteFailedError as ex:
+            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            return self.response_422(message=str(ex))
+
+    @expose("/", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison(get_delete_ids_schema)
+    def bulk_delete(
+        self, **kwargs: Any
+    ) -> Response:  # pylint: disable=arguments-differ
+        """Delete bulk Charts
+        ---
+        delete:
+          description: >-
+            Deletes multiple Charts in a bulk operation
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: integer
+          responses:
+            200:
+              description: Charts bulk delete
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item_ids = kwargs["rison"]
+        try:
+            BulkDeleteChartCommand(g.user, item_ids).run()
+            return self.response(
+                200,
+                message=ngettext(
+                    f"Deleted %(num)d chart",
+                    f"Deleted %(num)d charts",
+                    num=len(item_ids),
+                ),
+            )
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartBulkDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/data", methods=["POST"])
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    def data(self) -> Response:
+        """
+        Takes a query context constructed in the client and returns payload
+        data response for the given query.
+        ---
+        post:
+          description: >-
+            Takes a query context constructed in the client and returns payload data
+            response for the given query.
+          requestBody:
+            description: >-
+              A query context consists of a datasource from which to fetch data
+              and one or many query objects.
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/ChartDataQueryContextSchema"
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/ChartDataResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+            """
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            query_context, errors = ChartDataQueryContextSchema().load(request.json)
+            if errors:
+                return self.response_400(
+                    message=_("Request is incorrect: %(error)s", error=errors)
+                )
+        except KeyError:
+            return self.response_400(message="Request is incorrect")
+        try:
+            security_manager.assert_query_context_permission(query_context)
+        except SupersetSecurityException:
+            return self.response_401()
+        payload_json = query_context.get_payload()
+        response_data = simplejson.dumps(
+            {"result": payload_json}, default=json_int_dttm_ser, ignore_nan=True
+        )
+        resp = make_response(response_data, 200)
+        resp.headers["Content-Type"] = "application/json; charset=utf-8"
+        return resp
+
+    @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
+    @protect()
+    @rison(thumbnail_query_schema)
+    @safe
+    @statsd_metrics
+    def thumbnail(
+        self, pk: int, digest: str, **kwargs: Dict[str, bool]
+    ) -> WerkzeugResponse:
+        """Get Chart thumbnail
+        ---
+        get:
+          description: Compute or get already computed chart thumbnail from cache
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: path
+            schema:
+              type: string
+            name: sha
+          responses:
+            200:
+              description: Chart thumbnail image
+              content:
+               image/*:
+                 schema:
+                   type: string
+                   format: binary
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = self.datamodel.get(pk, self._base_filters)
+        if not chart:
+            return self.response_404()
+        if kwargs["rison"].get("force", False):
+            cache_chart_thumbnail.delay(chart.id, force=True)
+            return self.response(202, message="OK Async")
+        # fetch the chart screenshot using the current user and cache if set
+        screenshot = ChartScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        # If not screenshot then send request to compute thumb to celery
+        if not screenshot:
+            cache_chart_thumbnail.delay(chart.id, force=True)
+            return self.response(202, message="OK Async")
+        # If digests
+        if chart.digest != digest:
+            return redirect(
+                url_for(
+                    f"{self.__class__.__name__}.thumbnail", pk=pk, digest=chart.digest
+                )
+            )
+        return Response(
+            FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
+        )
+
+    def add_apispec_components(self, api_spec: APISpec) -> None:
+        for chart_type in CHART_DATA_SCHEMAS:
+            api_spec.components.schema(
+                chart_type.__name__, schema=chart_type,
+            )
+        super().add_apispec_components(api_spec)
+
+    @expose("/datasources", methods=["GET"])
+    @protect()
+    @safe
+    def datasources(self) -> Response:
+        """Get available datasources
+        ---
+        get:
+          responses:
+            200:
+              description: charts unique datasource data
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      result:
+                        type: object
+                        properties:
+                          label:
+                            type: string
+                          value:
+                            type: object
+                            properties:
+                              database_id:
+                                type: integer
+                              database_type:
+                                type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        datasources = ChartDAO.fetch_all_datasources()
+        if not datasources:
+            return self.response(200, count=0, result=[])
+
+        result = [
+            {
+                "label": str(ds),
+                "value": {"datasource_id": ds.id, "datasource_type": ds.type},
+            }
+            for ds in datasources
+        ]
+        return self.response(200, count=len(result), result=result)

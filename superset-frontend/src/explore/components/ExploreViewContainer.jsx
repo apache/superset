@@ -317,7 +317,7 @@ class ExploreViewContainer extends React.Component {
         errorMessage={this.renderErrorMessage()}
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
-        onQuery={this.onQuery.bind(this)}
+        onQuery={this.onQuery}
       />
     );
   }
@@ -418,13 +418,12 @@ function mapStateToProps(state) {
 }
 
 function mapDispatchToProps(dispatch) {
-  const actions = Object.assign(
-    {},
-    exploreActions,
-    saveModalActions,
-    chartActions,
-    logActions,
-  );
+  const actions = {
+    ...exploreActions,
+    ...saveModalActions,
+    ...chartActions,
+    ...logActions,
+  };
   return {
     actions: bindActionCreators(actions, dispatch),
   };

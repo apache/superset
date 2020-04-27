@@ -16,16 +16,16 @@
 # under the License.
 import functools
 import logging
-from typing import Dict, Set, Tuple
+from typing import Any, cast, Dict, Optional, Set, Tuple, Type, Union
 
-from flask import request
+from flask import Response
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
-from sqlalchemy.exc import SQLAlchemyError
+from flask_appbuilder.models.sqla.filters import FilterStartsWith
 
-from superset.exceptions import SupersetSecurityException
-from superset.views.base import check_ownership
+from superset.stats_logger import BaseStatsLogger
+from superset.utils.core import time_function
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -38,24 +38,25 @@ get_related_schema = {
 }
 
 
-def check_ownership_and_item_exists(f):
+def statsd_metrics(f):
     """
-    A Decorator that checks if an object exists and is owned by the current user
+    Handle sending all statsd metrics from the REST API
     """
 
-    def wraps(self, pk):  # pylint: disable=invalid-name
-        item = self.datamodel.get(
-            pk, self._base_filters  # pylint: disable=protected-access
-        )
-        if not item:
-            return self.response_404()
-        try:
-            check_ownership(item)
-        except SupersetSecurityException as e:
-            return self.response(403, message=str(e))
-        return f(self, item)
+    def wraps(self, *args: Any, **kwargs: Any) -> Response:
+        duration, response = time_function(f, self, *args, **kwargs)
+        self.send_stats_metrics(response, f.__name__, duration)
+        return response
 
     return functools.update_wrapper(wraps, f)
+
+
+class RelatedFieldFilter:
+    # data class to specify what filter to use on a /related endpoint
+    # pylint: disable=too-few-public-methods
+    def __init__(self, field_name: str, filter_class: Type[BaseFilter]):
+        self.field_name = field_name
+        self.filter_class = filter_class
 
 
 class BaseSupersetModelRestApi(ModelRestApi):
@@ -74,7 +75,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         "bulk_delete": "delete",
         "info": "list",
         "related": "list",
+        "thumbnail": "list",
         "refresh": "edit",
+        "data": "list",
+        "viz_types": "list",
+        "datasources": "list",
     }
 
     order_rel_fields: Dict[str, Tuple[str, str]] = {}
@@ -86,12 +91,12 @@ class BaseSupersetModelRestApi(ModelRestApi):
              ...
         }
     """  # pylint: disable=pointless-string-statement
-    filter_rel_fields_field: Dict[str, str] = {}
+    related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
-    Declare the related field field for filtering::
+    Declare the filters for related fields::
 
-        filter_rel_fields_field = {
-            "<RELATED_FIELD>": "<RELATED_FIELD_FIELD>")
+        related_fields = {
+            "<RELATED_FIELD>": <RelatedFieldFilter>)
         }
     """  # pylint: disable=pointless-string-statement
     filter_rel_fields: Dict[str, BaseFilter] = {}
@@ -104,9 +109,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
     """  # pylint: disable=pointless-string-statement
     allowed_rel_fields: Set[str] = set()
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.stats_logger = None
+        self.stats_logger = BaseStatsLogger()
 
     def create_blueprint(self, appbuilder, *args, **kwargs):
         self.stats_logger = self.appbuilder.get_app.config["STATS_LOGGER"]
@@ -125,23 +130,87 @@ class BaseSupersetModelRestApi(ModelRestApi):
         super()._init_properties()
 
     def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
-        filter_field = self.filter_rel_fields_field.get(column_name)
-        filters = datamodel.get_filters([filter_field])
+        filter_field = self.related_field_filters.get(column_name)
+        if isinstance(filter_field, str):
+            filter_field = RelatedFieldFilter(cast(str, filter_field), FilterStartsWith)
+        filter_field = cast(RelatedFieldFilter, filter_field)
+        search_columns = [filter_field.field_name] if filter_field else None
+        filters = datamodel.get_filters(search_columns)
         base_filters = self.filter_rel_fields.get(column_name)
         if base_filters:
-            filters = filters.add_filter_list(base_filters)
-        if value:
-            filters.rest_add_filters(
-                [{"opr": "sw", "col": filter_field, "value": value}]
+            filters.add_filter_list(base_filters)
+        if value and filter_field:
+            filters.add_filter(
+                filter_field.field_name, filter_field.filter_class, value
             )
         return filters
 
     def incr_stats(self, action: str, func_name: str) -> None:
+        """
+        Proxy function for statsd.incr to impose a key structure for REST API's
+
+        :param action: String with an action name eg: error, success
+        :param func_name: The function name
+        """
         self.stats_logger.incr(f"{self.__class__.__name__}.{func_name}.{action}")
+
+    def timing_stats(self, action: str, func_name: str, value: float) -> None:
+        """
+        Proxy function for statsd.incr to impose a key structure for REST API's
+
+        :param action: String with an action name eg: error, success
+        :param func_name: The function name
+        :param value: A float with the time it took for the endpoint to execute
+        """
+        self.stats_logger.timing(
+            f"{self.__class__.__name__}.{func_name}.{action}", value
+        )
+
+    def send_stats_metrics(
+        self, response: Response, key: str, time_delta: Optional[float] = None
+    ) -> None:
+        """
+        Helper function to handle sending statsd metrics
+
+        :param response: flask response object, will evaluate if it was an error
+        :param key: The function name
+        :param time_delta: Optional time it took for the endpoint to execute
+        """
+        if 200 <= response.status_code < 400:
+            self.incr_stats("success", key)
+        else:
+            self.incr_stats("error", key)
+        if time_delta:
+            self.timing_stats("time", key, time_delta)
+
+    def info_headless(self, **kwargs) -> Response:
+        """
+        Add statsd metrics to builtin FAB _info endpoint
+        """
+        duration, response = time_function(super().info_headless, **kwargs)
+        self.send_stats_metrics(response, self.info.__name__, duration)
+        return response
+
+    def get_headless(self, pk, **kwargs) -> Response:
+        """
+        Add statsd metrics to builtin FAB GET endpoint
+        """
+        duration, response = time_function(super().get_headless, pk, **kwargs)
+        self.send_stats_metrics(response, self.get.__name__, duration)
+        return response
+
+    def get_list_headless(self, **kwargs) -> Response:
+        """
+        Add statsd metrics to builtin FAB GET list endpoint
+        """
+        duration, response = time_function(super().get_list_headless, **kwargs)
+        self.send_stats_metrics(response, self.get_list.__name__, duration)
+        return response
 
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
     @safe
+    @statsd_metrics
     @rison(get_related_schema)
     def related(self, column_name: str, **kwargs):
         """Get related fields data
@@ -194,6 +263,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
               $ref: '#/components/responses/500'
         """
         if column_name not in self.allowed_rel_fields:
+            self.incr_stats("error", self.related.__name__)
             return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination
@@ -221,155 +291,3 @@ class BaseSupersetModelRestApi(ModelRestApi):
             for value in values
         ]
         return self.response(200, count=count, result=result)
-
-
-class BaseOwnedModelRestApi(BaseSupersetModelRestApi):
-    @expose("/<pk>", methods=["PUT"])
-    @protect()
-    @check_ownership_and_item_exists
-    @safe
-    def put(self, item):  # pylint: disable=arguments-differ
-        """Changes a owned Model
-        ---
-        put:
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            description: Model schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-          responses:
-            200:
-              description: Item changed
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if not request.is_json:
-            self.response_400(message="Request is not JSON")
-        item = self.edit_model_schema.load(request.json, instance=item)
-        if item.errors:
-            return self.response_422(message=item.errors)
-        try:
-            self.datamodel.edit(item.data, raise_exception=True)
-            return self.response(
-                200, result=self.edit_model_schema.dump(item.data, many=False).data
-            )
-        except SQLAlchemyError as e:
-            logger.error(f"Error updating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
-
-    @expose("/", methods=["POST"])
-    @protect()
-    @safe
-    def post(self):
-        """Creates a new owned Model
-        ---
-        post:
-          requestBody:
-            description: Model schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-          responses:
-            201:
-              description: Model added
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
-        item = self.add_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_422(message=item.errors)
-        try:
-            self.datamodel.add(item.data, raise_exception=True)
-            return self.response(
-                201,
-                result=self.add_model_schema.dump(item.data, many=False).data,
-                id=item.data.id,
-            )
-        except SQLAlchemyError as e:
-            logger.error(f"Error creating model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))
-
-    @expose("/<pk>", methods=["DELETE"])
-    @protect()
-    @check_ownership_and_item_exists
-    @safe
-    def delete(self, item):  # pylint: disable=arguments-differ
-        """Deletes owned Model
-        ---
-        delete:
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          responses:
-            200:
-              description: Model delete
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            self.datamodel.delete(item, raise_exception=True)
-            return self.response(200, message="OK")
-        except SQLAlchemyError as e:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {e}")
-            return self.response_422(message=str(e))

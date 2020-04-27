@@ -30,6 +30,13 @@ module.exports = {
   plugins: ['prettier', 'react'],
   overrides: [
     {
+      files: ['cypress-base/**/*'],
+      rules: {
+        'import/no-unresolved': 0,
+        'global-require': 0,
+      }
+    },
+    {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
       extends: [
@@ -146,6 +153,7 @@ module.exports = {
     'no-unused-vars': 0,
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
+    'prefer-object-spread': 1,
     'prefer-template': 0,
     'react/forbid-prop-types': 0,
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],

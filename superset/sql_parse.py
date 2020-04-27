@@ -18,7 +18,14 @@ import logging
 from typing import List, Optional, Set
 
 import sqlparse
-from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
+from sqlparse.sql import (
+    Function,
+    Identifier,
+    IdentifierList,
+    remove_quotes,
+    Token,
+    TokenList,
+)
 from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
 
@@ -60,12 +67,14 @@ class ParsedQuery:
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
-            self.__extract_from_token(statement)
             self._limit = _extract_limit_from_query(statement)
-        self._table_names = self._table_names - self._alias_names
 
     @property
     def tables(self) -> Set[str]:
+        if not self._table_names:
+            for statement in self._parsed:
+                self.__extract_from_token(statement)
+            self._table_names = self._table_names - self._alias_names
         return self._table_names
 
     @property
@@ -245,3 +254,39 @@ class ParsedQuery:
         for i in statement.tokens:
             str_res += str(i.value)
         return str_res
+
+    def set_alias(self) -> str:
+        """
+        Returns a new query string where all functions have alias.
+        This is particularly necessary for MSSQL engines.
+
+        :return: String with new aliased SQL query
+        """
+        new_sql = ""
+        changed_counter = 1
+        for token in self._parsed[0].tokens:
+            # Identifier list (list of columns)
+            if isinstance(token, IdentifierList) and token.ttype is None:
+                for i, identifier in enumerate(token.get_identifiers()):
+                    # Functions are anonymous on MSSQL
+                    if isinstance(identifier, Function) and not identifier.has_alias():
+                        identifier.value = (
+                            f"{identifier.value} AS"
+                            f" {identifier.get_real_name()}_{changed_counter}"
+                        )
+                        changed_counter += 1
+                    new_sql += str(identifier.value)
+                    # If not last identifier
+                    if i != len(list(token.get_identifiers())) - 1:
+                        new_sql += ", "
+            # Just a lonely function?
+            elif isinstance(token, Function) and token.ttype is None:
+                if not token.has_alias():
+                    token.value = (
+                        f"{token.value} AS {token.get_real_name()}_{changed_counter}"
+                    )
+                new_sql += str(token.value)
+            # Nothing to change, assemble what we have
+            else:
+                new_sql += str(token.value)
+        return new_sql

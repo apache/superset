@@ -415,11 +415,11 @@ class DruidFuncTestCase(SupersetTestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             filter=[],
             row_limit=100,
@@ -472,11 +472,11 @@ class DruidFuncTestCase(SupersetTestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             filter=[],
             row_limit=100,
@@ -519,11 +519,11 @@ class DruidFuncTestCase(SupersetTestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # client.topn is called twice
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=100,
             client=client,
             order_desc=True,
@@ -543,11 +543,11 @@ class DruidFuncTestCase(SupersetTestCase):
         client = Mock()
         client.query_builder.last_query.query_dict = {"mock": 0}
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             order_desc=False,
             filter=[],
@@ -568,11 +568,11 @@ class DruidFuncTestCase(SupersetTestCase):
         client = Mock()
         client.query_builder.last_query.query_dict = {"mock": 0}
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             order_desc=True,
             timeseries_limit=5,
@@ -619,11 +619,11 @@ class DruidFuncTestCase(SupersetTestCase):
         client.query_builder.last_query.query_dict = {"mock": 0}
         # no groupby calls client.timeseries
         ds.run_query(
-            groupby,
             metrics,
             None,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             client=client,
             row_limit=100,
             filter=[],
@@ -1021,11 +1021,11 @@ class DruidFuncTestCase(SupersetTestCase):
         granularity = "all"
         # get the counts of the top 5 'dim1's, order by 'sum1'
         ds.run_query(
-            groupby,
             metrics,
             granularity,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=5,
             timeseries_limit_metric="sum1",
             client=client,
@@ -1042,11 +1042,11 @@ class DruidFuncTestCase(SupersetTestCase):
 
         # get the counts of the top 5 'dim1's, order by 'div1'
         ds.run_query(
-            groupby,
             metrics,
             granularity,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=5,
             timeseries_limit_metric="div1",
             client=client,
@@ -1064,11 +1064,11 @@ class DruidFuncTestCase(SupersetTestCase):
         groupby = ["dim1", "dim2"]
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
         ds.run_query(
-            groupby,
             metrics,
             granularity,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=5,
             timeseries_limit_metric="sum1",
             client=client,
@@ -1085,11 +1085,11 @@ class DruidFuncTestCase(SupersetTestCase):
 
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'div1'
         ds.run_query(
-            groupby,
             metrics,
             granularity,
             from_dttm,
             to_dttm,
+            groupby=groupby,
             timeseries_limit=5,
             timeseries_limit_metric="div1",
             client=client,

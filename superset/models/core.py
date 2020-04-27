@@ -73,7 +73,7 @@ class Url(Model, AuditMixinNullable):
     """Used for the short url feature"""
 
     __tablename__ = "url"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     url = Column(Text)
 
 
@@ -82,7 +82,7 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     """Used for any type of key-value store"""
 
     __tablename__ = "keyvalue"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     value = Column(Text, nullable=False)
 
 
@@ -91,7 +91,7 @@ class CssTemplate(Model, AuditMixinNullable):
     """CSS templates for dashboards"""
 
     __tablename__ = "css_templates"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
     css = Column(Text, default="")
 
@@ -106,7 +106,7 @@ class Database(
     type = "table"
     __table_args__ = (UniqueConstraint("database_name"),)
 
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
@@ -139,6 +139,7 @@ class Database(
     encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
+    server_cert = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     export_fields = [
         "database_name",
         "sqlalchemy_uri",
@@ -309,6 +310,7 @@ class Database(
         )
         if configuration:
             connect_args["configuration"] = configuration
+        if connect_args:
             params["connect_args"] = connect_args
 
         params.update(self.get_encrypted_extra())
@@ -458,7 +460,7 @@ class Database(
         self,
         schema: str,
         cache: bool = False,
-        cache_timeout: int = None,
+        cache_timeout: Optional[int] = None,
         force: bool = False,
     ) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments.
@@ -479,8 +481,8 @@ class Database(
             return [
                 utils.DatasourceName(table=table, schema=schema) for table in tables
             ]
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: f"db:{{}}:schema:{kwargs.get('schema')}:view_list",  # type: ignore
@@ -490,7 +492,7 @@ class Database(
         self,
         schema: str,
         cache: bool = False,
-        cache_timeout: int = None,
+        cache_timeout: Optional[int] = None,
         force: bool = False,
     ) -> List[utils.DatasourceName]:
         """Parameters need to be passed as keyword arguments.
@@ -509,8 +511,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: "db:{}:schema_list", attribute_in_key="id"
@@ -555,23 +557,16 @@ class Database(
         return self.db_engine_spec.get_time_grains()
 
     def get_extra(self) -> Dict[str, Any]:
-        extra: Dict[str, Any] = {}
-        if self.extra:
-            try:
-                extra = json.loads(self.extra)
-            except json.JSONDecodeError as e:
-                logger.error(e)
-                raise e
-        return extra
+        return self.db_engine_spec.get_extra_params(self)
 
     def get_encrypted_extra(self):
         encrypted_extra = {}
         if self.encrypted_extra:
             try:
                 encrypted_extra = json.loads(self.encrypted_extra)
-            except json.JSONDecodeError as e:
-                logger.error(e)
-                raise e
+            except json.JSONDecodeError as ex:
+                logger.error(ex)
+                raise ex
         return encrypted_extra
 
     def get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
@@ -650,7 +645,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
 
     __tablename__ = "logs"
 
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     action = Column(String(512))
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     dashboard_id = Column(Integer)
@@ -667,7 +662,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
 class FavStar(Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "favstar"
 
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     class_name = Column(String(50))
     obj_id = Column(Integer)

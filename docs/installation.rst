@@ -377,7 +377,7 @@ Here's a list of some of the recommended packages.
 +------------------+---------------------------------------+-------------------------------------------------+
 | CockroachDB      | ``pip install cockroachdb``           | ``cockroachdb://``                              |
 +------------------+---------------------------------------+-------------------------------------------------+
-| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://user:pwd@host:31010/``               |
+| Dremio           | ``pip install sqlalchemy_dremio``     | ``dremio://``                                   |
 +------------------+---------------------------------------+-------------------------------------------------+
 | Elasticsearch    | ``pip install elasticsearch-dbapi``   | ``elasticsearch+http://``                       |
 +------------------+---------------------------------------+-------------------------------------------------+
@@ -647,6 +647,74 @@ section in `config.py`:
 This will cache all the charts in the top 5 most popular dashboards every hour.
 For other strategies, check the `superset/tasks/cache.py` file.
 
+Caching Thumbnails
+------------------
+
+This is an optional feature that can be turned on by activating it's feature flag on config:
+
+.. code-block:: python
+
+    FEATURE_FLAGS = {
+        "THUMBNAILS": True,
+        "THUMBNAILS_SQLA_LISTENERS": True,
+    }
+
+
+For this feature you will need a cache system and celery workers. All thumbnails are store on cache and are processed
+asynchronously by the workers.
+
+An example config where images are stored on S3 could be:
+
+.. code-block:: python
+
+    from flask import Flask
+    from s3cache.s3cache import S3Cache
+
+    ...
+
+    class CeleryConfig(object):
+        BROKER_URL = "redis://localhost:6379/0"
+        CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+        CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+        CELERYD_PREFETCH_MULTIPLIER = 10
+        CELERY_ACKS_LATE = True
+
+
+    CELERY_CONFIG = CeleryConfig
+
+    def init_thumbnail_cache(app: Flask) -> S3Cache:
+        return S3Cache("bucket_name", 'thumbs_cache/')
+
+
+    THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
+    # Async selenium thumbnail task will use the following user
+    THUMBNAIL_SELENIUM_USER = "Admin"
+
+Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`
+
+You can override the base URL for selenium using:
+
+.. code-block:: python
+
+    WEBDRIVER_BASEURL = "https://superset.company.com"
+
+
+Additional selenium web drive config can be set using `WEBDRIVER_CONFIGURATION`
+
+You can implement a custom function to authenticate selenium, the default uses flask-login session cookie.
+An example of a custom function signature:
+
+.. code-block:: python
+
+    def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
+        pass
+
+
+Then on config:
+
+.. code-block:: python
+
+    WEBDRIVER_AUTH_FUNC = auth_driver
 
 Deeper SQLAlchemy integration
 -----------------------------
@@ -729,12 +797,20 @@ The native Druid connector (behind the ``DRUID_IS_ACTIVE`` feature flag)
 is slowly getting deprecated in favor of the SQLAlchemy/DBAPI connector made
 available in the ``pydruid`` library.
 
+To use a custom SSL certificate to validate HTTPS requests, the certificate
+contents can be entered in the ``Root Certificate`` field in the Database
+dialog. When using a custom certificate, ``pydruid`` will automatically use
+``https`` scheme. To disable SSL verification add the following to extras:
+``engine_params": {"connect_args": {"scheme": "https", "ssl_verify_cert": false}}``
+
 Dremio
 ------
 
 Install the following dependencies to connect to Dremio:
 
 * Dremio SQLAlchemy: ``pip install sqlalchemy_dremio``
+
+  * If you receive any errors during the installation of ``sqlalchemy_dremio``, make sure to install the prerequisites for PyODBC properly by following the instructions for your OS here: https://github.com/narendrans/sqlalchemy_dremio#installation
 * Dremio's ODBC driver: https://www.dremio.com/drivers/
 
 Example SQLAlchemy URI: ``dremio://dremio:dremio123@localhost:31010/dremio``
@@ -1078,6 +1154,59 @@ in this dictionary are made available for users to use in their SQL.
     JINJA_CONTEXT_ADDONS = {
         'my_crazy_macro': lambda x: x*2,
     }
+
+Besides default Jinja templating, SQL lab also supports self-defined template
+processor by setting the ``CUSTOM_TEMPLATE_PROCESSORS`` in your superset configuration.
+The values in this dictionary overwrite the default Jinja template processors of the
+specified database engine.
+The example below configures a custom presto template processor which implements
+its own logic of processing macro template with regex parsing. It uses ``$`` style
+macro instead of ``{{ }}`` style in Jinja templating. By configuring it with
+``CUSTOM_TEMPLATE_PROCESSORS``, sql template on presto database is processed
+by the custom one rather than the default one.
+
+.. code-block:: python
+
+    def DATE(
+        ts: datetime, day_offset: SupportsInt = 0, hour_offset: SupportsInt = 0
+    ) -> str:
+        """Current day as a string."""
+        day_offset, hour_offset = int(day_offset), int(hour_offset)
+        offset_day = (ts + timedelta(days=day_offset, hours=hour_offset)).date()
+        return str(offset_day)
+
+    class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
+        """A custom presto template processor."""
+
+        engine = "presto"
+
+        def process_template(self, sql: str, **kwargs) -> str:
+            """Processes a sql template with $ style macro using regex."""
+            # Add custom macros functions.
+            macros = {
+                "DATE": partial(DATE, datetime.utcnow())
+            }  # type: Dict[str, Any]
+            # Update with macros defined in context and kwargs.
+            macros.update(self.context)
+            macros.update(kwargs)
+
+            def replacer(match):
+                """Expand $ style macros with corresponding function calls."""
+                macro_name, args_str = match.groups()
+                args = [a.strip() for a in args_str.split(",")]
+                if args == [""]:
+                    args = []
+                f = macros[macro_name[1:]]
+                return f(*args)
+
+            macro_names = ["$" + name for name in macros.keys()]
+            pattern = r"(%s)\s*\(([^()]*)\)" % "|".join(map(re.escape, macro_names))
+            return re.sub(pattern, replacer, sql)
+
+    CUSTOM_TEMPLATE_PROCESSORS = {
+        CustomPrestoTemplateProcessor.engine: CustomPrestoTemplateProcessor
+    }
+
 
 SQL Lab also includes a live query validation feature with pluggable backends.
 You can configure which validation implementation is used with which database

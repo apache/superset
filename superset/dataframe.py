@@ -26,10 +26,10 @@ from superset.utils.core import JS_MAX_INTEGER
 def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     data: List[Dict[str, Any]] = dframe.to_dict(orient="records")
     # TODO: refactor this
-    for d in data:
-        for k, v in list(d.items()):
+    for row in data:
+        for key, value in list(row.items()):
             # if an int is too big for JavaScript to handle
             # convert it to a string
-            if isinstance(v, int) and abs(v) > JS_MAX_INTEGER:
-                d[k] = str(v)
+            if isinstance(value, int) and abs(value) > JS_MAX_INTEGER:
+                row[key] = str(value)
     return data

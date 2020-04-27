@@ -1,0 +1,28 @@
+name: Frontend
+
+on: [push, pull_request]
+
+jobs:
+  frontend-build:
+    name: build
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@adc6f73
+      with:
+        run: npm-install
+    - name: lint
+      working-directory: ./superset-frontend
+      run: |
+        npm run lint
+        npm run prettier-check
+    - name: unit tests
+      working-directory: ./superset-frontend
+      run: |
+        npm run test -- --coverage
+    - name: Upload code coverage
+      working-directory: ./superset-frontend
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF javascript

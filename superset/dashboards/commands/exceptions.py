@@ -32,7 +32,7 @@ class DashboardSlugExistsValidationError(ValidationError):
     Marshmallow validation error for dashboard slug already exists
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(_("Must be unique"), field_names=["slug"])
 
 

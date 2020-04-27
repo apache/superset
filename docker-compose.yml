@@ -41,6 +41,7 @@ services:
     container_name: dwh-superset-init
     env_file: docker/.env
     build: *superset-build
+    container_name: superset_init
     command: ["/app/docker-init.sh"]
     depends_on:
       - superset-db
@@ -60,6 +61,7 @@ services:
     env_file: docker/.env
     restart: unless-stopped
     build: *superset-build
+    container_name: superset_worker
     command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair"]
     depends_on:
       - superset-broker

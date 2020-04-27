@@ -385,7 +385,7 @@ class RequestAccessTests(SupersetTestCase):
             )
             self.assertEqual(
                 "[Superset] Access to the datasource {} was granted".format(
-                    self.get_table(ds_1_id).full_name
+                    self.get_table_by_id(ds_1_id).full_name
                 ),
                 call_args[2]["Subject"],
             )
@@ -426,7 +426,7 @@ class RequestAccessTests(SupersetTestCase):
             )
             self.assertEqual(
                 "[Superset] Access to the datasource {} was granted".format(
-                    self.get_table(ds_2_id).full_name
+                    self.get_table_by_id(ds_2_id).full_name
                 ),
                 call_args[2]["Subject"],
             )
@@ -567,10 +567,7 @@ class RequestAccessTests(SupersetTestCase):
             self.get_resp(ACCESS_REQUEST.format("druid", druid_ds_4_id, "go"))
             access_request4 = self.get_access_requests("gamma", "druid", druid_ds_4_id)
 
-            self.assertEqual(
-                access_request4.roles_with_datasource,
-                "<ul></ul>".format(access_request4.id),
-            )
+            self.assertEqual(access_request4.roles_with_datasource, "<ul></ul>")
 
             # Case 5. Roles exist that contains the druid datasource.
             # add druid ds to the existing roles

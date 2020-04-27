@@ -43,7 +43,7 @@ def upgrade():
     try:
         op.create_unique_constraint(None, "dbs", ["verbose_name"])
         op.create_unique_constraint(None, "clusters", ["verbose_name"])
-    except Exception as e:
+    except Exception:
         logging.info("Constraint not created, expected when using sqlite")
 
 
@@ -51,5 +51,5 @@ def downgrade():
     try:
         op.drop_column("dbs", "verbose_name")
         op.drop_column("clusters", "verbose_name")
-    except Exception as e:
-        logging.exception(e)
+    except Exception as ex:
+        logging.exception(ex)

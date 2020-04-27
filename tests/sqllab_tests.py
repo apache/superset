@@ -332,6 +332,22 @@ class SqlLabTests(SupersetTestCase):
         table = db.session.query(SqlaTable).filter_by(id=table_id).one()
         self.assertEqual([owner.username for owner in table.owners], ["admin"])
 
+    def test_sqllab_table_viz(self):
+        self.login("admin")
+        examples_dbid = get_example_database().id
+        payload = {"datasourceName": "ab_role", "columns": [], "dbId": examples_dbid}
+
+        data = {"data": json.dumps(payload)}
+        resp = self.get_json_resp("/superset/get_or_create_table/", data=data)
+        self.assertIn("table_id", resp)
+
+        # ensure owner is set correctly
+        table_id = resp["table_id"]
+        table = db.session.query(SqlaTable).filter_by(id=table_id).one()
+        self.assertEqual([owner.username for owner in table.owners], ["admin"])
+        db.session.delete(table)
+        db.session.commit()
+
     def test_sql_limit(self):
         self.login("admin")
         test_limit = 1

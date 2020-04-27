@@ -17,12 +17,12 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { legacyValidateInteger } from '@superset-ui/validator';
 import {
   // formatSelectOptionsForRange,
   formatSelectOptions,
   // mainMetric,
 } from '../../modules/utils';
-import * as v from '.././validators';
 import { D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 
 export default {
@@ -85,7 +85,7 @@ export default {
               type: 'TextControl',
               isInt: true,
               default: 10,
-              validators: [v.integer],
+              validators: [legacyValidateInteger],
               renderTrigger: true,
               label: t('Cell Size'),
               description: t('The size of the square cell, in pixels'),
@@ -96,7 +96,7 @@ export default {
             config: {
               type: 'TextControl',
               isInt: true,
-              validators: [v.integer],
+              validators: [legacyValidateInteger],
               renderTrigger: true,
               default: 2,
               label: t('Cell Padding'),
@@ -110,7 +110,7 @@ export default {
             config: {
               type: 'TextControl',
               isInt: true,
-              validators: [v.integer],
+              validators: [legacyValidateInteger],
               renderTrigger: true,
               default: 0,
               label: t('Cell Radius'),
@@ -122,7 +122,7 @@ export default {
             config: {
               type: 'TextControl',
               isInt: true,
-              validators: [v.integer],
+              validators: [legacyValidateInteger],
               renderTrigger: true,
               default: 10,
               label: t('Color Steps'),
@@ -145,7 +145,30 @@ export default {
             },
           },
         ],
-        ['show_legend', 'show_values'],
+        [
+          {
+            name: 'show_legend',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Legend'),
+              renderTrigger: true,
+              default: true,
+              description: t('Whether to display the legend (toggles)'),
+            },
+          },
+          {
+            name: 'show_values',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Values'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Whether to display the numerical values within the cells',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'show_metric_name',
@@ -165,9 +188,6 @@ export default {
   controlOverrides: {
     y_axis_format: {
       label: t('Number Format'),
-    },
-    show_values: {
-      default: false,
     },
   },
 };

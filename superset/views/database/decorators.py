@@ -32,9 +32,7 @@ def check_datasource_access(f):
     A Decorator that checks if a user has datasource access
     """
 
-    def wraps(
-        self, pk: int, table_name: str, schema_name: Optional[str] = None
-    ):  # pylint: disable=invalid-name
+    def wraps(self, pk: int, table_name: str, schema_name: Optional[str] = None):
         schema_name_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
         table_name_parsed = parse_js_uri_path_item(table_name)
         if not table_name_parsed:

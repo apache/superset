@@ -24,7 +24,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from distutils.version import LooseVersion
 from multiprocessing.pool import ThreadPool
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, cast, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import pandas as pd
 import sqlalchemy as sa
@@ -48,12 +48,13 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy_utils import EncryptedType
 
-from superset import conf, db, security_manager
+from superset import conf, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
+from superset.typing import FilterValues
 from superset.utils import core as utils, import_datasource
 
 try:
@@ -80,10 +81,16 @@ except ImportError:
     pass
 
 try:
-    from superset.utils.core import DimSelector, DTTM_ALIAS, flasher
+    from superset.utils.core import (
+        DimSelector,
+        DTTM_ALIAS,
+        FilterOperator,
+        flasher,
+    )
 except ImportError:
     pass
 
+IS_SIP_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
 DRUID_TZ = conf.get("DRUID_TZ")
 POST_AGG_TYPE = "postagg"
 metadata = Model.metadata  # pylint: disable=no-member
@@ -657,9 +664,9 @@ class DruidDatasource(Model, BaseDatasource):
                 merge=self.merge_flag,
                 analysisTypes=[],
             )
-        except Exception as e:
+        except Exception as ex:
             logger.warning("Failed first attempt to get latest segment")
-            logger.exception(e)
+            logger.exception(ex)
         if not segment_metadata:
             # if no segments in the past 7 days, look at all segments
             lbound = datetime(1901, 1, 1).isoformat()[:10]
@@ -674,9 +681,9 @@ class DruidDatasource(Model, BaseDatasource):
                     merge=self.merge_flag,
                     analysisTypes=[],
                 )
-            except Exception as e:
+            except Exception as ex:
                 logger.warning("Failed 2nd attempt to get latest segment")
-                logger.exception(e)
+                logger.exception(ex)
         if segment_metadata:
             return segment_metadata[-1]["columns"]
 
@@ -810,12 +817,13 @@ class DruidDatasource(Model, BaseDatasource):
             "year": "P1Y",
         }
 
-        granularity = {"type": "period"}
+        granularity: Dict[str, Union[str, float]] = {"type": "period"}
         if timezone:
             granularity["timeZone"] = timezone
 
         if origin:
             dttm = utils.parse_human_datetime(origin)
+            assert dttm
             granularity["origin"] = dttm.isoformat()
 
         if period_name in iso_8601_dict:
@@ -831,7 +839,7 @@ class DruidDatasource(Model, BaseDatasource):
             granularity["period"] = period_name
         else:
             granularity["type"] = "duration"
-            granularity["duration"] = (  # type: ignore
+            granularity["duration"] = (
                 utils.parse_human_timedelta(period_name).total_seconds() * 1000
             )
         return granularity
@@ -941,23 +949,24 @@ class DruidDatasource(Model, BaseDatasource):
         adhoc_agg_configs = []
         postagg_names = []
         for metric in metrics:
-            if utils.is_adhoc_metric(metric):
+            if isinstance(metric, dict) and utils.is_adhoc_metric(metric):
                 adhoc_agg_configs.append(metric)
-            elif metrics_dict[metric].metric_type != POST_AGG_TYPE:  # type: ignore
-                saved_agg_names.add(metric)
-            else:
-                postagg_names.append(metric)
+            elif isinstance(metric, str):
+                if metrics_dict[metric].metric_type != POST_AGG_TYPE:
+                    saved_agg_names.add(metric)
+                else:
+                    postagg_names.append(metric)
         # Create the post aggregations, maintain order since postaggs
         # may depend on previous ones
         post_aggs: "OrderedDict[str, Postaggregator]" = OrderedDict()
         visited_postaggs = set()
         for postagg_name in postagg_names:
-            postagg = metrics_dict[postagg_name]  # type: ignore
+            postagg = metrics_dict[postagg_name]
             visited_postaggs.add(postagg_name)
             DruidDatasource.resolve_postagg(
                 postagg, post_aggs, saved_agg_names, visited_postaggs, metrics_dict
             )
-        aggs = DruidDatasource.get_aggregations(  # type: ignore
+        aggs = DruidDatasource.get_aggregations(
             metrics_dict, saved_agg_names, adhoc_agg_configs
         )
         return aggs, post_aggs
@@ -970,6 +979,7 @@ class DruidDatasource(Model, BaseDatasource):
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
         if self.fetch_values_from:
             from_dttm = utils.parse_human_datetime(self.fetch_values_from)
+            assert from_dttm
         else:
             from_dttm = datetime(1970, 1, 1)
 
@@ -1081,11 +1091,11 @@ class DruidDatasource(Model, BaseDatasource):
         return aggregations
 
     def get_dimensions(
-        self, groupby: List[str], columns_dict: Dict[str, DruidColumn]
+        self, columns: List[str], columns_dict: Dict[str, DruidColumn]
     ) -> List[Union[str, Dict]]:
         dimensions = []
-        groupby = [gb for gb in groupby if gb in columns_dict]
-        for column_name in groupby:
+        columns = [col for col in columns if col in columns_dict]
+        for column_name in columns:
             col = columns_dict.get(column_name)
             dim_spec = col.dimension_spec if col else None
             dimensions.append(dim_spec or column_name)
@@ -1136,11 +1146,12 @@ class DruidDatasource(Model, BaseDatasource):
 
     def run_query(  # druid
         self,
-        groupby,
         metrics,
         granularity,
         from_dttm,
         to_dttm,
+        columns=None,
+        groupby=None,
         filter=None,
         is_timeseries=True,
         timeseries_limit=None,
@@ -1150,7 +1161,6 @@ class DruidDatasource(Model, BaseDatasource):
         inner_to_dttm=None,
         orderby=None,
         extras=None,
-        columns=None,
         phase=2,
         client=None,
         order_desc=True,
@@ -1187,7 +1197,11 @@ class DruidDatasource(Model, BaseDatasource):
         )
 
         # the dimensions list with dimensionSpecs expanded
-        dimensions = self.get_dimensions(groupby, columns_dict)
+
+        dimensions = self.get_dimensions(
+            columns if IS_SIP_38 else groupby, columns_dict
+        )
+
         extras = extras or {}
         qry = dict(
             datasource=self.datasource_name,
@@ -1213,7 +1227,9 @@ class DruidDatasource(Model, BaseDatasource):
 
         order_direction = "descending" if order_desc else "ascending"
 
-        if columns:
+        if (IS_SIP_38 and not metrics and "__time" not in columns) or (
+            not IS_SIP_38 and columns
+        ):
             columns.append("__time")
             del qry["post_aggregations"]
             del qry["aggregations"]
@@ -1223,11 +1239,20 @@ class DruidDatasource(Model, BaseDatasource):
             qry["granularity"] = "all"
             qry["limit"] = row_limit
             client.scan(**qry)
-        elif len(groupby) == 0 and not having_filters:
+        elif (IS_SIP_38 and columns) or (
+            not IS_SIP_38 and len(groupby) == 0 and not having_filters
+        ):
             logger.info("Running timeseries query for no groupby values")
             del qry["dimensions"]
             client.timeseries(**qry)
-        elif not having_filters and len(groupby) == 1 and order_desc:
+        elif (
+            not having_filters
+            and order_desc
+            and (
+                (IS_SIP_38 and len(columns) == 1)
+                or (not IS_SIP_38 and len(groupby) == 1)
+            )
+        ):
             dim = list(qry["dimensions"])[0]
             logger.info("Running two-phase topn query for dimension [{}]".format(dim))
             pre_qry = deepcopy(qry)
@@ -1278,7 +1303,10 @@ class DruidDatasource(Model, BaseDatasource):
             qry["metric"] = list(qry["aggregations"].keys())[0]
             client.topn(**qry)
             logger.info("Phase 2 Complete")
-        elif len(groupby) > 0 or having_filters:
+        elif (
+            having_filters
+            or ((IS_SIP_38 and columns) or (not IS_SIP_38 and len(groupby))) > 0
+        ):
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             logger.info("Running groupby query for dimensions [{}]".format(dimensions))
@@ -1363,8 +1391,8 @@ class DruidDatasource(Model, BaseDatasource):
         return query_str
 
     @staticmethod
-    def homogenize_types(df: pd.DataFrame, groupby_cols: Iterable[str]) -> pd.DataFrame:
-        """Converting all GROUPBY columns to strings
+    def homogenize_types(df: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
+        """Converting all columns to strings
 
         When grouping by a numeric (say FLOAT) column, pydruid returns
         strings in the dataframe. This creates issues downstream related
@@ -1373,7 +1401,7 @@ class DruidDatasource(Model, BaseDatasource):
         Here we replace None with <NULL> and make the whole series a
         str instead of an object.
         """
-        df[groupby_cols] = df[groupby_cols].fillna(NULL_STRING).astype("unicode")
+        df[columns] = df[columns].fillna(NULL_STRING).astype("unicode")
         return df
 
     def query(self, query_obj: Dict) -> QueryResult:
@@ -1389,7 +1417,9 @@ class DruidDatasource(Model, BaseDatasource):
                 df=df, query=query_str, duration=datetime.now() - qry_start_dttm
             )
 
-        df = self.homogenize_types(df, query_obj.get("groupby", []))
+        df = self.homogenize_types(
+            df, query_obj.get("columns" if IS_SIP_38 else "groupby", [])
+        )
         df.columns = [
             DTTM_ALIAS if c in ("timestamp", "__time") else c for c in df.columns
         ]
@@ -1404,7 +1434,9 @@ class DruidDatasource(Model, BaseDatasource):
         cols: List[str] = []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
-        cols += query_obj.get("groupby") or []
+
+        if not IS_SIP_38:
+            cols += query_obj.get("groupby") or []
         cols += query_obj.get("columns") or []
         cols += query_obj.get("metrics") or []
 
@@ -1459,13 +1491,20 @@ class DruidDatasource(Model, BaseDatasource):
         """Given Superset filter data structure, returns pydruid Filter(s)"""
         filters = None
         for flt in raw_filters:
-            col = flt.get("col")
-            op = flt.get("op")
-            eq = flt.get("val")
+            col: Optional[str] = flt.get("col")
+            op: Optional[str] = flt["op"].upper() if "op" in flt else None
+            eq: Optional[FilterValues] = flt.get("val")
             if (
                 not col
                 or not op
-                or (eq is None and op not in ("IS NULL", "IS NOT NULL"))
+                or (
+                    eq is None
+                    and op
+                    not in (
+                        FilterOperator.IS_NULL.value,
+                        FilterOperator.IS_NOT_NULL.value,
+                    )
+                )
             ):
                 continue
 
@@ -1479,7 +1518,10 @@ class DruidDatasource(Model, BaseDatasource):
 
             cond = None
             is_numeric_col = col in num_cols
-            is_list_target = op in ("in", "not in")
+            is_list_target = op in (
+                FilterOperator.IN.value,
+                FilterOperator.NOT_IN.value,
+            )
             eq = cls.filter_values_handler(
                 eq,
                 is_list_target=is_list_target,
@@ -1488,15 +1530,16 @@ class DruidDatasource(Model, BaseDatasource):
 
             # For these two ops, could have used Dimension,
             # but it doesn't support extraction functions
-            if op == "==":
+            if op == FilterOperator.EQUALS.value:
                 cond = Filter(
                     dimension=col, value=eq, extraction_function=extraction_fn
                 )
-            elif op == "!=":
+            elif op == FilterOperator.NOT_EQUALS.value:
                 cond = ~Filter(
                     dimension=col, value=eq, extraction_function=extraction_fn
                 )
-            elif op in ("in", "not in"):
+            elif is_list_target:
+                eq = cast(list, eq)
                 fields = []
                 # ignore the filter if it has no value
                 if not len(eq):
@@ -1516,9 +1559,9 @@ class DruidDatasource(Model, BaseDatasource):
                     for s in eq:
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
-                if op == "not in":
+                if op == FilterOperator.NOT_IN.value:
                     cond = ~cond
-            elif op == "regex":
+            elif op == FilterOperator.REGEX.value:
                 cond = Filter(
                     extraction_function=extraction_fn,
                     type="regex",
@@ -1528,7 +1571,7 @@ class DruidDatasource(Model, BaseDatasource):
 
             # For the ops below, could have used pydruid's Bound,
             # but it doesn't support extraction functions
-            elif op == ">=":
+            elif op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
                 cond = Bound(
                     extraction_function=extraction_fn,
                     dimension=col,
@@ -1538,7 +1581,7 @@ class DruidDatasource(Model, BaseDatasource):
                     upper=None,
                     ordering=cls._get_ordering(is_numeric_col),
                 )
-            elif op == "<=":
+            elif op == FilterOperator.LESS_THAN_OR_EQUALS.value:
                 cond = Bound(
                     extraction_function=extraction_fn,
                     dimension=col,
@@ -1548,7 +1591,7 @@ class DruidDatasource(Model, BaseDatasource):
                     upper=eq,
                     ordering=cls._get_ordering(is_numeric_col),
                 )
-            elif op == ">":
+            elif op == FilterOperator.GREATER_THAN.value:
                 cond = Bound(
                     extraction_function=extraction_fn,
                     lowerStrict=True,
@@ -1558,7 +1601,7 @@ class DruidDatasource(Model, BaseDatasource):
                     upper=None,
                     ordering=cls._get_ordering(is_numeric_col),
                 )
-            elif op == "<":
+            elif op == FilterOperator.LESS_THAN.value:
                 cond = Bound(
                     extraction_function=extraction_fn,
                     upperStrict=True,
@@ -1568,9 +1611,9 @@ class DruidDatasource(Model, BaseDatasource):
                     upper=eq,
                     ordering=cls._get_ordering(is_numeric_col),
                 )
-            elif op == "IS NULL":
+            elif op == FilterOperator.IS_NULL.value:
                 cond = Filter(dimension=col, value="")
-            elif op == "IS NOT NULL":
+            elif op == FilterOperator.IS_NOT_NULL.value:
                 cond = ~Filter(dimension=col, value="")
 
             if filters:
@@ -1586,21 +1629,25 @@ class DruidDatasource(Model, BaseDatasource):
 
     def _get_having_obj(self, col: str, op: str, eq: str) -> "Having":
         cond = None
-        if op == "==":
+        if op == FilterOperator.EQUALS.value:
             if col in self.column_names:
                 cond = DimSelector(dimension=col, value=eq)
             else:
                 cond = Aggregation(col) == eq
-        elif op == ">":
+        elif op == FilterOperator.GREATER_THAN.value:
             cond = Aggregation(col) > eq
-        elif op == "<":
+        elif op == FilterOperator.LESS_THAN.value:
             cond = Aggregation(col) < eq
 
         return cond
 
-    def get_having_filters(self, raw_filters: List[Dict]) -> "Having":
+    def get_having_filters(self, raw_filters: List[Dict[str, Any]]) -> "Having":
         filters = None
-        reversed_op_map = {"!=": "==", ">=": "<", "<=": ">"}
+        reversed_op_map = {
+            FilterOperator.NOT_EQUALS.value: FilterOperator.EQUALS.value,
+            FilterOperator.GREATER_THAN_OR_EQUALS.value: FilterOperator.LESS_THAN.value,
+            FilterOperator.LESS_THAN_OR_EQUALS.value: FilterOperator.GREATER_THAN.value,
+        }
 
         for flt in raw_filters:
             if not all(f in flt for f in ["col", "op", "val"]):
@@ -1609,7 +1656,11 @@ class DruidDatasource(Model, BaseDatasource):
             op = flt["op"]
             eq = flt["val"]
             cond = None
-            if op in ["==", ">", "<"]:
+            if op in [
+                FilterOperator.EQUALS.value,
+                FilterOperator.GREATER_THAN.value,
+                FilterOperator.LESS_THAN.value,
+            ]:
                 cond = self._get_having_obj(col, op, eq)
             elif op in reversed_op_map:
                 cond = ~self._get_having_obj(col, reversed_op_map[op], eq)

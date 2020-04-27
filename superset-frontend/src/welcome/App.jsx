@@ -22,7 +22,10 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
+import { ThemeProvider } from 'emotion-theming';
 
+import { initFeatureFlags } from 'src/featureFlags';
+import { supersetTheme } from '@superset-ui/style';
 import Menu from 'src/components/Menu/Menu';
 import DashboardList from 'src/views/dashboardList/DashboardList';
 import ChartList from 'src/views/chartList/ChartList';
@@ -31,15 +34,19 @@ import DatasetList from 'src/views/datasetList/DatasetList';
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
+import setupPlugins from '../setup/setupPlugins';
 import Welcome from './Welcome';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 
 setupApp();
+setupPlugins();
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));
 const user = { ...bootstrap.user };
 const menu = { ...bootstrap.common.menu_data };
+
+initFeatureFlags(bootstrap.common.feature_flags);
 
 const store = createStore(
   combineReducers({
@@ -51,24 +58,26 @@ const store = createStore(
 
 const App = () => (
   <Provider store={store}>
-    <Router>
-      <Menu data={menu} />
-      <Switch>
-        <Route path="/superset/welcome/">
-          <Welcome user={user} />
-        </Route>
-        <Route path="/dashboard/list/">
-          <DashboardList user={user} />
-        </Route>
-        <Route path="/chart/list/">
-          <ChartList user={user} />
-        </Route>
-        <Route path="/tablemodelview/list/">
-          <DatasetList user={user} />
-        </Route>
-      </Switch>
-      <ToastPresenter />
-    </Router>
+    <ThemeProvider theme={supersetTheme}>
+      <Router>
+        <Menu data={menu} />
+        <Switch>
+          <Route path="/superset/welcome/">
+            <Welcome user={user} />
+          </Route>
+          <Route path="/dashboard/list/">
+            <DashboardList user={user} />
+          </Route>
+          <Route path="/chart/list/">
+            <ChartList user={user} />
+          </Route>
+          <Route path="/tablemodelview/list/">
+            <DatasetList user={user} />
+          </Route>
+        </Switch>
+        <ToastPresenter />
+      </Router>
+    </ThemeProvider>
   </Provider>
 );
 

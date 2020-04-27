@@ -38,15 +38,9 @@ describe('ResultSet', () => {
     query: queries[0],
     height: 0,
   };
-  const stoppedQueryProps = Object.assign({}, mockedProps, {
-    query: stoppedQuery,
-  });
-  const runningQueryProps = Object.assign({}, mockedProps, {
-    query: runningQuery,
-  });
-  const cachedQueryProps = Object.assign({}, mockedProps, {
-    query: cachedQuery,
-  });
+  const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
+  const runningQueryProps = { ...mockedProps, query: runningQuery };
+  const cachedQueryProps = { ...mockedProps, query: cachedQuery };
   const newProps = {
     query: {
       cached: false,
@@ -94,11 +88,12 @@ describe('ResultSet', () => {
     });
     it('should render empty results', () => {
       const wrapper = shallow(<ResultSet {...mockedProps} />);
-      const emptyResults = Object.assign({}, queries[0], {
+      const emptyResults = {
+        ...queries[0],
         results: {
           data: [],
         },
-      });
+      };
       wrapper.setProps({ query: emptyResults });
       expect(wrapper.find(FilterableTable)).toHaveLength(0);
       expect(wrapper.find(Alert)).toHaveLength(1);

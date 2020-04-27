@@ -30,8 +30,13 @@ from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater
+from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
-from superset.viz import BaseViz, viz_types
+
+if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
+    from superset.viz_sip38 import BaseViz, viz_types  # type: ignore
+else:
+    from superset.viz import BaseViz, viz_types  # type: ignore
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -55,7 +60,7 @@ class Slice(
     """A slice is essentially a report or a view on data"""
 
     __tablename__ = "slices"
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
@@ -135,9 +140,9 @@ class Slice(
     @property  # type: ignore
     @utils.memoized
     def viz(self) -> BaseViz:
-        d = json.loads(self.params)
+        form_data = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
-        return viz_class(datasource=self.datasource, form_data=d)
+        return viz_class(datasource=self.datasource, form_data=form_data)
 
     @property
     def description_markeddown(self) -> str:
@@ -146,14 +151,14 @@ class Slice(
     @property
     def data(self) -> Dict[str, Any]:
         """Data used to render slice in templates"""
-        d: Dict[str, Any] = {}
+        data: Dict[str, Any] = {}
         self.token = ""
         try:
-            d = self.viz.data
-            self.token = d.get("token")  # type: ignore
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception(e)
-            d["error"] = str(e)
+            data = self.viz.data
+            self.token = data.get("token")  # type: ignore
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
+            data["error"] = str(ex)
         return {
             "cache_timeout": self.cache_timeout,
             "datasource": self.datasource_name,
@@ -170,6 +175,21 @@ class Slice(
         }
 
     @property
+    def digest(self) -> str:
+        """
+            Returns a MD5 HEX digest that makes this dashboard unique
+        """
+        return utils.md5_hex(self.params)
+
+    @property
+    def thumbnail_url(self) -> str:
+        """
+            Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
+            if the dashboard has changed
+        """
+        return f"/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
+
+    @property
     def json_data(self) -> str:
         return json.dumps(self.data)
 
@@ -178,9 +198,9 @@ class Slice(
         form_data: Dict[str, Any] = {}
         try:
             form_data = json.loads(self.params)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except
             logger.error("Malformed json in slice's params")
-            logger.exception(e)
+            logger.exception(ex)
         form_data.update(
             {
                 "slice_id": self.id,
@@ -231,23 +251,6 @@ class Slice(
     @property
     def changed_by_url(self) -> str:
         return f"/superset/profile/{self.created_by.username}"
-
-    def get_viz(self, force: bool = False) -> BaseViz:
-        """Creates :py:class:viz.BaseViz object from the url_params_multidict.
-
-        :return: object of the 'viz_type' type that is taken from the
-            url_params_multidict or self.params.
-        :rtype: :py:class:viz.BaseViz
-        """
-        slice_params = json.loads(self.params)
-        slice_params["slice_id"] = self.id
-        slice_params["json"] = "false"
-        slice_params["slice_name"] = self.slice_name
-        slice_params["viz_type"] = self.viz_type if self.viz_type else "table"
-
-        return viz_types[slice_params.get("viz_type")](
-            self.datasource, form_data=slice_params, force=force
-        )
 
     @property
     def icons(self) -> str:
@@ -319,6 +322,12 @@ def set_related_perm(mapper, connection, target):
             target.schema_perm = ds.schema_perm
 
 
+def event_after_chart_changed(  # pylint: disable=unused-argument
+    mapper, connection, target
+):
+    cache_chart_thumbnail.delay(target.id, force=True)
+
+
 sqla.event.listen(Slice, "before_insert", set_related_perm)
 sqla.event.listen(Slice, "before_update", set_related_perm)
 
@@ -327,3 +336,8 @@ if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
     sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
     sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
+
+# events for updating tags
+if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
+    sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
+    sqla.event.listen(Slice, "after_update", event_after_chart_changed)

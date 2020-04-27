@@ -26,14 +26,16 @@ function getTabChildrenScope({
   tabScopes,
   parentNodeValue,
   forceAggregate = false,
+  hasChartSibilings = false,
 }) {
   // if all sub-tabs are in scope, or forceAggregate =  true
   // aggregate scope to parentNodeValue
   if (
     forceAggregate ||
-    Object.entries(tabScopes).every(
-      ([key, { scope }]) => scope && scope.length && key === scope[0],
-    )
+    (!hasChartSibilings &&
+      Object.entries(tabScopes).every(
+        ([key, { scope }]) => scope && scope.length && key === scope[0],
+      ))
   ) {
     return {
       scope: [parentNodeValue],
@@ -98,7 +100,11 @@ function traverse({ currentNode = {}, filterId, checkedChartIds = [] }) {
 
   // has tab children but only some sub-tab in scope
   if (tabChildren.length) {
-    return getTabChildrenScope({ tabScopes, parentNodeValue: currentValue });
+    return getTabChildrenScope({
+      tabScopes,
+      parentNodeValue: currentValue,
+      hasChartSibilings: !isEmpty(chartChildren),
+    });
   }
 
   // no tab children and no chart children in scope

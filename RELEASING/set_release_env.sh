@@ -16,18 +16,31 @@
 # limitations under the License.
 #
 usage() {
-   echo "usage: . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLBANE>"
-   echo "example: . set_relese_env.sh 0.35.2rc1 myid@apache.org"
+   echo "usage (BASH): . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>"
+   echo "usage (ZSH): source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>"
+   echo
+   echo "example: source set_relese_env.sh 0.36.0rc3 myid@apache.org"
 }
 
 if [ -z "$1" ] || [ -z "$2" ]; then
   usage;
 else
   if [[ ${1} =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)rc([0-9]+)$ ]]; then
-    VERSION_MAJOR="${BASH_REMATCH[1]}"
-    VERSION_MINOR="${BASH_REMATCH[2]}"
-    VERSION_PATCH="${BASH_REMATCH[3]}"
-    VERSION_RC="${BASH_REMATCH[4]}"
+    if [ -n "$ZSH_VERSION" ]; then
+      VERSION_MAJOR="${match[1]}"
+      VERSION_MINOR="${match[2]}"
+      VERSION_PATCH="${match[3]}"
+      VERSION_RC="${match[4]}"
+    elif [ -n "$BASH_VERSION" ]; then
+      VERSION_MAJOR="${BASH_REMATCH[1]}"
+      VERSION_MINOR="${BASH_REMATCH[2]}"
+      VERSION_PATCH="${BASH_REMATCH[3]}"
+      VERSION_RC="${BASH_REMATCH[4]}"
+    else
+      echo "Unsupported shell type, only zsh and bash supported"
+      exit 1
+    fi
+
   else
     echo "unable to parse version string ${1}. Example of valid version string: 0.35.2rc1"
     exit 1

@@ -17,6 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { formatSelectOptions } from '../../modules/utils';
+import { D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 
 export default {
   controlPanelSections: [
@@ -34,9 +36,76 @@ export default {
     {
       label: t('Pivot Options'),
       controlSetRows: [
-        ['pandas_aggfunc', 'pivot_margins'],
-        ['number_format', 'combine_metric'],
-        ['transpose_pivot'],
+        [
+          {
+            name: 'pandas_aggfunc',
+            config: {
+              type: 'SelectControl',
+              label: t('Aggregation function'),
+              clearable: false,
+              choices: formatSelectOptions([
+                'sum',
+                'mean',
+                'min',
+                'max',
+                'std',
+                'var',
+              ]),
+              default: 'sum',
+              description: t(
+                'Aggregate function to apply when pivoting and ' +
+                  'computing the total rows and columns',
+              ),
+            },
+          },
+          {
+            name: 'pivot_margins',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show totals'),
+              renderTrigger: false,
+              default: true,
+              description: t('Display total row/column'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'number_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Number format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+          {
+            name: 'combine_metric',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Combine Metrics'),
+              default: false,
+              description: t(
+                'Display metrics side by side within each column, as ' +
+                  'opposed to each column being displayed side by side for each metric.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'transpose_pivot',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Transpose Pivot'),
+              default: false,
+              description: t('Swap Groups and Columns'),
+            },
+          },
+        ],
       ],
     },
   ],

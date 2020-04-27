@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# type: ignore
 from copy import copy
 
-from superset.config import *  # type: ignore
+from superset.config import *
+from tests.superset_test_custom_template_processors import CustomPrestoTemplateProcessor
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")
@@ -49,10 +51,16 @@ CACHE_CONFIG = {"CACHE_TYPE": "simple"}
 
 
 class CeleryConfig(object):
-    BROKER_URL = "redis://localhost"
+    BROKER_URL = "redis://{}:{}".format(
+        os.environ.get("REDIS_HOST", "localhost"), os.environ.get("REDIS_PORT", "6379")
+    )
     CELERY_IMPORTS = ("superset.sql_lab",)
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1
 
 
 CELERY_CONFIG = CeleryConfig
+
+CUSTOM_TEMPLATE_PROCESSORS = {
+    CustomPrestoTemplateProcessor.engine: CustomPrestoTemplateProcessor
+}

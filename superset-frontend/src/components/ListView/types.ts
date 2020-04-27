@@ -31,9 +31,13 @@ export interface Select {
 export interface Filter {
   Header: string;
   id: string;
-  operators: Select[];
-  input?: 'text' | 'textarea' | 'select' | 'checkbox';
+  operators?: Select[];
+  operator?: string;
+  input?: 'text' | 'textarea' | 'select' | 'checkbox' | 'search';
+  unfilteredLabel?: string;
   selects?: Select[];
+  onFilterOpen?: () => void;
+  fetchSelects?: () => Promise<Select[]>;
 }
 
 export type Filters = Filter[];
@@ -41,7 +45,13 @@ export type Filters = Filter[];
 export interface FilterValue {
   id: string;
   operator?: string;
-  value: string | boolean | number;
+  value:
+    | string
+    | boolean
+    | number
+    | null
+    | undefined
+    | { datasource_id: number; datasource_type: string };
 }
 
 export interface FetchDataConfig {
@@ -52,7 +62,7 @@ export interface FetchDataConfig {
 }
 
 export interface InternalFilter extends FilterValue {
-  Header: string;
+  Header?: string;
 }
 
 export interface FilterOperatorMap {

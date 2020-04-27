@@ -19,6 +19,8 @@ import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+import hashlib
+import os
 from unittest.mock import Mock, patch
 
 import numpy
@@ -28,15 +30,17 @@ from sqlalchemy.exc import ArgumentError
 
 import tests.test_app
 from superset import app, db, security_manager
-from superset.exceptions import SupersetException
+from superset.exceptions import CertificateException, SupersetException
 from superset.models.core import Database
 from superset.utils.cache_manager import CacheManager
 from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
+    create_ssl_cert_file,
     datetime_f,
     format_timedelta,
     get_iterable,
+    get_email_address_list,
     get_or_create_db,
     get_since_until,
     get_stacktrace,
@@ -46,6 +50,7 @@ from superset.utils.core import (
     memoized,
     merge_extra_filters,
     merge_request_params,
+    parse_ssl_cert,
     parse_human_timedelta,
     parse_js_uri_path_item,
     parse_past_timedelta,
@@ -58,6 +63,8 @@ from superset.utils.core import (
 from superset.views.utils import get_time_range_endpoints
 from superset.views.utils import build_extra_filters
 from tests.base_tests import SupersetTestCase
+
+from .fixtures.certificates import ssl_certificate
 
 
 def mock_parse_human_datetime(s):
@@ -1221,3 +1228,24 @@ class UtilsTestCase(SupersetTestCase):
         )
         expected = []
         self.assertEqual(extra_filters, expected)
+
+    def test_ssl_certificate_parse(self):
+        parsed_certificate = parse_ssl_cert(ssl_certificate)
+        self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
+        self.assertRaises(CertificateException, parse_ssl_cert, "abc" + ssl_certificate)
+
+    def test_ssl_certificate_file_creation(self):
+        path = create_ssl_cert_file(ssl_certificate)
+        expected_filename = hashlib.md5(ssl_certificate.encode("utf-8")).hexdigest()
+        self.assertIn(expected_filename, path)
+        self.assertTrue(os.path.exists(path))
+
+    def test_get_email_address_list(self):
+        self.assertEqual(get_email_address_list("a@a"), ["a@a"])
+        self.assertEqual(get_email_address_list(" a@a "), ["a@a"])
+        self.assertEqual(get_email_address_list("a@a\n"), ["a@a"])
+        self.assertEqual(get_email_address_list(",a@a;"), ["a@a"])
+        self.assertEqual(
+            get_email_address_list(",a@a; b@b c@c a-c@c; d@d, f@f"),
+            ["a@a", "b@b", "c@c", "a-c@c", "d@d", "f@f"],
+        )

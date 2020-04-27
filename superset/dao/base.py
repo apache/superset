@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -48,7 +48,7 @@ class BaseDAO:
     @classmethod
     def find_by_id(cls, model_id: int) -> Model:
         """
-        Retrives a model by id, if defined applies `base_filter`
+        Find a model by id, if defined applies `base_filter`
         """
         query = db.session.query(cls.model_cls)
         if cls.base_filter:
@@ -59,7 +59,23 @@ class BaseDAO:
         return query.filter_by(id=model_id).one_or_none()
 
     @classmethod
-    def create(cls, properties: Dict, commit=True) -> Optional[Model]:
+    def find_by_ids(cls, model_ids: List[int]) -> List[Model]:
+        """
+        Find a List of models by a list of ids, if defined applies `base_filter`
+        """
+        id_col = getattr(cls.model_cls, "id", None)
+        if id_col is None:
+            return []
+        query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                "id", data_model
+            ).apply(query, None)
+        return query.all()
+
+    @classmethod
+    def create(cls, properties: Dict, commit: bool = True) -> Model:
         """
         Generic for creating models
         :raises: DAOCreateFailedError
@@ -73,13 +89,13 @@ class BaseDAO:
             db.session.add(model)
             if commit:
                 db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
+        except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAOCreateFailedError(exception=e)
+            raise DAOCreateFailedError(exception=ex)
         return model
 
     @classmethod
-    def update(cls, model: Model, properties: Dict, commit=True) -> Optional[Model]:
+    def update(cls, model: Model, properties: Dict, commit: bool = True) -> Model:
         """
         Generic update a model
         :raises: DAOCreateFailedError
@@ -90,13 +106,13 @@ class BaseDAO:
             db.session.merge(model)
             if commit:
                 db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
+        except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAOUpdateFailedError(exception=e)
+            raise DAOUpdateFailedError(exception=ex)
         return model
 
     @classmethod
-    def delete(cls, model: Model, commit=True):
+    def delete(cls, model: Model, commit: bool = True) -> Model:
         """
         Generic delete a model
         :raises: DAOCreateFailedError
@@ -105,7 +121,7 @@ class BaseDAO:
             db.session.delete(model)
             if commit:
                 db.session.commit()
-        except SQLAlchemyError as e:  # pragma: no cover
+        except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
-            raise DAODeleteFailedError(exception=e)
+            raise DAODeleteFailedError(exception=ex)
         return model

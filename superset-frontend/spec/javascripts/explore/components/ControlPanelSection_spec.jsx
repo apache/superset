@@ -57,7 +57,7 @@ describe('ControlPanelSection', () => {
     it('renders a label if present', () => {
       expect(
         wrapper
-          .find(Panel)
+          .find(Panel.Title)
           .dive()
           .text(),
       ).toContain('my label');

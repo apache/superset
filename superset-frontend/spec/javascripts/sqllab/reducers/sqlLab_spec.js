@@ -141,7 +141,7 @@ describe('sqlLabReducer', () => {
     let newState;
     let newTable;
     beforeEach(() => {
-      newTable = Object.assign({}, table);
+      newTable = { ...table };
       const action = {
         type: actions.MERGE_TABLE,
         table: newTable,
