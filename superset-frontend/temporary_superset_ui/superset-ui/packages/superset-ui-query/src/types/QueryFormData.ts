@@ -42,7 +42,7 @@ export type BaseFormData = {
   /** limit number of time series */
   limit?: number;
   /** limit number of row in the results */
-  row_limit?: number;
+  row_limit?: string | number | null;
   /** The metric used to order timeseries for limiting */
   timeseries_limit_metric?: QueryFormDataMetric;
 } & TimeRange &
