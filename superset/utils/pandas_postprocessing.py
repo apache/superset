@@ -427,17 +427,15 @@ def geohash_encode(
     :param latitude: Name of source column containing latitude.
     :return: DataFrame with decoded longitudes and latitudes
     """
-    encode_df = df[[latitude, longitude]]
-    encode_df.columns = ["latitude", "longitude"]
     try:
-        series = encode_df.apply(
+        encode_df = df[[latitude, longitude]]
+        encode_df.columns = ["latitude", "longitude"]
+        encode_df["geohash"] = encode_df.apply(
             lambda row: geohash_lib.encode(row["latitude"], row["longitude"]), axis=1,
         )
-        encode_df["geohash"] = series
         return _append_columns(df, encode_df, {"geohash": geohash})
     except ValueError:
         QueryObjectValidationError(_("Invalid longitude/latitude"))
-    return df
 
 
 def geodetic_parse(
@@ -448,11 +446,11 @@ def geodetic_parse(
     altitude: Optional[str] = None,
 ) -> DataFrame:
     """
-    Parse a column containing a geodetic string
+    Parse a column containing a geodetic point string
     [Geopy](https://geopy.readthedocs.io/en/stable/#geopy.point.Point).
 
     :param df: DataFrame containing longitude and latitude columns
-    :param geodetic: Name of source column containing geodetic string.
+    :param geodetic: Name of source column containing geodetic point string.
     :param longitude: Name of new column to be created containing longitude.
     :param latitude: Name of new column to be created containing latitude.
     :param altitude: Name of new column to be created containing altitude.
@@ -461,7 +459,7 @@ def geodetic_parse(
 
     def _parse_location(location: str) -> Tuple[float, float, float]:
         """
-        Parse a string containing a geodetic location and return latitude, longitude
+        Parse a string containing a geodetic point and return latitude, longitude
         and altitude
         """
         point = Point(location)  # type: ignore

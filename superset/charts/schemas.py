@@ -375,11 +375,12 @@ class ChartDataGeodeticParseOptionsSchema(
     ChartDataPostProcessingOperationOptionsSchema
 ):
     """
-    Geodetic string parsing operation config.
+    Geodetic point string parsing operation config.
     """
 
     geodetic = fields.String(
-        description="Name of source column containing geodetic string", required=True,
+        description="Name of source column containing geodetic point strings",
+        required=True,
     )
     latitude = fields.String(
         description="Name of target column for decoded latitude", required=True,
