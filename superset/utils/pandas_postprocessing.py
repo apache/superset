@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import geohash as geohash_lib
 import numpy as np
 from flask_babel import gettext as _
+from geopy.point import Point
 from pandas import DataFrame, NamedAgg
 
 from superset.exceptions import QueryObjectValidationError
@@ -144,10 +146,7 @@ def _append_columns(
     :return: new DataFrame with combined data from `base_df` and `append_df`
     """
     return base_df.assign(
-        **{
-            target: append_df[append_df.columns[idx]]
-            for idx, target in enumerate(columns.values())
-        }
+        **{target: append_df[source] for source, target in columns.items()}
     )
 
 
@@ -350,6 +349,7 @@ def select(
 @validate_column_args("columns")
 def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame:
     """
+    Calculate row-by-row difference for select columns.
 
     :param df: DataFrame on which the diff will be based.
     :param columns: columns on which to perform diff, mapping source column to
@@ -369,6 +369,7 @@ def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame
 @validate_column_args("columns")
 def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
     """
+    Calculate cumulative sum/product/min/max for select columns.
 
     :param df: DataFrame on which the cumulative operation will be based.
     :param columns: columns on which to perform a cumulative operation, mapping source
@@ -377,7 +378,7 @@ def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
            `y2` based on cumulative values calculated from `y`, leaving the original
            column `y` unchanged.
     :param operator: cumulative operator, e.g. `sum`, `prod`, `min`, `max`
-    :return:
+    :return: DataFrame with cumulated columns
     """
     df_cum = df[columns.keys()]
     operation = "cum" + operator
@@ -388,3 +389,94 @@ def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
             _("Invalid cumulative operator: %(operator)s", operator=operator)
         )
     return _append_columns(df, getattr(df_cum, operation)(), columns)
+
+
+def geohash_decode(
+    df: DataFrame, geohash: str, longitude: str, latitude: str
+) -> DataFrame:
+    """
+    Decode a geohash column into longitude and latitude
+
+    :param df: DataFrame containing a geohash column
+    :param geohash: Name of source column containing geohash location.
+    :param longitude: Name of new column to be created containing longitude.
+    :param latitude: Name of new column to be created containing latitude.
+    :return: DataFrame with decoded longitudes and latitudes
+    """
+    try:
+        lonlat_df = DataFrame()
+        lonlat_df["latitude"], lonlat_df["longitude"] = zip(
+            *df[geohash].apply(geohash_lib.decode)
+        )
+        return _append_columns(
+            df, lonlat_df, {"latitude": latitude, "longitude": longitude}
+        )
+    except ValueError:
+        raise QueryObjectValidationError(_("Invalid geohash string"))
+
+
+def geohash_encode(
+    df: DataFrame, geohash: str, longitude: str, latitude: str,
+) -> DataFrame:
+    """
+    Encode longitude and latitude into geohash
+
+    :param df: DataFrame containing longitude and latitude columns
+    :param geohash: Name of new column to be created containing geohash location.
+    :param longitude: Name of source column containing longitude.
+    :param latitude: Name of source column containing latitude.
+    :return: DataFrame with decoded longitudes and latitudes
+    """
+    encode_df = df[[latitude, longitude]]
+    encode_df.columns = ["latitude", "longitude"]
+    try:
+        series = encode_df.apply(
+            lambda row: geohash_lib.encode(row["latitude"], row["longitude"]), axis=1,
+        )
+        encode_df["geohash"] = series
+        return _append_columns(df, encode_df, {"geohash": geohash})
+    except ValueError:
+        QueryObjectValidationError(_("Invalid longitude/latitude"))
+    return df
+
+
+def geodetic_parse(
+    df: DataFrame,
+    geodetic: str,
+    longitude: str,
+    latitude: str,
+    altitude: Optional[str] = None,
+) -> DataFrame:
+    """
+    Parse a column containing a geodetic string
+    [Geopy](https://geopy.readthedocs.io/en/stable/#geopy.point.Point).
+
+    :param df: DataFrame containing longitude and latitude columns
+    :param geodetic: Name of source column containing geodetic string.
+    :param longitude: Name of new column to be created containing longitude.
+    :param latitude: Name of new column to be created containing latitude.
+    :param altitude: Name of new column to be created containing altitude.
+    :return: DataFrame with decoded longitudes and latitudes
+    """
+
+    def _parse_location(location: str) -> Tuple[float, float, float]:
+        """
+        Parse a string containing a geodetic location and return latitude, longitude
+        and altitude
+        """
+        point = Point(location)  # type: ignore
+        return point[0], point[1], point[2]
+
+    try:
+        geodetic_df = DataFrame()
+        (
+            geodetic_df["latitude"],
+            geodetic_df["longitude"],
+            geodetic_df["altitude"],
+        ) = zip(*df[geodetic].apply(_parse_location))
+        columns = {"latitude": longitude, "longitude": latitude}
+        if altitude:
+            columns["altitude"] = altitude
+        return _append_columns(df, geodetic_df, columns)
+    except ValueError:
+        raise QueryObjectValidationError(_("Invalid geodetic string"))
