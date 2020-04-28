@@ -241,11 +241,11 @@ class PostProcessingTestCase(SupersetTestCase):
         self.assertListEqual(post_df.columns.tolist(), ["label", "y1"])
 
         # drop one column
-        post_df = proc.select(df=timeseries_df, drop=["label"])
+        post_df = proc.select(df=timeseries_df, exclude=["label"])
         self.assertListEqual(post_df.columns.tolist(), ["y"])
 
         # rename and drop one column
-        post_df = proc.select(df=timeseries_df, rename={"y": "y1"}, drop=["label"])
+        post_df = proc.select(df=timeseries_df, rename={"y": "y1"}, exclude=["label"])
         self.assertListEqual(post_df.columns.tolist(), ["y1"])
 
         # invalid columns
@@ -354,7 +354,7 @@ class PostProcessingTestCase(SupersetTestCase):
             series_to_list(post_df["geohash"]), series_to_list(lonlat_df["geohash"]),
         )
 
-    def geodetic_parse(self):
+    def test_geodetic_parse(self):
         # parse geodetic string with altitude into lon/lat/altitude
         post_df = proc.geodetic_parse(
             df=lonlat_df[["city", "geodetic"]],

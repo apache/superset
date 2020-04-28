@@ -270,9 +270,9 @@ class ChartDataSelectOptionsSchema(ChartDataPostProcessingOperationOptionsSchema
         example=["country", "gender", "age"],
         required=False,
     )
-    drop = fields.List(
+    exclude = fields.List(
         fields.String(),
-        description="Columns which to drop from selection.",
+        description="Columns to exclude from selection.",
         example=["my_temp_column"],
         required=False,
     )
@@ -397,7 +397,7 @@ class ChartDataGeodeticParseOptionsSchema(
         description="Name of target column for decoded longitude", required=True,
     )
     altitude = fields.String(
-        description="Name of target column for decoded longitude. If omitted, "
+        description="Name of target column for decoded altitude. If omitted, "
         "altitude information in geodetic string is ignored.",
         required=False,
     )
