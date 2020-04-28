@@ -32,6 +32,12 @@ SUPERSET_WEBSERVER_PORT = 8081
 if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
     SQLALCHEMY_DATABASE_URI = os.environ["SUPERSET__SQLALCHEMY_DATABASE_URI"]
 
+if "sqlite" in SQLALCHEMY_DATABASE_URI:
+    logger.warning(
+        "SQLite Database support for metadata databases will be removed \
+        in a future version of Superset."
+    )
+
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
 
