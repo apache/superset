@@ -64,6 +64,10 @@ class BaseSupersetModelRestApi(ModelRestApi):
     Extends FAB's ModelResApi to implement specific superset generic functionality
     """
 
+    # Removes the local limit for the page size
+    # React CRUD UI cannot handle pagination yet.
+    max_page_size = -1
+    page_size = -1
     csrf_exempt = False
     method_permission_name = {
         "get_list": "list",
