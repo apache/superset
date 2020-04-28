@@ -224,11 +224,9 @@ class ParsedQuery:
             return
 
         table_name_preceding_token = False
+        tokens = self.__process_token_group(token.tokens)
 
-        for item in token.tokens:
-            if item.is_group and not self._is_identifier(item):
-                self._extract_from_token(item)
-
+        for item in tokens:
             if item.ttype in Keyword and (
                 item.normalized in PRECEDES_TABLE_NAME
                 or item.normalized.endswith(" JOIN")
@@ -251,6 +249,15 @@ class ParsedQuery:
                 for token2 in item.tokens:
                     if not self._is_identifier(token2):
                         self._extract_from_token(item)
+
+    def __process_token_group(self, tokens):  # flatten nested tokens to 1D array
+        while any(i.is_group and not self._is_identifier(i) for i in tokens):
+            tokens = [
+                j
+                for i in tokens
+                for j in (i if i.is_group and not self._is_identifier(i) else [i])
+            ]
+        return tokens
 
     def set_or_update_query_limit(self, new_limit: int) -> str:
         """Returns the query with the specified limit.
