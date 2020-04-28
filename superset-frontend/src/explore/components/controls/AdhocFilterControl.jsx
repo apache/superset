@@ -105,19 +105,28 @@ export default class AdhocFilterControl extends React.Component {
         }).then(
           ({ json }) => {
             if (json && json.partitions) {
-              const latestPartitions = json.partitions.latest;
-              this.valueRenderer = adhocFilter => (
-                <AdhocFilterOption
-                  adhocFilter={adhocFilter}
-                  onFilterEdit={this.onFilterEdit}
-                  options={this.state.options}
-                  datasource={this.props.datasource}
-                  latestPartitions={latestPartitions}
-                />
-              );
+              const partitions = json.partitions;
+              // for now only show latest_partition option
+              // when table datasource has only 1 partition key.
+              if (
+                partitions &&
+                partitions.cols &&
+                Object.keys(partitions.cols).length === 1
+              ) {
+                const partitionColumn = partitions.cols[0];
+                this.valueRenderer = adhocFilter => (
+                  <AdhocFilterOption
+                    adhocFilter={adhocFilter}
+                    onFilterEdit={this.onFilterEdit}
+                    options={this.state.options}
+                    datasource={this.props.datasource}
+                    partitionColumn={partitionColumn}
+                  />
+                );
+              }
             }
           },
-          // no error handler, in case of error do not show partition tab
+          // no error handler, in case of error do not show partition option
         );
       }
     }
