@@ -481,7 +481,7 @@ def geodetic_parse(
             geodetic_df["longitude"],
             geodetic_df["altitude"],
         ) = zip(*df[geodetic].apply(_parse_location))
-        columns = {"latitude": longitude, "longitude": latitude}
+        columns = {"latitude": latitude, "longitude": longitude}
         if altitude:
             columns["altitude"] = altitude
         return _append_columns(df, geodetic_df, columns)
