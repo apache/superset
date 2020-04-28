@@ -18,7 +18,7 @@
 
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 from urllib import request
 from urllib.error import URLError
 
@@ -38,7 +38,9 @@ logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_form_data(chart_id, dashboard=None):
+def get_form_data(
+    chart_id: int, dashboard: Optional[Dashboard] = None
+) -> Dict[str, Any]:
     """
     Build `form_data` for chart GET request from dashboard's `default_filters`.
 
@@ -46,7 +48,7 @@ def get_form_data(chart_id, dashboard=None):
     filters in the GET request for charts.
 
     """
-    form_data = {"slice_id": chart_id}
+    form_data: Dict[str, Any] = {"slice_id": chart_id}
 
     if dashboard is None or not dashboard.json_metadata:
         return form_data
@@ -72,7 +74,7 @@ def get_form_data(chart_id, dashboard=None):
     return form_data
 
 
-def get_url(chart, extra_filters: Optional[Dict[str, Any]] = None):
+def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str:
     """Return external URL for warming up a given chart/table cache."""
     with app.test_request_context():
         baseurl = (
@@ -106,10 +108,10 @@ class Strategy:
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def get_urls(self):
+    def get_urls(self) -> List[str]:
         raise NotImplementedError("Subclasses must implement get_urls!")
 
 
@@ -131,7 +133,7 @@ class DummyStrategy(Strategy):
 
     name = "dummy"
 
-    def get_urls(self):
+    def get_urls(self) -> List[str]:
         session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
@@ -158,12 +160,12 @@ class TopNDashboardsStrategy(Strategy):
 
     name = "top_n_dashboards"
 
-    def __init__(self, top_n=5, since="7 days ago"):
+    def __init__(self, top_n: int = 5, since: str = "7 days ago") -> None:
         super(TopNDashboardsStrategy, self).__init__()
         self.top_n = top_n
         self.since = parse_human_datetime(since)
 
-    def get_urls(self):
+    def get_urls(self) -> List[str]:
         urls = []
         session = db.create_scoped_session()
 
@@ -203,11 +205,11 @@ class DashboardTagsStrategy(Strategy):
 
     name = "dashboard_tags"
 
-    def __init__(self, tags=None):
+    def __init__(self, tags: Optional[List[str]] = None) -> None:
         super(DashboardTagsStrategy, self).__init__()
         self.tags = tags or []
 
-    def get_urls(self):
+    def get_urls(self) -> List[str]:
         urls = []
         session = db.create_scoped_session()
 
@@ -254,7 +256,9 @@ strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
 
 
 @celery_app.task(name="cache-warmup")
-def cache_warmup(strategy_name, *args, **kwargs):
+def cache_warmup(
+    strategy_name: str, *args: Any, **kwargs: Any
+) -> Union[Dict[str, List[str]], str]:
     """
     Warm up cache.
 
@@ -264,7 +268,7 @@ def cache_warmup(strategy_name, *args, **kwargs):
     logger.info("Loading strategy")
     class_ = None
     for class_ in strategies:
-        if class_.name == strategy_name:
+        if class_.name == strategy_name:  # type: ignore
             break
     else:
         message = f"No strategy {strategy_name} found!"
@@ -280,7 +284,7 @@ def cache_warmup(strategy_name, *args, **kwargs):
         logger.exception(message)
         return message
 
-    results = {"success": [], "errors": []}
+    results: Dict[str, List[str]] = {"success": [], "errors": []}
     for url in strategy.get_urls():
         try:
             logger.info(f"Fetching {url}")

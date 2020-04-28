@@ -41,7 +41,7 @@ class SupersetTimeoutException(SupersetException):
 class SupersetSecurityException(SupersetException):
     status = 401
 
-    def __init__(self, msg, link=None):
+    def __init__(self, msg: str, link: Optional[str] = None) -> None:
         super(SupersetSecurityException, self).__init__(msg)
         self.link = link
 

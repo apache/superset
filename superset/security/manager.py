@@ -38,6 +38,7 @@ from flask_appbuilder.widgets import ListWidget
 from sqlalchemy import or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.orm.query import Query
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -70,7 +71,7 @@ class SupersetRoleListWidget(ListWidget):
 
     template = "superset/fab_overrides/list_role.html"
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         kwargs["appbuilder"] = current_app.appbuilder
         super().__init__(**kwargs)
 
@@ -580,7 +581,7 @@ class SupersetSecurityManager(SecurityManager):
             if pv.permission and pv.view_menu:
                 all_pvs.add((pv.permission.name, pv.view_menu.name))
 
-        def merge_pv(view_menu, perm):
+        def merge_pv(view_menu: str, perm: str) -> None:
             """Create permission view menu only if it doesn't exist"""
             if view_menu and perm and (view_menu, perm) not in all_pvs:
                 self.add_permission_view_menu(view_menu, perm)
@@ -899,7 +900,7 @@ class SupersetSecurityManager(SecurityManager):
 
         self.assert_datasource_permission(viz.datasource)
 
-    def get_rls_filters(self, table: "BaseDatasource"):
+    def get_rls_filters(self, table: "BaseDatasource") -> List[Query]:
         """
         Retrieves the appropriate row level security filters for the current user and the passed table.
 

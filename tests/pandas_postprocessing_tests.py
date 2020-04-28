@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 import math
-from typing import Any, List
+from typing import Any, List, Optional
 
 from pandas import Series
 
@@ -24,7 +24,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.utils import pandas_postprocessing as proc
 
 from .base_tests import SupersetTestCase
-from .fixtures.dataframes import categories_df, timeseries_df
+from .fixtures.dataframes import categories_df, lonlat_df, timeseries_df
 
 
 def series_to_list(series: Series) -> List[Any]:
@@ -41,6 +41,19 @@ def series_to_list(series: Series) -> List[Any]:
         else val
         for val in series.tolist()
     ]
+
+
+def round_floats(
+    floats: List[Optional[float]], precision: int
+) -> List[Optional[float]]:
+    """
+    Round list of floats to certain precision
+
+    :param floats: floats to round
+    :param precision: intended decimal precision
+    :return: rounded floats
+    """
+    return [round(val, precision) if val else None for val in floats]
 
 
 class PostProcessingTestCase(SupersetTestCase):
@@ -219,23 +232,38 @@ class PostProcessingTestCase(SupersetTestCase):
         post_df = proc.select(df=timeseries_df, columns=["label"])
         self.assertListEqual(post_df.columns.tolist(), ["label"])
 
-        # rename one column
+        # rename and select one column
         post_df = proc.select(df=timeseries_df, columns=["y"], rename={"y": "y1"})
         self.assertListEqual(post_df.columns.tolist(), ["y1"])
 
         # rename one and leave one unchanged
-        post_df = proc.select(
-            df=timeseries_df, columns=["label", "y"], rename={"y": "y1"}
-        )
+        post_df = proc.select(df=timeseries_df, rename={"y": "y1"})
         self.assertListEqual(post_df.columns.tolist(), ["label", "y1"])
+
+        # drop one column
+        post_df = proc.select(df=timeseries_df, exclude=["label"])
+        self.assertListEqual(post_df.columns.tolist(), ["y"])
+
+        # rename and drop one column
+        post_df = proc.select(df=timeseries_df, rename={"y": "y1"}, exclude=["label"])
+        self.assertListEqual(post_df.columns.tolist(), ["y1"])
 
         # invalid columns
         self.assertRaises(
             QueryObjectValidationError,
             proc.select,
             df=timeseries_df,
-            columns=["qwerty"],
+            columns=["abc"],
             rename={"abc": "qwerty"},
+        )
+
+        # select renamed column by new name
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.select,
+            df=timeseries_df,
+            columns=["label_new"],
+            rename={"label": "label_new"},
         )
 
     def test_diff(self):
@@ -287,4 +315,84 @@ class PostProcessingTestCase(SupersetTestCase):
             df=timeseries_df,
             columns={"y": "y"},
             operator="abc",
+        )
+
+    def test_geohash_decode(self):
+        # decode lon/lat from geohash
+        post_df = proc.geohash_decode(
+            df=lonlat_df[["city", "geohash"]],
+            geohash="geohash",
+            latitude="latitude",
+            longitude="longitude",
+        )
+        self.assertListEqual(
+            sorted(post_df.columns.tolist()),
+            sorted(["city", "geohash", "latitude", "longitude"]),
+        )
+        self.assertListEqual(
+            round_floats(series_to_list(post_df["longitude"]), 6),
+            round_floats(series_to_list(lonlat_df["longitude"]), 6),
+        )
+        self.assertListEqual(
+            round_floats(series_to_list(post_df["latitude"]), 6),
+            round_floats(series_to_list(lonlat_df["latitude"]), 6),
+        )
+
+    def test_geohash_encode(self):
+        # encode lon/lat into geohash
+        post_df = proc.geohash_encode(
+            df=lonlat_df[["city", "latitude", "longitude"]],
+            latitude="latitude",
+            longitude="longitude",
+            geohash="geohash",
+        )
+        self.assertListEqual(
+            sorted(post_df.columns.tolist()),
+            sorted(["city", "geohash", "latitude", "longitude"]),
+        )
+        self.assertListEqual(
+            series_to_list(post_df["geohash"]), series_to_list(lonlat_df["geohash"]),
+        )
+
+    def test_geodetic_parse(self):
+        # parse geodetic string with altitude into lon/lat/altitude
+        post_df = proc.geodetic_parse(
+            df=lonlat_df[["city", "geodetic"]],
+            geodetic="geodetic",
+            latitude="latitude",
+            longitude="longitude",
+            altitude="altitude",
+        )
+        self.assertListEqual(
+            sorted(post_df.columns.tolist()),
+            sorted(["city", "geodetic", "latitude", "longitude", "altitude"]),
+        )
+        self.assertListEqual(
+            series_to_list(post_df["longitude"]),
+            series_to_list(lonlat_df["longitude"]),
+        )
+        self.assertListEqual(
+            series_to_list(post_df["latitude"]), series_to_list(lonlat_df["latitude"]),
+        )
+        self.assertListEqual(
+            series_to_list(post_df["altitude"]), series_to_list(lonlat_df["altitude"]),
+        )
+
+        # parse geodetic string into lon/lat
+        post_df = proc.geodetic_parse(
+            df=lonlat_df[["city", "geodetic"]],
+            geodetic="geodetic",
+            latitude="latitude",
+            longitude="longitude",
+        )
+        self.assertListEqual(
+            sorted(post_df.columns.tolist()),
+            sorted(["city", "geodetic", "latitude", "longitude"]),
+        )
+        self.assertListEqual(
+            series_to_list(post_df["longitude"]),
+            series_to_list(lonlat_df["longitude"]),
+        )
+        self.assertListEqual(
+            series_to_list(post_df["latitude"]), series_to_list(lonlat_df["latitude"]),
         )

@@ -235,7 +235,7 @@ def list_minus(l: List, minus: List) -> List:
     return [o for o in l if o not in minus]
 
 
-def parse_human_datetime(s):
+def parse_human_datetime(s: Optional[str]) -> Optional[datetime]:
     """
     Returns ``datetime.datetime`` from human readable strings
 
@@ -687,42 +687,42 @@ def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, conf
 
 
 def send_email_smtp(
-    to,
-    subject,
-    html_content,
-    config,
-    files=None,
-    data=None,
-    images=None,
-    dryrun=False,
-    cc=None,
-    bcc=None,
-    mime_subtype="mixed",
-):
+    to: str,
+    subject: str,
+    html_content: str,
+    config: Dict[str, Any],
+    files: Optional[List[str]] = None,
+    data: Optional[Dict[str, str]] = None,
+    images: Optional[Dict[str, str]] = None,
+    dryrun: bool = False,
+    cc: Optional[str] = None,
+    bcc: Optional[str] = None,
+    mime_subtype: str = "mixed",
+) -> None:
     """
     Send an email with html content, eg:
     send_email_smtp(
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
     smtp_mail_from = config["SMTP_MAIL_FROM"]
-    to = get_email_address_list(to)
+    smtp_mail_to = get_email_address_list(to)
 
     msg = MIMEMultipart(mime_subtype)
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
-    msg["To"] = ", ".join(to)
+    msg["To"] = ", ".join(smtp_mail_to)
     msg.preamble = "This is a multi-part message in MIME format."
 
-    recipients = to
+    recipients = smtp_mail_to
     if cc:
-        cc = get_email_address_list(cc)
-        msg["CC"] = ", ".join(cc)
-        recipients = recipients + cc
+        smtp_mail_cc = get_email_address_list(cc)
+        msg["CC"] = ", ".join(smtp_mail_cc)
+        recipients = recipients + smtp_mail_cc
 
     if bcc:
         # don't add bcc in header
-        bcc = get_email_address_list(bcc)
-        recipients = recipients + bcc
+        smtp_mail_bcc = get_email_address_list(bcc)
+        recipients = recipients + smtp_mail_bcc
 
     msg["Date"] = formatdate(localtime=True)
     mime_text = MIMEText(html_content, "html")
@@ -1034,8 +1034,8 @@ def get_since_until(
 
     """
     separator = " : "
-    relative_start = parse_human_datetime(relative_start if relative_start else "today")
-    relative_end = parse_human_datetime(relative_end if relative_end else "today")
+    relative_start = parse_human_datetime(relative_start if relative_start else "today")  # type: ignore
+    relative_end = parse_human_datetime(relative_end if relative_end else "today")  # type: ignore
     common_time_frames = {
         "Last day": (
             relative_start - relativedelta(days=1),  # type: ignore
@@ -1064,8 +1064,8 @@ def get_since_until(
             since, until = time_range.split(separator, 1)
             if since and since not in common_time_frames:
                 since = add_ago_to_since(since)
-            since = parse_human_datetime(since)
-            until = parse_human_datetime(until)
+            since = parse_human_datetime(since)  # type: ignore
+            until = parse_human_datetime(until)  # type: ignore
         elif time_range in common_time_frames:
             since, until = common_time_frames[time_range]
         elif time_range == "No filter":
@@ -1086,8 +1086,8 @@ def get_since_until(
         since = since or ""
         if since:
             since = add_ago_to_since(since)
-        since = parse_human_datetime(since)
-        until = parse_human_datetime(until) if until else relative_end
+        since = parse_human_datetime(since)  # type: ignore
+        until = parse_human_datetime(until) if until else relative_end  # type: ignore
 
     if time_shift:
         time_delta = parse_past_timedelta(time_shift)
