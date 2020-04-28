@@ -119,3 +119,17 @@ timeseries_df = DataFrame(
     index=to_datetime(["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]),
     data={"label": ["x", "y", "z", "q"], "y": [1.0, 2.0, 3.0, 4.0]},
 )
+
+lonlat_df = DataFrame(
+    {
+        "city": ["New York City", "Sydney"],
+        "geohash": ["dr5regw3pg6f", "r3gx2u9qdevk"],
+        "latitude": [40.71277496, -33.85598011],
+        "longitude": [-74.00597306, 151.20666526],
+        "altitude": [5.5, 0.012],
+        "geodetic": [
+            "40.71277496, -74.00597306, 5.5km",
+            "-33.85598011, 151.20666526, 12m",
+        ],
+    }
+)
