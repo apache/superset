@@ -84,6 +84,12 @@ const render = () => (
 );
 ```
 
+##### `controls`
+
+There are some helpers for plugin controls that can be imported from subdirectories of
+`@superset-ui/chart`. If you're building a third-party plugin, modules that may be of use are
+`@superset-ui/chart/controls/selectOptions` and `@superset-ui/chart/controls/D3Formatting`.
+
 ##### `<SuperChart />`
 
 Coming soon.
