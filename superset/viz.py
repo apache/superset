@@ -2804,7 +2804,7 @@ class PartitionViz(NVD3TimeSeriesViz):
         procs = {}
         for i in range(0, len(groups) + 1):
             self.form_data["groupby"] = groups[:i]
-            df_drop = df.exclude(groups[i:], 1)
+            df_drop = df.drop(groups[i:], 1)
             procs[i] = self.process_data(df_drop, aggregate=True)
         self.form_data["groupby"] = groups
         return procs
