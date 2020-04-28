@@ -33,6 +33,8 @@ import {
   useQueryParams,
 } from 'use-query-params';
 
+import { isEqual } from 'lodash';
+
 import {
   FetchDataConfig,
   Filter,
@@ -191,7 +193,7 @@ export function useListViewState({
   useEffect(() => {
     if (initialFilters.length) {
       setInternalFilters(
-        mergeCreateFilterValues(initialFilters, query.filters),
+        mergeCreateFilterValues(initialFilters, query.filters || []),
       );
     }
   }, [initialFilters]);
@@ -205,9 +207,22 @@ export function useListViewState({
       queryParams.sortColumn = sortBy[0].id;
       queryParams.sortOrder = sortBy[0].desc ? 'desc' : 'asc';
     }
-    setQuery(queryParams);
+
+    const method =
+      typeof query.pageIndex !== 'undefined' &&
+      queryParams.pageIndex !== query.pageIndex
+        ? 'push'
+        : 'replace';
+
+    setQuery(queryParams, method);
     fetchData({ pageIndex, pageSize, sortBy, filters });
   }, [fetchData, pageIndex, pageSize, sortBy, filters]);
+
+  useEffect(() => {
+    if (!isEqual(initialState.pageIndex, pageIndex)) {
+      gotoPage(initialState.pageIndex);
+    }
+  }, [query]);
 
   const filtersApplied = internalFilters.every(
     ({ id, value, operator }, index) =>
