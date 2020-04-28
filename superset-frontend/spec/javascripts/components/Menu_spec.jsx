@@ -75,6 +75,7 @@ const defaultProps = {
       path: '/superset/profile/admin/',
       icon: '/static/assets/images/superset-logo@2x.png',
       alt: 'Superset',
+      width: '126',
     },
     navbar_right: {
       bug_report_url: null,
