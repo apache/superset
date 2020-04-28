@@ -406,7 +406,7 @@ def geohash_decode(
     """
     Decode a geohash column into longitude and latitude
 
-    :param df: DataFrame containing a geohash column
+    :param df: DataFrame containing geohash data
     :param geohash: Name of source column containing geohash location.
     :param longitude: Name of new column to be created containing longitude.
     :param latitude: Name of new column to be created containing latitude.
@@ -430,7 +430,7 @@ def geohash_encode(
     """
     Encode longitude and latitude into geohash
 
-    :param df: DataFrame containing longitude and latitude columns
+    :param df: DataFrame containing longitude and latitude data
     :param geohash: Name of new column to be created containing geohash location.
     :param longitude: Name of source column containing longitude.
     :param latitude: Name of source column containing latitude.
@@ -458,7 +458,7 @@ def geodetic_parse(
     Parse a column containing a geodetic point string
     [Geopy](https://geopy.readthedocs.io/en/stable/#geopy.point.Point).
 
-    :param df: DataFrame containing longitude and latitude columns
+    :param df: DataFrame containing geodetic point data
     :param geodetic: Name of source column containing geodetic point string.
     :param longitude: Name of new column to be created containing longitude.
     :param latitude: Name of new column to be created containing latitude.
