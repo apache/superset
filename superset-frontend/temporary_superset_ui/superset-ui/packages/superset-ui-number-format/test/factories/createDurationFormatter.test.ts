@@ -24,8 +24,10 @@ describe('createDurationFormatter()', () => {
     expect(formatter(90)).toBe('1m 30s');
   });
   it('format milliseconds in human readable format with additional pretty-ms options', () => {
+    const colonNotationFormatter = createDurationFormatter({ colonNotation: true });
+    expect(colonNotationFormatter(10500)).toBe('0:10.5');
     const zeroDecimalFormatter = createDurationFormatter({ secondsDecimalDigits: 0 });
-    expect(zeroDecimalFormatter(10500)).toBe('11s');
+    expect(zeroDecimalFormatter(10500)).toBe('10s');
     const subMillisecondFormatter = createDurationFormatter({ formatSubMilliseconds: true });
     expect(subMillisecondFormatter(100.40008)).toBe('100ms 400µs 80ns');
   });
