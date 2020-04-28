@@ -232,23 +232,38 @@ class PostProcessingTestCase(SupersetTestCase):
         post_df = proc.select(df=timeseries_df, columns=["label"])
         self.assertListEqual(post_df.columns.tolist(), ["label"])
 
-        # rename one column
+        # rename and select one column
         post_df = proc.select(df=timeseries_df, columns=["y"], rename={"y": "y1"})
         self.assertListEqual(post_df.columns.tolist(), ["y1"])
 
         # rename one and leave one unchanged
-        post_df = proc.select(
-            df=timeseries_df, columns=["label", "y"], rename={"y": "y1"}
-        )
+        post_df = proc.select(df=timeseries_df, rename={"y": "y1"})
         self.assertListEqual(post_df.columns.tolist(), ["label", "y1"])
+
+        # drop one column
+        post_df = proc.select(df=timeseries_df, drop=["label"])
+        self.assertListEqual(post_df.columns.tolist(), ["y"])
+
+        # rename and drop one column
+        post_df = proc.select(df=timeseries_df, rename={"y": "y1"}, drop=["label"])
+        self.assertListEqual(post_df.columns.tolist(), ["y1"])
 
         # invalid columns
         self.assertRaises(
             QueryObjectValidationError,
             proc.select,
             df=timeseries_df,
-            columns=["qwerty"],
+            columns=["abc"],
             rename={"abc": "qwerty"},
+        )
+
+        # select renamed column by new name
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.select,
+            df=timeseries_df,
+            columns=["label_new"],
+            rename={"label": "label_new"},
         )
 
     def test_diff(self):

@@ -324,7 +324,10 @@ def rolling(  # pylint: disable=too-many-arguments
 
 @validate_column_args("columns", "rename")
 def select(
-    df: DataFrame, columns: List[str], rename: Optional[Dict[str, str]] = None
+    df: DataFrame,
+    columns: Optional[List[str]] = None,
+    drop: Optional[List[str]] = None,
+    rename: Optional[Dict[str, str]] = None,
 ) -> DataFrame:
     """
     Only select a subset of columns in the original dataset. Can be useful for
@@ -332,15 +335,21 @@ def select(
 
     :param df: DataFrame on which the rolling period will be based.
     :param columns: Columns which to select from the DataFrame, in the desired order.
-                    If columns are renamed, the old column name should be referenced
-                    here.
+                    If left undefined, all columns will be selected. If columns are
+                    renamed, the original column name should be referenced here.
+    :param drop: columns to drop from selection. If columns are renamed, the new
+                 column name should be referenced here.
     :param rename: columns which to rename, mapping source column to target column.
                    For instance, `{'y': 'y2'}` will rename the column `y` to
                    `y2`.
     :return: Subset of columns in original DataFrame
     :raises ChartDataValidationError: If the request in incorrect
     """
-    df_select = df[columns]
+    df_select = df.copy(deep=False)
+    if columns:
+        df_select = df_select[columns]
+    if drop:
+        df_select = df_select.drop(drop, axis=1)
     if rename is not None:
         df_select = df_select.rename(columns=rename)
     return df_select

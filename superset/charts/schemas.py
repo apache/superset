@@ -265,15 +265,23 @@ class ChartDataSelectOptionsSchema(ChartDataPostProcessingOperationOptionsSchema
     columns = fields.List(
         fields.String(),
         description="Columns which to select from the input data, in the desired "
-        "order. If columns are renamed, the old column name should be "
+        "order. If columns are renamed, the original column name should be "
         "referenced here.",
         example=["country", "gender", "age"],
+        required=False,
+    )
+    drop = fields.List(
+        fields.String(),
+        description="Columns which to drop from selection.",
+        example=["my_temp_column"],
+        required=False,
     )
     rename = fields.List(
         fields.Dict(),
         description="columns which to rename, mapping source column to target column. "
         "For instance, `{'y': 'y2'}` will rename the column `y` to `y2`.",
         example=[{"age": "average_age"}],
+        required=False,
     )
 
 
