@@ -243,63 +243,12 @@ export const controls = {
     isLinear: true,
   },
 
-  normalize_across: {
-    type: 'SelectControl',
-    label: t('Normalize Across'),
-    choices: [
-      ['heatmap', 'heatmap'],
-      ['x', 'x'],
-      ['y', 'y'],
-    ],
-    default: 'heatmap',
-    description: t(
-      'Color will be rendered based on a ratio ' +
-        'of the cell against the sum of across this ' +
-        'criteria',
-    ),
-  },
-
   secondary_metric: {
     ...metric,
     label: t('Color Metric'),
     default: null,
     validators: [],
     description: t('A metric to use for color'),
-  },
-  select_country: {
-    type: 'SelectControl',
-    label: t('Country Name'),
-    default: 'France',
-    choices: [
-      'Belgium',
-      'Brazil',
-      'Bulgaria',
-      'China',
-      'Egypt',
-      'France',
-      'Germany',
-      'India',
-      'Iran',
-      'Italy',
-      'Japan',
-      'Korea',
-      'Liechtenstein',
-      'Morocco',
-      'Myanmar',
-      'Netherlands',
-      'Portugal',
-      'Russia',
-      'Singapore',
-      'Spain',
-      'Switzerland',
-      'Thailand',
-      'Timorleste',
-      'Uk',
-      'Ukraine',
-      'Usa',
-      'Zambia',
-    ].map(s => [s, s]),
-    description: t('The name of the country that Superset should display'),
   },
 
   groupby: groupByControl,
@@ -308,77 +257,6 @@ export const controls = {
     ...groupByControl,
     label: t('Columns'),
     description: t('One or many controls to pivot as columns'),
-  },
-
-  all_columns: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Columns'),
-    default: [],
-    description: t('Columns to display'),
-    optionRenderer: c => <ColumnOption column={c} showType />,
-    valueRenderer: c => <ColumnOption column={c} />,
-    valueKey: 'column_name',
-    allowAll: true,
-    mapStateToProps: state => ({
-      options: state.datasource ? state.datasource.columns : [],
-    }),
-    commaChoosesOption: false,
-    freeForm: true,
-  },
-
-  longitude: {
-    type: 'SelectControl',
-    label: t('Longitude'),
-    default: 1,
-    validators: [validateNonEmpty],
-    description: t('Select the longitude column'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
-  latitude: {
-    type: 'SelectControl',
-    label: t('Latitude'),
-    default: 1,
-    validators: [validateNonEmpty],
-    description: t('Select the latitude column'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
-  polygon: {
-    type: 'SelectControl',
-    label: t('Polygon Column'),
-    validators: [validateNonEmpty],
-    description: t(
-      'Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points',
-    ),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
-  all_columns_x: {
-    type: 'SelectControl',
-    label: 'X',
-    default: null,
-    description: t('Columns to display'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
-  all_columns_y: {
-    type: 'SelectControl',
-    label: 'Y',
-    default: null,
-    description: t('Columns to display'),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
   },
 
   druid_time_origin: {
@@ -424,25 +302,6 @@ export const controls = {
         'can type and use simple natural language as in `10 seconds`, ' +
         '`1 day` or `56 weeks`',
     ),
-  },
-
-  link_length: {
-    type: 'SelectControl',
-    renderTrigger: true,
-    freeForm: true,
-    label: t('Link Length'),
-    default: '200',
-    choices: formatSelectOptions([
-      '10',
-      '25',
-      '50',
-      '75',
-      '100',
-      '150',
-      '200',
-      '250',
-    ]),
-    description: t('Link length in the force layout'),
   },
 
   granularity_sqla: {
@@ -509,34 +368,6 @@ export const controls = {
     }),
   },
 
-  time_range_fixed: {
-    type: 'CheckboxControl',
-    label: t('Fix to selected Time Range'),
-    description: t(
-      'Fix the trend line to the full time range specified in case filtered results do not include the start or end dates',
-    ),
-    renderTrigger: true,
-    visibility(props) {
-      const {
-        time_range: timeRange,
-        viz_type: vizType,
-        show_trend_line: showTrendLine,
-      } = props.form_data;
-      // only display this option when a time range is selected
-      return timeRange && timeRange !== 'No filter';
-    },
-  },
-
-  number_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Number format'),
-    renderTrigger: true,
-    default: 'SMART_NUMBER',
-    choices: D3_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
   row_limit: {
     type: 'SelectControl',
     freeForm: true,
@@ -570,47 +401,6 @@ export const controls = {
       savedMetrics: state.datasource ? state.datasource.metrics : [],
       datasourceType: state.datasource && state.datasource.type,
     }),
-  },
-
-  order_desc: {
-    type: 'CheckboxControl',
-    label: t('Sort Descending'),
-    default: true,
-    description: t('Whether to sort descending or ascending'),
-  },
-
-  rolling_type: {
-    type: 'SelectControl',
-    label: t('Rolling Function'),
-    default: 'None',
-    choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
-    description: t(
-      'Defines a rolling window function to apply, works along ' +
-        'with the [Periods] text box',
-    ),
-  },
-
-  rolling_periods: {
-    type: 'TextControl',
-    label: t('Periods'),
-    isInt: true,
-    description: t(
-      'Defines the size of the rolling window function, ' +
-        'relative to the time granularity selected',
-    ),
-  },
-
-  min_periods: {
-    type: 'TextControl',
-    label: t('Min Periods'),
-    isInt: true,
-    description: t(
-      'The minimum number of rolling periods required to show ' +
-        'a value. For instance if you do a cumulative sum on 7 days ' +
-        'you may want your "Min Period" to be 7, so that all data points ' +
-        'shown are the total of 7 periods. This will hide the "ramp up" ' +
-        'taking place over the first 7 periods',
-    ),
   },
 
   series: {
@@ -654,16 +444,6 @@ export const controls = {
     default: null,
   },
 
-  url: {
-    type: 'TextControl',
-    label: t('URL'),
-    description: t(
-      'The URL, this control is templated, so you can integrate ' +
-        '{{ width }} and/or {{ height }} in your URL string.',
-    ),
-    default: '',
-  },
-
   y_axis_format: {
     type: 'SelectControl',
     freeForm: true,
@@ -689,170 +469,6 @@ export const controls = {
     },
   },
 
-  date_time_format: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: t('Date Time Format'),
-    renderTrigger: true,
-    default: 'smart_date',
-    choices: D3_TIME_FORMAT_OPTIONS,
-    description: D3_FORMAT_DOCS,
-  },
-
-  markup_type: {
-    type: 'SelectControl',
-    label: t('Markup Type'),
-    clearable: false,
-    choices: formatSelectOptions(['markdown', 'html']),
-    default: 'markdown',
-    validators: [validateNonEmpty],
-    description: t('Pick your favorite markup language'),
-  },
-
-  code: {
-    type: 'TextAreaControl',
-    label: t('Code'),
-    description: t('Put your code here'),
-    mapStateToProps: state => ({
-      language:
-        state.controls && state.controls.markup_type
-          ? state.controls.markup_type.value
-          : 'markdown',
-    }),
-    default: '',
-  },
-
-  pandas_aggfunc: {
-    type: 'SelectControl',
-    label: t('Aggregation function'),
-    clearable: false,
-    choices: formatSelectOptions(['sum', 'mean', 'min', 'max', 'std', 'var']),
-    default: 'sum',
-    description: t(
-      'Aggregate function to apply when pivoting and ' +
-        'computing the total rows and columns',
-    ),
-  },
-
-  table_filter: {
-    type: 'CheckboxControl',
-    label: t('Emit Filter Events'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to apply filter when items are clicked'),
-  },
-
-  show_values: {
-    type: 'CheckboxControl',
-    label: t('Show Values'),
-    renderTrigger: true,
-    default: false,
-    description: t('Whether to display the numerical values within the cells'),
-  },
-
-  log_scale: {
-    type: 'CheckboxControl',
-    label: t('Log Scale'),
-    default: false,
-    renderTrigger: true,
-    description: t('Use a log scale'),
-  },
-
-  contribution: {
-    type: 'CheckboxControl',
-    label: t('Contribution'),
-    default: false,
-    description: t('Compute the contribution to the total'),
-  },
-
-  comparison_type: {
-    type: 'SelectControl',
-    label: t('Calculation type'),
-    default: 'values',
-    choices: [
-      ['values', 'Actual Values'],
-      ['absolute', 'Absolute difference'],
-      ['percentage', 'Percentage change'],
-      ['ratio', 'Ratio'],
-    ],
-    description: t(
-      'How to display time shifts: as individual lines; as the ' +
-        'absolute difference between the main time series and each time shift; ' +
-        'as the percentage change; or as the ratio between series and time shifts.',
-    ),
-  },
-
-  mapbox_label: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('label'),
-    default: [],
-    description: t(
-      '`count` is COUNT(*) if a group by is used. ' +
-        'Numerical columns will be aggregated with the aggregator. ' +
-        'Non-numerical columns will be used to label points. ' +
-        'Leave empty to get a count of points in each cluster.',
-    ),
-    mapStateToProps: state => ({
-      choices: columnChoices(state.datasource),
-    }),
-  },
-
-  mapbox_style: {
-    type: 'SelectControl',
-    label: t('Map Style'),
-    clearable: false,
-    renderTrigger: true,
-    choices: [
-      ['mapbox://styles/mapbox/streets-v9', 'Streets'],
-      ['mapbox://styles/mapbox/dark-v9', 'Dark'],
-      ['mapbox://styles/mapbox/light-v9', 'Light'],
-      ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
-      ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
-      ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
-    ],
-    default: 'mapbox://styles/mapbox/light-v9',
-    description: t('Base layer map style'),
-  },
-
-  global_opacity: {
-    type: 'TextControl',
-    label: t('Opacity'),
-    default: 1,
-    isFloat: true,
-    description: t(
-      'Opacity of all clusters, points, and labels. Between 0 and 1.',
-    ),
-  },
-
-  viewport_zoom: {
-    type: 'TextControl',
-    label: t('Zoom'),
-    renderTrigger: true,
-    isFloat: true,
-    default: 11,
-    description: t('Zoom level of the map'),
-    places: 8,
-    // Viewport zoom shouldn't prompt user to re-run query
-    dontRefreshOnChange: true,
-  },
-
-  color: {
-    type: 'ColorPickerControl',
-    label: t('Color'),
-    default: PRIMARY_COLOR,
-    description: t('Pick a color'),
-  },
-
-  annotation_layers: {
-    type: 'AnnotationLayerControl',
-    label: '',
-    default: [],
-    description: 'Annotation Layers',
-    renderTrigger: true,
-    tabOverride: 'data',
-  },
-
   adhoc_filters: {
     type: 'AdhocFilterControl',
     label: t('Filters'),
@@ -866,34 +482,6 @@ export const controls = {
       datasource: state.datasource,
     }),
     provideFormDataToProps: true,
-  },
-
-  slice_id: {
-    type: 'HiddenControl',
-    label: t('Chart ID'),
-    hidden: true,
-    description: t('The id of the active chart'),
-  },
-
-  cache_timeout: {
-    type: 'HiddenControl',
-    label: t('Cache Timeout (seconds)'),
-    hidden: true,
-    description: t('The number of seconds before expiring the cache'),
-  },
-
-  url_params: {
-    type: 'HiddenControl',
-    label: t('URL Parameters'),
-    hidden: true,
-    description: t('Extra parameters for use in jinja templated queries'),
-  },
-
-  time_range_endpoints: {
-    type: 'HiddenControl',
-    label: t('Time range endpoints'),
-    hidden: true,
-    description: t('Time range endpoints (SIP-15)'),
   },
 
   color_scheme: {
@@ -915,30 +503,6 @@ export const controls = {
       colorNamespace: state.form_data.color_namespace,
       colorScheme: state.form_data.color_scheme,
     }),
-  },
-
-  column_collection: {
-    type: 'CollectionControl',
-    label: t('Time Series Columns'),
-    validators: [validateNonEmpty],
-    controlName: 'TimeSeriesColumnControl',
-  },
-
-  filter_configs: {
-    type: 'CollectionControl',
-    label: 'Filters',
-    description: t('Filter configuration for the filter box'),
-    validators: [],
-    controlName: 'FilterBoxItemControl',
-    mapStateToProps: ({ datasource }) => ({ datasource }),
-  },
-
-  normalized: {
-    type: 'CheckboxControl',
-    label: t('Normalized'),
-    renderTrigger: true,
-    description: t('Whether to normalize the histogram'),
-    default: false,
   },
 };
 export default controls;

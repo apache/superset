@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from sqlalchemy.engine.url import URL
 
 
 class DBSecurityException(Exception):
@@ -22,7 +23,7 @@ class DBSecurityException(Exception):
     status = 400
 
 
-def check_sqlalchemy_uri(uri):
+def check_sqlalchemy_uri(uri: URL) -> None:
     if uri.startswith("sqlite"):
         # sqlite creates a local DB, which allows mapping server's filesystem
         raise DBSecurityException(

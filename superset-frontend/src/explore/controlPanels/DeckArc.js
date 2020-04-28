@@ -35,6 +35,7 @@ import {
   legendFormat,
   legendPosition,
   viewport,
+  mapboxStyle,
 } from './Shared_DeckGL';
 
 export default {
@@ -77,7 +78,7 @@ export default {
     {
       label: t('Map'),
       controlSetRows: [
-        ['mapbox_style', viewport],
+        [mapboxStyle, viewport],
         [autozoom, null],
       ],
     },

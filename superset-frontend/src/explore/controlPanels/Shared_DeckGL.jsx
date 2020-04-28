@@ -392,3 +392,23 @@ export const reverseLongLat = {
     default: false,
   },
 };
+
+export const mapboxStyle = {
+  name: 'mapbox_style',
+  config: {
+    type: 'SelectControl',
+    label: t('Map Style'),
+    clearable: false,
+    renderTrigger: true,
+    choices: [
+      ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+      ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+      ['mapbox://styles/mapbox/light-v9', 'Light'],
+      ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+      ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+      ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+    ],
+    default: 'mapbox://styles/mapbox/light-v9',
+    description: t('Base layer map style'),
+  },
+};

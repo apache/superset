@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
 import { formatSelectOptionsForRange } from '../../modules/utils';
+import { columnChoices } from '../controls';
+import ColumnOption from '../../components/ColumnOption';
 
 export default {
   requiresTime: true,
@@ -27,7 +30,24 @@ export default {
       label: t('Event definition'),
       controlSetRows: [
         ['entity'],
-        ['all_columns_x'],
+        [
+          {
+            name: 'all_columns_x',
+            config: {
+              type: 'SelectControl',
+              label: t('Column containing event names'),
+              default: control =>
+                control.choices && control.choices.length > 0
+                  ? control.choices[0][0]
+                  : null,
+            },
+            description: t('Columns to display'),
+            mapStateToProps: state => ({
+              choices: columnChoices(state.datasource),
+            }),
+            validators: [validateNonEmpty],
+          },
+        ],
         ['row_limit'],
         [
           {
@@ -68,7 +88,29 @@ export default {
     },
     {
       label: t('Additional metadata'),
-      controlSetRows: [['all_columns']],
+      controlSetRows: [
+        [
+          {
+            name: 'all_columns',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              label: t('Meta data'),
+              default: [],
+              description: t('Select any columns for metadata inspection'),
+              optionRenderer: c => <ColumnOption column={c} showType />,
+              valueRenderer: c => <ColumnOption column={c} />,
+              valueKey: 'column_name',
+              allowAll: true,
+              mapStateToProps: state => ({
+                options: state.datasource ? state.datasource.columns : [],
+              }),
+              commaChoosesOption: false,
+              freeForm: true,
+            },
+          },
+        ],
+      ],
     },
   ],
   controlOverrides: {
@@ -76,23 +118,11 @@ export default {
       label: t('Column containing entity ids'),
       description: t('e.g., a "user id" column'),
     },
-    all_columns_x: {
-      label: t('Column containing event names'),
-      validators: [validateNonEmpty],
-      default: control =>
-        control.choices && control.choices.length > 0
-          ? control.choices[0][0]
-          : null,
-    },
     row_limit: {
       label: t('Event count limit'),
       description: t(
         'The maximum number of events to return, equivalent to the number of rows',
       ),
-    },
-    all_columns: {
-      label: t('Meta data'),
-      description: t('Select any columns for metadata inspection'),
     },
   },
 };

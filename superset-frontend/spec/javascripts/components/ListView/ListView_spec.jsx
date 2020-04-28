@@ -21,6 +21,7 @@ import { mount, shallow } from 'enzyme';
 import { act } from 'react-dom/test-utils';
 import { MenuItem, Pagination } from 'react-bootstrap';
 import Select from 'react-select';
+import { QueryParamProvider } from 'use-query-params';
 
 import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
@@ -28,6 +29,16 @@ import ListViewPagination from 'src/components/ListView/Pagination';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import { ThemeProvider } from 'emotion-theming';
 import { supersetTheme } from '@superset-ui/style';
+
+export function makeMockLocation(query) {
+  const queryStr = encodeURIComponent(query);
+  return {
+    protocol: 'http:',
+    host: 'localhost',
+    pathname: '/',
+    search: queryStr.length ? `?${queryStr}` : '',
+  };
+}
 
 const mockedProps = {
   title: 'Data Table',
@@ -64,11 +75,19 @@ const mockedProps = {
   bulkActions: [{ name: 'do something', onSelect: jest.fn() }],
 };
 
+const factory = (props = mockedProps) =>
+  mount(
+    <QueryParamProvider location={makeMockLocation()}>
+      <ListView {...props} />
+    </QueryParamProvider>,
+    {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    },
+  );
+
 describe('ListView', () => {
-  const wrapper = mount(<ListView {...mockedProps} />, {
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
-  });
+  const wrapper = factory();
 
   afterEach(() => {
     mockedProps.fetchData.mockClear();
@@ -327,10 +346,7 @@ describe('ListView with new UI filters', () => {
     ],
   };
 
-  const wrapper = mount(<ListView {...newFiltersProps} />, {
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
-  });
+  const wrapper = factory(newFiltersProps);
 
   afterEach(() => {
     mockedProps.fetchData.mockClear();

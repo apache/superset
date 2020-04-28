@@ -34,7 +34,29 @@ export default {
     {
       label: t('Options'),
       controlSetRows: [
-        ['link_length'],
+        [
+          {
+            name: 'link_length',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: true,
+              freeForm: true,
+              label: t('Link Length'),
+              default: '200',
+              choices: formatSelectOptions([
+                '10',
+                '25',
+                '50',
+                '75',
+                '100',
+                '150',
+                '200',
+                '250',
+              ]),
+              description: t('Link length in the force layout'),
+            },
+          },
+        ],
         [
           {
             name: 'charge',

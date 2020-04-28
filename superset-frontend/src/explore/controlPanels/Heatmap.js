@@ -22,6 +22,7 @@ import {
   formatSelectOptionsForRange,
   formatSelectOptions,
 } from '../../modules/utils';
+import { columnChoices } from '../controls';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],
@@ -36,7 +37,34 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['all_columns_x', 'all_columns_y'],
+        [
+          {
+            name: 'all_columns_x',
+            config: {
+              type: 'SelectControl',
+              label: 'X',
+              default: null,
+              description: t('Columns to display'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+              validators: [validateNonEmpty],
+            },
+          },
+          {
+            name: 'all_columns_y',
+            config: {
+              type: 'SelectControl',
+              label: 'Y',
+              default: null,
+              description: t('Columns to display'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
@@ -95,7 +123,24 @@ export default {
               ),
             },
           },
-          'normalize_across',
+          {
+            name: 'normalize_across',
+            config: {
+              type: 'SelectControl',
+              label: t('Normalize Across'),
+              choices: [
+                ['heatmap', 'heatmap'],
+                ['x', 'x'],
+                ['y', 'y'],
+              ],
+              default: 'heatmap',
+              description: t(
+                'Color will be rendered based on a ratio ' +
+                  'of the cell against the sum of across this ' +
+                  'criteria',
+              ),
+            },
+          },
         ],
         [
           {
@@ -185,7 +230,30 @@ export default {
             },
           },
         ],
-        ['show_values', 'normalized'],
+        [
+          {
+            name: 'show_values',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Values'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Whether to display the numerical values within the cells',
+              ),
+            },
+          },
+          {
+            name: 'normalized',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Normalized'),
+              renderTrigger: true,
+              description: t('Whether to normalize the histogram'),
+              default: false,
+            },
+          },
+        ],
         [
           {
             name: 'sort_x_axis',
@@ -212,12 +280,6 @@ export default {
     },
   ],
   controlOverrides: {
-    all_columns_x: {
-      validators: [validateNonEmpty],
-    },
-    all_columns_y: {
-      validators: [validateNonEmpty],
-    },
     normalized: t(
       'Whether to apply a normal distribution based on rank on the color scale',
     ),

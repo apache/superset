@@ -22,6 +22,7 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
+import { QueryParamProvider } from 'use-query-params';
 import { ThemeProvider } from 'emotion-theming';
 
 import { initFeatureFlags } from 'src/featureFlags';
@@ -60,22 +61,24 @@ const App = () => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
       <Router>
-        <Menu data={menu} />
-        <Switch>
-          <Route path="/superset/welcome/">
-            <Welcome user={user} />
-          </Route>
-          <Route path="/dashboard/list/">
-            <DashboardList user={user} />
-          </Route>
-          <Route path="/chart/list/">
-            <ChartList user={user} />
-          </Route>
-          <Route path="/tablemodelview/list/">
-            <DatasetList user={user} />
-          </Route>
-        </Switch>
-        <ToastPresenter />
+        <QueryParamProvider ReactRouterRoute={Route}>
+          <Menu data={menu} />
+          <Switch>
+            <Route path="/superset/welcome/">
+              <Welcome user={user} />
+            </Route>
+            <Route path="/dashboard/list/">
+              <DashboardList user={user} />
+            </Route>
+            <Route path="/chart/list/">
+              <ChartList user={user} />
+            </Route>
+            <Route path="/tablemodelview/list/">
+              <DatasetList user={user} />
+            </Route>
+          </Switch>
+          <ToastPresenter />
+        </QueryParamProvider>
       </Router>
     </ThemeProvider>
   </Provider>
