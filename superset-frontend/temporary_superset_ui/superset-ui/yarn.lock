@@ -3954,16 +3954,6 @@
   dependencies:
     classnames "^2.2.5"
 
-"@vx/group@0.0.194":
-  version "0.0.194"
-  resolved "https://registry.yarnpkg.com/@vx/group/-/group-0.0.194.tgz#c53cbd47d2a50650063be3b39920c44da063b3ae"
-  integrity sha512-0TV9eo5rgBr04i42qY+T5qg3PaHp9CJ77+V3Cm+ifTS3fgNomcfNCjoKpTi5uFVIj4M2t4akvka9n9PjW4emDw==
-  dependencies:
-    "@types/classnames" "^2.2.9"
-    "@types/react" "*"
-    classnames "^2.2.5"
-    prop-types "^15.6.2"
-
 "@vx/group@0.0.195":
   version "0.0.195"
   resolved "https://registry.yarnpkg.com/@vx/group/-/group-0.0.195.tgz#5236948af1d1fb83e02a63db5a7e82f4442f901e"
@@ -3973,18 +3963,6 @@
     "@types/react" "*"
     classnames "^2.2.5"
     prop-types "^15.6.2"
-
-"@vx/legend@^0.0.194":
-  version "0.0.194"
-  resolved "https://registry.yarnpkg.com/@vx/legend/-/legend-0.0.194.tgz#4037296663a0fbaaaab0fce71ee79fd343e9a5ae"
-  integrity sha512-fWrkt46E/Ivnw1oB3U4diZ1FEgE6qikCftK19mFgOZF9J+zvaL7WImYedn13wDSxTJm0niSsM6vKp/fFgjfDGA==
-  dependencies:
-    "@types/classnames" "^2.2.9"
-    "@types/d3-scale" "^2.1.1"
-    "@types/react" "*"
-    "@vx/group" "0.0.194"
-    classnames "^2.2.5"
-    prop-types "^15.5.10"
 
 "@vx/legend@^0.0.195":
   version "0.0.195"
