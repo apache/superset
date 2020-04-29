@@ -16,7 +16,6 @@
 # under the License.
 """Defines the templating context for SQL Lab"""
 import inspect
-import json
 import re
 from typing import Any, List, Optional, Tuple
 
@@ -49,7 +48,9 @@ def filter_values(column: str, default: Optional[str] = None) -> List[str]:
     :return: returns a list of filter values
     """
 
-    form_data = json.loads(request.form.get("form_data", "{}"))
+    from superset.views.utils import get_form_data
+
+    form_data, _ = get_form_data()
     convert_legacy_filters_into_adhoc(form_data)
     merge_extra_filters(form_data)
 
@@ -168,18 +169,16 @@ class ExtraCache:
         :returns: The URL parameters
         """
 
+        from superset.views.utils import get_form_data
+
         if request.args.get(param):
             return request.args.get(param, default)
-        # Supporting POST as well as get
-        form_data = request.form.get("form_data")
-        if isinstance(form_data, str):
-            form_data = json.loads(form_data)
-            url_params = form_data.get("url_params") or {}
-            result = url_params.get(param, default)
-            if add_to_cache_keys:
-                self.cache_key_wrapper(result)
-            return result
-        return default
+        form_data, _ = get_form_data()
+        url_params = form_data.get("url_params") or {}
+        result = url_params.get(param, default)
+        if add_to_cache_keys:
+            self.cache_key_wrapper(result)
+        return result
 
 
 class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
