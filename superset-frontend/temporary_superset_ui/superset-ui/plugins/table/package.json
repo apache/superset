@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-table",
-  "version": "0.12.22",
+  "version": "0.13.0",
   "description": "Superset Legacy Chart - Table",
   "sideEffects": [
     "*.css"
@@ -28,8 +28,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@types/react-dom": "^16.9.6",
     "@types/datatables.net": "^1.10.18",
+    "@types/react-dom": "^16.9.6",
     "datatables.net-bs": "^1.10.20",
     "xss": "^1.0.6"
   },
