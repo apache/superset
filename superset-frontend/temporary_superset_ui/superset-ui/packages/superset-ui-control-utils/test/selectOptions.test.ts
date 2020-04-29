@@ -1,4 +1,4 @@
-import { formatSelectOptions, formatSelectOptionsForRange } from '../../src';
+import { formatSelectOptions, formatSelectOptionsForRange } from '../src';
 
 describe('formatSelectOptions', () => {
   it('formats an array of options', () => {

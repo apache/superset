@@ -45,8 +45,6 @@
     "@superset-ui/core": "^0.12.0",
     "@superset-ui/dimension": "^0.12.0",
     "@superset-ui/query": "^0.12.0",
-    "@superset-ui/translation": "0.x",
-    "@superset-ui/validator": "0.x",
     "react": "^16.13.1"
   }
 }

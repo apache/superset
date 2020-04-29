@@ -35,7 +35,7 @@ export function formatSelectOptions(options: Formattable[]): Formatted[] {
  */
 export function formatSelectOptionsForRange(start: number, end: number) {
   const options: Formatted[] = [];
-  for (let i = start; i <= end; i++) {
+  for (let i = start; i <= end; i += 1) {
     options.push([i, i.toString()]);
   }
   return options;
