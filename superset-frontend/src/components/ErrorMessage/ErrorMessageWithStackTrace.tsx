@@ -19,19 +19,35 @@
 import React, { useState } from 'react';
 // @ts-ignore
 import { Alert, Collapse } from 'react-bootstrap';
+import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
+import { SupersetError } from './types';
 
-interface Props {
-  message: string;
+type Props = {
+  error?: SupersetError;
   link?: string;
+  message: string;
   stackTrace?: string;
-}
+};
 
 export default function ErrorMessageWithStackTrace({
+  error,
   message,
   link,
   stackTrace,
 }: Props) {
   const [showStackTrace, setShowStackTrace] = useState(false);
+
+  // Check if a custom error message component was registered for this message
+  if (error) {
+    const ErrorMessageComponent = getErrorMessageComponentRegistry().get(
+      error.errorType,
+    );
+    if (ErrorMessageComponent) {
+      return <ErrorMessageComponent error={error} />;
+    }
+  }
+
+  // Fallback to the default error message renderer
   return (
     <div className={`stack-trace-container${stackTrace ? ' has-trace' : ''}`}>
       <Alert
