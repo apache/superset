@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-sankey",
-  "version": "0.12.21",
+  "version": "0.13.0",
   "description": "Superset Legacy Chart - Sankey Diagram",
   "sideEffects": [
     "*.css"
