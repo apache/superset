@@ -556,9 +556,9 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         Chart API: Test get charts custom filter
         """
         admin = self.get_user("admin")
-        chart1 = self.insert_chart("foo", [admin.id], 1, description="ZY_bar")
+        chart1 = self.insert_chart("foo_a", [admin.id], 1, description="ZY_bar")
         chart2 = self.insert_chart("zy_foo", [admin.id], 1, description="desc1")
-        chart3 = self.insert_chart("foo", [admin.id], 1, description="desc1zy_")
+        chart3 = self.insert_chart("foo_b", [admin.id], 1, description="desc1zy_")
         chart4 = self.insert_chart("bar", [admin.id], 1, description="foo")
 
         arguments = {
@@ -567,6 +567,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             ],
             "order_column": "slice_name",
             "order_direction": "asc",
+            "keys": ["none"],
+            "columns": ["slice_name", "description"],
         }
         self.login(username="admin")
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
@@ -576,8 +578,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(data["count"], 3)
 
         expected_response = [
-            {"description": "ZY_bar", "slice_name": "foo",},
-            {"description": "desc1zy_", "slice_name": "foo",},
+            {"description": "ZY_bar", "slice_name": "foo_a",},
+            {"description": "desc1zy_", "slice_name": "foo_b",},
             {"description": "desc1", "slice_name": "zy_foo",},
         ]
         for index, item in enumerate(data["result"]):
