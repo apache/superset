@@ -1,0 +1,11 @@
+coverage:
+  status:
+    project:
+      default:
+        # Commits pushed to master should not make the overall
+        # project coverage decrease:
+        target: auto
+        threshold: 0%
+    patch:
+      default:
+        threshold: 0%
