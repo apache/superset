@@ -581,6 +581,7 @@ class SqlaTable(Model, BaseDatasource):
             d["main_dttm_col"] = self.main_dttm_col
             d["fetch_values_predicate"] = self.fetch_values_predicate
             d["template_params"] = self.template_params
+            d["is_sqllab_view"] = self.is_sqllab_view
         return d
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List:
