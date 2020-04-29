@@ -19,10 +19,12 @@
 /* eslint global-require: 0 */
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/connection';
-import getClientErrorObject from '../utils/getClientErrorObject';
+import getClientErrorObject, {
+  ClientErrorObject,
+} from '../utils/getClientErrorObject';
 import setupErrorMessages from './setupErrorMessages';
 
-function showApiMessage(resp: { severity?: string; message: string }) {
+function showApiMessage(resp: ClientErrorObject) {
   const template =
     '<div class="alert"> ' +
     '<button type="button" class="close" ' +
@@ -30,7 +32,7 @@ function showApiMessage(resp: { severity?: string; message: string }) {
   const severity = resp.severity || 'info';
   $(template)
     .addClass('alert-' + severity)
-    .append(resp.message)
+    .append(resp.message || '')
     .appendTo($('#alert-container'));
 }
 
