@@ -87,8 +87,8 @@ class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
 
 
 def get_scheduler_model(report_type: ScheduleType) -> Optional[Type[EmailSchedule]]:
-    if report_type == ScheduleType.dashboard:
+    if report_type == ScheduleType.dashboard.value:
         return DashboardEmailSchedule
-    elif report_type == ScheduleType.slice:
+    elif report_type == ScheduleType.slice.value:
         return SliceEmailSchedule
     return None
