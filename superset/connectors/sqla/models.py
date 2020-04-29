@@ -891,8 +891,8 @@ class SqlaTable(Model, BaseDatasource):
                         raise Exception(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-
-        where_clause_and += self._get_sqla_row_level_filters(template_processor)
+        if config["ENABLE_ROW_LEVEL_SECURITY"]:
+            where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:
