@@ -1707,13 +1707,17 @@ class Superset(BaseSupersetView):
                     form_data["extra_filters"] = get_dashboard_extra_filters(
                         slc.id, dashboard_id
                     )
+
                 obj = get_viz(
                     datasource_type=slc.datasource.type,
                     datasource_id=slc.datasource.id,
                     form_data=form_data,
                     force=True,
                 )
+
+                g.form_data = form_data
                 payload = obj.get_payload()
+                delattr(g, "form_data")
                 error = payload["error"]
                 status = payload["status"]
             except Exception as ex:
