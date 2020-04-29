@@ -49,7 +49,7 @@ Create chart name and version as used by the chart label.
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "superset-connections.script" }}
+{{- define "superset-config" }}
 import os
 from werkzeug.contrib.cache import RedisCache
 MAPBOX_API_KEY = os.getenv('MAPBOX_API_KEY', '')

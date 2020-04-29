@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "superset.fullname" . }}
@@ -39,45 +39,19 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{ if .Values.extraEnv }}
           env:
-            - name: REDIS_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: redis_host
-            - name: REDIS_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: redis_port
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_host
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_port
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_user
-            - name: DB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_pass         
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_name 
+            {{- range $key, $value := .Values.extraEnv }}
+            - name: "{{ $key }}"
+              value: "{{ $value }}"
+            {{- end }}
+          {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ tpl .Values.envFromSecret . | quote }}
           volumeMounts:
             - name: superset-config
-              mountPath: "/etc/superset"
+              mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
           ports:
             - name: http
@@ -100,4 +74,4 @@ spec:
       volumes:
         - name: superset-config
           secret:
-            secretName: superset-config
+            secretName: {{ tpl .Values.configFromSecret . }}
