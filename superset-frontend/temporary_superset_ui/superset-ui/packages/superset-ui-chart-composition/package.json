@@ -31,7 +31,7 @@
     "csstype": "^2.6.4"
   },
   "peerDependencies": {
-    "@superset-ui/core": "^0.12.0",
+    "@superset-ui/core": "^0.13.0",
     "react": "^16.13.1"
   }
 }

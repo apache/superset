@@ -26,7 +26,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@superset-ui/translation": "^0.12",
-    "@superset-ui/validator": "^0.12"
+    "@superset-ui/translation": "^0.13",
+    "@superset-ui/validator": "^0.13"
   }
 }

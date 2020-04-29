@@ -33,8 +33,8 @@
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.12.0",
-    "@superset-ui/translation": "^0.12.0",
+    "@superset-ui/chart": "^0.13.0",
+    "@superset-ui/translation": "^0.13.0",
     "react": "^15 || ^16"
   }
 }
