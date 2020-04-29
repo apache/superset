@@ -244,15 +244,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
 
   isOperatorRelevant(operator, subject) {
     if (subject && operator && CUSTOM_OPERATORS.includes(operator)) {
-      switch (operator) {
-        case OPERATORS['LATEST PARTITION']: {
-          const { partitionColumn } = this.props;
-          return partitionColumn && subject && subject === partitionColumn;
-        }
-
-        default:
-          return true;
-      }
+      const { partitionColumn } = this.props;
+      return partitionColumn && subject && subject === partitionColumn;
     }
 
     return !(
