@@ -42,3 +42,7 @@ const defaultTheme = {
 export default styled as CreateStyled<typeof defaultTheme>;
 
 export const supersetTheme = defaultTheme;
+
+export interface SupersetThemeProps {
+  theme: typeof defaultTheme;
+}
