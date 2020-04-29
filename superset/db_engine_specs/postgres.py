@@ -24,7 +24,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 if TYPE_CHECKING:
     # prevent circular imports
-    from superset.models.core import Database  # pylint: disable=unused-import
+    from superset.models.core import Database  # pylint: disable=unused-import #pragma: no cover
 
 
 # Replace psycopg2.tz.FixedOffsetTimezone with pytz, which is serializable by PyArrow
@@ -55,9 +55,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         cursor.tzinfo_factory = FixedOffsetTimezone
         if not cursor.description:
             return []
-        if cls.limit_method == LimitMethod.FETCH_MANY:
-            return cursor.fetchmany(limit)
-        return cursor.fetchall()
+        return super().fetch_data(cursor, limit)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
