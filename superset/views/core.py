@@ -213,6 +213,11 @@ def check_slice_perms(self, slice_id):
 
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
 
+    # Everyone has access to the slices with no datasource
+    # TODO(bkyryliuk): clean up this hack
+    if not slc or slc.datasource:
+        return
+
     viz_obj = get_viz(
         datasource_type=slc.datasource.type,
         datasource_id=slc.datasource.id,
