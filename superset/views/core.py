@@ -69,6 +69,7 @@ from superset.constants import RouteMethod
 from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
+    QueryObjectValidationError,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
@@ -653,13 +654,16 @@ class Superset(BaseSupersetView):
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         datasource_type = slc.datasource.type
         datasource_id = slc.datasource.id
-        viz_obj = get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            form_data=form_data,
-            force=False,
-        )
-        return self.generate_json(viz_obj)
+        try:
+            viz_obj = get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                form_data=form_data,
+                force=False,
+            )
+            return self.generate_json(viz_obj)
+        except SupersetException as ex:
+            return json_error_response(utils.error_msg_from_exception(ex))
 
     @event_logger.log_this
     @api
@@ -708,19 +712,19 @@ class Superset(BaseSupersetView):
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
+
+            viz_obj = get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                form_data=form_data,
+                force=force,
+            )
+
+            return self.generate_json(
+                viz_obj, csv=csv, query=query, results=results, samples=samples
+            )
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex))
-
-        viz_obj = get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            form_data=form_data,
-            force=force,
-        )
-
-        return self.generate_json(
-            viz_obj, csv=csv, query=query, results=results, samples=samples
-        )
 
     @event_logger.log_this
     @has_access

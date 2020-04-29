@@ -47,7 +47,11 @@ from pandas.tseries.frequencies import to_offset
 
 from superset import app, cache, get_manifest_files, security_manager
 from superset.constants import NULL_STRING
-from superset.exceptions import NullValueException, SpatialException
+from superset.exceptions import (
+    NullValueException,
+    QueryObjectValidationError,
+    SpatialException,
+)
 from superset.models.helpers import QueryResult
 from superset.typing import VizData
 from superset.utils import core as utils
@@ -113,7 +117,7 @@ class BaseViz:
         force: bool = False,
     ):
         if not datasource:
-            raise Exception(_("Viz is missing a datasource"))
+            raise QueryObjectValidationError(_("Viz is missing a datasource"))
 
         self.datasource = datasource
         self.request = request
@@ -362,7 +366,9 @@ class BaseViz:
         from_dttm = None if since is None else (since - self.time_shift)
         to_dttm = None if until is None else (until - self.time_shift)
         if from_dttm and to_dttm and from_dttm > to_dttm:
-            raise Exception(_("From date cannot be larger than to date"))
+            raise QueryObjectValidationError(
+                _("From date cannot be larger than to date")
+            )
 
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
@@ -588,7 +594,7 @@ class TableViz(BaseViz):
             fd.get("granularity_sqla") and fd.get("time_grain_sqla")
         )
         if fd.get("include_time") and not conditions_met:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _("Pick a granularity in the Time section or " "uncheck 'Include Time'")
             )
         return fd.get("include_time")
@@ -600,7 +606,7 @@ class TableViz(BaseViz):
         if fd.get("all_columns") and (
             fd.get("groupby") or fd.get("metrics") or fd.get("percent_metrics")
         ):
-            raise Exception(
+            raise QueryObjectValidationError(
                 _(
                     "Choose either fields to [Group By] and [Metrics] and/or "
                     "[Percentage Metrics], or [Columns], not both"
@@ -706,10 +712,10 @@ class TimeTableViz(BaseViz):
         fd = self.form_data
 
         if not fd.get("metrics"):
-            raise Exception(_("Pick at least one metric"))
+            raise QueryObjectValidationError(_("Pick at least one metric"))
 
         if fd.get("groupby") and len(fd.get("metrics")) > 1:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _("When using 'Group By' you are limited to use a single metric")
             )
         return d
@@ -754,9 +760,11 @@ class PivotTableViz(BaseViz):
         if not groupby:
             groupby = []
         if not groupby:
-            raise Exception(_("Please choose at least one 'Group by' field "))
+            raise QueryObjectValidationError(
+                _("Please choose at least one 'Group by' field ")
+            )
         if transpose and not columns:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _(
                     (
                         "Please choose at least one 'Columns' field when "
@@ -765,9 +773,9 @@ class PivotTableViz(BaseViz):
                 )
             )
         if not metrics:
-            raise Exception(_("Please choose at least one metric"))
+            raise QueryObjectValidationError(_("Please choose at least one metric"))
         if set(groupby) & set(columns):
-            raise Exception(_("Group By' and 'Columns' can't overlap"))
+            raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -920,7 +928,9 @@ class CalHeatmapViz(BaseViz):
             until=form_data.get("until"),
         )
         if not start or not end:
-            raise Exception("Please provide both time bounds (Since and Until)")
+            raise QueryObjectValidationError(
+                "Please provide both time bounds (Since and Until)"
+            )
         domain = form_data.get("domain_granularity")
         diff_delta = rdelta.relativedelta(end, start)
         diff_secs = (end - start).total_seconds()
@@ -1069,9 +1079,9 @@ class BubbleViz(NVD3Viz):
 
         d["metrics"] = [self.z_metric, self.x_metric, self.y_metric]
         if len(set(self.metric_labels)) < 3:
-            raise Exception(_("Please use 3 different metric labels"))
+            raise QueryObjectValidationError(_("Please use 3 different metric labels"))
         if not all(d["metrics"] + [self.entity]):
-            raise Exception(_("Pick a metric for x, y and size"))
+            raise QueryObjectValidationError(_("Pick a metric for x, y and size"))
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1122,7 +1132,7 @@ class BulletViz(NVD3Viz):
 
         d["metrics"] = [self.metric]
         if not self.metric:
-            raise Exception(_("Pick a metric to display"))
+            raise QueryObjectValidationError(_("Pick a metric to display"))
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1152,7 +1162,7 @@ class BigNumberViz(BaseViz):
         d = super().query_obj()
         metric = self.form_data.get("metric")
         if not metric:
-            raise Exception(_("Pick a metric!"))
+            raise QueryObjectValidationError(_("Pick a metric!"))
         d["metrics"] = [self.form_data.get("metric")]
         self.form_data["metric"] = metric
         return d
@@ -1183,7 +1193,7 @@ class BigNumberTotalViz(BaseViz):
         d = super().query_obj()
         metric = self.form_data.get("metric")
         if not metric:
-            raise Exception(_("Pick a metric!"))
+            raise QueryObjectValidationError(_("Pick a metric!"))
         d["metrics"] = [self.form_data.get("metric")]
         self.form_data["metric"] = metric
 
@@ -1261,7 +1271,9 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def process_data(self, df: pd.DataFrame, aggregate: bool = False) -> VizData:
         fd = self.form_data
         if fd.get("granularity") == "all":
-            raise Exception(_("Pick a time granularity for your time series"))
+            raise QueryObjectValidationError(
+                _("Pick a time granularity for your time series")
+            )
 
         if df.empty:
             return df
@@ -1315,7 +1327,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object["inner_to_dttm"] = query_object["to_dttm"]
 
             if not query_object["from_dttm"] or not query_object["to_dttm"]:
-                raise Exception(
+                raise QueryObjectValidationError(
                     _(
                         "`Since` and `Until` time bounds should be specified "
                         "when using the `Time Shift` feature."
@@ -1363,7 +1375,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 elif comparison_type == "ratio":
                     diff = df / df2
                 else:
-                    raise Exception(
+                    raise QueryObjectValidationError(
                         "Invalid `comparison_type`: {0}".format(comparison_type)
                     )
 
@@ -1426,11 +1438,11 @@ class NVD3DualLineViz(NVD3Viz):
         m2 = self.form_data.get("metric_2")
         d["metrics"] = [m1, m2]
         if not m1:
-            raise Exception(_("Pick a metric for left axis!"))
+            raise QueryObjectValidationError(_("Pick a metric for left axis!"))
         if not m2:
-            raise Exception(_("Pick a metric for right axis!"))
+            raise QueryObjectValidationError(_("Pick a metric for right axis!"))
         if m1 == m2:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _("Please choose different metrics" " on left and right axis")
             )
         return d
@@ -1473,7 +1485,9 @@ class NVD3DualLineViz(NVD3Viz):
         fd = self.form_data
 
         if self.form_data.get("granularity") == "all":
-            raise Exception(_("Pick a time granularity for your time series"))
+            raise QueryObjectValidationError(
+                _("Pick a time granularity for your time series")
+            )
 
         metric = utils.get_metric_name(fd.get("metric"))
         metric_2 = utils.get_metric_name(fd.get("metric_2"))
@@ -1590,7 +1604,9 @@ class HistogramViz(BaseViz):
         d = super().query_obj()
         d["row_limit"] = self.form_data.get("row_limit", int(config["VIZ_ROW_LIMIT"]))
         if not self.form_data.get("all_columns_x"):
-            raise Exception(_("Must have at least one numeric column specified"))
+            raise QueryObjectValidationError(
+                _("Must have at least one numeric column specified")
+            )
         return d
 
     def labelify(self, keys, column):
@@ -1642,9 +1658,9 @@ class DistributionBarViz(DistributionPieViz):
         d = super().query_obj()
         fd = self.form_data
         if not self.all_metrics:
-            raise Exception(_("Pick at least one metric"))
+            raise QueryObjectValidationError(_("Pick at least one metric"))
         if not self.columns:
-            raise Exception(_("Pick at least one field for [Series]"))
+            raise QueryObjectValidationError(_("Pick at least one field for [Series]"))
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1768,7 +1784,7 @@ class SankeyViz(BaseViz):
 
         cycle = find_cycle(hierarchy)
         if cycle:
-            raise Exception(
+            raise QueryObjectValidationError(
                 _(
                     "There's a loop in your Sankey, please provide a tree. "
                     "Here's a faulty link: {}"
@@ -1789,7 +1805,7 @@ class DirectedForceViz(BaseViz):
     def query_obj(self):
         qry = super().query_obj()
         if len(self.form_data["groupby"]) != 2:
-            raise Exception(_("Pick exactly 2 columns to 'Group By'"))
+            raise QueryObjectValidationError(_("Pick exactly 2 columns to 'Group By'"))
         qry["metrics"] = [self.form_data["metric"]]
         return qry
 
@@ -1919,7 +1935,7 @@ class FilterBoxViz(BaseViz):
         for flt in filters:
             col = flt.get("column")
             if not col:
-                raise Exception(
+                raise QueryObjectValidationError(
                     _("Invalid filter configuration, please select a column")
                 )
             qry["columns"] = [col]
@@ -2069,12 +2085,14 @@ class MapboxViz(BaseViz):
 
         if not fd.get("groupby"):
             if fd.get("all_columns_x") is None or fd.get("all_columns_y") is None:
-                raise Exception(_("[Longitude] and [Latitude] must be set"))
+                raise QueryObjectValidationError(
+                    _("[Longitude] and [Latitude] must be set")
+                )
             d["columns"] = [fd.get("all_columns_x"), fd.get("all_columns_y")]
 
             if label_col and len(label_col) >= 1:
                 if label_col[0] == "count":
-                    raise Exception(
+                    raise QueryObjectValidationError(
                         _(
                             "Must have a [Group By] column to have 'count' as the "
                             + "[Label]"
@@ -2094,19 +2112,21 @@ class MapboxViz(BaseViz):
                 and label_col[0] != "count"
                 and label_col[0] not in fd.get("groupby")
             ):
-                raise Exception(_("Choice of [Label] must be present in [Group By]"))
+                raise QueryObjectValidationError(
+                    _("Choice of [Label] must be present in [Group By]")
+                )
 
             if fd.get("point_radius") != "Auto" and fd.get(
                 "point_radius"
             ) not in fd.get("groupby"):
-                raise Exception(
+                raise QueryObjectValidationError(
                     _("Choice of [Point Radius] must be present in [Group By]")
                 )
 
             if fd.get("all_columns_x") not in fd.get("groupby") or fd.get(
                 "all_columns_y"
             ) not in fd.get("groupby"):
-                raise Exception(
+                raise QueryObjectValidationError(
                     _(
                         "[Longitude] and [Latitude] columns must be present in "
                         + "[Group By]"
