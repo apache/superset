@@ -95,15 +95,18 @@ export default class AdhocFilterControl extends React.Component {
   componentDidMount() {
     const { datasource } = this.props;
     if (datasource && datasource.type === 'table') {
-      const dbId = datasource.database ? datasource.database.id : null;
-      const datasourceName = datasource.datasource_name;
-      const datasourceSchema = datasource.schema;
+      const dbId = datasource.database?.id;
+      const {
+        datasource_name: name,
+        schema,
+        is_sqllab_view: isSqllabView,
+      } = datasource;
 
-      if (dbId && datasourceName && datasourceSchema) {
+      if (!isSqllabView && dbId && name && schema) {
         SupersetClient.get({
-          endpoint: `/superset/extra_table_metadata/${dbId}/${datasourceName}/${datasourceSchema}/`,
-        }).then(
-          ({ json }) => {
+          endpoint: `/superset/extra_table_metadata/${dbId}/${name}/${schema}/`,
+        })
+          .then(({ json }) => {
             if (json && json.partitions) {
               const partitions = json.partitions;
               // for now only show latest_partition option
@@ -125,9 +128,11 @@ export default class AdhocFilterControl extends React.Component {
                 );
               }
             }
-          },
-          // no error handler, in case of error do not show partition option
-        );
+          })
+          .catch(error => {
+            /* eslint-disable no-debugger, no-console */
+            console.error('fetch extra_table_metadata:', error.statusText);
+          });
       }
     }
   }
