@@ -130,7 +130,8 @@ export default class AdhocFilterControl extends React.Component {
             }
           })
           .catch(error => {
-            console.log('fetch extra_table_metadata:', error.statusText);
+            /* eslint-disable no-debugger, no-console */
+            console.error('fetch extra_table_metadata:', error.statusText);
           });
       }
     }
