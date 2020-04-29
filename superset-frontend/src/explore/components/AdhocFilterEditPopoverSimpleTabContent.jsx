@@ -32,6 +32,8 @@ import {
   DRUID_ONLY_OPERATORS,
   HAVING_OPERATORS,
   MULTI_OPERATORS,
+  CUSTOM_OPERATORS,
+  DISABLE_INPUT_OPERATORS,
 } from '../constants';
 import FilterDefinitionOption from './FilterDefinitionOption';
 import OnPasteSelect from '../../components/OnPasteSelect';
@@ -50,6 +52,7 @@ const propTypes = {
   ).isRequired,
   onHeightChange: PropTypes.func.isRequired,
   datasource: PropTypes.object,
+  partitionColumn: PropTypes.string,
 };
 
 const defaultProps = {
@@ -63,6 +66,8 @@ function translateOperator(operator) {
     return 'not equal to';
   } else if (operator === OPERATORS.LIKE) {
     return 'like';
+  } else if (operator === OPERATORS['LATEST PARTITION']) {
+    return 'use latest_partition template';
   }
   return operator;
 }
@@ -124,10 +129,15 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       subject = option.saved_metric_name || option.label;
       clause = CLAUSES.HAVING;
     }
+    const { operator } = this.props.adhocFilter;
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
         subject,
         clause,
+        operator:
+          operator && this.isOperatorRelevant(operator, subject)
+            ? operator
+            : null,
         expressionType: EXPRESSION_TYPES.SIMPLE,
       }),
     );
@@ -147,13 +157,26 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         ? currentComparator[0]
         : currentComparator;
     }
-    this.props.onChange(
-      this.props.adhocFilter.duplicateWith({
-        operator: operator && operator.operator,
-        comparator: newComparator,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-      }),
-    );
+
+    if (operator && CUSTOM_OPERATORS.includes(operator.operator)) {
+      this.props.onChange(
+        this.props.adhocFilter.duplicateWith({
+          subject: this.props.adhocFilter.subject,
+          clause: CLAUSES.WHERE,
+          operator: operator && operator.operator,
+          expressionType: EXPRESSION_TYPES.SQL,
+          datasource: this.props.datasource,
+        }),
+      );
+    } else {
+      this.props.onChange(
+        this.props.adhocFilter.duplicateWith({
+          operator: operator && operator.operator,
+          comparator: newComparator,
+          expressionType: EXPRESSION_TYPES.SIMPLE,
+        }),
+      );
+    }
   }
 
   onInputComparatorChange(event) {
@@ -220,7 +243,12 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  isOperatorRelevant(operator) {
+  isOperatorRelevant(operator, subject) {
+    if (operator && CUSTOM_OPERATORS.includes(operator)) {
+      const { partitionColumn } = this.props;
+      return partitionColumn && subject && subject === partitionColumn;
+    }
+
     return !(
       (this.props.datasource.type === 'druid' &&
         TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
@@ -282,7 +310,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     const operatorSelectProps = {
       placeholder: t('%s operators(s)', Object.keys(OPERATORS).length),
       options: Object.keys(OPERATORS)
-        .filter(this.isOperatorRelevant)
+        .filter(operator =>
+          this.isOperatorRelevant(operator, adhocFilter.subject),
+        )
         .map(operator => ({ operator })),
       value: adhocFilter.operator,
       onChange: this.onOperatorChange,
@@ -317,10 +347,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               showHeader={false}
               noResultsText={t('type a value here')}
               refFunc={this.multiComparatorRef}
-              disabled={
-                adhocFilter.operator === 'IS NOT NULL' ||
-                adhocFilter.operator === 'IS NULL'
-              }
+              disabled={DISABLE_INPUT_OPERATORS.includes(adhocFilter.operator)}
             />
           ) : (
             <input
@@ -330,10 +357,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               value={adhocFilter.comparator || ''}
               className="form-control input-sm"
               placeholder={t('Filter value')}
-              disabled={
-                adhocFilter.operator === 'IS NOT NULL' ||
-                adhocFilter.operator === 'IS NULL'
-              }
+              disabled={DISABLE_INPUT_OPERATORS.includes(adhocFilter.operator)}
             />
           )}
         </FormGroup>

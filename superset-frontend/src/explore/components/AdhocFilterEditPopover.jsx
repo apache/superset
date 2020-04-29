@@ -39,6 +39,7 @@ const propTypes = {
     ]),
   ).isRequired,
   datasource: PropTypes.object,
+  partitionColumn: PropTypes.string,
 };
 
 const startingWidth = 300;
@@ -117,6 +118,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       onClose,
       onResize,
       datasource,
+      partitionColumn,
       ...popoverProps
     } = this.props;
 
@@ -141,9 +143,10 @@ export default class AdhocFilterEditPopover extends React.Component {
             <AdhocFilterEditPopoverSimpleTabContent
               adhocFilter={this.state.adhocFilter}
               onChange={this.onAdhocFilterChange}
-              options={this.props.options}
-              datasource={this.props.datasource}
+              options={options}
+              datasource={datasource}
               onHeightChange={this.adjustHeight}
+              partitionColumn={partitionColumn}
             />
           </Tab>
           <Tab
