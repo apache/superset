@@ -1,5 +1,5 @@
 import 'babel-polyfill';
-import buildQuery from '../src/buildQuery';
+import buildQuery from '../../src/plugin/buildQuery';
 
 describe('WordCloud buildQuery', () => {
   const formData = {
