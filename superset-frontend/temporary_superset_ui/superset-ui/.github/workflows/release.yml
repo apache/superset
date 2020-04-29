@@ -22,7 +22,7 @@ jobs:
         fetch-depth: 0
     - name: Get tags and filter trigger tags
       run: |
-        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+        git fetch --depth=1 origin "+refs/tags/*:refs/tags/*"
         git fetch --prune --unshallow
         git tag -d `git tag | grep -E '^trigger-'`
 
@@ -58,9 +58,6 @@ jobs:
       run: yarn build
     - name: Run unit tests
       run: yarn test
-
-    - name: List changed packages
-      run: yarn list-changed-packages
 
     - name: Configure npm and git
       run: |
