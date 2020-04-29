@@ -7,7 +7,7 @@ import { BigNumberChartPlugin as LegacyBigNumberPlugin } from '@superset-ui/lega
 import LegacySankeyPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import LegacySunburstPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import LegacyWordCloudPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
-import WordCloudPlugin from '@superset-ui/plugin-chart-word-cloud';
+import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 
 import {
   bigNumberFormData,
@@ -33,7 +33,7 @@ new LegacySunburstPlugin().configure({ key: SUNBURST }).register();
 // @ts-ignore
 new LegacyWordCloudPlugin().configure({ key: WORD_CLOUD_LEGACY }).register();
 // @ts-ignore
-new WordCloudPlugin().configure({ key: WORD_CLOUD }).register();
+new WordCloudChartPlugin().configure({ key: WORD_CLOUD }).register();
 
 const VIS_TYPES = [BIG_NUMBER, SANKEY, SUNBURST, WORD_CLOUD, WORD_CLOUD_LEGACY];
 const FORM_DATA_LOOKUP = {
