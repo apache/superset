@@ -17,7 +17,6 @@
  * under the License.
  */
 import styled from '@superset-ui/style';
-import { css } from '@emotion/core';
 import React from 'react';
 
 interface Props {
@@ -27,6 +26,10 @@ interface Props {
   onChange: React.EventHandler<React.ChangeEvent<HTMLInputElement>>;
   placeholder?: string;
 }
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+`;
 
 const StyledInput = styled.input`
   width: 200px;
@@ -41,7 +44,7 @@ const StyledInput = styled.input`
   }
 `;
 
-const SearchIcon = styled.span`
+const SearchIcon = styled.div`
   position: absolute;
   z-index: 2;
   display: block;
@@ -54,7 +57,7 @@ const SearchIcon = styled.span`
   background-repeat: no-repeat;
 `;
 
-const ClearIcon = styled.span`
+const ClearIcon = styled.div`
   position: absolute;
   z-index: 2;
   display: block;
@@ -70,18 +73,14 @@ const ClearIcon = styled.span`
 `;
 
 export default function SearchInput({
-  onSubmit,
+  onChange,
   onClear,
+  onSubmit,
   placeholder = 'Search',
   value,
-  onChange,
 }: Props) {
   return (
-    <div
-      css={css`
-        position: relative;
-      `}
-    >
+    <SearchInputWrapper>
       <SearchIcon
         data-test="search-submit"
         role="button"
@@ -106,6 +105,6 @@ export default function SearchInput({
           onClick={() => onClear()}
         />
       )}
-    </div>
+    </SearchInputWrapper>
   );
 }

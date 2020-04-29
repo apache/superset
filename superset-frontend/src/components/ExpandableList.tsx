@@ -18,8 +18,8 @@
  */
 import React, { ReactNode, useState } from 'react';
 // @ts-ignore
-import { Button } from 'react-bootstrap';
 import { css } from '@emotion/core';
+import Button from 'src/components/Button';
 
 interface Props {
   items: string[] | ReactNode[];
@@ -34,21 +34,6 @@ function intersperse(arr: any[], sep: string | ReactNode) {
   return arr.slice(1).reduce((xs, x) => xs.concat([sep, x]), [arr[0]]);
 }
 
-const ActionButton: React.FunctionComponent<{ onClick: () => void }> = ({
-  onClick,
-  children,
-}) => (
-  <Button
-    bsStyle="link"
-    css={css`
-      padding: 0;
-    `}
-    onClick={onClick}
-  >
-    {children}
-  </Button>
-);
-
 export default function ExpandableList({ items, display = 3 }: Props) {
   const [showingAll, setShowingAll] = useState(false);
   const toggleShowingAll = () => setShowingAll(!showingAll);
@@ -56,19 +41,19 @@ export default function ExpandableList({ items, display = 3 }: Props) {
   const showMoreAction = items.length > display;
 
   const lessAction = (
-    <ActionButton onClick={toggleShowingAll}>less</ActionButton>
+    <Button bsStyle="link" bsSize="xsmall" onClick={toggleShowingAll}>less</Button>
   );
   const moreAction = (
-    <ActionButton onClick={toggleShowingAll}>
+    <Button bsStyle="link" bsSize="xsmall" onClick={toggleShowingAll}>
       {items.length - itemsToDisplay.length} more
-    </ActionButton>
+    </Button>
   );
   return (
     <span>
       {showingAll
         ? intersperse(items, ', ')
         : intersperse(itemsToDisplay, ', ')}
-      {showMoreAction && ', '}
+      {showMoreAction && ','}
       {showMoreAction && (showingAll ? lessAction : moreAction)}
     </span>
   );
