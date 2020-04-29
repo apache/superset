@@ -34,11 +34,11 @@
     "xss": "^1.0.6"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.12.0",
-    "@superset-ui/number-format": "^0.12.10",
-    "@superset-ui/query": "^0.12.8",
-    "@superset-ui/time-format": "^0.12.0",
-    "@superset-ui/translation": "^0.12.0",
+    "@superset-ui/chart": "^0.13.0",
+    "@superset-ui/number-format": "^0.13.0",
+    "@superset-ui/query": "^0.13.0",
+    "@superset-ui/time-format": "^0.13.0",
+    "@superset-ui/translation": "^0.13.0",
     "jquery": "^3.4.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
