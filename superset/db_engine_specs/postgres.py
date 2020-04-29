@@ -24,7 +24,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
-    from superset.models.core import Database  #pragma: no cover
+    from superset.models.core import Database  # pragma: no cover
 
 
 # Replace psycopg2.tz.FixedOffsetTimezone with pytz, which is serializable by PyArrow
