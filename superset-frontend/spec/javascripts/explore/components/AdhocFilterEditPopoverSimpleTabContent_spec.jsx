@@ -52,6 +52,12 @@ const sumValueAdhocMetric = new AdhocMetric({
   aggregate: AGGREGATES.SUM,
 });
 
+const simpleCustomFilter = new AdhocFilter({
+  expressionType: EXPRESSION_TYPES.SIMPLE,
+  subject: 'ds',
+  operator: 'LATEST PARTITION',
+});
+
 const options = [
   { type: 'VARCHAR(255)', column_name: 'source' },
   { type: 'VARCHAR(255)', column_name: 'target' },
@@ -153,6 +159,56 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     const { wrapper } = setup({ datasource: { type: 'druid' } });
     expect(wrapper.instance().isOperatorRelevant('regex')).toBe(true);
     expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(false);
+  });
+
+  it('will show LATEST PARTITION operator', () => {
+    const { wrapper } = setup({
+      datasource: {
+        type: 'table',
+        datasource_name: 'table1',
+        schema: 'schema',
+      },
+      adhocFilter: simpleCustomFilter,
+      partitionColumn: 'ds',
+    });
+
+    expect(
+      wrapper.instance().isOperatorRelevant('LATEST PARTITION', 'ds'),
+    ).toBe(true);
+    expect(
+      wrapper.instance().isOperatorRelevant('LATEST PARTITION', 'value'),
+    ).toBe(false);
+  });
+
+  it('will generate custom sqlExpression for LATEST PARTITION operator', () => {
+    const testAdhocFilter = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'ds',
+    });
+    const { wrapper, onChange } = setup({
+      datasource: {
+        type: 'table',
+        datasource_name: 'table1',
+        schema: 'schema',
+      },
+      adhocFilter: testAdhocFilter,
+      partitionColumn: 'ds',
+    });
+
+    wrapper.instance().onOperatorChange({ operator: 'LATEST PARTITION' });
+    expect(
+      onChange.lastCall.args[0].equals(
+        testAdhocFilter.duplicateWith({
+          subject: 'ds',
+          operator: 'LATEST PARTITION',
+          comparator: null,
+          clause: 'WHERE',
+          expressionType: 'SQL',
+          sqlExpression:
+            "ds = '{{ presto.latest_partition('schema.table1') }}' ",
+        }),
+      ),
+    ).toBe(true);
   });
 
   it('expands when its multi comparator input field expands', () => {

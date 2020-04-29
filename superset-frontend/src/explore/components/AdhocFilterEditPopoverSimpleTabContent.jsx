@@ -52,6 +52,7 @@ const propTypes = {
   ).isRequired,
   onHeightChange: PropTypes.func.isRequired,
   datasource: PropTypes.object,
+  partitionColumn: PropTypes.string,
 };
 
 const defaultProps = {
@@ -243,7 +244,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
   }
 
   isOperatorRelevant(operator, subject) {
-    if (subject && operator && CUSTOM_OPERATORS.includes(operator)) {
+    if (operator && CUSTOM_OPERATORS.includes(operator)) {
       const { partitionColumn } = this.props;
       return partitionColumn && subject && subject === partitionColumn;
     }
