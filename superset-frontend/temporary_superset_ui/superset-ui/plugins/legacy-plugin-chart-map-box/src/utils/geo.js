@@ -7,7 +7,6 @@ export function kmToPixels(kilometers, latitude, zoomLevel) {
   // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
   const latitudeRad = latitude * (Math.PI / 180);
   // Seems like the zoomLevel is off by one
-  // eslint-disable-next-line no-restricted-properties, unicorn/prefer-exponentiation-operator
   const kmPerPixel = (EARTH_CIRCUMFERENCE_KM * Math.cos(latitudeRad)) / 2 ** (zoomLevel + 9);
 
   return roundDecimal(kilometers / kmPerPixel, 2);

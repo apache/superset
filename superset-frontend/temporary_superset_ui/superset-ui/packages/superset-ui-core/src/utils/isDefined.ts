@@ -1,3 +1,3 @@
-export default function isDefined(x: any) {
+export default function isDefined(x: unknown) {
   return x !== null && x !== undefined;
 }

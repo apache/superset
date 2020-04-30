@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-plusplus, react/no-array-index-key, react/jsx-no-bind */
+/* eslint-disable react/no-array-index-key, react/jsx-no-bind */
 import dist from 'distributions';
 import React from 'react';
 import { Table, Tr, Td, Thead, Th } from 'reactable-arc';

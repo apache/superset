@@ -27,7 +27,7 @@ describe('reactify(renderFn)', () => {
   const TheChart = reactify(renderFn);
   const TheChartWithWillUnmountHook = reactify(renderFn, { componentWillUnmount: willUnmountCb });
 
-  class TestComponent extends React.PureComponent<{}, { content: string }, any> {
+  class TestComponent extends React.PureComponent<{}, { content: string }> {
     constructor(props = {}) {
       super(props);
       this.state = { content: 'abc' };
@@ -46,7 +46,7 @@ describe('reactify(renderFn)', () => {
     }
   }
 
-  class AnotherTestComponent extends React.PureComponent<{}, {}, any> {
+  class AnotherTestComponent extends React.PureComponent<{}, {}> {
     render() {
       return <TheChartWithWillUnmountHook id="another_test" />;
     }
@@ -99,7 +99,9 @@ describe('reactify(renderFn)', () => {
   });
   it('does not try to render if not mounted', () => {
     const anotherRenderFn = jest.fn();
-    const AnotherChart = reactify(anotherRenderFn) as any; // enables valid new AnotherChart() call
+    const AnotherChart = reactify(anotherRenderFn); // enables valid new AnotherChart() call
+    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     new AnotherChart({ id: 'test' }).execute();
     expect(anotherRenderFn).not.toHaveBeenCalled();
   });

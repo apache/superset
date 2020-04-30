@@ -97,12 +97,12 @@ export default class ChartPlugin<T extends QueryFormData = QueryFormData> extend
 
   register() {
     const { key = isRequired('config.key') } = this.config;
-    getChartMetadataRegistry().registerValue(key, this.metadata);
-    getChartComponentRegistry().registerLoader(key, this.loadChart);
-    getChartControlPanelRegistry().registerValue(key, this.controlPanel);
-    getChartTransformPropsRegistry().registerLoader(key, this.loadTransformProps);
+    getChartMetadataRegistry().registerValue(key as string, this.metadata);
+    getChartComponentRegistry().registerLoader(key as string, this.loadChart);
+    getChartControlPanelRegistry().registerValue(key as string, this.controlPanel);
+    getChartTransformPropsRegistry().registerLoader(key as string, this.loadTransformProps);
     if (this.loadBuildQuery) {
-      getChartBuildQueryRegistry().registerLoader(key, this.loadBuildQuery);
+      getChartBuildQueryRegistry().registerLoader(key as string, this.loadBuildQuery);
     }
 
     return this;
@@ -110,16 +110,16 @@ export default class ChartPlugin<T extends QueryFormData = QueryFormData> extend
 
   unregister() {
     const { key = isRequired('config.key') } = this.config;
-    getChartMetadataRegistry().remove(key);
-    getChartComponentRegistry().remove(key);
-    getChartControlPanelRegistry().remove(key);
-    getChartTransformPropsRegistry().remove(key);
-    getChartBuildQueryRegistry().remove(key);
+    getChartMetadataRegistry().remove(key as string);
+    getChartComponentRegistry().remove(key as string);
+    getChartControlPanelRegistry().remove(key as string);
+    getChartTransformPropsRegistry().remove(key as string);
+    getChartBuildQueryRegistry().remove(key as string);
 
     return this;
   }
 
-  configure(config: { [key: string]: any }, replace?: boolean) {
+  configure(config: { [key: string]: unknown }, replace?: boolean) {
     super.configure(config, replace);
 
     return this;
