@@ -7825,9 +7825,9 @@ emotion-theming@^10.0.19:
     hoist-non-react-statics "^3.3.0"
 
 encodable@^0.3.3, encodable@^0.3.4:
-  version "0.3.4"
-  resolved "https://registry.yarnpkg.com/encodable/-/encodable-0.3.4.tgz#9fd441a725719d9fa6cda6e53fbbcb0dc2d5d411"
-  integrity sha512-X+luRWWaosvOwNqYkTvLNexrie0CzEM0bnZydmL74T47B/uU6/F+GZuAMwumg2HrXQ8Uc3D0AKiDatFO/33Q8A==
+  version "0.3.5"
+  resolved "https://registry.yarnpkg.com/encodable/-/encodable-0.3.5.tgz#4d273623f86680939474b555183753c4976b3cc6"
+  integrity sha512-ofpVxFEYwFjgk94syrbdTc4nn6nxOO8rvJTieFz/Ko7V5oJMDpYwJYO87eL5xbc84XqD07vUJp50Zi54y+WAhw==
   dependencies:
     "@types/d3-array" "^2.0.0"
     "@types/d3-interpolate" "^1.3.1"
