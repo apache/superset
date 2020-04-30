@@ -34,9 +34,15 @@ config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
-
-config.set_main_option("sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"])
+DATABASE_URI = current_app.config["SQLALCHEMY_DATABASE_URI"]
+if "sqlite" in DATABASE_URI:
+    logger.warning(
+        "SQLite Database support for metadata databases will \
+        be removed in a future version of Superset."
+    )
+config.set_main_option("sqlalchemy.url", DATABASE_URI)
 target_metadata = Base.metadata  # pylint: disable=no-member
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

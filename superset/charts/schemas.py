@@ -265,15 +265,23 @@ class ChartDataSelectOptionsSchema(ChartDataPostProcessingOperationOptionsSchema
     columns = fields.List(
         fields.String(),
         description="Columns which to select from the input data, in the desired "
-        "order. If columns are renamed, the old column name should be "
+        "order. If columns are renamed, the original column name should be "
         "referenced here.",
         example=["country", "gender", "age"],
+        required=False,
+    )
+    exclude = fields.List(
+        fields.String(),
+        description="Columns to exclude from selection.",
+        example=["my_temp_column"],
+        required=False,
     )
     rename = fields.List(
         fields.Dict(),
         description="columns which to rename, mapping source column to target column. "
         "For instance, `{'y': 'y2'}` will rename the column `y` to `y2`.",
         example=[{"age": "average_age"}],
+        required=False,
     )
 
 
@@ -335,12 +343,81 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     aggregates = ChartDataAggregateConfigField()
 
 
+class ChartDataGeohashDecodeOptionsSchema(
+    ChartDataPostProcessingOperationOptionsSchema
+):
+    """
+    Geohash decode operation config.
+    """
+
+    geohash = fields.String(
+        description="Name of source column containing geohash string", required=True,
+    )
+    latitude = fields.String(
+        description="Name of target column for decoded latitude", required=True,
+    )
+    longitude = fields.String(
+        description="Name of target column for decoded longitude", required=True,
+    )
+
+
+class ChartDataGeohashEncodeOptionsSchema(
+    ChartDataPostProcessingOperationOptionsSchema
+):
+    """
+    Geohash encode operation config.
+    """
+
+    latitude = fields.String(
+        description="Name of source latitude column", required=True,
+    )
+    longitude = fields.String(
+        description="Name of source longitude column", required=True,
+    )
+    geohash = fields.String(
+        description="Name of target column for encoded geohash string", required=True,
+    )
+
+
+class ChartDataGeodeticParseOptionsSchema(
+    ChartDataPostProcessingOperationOptionsSchema
+):
+    """
+    Geodetic point string parsing operation config.
+    """
+
+    geodetic = fields.String(
+        description="Name of source column containing geodetic point strings",
+        required=True,
+    )
+    latitude = fields.String(
+        description="Name of target column for decoded latitude", required=True,
+    )
+    longitude = fields.String(
+        description="Name of target column for decoded longitude", required=True,
+    )
+    altitude = fields.String(
+        description="Name of target column for decoded altitude. If omitted, "
+        "altitude information in geodetic string is ignored.",
+        required=False,
+    )
+
+
 class ChartDataPostProcessingOperationSchema(Schema):
     operation = fields.String(
         description="Post processing operation type",
         required=True,
         validate=validate.OneOf(
-            choices=("aggregate", "pivot", "rolling", "select", "sort")
+            choices=(
+                "aggregate",
+                "geodetic_parse",
+                "geohash_decode",
+                "geohash_encode",
+                "pivot",
+                "rolling",
+                "select",
+                "sort",
+            )
         ),
         example="aggregate",
     )
@@ -638,4 +715,7 @@ CHART_DATA_SCHEMAS = (
     ChartDataRollingOptionsSchema,
     ChartDataSelectOptionsSchema,
     ChartDataSortOptionsSchema,
+    ChartDataGeohashDecodeOptionsSchema,
+    ChartDataGeohashEncodeOptionsSchema,
+    ChartDataGeodeticParseOptionsSchema,
 )

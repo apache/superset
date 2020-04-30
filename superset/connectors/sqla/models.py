@@ -84,6 +84,7 @@ class AnnotationDatasource(BaseDatasource):
     """
 
     cache_timeout = 0
+    changed_on = None
 
     def query(self, query_obj: Dict[str, Any]) -> QueryResult:
         error_message = None
@@ -581,6 +582,7 @@ class SqlaTable(Model, BaseDatasource):
             d["main_dttm_col"] = self.main_dttm_col
             d["fetch_values_predicate"] = self.fetch_values_predicate
             d["template_params"] = self.template_params
+            d["is_sqllab_view"] = self.is_sqllab_view
         return d
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List:
@@ -890,8 +892,8 @@ class SqlaTable(Model, BaseDatasource):
                         raise Exception(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-
-        where_clause_and += self._get_sqla_row_level_filters(template_processor)
+        if config["ENABLE_ROW_LEVEL_SECURITY"]:
+            where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:

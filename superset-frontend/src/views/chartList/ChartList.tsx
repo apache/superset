@@ -85,20 +85,11 @@ class ChartList extends React.PureComponent<Props, State> {
           this.updateFilters,
         );
       },
-      ([e1, e2]) => {
+      e => {
         this.props.addDangerToast(
-          t(
-            'An error occurred while fetching charts: %s, %s',
-            e1.message,
-            e2.message,
-          ),
+          t('An error occurred while fetching charts: %s', e.statusText),
         );
-        if (e1) {
-          console.error(e1);
-        }
-        if (e2) {
-          console.error(e2);
-        }
+        console.error(e);
       },
     );
   }
@@ -302,7 +293,10 @@ class ChartList extends React.PureComponent<Props, State> {
       (err: any) => {
         console.error(err);
         this.props.addDangerToast(
-          t('There was an issue deleting the selected charts'),
+          t(
+            'There was an issue deleting the selected charts: %s',
+            err.statusText,
+          ),
         );
       },
     );
@@ -319,6 +313,7 @@ class ChartList extends React.PureComponent<Props, State> {
       },
       loading: true,
     });
+
     const filterExps = filters
       .map(({ id: col, operator: opr, value }) => ({
         col,
@@ -329,9 +324,11 @@ class ChartList extends React.PureComponent<Props, State> {
         if (
           fltr.col === 'datasource' &&
           fltr.value &&
-          typeof fltr.value === 'object'
+          typeof fltr.value === 'string'
         ) {
-          const { datasource_id: dsId, datasource_type: dsType } = fltr.value;
+          const { datasource_id: dsId, datasource_type: dsType } = JSON.parse(
+            fltr.value,
+          );
           return [
             ...acc,
             { ...fltr, col: 'datasource_id', value: dsId },
@@ -356,8 +353,9 @@ class ChartList extends React.PureComponent<Props, State> {
         this.setState({ charts: json.result, chartCount: json.count });
       })
       .catch(e => {
+        console.log(e.body);
         this.props.addDangerToast(
-          t('An error occurred while fetching charts: %s', e.message),
+          t('An error occurred while fetching charts: %s', e.statusText),
         );
       })
       .finally(() => {
@@ -376,7 +374,7 @@ class ChartList extends React.PureComponent<Props, State> {
       return postProcess ? postProcess(json?.result) : json?.result;
     } catch (e) {
       this.props.addDangerToast(
-        t('An error occurred while fetching chart filters: %s', e.message),
+        t('An error occurred while fetching chart filters: %s', e.statusText),
       );
     }
     return [];
@@ -384,6 +382,10 @@ class ChartList extends React.PureComponent<Props, State> {
 
   convertOwners = (owners: any[]) =>
     owners.map(({ text: label, value }) => ({ label, value }));
+
+  stringifyValues = (datasources: any[]) => {
+    return datasources.map(ds => ({ ...ds, value: JSON.stringify(ds.value) }));
+  };
 
   updateFilters = async () => {
     const { filterOperators } = this.state;
@@ -419,7 +421,10 @@ class ChartList extends React.PureComponent<Props, State> {
             input: 'select',
             operator: 'eq',
             unfilteredLabel: 'All',
-            fetchSelects: this.createFetchResource('/api/v1/chart/datasources'),
+            fetchSelects: this.createFetchResource(
+              '/api/v1/chart/datasources',
+              this.stringifyValues,
+            ),
           },
           {
             Header: 'Search',

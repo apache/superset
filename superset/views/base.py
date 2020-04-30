@@ -217,7 +217,7 @@ def menu_data():
     if not g.user.is_anonymous:
         try:
             logo_target_path = (
-                appbuilder.app.config.get("LOGO_TARGET_PATH")
+                appbuilder.app.config["LOGO_TARGET_PATH"]
                 or f"/profile/{g.user.username}/"
             )
         # when user object has no username
@@ -241,12 +241,13 @@ def menu_data():
             "path": root_path,
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
+            "width": appbuilder.app.config["APP_ICON_WIDTH"],
         },
         "navbar_right": {
-            "bug_report_url": appbuilder.app.config.get("BUG_REPORT_URL"),
-            "documentation_url": appbuilder.app.config.get("DOCUMENTATION_URL"),
-            "version_string": appbuilder.app.config.get("VERSION_STRING"),
-            "version_sha": appbuilder.app.config.get("VERSION_SHA"),
+            "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
+            "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
+            "version_string": appbuilder.app.config["VERSION_STRING"],
+            "version_sha": appbuilder.app.config["VERSION_SHA"],
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": g.user.is_anonymous,

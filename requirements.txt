@@ -34,7 +34,7 @@ flask-talisman==0.7.0     # via apache-superset (setup.py)
 flask-wtf==0.14.2         # via apache-superset (setup.py), flask-appbuilder
 flask==1.1.1              # via apache-superset (setup.py), flask-appbuilder, flask-babel, flask-caching, flask-compress, flask-jwt-extended, flask-login, flask-migrate, flask-openid, flask-sqlalchemy, flask-wtf
 geographiclib==1.50       # via geopy
-geopy==1.20.0             # via apache-superset (setup.py)
+geopy==1.21.0             # via apache-superset (setup.py)
 gunicorn==20.0.4          # via apache-superset (setup.py)
 humanize==0.5.1           # via apache-superset (setup.py)
 importlib-metadata==1.4.0  # via jsonschema, kombu
