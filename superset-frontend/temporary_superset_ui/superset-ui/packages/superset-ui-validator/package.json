@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/validator",
-  "version": "0.13.1",
+  "version": "0.13.3",
   "description": "Superset UI validator",
   "sideEffects": false,
   "main": "lib/index.js",

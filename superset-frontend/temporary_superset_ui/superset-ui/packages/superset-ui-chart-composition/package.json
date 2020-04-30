@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart-composition",
-  "version": "0.13.1",
+  "version": "0.13.3",
   "description": "Superset UI chart-composition",
   "sideEffects": false,
   "main": "lib/index.js",
