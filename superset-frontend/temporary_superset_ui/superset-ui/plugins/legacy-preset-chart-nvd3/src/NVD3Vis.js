@@ -17,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-plusplus */
 import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
 import nv from 'nvd3';

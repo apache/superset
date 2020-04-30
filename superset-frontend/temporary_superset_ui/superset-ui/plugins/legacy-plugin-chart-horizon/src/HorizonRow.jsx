@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-continue, no-plusplus, no-bitwise */
+/* eslint-disable no-continue, no-bitwise */
 /* eslint-disable react/jsx-sort-default-props */
 /* eslint-disable react/sort-prop-types */
 import React from 'react';

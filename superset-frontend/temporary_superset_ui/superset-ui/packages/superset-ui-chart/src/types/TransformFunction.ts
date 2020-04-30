@@ -2,6 +2,7 @@ import { QueryFormData, QueryContext } from '@superset-ui/query';
 import ChartProps from '../models/ChartProps';
 
 export interface PlainProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 

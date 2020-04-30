@@ -99,6 +99,7 @@ export default class LineChart extends PureComponent<Props> {
 
       const allSeries = values(groups).map(seriesData => {
         const firstDatum = seriesData[0];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         const key = fieldNames.map(f => firstDatum[f]).join(',');
         const series: Series = {
           key: key.length === 0 ? channels.y.getTitle() : key,

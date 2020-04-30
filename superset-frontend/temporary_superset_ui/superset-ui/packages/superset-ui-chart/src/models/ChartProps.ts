@@ -92,7 +92,7 @@ export default class ChartProps {
     this.width = width;
     this.height = height;
     this.annotationData = annotationData;
-    this.datasource = convertKeysToCamelCase(datasource);
+    this.datasource = convertKeysToCamelCase(datasource) as Datasource;
     this.rawDatasource = datasource;
     this.formData = convertKeysToCamelCase(formData);
     this.rawFormData = formData;

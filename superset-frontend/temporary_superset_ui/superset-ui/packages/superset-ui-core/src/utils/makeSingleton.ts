@@ -1,8 +1,11 @@
-interface ClassInterface<T> {
-  new (...args: any[]): T;
+interface ClassInterface<T, Args extends unknown[]> {
+  new (...args: Args): T;
 }
 
-export default function makeSingleton<T>(BaseClass: ClassInterface<T>, ...args: any[]): () => T {
+export default function makeSingleton<T, Args extends unknown[]>(
+  BaseClass: ClassInterface<T, Args>,
+  ...args: Args
+): () => T {
   let singleton: T;
 
   return function getInstance() {

@@ -159,7 +159,7 @@ describe('Registry', () => {
     it('returns a rejected promise if the item with specified key does not exist', () => {
       const registry = new Registry();
 
-      return registry.getAsPromise('a').then(null, err => {
+      return registry.getAsPromise('a').then(null, (err: Error) => {
         expect(err.toString()).toEqual('Error: Item with key "a" is not registered.');
       });
     });

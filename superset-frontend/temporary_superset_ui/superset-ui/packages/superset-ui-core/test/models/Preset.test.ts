@@ -39,7 +39,7 @@ describe('Preset', () => {
       class Plugin4 extends Plugin {
         register() {
           const { key } = this.config;
-          values.push(key);
+          values.push(key as number);
 
           return this;
         }

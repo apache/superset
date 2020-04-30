@@ -102,7 +102,7 @@ class ChartDataProvider extends React.PureComponent<Props, State> {
           .then(this.handleReceiveData)
           .catch(this.handleError);
       } catch (error) {
-        this.handleError(error);
+        this.handleError(error as Error);
       }
     });
   };

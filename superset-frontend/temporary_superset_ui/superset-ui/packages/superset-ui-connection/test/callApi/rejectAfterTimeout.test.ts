@@ -10,7 +10,7 @@ describe('rejectAfterTimeout()', () => {
 
       rejectAfterTimeout(10)
         .then(throwIfCalled)
-        .catch(error => {
+        .catch((error: Error) => {
           expect(error).toBeDefined();
 
           return done();

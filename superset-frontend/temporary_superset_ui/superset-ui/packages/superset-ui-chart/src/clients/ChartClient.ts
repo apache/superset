@@ -56,7 +56,7 @@ export default class ChartClient {
           ...options,
         } as RequestConfig)
         .then(response => response.json as Json)
-        .then(json => json.form_data);
+        .then(json => json.form_data as QueryFormData);
 
       /*
        * If formData is also specified, override API result
