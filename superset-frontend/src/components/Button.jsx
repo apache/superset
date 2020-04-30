@@ -32,6 +32,7 @@ const propTypes = {
   onClick: PropTypes.func,
   disabled: PropTypes.bool,
   bsSize: PropTypes.string,
+  bsStyle: PropTypes.string,
   btnStyles: PropTypes.string,
 };
 const defaultProps = {
