@@ -88,7 +88,8 @@ export default class WordCloud extends React.PureComponent<
 
     cloudLayout()
       .size([width, height])
-      .words(data)
+      // clone the data because cloudLayout mutates input
+      .words(data.map(d => ({ ...d })))
       .padding(5)
       .rotate(ROTATION[rotation] || ROTATION.flat)
       .text(d => encoder.channels.text.getValueFromDatum(d))
