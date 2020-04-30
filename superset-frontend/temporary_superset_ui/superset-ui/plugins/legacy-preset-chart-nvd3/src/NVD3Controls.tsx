@@ -19,9 +19,12 @@
 
 import React from 'react';
 import { t } from '@superset-ui/translation';
-import { controls } from '@superset-ui/chart';
-
-const { formatSelectOptions, D3_TIME_FORMAT_OPTIONS, D3_FORMAT_DOCS, D3_FORMAT_OPTIONS } = controls;
+import {
+  formatSelectOptions,
+  D3_TIME_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  D3_FORMAT_OPTIONS,
+} from '@superset-ui/control-utils';
 
 /*
   Plugins in question:
@@ -338,6 +341,7 @@ export const timeSeriesSection = [
         'of query results',
     ),
     controlSetRows: [
+      // eslint-disable-next-line react/jsx-key
       [<h1 className="section-header">{t('Rolling Window')}</h1>],
       [
         {
@@ -381,6 +385,7 @@ export const timeSeriesSection = [
           },
         },
       ],
+      // eslint-disable-next-line react/jsx-key
       [<h1 className="section-header">{t('Time Comparison')}</h1>],
       [
         {
@@ -426,7 +431,9 @@ export const timeSeriesSection = [
           },
         },
       ],
+      // eslint-disable-next-line react/jsx-key
       [<h1 className="section-header">{t('Python Functions')}</h1>],
+      // eslint-disable-next-line react/jsx-key
       [<h2 className="section-header">pandas.resample</h2>],
       [
         {
