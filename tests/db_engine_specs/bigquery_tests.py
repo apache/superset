@@ -50,7 +50,7 @@ class BigQueryTestCase(DbEngineSpecTestCase):
             "DATETIME": "CAST('2019-01-02T03:04:05.678900' AS DATETIME)",
             "TIMESTAMP": "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)",
             "TIME": "CAST('03:04:05.678900' AS TIME)",
-            "TIMEDATE": None,
+            "UNKNOWNTYPE": None,
         }
 
         for target_type, expected in test_cases.items():
@@ -91,9 +91,7 @@ class BigQueryTestCase(DbEngineSpecTestCase):
             result = BigQueryEngineSpec.fetch_data(None, 0)
         self.assertEqual(result, data1)
 
-        row1 = Row(1)
-        row2 = Row(2)
-        data2 = [row1, row2]
+        data2 = [Row(1), Row(2)]
         with mock.patch.object(BaseEngineSpec, "fetch_data", return_value=data2):
             result = BigQueryEngineSpec.fetch_data(None, 0)
         self.assertEqual(result, [1, 2])
