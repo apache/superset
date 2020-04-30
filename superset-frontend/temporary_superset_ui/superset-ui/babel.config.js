@@ -12,10 +12,6 @@ const config = getConfig({
   },
 });
 
-if (process.env.NODE_ENV !== 'test') {
-  config.presets[0][1].modules = false;
-}
-
 // Override to allow transpile es modules inside vega-lite
 config.ignore = config.ignore.filter(item => item !== 'node_modules/');
 config.ignore.push('node_modules/(?!(vega-lite|lodash-es))');
