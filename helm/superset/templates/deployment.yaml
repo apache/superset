@@ -35,15 +35,20 @@ spec:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
     spec:
+      securityContext:
+        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{ if .Values.extraEnv }}
+          command: {{  tpl (toJson .Values.supersetNode.command) . }}
           env:
+            - name: "SUPERSET_PORT"
+              value: {{ .Values.service.port | quote}}
+          {{ if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
-            - name: "{{ $key }}"
-              value: "{{ $value }}"
+            - name: {{ $key | quote}}
+              value: {{ $value | quote }}
             {{- end }}
           {{- end }}
           envFrom:
@@ -55,7 +60,7 @@ spec:
               readOnly: true
           ports:
             - name: http
-              containerPort: 8088
+              containerPort: {{ .Values.service.port }}
               protocol: TCP
           resources:
 {{ toYaml .Values.resources | indent 12 }}

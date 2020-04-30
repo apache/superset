@@ -24,6 +24,8 @@ spec:
     metadata:
       name: {{ template "superset.name" . }}-init-db
     spec:
+      securityContext:
+        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
       {{- if .Values.init.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
@@ -34,8 +36,8 @@ spec:
         {{ if .Values.extraEnv }}
         env:
           {{- range $key, $value := .Values.extraEnv }}
-          - name: "{{ $key }}"
-            value: "{{ $value }}"
+          - name: {{ $key | quote }}
+            value: {{ $value | quote }}
           {{- end }}
         {{- end }}
         envFrom:
@@ -46,7 +48,7 @@ spec:
           - name: superset-config
             mountPath: {{ .Values.configMountPath | quote }}
             readOnly: true
-        command: [ "/bin/sh", "-c", ". {{ .Values.configMountPath }}/superset_init.sh" ]
+        command: {{  tpl (toJson .Values.init.command) . }}
       volumes:
         - name: superset-config
           secret:
