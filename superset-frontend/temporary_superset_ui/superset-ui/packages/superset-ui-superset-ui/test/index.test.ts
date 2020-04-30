@@ -11,6 +11,7 @@ import {
   t,
   validateInteger,
   supersetTheme,
+  D3_FORMAT_DOCS,
 } from '../src';
 
 describe('@superset-ui/superset-ui', () => {
@@ -25,6 +26,9 @@ describe('@superset-ui/superset-ui', () => {
   });
   it('should export @superset-ui/connection', () => {
     expect(SupersetClient).toBeDefined();
+  });
+  it('should export @superset-ui/control-utils', () => {
+    expect(D3_FORMAT_DOCS).toBeDefined();
   });
   it('should export @superset-ui/core', () => {
     expect(Registry).toBeDefined();
