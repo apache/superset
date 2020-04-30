@@ -1,5 +1,3 @@
-/* eslint-disable no-plusplus */
-
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the
   text's text across multiple tspan lines such that any given line does not exceed max width

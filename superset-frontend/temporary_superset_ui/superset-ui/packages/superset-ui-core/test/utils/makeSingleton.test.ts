@@ -6,8 +6,8 @@ describe('makeSingleton()', () => {
 
     isSitting?: boolean;
 
-    constructor(name: string) {
-      this.name = name;
+    constructor(name?: string) {
+      this.name = name || 'Pluto';
     }
 
     sit() {

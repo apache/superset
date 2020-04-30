@@ -9,7 +9,9 @@ import { ChartType } from '../models/ChartPlugin';
 import { PreTransformProps, TransformProps, PostTransformProps } from '../types/TransformFunction';
 import { HandlerFunction } from '../types/Base';
 
-const IDENTITY = (x: any) => x;
+function IDENTITY<T>(x: T) {
+  return x;
+}
 
 const EMPTY = () => null;
 
@@ -24,7 +26,7 @@ const defaultProps = {
 };
 
 interface LoadingProps {
-  error: any;
+  error: { toString(): string };
 }
 
 interface LoadedModules {

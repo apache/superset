@@ -36,7 +36,9 @@ export default function createLoadableRenderer<Props, Exports>(
       const { onRenderFailure, onRenderSuccess } = this.props;
       if (!loading) {
         if (error) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           (onRenderFailure as Function)(error);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         } else if (loaded && Object.keys(loaded).length > 0) {
           (onRenderSuccess as Function)();
         }

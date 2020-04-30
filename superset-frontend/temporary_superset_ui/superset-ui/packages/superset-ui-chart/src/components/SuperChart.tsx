@@ -127,6 +127,7 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
     if (
       queryData == null ||
       queryData.data === null ||
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       (Array.isArray(queryData.data) && queryData.data.length === 0)
     ) {
       chart = <NoResultsComponent id={id} className={className} height={height} width={width} />;
