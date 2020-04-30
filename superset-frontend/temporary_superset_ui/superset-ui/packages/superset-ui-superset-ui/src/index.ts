@@ -2,6 +2,7 @@ export * from '@superset-ui/chart';
 export * from '@superset-ui/chart-composition';
 export * from '@superset-ui/color';
 export * from '@superset-ui/connection';
+export * from '@superset-ui/control-utils';
 export * from '@superset-ui/core';
 export * from '@superset-ui/dimension';
 export * from '@superset-ui/number-format';
