@@ -18,7 +18,6 @@
  * under the License.
  */
 /* eslint no-param-reassign: [2, {"props": false}] */
-/* eslint-disable no-plusplus */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { hierarchy } from 'd3-hierarchy';
