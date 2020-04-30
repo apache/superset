@@ -85,7 +85,7 @@ from superset.security.analytics_db_safety import (
     check_sqlalchemy_uri,
     DBSecurityException,
 )
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
@@ -2083,7 +2083,9 @@ class Superset(BaseSupersetView):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         # Check that the user can access the datasource
-        if not self.appbuilder.sm.can_access_datasource(database, table_name, schema):
+        if not self.appbuilder.sm.can_access_datasource(
+            database, Table(table_name, schema), schema
+        ):
             stats_logger.incr(
                 f"deprecated.{self.__class__.__name__}.select_star.permission_denied"
             )

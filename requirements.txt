@@ -19,6 +19,7 @@ colorama==0.4.3           # via apache-superset (setup.py), flask-appbuilder
 contextlib2==0.6.0.post1  # via apache-superset (setup.py)
 croniter==0.3.31          # via apache-superset (setup.py)
 cryptography==2.8         # via apache-superset (setup.py)
+dataclasses==0.6          # via apache-superset (setup.py)
 decorator==4.4.1          # via retry
 defusedxml==0.6.0         # via python3-openid
 flask-appbuilder==2.3.2   # via apache-superset (setup.py)
