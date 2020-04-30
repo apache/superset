@@ -21,27 +21,33 @@
 
 replicaCount: 1
 
+## These requirements are used to build a requirements file which is then applied on init
+## of superset containers
+additionalRequirements:
+  - "psycopg2==2.8.3"
+  - "redis==3.2.1"
+
+## The name of the secret which we will use to generate a superset_config.py file
+## Note: this secret must have the key superset_config.py in it and can include other files as well
+##
+configFromSecret: '{{ template "superset.fullname" . }}-config'
+
+## The name of the secret which we will use to populate env vars in deployed pods
+## This can be useful for secret keys, etc.
+##
+envFromSecret: '{{ template "superset.fullname" . }}-env'
+
+## Extra environment variables that will be passed into pods
+##
+extraEnv: {}
+
+configMountPath: "/app/pythonpath"
+
 image:
-  repository: amancevice/superset
+  repository: preset/superset
   tag: latest
   pullPolicy: IfNotPresent
 
-initContainers: 
-  - name: wait-for-postgres
-    image: busybox:latest
-    imagePullPolicy: IfNotPresent
-    env:
-      - name: DB_HOST
-        valueFrom:
-          secretKeyRef:
-            name: superset-secret
-            key: db_host
-      - name: DB_PORT
-        valueFrom:
-          secretKeyRef:
-            name: superset-secret
-            key: db_port
-    command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
 service:
   type: NodePort
   port: 8088
@@ -70,32 +76,65 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-#Superset node configuration
+
+##
+## Superset node configuration
 supersetNode:
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/docker-entrypoint.sh"
   connections: 
-    redis_host: superset-redis-headless
+    redis_host: '{{ template "superset.fullname" . }}-redis-headless'
     redis_port: "6379"
-    db_host: superset-postgresql
+    db_host: '{{ template "superset.fullname" . }}-postgresql'
     db_port: "5432"
     db_user: superset
     db_pass: superset
     db_name: superset
+  initContainers:
+    - name: wait-for-postgres
+      image: busybox:latest
+      imagePullPolicy: IfNotPresent
+      envFrom:
+        - secretRef:
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
 
-# -----------------------------------------------------------------------------
-# Miscellaneous parameters
-# -----------------------------------------------------------------------------
-
+##
+## Init job configuration
 init:
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
+  loadExamples: false
+  initContainers:
+    - name: wait-for-postgres
+      image: busybox:latest
+      imagePullPolicy: IfNotPresent
+      envFrom:
+        - secretRef:
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   initscript: |-
-    superset db upgrade && \
-    superset init && \
+    #!/bin/sh
+    echo "Upgrading DB schema..."
+    superset db upgrade
+    echo "Initializing roles..."
+    superset init
+    echo "Creating admin user..."
     superset fab create-admin \
                     --username admin \
                       --firstname Superset \
                       --lastname Admin \
                       --email admin@superset.com \
                       --password admin || true
+    {{ if .Values.init.loadExamples }}
+    echo "Loading examples..."
+    superset load_examples
+    {{- end }}
 ##
 ## Configuration values for the postgresql dependency.
 ## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
