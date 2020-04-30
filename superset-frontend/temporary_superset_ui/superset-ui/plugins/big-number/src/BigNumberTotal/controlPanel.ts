@@ -17,25 +17,41 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import controlPanel from './controlPanel';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
+import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
-const metadata = new ChartMetadata({
-  description: '',
-  name: t('Big Number with Trendline'),
-  thumbnail,
-  useLegacyApi: true,
-});
-
-export default class BigNumberChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./BigNumber'),
-      metadata,
-      transformProps,
-      controlPanel,
-    });
-  }
-}
+export default {
+  controlPanelSections: [
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [['metric'], ['adhoc_filters']],
+    },
+    {
+      label: t('Options'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'subheader',
+            config: {
+              type: 'TextControl',
+              label: t('Subheader'),
+              description: t('Description text that shows up below your Big Number'),
+            },
+          },
+        ],
+        ['y_axis_format'],
+      ],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [[headerFontSize], [subheaderFontSize]],
+    },
+  ],
+  controlOverrides: {
+    y_axis_format: {
+      label: t('Number format'),
+    },
+  },
+};
