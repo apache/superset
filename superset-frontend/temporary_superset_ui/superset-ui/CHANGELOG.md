@@ -1,5 +1,50 @@
-# [0.0.0](https://github.com/apache-superset/superset-ui/compare/v0.13.0...v0.0.0) (2020-04-29)
+# [0.0.0](https://github.com/apache-superset/superset-ui/compare/v0.13.5...v0.0.0) (2020-04-30)
 
+
+
+## [0.13.5](https://github.com/apache-superset/superset-ui/compare/v0.13.4...v0.13.5) (2020-04-30)
+
+
+### Bug Fixes
+
+* lint errors ([#420](https://github.com/apache-superset/superset-ui/issues/420)) ([cb54e5a](https://github.com/apache-superset/superset-ui/commit/cb54e5af5c2a2f75f5d6484da9a1c2bf3b4a81f0))
+* **plugin-chart-word-cloud:** make wordcloud take current formdata ([#428](https://github.com/apache-superset/superset-ui/issues/428)) ([80b4c3f](https://github.com/apache-superset/superset-ui/commit/80b4c3faddf611e5a0d7c9d8a8c3706a3f0779fd))
+
+
+### Features
+
+* **superset-ui:** include control utils in the umbrella package ([#421](https://github.com/apache-superset/superset-ui/issues/421)) ([c2e0bdd](https://github.com/apache-superset/superset-ui/commit/c2e0bddde251a4738c34bbc642e31b814a25576a))
+
+
+
+## [0.13.4](https://github.com/apache-superset/superset-ui/compare/v0.13.3...v0.13.4) (2020-04-30)
+
+
+### Features
+
+* **legacy-plugin-chart-big-number:** add control panel config for the BigNumber charts ([#419](https://github.com/apache-superset/superset-ui/issues/419)) ([590c4f4](https://github.com/apache-superset/superset-ui/commit/590c4f4efe3fea028f5709e3ac5a234fd95d6e92))
+
+
+
+## [0.13.3](https://github.com/apache-superset/superset-ui/compare/v0.13.2...v0.13.3) (2020-04-30)
+
+
+
+## [0.13.2](https://github.com/apache-superset/superset-ui/compare/v0.13.1...v0.13.2) (2020-04-29)
+
+
+### Bug Fixes
+
+* peer dependencies ([a3029b9](https://github.com/apache-superset/superset-ui/commit/a3029b9ddfcae1678058a73e38ab4b73220b4fb5))
+
+
+
+## [0.13.1](https://github.com/apache-superset/superset-ui/compare/v0.13.0...v0.13.1) (2020-04-29)
+
+
+### Bug Fixes
+
+* bump peer dependencies ([f873d3c](https://github.com/apache-superset/superset-ui/commit/f873d3ccdda12fc5e79503ddf18d07177d8368a1))
 
 
 # [0.13.0](https://github.com/apache-superset/superset-ui/compare/v0.12.23...v0.13.0) (2020-04-29)
