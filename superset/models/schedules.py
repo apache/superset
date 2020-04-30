@@ -29,17 +29,17 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-class ScheduleType(enum.Enum):
+class ScheduleType(str, enum.Enum):
     slice = "slice"
     dashboard = "dashboard"
 
 
-class EmailDeliveryType(enum.Enum):
+class EmailDeliveryType(str, enum.Enum):
     attachment = "Attachment"
     inline = "Inline"
 
 
-class SliceEmailReportFormat(enum.Enum):
+class SliceEmailReportFormat(str, enum.Enum):
     visualization = "Visualization"
     data = "Raw data"
 
@@ -87,8 +87,8 @@ class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
 
 
 def get_scheduler_model(report_type: ScheduleType) -> Optional[Type[EmailSchedule]]:
-    if report_type == ScheduleType.dashboard.value:
+    if report_type == ScheduleType.dashboard:
         return DashboardEmailSchedule
-    elif report_type == ScheduleType.slice.value:
+    elif report_type == ScheduleType.slice:
         return SliceEmailSchedule
     return None

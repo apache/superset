@@ -391,9 +391,9 @@ def schedule_email_report(  # pylint: disable=unused-argument
         schedule.id = schedule_id
         schedule.recipients = recipients
 
-    if report_type == ScheduleType.dashboard.value:
+    if report_type == ScheduleType.dashboard:
         deliver_dashboard(schedule)
-    elif report_type == ScheduleType.slice.value:
+    elif report_type == ScheduleType.slice:
         deliver_slice(schedule)
     else:
         raise RuntimeError("Unknown report type")
