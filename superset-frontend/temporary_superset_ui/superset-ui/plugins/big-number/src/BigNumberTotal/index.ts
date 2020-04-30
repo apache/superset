@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import controlPanel from './controlPanel';
 import transformProps from '../BigNumber/transformProps';
 import thumbnail from './images/thumbnail.png';
 
@@ -34,6 +35,7 @@ export default class BigNumberTotalChartPlugin extends ChartPlugin {
       loadChart: () => import('../BigNumber/BigNumber'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
