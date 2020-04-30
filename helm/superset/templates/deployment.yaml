@@ -37,6 +37,10 @@ spec:
     spec:
       securityContext:
         runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+      {{- if .Values.supersetNode.initContainers }}
+      initContainers:
+      {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
