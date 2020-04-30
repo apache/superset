@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
-import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
+import ErrorMessageWithStackTrace from './ErrorMessage/ErrorMessageWithStackTrace';
 
 const propTypes = {
   children: PropTypes.node.isRequired,
