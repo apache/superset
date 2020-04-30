@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "superset.fullname" . }}
@@ -35,53 +35,36 @@ spec:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
     spec:
+      securityContext:
+        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+      {{- if .Values.supersetNode.initContainers }}
+      initContainers:
+      {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: {{  tpl (toJson .Values.supersetNode.command) . }}
           env:
-            - name: REDIS_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: redis_host
-            - name: REDIS_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: redis_port
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_host
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_port
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_user
-            - name: DB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_pass         
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: superset-secret
-                  key: db_name 
+            - name: "SUPERSET_PORT"
+              value: {{ .Values.service.port | quote}}
+          {{ if .Values.extraEnv }}
+            {{- range $key, $value := .Values.extraEnv }}
+            - name: {{ $key | quote}}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ tpl .Values.envFromSecret . | quote }}
           volumeMounts:
             - name: superset-config
-              mountPath: "/etc/superset"
+              mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
           ports:
             - name: http
-              containerPort: 8088
+              containerPort: {{ .Values.service.port }}
               protocol: TCP
           resources:
 {{ toYaml .Values.resources | indent 12 }}
@@ -100,4 +83,4 @@ spec:
       volumes:
         - name: superset-config
           secret:
-            secretName: superset-config
+            secretName: {{ tpl .Values.configFromSecret . }}
