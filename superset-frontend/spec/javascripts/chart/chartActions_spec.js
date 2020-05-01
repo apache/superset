@@ -19,17 +19,23 @@
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
+import * as chartlib from '@superset-ui/chart';
 import { LOG_EVENT } from '../../../src/logger/actions';
 import * as exploreUtils from '../../../src/explore/exploreUtils';
 import * as actions from '../../../src/chart/chartAction';
 
 describe('chart actions', () => {
+  const V1_URL = '/http//localhost/api/v1/chart/data';
   const MOCK_URL = '/mockURL';
   let dispatch;
   let urlStub;
+  let metadataRegistryStub;
+  let buildQueryRegistryStub;
+  let fakeMetadata;
 
   const setupDefaultFetchMock = () => {
     fetchMock.post(MOCK_URL, { json: {} }, { overwriteRoutes: true });
+    fetchMock.post(V1_URL, { json: {} }, { overwriteRoutes: true });
   };
 
   beforeAll(() => {
@@ -43,117 +49,135 @@ describe('chart actions', () => {
     urlStub = sinon
       .stub(exploreUtils, 'getExploreUrlAndPayload')
       .callsFake(() => ({ url: MOCK_URL, payload: {} }));
+    fakeMetadata = { useLegacyApi: true };
+    metadataRegistryStub = sinon
+      .stub(chartlib, 'getChartMetadataRegistry')
+      .callsFake(() => ({ get: () => fakeMetadata }));
+    buildQueryRegistryStub = sinon
+      .stub(chartlib, 'getChartBuildQueryRegistry')
+      .callsFake(() => ({ get: () => () => ({ some_param: 'fake query!' }) }));
   });
 
   afterEach(() => {
     urlStub.restore();
     fetchMock.resetHistory();
+    metadataRegistryStub.restore();
+    buildQueryRegistryStub.restore();
   });
 
-  it('should dispatch CHART_UPDATE_STARTED action before the query', () => {
-    const actionThunk = actions.postChartFormData({});
+  describe('v1 API', () => {
+    beforeEach(() => {
+      fakeMetadata = { useLegacyApi: false };
+    });
 
-    return actionThunk(dispatch).then(() => {
-      // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(5);
-      expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+    it('should query with the built query', async () => {
+      const actionThunk = actions.postChartFormData({});
+      await actionThunk(dispatch);
+
+      expect(fetchMock.calls(V1_URL)).toHaveLength(1);
+      expect(fetchMock.calls(V1_URL)[0][1].body).toBe(
+        JSON.stringify({ some_param: 'fake query!' }),
+      );
       expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
-
-      return Promise.resolve();
     });
   });
 
-  it('should dispatch TRIGGER_QUERY action with the query', () => {
-    const actionThunk = actions.postChartFormData({});
-    return actionThunk(dispatch).then(() => {
-      // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(5);
-      expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-      expect(dispatch.args[1][0].type).toBe(actions.TRIGGER_QUERY);
-
-      return Promise.resolve();
-    });
-  });
-
-  it('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
-    const actionThunk = actions.postChartFormData({});
-    return actionThunk(dispatch).then(() => {
-      // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(5);
-      expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-      expect(dispatch.args[2][0].type).toBe(actions.UPDATE_QUERY_FORM_DATA);
-
-      return Promise.resolve();
-    });
-  });
-
-  it('should dispatch logEvent async action', () => {
-    const actionThunk = actions.postChartFormData({});
-    return actionThunk(dispatch).then(() => {
-      // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(5);
-      expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-      expect(typeof dispatch.args[3][0]).toBe('function');
-
-      dispatch.args[3][0](dispatch);
-      expect(dispatch.callCount).toBe(6);
-      expect(dispatch.args[5][0].type).toBe(LOG_EVENT);
-
-      return Promise.resolve();
-    });
-  });
-
-  it('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
-    const actionThunk = actions.postChartFormData({});
-    return actionThunk(dispatch).then(() => {
-      // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(5);
-      expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-      expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_SUCCEEDED);
-
-      return Promise.resolve();
-    });
-  });
-
-  it('should CHART_UPDATE_TIMEOUT action upon query timeout', () => {
-    const unresolvingPromise = new Promise(() => {});
-    fetchMock.post(MOCK_URL, () => unresolvingPromise, {
-      overwriteRoutes: true,
+  describe('legacy API', () => {
+    beforeEach(() => {
+      fakeMetadata = { useLegacyApi: true };
     });
 
-    const timeoutInSec = 1 / 1000;
-    const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+    it('should dispatch CHART_UPDATE_STARTED action before the query', () => {
+      const actionThunk = actions.postChartFormData({});
 
-    return actionThunk(dispatch).then(() => {
-      // chart update, trigger query, update form data, fail
-      expect(dispatch.callCount).toBe(5);
-      expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
-      setupDefaultFetchMock();
-
-      return Promise.resolve();
+      return actionThunk(dispatch).then(() => {
+        // chart update, trigger query, update form data, success
+        expect(dispatch.callCount).toBe(5);
+        expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+        expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
+      });
     });
-  });
 
-  it('should dispatch CHART_UPDATE_FAILED action upon non-timeout non-abort failure', () => {
-    fetchMock.post(
-      MOCK_URL,
-      { throws: { statusText: 'misc error' } },
-      { overwriteRoutes: true },
-    );
+    it('should dispatch TRIGGER_QUERY action with the query', () => {
+      const actionThunk = actions.postChartFormData({});
+      return actionThunk(dispatch).then(() => {
+        // chart update, trigger query, update form data, success
+        expect(dispatch.callCount).toBe(5);
+        expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+        expect(dispatch.args[1][0].type).toBe(actions.TRIGGER_QUERY);
+      });
+    });
 
-    const timeoutInSec = 100; // Set to a time that is longer than the time this will take to fail
-    const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+    it('should dispatch UPDATE_QUERY_FORM_DATA action with the query', () => {
+      const actionThunk = actions.postChartFormData({});
+      return actionThunk(dispatch).then(() => {
+        // chart update, trigger query, update form data, success
+        expect(dispatch.callCount).toBe(5);
+        expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+        expect(dispatch.args[2][0].type).toBe(actions.UPDATE_QUERY_FORM_DATA);
+      });
+    });
 
-    return actionThunk(dispatch).then(() => {
-      // chart update, trigger query, update form data, fail
-      expect(dispatch.callCount).toBe(5);
-      const updateFailedAction = dispatch.args[4][0];
-      expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
-      expect(updateFailedAction.queryResponse.error).toBe('misc error');
+    it('should dispatch logEvent async action', () => {
+      const actionThunk = actions.postChartFormData({});
+      return actionThunk(dispatch).then(() => {
+        // chart update, trigger query, update form data, success
+        expect(dispatch.callCount).toBe(5);
+        expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+        expect(typeof dispatch.args[3][0]).toBe('function');
 
-      setupDefaultFetchMock();
+        dispatch.args[3][0](dispatch);
+        expect(dispatch.callCount).toBe(6);
+        expect(dispatch.args[5][0].type).toBe(LOG_EVENT);
+      });
+    });
 
-      return Promise.resolve();
+    it('should dispatch CHART_UPDATE_SUCCEEDED action upon success', () => {
+      const actionThunk = actions.postChartFormData({});
+      return actionThunk(dispatch).then(() => {
+        // chart update, trigger query, update form data, success
+        expect(dispatch.callCount).toBe(5);
+        expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+        expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_SUCCEEDED);
+      });
+    });
+
+    it('should CHART_UPDATE_TIMEOUT action upon query timeout', () => {
+      const unresolvingPromise = new Promise(() => {});
+      fetchMock.post(MOCK_URL, () => unresolvingPromise, {
+        overwriteRoutes: true,
+      });
+
+      const timeoutInSec = 1 / 1000;
+      const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+
+      return actionThunk(dispatch).then(() => {
+        // chart update, trigger query, update form data, fail
+        expect(dispatch.callCount).toBe(5);
+        expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
+        setupDefaultFetchMock();
+      });
+    });
+
+    it('should dispatch CHART_UPDATE_FAILED action upon non-timeout non-abort failure', () => {
+      fetchMock.post(
+        MOCK_URL,
+        { throws: { statusText: 'misc error' } },
+        { overwriteRoutes: true },
+      );
+
+      const timeoutInSec = 100; // Set to a time that is longer than the time this will take to fail
+      const actionThunk = actions.postChartFormData({}, false, timeoutInSec);
+
+      return actionThunk(dispatch).then(() => {
+        // chart update, trigger query, update form data, fail
+        expect(dispatch.callCount).toBe(5);
+        const updateFailedAction = dispatch.args[4][0];
+        expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
+        expect(updateFailedAction.queryResponse.error).toBe('misc error');
+
+        setupDefaultFetchMock();
+      });
     });
   });
 });

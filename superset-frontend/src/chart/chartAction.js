@@ -236,12 +236,11 @@ function legacyChartDataRequest(
 }
 
 async function v1ChartDataRequest(formData, requestParams) {
-  const url = '/api/v1/chart/data';
   const buildQuery = await getChartBuildQueryRegistry().get(formData.viz_type);
   const payload = buildQuery(formData);
   const querySettings = {
     ...requestParams,
-    endpoint: url,
+    endpoint: '/api/v1/chart/data',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   };
