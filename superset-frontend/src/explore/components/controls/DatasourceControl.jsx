@@ -150,7 +150,7 @@ class DatasourceControl extends React.PureComponent {
                   {t('Explore in SQL Lab')}
                 </MenuItem>
               )}
-              {this.props.onDatasourceSave && (
+              {!!this.props.onDatasourceSave && (
                 <MenuItem eventKey="3" onClick={this.toggleEditDatasourceModal}>
                   {t('Edit Datasource')}
                 </MenuItem>
