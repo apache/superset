@@ -29,17 +29,17 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-class ScheduleType(enum.Enum):
+class ScheduleType(str, enum.Enum):
     slice = "slice"
     dashboard = "dashboard"
 
 
-class EmailDeliveryType(enum.Enum):
+class EmailDeliveryType(str, enum.Enum):
     attachment = "Attachment"
     inline = "Inline"
 
 
-class SliceEmailReportFormat(enum.Enum):
+class SliceEmailReportFormat(str, enum.Enum):
     visualization = "Visualization"
     data = "Raw data"
 
