@@ -14,14 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: superset-configmap
-  labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-data:
-{{ (.Files.Glob "config/*").AsConfig | indent 2 }}
+dependencies:
+- name: postgresql
+  version: 8.1.4
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  condition: postgresql.enabled
+- name: redis
+  version: 10.3.4
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  condition: redis.enabled

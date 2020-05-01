@@ -1,0 +1,57 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+{{- if .Values.init.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "superset.name" . }}-init-db
+spec:
+  template:
+    metadata:
+      name: {{ template "superset.name" . }}-init-db
+    spec:
+      securityContext:
+        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+      {{- if .Values.init.initContainers }}
+      initContainers:
+      {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
+      {{- end }}
+      containers:
+      - name: {{ template "superset.name" . }}-init-db
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        {{ if .Values.extraEnv }}
+        env:
+          {{- range $key, $value := .Values.extraEnv }}
+          - name: {{ $key | quote }}
+            value: {{ $value | quote }}
+          {{- end }}
+        {{- end }}
+        envFrom:
+          - secretRef:
+              name: {{ tpl .Values.envFromSecret . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+          - name: superset-config
+            mountPath: {{ .Values.configMountPath | quote }}
+            readOnly: true
+        command: {{  tpl (toJson .Values.init.command) . }}
+      volumes:
+        - name: superset-config
+          secret:
+            secretName: {{ tpl .Values.configFromSecret . }}
+      restartPolicy: Never
+{{- end }}

@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 from flask import g
 
 from superset import app, security_manager
+from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
 from superset.utils.core import QuerySource
@@ -44,7 +45,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
 
     @classmethod
     def validate_statement(
-        cls, statement, database, cursor, user_name
+        cls, statement: str, database: Database, cursor: Any, user_name: str
     ) -> Optional[SQLValidationAnnotation]:
         # pylint: disable=too-many-locals
         db_engine_spec = database.db_engine_spec

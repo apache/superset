@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
-def cache_chart_thumbnail(chart_id: int, force: bool = False):
-    with app.app_context():
+def cache_chart_thumbnail(chart_id: int, force: bool = False) -> None:
+    with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logger.warning("No cache set, refusing to compute")
             return None
@@ -42,8 +42,8 @@ def cache_chart_thumbnail(chart_id: int, force: bool = False):
 
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
-def cache_dashboard_thumbnail(dashboard_id: int, force: bool = False):
-    with app.app_context():
+def cache_dashboard_thumbnail(dashboard_id: int, force: bool = False) -> None:
+    with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logging.warning("No cache set, refusing to compute")
             return None

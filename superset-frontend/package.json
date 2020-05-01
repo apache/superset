@@ -10,6 +10,7 @@
   "scripts": {
     "tdd": "NODE_ENV=test jest --watch",
     "test": "NODE_ENV=test jest",
+    "type": "tsc --noEmit",
     "cover": "NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
     "dev-server": "NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development --progress",
@@ -17,8 +18,9 @@
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --colors --progress",
     "build-instrumented": "cross-env NODE_ENV=development BABEL_ENV=instrumented webpack --mode=development --colors --progress",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production webpack --mode=production --colors --progress",
-    "lint": "prettier --check '{src,stylesheets}/**/*.{css,less,sass,scss}' && eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx .",
-    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css",
+    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . && npm run type",
+    "prettier-check": "prettier --check '{src,stylesheets}/**/*.{css,less,sass,scss}'",
+    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css && npm run type",
     "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'"
   },
   "repository": {
@@ -55,7 +57,6 @@
     "@babel/runtime-corejs3": "^7.8.4",
     "@data-ui/sparkline": "^0.0.54",
     "@emotion/core": "^10.0.28",
-    "@emotion/styled": "^10.0.27",
     "@superset-ui/chart": "^0.13.3",
     "@superset-ui/chart-composition": "^0.13.3",
     "@superset-ui/color": "^0.13.3",
@@ -92,6 +93,7 @@
     "@superset-ui/plugin-chart-word-cloud": "^0.13.3",
     "@superset-ui/preset-chart-xy": "^0.11.15",
     "@superset-ui/query": "^0.13.3",
+    "@superset-ui/style": "^0.13.3",
     "@superset-ui/time-format": "^0.13.3",
     "@superset-ui/translation": "^0.13.3",
     "@superset-ui/validator": "^0.13.3",
@@ -180,6 +182,7 @@
     "@babel/preset-env": "^7.8.7",
     "@babel/preset-react": "^7.8.3",
     "@babel/register": "^7.8.6",
+    "@emotion/babel-preset-css-prop": "^10.0.27",
     "@hot-loader/react-dom": "^16.13.0",
     "@types/classnames": "^2.2.9",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",

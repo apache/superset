@@ -19,6 +19,7 @@
 
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
+import { t } from '@superset-ui/translation';
 
 const fakePluginControls = {
   controlPanelSections: [
@@ -26,7 +27,7 @@ const fakePluginControls = {
       label: 'Fake Control Panel Sections',
       expanded: true,
       controlSetRows: [
-        ['url_params'],
+        ['label_colors'],
         [
           {
             name: 'y_axis_bounds',
@@ -77,28 +78,36 @@ describe('getControlsForVizType', () => {
   });
 
   it('returns a map of the controls', () => {
-    expect(getControlsForVizType('chart_controls_inventory_fake')).toEqual({
-      url_params: {
-        type: 'HiddenControl',
-        label: 'URL Parameters',
-        hidden: true,
-        description: 'Extra parameters for use in jinja templated queries',
-      },
-      y_axis_bounds: {
-        type: 'BoundsControl',
-        label: 'Value bounds',
-        default: [null, null],
-        description: 'Value bounds for the y axis',
-      },
-      adhoc_filters: {
-        type: 'AdhocFilterControl',
-        label: 'Fake Filters',
-        default: null,
-      },
-      column_collection: {
-        type: 'CollectionControl',
-        label: 'Fake Collection Control',
-      },
-    });
+    expect(
+      JSON.stringify(getControlsForVizType('chart_controls_inventory_fake')),
+    ).toEqual(
+      JSON.stringify({
+        label_colors: {
+          type: 'ColorMapControl',
+          label: t('Color Map'),
+          default: {},
+          renderTrigger: true,
+          mapStateToProps: state => ({
+            colorNamespace: state.form_data.color_namespace,
+            colorScheme: state.form_data.color_scheme,
+          }),
+        },
+        y_axis_bounds: {
+          type: 'BoundsControl',
+          label: 'Value bounds',
+          default: [null, null],
+          description: 'Value bounds for the y axis',
+        },
+        adhoc_filters: {
+          type: 'AdhocFilterControl',
+          label: 'Fake Filters',
+          default: null,
+        },
+        column_collection: {
+          type: 'CollectionControl',
+          label: 'Fake Collection Control',
+        },
+      }),
+    );
   });
 });

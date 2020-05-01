@@ -26,7 +26,32 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['all_columns_x', 'all_columns_y'],
+        [
+          {
+            name: 'all_columns_x',
+            config: {
+              type: 'SelectControl',
+              label: t('Longitude'),
+              default: null,
+              description: t('Column containing longitude data'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+          {
+            name: 'all_columns_y',
+            config: {
+              type: 'SelectControl',
+              label: t('Latitude'),
+              default: null,
+              description: t('Column containing latitude data'),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+        ],
         [
           {
             name: 'clustering_radius',
@@ -100,7 +125,51 @@ export default {
     },
     {
       label: t('Labelling'),
-      controlSetRows: [['mapbox_label'], ['pandas_aggfunc']],
+      controlSetRows: [
+        [
+          {
+            name: 'mapbox_label',
+            config: {
+              type: 'SelectControl',
+              multi: true,
+              label: t('label'),
+              default: [],
+              description: t(
+                '`count` is COUNT(*) if a group by is used. ' +
+                  'Numerical columns will be aggregated with the aggregator. ' +
+                  'Non-numerical columns will be used to label points. ' +
+                  'Leave empty to get a count of points in each cluster.',
+              ),
+              mapStateToProps: state => ({
+                choices: columnChoices(state.datasource),
+              }),
+            },
+          },
+        ],
+        [
+          {
+            name: 'pandas_aggfunc',
+            config: {
+              type: 'SelectControl',
+              label: t('Cluster label aggregator'),
+              clearable: false,
+              choices: formatSelectOptions([
+                'sum',
+                'mean',
+                'min',
+                'max',
+                'std',
+                'var',
+              ]),
+              default: 'sum',
+              description: t(
+                'Aggregate function applied to the list of points ' +
+                  'in each cluster to produce the cluster label.',
+              ),
+            },
+          },
+        ],
+      ],
     },
     {
       label: t('Visual Tweaks'),
@@ -118,8 +187,44 @@ export default {
             },
           },
         ],
-        ['mapbox_style'],
-        ['global_opacity'],
+        [
+          {
+            name: 'mapbox_style',
+            config: {
+              type: 'SelectControl',
+              label: t('Map Style'),
+              clearable: false,
+              renderTrigger: true,
+              choices: [
+                ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+                ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+                ['mapbox://styles/mapbox/light-v9', 'Light'],
+                [
+                  'mapbox://styles/mapbox/satellite-streets-v9',
+                  'Satellite Streets',
+                ],
+                ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+                ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+              ],
+              default: 'mapbox://styles/mapbox/light-v9',
+              description: t('Base layer map style'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'global_opacity',
+            config: {
+              type: 'TextControl',
+              label: t('Opacity'),
+              default: 1,
+              isFloat: true,
+              description: t(
+                'Opacity of all clusters, points, and labels. Between 0 and 1.',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'mapbox_color',
@@ -197,21 +302,6 @@ export default {
     },
   ],
   controlOverrides: {
-    all_columns_x: {
-      label: t('Longitude'),
-      description: t('Column containing longitude data'),
-    },
-    all_columns_y: {
-      label: t('Latitude'),
-      description: t('Column containing latitude data'),
-    },
-    pandas_aggfunc: {
-      label: t('Cluster label aggregator'),
-      description: t(
-        'Aggregate function applied to the list of points ' +
-          'in each cluster to produce the cluster label.',
-      ),
-    },
     groupby: {
       description: t(
         'One or many controls to group by. If grouping, latitude ' +

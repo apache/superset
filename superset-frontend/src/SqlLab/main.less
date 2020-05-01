@@ -359,7 +359,21 @@ div.tablePopover {
 }
 
 .ResultSetControls {
+  display: flex;
+  justify-content: space-between;
   padding: 8px 0;
+  position: fixed;
+}
+
+.ResultSetButtons {
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: 4px;
+  padding-right: 8px;
+}
+
+.filterable-table-container {
+  margin-top: 48px;
 }
 
 .ace_editor {

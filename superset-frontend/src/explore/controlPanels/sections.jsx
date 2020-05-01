@@ -33,7 +33,44 @@ export const datasourceAndVizType = {
   controlSetRows: [
     ['datasource'],
     ['viz_type'],
-    ['slice_id', 'cache_timeout', 'url_params', 'time_range_endpoints'],
+    [
+      {
+        name: 'slice_id',
+        config: {
+          type: 'HiddenControl',
+          label: t('Chart ID'),
+          hidden: true,
+          description: t('The id of the active chart'),
+        },
+      },
+      {
+        name: 'cache_timeout',
+        config: {
+          type: 'HiddenControl',
+          label: t('Cache Timeout (seconds)'),
+          hidden: true,
+          description: t('The number of seconds before expiring the cache'),
+        },
+      },
+      {
+        name: 'url_params',
+        config: {
+          type: 'HiddenControl',
+          label: t('URL Parameters'),
+          hidden: true,
+          description: t('Extra parameters for use in jinja templated queries'),
+        },
+      },
+      {
+        name: 'time_range_endpoints',
+        config: {
+          type: 'HiddenControl',
+          label: t('Time range endpoints'),
+          hidden: true,
+          description: t('Time range endpoints (SIP-15)'),
+        },
+      },
+    ],
   ],
 };
 
@@ -51,8 +88,23 @@ export const sqlaTimeSeries = {
 
 export const annotations = {
   label: t('Annotations and Layers'),
+  tabOverride: 'data',
   expanded: true,
-  controlSetRows: [['annotation_layers']],
+  controlSetRows: [
+    [
+      {
+        name: 'annotation_layers',
+        config: {
+          type: 'AnnotationLayerControl',
+          label: '',
+          default: [],
+          description: 'Annotation Layers',
+          renderTrigger: true,
+          tabOverride: 'data',
+        },
+      },
+    ],
+  ],
 };
 
 export const NVD3TimeSeries = [
@@ -64,12 +116,32 @@ export const NVD3TimeSeries = [
       ['adhoc_filters'],
       ['groupby'],
       ['limit', 'timeseries_limit_metric'],
-      ['order_desc', 'contribution'],
+      [
+        {
+          name: 'order_desc',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Sort Descending'),
+            default: true,
+            description: t('Whether to sort descending or ascending'),
+          },
+        },
+        {
+          name: 'contribution',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Contribution'),
+            default: false,
+            description: t('Compute the contribution to the total'),
+          },
+        },
+      ],
       ['row_limit', null],
     ],
   },
   {
     label: t('Advanced Analytics'),
+    tabOverride: 'data',
     description: t(
       'This section contains options ' +
         'that allow for advanced analytical post processing ' +
@@ -77,7 +149,54 @@ export const NVD3TimeSeries = [
     ),
     controlSetRows: [
       [<h1 className="section-header">{t('Rolling Window')}</h1>],
-      ['rolling_type', 'rolling_periods', 'min_periods'],
+      [
+        {
+          name: 'rolling_type',
+          config: {
+            type: 'SelectControl',
+            label: t('Rolling Function'),
+            default: 'None',
+            choices: formatSelectOptions([
+              'None',
+              'mean',
+              'sum',
+              'std',
+              'cumsum',
+            ]),
+            description: t(
+              'Defines a rolling window function to apply, works along ' +
+                'with the [Periods] text box',
+            ),
+          },
+        },
+        {
+          name: 'rolling_periods',
+          config: {
+            type: 'TextControl',
+            label: t('Periods'),
+            isInt: true,
+            description: t(
+              'Defines the size of the rolling window function, ' +
+                'relative to the time granularity selected',
+            ),
+          },
+        },
+        {
+          name: 'min_periods',
+          config: {
+            type: 'TextControl',
+            label: t('Min Periods'),
+            isInt: true,
+            description: t(
+              'The minimum number of rolling periods required to show ' +
+                'a value. For instance if you do a cumulative sum on 7 days ' +
+                'you may want your "Min Period" to be 7, so that all data points ' +
+                'shown are the total of 7 periods. This will hide the "ramp up" ' +
+                'taking place over the first 7 periods',
+            ),
+          },
+        },
+      ],
       [<h1 className="section-header">{t('Time Comparison')}</h1>],
       [
         {
@@ -103,7 +222,25 @@ export const NVD3TimeSeries = [
             ),
           },
         },
-        'comparison_type',
+        {
+          name: 'comparison_type',
+          config: {
+            type: 'SelectControl',
+            label: t('Calculation type'),
+            default: 'values',
+            choices: [
+              ['values', 'Actual Values'],
+              ['absolute', 'Absolute difference'],
+              ['percentage', 'Percentage change'],
+              ['ratio', 'Ratio'],
+            ],
+            description: t(
+              'How to display time shifts: as individual lines; as the ' +
+                'absolute difference between the main time series and each time shift; ' +
+                'as the percentage change; or as the ratio between series and time shifts.',
+            ),
+          },
+        },
       ],
       [<h1 className="section-header">{t('Python Functions')}</h1>],
       [<h2 className="section-header">pandas.resample</h2>],

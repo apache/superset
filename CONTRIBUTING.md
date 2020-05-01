@@ -88,9 +88,7 @@ little bit helps, and credit will always be given.
     - [Y Axis 2](#y-axis-2)
     - [Query](#query)
     - [Filters Configuration](#filters-configuration)
-    - [Options](#options)
     - [Chart Options](#chart-options)
-    - [X Axis](#x-axis)
     - [Y Axis](#y-axis)
     - [Other](#other)
     - [Unclassified](#unclassified)
@@ -805,27 +803,29 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
 ### Improving visualizations
 
-Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins):
+Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
 
 ```bash
-git clone https://github.com/apache-superset/superset-ui-plugins.git
-yarn && yarn build
+git clone https://github.com/apache-superset/superset-ui.git
+cd superset-ui
+yarn
+yarn build
 ```
 
-Then use `npm link` to create a symlink of the source code in `superset-frontend/node_modules`:
+Then use `npm link` to create symlinks of the plugins/superset-ui packages you want to edit in `superset-frontend/node_modules`:
 
 ```bash
 cd incubator-superset/superset-frontend
-npm link ../../superset-ui-plugins/packages/superset-ui-[PLUGIN NAME]
+npm link ../../superset-ui/plugins/[PLUGIN NAME]
 
-# Or to link all plugin packages:
-# npm link ../../superset-ui-plugins/packages/*
+# Or to link all core superset-ui and plugin packages:
+# npm link ../../superset-ui/{packages,plugins}/*
 
 # Start developing
 npm run dev-server
 ```
 
-When plugin packages are linked with `npm link`, the dev server will automatically load files from the plugin's `/src` directory.
+When `superset-ui` packages are linked with `npm link`, the dev server will automatically load a package's source code from its `/src` directory, instead of the built modules in `lib/` or `esm/`.
 
 Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
 
@@ -970,13 +970,11 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 | Field                  | Type            | Notes                                 |
 | ---------------------- | --------------- | ------------------------------------- |
-| `date_time_format`     | _N/A_           | _Deprecated?_                         |
 | `druid_time_origin`    | _string_        | The Druid **Origin** widget           |
 | `granularity`          | _string_        | The Druid **Time Granularity** widget |
 | `granularity_sqla`     | _string_        | The SQLA **Time Column** widget       |
 | `time_grain_sqla`      | _string_        | The SQLA **Time Grain** widget        |
 | `time_range`           | _string_        | The **Time range** widget             |
-| `time_range_endpoints` | _array(string)_ | Used by SIP-15 [HIDDEN]               |
 
 ### GROUP BY
 
@@ -991,7 +989,6 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 | Field           | Type            | Notes                   |
 | --------------- | --------------- | ----------------------- |
-| `all_columns`   | _array(string)_ | The **Columns** widget  |
 | `order_by_cols` | _array(string)_ | The **Ordering** widget |
 | `row_limit`     | -               | See Query section       |
 
@@ -1013,9 +1010,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | Field                                                                                                  | Type                                              | Notes                                             |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
 | `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
-| `all_columns_x`                                                                                        | _array(string)_                                   | The **Numeric Columns** widget                    |
 | `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
-| `contribution`                                                                                         | _boolean_                                         | The **Contribution** widget                       |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
 | `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
@@ -1025,24 +1020,13 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` TypeScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` TypeScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names.
 
-### Filters Configuration
-
-| Field            | Type          | Notes                             |
-| ---------------- | ------------- | --------------------------------- |
-| `filter_configs` | array(object) | The filter-box **Filters** widget |
-
-The filter-box configuration references column names (via the `column` key) and optionally metric names (via the `metric` key) if sorting is defined.
-
 ### Chart Options
 
 | Field                 | Type      | Notes                                            |
 | --------------------- | --------- | ------------------------------------------------ |
 | `color_picker`        | _object_  | The **Fixed Color** widget                       |
-| `global_opacity`      | _number_  | The **Opacity** widget                           |
 | `label_colors`        | _object_  | The **Color Scheme** widget                      |
-| `link_length`         | _number_  | The **No of Bins** widget                        |
 | `normalized`          | _boolean_ | The **Normalized** widget                        |
-| `number_format`       | _string_  | The **Number format** widget                     |
 
 ### Y Axis
 
@@ -1059,22 +1043,15 @@ Note the `y_axis_format` is defined under various section for some charts.
 | Field          | Type     | Notes        |
 | -------------- | -------- | ------------ |
 | `color_scheme` | _string_ |              |
-| `slice_id`     | _number_ | The slice ID |
-| `url_params`   | _object_ |              |
 
 ### Unclassified
 
 | Field                           | Type  | Notes |
 | ------------------------------- | ----- | ----- |
 | `add_to_dash`                   | _N/A_ |       |
-| `all_columns_y`                 | _N/A_ |       |
-| `annotation_layers`             | _N/A_ |       |
-| `cache_timeout`                 | _N/A_ |       |
 | `code`                          | _N/A_ |       |
 | `collapsed_fieldsets`           | _N/A_ |       |
-| `column_collection`             | _N/A_ |       |
 | `comparison type`               | _N/A_ |       |
-| `contribution`                  | _N/A_ |       |
 | `country_fieldtype`             | _N/A_ |       |
 | `default_filters`               | _N/A_ |       |
 | `entity`                        | _N/A_ |       |
@@ -1092,17 +1069,9 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `import_time`                   | _N/A_ |       |
 | `label`                         | _N/A_ |       |
 | `linear_color_scheme`           | _N/A_ |       |
-| `log_scale`                     | _N/A_ |       |
-| `mapbox_label`                  | _N/A_ |       |
-| `mapbox_style`                  | _N/A_ |       |
-| `markup_type`                   | _N/A_ |       |
-| `min_periods`                   | _N/A_ |       |
 | `new_dashboard_name`            | _N/A_ |       |
 | `new_slice_name`                | _N/A_ |       |
-| `normalize_across`              | _N/A_ |       |
 | `num_period_compare`            | _N/A_ |       |
-| `order_desc`                    | _N/A_ |       |
-| `pandas_aggfunc`                | _N/A_ |       |
 | `period_ratio_type`             | _N/A_ |       |
 | `perm`                          | _N/A_ |       |
 | `rdo_save`                      | _N/A_ |       |
@@ -1110,18 +1079,11 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `remote_id`                     | _N/A_ |       |
 | `resample_fillmethod`           | _N/A_ |       |
 | `resample_how`                  | _N/A_ |       |
-| `rolling_periods`               | _N/A_ |       |
-| `rolling_type`                  | _N/A_ |       |
 | `rose_area_proportion`          | _N/A_ |       |
 | `save_to_dashboard_id`          | _N/A_ |       |
 | `schema`                        | _N/A_ |       |
-| `select_country`                | _N/A_ |       |
 | `series`                        | _N/A_ |       |
 | `show_bubbles`                  | _N/A_ |       |
-| `show_values`                   | _N/A_ |       |
 | `slice_name`                    | _N/A_ |       |
-| `table_filter`                  | _N/A_ |       |
 | `timed_refresh_immune_slices`   | _N/A_ |       |
-| `url`                           | _N/A_ |       |
 | `userid`                        | _N/A_ |       |
-| `viewport_zoom`                 | _N/A_ |       |

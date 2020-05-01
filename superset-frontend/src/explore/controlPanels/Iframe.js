@@ -22,7 +22,22 @@ export default {
   controlPanelSections: [
     {
       label: t('Options'),
-      controlSetRows: [['url']],
+      controlSetRows: [
+        [
+          {
+            name: 'url',
+            config: {
+              type: 'TextControl',
+              label: t('URL'),
+              description: t(
+                'The URL, this control is templated, so you can integrate ' +
+                  '{{ width }} and/or {{ height }} in your URL string.',
+              ),
+              default: '',
+            },
+          },
+        ],
+      ],
     },
   ],
   sectionOverrides: {

@@ -54,7 +54,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.exceptions import DatabaseNotFound
-from superset.jinja_context import get_template_processor
+from superset.jinja_context import ExtraCache, get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
@@ -84,6 +84,7 @@ class AnnotationDatasource(BaseDatasource):
     """
 
     cache_timeout = 0
+    changed_on = None
 
     def query(self, query_obj: Dict[str, Any]) -> QueryResult:
         error_message = None
@@ -581,6 +582,7 @@ class SqlaTable(Model, BaseDatasource):
             d["main_dttm_col"] = self.main_dttm_col
             d["fetch_values_predicate"] = self.fetch_values_predicate
             d["template_params"] = self.template_params
+            d["is_sqllab_view"] = self.is_sqllab_view
         return d
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List:
@@ -601,7 +603,7 @@ class SqlaTable(Model, BaseDatasource):
 
         if self.fetch_values_predicate:
             tp = self.get_template_processor()
-            qry = qry.where(tp.process_template(self.fetch_values_predicate))
+            qry = qry.where(text(tp.process_template(self.fetch_values_predicate)))
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(qry.compile(engine, compile_kwargs={"literal_binds": True}))
@@ -847,8 +849,8 @@ class SqlaTable(Model, BaseDatasource):
             col_obj = cols.get(col)
             if col_obj:
                 is_list_target = op in (
-                    utils.FilterOperationType.IN.value,
-                    utils.FilterOperationType.NOT_IN.value,
+                    utils.FilterOperator.IN.value,
+                    utils.FilterOperator.NOT_IN.value,
                 )
                 eq = self.filter_values_handler(
                     values=flt.get("val"),
@@ -856,42 +858,42 @@ class SqlaTable(Model, BaseDatasource):
                     is_list_target=is_list_target,
                 )
                 if op in (
-                    utils.FilterOperationType.IN.value,
-                    utils.FilterOperationType.NOT_IN.value,
+                    utils.FilterOperator.IN.value,
+                    utils.FilterOperator.NOT_IN.value,
                 ):
                     cond = col_obj.get_sqla_col().in_(eq)
                     if isinstance(eq, str) and NULL_STRING in eq:
                         cond = or_(cond, col_obj.get_sqla_col() is None)
-                    if op == utils.FilterOperationType.NOT_IN.value:
+                    if op == utils.FilterOperator.NOT_IN.value:
                         cond = ~cond
                     where_clause_and.append(cond)
                 else:
                     if col_obj.is_numeric:
                         eq = utils.cast_to_num(flt["val"])
-                    if op == utils.FilterOperationType.EQUALS.value:
+                    if op == utils.FilterOperator.EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() == eq)
-                    elif op == utils.FilterOperationType.NOT_EQUALS.value:
+                    elif op == utils.FilterOperator.NOT_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() != eq)
-                    elif op == utils.FilterOperationType.GREATER_THAN.value:
+                    elif op == utils.FilterOperator.GREATER_THAN.value:
                         where_clause_and.append(col_obj.get_sqla_col() > eq)
-                    elif op == utils.FilterOperationType.LESS_THAN.value:
+                    elif op == utils.FilterOperator.LESS_THAN.value:
                         where_clause_and.append(col_obj.get_sqla_col() < eq)
-                    elif op == utils.FilterOperationType.GREATER_THAN_OR_EQUALS.value:
+                    elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() >= eq)
-                    elif op == utils.FilterOperationType.LESS_THAN_OR_EQUALS.value:
+                    elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() <= eq)
-                    elif op == utils.FilterOperationType.LIKE.value:
+                    elif op == utils.FilterOperator.LIKE.value:
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
-                    elif op == utils.FilterOperationType.IS_NULL.value:
-                        where_clause_and.append(col_obj.get_sqla_col() is None)
-                    elif op == utils.FilterOperationType.IS_NOT_NULL.value:
-                        where_clause_and.append(col_obj.get_sqla_col() is None)
+                    elif op == utils.FilterOperator.IS_NULL.value:
+                        where_clause_and.append(col_obj.get_sqla_col() == None)
+                    elif op == utils.FilterOperator.IS_NOT_NULL.value:
+                        where_clause_and.append(col_obj.get_sqla_col() != None)
                     else:
                         raise Exception(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-
-        where_clause_and += self._get_sqla_row_level_filters(template_processor)
+        if config["ENABLE_ROW_LEVEL_SECURITY"]:
+            where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:
@@ -1216,18 +1218,17 @@ class SqlaTable(Model, BaseDatasource):
     def default_query(qry) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_calls_to_cache_key_wrapper(self, query_obj: Dict[str, Any]) -> bool:
+    def has_extra_cache_key_calls(self, query_obj: Dict[str, Any]) -> bool:
         """
-        Detects the presence of calls to `cache_key_wrapper` in items in query_obj that
+        Detects the presence of calls to `ExtraCache` methods in items in query_obj that
         can be templated. If any are present, the query must be evaluated to extract
-        additional keys for the cache key. This method is needed to avoid executing
-        the template code unnecessarily, as it may contain expensive calls, e.g. to
-        extract the latest partition of a database.
+        additional keys for the cache key. This method is needed to avoid executing the
+        template code unnecessarily, as it may contain expensive calls, e.g. to extract
+        the latest partition of a database.
 
         :param query_obj: query object to analyze
-        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
+        :return: True if there are call(s) to an `ExtraCache` method, False otherwise
         """
-        regex = re.compile(r"\{\{.*cache_key_wrapper\(.*\).*\}\}")
         templatable_statements: List[str] = []
         if self.sql:
             templatable_statements.append(self.sql)
@@ -1239,20 +1240,20 @@ class SqlaTable(Model, BaseDatasource):
         if "having" in extras:
             templatable_statements.append(extras["having"])
         for statement in templatable_statements:
-            if regex.search(statement):
+            if ExtraCache.regex.search(statement):
                 return True
         return False
 
     def get_extra_cache_keys(self, query_obj: Dict[str, Any]) -> List[Hashable]:
         """
-        The cache key of a SqlaTable needs to consider any keys added by the parent class
-        and any keys added via `cache_key_wrapper`.
+        The cache key of a SqlaTable needs to consider any keys added by the parent
+        class and any keys added via `ExtraCache`.
 
         :param query_obj: query object to analyze
-        :return: True if at least one item calls `cache_key_wrapper`, otherwise False
+        :return: The extra cache keys
         """
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
-        if self.has_calls_to_cache_key_wrapper(query_obj):
+        if self.has_extra_cache_key_calls(query_obj):
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys

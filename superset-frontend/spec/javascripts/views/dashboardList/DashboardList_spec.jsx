@@ -43,6 +43,7 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
   changed_by_fk: 1,
   published: true,
   changed_on: new Date().toISOString(),
+  owners: [{ first_name: 'admin', last_name: 'admin_user' }],
 }));
 
 fetchMock.get(dashboardsInfoEndpoint, {
@@ -96,6 +97,7 @@ describe('DashboardList', () => {
   });
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).toHaveLength(0);
+
     wrapper
       .find('.fa-pencil')
       .first()

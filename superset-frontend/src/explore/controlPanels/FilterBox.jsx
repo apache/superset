@@ -25,7 +25,19 @@ export default {
       label: t('Filters Configuration'),
       expanded: true,
       controlSetRows: [
-        ['filter_configs'],
+        [
+          {
+            name: 'filter_configs',
+            config: {
+              type: 'CollectionControl',
+              label: 'Filters',
+              description: t('Filter configuration for the filter box'),
+              validators: [],
+              controlName: 'FilterBoxItemControl',
+              mapStateToProps: ({ datasource }) => ({ datasource }),
+            },
+          },
+        ],
         [<hr />],
         [
           {

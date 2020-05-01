@@ -22,10 +22,12 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
+import { QueryParamProvider } from 'use-query-params';
 import { ThemeProvider } from 'emotion-theming';
 
 import { initFeatureFlags } from 'src/featureFlags';
-import { supersetTheme } from 'stylesheets/styled-components/superset-theme';
+import { supersetTheme } from '@superset-ui/style';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import DashboardList from 'src/views/dashboardList/DashboardList';
 import ChartList from 'src/views/chartList/ChartList';
@@ -34,10 +36,12 @@ import DatasetList from 'src/views/datasetList/DatasetList';
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
+import setupPlugins from '../setup/setupPlugins';
 import Welcome from './Welcome';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 
 setupApp();
+setupPlugins();
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));
@@ -58,22 +62,32 @@ const App = () => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
       <Router>
-        <Menu data={menu} />
-        <Switch>
-          <Route path="/superset/welcome/">
-            <Welcome user={user} />
-          </Route>
-          <Route path="/dashboard/list/">
-            <DashboardList user={user} />
-          </Route>
-          <Route path="/chart/list/">
-            <ChartList user={user} />
-          </Route>
-          <Route path="/tablemodelview/list/">
-            <DatasetList user={user} />
-          </Route>
-        </Switch>
-        <ToastPresenter />
+        <QueryParamProvider ReactRouterRoute={Route}>
+          <Menu data={menu} />
+          <Switch>
+            <Route path="/superset/welcome/">
+              <ErrorBoundary>
+                <Welcome user={user} />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/dashboard/list/">
+              <ErrorBoundary>
+                <DashboardList user={user} />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/chart/list/">
+              <ErrorBoundary>
+                <ChartList user={user} />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/tablemodelview/list/">
+              <ErrorBoundary>
+                <DatasetList user={user} />
+              </ErrorBoundary>
+            </Route>
+          </Switch>
+          <ToastPresenter />
+        </QueryParamProvider>
       </Router>
     </ThemeProvider>
   </Provider>

@@ -155,6 +155,15 @@ const babelLoader = {
     // faster when there are millions of small files
     cacheCompression: false,
     plugins: ['emotion'],
+    presets: [
+      [
+        '@emotion/babel-preset-css-prop',
+        {
+          autoLabel: true,
+          labelFormat: '[local]',
+        },
+      ],
+    ],
   },
 };
 

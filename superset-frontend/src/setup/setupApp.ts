@@ -20,6 +20,7 @@
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from '../utils/getClientErrorObject';
+import setupErrorMessages from './setupErrorMessages';
 
 function showApiMessage(resp: { severity?: string; message: string }) {
   const template =
@@ -84,4 +85,7 @@ export default function setupApp() {
   // @ts-ignore
   window.jQuery = $;
   require('bootstrap');
+
+  // setup appwide custom error messages
+  setupErrorMessages();
 }
