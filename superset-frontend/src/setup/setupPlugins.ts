@@ -22,8 +22,6 @@ import setupPluginsExtra from './setupPluginsExtra';
 
 import Area from '../explore/controlPanels/Area';
 import Bar from '../explore/controlPanels/Bar';
-import BigNumber from '../explore/controlPanels/BigNumber';
-import BigNumberTotal from '../explore/controlPanels/BigNumberTotal';
 import BoxPlot from '../explore/controlPanels/BoxPlot';
 import Bubble from '../explore/controlPanels/Bubble';
 import Bullet from '../explore/controlPanels/Bullet';
@@ -76,8 +74,6 @@ export default function setupPlugins() {
   getChartControlPanelRegistry()
     .registerValue('area', Area)
     .registerValue('bar', Bar)
-    .registerValue('big_number', BigNumber)
-    .registerValue('big_number_total', BigNumberTotal)
     .registerValue('box_plot', BoxPlot)
     .registerValue('bubble', Bubble)
     .registerValue('bullet', Bullet)
