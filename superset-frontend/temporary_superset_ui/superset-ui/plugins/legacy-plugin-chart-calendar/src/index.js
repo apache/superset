@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
+import controlPanel from './controlPanel';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
@@ -29,12 +30,13 @@ const metadata = new ChartMetadata({
   useLegacyApi: true,
 });
 
-export default class ChordChartPlugin extends ChartPlugin {
+export default class CalendarChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./ReactCalendar'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
