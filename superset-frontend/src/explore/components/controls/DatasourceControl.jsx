@@ -48,7 +48,7 @@ const propTypes = {
 
 const defaultProps = {
   onChange: () => {},
-  onDatasourceSave: () => {},
+  onDatasourceSave: null,
   value: null,
 };
 
@@ -150,9 +150,11 @@ class DatasourceControl extends React.PureComponent {
                   {t('Explore in SQL Lab')}
                 </MenuItem>
               )}
-              <MenuItem eventKey="3" onClick={this.toggleEditDatasourceModal}>
-                {t('Edit Datasource')}
-              </MenuItem>
+              {!!this.props.onDatasourceSave && (
+                <MenuItem eventKey="3" onClick={this.toggleEditDatasourceModal}>
+                  {t('Edit Datasource')}
+                </MenuItem>
+              )}
             </DropdownButton>
           </TooltipWrapper>
           <OverlayTrigger
