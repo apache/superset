@@ -46,7 +46,7 @@ const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));
 const user = { ...bootstrap.user };
 const menu = { ...bootstrap.common.menu_data };
-
+const common = {...bootstrap.common}
 initFeatureFlags(bootstrap.common.feature_flags);
 
 const store = createStore(
@@ -56,7 +56,7 @@ const store = createStore(
   {},
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-
+console.log('store', store)
 const App = () => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
@@ -68,7 +68,7 @@ const App = () => (
               <Welcome user={user} />
             </Route>
             <Route path="/dashboard/list/">
-              <DashboardList user={user} />
+              <DashboardList user={user} common={common} />
             </Route>
             <Route path="/chart/list/">
               <ChartList user={user} />
