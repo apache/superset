@@ -1644,6 +1644,7 @@ class Superset(BaseSupersetView):
             payload.append(d)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
+    @event_logger.log_this
     @api
     @has_access_api
     @expose("/warm_up_cache/", methods=["GET"])
