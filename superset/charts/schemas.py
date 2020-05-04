@@ -108,7 +108,7 @@ class ChartPostSchema(Schema):
         validate=Length(0, 250),
         example=["bar", "line_multi", "area", "table"],
     )
-    owners = fields.List(fields.Integer(description=owners_description,))
+    owners = fields.List(fields.Integer(description=owners_description))
     params = fields.String(
         description=params_description, allow_none=True, validate=validate_json
     )
@@ -118,13 +118,13 @@ class ChartPostSchema(Schema):
     datasource_id = fields.Integer(description=datasource_id_description, required=True)
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view",),),
+        validate=validate.OneOf(choices=("druid", "table", "view")),
         required=True,
     )
     datasource_name = fields.String(
         description=datasource_name_description, allow_none=True
     )
-    dashboards = fields.List(fields.Integer(description=dashboards_description,))
+    dashboards = fields.List(fields.Integer(description=dashboards_description))
 
 
 class ChartPutSchema(Schema):
@@ -142,7 +142,7 @@ class ChartPutSchema(Schema):
         validate=Length(0, 250),
         example=["bar", "line_multi", "area", "table"],
     )
-    owners = fields.List(fields.Integer(description=owners_description,))
+    owners = fields.List(fields.Integer(description=owners_description))
     params = fields.String(description=params_description, allow_none=True)
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -152,17 +152,17 @@ class ChartPutSchema(Schema):
     )
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view",),),
+        validate=validate.OneOf(choices=("druid", "table", "view")),
         allow_none=True,
     )
-    dashboards = fields.List(fields.Integer(description=dashboards_description,))
+    dashboards = fields.List(fields.Integer(description=dashboards_description))
 
 
 class ChartDataColumnSchema(Schema):
     column_name = fields.String(
         description="The name of the target column", example="mycol",
     )
-    type = fields.String(description="Type of target column", example="BIGINT",)
+    type = fields.String(description="Type of target column", example="BIGINT")
 
 
 class ChartDataAdhocMetricSchema(Schema):
