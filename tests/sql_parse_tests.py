@@ -535,6 +535,17 @@ class SupersetTestCase(unittest.TestCase):
         expected = ["SELECT * FROM birth_names", "SELECT * FROM birth_names LIMIT 1"]
         self.assertEqual(statements, expected)
 
+    def test_comment_breakdown_statements(self):
+        multi_sql = """
+        SELECT * FROM birth_names;
+        -- some comment
+        """
+        parsed = sql_parse.ParsedQuery(multi_sql)
+        statements = parsed.get_statements()
+        self.assertEqual(len(statements), 1)
+        expected = ["SELECT * FROM birth_names"]
+        self.assertEqual(statements, expected)
+
     def test_messy_breakdown_statements(self):
         multi_sql = """
         SELECT 1;\t\n\n\n  \t
