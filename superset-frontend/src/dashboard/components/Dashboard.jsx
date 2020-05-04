@@ -30,7 +30,7 @@ import {
   dashboardStatePropShape,
 } from '../util/propShapes';
 import {
-  LOG_ACTIONS_HIDDEN_BROWSER_TAB,
+  LOG_ACTIONS_HIDE_BROWSER_TAB,
   LOG_ACTIONS_MOUNT_DASHBOARD,
   Logger,
 } from '../../logger/LogUtils';
@@ -184,11 +184,11 @@ class Dashboard extends React.PureComponent {
         start_offset: Logger.getTimestamp(),
         ts: new Date().getTime(),
       };
-    } else {
+    } else if (document.visibilityState === 'visible') {
       // from hidden to visible
       const logStart = this.visibilityEventData.start_offset;
-      this.props.actions.logEvent(LOG_ACTIONS_HIDDEN_BROWSER_TAB, {
-        ...this.visibilityEventData.start_offset,
+      this.props.actions.logEvent(LOG_ACTIONS_HIDE_BROWSER_TAB, {
+        ...this.visibilityEventData,
         duration: Logger.getTimestamp() - logStart,
       });
     }

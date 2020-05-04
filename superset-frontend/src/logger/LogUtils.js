@@ -19,7 +19,7 @@
 // Log event names ------------------------------------------------------------
 export const LOG_ACTIONS_LOAD_CHART = 'load_chart';
 export const LOG_ACTIONS_RENDER_CHART = 'render_chart';
-export const LOG_ACTIONS_HIDDEN_BROWSER_TAB = 'hidden_browser_tab';
+export const LOG_ACTIONS_HIDE_BROWSER_TAB = 'hide_browser_tab';
 
 export const LOG_ACTIONS_MOUNT_DASHBOARD = 'mount_dashboard';
 export const LOG_ACTIONS_MOUNT_EXPLORER = 'mount_explorer';
@@ -42,7 +42,7 @@ export const LOG_ACTIONS_OMNIBAR_TRIGGERED = 'omnibar_triggered';
 export const LOG_EVENT_TYPE_TIMING = new Set([
   LOG_ACTIONS_LOAD_CHART,
   LOG_ACTIONS_RENDER_CHART,
-  LOG_ACTIONS_HIDDEN_BROWSER_TAB,
+  LOG_ACTIONS_HIDE_BROWSER_TAB,
 ]);
 export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_MOUNT_DASHBOARD,
