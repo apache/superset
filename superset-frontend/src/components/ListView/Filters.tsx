@@ -36,7 +36,7 @@ interface SelectFilterProps extends BaseFilter {
 }
 
 const FilterContainer = styled.div`
-  display: inline;
+  display: inline-flex;
   margin-right: 8px;
 `;
 
@@ -116,6 +116,10 @@ interface SearchHeaderProps extends BaseFilter {
 function SearchFilter({ Header, initialValue, onSubmit }: SearchHeaderProps) {
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => onSubmit(value);
+  const onClear = () => {
+    setValue('');
+    onSubmit('');
+  };
 
   return (
     <FilterContainer>
@@ -126,12 +130,8 @@ function SearchFilter({ Header, initialValue, onSubmit }: SearchHeaderProps) {
         onChange={e => {
           setValue(e.currentTarget.value);
         }}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            handleSubmit();
-          }
-        }}
-        onBlur={handleSubmit}
+        onSubmit={handleSubmit}
+        onClear={onClear}
       />
     </FilterContainer>
   );

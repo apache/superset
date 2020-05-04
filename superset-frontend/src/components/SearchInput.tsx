@@ -17,13 +17,94 @@
  * under the License.
  */
 import styled from '@superset-ui/style';
+import React from 'react';
 
-export default styled.input`
-  background-color: ${({ theme }) => theme.colors.secondary.light5};
+interface Props {
+  onSubmit: () => void;
+  onClear: () => void;
+  value: string;
+  onChange: React.EventHandler<React.ChangeEvent<HTMLInputElement>>;
+  placeholder?: string;
+}
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+`;
+
+const StyledInput = styled.input`
+  width: 200px;
   background-image: none;
   border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
   border-radius: 4px;
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  padding: 4px 8px;
+  padding: 4px 28px;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  &:focus {
+    outline: none;
+  }
 `;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  z-index: 2;
+  display: block;
+  width: 28px;
+  height: 28px;
+  text-align: center;
+  cursor: pointer;
+  background-position: 2px 2px;
+  background-image: url('/static/assets/images/icons/search.svg');
+  background-repeat: no-repeat;
+`;
+
+const ClearIcon = styled.div`
+  position: absolute;
+  z-index: 2;
+  display: block;
+  width: 28px;
+  height: 28px;
+  text-align: center;
+  cursor: pointer;
+  right: 2px;
+  top: 1px;
+  background-position: 2px 2px;
+  background-image: url('/static/assets/images/icons/cancel-x.svg');
+  background-repeat: no-repeat;
+`;
+
+export default function SearchInput({
+  onChange,
+  onClear,
+  onSubmit,
+  placeholder = 'Search',
+  value,
+}: Props) {
+  return (
+    <SearchInputWrapper>
+      <SearchIcon
+        data-test="search-submit"
+        role="button"
+        onClick={() => onSubmit()}
+      />
+      <StyledInput
+        data-test="search-input"
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            onSubmit();
+          }
+        }}
+        onBlur={() => onSubmit()}
+        placeholder={placeholder}
+        onChange={onChange}
+        value={value}
+      />
+      {value && (
+        <ClearIcon
+          data-test="search-clear"
+          role="button"
+          onClick={() => onClear()}
+        />
+      )}
+    </SearchInputWrapper>
+  );
+}

@@ -85,7 +85,7 @@ from superset.security.analytics_db_safety import (
     check_sqlalchemy_uri,
     DBSecurityException,
 )
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
@@ -1644,6 +1644,7 @@ class Superset(BaseSupersetView):
             payload.append(d)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
+    @event_logger.log_this
     @api
     @has_access_api
     @expose("/warm_up_cache/", methods=["GET"])
@@ -1707,13 +1708,17 @@ class Superset(BaseSupersetView):
                     form_data["extra_filters"] = get_dashboard_extra_filters(
                         slc.id, dashboard_id
                     )
+
                 obj = get_viz(
                     datasource_type=slc.datasource.type,
                     datasource_id=slc.datasource.id,
                     form_data=form_data,
                     force=True,
                 )
+
+                g.form_data = form_data
                 payload = obj.get_payload()
+                delattr(g, "form_data")
                 error = payload["error"]
                 status = payload["status"]
             except Exception as ex:
@@ -2079,7 +2084,9 @@ class Superset(BaseSupersetView):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         # Check that the user can access the datasource
-        if not self.appbuilder.sm.can_access_datasource(database, table_name, schema):
+        if not self.appbuilder.sm.can_access_datasource(
+            database, Table(table_name, schema), schema
+        ):
             stats_logger.incr(
                 f"deprecated.{self.__class__.__name__}.select_star.permission_denied"
             )

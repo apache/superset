@@ -27,6 +27,7 @@ import { ThemeProvider } from 'emotion-theming';
 
 import { initFeatureFlags } from 'src/featureFlags';
 import { supersetTheme } from '@superset-ui/style';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import DashboardList from 'src/views/dashboardList/DashboardList';
 import ChartList from 'src/views/chartList/ChartList';
@@ -56,7 +57,6 @@ const store = createStore(
   {},
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-console.log('store', store)
 const App = () => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
@@ -65,16 +65,24 @@ const App = () => (
           <Menu data={menu} />
           <Switch>
             <Route path="/superset/welcome/">
-              <Welcome user={user} />
+              <ErrorBoundary>
+                <Welcome user={user} />
+              </ErrorBoundary>
             </Route>
             <Route path="/dashboard/list/">
-              <DashboardList user={user} common={common} />
+              <ErrorBoundary>
+                <DashboardList user={user} common={common} />
+              </ErrorBoundary>
             </Route>
             <Route path="/chart/list/">
-              <ChartList user={user} />
+              <ErrorBoundary>
+                <ChartList user={user} />
+              </ErrorBoundary>
             </Route>
             <Route path="/tablemodelview/list/">
-              <DatasetList user={user} />
+              <ErrorBoundary>
+                <DatasetList user={user} />
+              </ErrorBoundary>
             </Route>
           </Switch>
           <ToastPresenter />

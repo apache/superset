@@ -25,6 +25,7 @@ import React from 'react';
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
+import ExpandableList from 'src/components/ExpandableList';
 import {
   FetchDataConfig,
   FilterOperatorMap,
@@ -110,7 +111,11 @@ class DashboardList extends React.PureComponent<Props, State> {
       },
       ([e1, e2]) => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Dashboards'),
+          t(
+            'An error occurred while fetching Dashboards: %s, %s',
+            e1.statusText,
+            e1.statusText,
+          ),
         );
         if (e1) {
           console.error(e1);
@@ -154,6 +159,23 @@ class DashboardList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
+          original: { owners },
+        },
+      }: any) => (
+        <ExpandableList
+          items={owners.map(
+            ({ first_name: firstName, last_name: lastName }: any) =>
+              `${firstName} ${lastName}`,
+          )}
+          display={2}
+        />
+      ),
+      Header: t('Owners'),
+      accessor: 'owners',
+    },
+    {
+      Cell: ({
+        row: {
           original: {
             changed_by_name: changedByName,
             changed_by_url: changedByUrl,
@@ -190,10 +212,6 @@ class DashboardList extends React.PureComponent<Props, State> {
     },
     {
       accessor: 'slug',
-      hidden: true,
-    },
-    {
-      accessor: 'owners',
       hidden: true,
     },
     {
@@ -289,9 +307,9 @@ class DashboardList extends React.PureComponent<Props, State> {
           loading: false,
         });
       })
-      .catch(() => {
+      .catch(e => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Dashboards'),
+          t('An error occurred while fetching dashboards: %s', e.statusText),
         );
       });
   };
@@ -334,7 +352,10 @@ class DashboardList extends React.PureComponent<Props, State> {
       (err: any) => {
         console.error(err);
         this.props.addDangerToast(
-          t('There was an issue deleting the selected dashboards'),
+          t(
+            'There was an issue deleting the selected dashboards: ',
+            err.statusText,
+          ),
         );
       },
     );
@@ -379,9 +400,9 @@ class DashboardList extends React.PureComponent<Props, State> {
       .then(({ json = {} }) => {
         this.setState({ dashboards: json.result, dashboardCount: json.count });
       })
-      .catch(() => {
+      .catch(e => {
         this.props.addDangerToast(
-          t('An error occurred while fetching Dashboards'),
+          t('An error occurred while fetching dashboards: %s', e.statusText),
         );
       })
       .finally(() => {

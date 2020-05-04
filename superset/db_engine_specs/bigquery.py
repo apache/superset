@@ -26,7 +26,8 @@ from sqlalchemy.sql.expression import ColumnClause
 from superset.db_engine_specs.base import BaseEngineSpec
 
 if TYPE_CHECKING:
-    from superset.models.core import Database  # pylint: disable=unused-import
+    # pylint: disable=unused-import
+    from superset.models.core import Database  # pragma: no cover
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -84,6 +85,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
     @classmethod
     def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
         data = super().fetch_data(cursor, limit)
+        # Support type BigQuery Row, introduced here PR #4071
+        # google.cloud.bigquery.table.Row
         if data and type(data[0]).__name__ == "Row":
             data = [r.values() for r in data]  # type: ignore
         return data
@@ -174,22 +177,22 @@ class BigQueryEngineSpec(BaseEngineSpec):
         `DataFrame.to_gbq()` which requires `pandas_gbq` to be installed.
 
         :param df: Dataframe with data to be uploaded
-        :param kwargs: kwargs to be passed to to_gbq() method. Requires both `schema
-        and ``name` to be present in kwargs, which are combined and passed to
-        `to_gbq()` as `destination_table`.
+        :param kwargs: kwargs to be passed to to_gbq() method. Requires that `schema`,
+        `name` and `con` are present in kwargs. `name` and `schema` are combined
+         and passed to `to_gbq()` as `destination_table`.
         """
         try:
             import pandas_gbq
             from google.oauth2 import service_account
         except ImportError:
             raise Exception(
-                "Could not import the library `pandas_gbq`, which is "
+                "Could not import libraries `pandas_gbq` or `google.oauth2`, which are "
                 "required to be installed in your environment in order "
                 "to upload data to BigQuery"
             )
 
-        if not ("name" in kwargs and "schema" in kwargs):
-            raise Exception("name and schema need to be defined in kwargs")
+        if not ("name" in kwargs and "schema" in kwargs and "con" in kwargs):
+            raise Exception("name, schema and con need to be defined in kwargs")
 
         gbq_kwargs = {}
         gbq_kwargs["project_id"] = kwargs["con"].engine.url.host

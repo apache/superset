@@ -21,6 +21,8 @@ import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
 
 import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
+
 import ControlHeader from '../ControlHeader';
 import adhocFilterType from '../../propTypes/adhocFilterType';
 import adhocMetricType from '../../propTypes/adhocMetricType';
@@ -88,6 +90,51 @@ export default class AdhocFilterControl extends React.Component {
       values: filters,
       options: this.optionsForSelect(this.props),
     };
+  }
+
+  componentDidMount() {
+    const { datasource } = this.props;
+    if (datasource && datasource.type === 'table') {
+      const dbId = datasource.database?.id;
+      const {
+        datasource_name: name,
+        schema,
+        is_sqllab_view: isSqllabView,
+      } = datasource;
+
+      if (!isSqllabView && dbId && name && schema) {
+        SupersetClient.get({
+          endpoint: `/superset/extra_table_metadata/${dbId}/${name}/${schema}/`,
+        })
+          .then(({ json }) => {
+            if (json && json.partitions) {
+              const partitions = json.partitions;
+              // for now only show latest_partition option
+              // when table datasource has only 1 partition key.
+              if (
+                partitions &&
+                partitions.cols &&
+                Object.keys(partitions.cols).length === 1
+              ) {
+                const partitionColumn = partitions.cols[0];
+                this.valueRenderer = adhocFilter => (
+                  <AdhocFilterOption
+                    adhocFilter={adhocFilter}
+                    onFilterEdit={this.onFilterEdit}
+                    options={this.state.options}
+                    datasource={this.props.datasource}
+                    partitionColumn={partitionColumn}
+                  />
+                );
+              }
+            }
+          })
+          .catch(error => {
+            /* eslint-disable no-debugger, no-console */
+            console.error('fetch extra_table_metadata:', error.statusText);
+          });
+      }
+    }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {

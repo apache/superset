@@ -38,6 +38,7 @@ const propTypes = {
     ]),
   ).isRequired,
   datasource: PropTypes.object,
+  partitionColumn: PropTypes.string,
 };
 
 export default class AdhocFilterOption extends React.PureComponent {
@@ -80,6 +81,7 @@ export default class AdhocFilterOption extends React.PureComponent {
         onClose={this.closeFilterEditOverlay}
         options={this.props.options}
         datasource={this.props.datasource}
+        partitionColumn={this.props.partitionColumn}
       />
     );
     return (

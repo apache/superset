@@ -195,9 +195,9 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         Dashboard API: Test get dashboards custom filter
         """
         admin = self.get_user("admin")
-        dashboard1 = self.insert_dashboard("foo", "ZY_bar", [admin.id])
+        dashboard1 = self.insert_dashboard("foo_a", "ZY_bar", [admin.id])
         dashboard2 = self.insert_dashboard("zy_foo", "slug1", [admin.id])
-        dashboard3 = self.insert_dashboard("foo", "slug1zy_", [admin.id])
+        dashboard3 = self.insert_dashboard("foo_b", "slug1zy_", [admin.id])
         dashboard4 = self.insert_dashboard("bar", "foo", [admin.id])
 
         arguments = {
@@ -206,6 +206,8 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             ],
             "order_column": "dashboard_title",
             "order_direction": "asc",
+            "keys": ["none"],
+            "columns": ["dashboard_title", "slug"],
         }
         self.login(username="admin")
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
@@ -215,8 +217,8 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(data["count"], 3)
 
         expected_response = [
-            {"slug": "ZY_bar", "dashboard_title": "foo",},
-            {"slug": "slug1zy_", "dashboard_title": "foo",},
+            {"slug": "ZY_bar", "dashboard_title": "foo_a",},
+            {"slug": "slug1zy_", "dashboard_title": "foo_b",},
             {"slug": "slug1", "dashboard_title": "zy_foo",},
         ]
         for index, item in enumerate(data["result"]):
