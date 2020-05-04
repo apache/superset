@@ -105,7 +105,6 @@ class ChartPostSchema(Schema):
     description = fields.String(description=description_description, allow_none=True)
     viz_type = fields.String(
         description=viz_type_description,
-        required=True,
         validate=Length(0, 250),
         example=["bar", "line_multi", "area", "table"],
     )
@@ -144,7 +143,7 @@ class ChartPutSchema(Schema):
         example=["bar", "line_multi", "area", "table"],
     )
     owners = fields.List(fields.Integer(description=owners_description,))
-    params = (fields.String(description=params_description, allow_none=True,),)
+    params = fields.String(description=params_description, allow_none=True)
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
     )
