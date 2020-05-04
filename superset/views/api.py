@@ -15,7 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
-from flask import request, make_response, jsonify
+
+import logging
+from os import environ
+from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 import simplejson as json
@@ -26,11 +29,8 @@ from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 import superset.models.core as models
 from superset.utils import core as utils, s3_utils, dashboard_import_export
-from .base import api, BaseSupersetView, handle_api_exception, json_error_response, json_success
-from os import environ
 from superset import app
-import asyncio
-import logging
+from .base import api, BaseSupersetView, handle_api_exception, json_error_response, json_success
 
 
 class Api(BaseSupersetView):

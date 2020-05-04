@@ -16,6 +16,7 @@
 #
 black==19.3b0
 coverage==4.5.3
+elasticsearch-dbapi[aws]==0.1.2
 flake8-import-order==0.18.1
 flake8-mypy==17.8.0
 flake8==3.7.7

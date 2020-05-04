@@ -1,30 +1,30 @@
-from flask import redirect, g, flash, request, make_response, jsonify
-from flask_appbuilder.security.views import UserDBModelView, AuthDBView
-from superset.security import SupersetSecurityManager
-from flask_appbuilder.security.views import expose
-from flask_appbuilder.security.manager import BaseSecurityManager
-from flask_login import login_user, logout_user
+import functools
 from datetime import timedelta, datetime
-from ais_service_discovery import call
 from json import loads
 from os import environ
-import functools
 
+from flask import redirect, g, flash, request, make_response, jsonify
+from flask_appbuilder.security.views import AuthDBView
+from flask_appbuilder.security.views import expose
+from flask_login import login_user
+from ais_service_discovery import call
+
+from superset.security import SupersetSecurityManager
 
 def has_resource_access(privileges):
     for config in privileges['level']['tenant']['tenants']:
-      if config['tenant'] == environ['TENANT']:
-          for resource in config['resources']:
-            if ('appId' in resource) and (resource['appId'] in ['customerAi', 'demandAi']):
-              return True
+        if config['tenant'] == environ['TENANT']:
+            for resource in config['resources']:
+                if ('appId' in resource) and (resource['appId'] in ['customerAi', 'demandAi']):
+                    return True
     return False
 
 def has_solution_write_access(privileges):
     for config in privileges['level']['tenant']['tenants']:
-      if config['tenant'] == environ['TENANT']:
-          for resource in config['resources']:
-            if (resource['name'] == 'SOLUTION MANAGER') and (resource['action'] == 'write'):
-              return True
+        if config['tenant'] == environ['TENANT']:
+            for resource in config['resources']:
+                if (resource['name'] == 'SOLUTION MANAGER') and (resource['action'] == 'write'):
+                    return True
     return False
 
 
@@ -41,7 +41,7 @@ class CustomAuthDBView(AuthDBView):
       this will return a message and HTTP 401 is case of unauthorized access.
       """
       def wraps(self, *args, **kwargs):
-        user='guest'
+        user = 'guest'
         try:
           if request.args.get('authToken') is not None:
             token = 'Bearer {}'.format(request.args.get('authToken'))
