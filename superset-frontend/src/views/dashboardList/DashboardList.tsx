@@ -40,9 +40,6 @@ const PAGE_SIZE = 25;
 interface Props {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  common: {
-    flash_messages: any[];
-  };
 }
 
 interface State {
@@ -86,11 +83,6 @@ class DashboardList extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    let messages = this.props.common.flash_messages;
-    if(messages.length > 0){
-      let text = messages[0][1]
-      this.props.addDangerToast(text)
-    }
     Promise.all([
       SupersetClient.get({
         endpoint: `/api/v1/dashboard/_info`,
