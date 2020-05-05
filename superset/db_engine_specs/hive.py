@@ -114,7 +114,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             """maps tableschema's types to hive types"""
             tableschema_to_hive_types = {
                 "boolean": "BOOLEAN",
-                "integer": "INT",
+                "integer": "BIGINT",
                 "number": "DOUBLE",
                 "string": "STRING",
             }

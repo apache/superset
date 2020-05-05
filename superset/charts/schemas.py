@@ -23,11 +23,68 @@ from superset.common.query_context import QueryContext
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
+#
+# RISON/JSON schemas for query parameters
+#
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 thumbnail_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
 }
+
+#
+# Column schema descriptions
+#
+slice_name_description = "The name of the chart."
+description_description = "A description of the chart propose."
+viz_type_description = "The type of chart visualization used."
+owners_description = (
+    "Owner are users ids allowed to delete or change this chart. "
+    "If left empty you will be one of the owners of the chart."
+)
+params_description = (
+    "Parameters are generated dynamically when clicking the save "
+    "or overwrite button in the explore view. "
+    "This JSON object for power users who may want to alter specific parameters."
+)
+cache_timeout_description = (
+    "Duration (in seconds) of the caching timeout "
+    "for this chart. Note this defaults to the datasource/table"
+    " timeout if undefined."
+)
+datasource_id_description = (
+    "The id of the dataset/datasource this new chart will use. "
+    "A complete datasource identification needs `datasouce_id` "
+    "and `datasource_type`."
+)
+datasource_type_description = (
+    "The type of dataset/datasource identified on `datasource_id`."
+)
+datasource_name_description = "The datasource name."
+dashboards_description = "A list of dashboards to include this new chart to."
+
+#
+# OpenAPI method specification overrides
+#
+openapi_spec_methods_override = {
+    "get": {"get": {"description": "Get a chart detail information."}},
+    "get_list": {
+        "get": {
+            "description": "Get a list of charts, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {
+        "get": {
+            "description": "Several metadata information about chart API endpoints.",
+        }
+    },
+    "related": {
+        "get": {"description": "Get a list of all possible owners for a chart."}
+    },
+}
+""" Overrides GET methods OpenApi descriptions """
 
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
@@ -38,35 +95,74 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
 
 
 class ChartPostSchema(Schema):
-    slice_name = fields.String(required=True, validate=Length(1, 250))
-    description = fields.String(allow_none=True)
-    viz_type = fields.String(allow_none=True, validate=Length(0, 250))
-    owners = fields.List(fields.Integer())
-    params = fields.String(allow_none=True, validate=validate_json)
-    cache_timeout = fields.Integer(allow_none=True)
-    datasource_id = fields.Integer(required=True)
-    datasource_type = fields.String(required=True)
-    datasource_name = fields.String(allow_none=True)
-    dashboards = fields.List(fields.Integer())
+    """
+    Schema to add a new chart.
+    """
+
+    slice_name = fields.String(
+        description=slice_name_description, required=True, validate=Length(1, 250)
+    )
+    description = fields.String(description=description_description, allow_none=True)
+    viz_type = fields.String(
+        description=viz_type_description,
+        validate=Length(0, 250),
+        example=["bar", "line_multi", "area", "table"],
+    )
+    owners = fields.List(fields.Integer(description=owners_description))
+    params = fields.String(
+        description=params_description, allow_none=True, validate=validate_json
+    )
+    cache_timeout = fields.Integer(
+        description=cache_timeout_description, allow_none=True
+    )
+    datasource_id = fields.Integer(description=datasource_id_description, required=True)
+    datasource_type = fields.String(
+        description=datasource_type_description,
+        validate=validate.OneOf(choices=("druid", "table", "view")),
+        required=True,
+    )
+    datasource_name = fields.String(
+        description=datasource_name_description, allow_none=True
+    )
+    dashboards = fields.List(fields.Integer(description=dashboards_description))
 
 
 class ChartPutSchema(Schema):
-    slice_name = fields.String(allow_none=True, validate=Length(0, 250))
-    description = fields.String(allow_none=True)
-    viz_type = fields.String(allow_none=True, validate=Length(0, 250))
-    owners = fields.List(fields.Integer())
-    params = fields.String(allow_none=True)
-    cache_timeout = fields.Integer(allow_none=True)
-    datasource_id = fields.Integer(allow_none=True)
-    datasource_type = fields.String(allow_none=True)
-    dashboards = fields.List(fields.Integer())
+    """
+    Schema to update or patch a chart
+    """
+
+    slice_name = fields.String(
+        description=slice_name_description, allow_none=True, validate=Length(0, 250)
+    )
+    description = fields.String(description=description_description, allow_none=True)
+    viz_type = fields.String(
+        description=viz_type_description,
+        allow_none=True,
+        validate=Length(0, 250),
+        example=["bar", "line_multi", "area", "table"],
+    )
+    owners = fields.List(fields.Integer(description=owners_description))
+    params = fields.String(description=params_description, allow_none=True)
+    cache_timeout = fields.Integer(
+        description=cache_timeout_description, allow_none=True
+    )
+    datasource_id = fields.Integer(
+        description=datasource_id_description, allow_none=True
+    )
+    datasource_type = fields.String(
+        description=datasource_type_description,
+        validate=validate.OneOf(choices=("druid", "table", "view")),
+        allow_none=True,
+    )
+    dashboards = fields.List(fields.Integer(description=dashboards_description))
 
 
 class ChartDataColumnSchema(Schema):
     column_name = fields.String(
         description="The name of the target column", example="mycol",
     )
-    type = fields.String(description="Type of target column", example="BIGINT",)
+    type = fields.String(description="Type of target column", example="BIGINT")
 
 
 class ChartDataAdhocMetricSchema(Schema):
