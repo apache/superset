@@ -32,7 +32,7 @@ describe('HeaderActionsDropdown', () => {
     dashboardId: 1,
     dashboardTitle: 'Title',
     hasUnsavedChanges: false,
-    css: '',
+    customCss: '',
     onChange: () => {},
     updateCss: () => {},
     forceRefreshAllCharts: () => {},
