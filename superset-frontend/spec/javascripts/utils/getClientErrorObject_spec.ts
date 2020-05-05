@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 
 describe('getClientErrorObject()', () => {
@@ -39,6 +40,26 @@ describe('getClientErrorObject()', () => {
     return getClientErrorObject(new Response(jsonErrorString)).then(
       errorObj => {
         expect(errorObj).toMatchObject(jsonError);
+      },
+    );
+  });
+
+  it('Handles backwards compatibility between old error messages and the new SIP-40 errors format', () => {
+    const jsonError = {
+      errors: [
+        {
+          errorType: ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
+          extra: { engine: 'presto' },
+          level: 'error',
+          message: 'presto error: test error',
+        },
+      ],
+    };
+    const jsonErrorString = JSON.stringify(jsonError);
+
+    return getClientErrorObject(new Response(jsonErrorString)).then(
+      errorObj => {
+        expect(errorObj.error).toEqual(jsonError.errors[0].message);
       },
     );
   });

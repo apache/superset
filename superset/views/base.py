@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 config = superset_app.config
 
 
-def get_error_msg():
+def get_error_msg() -> str:
     if conf.get("SHOW_STACKTRACE"):
         error_msg = traceback.format_exc()
     else:
@@ -78,7 +78,12 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg=None, status=500, payload=None, link=None):
+def json_error_response(
+    msg: Optional[str] = None,
+    status: int = 500,
+    payload: Optional[dict] = None,
+    link: Optional[str] = None,
+) -> Response:
     if not payload:
         payload = {"error": "{}".format(msg)}
     if link:
@@ -91,11 +96,11 @@ def json_error_response(msg=None, status=500, payload=None, link=None):
     )
 
 
-def json_success(json_msg, status=200):
+def json_success(json_msg: str, status: int = 200) -> Response:
     return Response(json_msg, status=status, mimetype="application/json")
 
 
-def data_payload_response(payload_json, has_error=False):
+def data_payload_response(payload_json: str, has_error: bool = False) -> Response:
     status = 400 if has_error else 200
     return json_success(payload_json, status=status)
 

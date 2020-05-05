@@ -933,7 +933,7 @@ class CoreTests(SupersetTestCase):
         )
         data = self.get_json_resp(json_endpoint, {"form_data": json.dumps(form_data)})
         self.assertEqual(data["status"], utils.QueryStatus.SUCCESS)
-        self.assertEqual(data["error"], None)
+        self.assertEqual(data["errors"], [])
 
     def test_slice_payload_invalid_query(self):
         self.login(username="admin")

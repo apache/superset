@@ -18,12 +18,14 @@
  */
 import { SupersetClientResponse } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
+import { SupersetError } from 'src/components/ErrorMessage/types';
 import COMMON_ERR_MESSAGES from './errorMessages';
 
 // The response always contains an error attribute, can contain anything from the
 // SupersetClientResponse object, and can contain a spread JSON blob
 export type ClientErrorObject = {
   error: string;
+  errors?: SupersetError[];
   severity?: string;
   message?: string;
   stacktrace?: string;
@@ -48,6 +50,12 @@ export default function getClientErrorObject(
           .json()
           .then(errorJson => {
             let error = { ...responseObject, ...errorJson };
+
+            // Backwards compatibility for old error renderers with the new error object
+            if (error.errors && error.errors.length > 0) {
+              error.error = error.description = error.errors[0].message;
+            }
+
             if (error.stack) {
               error = {
                 ...error,
