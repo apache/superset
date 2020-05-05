@@ -45,6 +45,7 @@ from superset.dashboards.schemas import (
     DashboardPutSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
+    openapi_spec_methods_override,
     thumbnail_query_schema,
 )
 from superset.models.dashboard import Dashboard
@@ -145,6 +146,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     }
     allowed_rel_fields = {"owners"}
 
+    openapi_spec_methods = openapi_spec_methods_override
+    """ Overrides GET methods OpenApi descriptions """
+
     def __init__(self) -> None:
         if is_feature_enabled("THUMBNAILS"):
             self.include_route_methods = self.include_route_methods | {"thumbnail"}
@@ -159,7 +163,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         post:
           description: >-
-            Create a new Dashboard
+            Create a new Dashboard.
           requestBody:
             description: Dashboard schema
             required: true
@@ -216,7 +220,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         put:
           description: >-
-            Changes a Dashboard
+            Changes a Dashboard.
           parameters:
           - in: path
             schema:
@@ -282,7 +286,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         delete:
           description: >-
-            Deletes a Dashboard
+            Deletes a Dashboard.
           parameters:
           - in: path
             schema:
@@ -332,7 +336,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         delete:
           description: >-
-            Deletes multiple Dashboards in a bulk operation
+            Deletes multiple Dashboards in a bulk operation.
           parameters:
           - in: query
             name: q
@@ -391,7 +395,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         get:
           description: >-
-            Exports multiple Dashboards and downloads them as YAML files
+            Exports multiple Dashboards and downloads them as YAML files.
           parameters:
           - in: query
             name: q
@@ -444,7 +448,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         get:
           description: >-
-            Compute async or get already computed dashboard thumbnail from cache
+            Compute async or get already computed dashboard thumbnail from cache.
           parameters:
           - in: path
             schema:

@@ -18,7 +18,6 @@ import logging
 from typing import Any, Dict
 
 import simplejson
-from apispec import APISpec
 from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -48,6 +47,7 @@ from superset.charts.schemas import (
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
+    openapi_spec_methods_override,
     thumbnail_query_schema,
 )
 from superset.constants import RouteMethod
@@ -145,14 +145,21 @@ class ChartRestApi(BaseSupersetModelRestApi):
     edit_model_schema = ChartPutSchema()
 
     openapi_spec_tag = "Charts"
+    """ Override the name set for this collection of endpoints """
+    openapi_spec_component_schemas = CHART_DATA_SCHEMAS
+    """ Add extra schemas to the OpenAPI components schema section """
+    openapi_spec_methods = openapi_spec_methods_override
+    """ Overrides GET methods OpenApi descriptions """
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
+
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
     }
+
     allowed_rel_fields = {"owners"}
 
     def __init__(self) -> None:
@@ -169,7 +176,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         post:
           description: >-
-            Create a new Chart
+            Create a new Chart.
           requestBody:
             description: Chart schema
             required: true
@@ -224,7 +231,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         put:
           description: >-
-            Changes a Chart
+            Changes a Chart.
           parameters:
           - in: path
             schema:
@@ -290,7 +297,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         delete:
           description: >-
-            Deletes a Chart
+            Deletes a Chart.
           parameters:
           - in: path
             schema:
@@ -340,7 +347,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         delete:
           description: >-
-            Deletes multiple Charts in a bulk operation
+            Deletes multiple Charts in a bulk operation.
           parameters:
           - in: query
             name: q
@@ -457,7 +464,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """Get Chart thumbnail
         ---
         get:
-          description: Compute or get already computed chart thumbnail from cache
+          description: Compute or get already computed chart thumbnail from cache.
           parameters:
           - in: path
             schema:
@@ -509,13 +516,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
 
-    def add_apispec_components(self, api_spec: APISpec) -> None:
-        for chart_type in CHART_DATA_SCHEMAS:
-            api_spec.components.schema(
-                chart_type.__name__, schema=chart_type,
-            )
-        super().add_apispec_components(api_spec)
-
     @expose("/datasources", methods=["GET"])
     @protect()
     @safe
@@ -523,6 +523,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """Get available datasources
         ---
         get:
+          description: Get available datasources.
           responses:
             200:
               description: charts unique datasource data

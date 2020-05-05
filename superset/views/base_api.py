@@ -18,11 +18,13 @@ import functools
 import logging
 from typing import Any, cast, Dict, Optional, Set, Tuple, Type, Union
 
+from apispec import APISpec
 from flask import Response
 from flask_appbuilder import ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
+from marshmallow import Schema
 
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.core import time_function
@@ -109,9 +111,22 @@ class BaseSupersetModelRestApi(ModelRestApi):
     """  # pylint: disable=pointless-string-statement
     allowed_rel_fields: Set[str] = set()
 
+    openapi_spec_component_schemas: Tuple[Schema, ...] = tuple()
+    """
+    Add extra schemas to the OpenAPI component schemas section
+    """  # pylint: disable=pointless-string-statement
+
     def __init__(self) -> None:
         super().__init__()
         self.stats_logger = BaseStatsLogger()
+
+    def add_apispec_components(self, api_spec: APISpec) -> None:
+
+        for schema in self.openapi_spec_component_schemas:
+            api_spec.components.schema(
+                schema.__name__, schema=schema,
+            )
+        super().add_apispec_components(api_spec)
 
     def create_blueprint(self, appbuilder, *args, **kwargs):
         self.stats_logger = self.appbuilder.get_app.config["STATS_LOGGER"]
