@@ -72,6 +72,15 @@ class Slice(
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
     owners = relationship(security_manager.user_model, secondary=slice_user)
+    table = relationship(
+        "SqlaTable",
+        foreign_keys=[datasource_id],
+        primaryjoin="and_(Slice.datasource_id == SqlaTable.id, "
+        "Slice.datasource_type == 'table')",
+        remote_side="SqlaTable.id",
+        lazy="joined",
+    )
+
     token = ""
 
     export_fields = [
@@ -121,11 +130,15 @@ class Slice(
     @renders("datasource_url")
     def datasource_url(self) -> Optional[str]:
         # pylint: disable=no-member
+        if self.table:
+            return self.table.explore_url
         datasource = self.datasource
-        return datasource.explore_url if datasource else None
+        return datasource.name if datasource else None
 
     def datasource_name_text(self) -> Optional[str]:
         # pylint: disable=no-member
+        if self.table:
+            return self.table.table_name
         datasource = self.datasource
         return datasource.name if datasource else None
 

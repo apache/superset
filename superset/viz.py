@@ -399,8 +399,11 @@ class BaseViz:
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
-        if config["ENABLE_ROW_LEVEL_SECURITY"]:
-            cache_dict["rls"] = security_manager.get_rls_ids(self.datasource)
+        cache_dict["rls"] = (
+            security_manager.get_rls_ids(self.datasource)
+            if config["ENABLE_ROW_LEVEL_SECURITY"]
+            else []
+        )
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
@@ -1140,6 +1143,9 @@ class BigNumberViz(BaseViz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         df = df.pivot_table(
             index=DTTM_ALIAS,
             columns=[],
@@ -1875,6 +1881,9 @@ class WorldMapViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         from superset.examples import countries
 
         fd = self.form_data
@@ -1949,7 +1958,7 @@ class FilterBoxViz(BaseViz):
             col = flt.get("column")
             metric = flt.get("metric")
             df = self.dataframes.get(col)
-            if df is not None:
+            if df is not None and not df.empty:
                 if metric:
                     df = df.sort_values(
                         utils.get_metric_name(metric), ascending=flt.get("asc")
@@ -1964,6 +1973,8 @@ class FilterBoxViz(BaseViz):
                         {"id": row[0], "text": row[0]}
                         for row in df.itertuples(index=False)
                     ]
+        if not d:
+            return None
         return d
 
 

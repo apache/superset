@@ -14,67 +14,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-{{- if and ( .Values.initContainers ) ( .Values.init.enabled ) }}
+{{- if .Values.init.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ template "superset.name" . }}-init-db
-  annotations:
 spec:
   template:
     metadata:
       name: {{ template "superset.name" . }}-init-db
     spec:
+      securityContext:
+        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+      {{- if .Values.init.initContainers }}
       initContainers:
-      {{-  toYaml .Values.initContainers | nindent 6 }}
+      {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
+      {{- end }}
       containers:
       - name: {{ template "superset.name" . }}-init-db
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        {{ if .Values.extraEnv }}
         env:
-          - name: REDIS_HOST
-            valueFrom:
-              secretKeyRef:
-                name: superset-secret
-                key: redis_host
-          - name: REDIS_PORT
-            valueFrom:
-              secretKeyRef:
-                name: superset-secret
-                key: redis_port
-          - name: DB_HOST
-            valueFrom:
-              secretKeyRef:
-                name: superset-secret
-                key: db_host
-          - name: DB_PORT
-            valueFrom:
-              secretKeyRef:
-                name: superset-secret
-                key: db_port
-          - name: DB_USER
-            valueFrom:
-              secretKeyRef:
-                name: superset-secret
-                key: db_user
-          - name: DB_PASS
-            valueFrom:
-              secretKeyRef:
-                name: superset-secret
-                key: db_pass         
-          - name: DB_NAME
-            valueFrom:
-              secretKeyRef:
-                name: superset-secret
-                key: db_name 
+          {{- range $key, $value := .Values.extraEnv }}
+          - name: {{ $key | quote }}
+            value: {{ $value | quote }}
+          {{- end }}
+        {{- end }}
+        envFrom:
+          - secretRef:
+              name: {{ tpl .Values.envFromSecret . }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         volumeMounts:
           - name: superset-config
-            mountPath: "/etc/superset"
+            mountPath: {{ .Values.configMountPath | quote }}
             readOnly: true
-        command: [ "/bin/sh", "-c", "{{ .Values.init.initscript }}" ]
+        command: {{  tpl (toJson .Values.init.command) . }}
       volumes:
         - name: superset-config
           secret:
-            secretName: superset-config
+            secretName: {{ tpl .Values.configFromSecret . }}
       restartPolicy: Never
 {{- end }}

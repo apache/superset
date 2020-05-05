@@ -156,7 +156,7 @@ class EmailScheduleView(
 class DashboardEmailScheduleView(
     EmailScheduleView
 ):  # pylint: disable=too-many-ancestors
-    schedule_type = ScheduleType.dashboard.value
+    schedule_type = ScheduleType.dashboard
     schedule_type_model = Dashboard
 
     add_title = _("Schedule Email Reports for Dashboards")
@@ -215,7 +215,7 @@ class DashboardEmailScheduleView(
 
 
 class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-ancestors
-    schedule_type = ScheduleType.slice.value
+    schedule_type = ScheduleType.slice
     schedule_type_model = Slice
     add_title = _("Schedule Email Reports for Charts")
     edit_title = add_title

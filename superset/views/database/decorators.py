@@ -22,6 +22,7 @@ from flask import g
 from flask_babel import lazy_gettext as _
 
 from superset.models.core import Database
+from superset.sql_parse import Table
 from superset.utils.core import parse_js_uri_path_item
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def check_datasource_access(f):
             return self.response_404()
         # Check that the user can access the datasource
         if not self.appbuilder.sm.can_access_datasource(
-            database, table_name_parsed, schema_name_parsed
+            database, Table(table_name_parsed, schema_name_parsed), schema_name_parsed
         ):
             self.stats_logger.incr(
                 f"permisssion_denied_{self.__class__.__name__}.select_star"
