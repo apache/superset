@@ -71,7 +71,7 @@ function mapStateToProps({
     ).text,
     expandedSlices: dashboardState.expandedSlices,
     refreshFrequency: dashboardState.refreshFrequency,
-    css: dashboardState.css,
+    customCss: dashboardState.css,
     colorNamespace: dashboardState.colorNamespace,
     colorScheme: dashboardState.colorScheme,
     charts,
