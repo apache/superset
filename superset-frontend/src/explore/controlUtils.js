@@ -22,8 +22,13 @@ import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
+  formData.controlGroups = {};
   Object.keys(controlsState).forEach(controlName => {
-    formData[controlName] = controlsState[controlName].value;
+    const control = controlsState[controlName];
+    formData[controlName] = control.value;
+    if (control.hasOwnProperty('controlGroup')) {
+      formData.controlGroups[controlName] = control.controlGroup;
+    }
   });
   return formData;
 }
