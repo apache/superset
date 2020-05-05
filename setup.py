@@ -77,7 +77,7 @@ setup(
         "cryptography>=2.4.2",
         "dataclasses<0.7",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=2.3.2, <2.4.0",
+        "flask-appbuilder>=2.3.4, <2.4.0",
         "flask-caching",
         "flask-compress",
         "flask-talisman",

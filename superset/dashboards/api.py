@@ -95,20 +95,26 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     ]
     order_columns = ["dashboard_title", "changed_on", "published", "changed_by_fk"]
     list_columns = [
+        "id",
+        "published",
+        "slug",
+        "url",
+        "css",
+        "position_json",
+        "json_metadata",
+        "thumbnail_url",
+        "changed_by.first_name",
+        "changed_by.last_name",
+        "changed_by.username",
+        "changed_by.id",
         "changed_by_name",
         "changed_by_url",
-        "changed_by.username",
         "changed_on",
         "dashboard_title",
         "owners.id",
         "owners.username",
         "owners.first_name",
         "owners.last_name",
-        "id",
-        "published",
-        "slug",
-        "url",
-        "thumbnail_url",
     ]
     edit_columns = [
         "dashboard_title",
