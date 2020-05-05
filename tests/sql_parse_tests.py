@@ -540,7 +540,7 @@ class SupersetTestCase(unittest.TestCase):
         SELECT * FROM birth_names;
         -- some comment
         """
-        parsed = sql_parse.ParsedQuery(multi_sql)
+        parsed = ParsedQuery(multi_sql)
         statements = parsed.get_statements()
         self.assertEqual(len(statements), 1)
         expected = ["SELECT * FROM birth_names"]
