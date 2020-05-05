@@ -36,7 +36,7 @@ const propTypes = {
   layout: PropTypes.object.isRequired,
   saveType: PropTypes.oneOf([SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD]),
   triggerNode: PropTypes.node.isRequired,
-  css: PropTypes.string.isRequired,
+  customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
   onSave: PropTypes.func.isRequired,
@@ -95,7 +95,7 @@ class SaveModal extends React.PureComponent {
     const {
       dashboardTitle,
       layout: positions,
-      css,
+      customCss,
       colorNamespace,
       colorScheme,
       expandedSlices,
@@ -110,7 +110,7 @@ class SaveModal extends React.PureComponent {
     const labelColors = colorScheme ? scale.getColorMap() : {};
     const data = {
       positions,
-      css,
+      css: customCss,
       color_namespace: colorNamespace,
       color_scheme: colorScheme,
       label_colors: labelColors,
