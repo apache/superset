@@ -86,14 +86,14 @@ class DatasetApiTests(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["count"], 1)
         expected_columns = [
-            "database_id",
             "changed_by",
+            "changed_by_fk",
             "changed_by_name",
             "changed_by_url",
-            "changed_by_fk",
-            "default_endpoint",
             "changed_on",
+            "database_id",
             "database_name",
+            "default_endpoint",
             "explore_url",
             "id",
             "schema",
