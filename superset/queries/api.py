@@ -21,6 +21,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from superset.constants import RouteMethod
 from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
+from superset.queries.schemas import openapi_spec_methods_override
 from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
@@ -70,3 +71,4 @@ class QueryRestApi(BaseSupersetModelRestApi):
     base_order = ("changed_on", "desc")
 
     openapi_spec_tag = "Queries"
+    openapi_spec_methods = openapi_spec_methods_override
