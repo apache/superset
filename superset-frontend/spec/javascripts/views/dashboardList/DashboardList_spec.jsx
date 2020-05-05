@@ -69,11 +69,11 @@ const common = {
   language_pack: {},
   local: '',
   flash_messages: [],
-}
+};
 
 describe('DashboardList', () => {
   const mockedProps = {};
-  const wrapper = mount(<DashboardList {...mockedProps} common={common}/>, {
+  const wrapper = mount(<DashboardList {...mockedProps} />, {
     context: { store },
   });
 

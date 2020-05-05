@@ -48,7 +48,7 @@ const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));
 const user = { ...bootstrap.user };
 const menu = { ...bootstrap.common.menu_data };
-const common = {...bootstrap.common}
+const common = { ...bootstrap.common };
 initFeatureFlags(bootstrap.common.feature_flags);
 
 const store = createStore(
@@ -59,46 +59,41 @@ const store = createStore(
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
 
-
-class App extends React.Component {
-  render(){  
-    return (
-      <Provider store={store}>
-        <ThemeProvider theme={supersetTheme}>
-          <FlashError common={common} >
-            <Router>
-              <QueryParamProvider ReactRouterRoute={Route}>
-                <Menu data={menu} />
-                <Switch>
-                  <Route path="/superset/welcome/">
-                    <ErrorBoundary>
-                      <Welcome user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path="/dashboard/list/">
-                    <ErrorBoundary>
-                      <DashboardList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path="/chart/list/">
-                    <ErrorBoundary>
-                      <ChartList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path="/tablemodelview/list/">
-                    <ErrorBoundary>
-                      <DatasetList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                </Switch>
-                <ToastPresenter />
-              </QueryParamProvider>
-            </Router>
-          </ FlashError>
-        </ThemeProvider>
-      </Provider>
-    );
-  }
-}
+const App = () => (
+  <Provider store={store}>
+    <ThemeProvider theme={supersetTheme}>
+      <FlashError common={common}>
+        <Router>
+          <QueryParamProvider ReactRouterRoute={Route}>
+            <Menu data={menu} />
+            <Switch>
+              <Route path="/superset/welcome/">
+                <ErrorBoundary>
+                  <Welcome user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/dashboard/list/">
+                <ErrorBoundary>
+                  <DashboardList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/chart/list/">
+                <ErrorBoundary>
+                  <ChartList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/tablemodelview/list/">
+                <ErrorBoundary>
+                  <DatasetList user={user} />
+                </ErrorBoundary>
+              </Route>
+            </Switch>
+            <ToastPresenter />
+          </QueryParamProvider>
+        </Router>
+      </FlashError>
+    </ThemeProvider>
+  </Provider>
+);
 
 export default hot(App);
