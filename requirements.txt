@@ -22,6 +22,8 @@ cryptography==2.8         # via apache-superset (setup.py)
 dataclasses==0.6          # via apache-superset (setup.py)
 decorator==4.4.1          # via retry
 defusedxml==0.6.0         # via python3-openid
+dnspython==1.16.0         # via email-validator
+email-validator==1.0.5    # via flask-appbuilder
 flask-appbuilder==2.3.4   # via apache-superset (setup.py)
 flask-babel==1.0.0        # via flask-appbuilder
 flask-caching==1.8.0      # via apache-superset (setup.py)
@@ -38,6 +40,7 @@ geographiclib==1.50       # via geopy
 geopy==1.21.0             # via apache-superset (setup.py)
 gunicorn==20.0.4          # via apache-superset (setup.py)
 humanize==0.5.1           # via apache-superset (setup.py)
+idna==2.9                 # via email-validator
 importlib-metadata==1.4.0  # via jsonschema, kombu
 isodate==0.6.0            # via apache-superset (setup.py)
 itsdangerous==1.1.0       # via flask
