@@ -29,7 +29,11 @@ import {
   dashboardInfoPropShape,
   dashboardStatePropShape,
 } from '../util/propShapes';
-import { LOG_ACTIONS_MOUNT_DASHBOARD } from '../../logger/LogUtils';
+import {
+  LOG_ACTIONS_HIDE_BROWSER_TAB,
+  LOG_ACTIONS_MOUNT_DASHBOARD,
+  Logger,
+} from '../../logger/LogUtils';
 import OmniContainer from '../../components/OmniContainer';
 import { areObjectsEqual } from '../../reduxUtils';
 
@@ -81,6 +85,8 @@ class Dashboard extends React.PureComponent {
   constructor(props) {
     super(props);
     this.appliedFilters = props.activeFilters || {};
+
+    this.onVisibilityChange = this.onVisibilityChange.bind(this);
   }
 
   componentDidMount() {
@@ -90,6 +96,15 @@ class Dashboard extends React.PureComponent {
       eventData.target_id = directLinkComponentId;
     }
     this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD, eventData);
+
+    // Handle browser tab visibility change
+    if (document.visibilityState === 'hidden') {
+      this.visibilityEventData = {
+        start_offset: Logger.getTimestamp(),
+        ts: new Date().getTime(),
+      };
+    }
+    window.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -155,6 +170,27 @@ class Dashboard extends React.PureComponent {
       Dashboard.onBeforeUnload(true);
     } else {
       Dashboard.onBeforeUnload(false);
+    }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('visibilitychange', this.onVisibilityChange);
+  }
+
+  onVisibilityChange() {
+    if (document.visibilityState === 'hidden') {
+      // from visible to hidden
+      this.visibilityEventData = {
+        start_offset: Logger.getTimestamp(),
+        ts: new Date().getTime(),
+      };
+    } else if (document.visibilityState === 'visible') {
+      // from hidden to visible
+      const logStart = this.visibilityEventData.start_offset;
+      this.props.actions.logEvent(LOG_ACTIONS_HIDE_BROWSER_TAB, {
+        ...this.visibilityEventData,
+        duration: Logger.getTimestamp() - logStart,
+      });
     }
   }
 
