@@ -4025,10 +4025,10 @@
     prop-types "^15.6.1"
     resize-observer-polyfill "1.5.0"
 
-"@vx/responsive@^0.0.195":
-  version "0.0.195"
-  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.195.tgz#8c75d86a28801c5f1970d43433a01e101454d444"
-  integrity sha512-3zjkjqg8V3Kr1moSI7EAzlW7MLR87p2CXc+qh0zZg/zLrc3C89JnxyMYFfS7jM4PlHr26n634YddQDVydwARBA==
+"@vx/responsive@^0.0.196":
+  version "0.0.196"
+  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.196.tgz#28d7cfec8128a1c1d28fa98ef83b8ce3191a9044"
+  integrity sha512-mwV0pf7YjdzQH5vqA81vtDLuPT9cKFDu2+vfyP8e4Xun0eWato7ut3j9dP0QLZ3k71CJWeZ4v2thzlcUWafAow==
   dependencies:
     "@types/lodash" "^4.14.146"
     "@types/react" "*"
