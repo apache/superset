@@ -742,6 +742,11 @@ class ChartDataDatasourceSchema(Schema):
 class ChartDataQueryContextSchema(Schema):
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
+    force = fields.Boolean(
+        description="Should the queries be forced to load from the source. "
+        "Default: `true`",
+        required=False,
+    )
 
     # pylint: disable=no-self-use
     @post_load
