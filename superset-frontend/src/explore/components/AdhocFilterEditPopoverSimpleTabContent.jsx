@@ -313,7 +313,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         .filter(operator =>
           this.isOperatorRelevant(operator, adhocFilter.subject),
         )
-        .map(operator => ({ operator })),
+        .map(operator => ({
+          operator,
+          label: translateOperator(operator),
+          value: operator,
+        })),
       value: adhocFilter.operator,
       onChange: this.onOperatorChange,
       optionRenderer: VirtualizedRendererWrap(operator =>
