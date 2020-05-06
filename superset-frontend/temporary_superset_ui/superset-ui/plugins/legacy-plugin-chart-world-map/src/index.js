@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('World Map'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class WorldMapChartPlugin extends ChartPlugin {
