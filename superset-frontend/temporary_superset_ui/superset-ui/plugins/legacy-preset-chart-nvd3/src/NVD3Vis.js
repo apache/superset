@@ -253,11 +253,17 @@ function nvd3Vis(element, props) {
     isPieLabelOutside,
     leftMargin,
     lineInterpolation = 'linear',
+    markerLabels,
+    markerLines,
+    markerLineLabels,
+    markers,
     maxBubbleSize,
     onBrushEnd = NOOP,
     onError = NOOP,
     orderBars,
     pieLabelType,
+    rangeLabels,
+    ranges,
     reduceXTicks = false,
     showBarValue,
     showBrush,
@@ -467,6 +473,12 @@ function nvd3Vis(element, props) {
 
       case 'bullet':
         chart = nv.models.bulletChart();
+        data.rangeLabels = rangeLabels;
+        data.ranges = ranges;
+        data.markerLabels = markerLabels;
+        data.markerLines = markerLines;
+        data.markerLineLabels = markerLineLabels;
+        data.markers = markers;
         break;
 
       default:
