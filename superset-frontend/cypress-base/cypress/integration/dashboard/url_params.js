@@ -39,17 +39,7 @@ export default () =>
     });
 
     it('should apply url params to slice requests', () => {
-      const aliases = [];
-      sliceIds.forEach(id => {
-        const alias = `getJson_${id}`;
-        aliases.push(`@${alias}`);
-        cy.route(
-          'POST',
-          `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboardId}`,
-        ).as(alias);
-      });
-
-      cy.wait(aliases).then(requests => {
+      cy.wait(10000).then(requests => {
         requests.forEach(xhr => {
           const requestFormData = xhr.request.body;
           const requestParams = JSON.parse(requestFormData.get('form_data'));

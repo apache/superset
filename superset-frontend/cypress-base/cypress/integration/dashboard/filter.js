@@ -40,15 +40,9 @@ export default () =>
         filterId = dashboard.slices.find(
           slice => slice.form_data.viz_type === 'filter_box',
         ).slice_id;
-        aliases = sliceIds.map(id => {
-          const alias = getAlias(id);
-          const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
-          cy.route('POST', url).as(alias.slice(1));
-          return alias;
-        });
 
         // wait the initial page load requests
-        cy.wait(aliases);
+        cy.wait(10000);
       });
     });
 
