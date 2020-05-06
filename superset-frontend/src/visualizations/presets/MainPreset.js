@@ -43,11 +43,6 @@ import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
 import TreemapChartPlugin from '@superset-ui/legacy-plugin-chart-treemap';
 import { LegacyWordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
-// There is a known issue with bubble chart that the bubbles will not show up.
-// (<path d="NaN" />)
-// Make sure to import '@superset-ui/legacy-preset-chart-nvd3/lib'
-// Not '@superset-ui/legacy-preset-chart-nvd3',
-// which will point to '@superset-ui/legacy-preset-chart-nvd3/esm' by default
 import {
   AreaChartPlugin,
   BarChartPlugin,
