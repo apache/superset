@@ -23,7 +23,9 @@ import { t } from '@superset-ui/translation';
 import {
   getControlConfig,
   getControlState,
+  getFormDataFromControls,
   applyMapStateToPropsToControl,
+  getAllControlsState,
 } from '../../../src/explore/controlUtils';
 import ColumnOption from '../../../src/components/ColumnOption';
 
@@ -107,6 +109,7 @@ describe('controlUtils', () => {
                   name: 'all_columns',
                   config: {
                     type: 'SelectControl',
+                    controlGroup: 'columns',
                     multi: true,
                     label: t('Columns'),
                     default: [],
@@ -244,6 +247,14 @@ describe('controlUtils', () => {
     it('validates the control, returns an error if empty', () => {
       const control = getControlState('metric', 'table', state, null);
       expect(control.validationErrors).toEqual(['cannot be empty']);
+    });
+  });
+
+  describe('controlGroup', () => {
+    it('in formData', () => {
+      const controlsState = getAllControlsState('table', 'table', {}, {});
+      const formData = getFormDataFromControls(controlsState);
+      expect(formData.controlGroups).toEqual({ all_columns: 'columns' });
     });
   });
 });
