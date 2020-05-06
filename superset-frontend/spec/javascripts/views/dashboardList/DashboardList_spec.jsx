@@ -63,14 +63,6 @@ fetchMock.get(dashboardsEndpoint, {
   dashboard_count: 3,
 });
 
-const common = {
-  config: {},
-  feature_flags: {},
-  language_pack: {},
-  local: '',
-  flash_messages: [],
-};
-
 describe('DashboardList', () => {
   const mockedProps = {};
   const wrapper = mount(<DashboardList {...mockedProps} />, {

@@ -17,13 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
-const propTypes = {
-  children: PropTypes.node.isRequired,
-  common: PropTypes.object.isRequired,
+interface Arr {
+  func: () => void;
+}
+interface CommonObject {
+  flash_messages: Arr[]; 
+}
+interface Props {
+  children: Node;
+  common: CommonObject;
 };
 
 const flashObj = {
@@ -33,13 +38,13 @@ const flashObj = {
   success: 'addSuccessToast',
 };
 
-class FlashError extends React.PureComponent {
+class FlashProvider extends React.PureComponent<Props> {
   componentDidMount() {
-    const flashArr = this.props.common.flash_messages;
+    const flashArr = this.props.common.flash_messages as Arr[];
     if (flashArr.length > 0) {
-      flashArr.forEach((e, i) => {
-        const type = flashArr[i][0];
-        const text = flashArr[i][1];
+      flashArr.forEach((item, i) => {
+        const type = item[i][0];
+        const text = item[i][1];
         const flash = flashObj[type];
         this.props[flash](t(text));
       });
@@ -50,4 +55,4 @@ class FlashError extends React.PureComponent {
   }
 }
 
-export default withToasts(FlashError);
+export default withToasts(FlashProvider);
