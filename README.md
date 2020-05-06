@@ -45,8 +45,7 @@ A modern, enterprise-ready business intelligence web application.
 [**License**](#license) |
 
 
-Screenshots & Gifs
-------------------
+## Screenshots & Gifs
 
 **View Dashboards**
 
@@ -69,7 +68,7 @@ Screenshots & Gifs
 <kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
 
 ## Why Superset
----------------
+
 Superset provides:
 * An intuitive interface to explore and visualize datasets, and
     create interactive dashboards.
@@ -92,7 +91,6 @@ Superset provides:
 
 
 ## Database Support
-----------------
 
 Superset speaks many SQL dialects through SQLAlchemy - a Python
 SQL toolkit that is compatible with most databases. A list of
@@ -101,32 +99,29 @@ supported databases can be found
 
 
 ## Installation and Configuration
-----------------------------
 
 [See in the documentation](https://superset.incubator.apache.org/installation.html)
 
 
 ## Get Help
--------------
+
 * [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
 * [Join Community Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
 * [Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
 
 
 ## Contributor Guide
-------------
 
 Interested in contributing? Check out
 [Contributing.MD](https://github.com/apache/superset/blob/master/CONTRIBUTING.md) to learn how to contribute and best practices.
 
 
 ## Resources
---------------------------------------
+
 * [Blog](https://preset.io/blog/)
 * [Docker image](https://hub.docker.com/r/preset/superset/)
 
 ## Superset Users
---------------------------------------
 
 Here's a list of organizations that have taken the time to send a PR to let
 the world know they are using Superset. If you are a user and want to be recognized,
@@ -215,7 +210,7 @@ Join our growing community!
  1. [Zalora](https://www.zalora.com) [@ksaagariconic]
 
 ## License
---------------------------------------
+
 ```
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
