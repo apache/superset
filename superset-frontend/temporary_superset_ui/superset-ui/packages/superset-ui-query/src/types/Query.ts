@@ -28,13 +28,16 @@ export type QueryObjectMetric = {
 
 export type QueryObjectExtras = Partial<{
   /** HAVING condition for Druid */
-  having_druid: string;
-  druid_time_origin: string;
+  having_druid?: string;
+  druid_time_origin?: string;
   /** HAVING condition for SQLAlchemy */
-  having: string;
-  time_grain_sqla: string;
+  having?: string;
+  relative_start?: string;
+  relative_end?: string;
+  time_grain_sqla?: string;
+  time_range_endpoints?: string[];
   /** WHERE condition */
-  where: string;
+  where?: string;
 }>;
 
 export type QueryObject = {
@@ -77,5 +80,7 @@ export interface QueryContext {
     id: number;
     type: DatasourceType;
   };
+  /** Force refresh of all queries */
+  force: boolean;
   queries: QueryObject[];
 }
