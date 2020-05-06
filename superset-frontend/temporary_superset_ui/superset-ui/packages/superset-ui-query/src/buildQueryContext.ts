@@ -11,6 +11,7 @@ export default function buildQueryContext(
 ): QueryContext {
   return {
     datasource: new DatasourceKey(formData.datasource).toObject(),
+    force: formData.force || false,
     queries: buildQuery(buildQueryObject(formData)),
   };
 }

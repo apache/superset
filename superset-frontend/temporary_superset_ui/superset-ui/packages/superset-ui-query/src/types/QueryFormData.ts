@@ -45,6 +45,8 @@ export type BaseFormData = {
   row_limit?: string | number | null;
   /** The metric used to order timeseries for limiting */
   timeseries_limit_metric?: QueryFormDataMetric;
+  /** Force refresh */
+  force?: boolean;
 } & TimeRange &
   QueryFormDataMetrics;
 
