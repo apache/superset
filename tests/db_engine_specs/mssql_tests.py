@@ -155,13 +155,13 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
 
             test_sql = (
                 "SELECT FOO_COL1, CAST(FOO_DATE as DATETIME) at time zone "
-                "'Eastern Standard Time' as collection_time_EST FROM FOO_TABLE"
+                "'Eastern Standard Time' as FOO_DATE_EST FROM FOO_TABLE"
             )
             limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, database)
             expected_sql = (
                 "SELECT TOP 1000 * \n"
                 "FROM (SELECT FOO_COL1, CAST(FOO_DATE as DATETIME) at time zone "
-                "'Eastern Standard Time' as collection_time_EST FROM FOO_TABLE)"
+                "'Eastern Standard Time' as FOO_DATE_EST FROM FOO_TABLE)"
                 " AS inner_qry"
             )
             self.assertEqual(expected_sql, limited_sql)
