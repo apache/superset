@@ -39,6 +39,7 @@ import { areObjectsEqual } from '../../reduxUtils';
 
 import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
+import isDashboardEmpty from '../util/isDashboardEmpty';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -90,10 +91,17 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    const eventData = {};
+    const { dashboardState } = this.props;
+    const eventData = {
+      is_editMode: dashboardState.editMode,
+      mount_duration: Logger.getTimestamp(),
+    };
     const directLinkComponentId = getLocationHash();
     if (directLinkComponentId) {
       eventData.target_id = directLinkComponentId;
+    }
+    if (isDashboardEmpty(this.props.layout)) {
+      eventData.is_empty = true;
     }
     this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD, eventData);
 
