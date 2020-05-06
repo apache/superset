@@ -744,7 +744,7 @@ class ChartDataQueryContextSchema(Schema):
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
     force = fields.Boolean(
         description="Should the queries be forced to load from the source. "
-        "Default: `true`",
+        "Default: `false`",
         required=False,
     )
 
