@@ -16,26 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from '../../../../src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from '../../../../src/dashboard/util/getEmptyLayout';
+import { CHART_TYPE, MARKDOWN_TYPE } from './componentTypes';
 
-describe('isDashboardEmpty', () => {
-  const emptyLayout = getEmptyLayout();
-  const testLayout = {
-    ...emptyLayout,
-    'MARKDOWN-IhTGLhyiTd': {
-      children: [],
-      id: 'MARKDOWN-IhTGLhyiTd',
-      meta: { code: 'test me', height: 50, width: 4 },
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
-      type: 'MARKDOWN',
-    },
-  };
-
-  it('should return true for empty dashboard', () => {
-    expect(isDashboardEmpty(emptyLayout)).toBe(true);
-  });
-  it('should return false for empty dashboard', () => {
-    expect(isDashboardEmpty(testLayout)).toBe(false);
-  });
-});
+const USER_CONTENT_COMPONENT_TYPE: string[] = [CHART_TYPE, MARKDOWN_TYPE];
+export default function isDashboardEmpty(layout: any): boolean {
+  // has at least one chart or markdown component
+  return !Object.values(layout).some(
+    ({ type }: { type?: string }) =>
+      type && USER_CONTENT_COMPONENT_TYPE.includes(type),
+  );
+}

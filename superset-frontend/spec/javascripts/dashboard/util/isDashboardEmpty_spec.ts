@@ -16,12 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_TYPE, MARKDOWN_TYPE } from './componentTypes';
+import isDashboardEmpty from '../../../../src/dashboard/util/isDashboardEmpty';
+import getEmptyLayout from '../../../../src/dashboard/util/getEmptyLayout';
 
-const USER_CONTENT_COMPONENT_TYPE = [CHART_TYPE, MARKDOWN_TYPE];
-export default function isDashboardEmpty(layout) {
-  // has at least one chart or markdown component
-  return !Object.values(layout).some(
-    item => item.type && USER_CONTENT_COMPONENT_TYPE.includes(item.type),
-  );
-}
+describe('isDashboardEmpty', () => {
+  const emptyLayout: object = getEmptyLayout();
+  const testLayout: object = {
+    ...emptyLayout,
+    'MARKDOWN-IhTGLhyiTd': {
+      children: [],
+      id: 'MARKDOWN-IhTGLhyiTd',
+      meta: { code: 'test me', height: 50, width: 4 },
+      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
+      type: 'MARKDOWN',
+    },
+  };
+
+  it('should return true for empty dashboard', () => {
+    expect(isDashboardEmpty(emptyLayout)).toBe(true);
+  });
+
+  it('should return false for non-empty dashboard', () => {
+    expect(isDashboardEmpty(testLayout)).toBe(false);
+  });
+});

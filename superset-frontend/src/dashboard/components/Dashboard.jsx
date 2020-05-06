@@ -91,17 +91,15 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    const { dashboardState } = this.props;
+    const { dashboardState, layout } = this.props;
     const eventData = {
-      is_editMode: dashboardState.editMode,
+      is_edit_mode: dashboardState.editMode,
       mount_duration: Logger.getTimestamp(),
+      is_empty: isDashboardEmpty(layout),
     };
     const directLinkComponentId = getLocationHash();
     if (directLinkComponentId) {
       eventData.target_id = directLinkComponentId;
-    }
-    if (isDashboardEmpty(this.props.layout)) {
-      eventData.is_empty = true;
     }
     this.props.actions.logEvent(LOG_ACTIONS_MOUNT_DASHBOARD, eventData);
 
