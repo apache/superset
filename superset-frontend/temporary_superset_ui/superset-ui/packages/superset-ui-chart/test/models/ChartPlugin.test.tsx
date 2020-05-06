@@ -24,6 +24,7 @@ describe('ChartPlugin', () => {
   const buildQuery = () => ({
     datasource: { id: 1, type: DatasourceType.Table },
     queries: [{ granularity: 'day' }],
+    force: false,
   });
 
   const controlPanel = { abc: 1 };
@@ -55,7 +56,7 @@ describe('ChartPlugin', () => {
         expect(plugin.loadBuildQuery).toBeUndefined();
       });
       it('uses loadBuildQuery field if specified', () => {
-        expect.assertions(1);
+        expect.assertions(2);
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
@@ -64,6 +65,7 @@ describe('ChartPlugin', () => {
 
         const fn = plugin.loadBuildQuery!() as BuildQueryFunction<QueryFormData>;
         expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
+        expect(fn(FORM_DATA).force).toEqual(false);
       });
       it('uses buildQuery field if specified', () => {
         expect.assertions(1);
