@@ -610,6 +610,10 @@ class ChartDataExtrasSchema(Schema):
                 "P1M",
                 "P0.25Y",
                 "P1Y",
+                "1969-12-28T00:00:00Z/P1W",  # Week starting Sunday
+                "1969-12-29T00:00:00Z/P1W",  # Week starting Monday
+                "P1W/1970-01-03T00:00:00Z",  # Week ending Saturday
+                "P1W/1970-01-04T00:00:00Z",  # Week ending Sunday
             ),
         ),
         required=False,
