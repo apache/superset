@@ -20,13 +20,13 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import FilterDefinitionOption from '../../../../src/explore/components/FilterDefinitionOption';
-import ColumnOption from '../../../../src/components/ColumnOption';
-import AdhocMetricStaticOption from '../../../../src/explore/components/AdhocMetricStaticOption';
+import FilterDefinitionOption from 'src/explore/components/FilterDefinitionOption';
+import ColumnOption from 'src/components/ColumnOption';
+import AdhocMetricStaticOption from 'src/explore/components/AdhocMetricStaticOption';
 import AdhocMetric, {
   EXPRESSION_TYPES,
-} from '../../../../src/explore/AdhocMetric';
-import { AGGREGATES } from '../../../../src/explore/constants';
+} from 'src/explore/AdhocMetric';
+import { AGGREGATES } from 'src/explore/constants';
 
 const sumValueAdhocMetric = new AdhocMetric({
   expressionType: EXPRESSION_TYPES.SIMPLE,

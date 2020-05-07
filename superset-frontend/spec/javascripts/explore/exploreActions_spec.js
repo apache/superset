@@ -17,9 +17,9 @@
  * under the License.
  */
 /* eslint-disable no-unused-expressions */
-import { defaultState } from '../../../src/explore/store';
-import exploreReducer from '../../../src/explore/reducers/exploreReducer';
-import * as actions from '../../../src/explore/actions/exploreActions';
+import { defaultState } from 'src/explore/store';
+import exploreReducer from 'src/explore/reducers/exploreReducer';
+import * as actions from 'src/explore/actions/exploreActions';
 
 describe('reducers', () => {
   it('sets correct control value given a key and value', () => {

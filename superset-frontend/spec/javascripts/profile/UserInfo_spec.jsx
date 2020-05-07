@@ -22,7 +22,7 @@ import { Panel } from 'react-bootstrap';
 import { mount } from 'enzyme';
 
 import { user } from './fixtures';
-import UserInfo from '../../../src/profile/components/UserInfo';
+import UserInfo from 'src/profile/components/UserInfo';
 
 describe('UserInfo', () => {
   const mockedProps = {

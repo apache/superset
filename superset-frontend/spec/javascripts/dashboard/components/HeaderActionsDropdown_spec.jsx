@@ -19,11 +19,11 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
-import RefreshIntervalModal from '../../../../src/dashboard/components/RefreshIntervalModal';
-import URLShortLinkModal from '../../../../src/components/URLShortLinkModal';
-import HeaderActionsDropdown from '../../../../src/dashboard/components/HeaderActionsDropdown';
-import SaveModal from '../../../../src/dashboard/components/SaveModal';
-import CssEditor from '../../../../src/dashboard/components/CssEditor';
+import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
+import URLShortLinkModal from 'src/components/URLShortLinkModal';
+import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
+import SaveModal from 'src/dashboard/components/SaveModal';
+import CssEditor from 'src/dashboard/components/CssEditor';
 
 describe('HeaderActionsDropdown', () => {
   const props = {

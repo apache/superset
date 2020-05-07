@@ -23,8 +23,8 @@ import sinon from 'sinon';
 import thunk from 'redux-thunk';
 
 import { table, defaultQueryEditor, initialState } from './fixtures';
-import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
-import TableElement from '../../../src/SqlLab/components/TableElement';
+import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
+import TableElement from 'src/SqlLab/components/TableElement';
 
 describe('SqlEditorLeftBar', () => {
   const mockedProps = {

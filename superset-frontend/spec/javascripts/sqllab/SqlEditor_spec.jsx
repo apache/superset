@@ -25,12 +25,12 @@ import {
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
-} from '../../../src/SqlLab/constants';
-import AceEditorWrapper from '../../../src/SqlLab/components/AceEditorWrapper';
-import LimitControl from '../../../src/SqlLab/components/LimitControl';
-import SouthPane from '../../../src/SqlLab/components/SouthPane';
-import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
-import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
+} from 'src/SqlLab/constants';
+import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
+import LimitControl from 'src/SqlLab/components/LimitControl';
+import SouthPane from 'src/SqlLab/components/SouthPane';
+import SqlEditor from 'src/SqlLab/components/SqlEditor';
+import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 

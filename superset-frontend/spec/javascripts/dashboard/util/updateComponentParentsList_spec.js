@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import updateComponentParentsList from '../../../../src/dashboard/util/updateComponentParentsList';
-import { DASHBOARD_ROOT_ID } from '../../../../src/dashboard/util/constants';
+import updateComponentParentsList from 'src/dashboard/util/updateComponentParentsList';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   dashboardLayout,
   dashboardLayoutWithTabs,

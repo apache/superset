@@ -24,9 +24,9 @@ import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
 import { shallow } from 'enzyme';
 
-import * as utils from '../../../src/utils/common';
-import Button from '../../../src/components/Button';
-import ShareSqlLabQuery from '../../../src/SqlLab/components/ShareSqlLabQuery';
+import * as utils from 'src/utils/common';
+import Button from 'src/components/Button';
+import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore();

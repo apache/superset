@@ -21,7 +21,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 
 import mockMessageToasts from '../mockMessageToasts';
-import Toast from '../../../../src/messageToasts/components/Toast';
+import Toast from 'src/messageToasts/components/Toast';
 
 describe('Toast', () => {
   const props = {

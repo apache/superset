@@ -19,9 +19,9 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import MetricOption from '../../../src/components/MetricOption';
-import ColumnTypeLabel from '../../../src/components/ColumnTypeLabel';
-import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
+import MetricOption from 'src/components/MetricOption';
+import ColumnTypeLabel from 'src/components/ColumnTypeLabel';
+import InfoTooltipWithTrigger from 'src/components/InfoTooltipWithTrigger';
 
 describe('MetricOption', () => {
   const defaultProps = {

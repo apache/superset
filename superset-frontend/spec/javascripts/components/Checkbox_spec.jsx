@@ -20,7 +20,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import Checkbox from '../../../src/components/Checkbox';
+import Checkbox from 'src/components/Checkbox';
 
 describe('Checkbox', () => {
   const defaultProps = {

@@ -20,9 +20,9 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { Label } from 'react-bootstrap';
 
-import TooltipWrapper from './../../../../src/components/TooltipWrapper';
+import TooltipWrapper from './src/components/TooltipWrapper';
 
-import RowCountLabel from '../../../../src/explore/components/RowCountLabel';
+import RowCountLabel from 'src/explore/components/RowCountLabel';
 
 describe('RowCountLabel', () => {
   const defaultProps = {

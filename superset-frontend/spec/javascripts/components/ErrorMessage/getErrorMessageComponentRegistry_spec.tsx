@@ -20,10 +20,12 @@ import React from 'react';
 import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErrorMessageComponentRegistry';
 import { ErrorMessageComponentProps } from 'src/components/ErrorMessage/types';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ERROR_MESSAGE_COMPONENT = (_: ErrorMessageComponentProps) => (
   <div>Test error</div>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const OVERRIDE_ERROR_MESSAGE_COMPONENT = (_: ErrorMessageComponentProps) => (
   <div>Custom error</div>
 );

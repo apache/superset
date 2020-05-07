@@ -18,8 +18,8 @@
  */
 import AdhocMetric, {
   EXPRESSION_TYPES,
-} from '../../../src/explore/AdhocMetric';
-import { AGGREGATES } from '../../../src/explore/constants';
+} from 'src/explore/AdhocMetric';
+import { AGGREGATES } from 'src/explore/constants';
 
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
 

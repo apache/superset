@@ -20,9 +20,9 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import FixedOrMetricControl from '../../../../src/explore/components/controls/FixedOrMetricControl';
-import TextControl from '../../../../src/explore/components/controls/TextControl';
-import MetricsControl from '../../../../src/explore/components/controls/MetricsControl';
+import FixedOrMetricControl from 'src/explore/components/controls/FixedOrMetricControl';
+import TextControl from 'src/explore/components/controls/TextControl';
+import MetricsControl from 'src/explore/components/controls/MetricsControl';
 
 const defaultProps = {
   value: {},

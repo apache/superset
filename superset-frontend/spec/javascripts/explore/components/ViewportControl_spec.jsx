@@ -21,9 +21,9 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { OverlayTrigger, Label } from 'react-bootstrap';
 
-import ViewportControl from '../../../../src/explore/components/controls/ViewportControl';
-import TextControl from '../../../../src/explore/components/controls/TextControl';
-import ControlHeader from '../../../../src/explore/components/ControlHeader';
+import ViewportControl from 'src/explore/components/controls/ViewportControl';
+import TextControl from 'src/explore/components/controls/TextControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const defaultProps = {
   value: {

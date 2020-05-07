@@ -20,8 +20,8 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import mockMessageToasts from '../mockMessageToasts';
-import Toast from '../../../../src/messageToasts/components/Toast';
-import ToastPresenter from '../../../../src/messageToasts/components/ToastPresenter';
+import Toast from 'src/messageToasts/components/Toast';
+import ToastPresenter from 'src/messageToasts/components/ToastPresenter';
 
 describe('ToastPresenter', () => {
   const props = {

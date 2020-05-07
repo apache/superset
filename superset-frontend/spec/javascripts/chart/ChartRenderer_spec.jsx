@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { SuperChart } from '@superset-ui/chart';
 
-import ChartRenderer from '../../../src/chart/ChartRenderer';
+import ChartRenderer from 'src/chart/ChartRenderer';
 
 describe('ChartRenderer', () => {
   it('should render SuperChart', () => {

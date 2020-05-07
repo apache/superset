@@ -20,9 +20,9 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { Panel } from 'react-bootstrap';
 
-import InfoTooltipWithTrigger from '../../../../src/components/InfoTooltipWithTrigger';
+import InfoTooltipWithTrigger from 'src/components/InfoTooltipWithTrigger';
 
-import ControlPanelSection from '../../../../src/explore/components/ControlPanelSection';
+import ControlPanelSection from 'src/explore/components/ControlPanelSection';
 
 const defaultProps = {
   children: <div>a child element</div>,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { sliceId } from './mockChartQueries';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 
 export default {
   sliceIds: [sliceId],

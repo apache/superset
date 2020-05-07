@@ -25,10 +25,10 @@ import { FormGroup } from 'react-bootstrap';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from '../../../../src/explore/AdhocFilter';
-import AdhocMetric from '../../../../src/explore/AdhocMetric';
-import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSimpleTabContent';
-import { AGGREGATES } from '../../../../src/explore/constants';
+} from 'src/explore/AdhocFilter';
+import AdhocMetric from 'src/explore/AdhocMetric';
+import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/AdhocFilterEditPopoverSimpleTabContent';
+import { AGGREGATES } from 'src/explore/constants';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,

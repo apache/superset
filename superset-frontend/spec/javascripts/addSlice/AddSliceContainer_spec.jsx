@@ -21,8 +21,8 @@ import { shallow } from 'enzyme';
 import { Button } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 
-import AddSliceContainer from '../../../src/addSlice/AddSliceContainer';
-import VizTypeControl from '../../../src/explore/components/controls/VizTypeControl';
+import AddSliceContainer from 'src/addSlice/AddSliceContainer';
+import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
 
 const defaultProps = {
   datasources: [

@@ -20,7 +20,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 
 import { mockedActions, table } from './fixtures';
-import ColumnElement from '../../../src/SqlLab/components/ColumnElement';
+import ColumnElement from 'src/SqlLab/components/ColumnElement';
 
 describe('ColumnElement', () => {
   const mockedProps = {

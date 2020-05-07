@@ -18,7 +18,7 @@
  */
 import React from 'react';
 
-import ModalTrigger from '../../../src/components/ModalTrigger';
+import ModalTrigger from 'src/components/ModalTrigger';
 
 describe('ModalTrigger', () => {
   const defaultProps = {

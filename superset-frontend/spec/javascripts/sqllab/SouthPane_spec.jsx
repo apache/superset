@@ -22,12 +22,12 @@ import thunk from 'redux-thunk';
 
 import { shallow } from 'enzyme';
 
-import { STATUS_OPTIONS } from '../../../src/SqlLab/constants';
+import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState } from './fixtures';
 import SouthPaneContainer, {
   SouthPane,
-} from '../../../src/SqlLab/components/SouthPane';
-import ResultSet from '../../../src/SqlLab/components/ResultSet';
+} from 'src/SqlLab/components/SouthPane';
+import ResultSet from 'src/SqlLab/components/ResultSet';
 
 describe('SouthPane', () => {
   const middlewares = [thunk];

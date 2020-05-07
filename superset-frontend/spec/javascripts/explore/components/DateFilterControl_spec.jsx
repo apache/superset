@@ -22,8 +22,8 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Button, Label } from 'react-bootstrap';
 
-import DateFilterControl from '../../../../src/explore/components/controls/DateFilterControl';
-import ControlHeader from '../../../../src/explore/components/ControlHeader';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const defaultProps = {
   animation: false,

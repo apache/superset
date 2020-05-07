@@ -26,11 +26,11 @@ import fetchMock from 'fetch-mock';
 
 import shortid from 'shortid';
 import { queries, queryWithBadColumns } from './fixtures';
-import sqlLabReducer from '../../../src/SqlLab/reducers/index';
-import * as actions from '../../../src/SqlLab/actions/sqlLab';
-import ExploreResultsButton from '../../../src/SqlLab/components/ExploreResultsButton';
-import * as exploreUtils from '../../../src/explore/exploreUtils';
-import Button from '../../../src/components/Button';
+import sqlLabReducer from 'src/SqlLab/reducers/index';
+import * as actions from 'src/SqlLab/actions/sqlLab';
+import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
+import * as exploreUtils from 'src/explore/exploreUtils';
+import Button from 'src/components/Button';
 
 describe('ExploreResultsButton', () => {
   const middlewares = [thunk];

@@ -22,10 +22,10 @@ import {
   REMOVE_FILTER,
   CHANGE_FILTER,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
-} from '../../../../src/dashboard/actions/dashboardFilters';
+} from 'src/dashboard/actions/dashboardFilters';
 import dashboardFiltersReducer, {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
-} from '../../../../src/dashboard/reducers/dashboardFilters';
+} from 'src/dashboard/reducers/dashboardFilters';
 import {
   emptyFilters,
   dashboardFilters,
@@ -36,7 +36,7 @@ import {
   column,
 } from '../fixtures/mockSliceEntities';
 import { filterComponent } from '../fixtures/mockDashboardLayout';
-import * as activeDashboardFilters from '../../../../src/dashboard/util/activeDashboardFilters';
+import * as activeDashboardFilters from 'src/dashboard/util/activeDashboardFilters';
 
 describe('dashboardFilters reducer', () => {
   const form_data = sliceEntitiesForDashboard.slices[filterId].form_data;

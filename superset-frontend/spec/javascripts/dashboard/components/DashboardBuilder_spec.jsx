@@ -25,13 +25,13 @@ import { ParentSize } from '@vx/responsive';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 
-import BuilderComponentPane from '../../../../src/dashboard/components/BuilderComponentPane';
-import DashboardBuilder from '../../../../src/dashboard/components/DashboardBuilder';
-import DashboardComponent from '../../../../src/dashboard/containers/DashboardComponent';
-import DashboardHeader from '../../../../src/dashboard/containers/DashboardHeader';
-import DashboardGrid from '../../../../src/dashboard/containers/DashboardGrid';
-import * as dashboardStateActions from '../../../../src/dashboard/actions/dashboardState';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
+import DashboardBuilder from 'src/dashboard/components/DashboardBuilder';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
+import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
+import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
+import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 
 import WithDragDropContext from '../helpers/WithDragDropContext';
 import {

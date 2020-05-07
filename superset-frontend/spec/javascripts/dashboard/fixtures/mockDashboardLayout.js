@@ -26,15 +26,15 @@ import {
   ROW_TYPE,
   COLUMN_TYPE,
   MARKDOWN_TYPE,
-} from '../../../../src/dashboard/util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 
 import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_HEADER_ID,
   DASHBOARD_GRID_ID,
-} from '../../../../src/dashboard/util/constants';
+} from 'src/dashboard/util/constants';
 
-import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
 import { sliceId as chartId } from './mockChartQueries';
 import { filterId } from './mockDashboardFilters';

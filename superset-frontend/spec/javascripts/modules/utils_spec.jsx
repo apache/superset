@@ -19,7 +19,7 @@
 import {
   formatSelectOptionsForRange,
   mainMetric,
-} from '../../../src/modules/utils';
+} from 'src/modules/utils';
 
 describe('utils', () => {
   describe('formatSelectOptionsForRange', () => {

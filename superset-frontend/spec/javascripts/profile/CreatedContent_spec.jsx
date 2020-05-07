@@ -22,8 +22,8 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
 import { user } from './fixtures';
-import CreatedContent from '../../../src/profile/components/CreatedContent';
-import TableLoader from '../../../src/components/TableLoader';
+import CreatedContent from 'src/profile/components/CreatedContent';
+import TableLoader from 'src/components/TableLoader';
 
 // store needed for withToasts(TableLoader)
 const mockStore = configureStore([thunk]);

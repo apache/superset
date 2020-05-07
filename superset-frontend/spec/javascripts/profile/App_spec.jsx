@@ -21,7 +21,7 @@ import { Col, Row, Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 
 import { user } from './fixtures';
-import App from '../../../src/profile/components/App';
+import App from 'src/profile/components/App';
 
 describe('App', () => {
   const mockedProps = {

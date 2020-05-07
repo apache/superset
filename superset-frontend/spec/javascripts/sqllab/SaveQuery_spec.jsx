@@ -20,9 +20,9 @@ import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import * as sinon from 'sinon';
-import SaveQuery from '../../../src/SqlLab/components/SaveQuery';
-import ModalTrigger from '../../../src/components/ModalTrigger';
-import Button from '../../../src/components/Button';
+import SaveQuery from 'src/SqlLab/components/SaveQuery';
+import ModalTrigger from 'src/components/ModalTrigger';
+import Button from 'src/components/Button';
 
 describe('SavedQuery', () => {
   const mockedProps = {

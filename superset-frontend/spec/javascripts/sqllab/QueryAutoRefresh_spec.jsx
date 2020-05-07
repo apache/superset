@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
-import QueryAutoRefresh from '../../../src/SqlLab/components/QueryAutoRefresh';
+import QueryAutoRefresh from 'src/SqlLab/components/QueryAutoRefresh';
 import { initialState, runningQuery } from './fixtures';
 
 describe('QueryAutoRefresh', () => {

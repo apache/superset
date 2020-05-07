@@ -20,7 +20,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 
 import { user, userNoPerms } from './fixtures';
-import Security from '../../../src/profile/components/Security';
+import Security from 'src/profile/components/Security';
 
 describe('Security', () => {
   const mockedProps = {

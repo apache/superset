@@ -23,8 +23,8 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 
-import DatasourceEditor from '../../../src/datasource/DatasourceEditor';
-import Field from '../../../src/CRUD/Field';
+import DatasourceEditor from 'src/datasource/DatasourceEditor';
+import Field from 'src/CRUD/Field';
 import mockDatasource from '../../fixtures/mockDatasource';
 
 const props = {

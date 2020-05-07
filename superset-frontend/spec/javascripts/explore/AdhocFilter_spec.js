@@ -19,7 +19,7 @@
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from '../../../src/explore/AdhocFilter';
+} from 'src/explore/AdhocFilter';
 
 describe('AdhocFilter', () => {
   it('sets filterOptionName in constructor', () => {

@@ -21,9 +21,9 @@ import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import { MenuItem } from 'react-bootstrap';
-import DatasourceModal from '../../../../src/datasource/DatasourceModal';
-import ChangeDatasourceModal from '../../../../src/datasource/ChangeDatasourceModal';
-import DatasourceControl from '../../../../src/explore/components/controls/DatasourceControl';
+import DatasourceModal from 'src/datasource/DatasourceModal';
+import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
+import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 
 const defaultProps = {
   name: 'datasource',

@@ -21,9 +21,9 @@ import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
 import { Alert, ProgressBar } from 'react-bootstrap';
-import FilterableTable from '../../../src/components/FilterableTable/FilterableTable';
-import ExploreResultsButton from '../../../src/SqlLab/components/ExploreResultsButton';
-import ResultSet from '../../../src/SqlLab/components/ResultSet';
+import FilterableTable from 'src/components/FilterableTable/FilterableTable';
+import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
+import ResultSet from 'src/SqlLab/components/ResultSet';
 import { queries, stoppedQuery, runningQuery, cachedQuery } from './fixtures';
 
 describe('ResultSet', () => {
