@@ -235,9 +235,9 @@ function legacyChartDataRequest(
   return clientMethod(querySettings);
 }
 
-async function v1ChartDataRequest(formData, requestParams) {
+async function v1ChartDataRequest(formData, force, requestParams) {
   const buildQuery = await getChartBuildQueryRegistry().get(formData.viz_type);
-  const payload = buildQuery(formData);
+  const payload = buildQuery({ ...formData, force });
   const querySettings = {
     ...requestParams,
     endpoint: '/api/v1/chart/data',
@@ -283,7 +283,7 @@ export function exploreJSON(
           dashboardId,
           requestParams,
         )
-      : v1ChartDataRequest(formData, requestParams);
+      : v1ChartDataRequest(formData, force, requestParams);
 
     dispatch(chartUpdateStarted(controller, formData, key));
 
