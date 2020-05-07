@@ -153,6 +153,36 @@ describe('AdhocFilter', () => {
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter5.isValid()).toBe(true);
+
+    const adhocFilter6 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: '==',
+      comparator: 1,
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter6.isValid()).toBe(true);
+
+    const adhocFilter7 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: '==',
+      comparator: 0,
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter7.isValid()).toBe(true);
+
+    const adhocFilter8 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: '==',
+      comparator: null,
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter8.isValid()).toBe(false);
   });
 
   it('can translate from simple expressions to sql expressions', () => {

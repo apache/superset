@@ -16,25 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
+import { CHART_TYPE, MARKDOWN_TYPE } from './componentTypes';
 
-const metadata = new ChartMetadata({
-  name: t('Filter Box'),
-  description:
-    'A multi filter, multi-choice filter box to make dashboards interactive',
-  thumbnail,
-  useLegacyApi: true,
-});
-
-export default class FilterBoxChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      metadata,
-      transformProps,
-      loadChart: () => import('./FilterBox.jsx'),
-    });
-  }
+const USER_CONTENT_COMPONENT_TYPE: string[] = [CHART_TYPE, MARKDOWN_TYPE];
+export default function isDashboardEmpty(layout: any): boolean {
+  // has at least one chart or markdown component
+  return !Object.values(layout).some(
+    ({ type }: { type?: string }) =>
+      type && USER_CONTENT_COMPONENT_TYPE.includes(type),
+  );
 }

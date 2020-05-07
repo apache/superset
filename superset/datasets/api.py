@@ -68,14 +68,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "refresh",
     }
     list_columns = [
+        "id",
+        "database_id",
         "database_name",
+        "changed_by_fk",
         "changed_by_name",
         "changed_by_url",
         "changed_by.username",
         "changed_on",
-        "database_name",
+        "default_endpoint",
         "explore_url",
-        "id",
         "schema",
         "table_name",
     ]
