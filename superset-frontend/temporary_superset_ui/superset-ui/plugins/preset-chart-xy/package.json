@@ -31,7 +31,7 @@
   "dependencies": {
     "@data-ui/theme": "^0.0.84",
     "@data-ui/xy-chart": "^0.0.84",
-    "@vx/axis": "^0.0.195",
+    "@vx/axis": "^0.0.196",
     "@vx/legend": "^0.0.195",
     "@vx/scale": "^0.0.196",
     "csstype": "^2.6.3",
