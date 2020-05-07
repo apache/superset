@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/demo",
-  "version": "0.13.7",
+  "version": "0.13.8",
   "description": "Storybook for Superset UI ✨",
   "private": true,
   "main": "index.js",
@@ -44,7 +44,7 @@
     "@superset-ui/legacy-plugin-chart-country-map": "0.13.3",
     "@superset-ui/legacy-plugin-chart-force-directed": "0.13.3",
     "@superset-ui/legacy-plugin-chart-heatmap": "0.13.5",
-    "@superset-ui/legacy-plugin-chart-histogram": "0.13.7",
+    "@superset-ui/legacy-plugin-chart-histogram": "0.13.8",
     "@superset-ui/legacy-plugin-chart-horizon": "0.13.5",
     "@superset-ui/legacy-plugin-chart-iframe": "0.13.3",
     "@superset-ui/legacy-plugin-chart-map-box": "0.13.5",
