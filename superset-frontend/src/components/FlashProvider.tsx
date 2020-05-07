@@ -22,12 +22,12 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 type Message = Array<string>;
 
 interface CommonObject {
-  flash_messages: Array<Message>; 
+  flash_messages: Array<Message>;
 }
 interface Props {
   children: Node;
   common: CommonObject;
-};
+}
 
 const flashObj = {
   info: 'addInfoToast',
