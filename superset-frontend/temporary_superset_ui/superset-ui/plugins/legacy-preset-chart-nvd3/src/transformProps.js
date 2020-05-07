@@ -17,7 +17,8 @@
  * under the License.
  */
 import isTruthy from './utils/isTruthy';
-import { tokenizeToNumericArray, tokenizeToStringArray } from './utils/tokenize.ts';
+// eslint-disable-next-line import/extensions
+import { tokenizeToNumericArray, tokenizeToStringArray } from './utils/tokenize';
 import { formatLabel } from './utils';
 
 const NOOP = () => {};
