@@ -856,19 +856,6 @@ class SeparatorViz(MarkupViz):
     verbose_name = _("Separator")
 
 
-class WordCloudViz(BaseViz):
-
-    """Build a colorful word cloud
-
-    Uses the nice library at:
-    https://github.com/jasondavies/d3-cloud
-    """
-
-    viz_type = "word_cloud"
-    verbose_name = _("Word Cloud")
-    is_timeseries = False
-
-
 class TreemapViz(BaseViz):
 
     """Tree map visualisation for hierarchical data."""
@@ -1120,20 +1107,6 @@ class BulletViz(NVD3Viz):
         d = super().query_obj()
         self.metric = form_data.get("metric")
 
-        def as_strings(field):
-            value = form_data.get(field)
-            return value.split(",") if value else []
-
-        def as_floats(field):
-            return [float(x) for x in as_strings(field)]
-
-        self.ranges = as_floats("ranges")
-        self.range_labels = as_strings("range_labels")
-        self.markers = as_floats("markers")
-        self.marker_labels = as_strings("marker_labels")
-        self.marker_lines = as_floats("marker_lines")
-        self.marker_line_labels = as_strings("marker_line_labels")
-
         d["metrics"] = [self.metric]
         if not self.metric:
             raise QueryObjectValidationError(_("Pick a metric to display"))
@@ -1144,12 +1117,6 @@ class BulletViz(NVD3Viz):
         values = df["metric"].values
         return {
             "measures": values.tolist(),
-            "ranges": self.ranges or [0, values.max() * 1.1],
-            "rangeLabels": self.range_labels or None,
-            "markers": self.markers or None,
-            "markerLabels": self.marker_labels or None,
-            "markerLines": self.marker_lines or None,
-            "markerLineLabels": self.marker_line_labels or None,
         }
 
 
