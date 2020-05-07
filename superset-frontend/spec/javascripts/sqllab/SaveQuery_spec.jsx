@@ -20,9 +20,9 @@ import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import * as sinon from 'sinon';
-import SaveQuery from '../../../src/SqlLab/components/SaveQuery';
-import ModalTrigger from '../../../src/components/ModalTrigger';
-import Button from '../../../src/components/Button';
+import SaveQuery from 'src/SqlLab/components/SaveQuery';
+import ModalTrigger from 'src/components/ModalTrigger';
+import Button from 'src/components/Button';
 
 describe('SavedQuery', () => {
   const mockedProps = {
@@ -59,10 +59,7 @@ describe('SavedQuery', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} onSave={saveSpy} />);
     const modal = shallow(wrapper.instance().renderModalBody());
     expect(modal.find(Button)).toHaveLength(2);
-    modal
-      .find(Button)
-      .at(0)
-      .simulate('click');
+    modal.find(Button).at(0).simulate('click');
     expect(saveSpy.calledOnce).toBe(true);
   });
   it('has an update button if this is an existing query', () => {
@@ -77,10 +74,7 @@ describe('SavedQuery', () => {
     const wrapper = shallow(<SaveQuery {...props} onUpdate={updateSpy} />);
     const modal = shallow(wrapper.instance().renderModalBody());
     expect(modal.find(Button)).toHaveLength(3);
-    modal
-      .find(Button)
-      .at(0)
-      .simulate('click');
+    modal.find(Button).at(0).simulate('click');
     expect(updateSpy.calledOnce).toBe(true);
   });
 });

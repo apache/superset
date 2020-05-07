@@ -9,10 +9,10 @@
   "author": "Apcahe",
   "license": "Apache-2.0",
   "dependencies": {
-    "shortid": "^2.2.15"
+    "shortid": "^2.2.15",
+    "@cypress/code-coverage": "^3.1.0"
   },
   "devDependencies": {
-    "@cypress/code-coverage": "^3.1.0",
     "cypress": "4.3.0",
     "eslint-plugin-cypress": "^2.10.3"
   }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findParentId from '../../../../src/dashboard/util/findParentId';
+import findParentId from 'src/dashboard/util/findParentId';
 
 describe('findParentId', () => {
   const layout = {

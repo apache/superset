@@ -20,8 +20,8 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { Overlay, Tooltip } from 'react-bootstrap';
 
-import FilterTooltipWrapper from '../../../../src/dashboard/components/FilterTooltipWrapper';
-import FilterIndicatorTooltip from '../../../../src/dashboard/components/FilterIndicatorTooltip';
+import FilterTooltipWrapper from 'src/dashboard/components/FilterTooltipWrapper';
+import FilterIndicatorTooltip from 'src/dashboard/components/FilterIndicatorTooltip';
 
 describe('FilterTooltipWrapper', () => {
   const mockedProps = {

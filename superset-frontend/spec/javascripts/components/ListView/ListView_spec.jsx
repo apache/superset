@@ -111,10 +111,7 @@ describe('ListView', () => {
   });
 
   it('calls fetchData on sort', () => {
-    wrapper
-      .find('[data-test="sort-header"]')
-      .at(1)
-      .simulate('click');
+    wrapper.find('[data-test="sort-header"]').at(1).simulate('click');
 
     expect(mockedProps.fetchData).toHaveBeenCalled();
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
@@ -160,10 +157,7 @@ describe('ListView', () => {
     wrapper.update();
 
     act(() => {
-      wrapper
-        .find('[data-test="apply-filters"]')
-        .last()
-        .prop('onClick')();
+      wrapper.find('[data-test="apply-filters"]').last().prop('onClick')();
     });
     wrapper.update();
 
@@ -241,10 +235,7 @@ Array [
         .onClick();
     });
     wrapper.update();
-    const bulkActionsProps = wrapper
-      .find(MenuItem)
-      .last()
-      .props();
+    const bulkActionsProps = wrapper.find(MenuItem).last().props();
 
     bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
@@ -275,10 +266,7 @@ Array [
         .onClick();
     });
     wrapper.update();
-    const bulkActionsProps = wrapper
-      .find(MenuItem)
-      .last()
-      .props();
+    const bulkActionsProps = wrapper.find(MenuItem).last().props();
 
     bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
@@ -383,11 +371,7 @@ describe('ListView with new UI filters', () => {
     wrapper.update();
 
     act(() => {
-      wrapper
-        .find('[data-test="search-input"]')
-        .last()
-        .props()
-        .onBlur();
+      wrapper.find('[data-test="search-input"]').last().props().onBlur();
     });
 
     expect(newFiltersProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`

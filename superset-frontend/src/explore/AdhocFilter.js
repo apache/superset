@@ -100,9 +100,7 @@ export default class AdhocFilter {
       adhocFilter.filterOptionName ||
       `filter_${Math.random()
         .toString(36)
-        .substring(2, 15)}_${Math.random()
-        .toString(36)
-        .substring(2, 15)}`;
+        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
   duplicateWith(nextFields) {

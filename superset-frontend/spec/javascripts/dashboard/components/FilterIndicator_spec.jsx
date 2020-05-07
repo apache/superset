@@ -18,11 +18,11 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import FilterIndicator from 'src/dashboard/components/FilterIndicator';
+import FilterBadgeIcon from 'src/components/FilterBadgeIcon';
 
 import { dashboardFilters } from '../fixtures/mockDashboardFilters';
 import { filterId, column } from '../fixtures/mockSliceEntities';
-import FilterIndicator from '../../../../src/dashboard/components/FilterIndicator';
-import FilterBadgeIcon from '../../../../src/components/FilterBadgeIcon';
 
 describe('FilterIndicator', () => {
   const mockedProps = {

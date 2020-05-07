@@ -19,9 +19,9 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import MetricOption from '../../../src/components/MetricOption';
-import ColumnTypeLabel from '../../../src/components/ColumnTypeLabel';
-import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
+import MetricOption from 'src/components/MetricOption';
+import ColumnTypeLabel from 'src/components/ColumnTypeLabel';
+import InfoTooltipWithTrigger from 'src/components/InfoTooltipWithTrigger';
 
 describe('MetricOption', () => {
   const defaultProps = {
@@ -61,12 +61,7 @@ describe('MetricOption', () => {
   it('shows a label with metric_name when no verbose_name', () => {
     props.metric.verbose_name = null;
     wrapper = shallow(factory(props));
-    expect(
-      wrapper
-        .find('.option-label')
-        .first()
-        .text(),
-    ).toBe('foo');
+    expect(wrapper.find('.option-label').first().text()).toBe('foo');
   });
   it('shows only 1 InfoTooltipWithTrigger when no descr and no warning', () => {
     props.metric.warning_text = null;

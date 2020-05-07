@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import PopoverSection from '../../../src/components/PopoverSection';
+import PopoverSection from 'src/components/PopoverSection';
 
 describe('PopoverSection', () => {
   const defaultProps = {

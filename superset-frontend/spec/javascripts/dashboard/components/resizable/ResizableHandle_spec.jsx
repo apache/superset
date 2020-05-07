@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import ResizableHandle from '../../../../../src/dashboard/components/resizable/ResizableHandle';
+import ResizableHandle from 'src/dashboard/components/resizable/ResizableHandle';
 
 describe('ResizableHandle', () => {
   it('should render a right resize handle', () => {

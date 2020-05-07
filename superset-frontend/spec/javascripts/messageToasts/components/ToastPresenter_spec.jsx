@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import Toast from 'src/messageToasts/components/Toast';
+import ToastPresenter from 'src/messageToasts/components/ToastPresenter';
 
 import mockMessageToasts from '../mockMessageToasts';
-import Toast from '../../../../src/messageToasts/components/Toast';
-import ToastPresenter from '../../../../src/messageToasts/components/ToastPresenter';
 
 describe('ToastPresenter', () => {
   const props = {
@@ -47,11 +47,6 @@ describe('ToastPresenter', () => {
   it('should pass removeToast to the Toast component', () => {
     const removeToast = () => {};
     const wrapper = setup({ removeToast });
-    expect(
-      wrapper
-        .find(Toast)
-        .first()
-        .prop('onCloseToast'),
-    ).toBe(removeToast);
+    expect(wrapper.find(Toast).first().prop('onCloseToast')).toBe(removeToast);
   });
 });

@@ -18,14 +18,14 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import Header from '../../../../src/dashboard/components/Header';
-import EditableTitle from '../../../../src/components/EditableTitle';
-import FaveStar from '../../../../src/components/FaveStar';
-import PublishedStatus from '../../../../src/dashboard/components/PublishedStatus';
-import HeaderActionsDropdown from '../../../../src/dashboard/components/HeaderActionsDropdown';
-import Button from '../../../../src/components/Button';
-import UndoRedoKeylisteners from '../../../../src/dashboard/components/UndoRedoKeylisteners';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import Header from 'src/dashboard/components/Header';
+import EditableTitle from 'src/components/EditableTitle';
+import FaveStar from 'src/components/FaveStar';
+import PublishedStatus from 'src/dashboard/components/PublishedStatus';
+import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
+import Button from 'src/components/Button';
+import UndoRedoKeylisteners from 'src/dashboard/components/UndoRedoKeylisteners';
+import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 
 describe('Header', () => {
   const props = {

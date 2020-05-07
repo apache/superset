@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import CollectionTable from '../../../src/CRUD/CollectionTable';
+import CollectionTable from 'src/CRUD/CollectionTable';
 import mockDatasource from '../../fixtures/mockDatasource';
 
 const props = {

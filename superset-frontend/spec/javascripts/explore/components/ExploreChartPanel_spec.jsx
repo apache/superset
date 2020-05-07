@@ -18,7 +18,7 @@
  */
 import React from 'react';
 
-import ChartContainer from '../../../../src/explore/components/ExploreChartPanel';
+import ChartContainer from 'src/explore/components/ExploreChartPanel';
 
 describe('ChartContainer', () => {
   const mockProps = {

@@ -22,9 +22,9 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 
-import AdhocMetric from '../../../../src/explore/AdhocMetric';
-import AdhocMetricEditPopoverTitle from '../../../../src/explore/components/AdhocMetricEditPopoverTitle';
-import { AGGREGATES } from '../../../../src/explore/constants';
+import AdhocMetric from 'src/explore/AdhocMetric';
+import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
+import { AGGREGATES } from 'src/explore/constants';
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source' },
@@ -52,12 +52,9 @@ describe('AdhocMetricEditPopoverTitle', () => {
   it('renders an OverlayTrigger wrapper with the title', () => {
     const { wrapper } = setup();
     expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
-    expect(
-      wrapper
-        .find(OverlayTrigger)
-        .find('span')
-        .text(),
-    ).toBe('My Metric\xa0');
+    expect(wrapper.find(OverlayTrigger).find('span').text()).toBe(
+      'My Metric\xa0',
+    );
   });
 
   it('transfers to edit mode when clicked', () => {

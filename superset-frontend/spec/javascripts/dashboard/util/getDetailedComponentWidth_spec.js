@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getDetailedComponentWidth from '../../../../src/dashboard/util/getDetailedComponentWidth';
-import * as types from '../../../../src/dashboard/util/componentTypes';
+import getDetailedComponentWidth from 'src/dashboard/util/getDetailedComponentWidth';
+import * as types from 'src/dashboard/util/componentTypes';
 import {
   GRID_COLUMN_COUNT,
   GRID_MIN_COLUMN_COUNT,
-} from '../../../../src/dashboard/util/constants';
+} from 'src/dashboard/util/constants';
 
 describe('getDetailedComponentWidth', () => {
   it('should return an object with width, minimumWidth, and occupiedWidth', () => {

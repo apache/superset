@@ -20,14 +20,13 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import URI from 'urijs';
-
 import { Tab } from 'react-bootstrap';
 import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
+import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
+import SqlEditor from 'src/SqlLab/components/SqlEditor';
 
 import { table, initialState } from './fixtures';
-import TabbedSqlEditors from '../../../src/SqlLab/components/TabbedSqlEditors';
-import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
 
 describe('TabbedSqlEditors', () => {
   const middlewares = [thunk];
@@ -225,18 +224,8 @@ describe('TabbedSqlEditors', () => {
   });
   it('should disable new tab when offline', () => {
     wrapper = getWrapper();
-    expect(
-      wrapper
-        .find(Tab)
-        .last()
-        .props().disabled,
-    ).toBe(false);
+    expect(wrapper.find(Tab).last().props().disabled).toBe(false);
     wrapper.setProps({ offline: true });
-    expect(
-      wrapper
-        .find(Tab)
-        .last()
-        .props().disabled,
-    ).toBe(true);
+    expect(wrapper.find(Tab).last().props().disabled).toBe(true);
   });
 });

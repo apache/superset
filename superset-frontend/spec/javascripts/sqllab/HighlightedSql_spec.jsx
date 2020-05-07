@@ -20,8 +20,8 @@ import React from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { mount, shallow } from 'enzyme';
 
-import HighlightedSql from '../../../src/SqlLab/components/HighlightedSql';
-import ModalTrigger from '../../../src/components/ModalTrigger';
+import HighlightedSql from 'src/SqlLab/components/HighlightedSql';
+import ModalTrigger from 'src/components/ModalTrigger';
 
 describe('HighlightedSql', () => {
   const sql =

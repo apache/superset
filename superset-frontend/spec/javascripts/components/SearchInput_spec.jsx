@@ -72,20 +72,14 @@ describe('SearchInput', () => {
   it('submits on search icon click', () => {
     typeSearchInput('bar');
 
-    wrapper
-      .find('[data-test="search-submit"]')
-      .props()
-      .onClick();
+    wrapper.find('[data-test="search-submit"]').props().onClick();
 
     expect(defaultProps.onSubmit).toHaveBeenCalled();
   });
 
   it('clears on clear icon click', () => {
     const wrapper2 = factory({ value: 'fizz' });
-    wrapper2
-      .find('[data-test="search-clear"]')
-      .props()
-      .onClick();
+    wrapper2.find('[data-test="search-clear"]').props().onClick();
 
     expect(defaultProps.onClear).toHaveBeenCalled();
   });

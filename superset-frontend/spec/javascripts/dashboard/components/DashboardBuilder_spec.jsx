@@ -25,13 +25,13 @@ import { ParentSize } from '@vx/responsive';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 
-import BuilderComponentPane from '../../../../src/dashboard/components/BuilderComponentPane';
-import DashboardBuilder from '../../../../src/dashboard/components/DashboardBuilder';
-import DashboardComponent from '../../../../src/dashboard/containers/DashboardComponent';
-import DashboardHeader from '../../../../src/dashboard/containers/DashboardHeader';
-import DashboardGrid from '../../../../src/dashboard/containers/DashboardGrid';
-import * as dashboardStateActions from '../../../../src/dashboard/actions/dashboardState';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
+import DashboardBuilder from 'src/dashboard/components/DashboardBuilder';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
+import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
+import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
+import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 
 import WithDragDropContext from '../helpers/WithDragDropContext';
 import {
@@ -128,11 +128,7 @@ describe('DashboardBuilder', () => {
 
   it('should set animation=true, mountOnEnter=true, and unmounOnExit=false on TabContainer for perf', () => {
     const wrapper = setup({ dashboardLayout: layoutWithTabs });
-    const tabProps = wrapper
-      .find(ParentSize)
-      .dive()
-      .find(TabContainer)
-      .props();
+    const tabProps = wrapper.find(ParentSize).dive().find(TabContainer).props();
     expect(tabProps.animation).toBe(true);
     expect(tabProps.mountOnEnter).toBe(true);
     expect(tabProps.unmountOnExit).toBe(false);

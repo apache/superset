@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getFilterConfigsFromFormdata from '../../../../src/dashboard/util/getFilterConfigsFromFormdata';
+import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFromFormdata';
 
 describe('getFilterConfigsFromFormdata', () => {
   const testFormdata = {

@@ -22,8 +22,8 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 
-import FilterBoxItemControl from '../../../../src/explore/components/controls/FilterBoxItemControl';
-import FormRow from '../../../../src/components/FormRow';
+import FilterBoxItemControl from 'src/explore/components/controls/FilterBoxItemControl';
+import FormRow from 'src/components/FormRow';
 import datasources from '../../../fixtures/mockDatasource';
 
 const defaultProps = {

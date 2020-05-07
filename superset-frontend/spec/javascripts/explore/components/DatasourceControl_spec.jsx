@@ -21,9 +21,9 @@ import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import { MenuItem } from 'react-bootstrap';
-import DatasourceModal from '../../../../src/datasource/DatasourceModal';
-import ChangeDatasourceModal from '../../../../src/datasource/ChangeDatasourceModal';
-import DatasourceControl from '../../../../src/explore/components/controls/DatasourceControl';
+import DatasourceModal from 'src/datasource/DatasourceModal';
+import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
+import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 
 const defaultProps = {
   name: 'datasource',
@@ -70,22 +70,16 @@ describe('DatasourceControl', () => {
   it('show or hide Edit Datasource option', () => {
     let wrapper = setup();
     expect(wrapper.find('#datasource_menu')).toHaveLength(1);
-    expect(
-      wrapper
-        .find('#datasource_menu')
-        .dive()
-        .find(MenuItem),
-    ).toHaveLength(2);
+    expect(wrapper.find('#datasource_menu').dive().find(MenuItem)).toHaveLength(
+      2,
+    );
 
     wrapper = setup({
       onDatasourceSave: () => {},
     });
     expect(wrapper.find('#datasource_menu')).toHaveLength(1);
-    expect(
-      wrapper
-        .find('#datasource_menu')
-        .dive()
-        .find(MenuItem),
-    ).toHaveLength(3);
+    expect(wrapper.find('#datasource_menu').dive().find(MenuItem)).toHaveLength(
+      3,
+    );
   });
 });

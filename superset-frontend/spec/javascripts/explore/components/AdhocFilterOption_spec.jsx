@@ -25,8 +25,8 @@ import { Label, OverlayTrigger } from 'react-bootstrap';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from '../../../../src/explore/AdhocFilter';
-import AdhocFilterOption from '../../../../src/explore/components/AdhocFilterOption';
+} from 'src/explore/AdhocFilter';
+import AdhocFilterOption from 'src/explore/components/AdhocFilterOption';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,

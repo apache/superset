@@ -26,8 +26,8 @@ import {
   getCategoricalSchemeRegistry,
 } from '@superset-ui/color';
 
-import ColorPickerControl from '../../../../src/explore/components/controls/ColorPickerControl';
-import ControlHeader from '../../../../src/explore/components/ControlHeader';
+import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const defaultProps = {
   value: {},

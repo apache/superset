@@ -19,7 +19,7 @@
 import { TABS_TYPE } from './componentTypes';
 import { DASHBOARD_ROOT_ID } from './constants';
 
-export default function(layout = {}) {
+export default function (layout = {}) {
   // DASHBOARD_GRID_TYPE or TABS_TYPE?
   let parent = layout[DASHBOARD_ROOT_ID];
   if (

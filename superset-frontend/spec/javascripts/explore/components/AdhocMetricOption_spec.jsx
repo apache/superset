@@ -22,9 +22,9 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Label, OverlayTrigger } from 'react-bootstrap';
 
-import AdhocMetric from '../../../../src/explore/AdhocMetric';
-import AdhocMetricOption from '../../../../src/explore/components/AdhocMetricOption';
-import { AGGREGATES } from '../../../../src/explore/constants';
+import AdhocMetric from 'src/explore/AdhocMetric';
+import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
+import { AGGREGATES } from 'src/explore/constants';
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source' },
