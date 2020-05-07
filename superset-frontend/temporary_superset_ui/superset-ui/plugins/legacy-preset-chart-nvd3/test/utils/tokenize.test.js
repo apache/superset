@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { tokenizeToNumericArray, tokenizeToStringArray } from '../../src/utils/tokenize.ts';
+// eslint-disable-next-line import/extensions
+import { tokenizeToNumericArray, tokenizeToStringArray } from '../../src/utils/tokenize';
 
 describe('tokenizeToNumericArray', () => {
   it('evals numeric strings properly', () => {
