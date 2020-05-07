@@ -417,6 +417,16 @@ existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword ``sqlalchemy`` in addition of a keyword that describes the
 database you want to connect to should get you to the right place.
 
+PostgreSQL
+------------
+
+The connection string for PostgreSQL looks like this ::
+
+    postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}
+
+See `psycopg2 SQLAlchemy <https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg2>`_.
+
+
 Hana
 ------------
 
