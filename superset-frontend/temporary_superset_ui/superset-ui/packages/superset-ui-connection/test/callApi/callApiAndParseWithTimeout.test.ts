@@ -76,9 +76,9 @@ describe('callApiAndParseWithTimeout()', () => {
 
         callApiAndParseWithTimeout({ url: mockTimeoutUrl, method: 'GET', timeout: 1 })
           .then(throwIfCalled)
-          .catch(error => {
+          .catch((error: { error: string; statusText: string }) => {
             expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
-            expect(Object.keys(error)).toEqual(expect.arrayContaining(['error', 'statusText']));
+            expect(Object.keys(error)).toEqual(['error', 'statusText']);
             expect(error.statusText).toBe('timeout');
 
             return done(); // eslint-disable-line promise/no-callback-in-promise
@@ -93,6 +93,7 @@ describe('callApiAndParseWithTimeout()', () => {
 
       return callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET', timeout: 100 }).then(
         (response: Json) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           expect(response.json).toEqual(expect.objectContaining(mockGetPayload));
 
           return true;

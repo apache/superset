@@ -88,7 +88,9 @@ describe('callApi()', () => {
         expect(fetchParams.mode).toBe(mockRequest.mode);
         expect(fetchParams.cache).toBe(mockRequest.cache);
         expect(fetchParams.credentials).toBe(mockRequest.credentials);
-        expect(fetchParams.headers).toEqual(expect.objectContaining(mockRequest.headers as Object));
+        expect(fetchParams.headers).toEqual(
+          expect.objectContaining(mockRequest.headers) as typeof fetchParams.headers,
+        );
         expect(fetchParams.redirect).toBe(mockRequest.redirect);
         expect(fetchParams.signal).toBe(mockRequest.signal);
         expect(fetchParams.body).toBe(mockRequest.body);
@@ -101,7 +103,7 @@ describe('callApi()', () => {
   describe('POST requests', () => {
     it('encodes key,value pairs from postPayload', () => {
       expect.assertions(3);
-      const postPayload = { key: 'value', anotherKey: 1237 } as any;
+      const postPayload = { key: 'value', anotherKey: 1237 };
 
       return callApi({ url: mockPostUrl, method: 'POST', postPayload }).then(() => {
         const calls = fetchMock.calls(mockPostUrl);
@@ -110,8 +112,8 @@ describe('callApi()', () => {
         const fetchParams = calls[0][1];
         const body = fetchParams.body as FormData;
 
-        Object.keys(postPayload).forEach(key => {
-          expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
+        Object.entries(postPayload).forEach(([key, value]) => {
+          expect(body.get(key)).toBe(JSON.stringify(value));
         });
 
         return true;
@@ -144,7 +146,7 @@ describe('callApi()', () => {
         object: { a: 'a', 1: 1 },
         null: null,
         emptyString: '',
-      } as any;
+      };
 
       expect.assertions(1 + 2 * Object.keys(postPayload).length);
 
@@ -158,9 +160,9 @@ describe('callApi()', () => {
         const stringified = calls[0][1].body as FormData;
         const unstringified = calls[1][1].body as FormData;
 
-        Object.keys(postPayload).forEach(key => {
-          expect(stringified.get(key)).toBe(JSON.stringify(postPayload[key]));
-          expect(unstringified.get(key)).toBe(String(postPayload[key]));
+        Object.entries(postPayload).forEach(([key, value]) => {
+          expect(stringified.get(key)).toBe(JSON.stringify(value));
+          expect(unstringified.get(key)).toBe(String(value));
         });
 
         return true;
@@ -171,7 +173,7 @@ describe('callApi()', () => {
   describe('PUT requests', () => {
     it('encodes key,value pairs from postPayload', () => {
       expect.assertions(3);
-      const postPayload = { key: 'value', anotherKey: 1237 } as any;
+      const postPayload = { key: 'value', anotherKey: 1237 };
 
       return callApi({ url: mockPutUrl, method: 'PUT', postPayload }).then(() => {
         const calls = fetchMock.calls(mockPutUrl);
@@ -180,8 +182,8 @@ describe('callApi()', () => {
         const fetchParams = calls[0][1];
         const body = fetchParams.body as FormData;
 
-        Object.keys(postPayload).forEach(key => {
-          expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
+        Object.entries(postPayload).forEach(([key, value]) => {
+          expect(body.get(key)).toBe(JSON.stringify(value));
         });
 
         return true;
@@ -214,7 +216,7 @@ describe('callApi()', () => {
         object: { a: 'a', 1: 1 },
         null: null,
         emptyString: '',
-      } as any;
+      };
 
       expect.assertions(1 + 2 * Object.keys(postPayload).length);
 
@@ -228,9 +230,9 @@ describe('callApi()', () => {
         const stringified = calls[0][1].body as FormData;
         const unstringified = calls[1][1].body as FormData;
 
-        Object.keys(postPayload).forEach(key => {
-          expect(stringified.get(key)).toBe(JSON.stringify(postPayload[key]));
-          expect(unstringified.get(key)).toBe(String(postPayload[key]));
+        Object.entries(postPayload).forEach(([key, value]) => {
+          expect(stringified.get(key)).toBe(JSON.stringify(value));
+          expect(unstringified.get(key)).toBe(String(value));
         });
 
         return true;
@@ -241,7 +243,7 @@ describe('callApi()', () => {
   describe('PATCH requests', () => {
     it('encodes key,value pairs from postPayload', () => {
       expect.assertions(3);
-      const postPayload = { key: 'value', anotherKey: 1237 } as any;
+      const postPayload = { key: 'value', anotherKey: 1237 };
 
       return callApi({ url: mockPatchUrl, method: 'PATCH', postPayload }).then(() => {
         const calls = fetchMock.calls(mockPatchUrl);
@@ -250,8 +252,8 @@ describe('callApi()', () => {
         const fetchParams = calls[0][1];
         const body = fetchParams.body as FormData;
 
-        Object.keys(postPayload).forEach(key => {
-          expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
+        Object.entries(postPayload).forEach(([key, value]) => {
+          expect(body.get(key)).toBe(JSON.stringify(value));
         });
 
         return true;
@@ -284,7 +286,7 @@ describe('callApi()', () => {
         object: { a: 'a', 1: 1 },
         null: null,
         emptyString: '',
-      } as any;
+      };
 
       expect.assertions(1 + 2 * Object.keys(postPayload).length);
 
@@ -298,9 +300,9 @@ describe('callApi()', () => {
         const stringified = calls[0][1].body as FormData;
         const unstringified = calls[1][1].body as FormData;
 
-        Object.keys(postPayload).forEach(key => {
-          expect(stringified.get(key)).toBe(JSON.stringify(postPayload[key]));
-          expect(unstringified.get(key)).toBe(String(postPayload[key]));
+        Object.entries(postPayload).forEach(([key, value]) => {
+          expect(stringified.get(key)).toBe(JSON.stringify(value));
+          expect(unstringified.get(key)).toBe(String(value));
         });
 
         return true;
@@ -389,7 +391,9 @@ describe('callApi()', () => {
           const fetchParams = calls[1][1];
           const headers = { 'If-None-Match': 'etag' };
           expect(calls).toHaveLength(2);
-          expect(fetchParams.headers).toEqual(expect.objectContaining(headers));
+          expect(fetchParams.headers).toEqual(
+            expect.objectContaining(headers) as typeof fetchParams.headers,
+          );
 
           return true;
         });
@@ -417,11 +421,13 @@ describe('callApi()', () => {
       const mockCachedPayload = { status: 304 };
       fetchMock.get(mockUncachedUrl, mockCachedPayload);
 
-      return callApi({ url: mockUncachedUrl, method: 'GET' }).catch(error => {
-        const calls = fetchMock.calls(mockUncachedUrl);
-        expect(calls).toHaveLength(1);
-        expect(error.message).toEqual('Received 304 but no content is cached!');
-      });
+      return callApi({ url: mockUncachedUrl, method: 'GET' }).catch(
+        (error: { message: string }) => {
+          const calls = fetchMock.calls(mockUncachedUrl);
+          expect(calls).toHaveLength(1);
+          expect(error.message).toEqual('Received 304 but no content is cached!');
+        },
+      );
     });
 
     it('returns original response if no Etag', async () => {
@@ -431,7 +437,7 @@ describe('callApi()', () => {
       expect(calls).toHaveLength(1);
       expect(response.status).toEqual(200);
       const body = await response.json();
-      expect(body).toEqual(mockGetPayload);
+      expect(body as typeof mockGetPayload).toEqual(mockGetPayload);
     });
 
     it('returns original response if status not 304 or 200', async () => {
@@ -452,7 +458,7 @@ describe('callApi()', () => {
       method: 'GET',
     })
       .then(throwIfCalled)
-      .catch(error => {
+      .catch((error: { status: number; statusText: string }) => {
         expect(fetchMock.calls(mockErrorUrl)).toHaveLength(4);
         expect(error.status).toBe(mockErrorPayload.status);
         expect(error.statusText).toBe(mockErrorPayload.statusText);
@@ -468,7 +474,7 @@ describe('callApi()', () => {
       method: 'GET',
     })
       .then(throwIfCalled)
-      .catch(error => {
+      .catch((error: { status: number; statusText: string }) => {
         expect(fetchMock.calls(mockErrorUrl)).toHaveLength(1);
         expect(error.status).toBe(mockErrorPayload.status);
         expect(error.statusText).toBe(mockErrorPayload.statusText);

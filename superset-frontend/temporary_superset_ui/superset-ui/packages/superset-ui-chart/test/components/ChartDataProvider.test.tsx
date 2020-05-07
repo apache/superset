@@ -4,16 +4,21 @@ import ChartClient from '../../src/clients/ChartClient';
 import ChartDataProvider, { Props } from '../../src/components/ChartDataProvider';
 import { bigNumberFormData } from '../fixtures/formData';
 
-// Note: the mock implentatino of these function directly affects the expected results below
-const defaultMockLoadFormData = jest.fn(allProps => Promise.resolve(allProps.formData));
+// Note: the mock implementation of these function directly affects the expected results below
+const defaultMockLoadFormData = jest.fn(({ formData }: { formData: unknown }) =>
+  Promise.resolve(formData),
+);
 
-// coerce here else get: Type 'Mock<Promise<any>, []>' is not assignable to type 'Mock<Promise<any>, any[]>'
-let mockLoadFormData = defaultMockLoadFormData as jest.Mock<Promise<any>, any>;
-const mockLoadDatasource = jest.fn(datasource => Promise.resolve(datasource)) as jest.Mock<
-  Promise<any>,
-  any
->;
-const mockLoadQueryData = jest.fn(input => Promise.resolve(input)) as jest.Mock<Promise<any>, any>;
+type MockLoadFormData = typeof defaultMockLoadFormData | jest.Mock<Promise<unknown>, unknown[]>;
+
+let mockLoadFormData: MockLoadFormData = defaultMockLoadFormData;
+
+function createPromise<T>(input: T, ..._args: unknown[]) {
+  return Promise.resolve(input);
+}
+
+const mockLoadDatasource = jest.fn<Promise<unknown>, unknown[]>(createPromise);
+const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(createPromise);
 
 // ChartClient is now a mock
 jest.mock('../../src/clients/ChartClient', () =>
@@ -177,7 +182,7 @@ describe('ChartDataProvider', () => {
 
   describe('children', () => {
     it('calls children({ loading: true }) when loading', () => {
-      const children = jest.fn();
+      const children = jest.fn<React.ReactNode, unknown[]>();
       setup({ children });
 
       // during the first tick (before more promises resolve) loading is true
@@ -188,7 +193,7 @@ describe('ChartDataProvider', () => {
     it('calls children({ payload }) when loaded', () => {
       return new Promise(done => {
         expect.assertions(2);
-        const children = jest.fn();
+        const children = jest.fn<React.ReactNode, unknown[]>();
         setup({ children, loadDatasource: true });
 
         setTimeout(() => {
@@ -208,7 +213,7 @@ describe('ChartDataProvider', () => {
     it('calls children({ error }) upon request error', () => {
       return new Promise(done => {
         expect.assertions(2);
-        const children = jest.fn();
+        const children = jest.fn<React.ReactNode, unknown[]>();
         mockLoadFormData = jest.fn(() => Promise.reject(new Error('error')));
 
         setup({ children });
@@ -224,7 +229,7 @@ describe('ChartDataProvider', () => {
     it('calls children({ error }) upon JS error', () => {
       return new Promise(done => {
         expect.assertions(2);
-        const children = jest.fn();
+        const children = jest.fn<React.ReactNode, unknown[]>();
 
         mockLoadFormData = jest.fn(() => {
           throw new Error('non-async error');
@@ -245,7 +250,7 @@ describe('ChartDataProvider', () => {
     it('calls onLoad(payload) when loaded', () => {
       return new Promise(done => {
         expect.assertions(2);
-        const onLoaded = jest.fn();
+        const onLoaded = jest.fn<void, unknown[]>();
         setup({ onLoaded, loadDatasource: true });
 
         setTimeout(() => {
@@ -263,7 +268,7 @@ describe('ChartDataProvider', () => {
     it('calls onError(error) upon request error', () => {
       return new Promise(done => {
         expect.assertions(2);
-        const onError = jest.fn();
+        const onError = jest.fn<void, unknown[]>();
         mockLoadFormData = jest.fn(() => Promise.reject(new Error('error')));
 
         setup({ onError });
@@ -278,7 +283,7 @@ describe('ChartDataProvider', () => {
     it('calls onError(error) upon JS error', () => {
       return new Promise(done => {
         expect.assertions(2);
-        const onError = jest.fn();
+        const onError = jest.fn<void, unknown[]>();
 
         mockLoadFormData = jest.fn(() => {
           throw new Error('non-async error');

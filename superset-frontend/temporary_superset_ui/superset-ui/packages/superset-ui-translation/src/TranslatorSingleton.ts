@@ -25,12 +25,12 @@ function getInstance() {
   return singleton;
 }
 
-function t(input: string, ...args: any[]) {
+function t(input: string, ...args: unknown[]) {
   return getInstance().translate(input, ...args);
 }
 
-function tn(singular: string, plural: string, ...args: any[]) {
-  return getInstance().translateWithNumber(singular, plural, ...args);
+function tn(singular: string, plural: string, num?: number, ...args: unknown[]) {
+  return getInstance().translateWithNumber(singular, plural, num, ...args);
 }
 
 export { configure, t, tn };

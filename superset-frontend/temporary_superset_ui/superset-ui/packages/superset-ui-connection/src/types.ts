@@ -11,8 +11,10 @@ export type FetchRetryOptions = {
 };
 export type Headers = { [k: string]: string };
 export type Host = string;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Json = { [k: string]: any };
 export type Method = RequestInit['method'];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type PostPayload = { [key: string]: any };
 export type Mode = RequestInit['mode'];
 export type Redirect = RequestInit['redirect'];

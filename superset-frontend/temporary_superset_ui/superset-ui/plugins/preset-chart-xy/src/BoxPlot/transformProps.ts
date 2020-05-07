@@ -2,10 +2,12 @@ import { pick } from 'lodash';
 import { ChartProps } from '@superset-ui/chart';
 import { BoxPlotDataRow, RawBoxPlotDataRow } from '../components/BoxPlot/types';
 import { HookProps } from '../components/BoxPlot/BoxPlot';
+import { BoxPlotEncoding } from '../components/BoxPlot/Encoder';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, queryData } = chartProps;
-  const { encoding, margin, theme } = formData;
+  const { margin, theme } = formData;
+  const encoding = formData.encoding as BoxPlotEncoding;
 
   const data = (queryData.data as RawBoxPlotDataRow[]).map(({ label, values }) => ({
     label,
@@ -33,9 +35,15 @@ export default function transformProps(chartProps: ChartProps) {
   ];
 
   if (isHorizontal) {
-    encoding.x.scale.domain = valueDomain;
-  } else {
+    if (encoding.x.scale) {
+      encoding.x.scale.domain = valueDomain;
+    } else {
+      encoding.x.scale = { domain: valueDomain };
+    }
+  } else if (encoding.y.scale) {
     encoding.y.scale.domain = valueDomain;
+  } else {
+    encoding.y.scale = { domain: valueDomain };
   }
 
   const hooks = chartProps.hooks as HookProps;

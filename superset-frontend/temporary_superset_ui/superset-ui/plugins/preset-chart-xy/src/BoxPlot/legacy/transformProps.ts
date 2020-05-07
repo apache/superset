@@ -16,15 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps, QueryData } from '@superset-ui/chart';
+import { QueryFormData, QueryFormDataMetric } from '@superset-ui/query';
 import { RawBoxPlotDataRow, BoxPlotDataRow } from '../../components/BoxPlot/types';
 
-export default function transformProps(chartProps: ChartProps) {
+export type LegacyBoxPlotFormData = {
+  groupby?: QueryFormData['groupby'];
+  metrics?: QueryFormData['metrics'];
+  colorScheme?: string;
+};
+
+export type LegacyBoxPlotChartProps = ChartProps & {
+  formData: LegacyBoxPlotFormData;
+  queryData: QueryData & {
+    data?: RawBoxPlotDataRow[];
+  };
+};
+
+export default function transformProps(chartProps: LegacyBoxPlotChartProps) {
   const { width, height, datasource, formData, queryData } = chartProps;
   const { verboseMap = {} } = datasource;
-  const { colorScheme, groupby, metrics } = formData;
+  const { colorScheme, groupby = [], metrics = [] } = formData;
 
-  const data = (queryData.data as RawBoxPlotDataRow[]).map(({ label, values }) => ({
+  const data = (queryData.data || []).map(({ label, values }) => ({
     label,
     min: values.whisker_low,
     max: values.whisker_high,
@@ -35,7 +49,14 @@ export default function transformProps(chartProps: ChartProps) {
   }));
 
   const xAxisLabel = groupby.join('/');
-  const yAxisLabel = metrics.length > 0 ? verboseMap[metrics[0]] || metrics[0] : '';
+
+  let metric: QueryFormDataMetric = '';
+  if (Array.isArray(metrics)) {
+    metric = metrics.length > 0 ? metrics[0] : '';
+  } else {
+    metric = metrics;
+  }
+  const yAxisLabel = typeof metric === 'string' ? verboseMap[metric] || metric : metric.label;
 
   const boxPlotValues = data.reduce((r: number[], e: BoxPlotDataRow) => {
     r.push(e.min, e.max, ...e.outliers);
