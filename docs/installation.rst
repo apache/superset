@@ -424,8 +424,40 @@ The connection string for PostgreSQL looks like this ::
 
     postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}
 
-See `psycopg2 SQLAlchemy <https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg2>`_.
+Additional  may be configured via the ``extra`` field under ``engine_params``. 
+If you would like to enable mutual SSL here is a sample configuration:
 
+.. code-block:: json
+
+    {
+        "metadata_params": {},
+        "engine_params": {
+              "connect_args":{
+                    "sslmode": "require",
+                    "sslrootcert": "/path/to/root_cert"
+            }
+         }
+    }
+
+If the key ``sslrootcert`` is present the server's certificate will be verified to be signed by the same Certificate Authority (CA). 
+
+If you would like to enable mutual SSL here is a sample configuration:
+
+.. code-block:: json
+
+    {
+        "metadata_params": {},
+        "engine_params": {
+              "connect_args":{
+                    "sslmode": "require",
+                    "sslcert": "/path/to/client_cert",
+                    "sslkey": "/path/to/client_key",
+                    "sslrootcert": "/path/to/root_cert"
+            }
+         }
+    }
+
+See `psycopg2 SQLAlchemy <https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg2>`_.
 
 Hana
 ------------
