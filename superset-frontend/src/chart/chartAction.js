@@ -20,6 +20,10 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
+import {
+  getChartBuildQueryRegistry,
+  getChartMetadataRegistry,
+} from '@superset-ui/chart';
 import { SupersetClient } from '@superset-ui/connection';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
@@ -202,6 +206,48 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
+function legacyChartDataRequest(
+  formData,
+  force,
+  method,
+  dashboardId,
+  requestParams,
+) {
+  const { url, payload } = getExploreUrlAndPayload({
+    formData,
+    endpointType: 'json',
+    force,
+    allowDomainSharding,
+    method,
+    requestParams: dashboardId ? { dashboard_id: dashboardId } : {},
+  });
+  const querySettings = {
+    ...requestParams,
+    url,
+    postPayload: { form_data: payload },
+  };
+
+  const clientMethod =
+    method === 'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
+      ? SupersetClient.get
+      : SupersetClient.post;
+
+  return clientMethod(querySettings);
+}
+
+async function v1ChartDataRequest(formData, requestParams) {
+  const buildQuery = await getChartBuildQueryRegistry().get(formData.viz_type);
+  const payload = buildQuery(formData);
+  const querySettings = {
+    ...requestParams,
+    endpoint: '/api/v1/chart/data',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  };
+
+  return SupersetClient.post(querySettings);
+}
+
 export function exploreJSON(
   formData,
   force = false,
@@ -210,47 +256,51 @@ export function exploreJSON(
   method,
   dashboardId,
 ) {
-  return dispatch => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'json',
-      force,
-      allowDomainSharding,
-      method,
-      requestParams: dashboardId ? { dashboard_id: dashboardId } : {},
-    });
+  return async dispatch => {
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
-    const { signal } = controller;
 
-    dispatch(chartUpdateStarted(controller, payload, key));
+    const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
 
-    let querySettings = {
-      url,
-      postPayload: { form_data: payload },
-      signal,
+    let requestParams = {
+      signal: controller.signal,
       timeout: timeout * 1000,
     };
+
     if (allowDomainSharding) {
-      querySettings = {
-        ...querySettings,
+      requestParams = {
+        ...requestParams,
         mode: 'cors',
         credentials: 'include',
       };
     }
 
-    const clientMethod =
-      method === 'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
-        ? SupersetClient.get
-        : SupersetClient.post;
-    const queryPromise = clientMethod(querySettings)
+    const queryPromiseRaw = useLegacyApi
+      ? legacyChartDataRequest(
+          formData,
+          force,
+          method,
+          dashboardId,
+          requestParams,
+        )
+      : v1ChartDataRequest(formData, requestParams);
+
+    dispatch(chartUpdateStarted(controller, formData, key));
+
+    const queryPromiseCaught = queryPromiseRaw
       .then(({ json }) => {
+        // new API returns an object with an array of restults
+        // problem: json holds a list of results, when before we were just getting one result.
+        // `queryResponse` state is used all over the place.
+        // How to make the entire app compatible with multiple results?
+        // For now just use the first result.
+        const result = useLegacyApi ? json : json.result[0];
         dispatch(
           logEvent(LOG_ACTIONS_LOAD_CHART, {
             slice_id: key,
-            is_cached: json.is_cached,
+            is_cached: result.is_cached,
             force_refresh: force,
-            row_count: json.rowcount,
+            row_count: result.rowcount,
             datasource: formData.datasource,
             start_offset: logStart,
             ts: new Date().getTime(),
@@ -258,12 +308,12 @@ export function exploreJSON(
             has_extra_filters:
               formData.extra_filters && formData.extra_filters.length > 0,
             viz_type: formData.viz_type,
-            data_age: json.is_cached
-              ? moment(new Date()).diff(moment.utc(json.cached_dttm))
+            data_age: result.is_cached
+              ? moment(new Date()).diff(moment.utc(result.cached_dttm))
               : null,
           }),
         );
-        return dispatch(chartUpdateSucceeded(json, key));
+        return dispatch(chartUpdateSucceeded(result, key));
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {
@@ -300,9 +350,9 @@ export function exploreJSON(
     const annotationLayers = formData.annotation_layers || [];
 
     return Promise.all([
-      queryPromise,
+      queryPromiseCaught,
       dispatch(triggerQuery(false, key)),
-      dispatch(updateQueryFormData(payload, key)),
+      dispatch(updateQueryFormData(formData, key)),
       ...annotationLayers.map(x =>
         dispatch(runAnnotationQuery(x, timeout, formData, key)),
       ),
