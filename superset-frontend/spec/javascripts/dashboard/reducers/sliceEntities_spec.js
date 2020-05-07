@@ -20,9 +20,9 @@ import {
   FETCH_ALL_SLICES_FAILED,
   FETCH_ALL_SLICES_STARTED,
   SET_ALL_SLICES,
-} from '../../../../src/dashboard/actions/sliceEntities';
+} from 'src/dashboard/actions/sliceEntities';
 
-import sliceEntitiesReducer from '../../../../src/dashboard/reducers/sliceEntities';
+import sliceEntitiesReducer from 'src/dashboard/reducers/sliceEntities';
 
 describe('sliceEntities reducer', () => {
   it('should return initial state', () => {

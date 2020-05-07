@@ -26,8 +26,8 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
   getAllControlsState,
-} from '../../../src/explore/controlUtils';
-import ColumnOption from '../../../src/components/ColumnOption';
+} from 'src/explore/controlUtils';
+import ColumnOption from 'src/components/ColumnOption';
 
 describe('controlUtils', () => {
   const state = {

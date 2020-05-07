@@ -24,7 +24,7 @@ import thunk from 'redux-thunk';
 import shortid from 'shortid';
 import * as featureFlags from 'src/featureFlags';
 
-import * as actions from '../../../../src/SqlLab/actions/sqlLab';
+import * as actions from 'src/SqlLab/actions/sqlLab';
 import { defaultQueryEditor, query } from '../fixtures';
 
 const middlewares = [thunk];

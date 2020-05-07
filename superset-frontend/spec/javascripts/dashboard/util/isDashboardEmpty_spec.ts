@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isDashboardEmpty from '../../../../src/dashboard/util/isDashboardEmpty';
-import getEmptyLayout from '../../../../src/dashboard/util/getEmptyLayout';
+import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
+import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 
 describe('isDashboardEmpty', () => {
   const emptyLayout: object = getEmptyLayout();

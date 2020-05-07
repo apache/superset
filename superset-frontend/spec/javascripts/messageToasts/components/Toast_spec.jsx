@@ -19,9 +19,9 @@
 import { Alert } from 'react-bootstrap';
 import React from 'react';
 import { mount } from 'enzyme';
+import Toast from 'src/messageToasts/components/Toast';
 
 import mockMessageToasts from '../mockMessageToasts';
-import Toast from '../../../../src/messageToasts/components/Toast';
 
 describe('Toast', () => {
   const props = {
@@ -43,12 +43,7 @@ describe('Toast', () => {
     const wrapper = setup();
     const alert = wrapper.find(Alert);
 
-    expect(
-      alert
-        .childAt(0)
-        .childAt(1)
-        .text(),
-    ).toBe(props.toast.text);
+    expect(alert.childAt(0).childAt(1).text()).toBe(props.toast.text);
   });
 
   it('should call onCloseToast upon alert dismissal', done => {

@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow, mount } from 'enzyme';
 import { Nav } from 'react-bootstrap';
 
-import Menu from '../../../src/components/Menu/Menu';
+import Menu from 'src/components/Menu/Menu';
 
 const defaultProps = {
   data: {

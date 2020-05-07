@@ -20,7 +20,7 @@ import React from 'react';
 import { Label } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 
-import QueryStateLabel from '../../../src/SqlLab/components/QueryStateLabel';
+import QueryStateLabel from 'src/SqlLab/components/QueryStateLabel';
 
 describe('SavedQuery', () => {
   const mockedProps = {

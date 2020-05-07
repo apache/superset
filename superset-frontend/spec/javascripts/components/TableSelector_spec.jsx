@@ -23,8 +23,8 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 
+import TableSelector from 'src/components/TableSelector';
 import { initialState, tables } from '../sqllab/fixtures';
-import TableSelector from '../../../src/components/TableSelector';
 
 describe('TableSelector', () => {
   let mockedProps;

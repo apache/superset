@@ -22,9 +22,9 @@ import Select, { Creatable } from 'react-select';
 import VirtualizedSelect from 'react-virtualized-select';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import OnPasteSelect from '../../../../src/components/OnPasteSelect';
-import VirtualizedRendererWrap from '../../../../src/components/VirtualizedRendererWrap';
-import SelectControl from '../../../../src/explore/components/controls/SelectControl';
+import OnPasteSelect from 'src/components/OnPasteSelect';
+import VirtualizedRendererWrap from 'src/components/VirtualizedRendererWrap';
+import SelectControl from 'src/explore/components/controls/SelectControl';
 
 const defaultProps = {
   choices: [

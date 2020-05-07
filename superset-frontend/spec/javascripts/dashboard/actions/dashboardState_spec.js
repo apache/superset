@@ -22,16 +22,16 @@ import { SupersetClient } from '@superset-ui/connection';
 import {
   removeSliceFromDashboard,
   saveDashboardRequest,
-} from '../../../../src/dashboard/actions/dashboardState';
-import { REMOVE_FILTER } from '../../../../src/dashboard/actions/dashboardFilters';
-import { UPDATE_COMPONENTS_PARENTS_LIST } from '../../../../src/dashboard/actions/dashboardLayout';
+} from 'src/dashboard/actions/dashboardState';
+import { REMOVE_FILTER } from 'src/dashboard/actions/dashboardFilters';
+import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
+import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
 import {
   filterId,
   sliceEntitiesForDashboard as sliceEntities,
 } from '../fixtures/mockSliceEntities';
 import { emptyFilters } from '../fixtures/mockDashboardFilters';
 import mockDashboardData from '../fixtures/mockDashboardData';
-import { DASHBOARD_GRID_ID } from '../../../../src/dashboard/util/constants';
 
 describe('dashboardState actions', () => {
   const mockState = {

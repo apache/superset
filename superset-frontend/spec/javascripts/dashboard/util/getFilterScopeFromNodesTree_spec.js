@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getFilterScopeFromNodesTree from '../../../../src/dashboard/util/getFilterScopeFromNodesTree';
+import getFilterScopeFromNodesTree from 'src/dashboard/util/getFilterScopeFromNodesTree';
 
 describe('getFilterScopeFromNodesTree', () => {
   it('should return empty scope', () => {

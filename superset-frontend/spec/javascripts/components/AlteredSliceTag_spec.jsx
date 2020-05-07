@@ -21,9 +21,9 @@ import { shallow } from 'enzyme';
 import { Table, Thead, Td, Th, Tr } from 'reactable-arc';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 
-import AlteredSliceTag from '../../../src/components/AlteredSliceTag';
-import ModalTrigger from '../../../src/components/ModalTrigger';
-import TooltipWrapper from '../../../src/components/TooltipWrapper';
+import AlteredSliceTag from 'src/components/AlteredSliceTag';
+import ModalTrigger from 'src/components/ModalTrigger';
+import TooltipWrapper from 'src/components/TooltipWrapper';
 
 const defaultProps = {
   origFormData: {

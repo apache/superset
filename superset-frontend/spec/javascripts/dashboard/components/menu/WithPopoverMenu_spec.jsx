@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import WithPopoverMenu from '../../../../../src/dashboard/components/menu/WithPopoverMenu';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
 describe('WithPopoverMenu', () => {
   const props = {

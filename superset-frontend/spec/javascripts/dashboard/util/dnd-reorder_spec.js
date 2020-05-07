@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import reorderItem from '../../../../src/dashboard/util/dnd-reorder';
+import reorderItem from 'src/dashboard/util/dnd-reorder';
 
 describe('dnd-reorderItem', () => {
   it('should remove the item from its source entity and add it to its destination entity', () => {

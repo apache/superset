@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sqlLabReducer from '../../../../src/SqlLab/reducers/sqlLab';
-import * as actions from '../../../../src/SqlLab/actions/sqlLab';
+import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
+import * as actions from 'src/SqlLab/actions/sqlLab';
+import { now } from 'src/modules/dates';
+
 import { table, initialState as mockState } from '../fixtures';
-import { now } from '../../../../src/modules/dates';
 
 const initialState = mockState.sqlLab;
 

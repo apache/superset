@@ -19,7 +19,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 
-import RefreshIntervalModal from '../../../../src/dashboard/components/RefreshIntervalModal';
+import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 
 describe('RefreshIntervalModal', () => {
   const mockedProps = {

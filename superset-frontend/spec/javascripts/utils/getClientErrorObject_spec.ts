@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getClientErrorObject from '../../../src/utils/getClientErrorObject';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 
 describe('getClientErrorObject()', () => {
   it('Returns a Promise', () => {

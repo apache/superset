@@ -24,11 +24,11 @@ import { shallow } from 'enzyme';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from '../../../../src/explore/AdhocFilter';
-import AdhocFilterControl from '../../../../src/explore/components/controls/AdhocFilterControl';
-import AdhocMetric from '../../../../src/explore/AdhocMetric';
-import { AGGREGATES, OPERATORS } from '../../../../src/explore/constants';
-import OnPasteSelect from '../../../../src/components/OnPasteSelect';
+} from 'src/explore/AdhocFilter';
+import AdhocFilterControl from 'src/explore/components/controls/AdhocFilterControl';
+import AdhocMetric from 'src/explore/AdhocMetric';
+import { AGGREGATES, OPERATORS } from 'src/explore/constants';
+import OnPasteSelect from 'src/components/OnPasteSelect';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,

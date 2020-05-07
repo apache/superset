@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 import { sliceId } from './mockChartQueries';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
 
 export default {
   sliceIds: [sliceId],

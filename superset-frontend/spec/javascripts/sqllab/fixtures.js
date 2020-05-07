@@ -17,7 +17,7 @@
  * under the License.
  */
 import sinon from 'sinon';
-import * as actions from '../../../src/SqlLab/actions/sqlLab';
+import * as actions from 'src/SqlLab/actions/sqlLab';
 
 export const mockedActions = sinon.stub({ ...actions });
 

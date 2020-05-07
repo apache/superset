@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getLeafComponentIdFromPath from '../../../../src/dashboard/util/getLeafComponentIdFromPath';
+import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import { filterId } from '../fixtures/mockSliceEntities';
 import { dashboardFilters } from '../fixtures/mockDashboardFilters';
 

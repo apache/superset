@@ -20,8 +20,10 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import Dashboard from '../../../../src/dashboard/components/Dashboard';
-import DashboardBuilder from '../../../../src/dashboard/containers/DashboardBuilder';
+import Dashboard from 'src/dashboard/components/Dashboard';
+import DashboardBuilder from 'src/dashboard/containers/DashboardBuilder';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
 // mock data
 import chartQueries from '../fixtures/mockChartQueries';
@@ -30,9 +32,6 @@ import dashboardInfo from '../fixtures/mockDashboardInfo';
 import { dashboardLayout } from '../fixtures/mockDashboardLayout';
 import dashboardState from '../fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from '../fixtures/mockSliceEntities';
-
-import { CHART_TYPE } from '../../../../src/dashboard/util/componentTypes';
-import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';
 
 describe('Dashboard', () => {
   const props = {

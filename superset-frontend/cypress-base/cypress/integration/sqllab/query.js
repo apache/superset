@@ -40,9 +40,7 @@ export default () => {
           `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
           { force: true },
         );
-      cy.get('#js-sql-toolbar button')
-        .eq(0)
-        .click();
+      cy.get('#js-sql-toolbar button').eq(0).click();
 
       cy.wait('@sqlLabQuery');
 

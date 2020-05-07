@@ -252,8 +252,9 @@ class SqlEditor extends React.PureComponent {
   };
   elementStyle(dimension, elementSize, gutterSize) {
     return {
-      [dimension]: `calc(${elementSize}% - ${gutterSize +
-        SQL_EDITOR_GUTTER_MARGIN}px)`,
+      [dimension]: `calc(${elementSize}% - ${
+        gutterSize + SQL_EDITOR_GUTTER_MARGIN
+      }px)`,
     };
   }
   requestValidation() {

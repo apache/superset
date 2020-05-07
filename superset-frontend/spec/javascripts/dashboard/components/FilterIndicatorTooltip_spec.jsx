@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import FilterIndicatorTooltip from '../../../../src/dashboard/components/FilterIndicatorTooltip';
+import FilterIndicatorTooltip from 'src/dashboard/components/FilterIndicatorTooltip';
 
 describe('FilterIndicatorTooltip', () => {
   const label = 'region';

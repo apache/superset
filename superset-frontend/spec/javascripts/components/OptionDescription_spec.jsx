@@ -19,8 +19,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
-import OptionDescription from '../../../src/components/OptionDescription';
+import InfoTooltipWithTrigger from 'src/components/InfoTooltipWithTrigger';
+import OptionDescription from 'src/components/OptionDescription';
 
 const defaultProps = {
   option: {
