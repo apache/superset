@@ -4050,10 +4050,10 @@
   dependencies:
     d3-scale "^2.0.0"
 
-"@vx/scale@^0.0.195":
-  version "0.0.195"
-  resolved "https://registry.yarnpkg.com/@vx/scale/-/scale-0.0.195.tgz#28bb2ff6663444a9709d1f99e4e4843d7e2f26ba"
-  integrity sha512-aZ2N+YVB6k9um7jzOQY9h/BaV/5vTA8DeuWjqMmeuJCTkX3NzJqu+/oWQRwOcMr/07rAPLf/0YUVEGE50OTEFQ==
+"@vx/scale@^0.0.196":
+  version "0.0.196"
+  resolved "https://registry.yarnpkg.com/@vx/scale/-/scale-0.0.196.tgz#c34e08984ac91bd4cc085ee3b782a1cabcaf0dd3"
+  integrity sha512-s3lVbwEni0F9AGACaJG3m071uXVryoOgogiU6+yXv1O1gUoZMMm6AjzCndcz9jq1sCFDNcIrxyf5LomOA2tQaQ==
   dependencies:
     "@types/d3-scale" "^2.1.1"
     d3-scale "^2.2.2"
