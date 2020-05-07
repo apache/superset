@@ -27,6 +27,15 @@
   },
   "peerDependencies": {
     "@superset-ui/translation": "^0.13",
-    "@superset-ui/validator": "^0.13"
+    "@superset-ui/validator": "^0.13",
+    "react": "^16.13.1"
+  },
+  "devDependencies": {
+    "enzyme": "^3.11.0"
+  },
+  "dependencies": {
+    "@types/react-bootstrap": "0.32.21",
+    "lodash": "^4.17.15",
+    "react-bootstrap": "^0.33.1"
   }
 }
