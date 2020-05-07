@@ -1,35 +1,39 @@
 import { ChartProps } from '@superset-ui/chart';
 import { flatMap } from 'lodash';
 
+interface Value {
+  [key: string]: unknown;
+}
+
+type Key = keyof Value;
+
 interface DataRow {
   key: string[];
-  values: {
-    [key: string]: any;
-  }[];
+  values: Value[];
 }
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, queryData } = chartProps;
   const {
     colorScheme,
-    entity,
     maxBubbleSize,
-    series,
     showLegend,
-    size,
-    x,
     xAxisFormat,
     xAxisLabel,
     // TODO: These fields are not supported yet
     // xAxisShowminmax,
     // xLogScale,
-    y,
     yAxisLabel,
     yAxisFormat,
     // TODO: These fields are not supported yet
     // yAxisShowminmax,
     // yLogScale,
   } = formData;
+  const x = formData.x as Key;
+  const y = formData.y as Key;
+  const series = formData.series as Key;
+  const size = formData.size as Key;
+  const entity = formData.entity as Key;
   const data = queryData.data as DataRow[];
 
   return {

@@ -35,7 +35,9 @@ import { DataTableProps } from './transformProps';
 // Depending on how the modules are imported, `dt` may be a CommonJS init function,
 // or the DataTable class itself. In case it is the former, we'd need to tell it
 // where is jQuery.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 if (!dt.$) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   dt(window, $);
 }
 
@@ -286,6 +288,7 @@ export default function ReactDataTable(props: DataTableProps) {
                 <td
                   key={key}
                   // only set innerHTML for actual html content, this saves time
+                  // eslint-disable-next-line react/no-danger
                   dangerouslySetInnerHTML={isHtml ? { __html: text } : undefined}
                   data-key={key}
                   data-sort={val}
@@ -307,6 +310,7 @@ export default function ReactDataTable(props: DataTableProps) {
 
   return (
     <div
+      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: ReactDOMServer.renderToStaticMarkup(tableElement) }}
       ref={rootElem}
       className="superset-legacy-chart-table"

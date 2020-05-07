@@ -85,7 +85,9 @@ export default class BoxPlot extends React.PureComponent<Props> {
           <TooltipRenderer datum={datum} color={color} encoder={encoder} />
         )}
         theme={theme}
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
         xScale={convertScaleToDataUIScale(channels.x.definition.scale as any)}
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
         yScale={convertScaleToDataUIScale(channels.y.definition.scale as any)}
       >
         {layout.renderXAxis()}

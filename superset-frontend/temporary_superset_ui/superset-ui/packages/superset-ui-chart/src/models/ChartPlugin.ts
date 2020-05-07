@@ -1,4 +1,4 @@
-import { FunctionComponent, ComponentType } from 'react';
+import { ComponentType } from 'react';
 import { isRequired, Plugin } from '@superset-ui/core';
 import { QueryFormData } from '@superset-ui/query';
 import ChartMetadata from './ChartMetadata';
@@ -18,7 +18,7 @@ const EMPTY = {};
 
 export type PromiseOrValue<T> = Promise<T> | T;
 export type PromiseOrValueLoader<T> = () => PromiseOrValue<T>;
-export type ChartType = ComponentType<any> | FunctionComponent<any>;
+export type ChartType = ComponentType<any>;
 type ValueOrModuleWithValue<T> = T | { default: T };
 
 interface ChartPluginConfig<T extends QueryFormData> {

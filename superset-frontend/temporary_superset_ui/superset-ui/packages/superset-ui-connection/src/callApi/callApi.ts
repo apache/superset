@@ -79,6 +79,7 @@ export default function callApi({
     Object.keys(postPayload).forEach(key => {
       const value = postPayload[key];
       if (typeof value !== 'undefined') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         formData.append(key, stringify ? JSON.stringify(value) : value);
       }
     });
