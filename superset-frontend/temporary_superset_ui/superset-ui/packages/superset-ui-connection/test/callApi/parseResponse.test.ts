@@ -32,17 +32,19 @@ describe('parseResponse()', () => {
   it('returns a Promise', () => {
     const apiPromise = callApi({ url: mockGetUrl, method: 'GET' });
     const parsedResponsePromise = parseResponse(apiPromise);
-    expect(parsedResponsePromise).toEqual(expect.any(Promise));
+    expect(parsedResponsePromise).toBeInstanceOf(Promise);
   });
 
   it('resolves to { json, response } if the request succeeds', () => {
-    expect.assertions(3);
+    expect.assertions(4);
     const apiPromise = callApi({ url: mockGetUrl, method: 'GET' });
 
     return parseResponse(apiPromise).then(args => {
       expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
-      expect(Object.keys(args)).toEqual(expect.arrayContaining(['response', 'json']));
-      expect(args.json).toEqual(expect.objectContaining(mockGetPayload));
+      const keys = Object.keys(args);
+      expect(keys).toContain('response');
+      expect(keys).toContain('json');
+      expect(args.json).toEqual(expect.objectContaining(mockGetPayload) as typeof args.json);
 
       return true;
     });
@@ -60,7 +62,7 @@ describe('parseResponse()', () => {
 
     return parseResponse(apiPromise, 'json')
       .then(throwIfCalled)
-      .catch(error => {
+      .catch((error: { stack: unknown; message: string }) => {
         expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
         expect(error.stack).toBeDefined();
         expect(error.message).toContain('Unexpected token');
@@ -70,7 +72,7 @@ describe('parseResponse()', () => {
   });
 
   it('resolves to { text, response } if the `parseMethod=text`', () => {
-    expect.assertions(3);
+    expect.assertions(4);
 
     // test with json + bigint to ensure that it was not first parsed as json
     const mockTextParseUrl = '/mock/textparse/url';
@@ -81,7 +83,9 @@ describe('parseResponse()', () => {
 
     return parseResponse(apiPromise, 'text').then(args => {
       expect(fetchMock.calls(mockTextParseUrl)).toHaveLength(1);
-      expect(Object.keys(args)).toEqual(expect.arrayContaining(['response', 'text']));
+      const keys = Object.keys(args);
+      expect(keys).toContain('response');
+      expect(keys).toContain('text');
       expect(args.text).toBe(mockTextJsonResponse);
 
       return true;
@@ -118,7 +122,7 @@ describe('parseResponse()', () => {
 
     return parseResponse(apiPromise)
       .then(throwIfCalled)
-      .catch(error => {
+      .catch((error: { ok: boolean; status: number }) => {
         expect(fetchMock.calls(mockNotOkayUrl)).toHaveLength(1);
         expect(error.ok).toBe(false);
         expect(error.status).toBe(404);

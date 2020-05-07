@@ -17,7 +17,7 @@ export const TestComponent = ({
   width,
   height,
 }: {
-  formData?: any;
+  formData?: unknown;
   message?: string;
   width?: number;
   height?: number;
@@ -67,6 +67,10 @@ export class DiligentChartPlugin extends ChartPlugin<QueryFormData> {
   }
 }
 
+function identity<T>(x: T) {
+  return x;
+}
+
 export class LazyChartPlugin extends ChartPlugin<QueryFormData> {
   constructor() {
     super({
@@ -77,7 +81,7 @@ export class LazyChartPlugin extends ChartPlugin<QueryFormData> {
       // this mirrors `() => import(module)` syntax
       loadChart: () => Promise.resolve({ default: TestComponent }),
       // promise without .default
-      loadTransformProps: () => Promise.resolve((x: any) => x),
+      loadTransformProps: () => Promise.resolve(identity),
     });
   }
 }
