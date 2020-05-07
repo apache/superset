@@ -27,7 +27,6 @@ import os
 
 from werkzeug.contrib.cache import FileSystemCache
 
-
 logger = logging.getLogger()
 
 
@@ -65,7 +64,7 @@ SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
 REDIS_HOST = get_env_variable("REDIS_HOST")
 REDIS_PORT = get_env_variable("REDIS_PORT")
 
-RESULTS_BACKEND = FileSystemCache('/app/superset_home/sqllab')
+RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 
 class CeleryConfig(object):
