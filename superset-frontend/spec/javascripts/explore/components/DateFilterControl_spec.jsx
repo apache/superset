@@ -22,8 +22,8 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Button, Label } from 'react-bootstrap';
 
-import DateFilterControl from '../../../../src/explore/components/controls/DateFilterControl';
-import ControlHeader from '../../../../src/explore/components/ControlHeader';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const defaultProps = {
   animation: false,
@@ -70,9 +70,7 @@ describe('DateFilterControl', () => {
     label.simulate('click');
     setTimeout(() => {
       expect(wrapper.find('.popover')).toHaveLength(1);
-      expect(wrapper.find('.ok'))
-        .first()
-        .simulate('click');
+      expect(wrapper.find('.ok')).first().simulate('click');
       setTimeout(() => {
         expect(wrapper.find('.popover')).toHaveLength(0);
       }, 10);

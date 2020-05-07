@@ -21,8 +21,8 @@ import { shallow } from 'enzyme';
 import { Button } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 
-import AddSliceContainer from '../../../src/addSlice/AddSliceContainer';
-import VizTypeControl from '../../../src/explore/components/controls/VizTypeControl';
+import AddSliceContainer from 'src/addSlice/AddSliceContainer';
+import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
 
 const defaultProps = {
   datasources: [
@@ -53,10 +53,7 @@ describe('AddSliceContainer', () => {
 
   it('renders a disabled button if no datasource is selected', () => {
     expect(
-      wrapper
-        .find(Button)
-        .dive()
-        .find('.btn[disabled=true]'),
+      wrapper.find(Button).dive().find('.btn[disabled=true]'),
     ).toHaveLength(1);
   });
 
@@ -68,10 +65,7 @@ describe('AddSliceContainer', () => {
       datasourceType: datasourceValue.split('__')[1],
     });
     expect(
-      wrapper
-        .find(Button)
-        .dive()
-        .find('.btn[disabled=false]'),
+      wrapper.find(Button).dive().find('.btn[disabled=false]'),
     ).toHaveLength(1);
   });
 

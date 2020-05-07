@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import layoutReducer from '../../../../src/dashboard/reducers/dashboardLayout';
+import layoutReducer from 'src/dashboard/reducers/dashboardLayout';
 
 import {
   UPDATE_COMPONENTS,
@@ -25,7 +25,7 @@ import {
   MOVE_COMPONENT,
   CREATE_TOP_LEVEL_TABS,
   DELETE_TOP_LEVEL_TABS,
-} from '../../../../src/dashboard/actions/dashboardLayout';
+} from 'src/dashboard/actions/dashboardLayout';
 
 import {
   CHART_TYPE,
@@ -34,7 +34,7 @@ import {
   ROW_TYPE,
   TAB_TYPE,
   TABS_TYPE,
-} from '../../../../src/dashboard/util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 
 import {
   DASHBOARD_ROOT_ID,
@@ -42,7 +42,7 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
   NEW_TABS_ID,
   NEW_ROW_ID,
-} from '../../../../src/dashboard/util/constants';
+} from 'src/dashboard/util/constants';
 
 describe('dashboardLayout reducer', () => {
   it('should return initial state for unrecognized actions', () => {

@@ -20,9 +20,9 @@ import {
   DANGER_TOAST,
   INFO_TOAST,
   SUCCESS_TOAST,
-} from '../../../../src/messageToasts/constants';
+} from 'src/messageToasts/constants';
 
-import getToastsFromPyFlashMessages from '../../../../src/messageToasts/utils/getToastsFromPyFlashMessages';
+import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
 
 describe('getToastsFromPyFlashMessages', () => {
   it('should return an info toast', () => {

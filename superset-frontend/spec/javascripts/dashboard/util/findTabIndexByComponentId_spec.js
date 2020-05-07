@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findTabIndexByComponentId from '../../../../src/dashboard/util/findTabIndexByComponentId';
+import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
 describe('findTabIndexByComponentId', () => {
   const topLevelTabsComponent = {

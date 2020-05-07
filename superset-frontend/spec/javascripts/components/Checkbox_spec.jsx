@@ -20,7 +20,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import Checkbox from '../../../src/components/Checkbox';
+import Checkbox from 'src/components/Checkbox';
 
 describe('Checkbox', () => {
   const defaultProps = {
@@ -49,10 +49,7 @@ describe('Checkbox', () => {
   });
   it('unchecks when clicked', () => {
     expect(wrapper.find('i.fa-check.text-transparent')).toHaveLength(0);
-    wrapper
-      .find('i')
-      .first()
-      .simulate('click');
+    wrapper.find('i').first().simulate('click');
     expect(defaultProps.onChange.calledOnce).toBe(true);
   });
 });

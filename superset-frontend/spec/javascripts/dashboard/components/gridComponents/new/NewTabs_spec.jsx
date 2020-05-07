@@ -19,11 +19,11 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import DraggableNewComponent from '../../../../../../src/dashboard/components/gridComponents/new/DraggableNewComponent';
-import NewTabs from '../../../../../../src/dashboard/components/gridComponents/new/NewTabs';
+import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
+import NewTabs from 'src/dashboard/components/gridComponents/new/NewTabs';
 
-import { NEW_TABS_ID } from '../../../../../../src/dashboard/util/constants';
-import { TABS_TYPE } from '../../../../../../src/dashboard/util/componentTypes';
+import { NEW_TABS_ID } from 'src/dashboard/util/constants';
+import { TABS_TYPE } from 'src/dashboard/util/componentTypes';
 
 describe('NewTabs', () => {
   function setup() {

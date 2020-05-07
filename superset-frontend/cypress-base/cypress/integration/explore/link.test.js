@@ -35,17 +35,12 @@ describe('Test explore links', () => {
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('button#query').click();
-    cy.get('span')
-      .contains('View query')
-      .parent()
-      .click();
+    cy.get('span').contains('View query').parent().click();
     cy.wait('@postJson').then(() => {
       cy.get('code');
     });
     cy.get('.modal-header').within(() => {
-      cy.get('button.close')
-        .first()
-        .click({ force: true });
+      cy.get('button.close').first().click({ force: true });
     });
   });
 

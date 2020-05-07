@@ -49,7 +49,7 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
-export default function(bootstrapData) {
+export default function (bootstrapData) {
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };

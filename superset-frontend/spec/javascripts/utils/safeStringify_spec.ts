@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { safeStringify } from '../../../src/utils/safeStringify';
+import { safeStringify } from 'src/utils/safeStringify';
 
 class Noise {
   public next?: Noise;

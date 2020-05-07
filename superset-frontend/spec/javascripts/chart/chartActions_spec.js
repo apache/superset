@@ -20,9 +20,9 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
 import * as chartlib from '@superset-ui/chart';
-import { LOG_EVENT } from '../../../src/logger/actions';
-import * as exploreUtils from '../../../src/explore/exploreUtils';
-import * as actions from '../../../src/chart/chartAction';
+import { LOG_EVENT } from 'src/logger/actions';
+import * as exploreUtils from 'src/explore/exploreUtils';
+import * as actions from 'src/chart/chartAction';
 
 describe('chart actions', () => {
   const V1_URL = '/http//localhost/api/v1/chart/data';

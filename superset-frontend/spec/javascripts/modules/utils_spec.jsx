@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  formatSelectOptionsForRange,
-  mainMetric,
-} from '../../../src/modules/utils';
+import { formatSelectOptionsForRange, mainMetric } from 'src/modules/utils';
 
 describe('utils', () => {
   describe('formatSelectOptionsForRange', () => {

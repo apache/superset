@@ -66,9 +66,7 @@ export default () =>
       cy.get('.dashboard-header')
         .contains('Edit dashboard')
         .trigger('click', { force: true });
-      cy.get('.fa.fa-trash')
-        .last()
-        .trigger('click', { force: true });
+      cy.get('.fa.fa-trash').last().trigger('click', { force: true });
       cy.get('.grid-container .box_plot').should('not.exist');
 
       cy.route('POST', '/superset/save_dash/**/').as('saveRequest');

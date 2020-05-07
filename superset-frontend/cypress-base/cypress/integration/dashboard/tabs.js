@@ -146,9 +146,7 @@ export default () =>
       });
 
       // click row level tab, send 1 more query
-      cy.get('.tab-content ul.nav.nav-tabs li')
-        .last()
-        .click();
+      cy.get('.tab-content ul.nav.nav-tabs li').last().click();
       cy.wait('@linechartRequest').then(xhr => {
         const requestFormData = xhr.request.body;
         const requestParams = JSON.parse(requestFormData.get('form_data'));
@@ -184,9 +182,7 @@ export default () =>
         .find('ul.nav.nav-tabs li')
         .first()
         .click();
-      cy.get('.tab-content ul.nav.nav-tabs li')
-        .first()
-        .click();
+      cy.get('.tab-content ul.nav.nav-tabs li').first().click();
       cy.get('span.Select-clear').click();
 
       // trigger 1 new query

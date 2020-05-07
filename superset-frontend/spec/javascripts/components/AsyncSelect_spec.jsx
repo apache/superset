@@ -21,7 +21,7 @@ import Select from 'react-select';
 import { shallow } from 'enzyme';
 import fetchMock from 'fetch-mock';
 
-import AsyncSelect from '../../../src/components/AsyncSelect';
+import AsyncSelect from 'src/components/AsyncSelect';
 
 describe('AsyncSelect', () => {
   afterAll(fetchMock.reset);

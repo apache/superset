@@ -98,9 +98,7 @@ class QueryTable extends React.PureComponent {
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
         }
-        const time = moment(q.startDttm)
-          .format()
-          .split('T');
+        const time = moment(q.startDttm).format().split('T');
         q.time = (
           <div>
             <span>
