@@ -56,7 +56,7 @@ const propTypes = {
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
-  css: PropTypes.string.isRequired,
+  customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
@@ -301,7 +301,7 @@ class Header extends React.PureComponent {
       dashboardTitle,
       layout,
       expandedSlices,
-      css,
+      customCss,
       colorNamespace,
       colorScheme,
       onUndo,
@@ -476,7 +476,7 @@ class Header extends React.PureComponent {
             dashboardTitle={dashboardTitle}
             layout={layout}
             expandedSlices={expandedSlices}
-            css={css}
+            customCss={customCss}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}
             onSave={onSave}
