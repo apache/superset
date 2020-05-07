@@ -33,7 +33,7 @@
     "@data-ui/xy-chart": "^0.0.84",
     "@vx/axis": "^0.0.195",
     "@vx/legend": "^0.0.195",
-    "@vx/scale": "^0.0.195",
+    "@vx/scale": "^0.0.196",
     "csstype": "^2.6.3",
     "encodable": "^0.3.4",
     "lodash": "^4.17.11",
