@@ -29,7 +29,7 @@ import { initFeatureFlags } from 'src/featureFlags';
 import { supersetTheme } from '@superset-ui/style';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
-import FlashError from 'src/components/FlashError';
+import FlashProvider from 'src/components/FlashProvider';
 import DashboardList from 'src/views/dashboardList/DashboardList';
 import ChartList from 'src/views/chartList/ChartList';
 import DatasetList from 'src/views/datasetList/DatasetList';
@@ -62,7 +62,7 @@ const store = createStore(
 const App = () => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
-      <FlashError common={common}>
+      <FlashProvider common={common}>
         <Router>
           <QueryParamProvider ReactRouterRoute={Route}>
             <Menu data={menu} />
@@ -91,7 +91,7 @@ const App = () => (
             <ToastPresenter />
           </QueryParamProvider>
         </Router>
-      </FlashError>
+      </FlashProvider>
     </ThemeProvider>
   </Provider>
 );

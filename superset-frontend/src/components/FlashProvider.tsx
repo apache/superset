@@ -17,14 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
-interface Arr {
-  func: () => void;
-}
+type Message = Array<string>;
+
 interface CommonObject {
-  flash_messages: Arr[]; 
+  flash_messages: Array<Message>; 
 }
 interface Props {
   children: Node;
@@ -40,13 +38,13 @@ const flashObj = {
 
 class FlashProvider extends React.PureComponent<Props> {
   componentDidMount() {
-    const flashArr = this.props.common.flash_messages as Arr[];
+    const flashArr = this.props.common.flash_messages;
     if (flashArr.length > 0) {
       flashArr.forEach((item, i) => {
-        const type = item[i][0];
-        const text = item[i][1];
+        const type = item[0];
+        const text = item[1];
         const flash = flashObj[type];
-        this.props[flash](t(text));
+        this.props[flash](text);
       });
     }
   }
