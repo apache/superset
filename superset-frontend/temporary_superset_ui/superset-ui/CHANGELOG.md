@@ -1,4 +1,32 @@
-# [0.0.0](https://github.com/apache-superset/superset-ui/compare/v0.13.5...v0.0.0) (2020-04-30)
+## [0.13.8](https://github.com/apache-superset/superset-ui/compare/v0.13.7...v0.13.8) (2020-05-07)
+
+
+### Bug Fixes
+
+* Remove .ts suffix from NVD3 imports ([#453](https://github.com/apache-superset/superset-ui/issues/453)) ([b80372d](https://github.com/apache-superset/superset-ui/commit/b80372da4c4aebe3161e5e04f245004840eca907))
+
+
+
+## [0.13.7](https://github.com/apache-superset/superset-ui/compare/v0.13.6...v0.13.7) (2020-05-06)
+
+
+### Features
+
+* **plugin-chart-sunburst:** migrate control panel from incubator-superset ([#443](https://github.com/apache-superset/superset-ui/issues/443)) ([a8a9e9c](https://github.com/apache-superset/superset-ui/commit/a8a9e9c12e074140c371abaf12eb9d6307c314a9))
+
+
+
+## [0.13.6](https://github.com/apache-superset/superset-ui/compare/v0.13.5...v0.13.6) (2020-05-06)
+
+
+### Bug Fixes
+
+* **legacy-plugin-world-map:** set useLegacyApi to true by default ([#444](https://github.com/apache-superset/superset-ui/issues/444)) ([3b9c478](https://github.com/apache-superset/superset-ui/commit/3b9c478e2190e90979f9b9982ca7a0dfa0c5a2ba))
+
+
+### Features
+
+* **query:** Add force to QueryContext ([#445](https://github.com/apache-superset/superset-ui/issues/445)) ([a243911](https://github.com/apache-superset/superset-ui/commit/a24391159dfcc4a6ce3d48ce42f98669b8b189b3))
 
 
 
