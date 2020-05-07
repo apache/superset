@@ -94,10 +94,7 @@ export function getExploreLongUrl(
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }
-  const url = uri
-    .directory(directory)
-    .search(search)
-    .toString();
+  const url = uri.directory(directory).search(search).toString();
   if (!allowOverflow && url.length > MAX_URL_LENGTH) {
     const minimalFormData = {
       datasource: formData.datasource,

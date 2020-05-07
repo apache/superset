@@ -55,12 +55,8 @@ describe('ViewportControl', () => {
   });
 
   it('renders a summary in the label', () => {
-    expect(
-      wrapper
-        .find(Label)
-        .first()
-        .render()
-        .text(),
-    ).toBe('6° 51\' 8.50" | 31° 13\' 21.56"');
+    expect(wrapper.find(Label).first().render().text()).toBe(
+      '6° 51\' 8.50" | 31° 13\' 21.56"',
+    );
   });
 });

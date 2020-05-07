@@ -59,9 +59,7 @@ describe('AdhocMetrics', () => {
       cy.get('.select-clear').click();
       cy.get('.Select-control').click({ force: true });
       cy.get('input').type('sum_girls', { force: true });
-      cy.get('.VirtualizedSelectFocusedOption')
-        .trigger('mousedown')
-        .click();
+      cy.get('.VirtualizedSelectFocusedOption').trigger('mousedown').click();
     });
 
     cy.get('#metrics-edit-popover').within(() => {
@@ -69,9 +67,7 @@ describe('AdhocMetrics', () => {
         cy.get('span').click();
         cy.get('input').type(metricName);
       });
-      cy.get('button')
-        .contains('Save')
-        .click();
+      cy.get('button').contains('Save').click();
     });
 
     cy.get('button.query').click();
@@ -101,9 +97,7 @@ describe('AdhocMetrics', () => {
       cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
       cy.get('.ace_content').click();
       cy.get('.ace_text-input').type('/COUNT(DISTINCT name)', { force: true });
-      cy.get('button')
-        .contains('Save')
-        .click();
+      cy.get('button').contains('Save').click();
     });
 
     cy.get('button.query').click();
@@ -122,9 +116,7 @@ describe('AdhocMetrics', () => {
       cy.get('.select-clear').click();
       cy.get('.Select-control').click({ force: true });
       cy.get('input').type('sum_girls', { force: true });
-      cy.get('.VirtualizedSelectFocusedOption')
-        .trigger('mousedown')
-        .click();
+      cy.get('.VirtualizedSelectFocusedOption').trigger('mousedown').click();
     });
 
     cy.get('#metrics-edit-popover').within(() => {
@@ -136,9 +128,7 @@ describe('AdhocMetrics', () => {
       });
       cy.get('#adhoc-metric-edit-tabs-tab-SIMPLE').click();
       cy.get('.select-value-label').contains('num');
-      cy.get('button')
-        .contains('Save')
-        .click();
+      cy.get('button').contains('Save').click();
     });
 
     cy.get('button.query').click();
@@ -164,22 +154,16 @@ describe('AdhocFilters', () => {
     cy.get('[data-test=adhoc_filters]').within(() => {
       cy.get('.Select-control').click({ force: true });
       cy.get('input').type('name', { force: true });
-      cy.get('.VirtualizedSelectFocusedOption')
-        .trigger('mousedown')
-        .click();
+      cy.get('.VirtualizedSelectFocusedOption').trigger('mousedown').click();
     });
     cy.get('.adhoc-filter-option').click({ force: true });
     cy.get('#filter-edit-popover').within(() => {
       cy.get('[data-test=adhoc-filter-simple-value]').within(() => {
         cy.get('div.select-input').click({ force: true });
         cy.get('input.select-input').type('Amy', { force: true });
-        cy.get('.VirtualizedSelectFocusedOption')
-          .trigger('mousedown')
-          .click();
+        cy.get('.VirtualizedSelectFocusedOption').trigger('mousedown').click();
       });
-      cy.get('button')
-        .contains('Save')
-        .click();
+      cy.get('button').contains('Save').click();
     });
 
     cy.get('button.query').click();
@@ -196,9 +180,7 @@ describe('AdhocFilters', () => {
     cy.get('[data-test=adhoc_filters]').within(() => {
       cy.get('.Select-control').click({ force: true });
       cy.get('input').type('name', { force: true });
-      cy.get('.VirtualizedSelectFocusedOption')
-        .trigger('mousedown')
-        .click();
+      cy.get('.VirtualizedSelectFocusedOption').trigger('mousedown').click();
     });
 
     cy.get('.adhoc-filter-option').click({ force: true });
@@ -206,9 +188,7 @@ describe('AdhocFilters', () => {
       cy.get('#adhoc-filter-edit-tabs-tab-SQL').click();
       cy.get('.ace_content').click();
       cy.get('.ace_text-input').type("'Amy' OR name = 'Bob'", { force: true });
-      cy.get('button')
-        .contains('Save')
-        .click();
+      cy.get('button').contains('Save').click();
     });
 
     cy.get('button.query').click();
@@ -241,9 +221,7 @@ describe('Advanced analytics', () => {
     cy.get('[data-test=time_compare]').within(() => {
       cy.get('.Select-control').click({ force: true });
       cy.get('input').type('364 days', { force: true });
-      cy.get('.VirtualizedSelectOption')
-        .trigger('mousedown')
-        .click();
+      cy.get('.VirtualizedSelectOption').trigger('mousedown').click();
     });
 
     cy.get('button.query').click();
@@ -289,9 +267,7 @@ describe('Annotations', () => {
         .within(() => {
           cy.get('input').type('y=1400000');
         });
-      cy.get('button')
-        .contains('OK')
-        .click();
+      cy.get('button').contains('OK').click();
     });
 
     cy.get('button.query').click();

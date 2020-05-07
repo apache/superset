@@ -29,9 +29,9 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import IconButton from 'src/dashboard/components/IconButton';
 import Row from 'src/dashboard/components/gridComponents/Row';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
 
 import { mockStore } from '../../fixtures/mockStore';
-import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
 import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';
 import WithDragDropContext from '../../helpers/WithDragDropContext';
 

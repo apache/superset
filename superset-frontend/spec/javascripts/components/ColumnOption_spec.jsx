@@ -60,12 +60,7 @@ describe('ColumnOption', () => {
   it('shows a label with column_name when no verbose_name', () => {
     props.column.verbose_name = null;
     wrapper = shallow(factory(props));
-    expect(
-      wrapper
-        .find('.option-label')
-        .first()
-        .text(),
-    ).toBe('foo');
+    expect(wrapper.find('.option-label').first().text()).toBe('foo');
   });
   it('shows a column type label when showType is true', () => {
     wrapper = shallow(

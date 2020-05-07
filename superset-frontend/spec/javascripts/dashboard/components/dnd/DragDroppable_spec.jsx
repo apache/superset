@@ -21,10 +21,7 @@ import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
 
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import {
-  CHART_TYPE,
-  ROW_TYPE,
-} from 'src/dashboard/util/componentTypes';
+import { CHART_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import { UnwrappedDragDroppable as DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 
 describe('DragDroppable', () => {

@@ -128,11 +128,7 @@ describe('DashboardBuilder', () => {
 
   it('should set animation=true, mountOnEnter=true, and unmounOnExit=false on TabContainer for perf', () => {
     const wrapper = setup({ dashboardLayout: layoutWithTabs });
-    const tabProps = wrapper
-      .find(ParentSize)
-      .dive()
-      .find(TabContainer)
-      .props();
+    const tabProps = wrapper.find(ParentSize).dive().find(TabContainer).props();
     expect(tabProps.animation).toBe(true);
     expect(tabProps.mountOnEnter).toBe(true);
     expect(tabProps.unmountOnExit).toBe(false);

@@ -94,10 +94,7 @@ describe('DatasourceEditor', () => {
     wrapper.setState({ activeTabKey: 4 });
     expect(wrapper.state('isSqla')).toBe(true);
     expect(
-      wrapper
-        .find(Field)
-        .find({ fieldKey: 'fetch_values_predicate' })
-        .exists(),
+      wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists(),
     ).toBe(true);
   });
 });

@@ -70,22 +70,16 @@ describe('DatasourceControl', () => {
   it('show or hide Edit Datasource option', () => {
     let wrapper = setup();
     expect(wrapper.find('#datasource_menu')).toHaveLength(1);
-    expect(
-      wrapper
-        .find('#datasource_menu')
-        .dive()
-        .find(MenuItem),
-    ).toHaveLength(2);
+    expect(wrapper.find('#datasource_menu').dive().find(MenuItem)).toHaveLength(
+      2,
+    );
 
     wrapper = setup({
       onDatasourceSave: () => {},
     });
     expect(wrapper.find('#datasource_menu')).toHaveLength(1);
-    expect(
-      wrapper
-        .find('#datasource_menu')
-        .dive()
-        .find(MenuItem),
-    ).toHaveLength(3);
+    expect(wrapper.find('#datasource_menu').dive().find(MenuItem)).toHaveLength(
+      3,
+    );
   });
 });

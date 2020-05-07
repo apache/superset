@@ -55,20 +55,12 @@ describe('ControlPanelSection', () => {
     });
 
     it('renders a label if present', () => {
-      expect(
-        wrapper
-          .find(Panel.Title)
-          .dive()
-          .text(),
-      ).toContain('my label');
+      expect(wrapper.find(Panel.Title).dive().text()).toContain('my label');
     });
 
     it('renders a InfoTooltipWithTrigger if label and tooltip is present', () => {
       expect(
-        wrapper
-          .find(Panel)
-          .dive()
-          .find(InfoTooltipWithTrigger),
+        wrapper.find(Panel).dive().find(InfoTooltipWithTrigger),
       ).toHaveLength(1);
     });
   });

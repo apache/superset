@@ -50,20 +50,12 @@ describe('TableElement', () => {
   it('sorts columns', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);
     expect(wrapper.state().sortColumns).toBe(false);
-    expect(
-      wrapper
-        .find(ColumnElement)
-        .first()
-        .props().column.name,
-    ).toBe('id');
+    expect(wrapper.find(ColumnElement).first().props().column.name).toBe('id');
     wrapper.find('.sort-cols').simulate('click');
     expect(wrapper.state().sortColumns).toBe(true);
-    expect(
-      wrapper
-        .find(ColumnElement)
-        .first()
-        .props().column.name,
-    ).toBe('active');
+    expect(wrapper.find(ColumnElement).first().props().column.name).toBe(
+      'active',
+    );
   });
   it('calls the collapseTable action', () => {
     const wrapper = mount(<TableElement {...mockedProps} />);

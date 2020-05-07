@@ -22,9 +22,7 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Button, FormGroup, Popover } from 'react-bootstrap';
 
-import AdhocMetric, {
-  EXPRESSION_TYPES,
-} from 'src/explore/AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
 import AdhocMetricEditPopover from 'src/explore/components/AdhocMetricEditPopover';
 import { AGGREGATES } from 'src/explore/constants';
 
