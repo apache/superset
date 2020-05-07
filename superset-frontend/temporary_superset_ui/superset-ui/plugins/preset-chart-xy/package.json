@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/preset-chart-xy",
-  "version": "0.13.5",
+  "version": "0.13.8",
   "description": "Superset Chart - XY",
   "sideEffects": [
     "*.css"
