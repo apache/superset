@@ -39,14 +39,11 @@ const flashObj = {
 class FlashProvider extends React.PureComponent<Props> {
   componentDidMount() {
     const flashArr = this.props.common.flash_messages;
-    if (flashArr.length > 0) {
-      flashArr.forEach((item, i) => {
-        const type = item[0];
-        const text = item[1];
-        const flash = flashObj[type];
-        this.props[flash](text);
-      });
-    }
+    flashArr.forEach(item => {
+      const [type, text] = item;
+      const flash = flashObj[type];
+      this.props[flash](text);
+    });
   }
   render() {
     return this.props.children;
