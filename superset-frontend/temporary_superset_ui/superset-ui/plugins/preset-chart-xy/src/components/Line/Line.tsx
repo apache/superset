@@ -225,9 +225,9 @@ export default class LineChart extends PureComponent<Props> {
           onMouseMove,
           tooltipData,
         }: {
-          onMouseLeave: (...args: any[]) => void;
-          onMouseMove: (...args: any[]) => void;
-          tooltipData: any;
+          onMouseLeave: (...args: unknown[]) => void;
+          onMouseMove: (...args: unknown[]) => void;
+          tooltipData: { datum: { y?: number } };
         }) => (
           <XYChart
             showYGrid
@@ -240,7 +240,9 @@ export default class LineChart extends PureComponent<Props> {
             renderTooltip={null}
             theme={theme}
             tooltipData={tooltipData}
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
             xScale={convertScaleToDataUIScale(channels.x.definition.scale as any)}
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
             yScale={convertScaleToDataUIScale(channels.y.definition.scale as any)}
             onMouseMove={onMouseMove}
             onMouseLeave={onMouseLeave}

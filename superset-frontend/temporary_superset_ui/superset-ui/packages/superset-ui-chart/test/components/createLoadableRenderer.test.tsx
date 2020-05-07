@@ -10,7 +10,7 @@ describe('createLoadableRenderer', () => {
     return <div className="test-component">test</div>;
   }
   let loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
-  let render: (loaded: { [key: string]: any }) => JSX.Element;
+  let render: (loaded: { Chart: React.ComponentType }) => JSX.Element;
   let loading: () => JSX.Element;
   let LoadableRenderer: LoadableRendererType<{}, {}>;
   let restoreConsole: RestoreConsole;
