@@ -59,7 +59,6 @@ import PivotTable from '../explore/controlPanels/PivotTable';
 import Rose from '../explore/controlPanels/Rose';
 import Sankey from '../explore/controlPanels/Sankey';
 import Separator from '../explore/controlPanels/Separator';
-import Sunburst from '../explore/controlPanels/Sunburst';
 import Table from '../explore/controlPanels/Table';
 import TimePivot from '../explore/controlPanels/TimePivot';
 import TimeTable from '../explore/controlPanels/TimeTable';
@@ -102,7 +101,6 @@ export default function setupPlugins() {
     .registerValue('rose', Rose)
     .registerValue('sankey', Sankey)
     .registerValue('separator', Separator)
-    .registerValue('sunburst', Sunburst)
     .registerValue('table', Table)
     .registerValue('time_pivot', TimePivot)
     .registerValue('time_table', TimeTable)
