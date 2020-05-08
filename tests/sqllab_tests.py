@@ -24,9 +24,8 @@ from unittest import mock
 import prison
 
 import tests.test_app
-from superset import config, db, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
-from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -122,29 +121,64 @@ class SqlLabTests(SupersetTestCase):
         examples_db_permission_view = security_manager.add_permission_view_menu(
             "database_access", examples_db.perm
         )
-
-        astronaut = security_manager.add_role("Astronaut")
+        astronaut = security_manager.add_role("ExampleDBAccess")
         security_manager.add_permission_role(astronaut, examples_db_permission_view)
-        # Astronaut role is Gamma + sqllab + db permissions
-        for perm in security_manager.find_role("Gamma").permissions:
-            security_manager.add_permission_role(astronaut, perm)
-        for perm in security_manager.find_role("sql_lab").permissions:
-            security_manager.add_permission_role(astronaut, perm)
+        # Gamma user, with sqllab and db permission
+        self.create_user_with_roles("Gagarin", ["ExampleDBAccess", "Gamma", "sql_lab"])
 
-        gagarin = security_manager.find_user("gagarin")
-        if not gagarin:
-            security_manager.add_user(
-                "gagarin",
-                "Iurii",
-                "Gagarin",
-                "gagarin@cosmos.ussr",
-                astronaut,
-                password="general",
-            )
-        data = self.run_sql(QUERY_1, "3", user_name="gagarin")
+        data = self.run_sql(QUERY_1, "1", user_name="Gagarin")
         db.session.query(Query).delete()
         db.session.commit()
         self.assertLess(0, len(data["data"]))
+
+    def test_sql_json_schema_access(self):
+        examples_db = get_example_database()
+        db_backend = examples_db.backend
+        if db_backend == "sqlite":
+            # sqlite doesn't support database creation
+            return
+
+        sqllab_test_db_schema_permission_view = security_manager.add_permission_view_menu(
+            "schema_access", f"[{examples_db.name}].[sqllab_test_db]"
+        )
+        schema_perm_role = security_manager.add_role("SchemaPermission")
+        security_manager.add_permission_role(
+            schema_perm_role, sqllab_test_db_schema_permission_view
+        )
+        self.create_user_with_roles(
+            "SchemaUser", ["SchemaPermission", "Gamma", "sql_lab"]
+        )
+
+        db.session.execute(
+            "CREATE TABLE IF NOT EXISTS sqllab_test_db.test_table AS SELECT 1 as c1, 2 as c2"
+        )
+
+        data = self.run_sql(
+            "SELECT * FROM sqllab_test_db.test_table", "3", user_name="SchemaUser"
+        )
+        self.assertEqual(1, len(data["data"]))
+
+        data = self.run_sql(
+            "SELECT * FROM sqllab_test_db.test_table",
+            "4",
+            user_name="SchemaUser",
+            schema="sqllab_test_db",
+        )
+        self.assertEqual(1, len(data["data"]))
+
+        # postgres needs a schema as a part of the table name.
+        if db_backend == "mysql":
+            data = self.run_sql(
+                "SELECT * FROM test_table",
+                "5",
+                user_name="SchemaUser",
+                schema="sqllab_test_db",
+            )
+            self.assertEqual(1, len(data["data"]))
+
+        db.session.query(Query).delete()
+        db.session.execute("DROP TABLE IF EXISTS sqllab_test_db.test_table")
+        db.session.commit()
 
     def test_queries_endpoint(self):
         self.run_some_queries()
