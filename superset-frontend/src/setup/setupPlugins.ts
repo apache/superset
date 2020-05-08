@@ -25,7 +25,6 @@ import Bar from '../explore/controlPanels/Bar';
 import BoxPlot from '../explore/controlPanels/BoxPlot';
 import Bubble from '../explore/controlPanels/Bubble';
 import Bullet from '../explore/controlPanels/Bullet';
-import CalHeatmap from '../explore/controlPanels/CalHeatmap';
 import Chord from '../explore/controlPanels/Chord';
 import Compare from '../explore/controlPanels/Compare';
 import CountryMap from '../explore/controlPanels/CountryMap';
@@ -75,7 +74,6 @@ export default function setupPlugins() {
     .registerValue('box_plot', BoxPlot)
     .registerValue('bubble', Bubble)
     .registerValue('bullet', Bullet)
-    .registerValue('cal_heatmap', CalHeatmap)
     .registerValue('chord', Chord)
     .registerValue('compare', Compare)
     .registerValue('country_map', CountryMap)
