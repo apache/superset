@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['https://bl.ocks.org/mbostock/911ad09bdead40ec0061'],
@@ -35,6 +36,7 @@ export default class TreemapChartPlugin extends ChartPlugin {
       loadChart: () => import('./ReactTreemap.js'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
