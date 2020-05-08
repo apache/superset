@@ -86,5 +86,14 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     @classmethod
     def apply_limit_to_sql(cls, sql: str, limit: int, database: "Database") -> str:
-        new_sql = ParsedQuery(sql).set_alias()
-        return super().apply_limit_to_sql(new_sql, limit, database)
+        return super().apply_limit_to_sql(sql, limit, database)
+
+    @classmethod
+    def extract_error_message(cls, ex: Exception) -> str:
+        from pymssql import OperationalError
+
+        if isinstance(ex, OperationalError) and str(ex).startswith("(8155"):
+            return (
+                f"{cls.engine} error: All your functions need to have alias on MSSQL."
+            )
+        return f"{cls.engine} error: {cls._extract_error_message(ex)}"
