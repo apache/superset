@@ -19,6 +19,7 @@
 import { ChartPlugin } from '@superset-ui/chart';
 import createMetadata from './createMetadata';
 import transformProps from './transformProps';
+import controlPanel from './controlPanel';
 
 export default class BoxPlotChartPlugin extends ChartPlugin {
   constructor() {
@@ -26,6 +27,7 @@ export default class BoxPlotChartPlugin extends ChartPlugin {
       loadChart: () => import('../components/BoxPlot/BoxPlot'),
       metadata: createMetadata(),
       transformProps,
+      controlPanel,
     });
   }
 }
