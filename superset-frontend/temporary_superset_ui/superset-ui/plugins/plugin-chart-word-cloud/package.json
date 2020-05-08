@@ -40,6 +40,7 @@
     "@superset-ui/color": "^0.13.0",
     "@superset-ui/query": "^0.13.0",
     "@superset-ui/translation": "^0.13.0",
+    "@superset-ui/validator": "^0.13.0",
     "react": "^16.3.0"
   }
 }
