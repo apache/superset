@@ -63,7 +63,6 @@ import Table from '../explore/controlPanels/Table';
 import TimePivot from '../explore/controlPanels/TimePivot';
 import TimeTable from '../explore/controlPanels/TimeTable';
 import Treemap from '../explore/controlPanels/Treemap';
-import WordCloud from '../explore/controlPanels/WordCloud';
 import WorldMap from '../explore/controlPanels/WorldMap';
 
 export default function setupPlugins() {
@@ -105,7 +104,6 @@ export default function setupPlugins() {
     .registerValue('time_pivot', TimePivot)
     .registerValue('time_table', TimeTable)
     .registerValue('treemap', Treemap)
-    .registerValue('word_cloud', WordCloud)
     .registerValue('world_map', WorldMap)
     .registerValue('deck_arc', DeckArc)
     .registerValue('deck_geojson', DeckGeojson)
