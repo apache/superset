@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-rose",
-  "version": "0.13.5",
+  "version": "0.13.10",
   "description": "Superset Legacy Chart - Nightingale Rose Diagram",
   "sideEffects": [
     "*.css"
@@ -33,12 +33,12 @@
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
-    "react": "^16.13.1",
     "@superset-ui/chart": "^0.13.0",
     "@superset-ui/color": "^0.13.0",
     "@superset-ui/control-utils": "^0.13.9",
     "@superset-ui/number-format": "^0.13.0",
     "@superset-ui/time-format": "^0.13.0",
-    "@superset-ui/translation": "^0.13.0"
+    "@superset-ui/translation": "^0.13.0",
+    "react": "^16.13.1"
   }
 }
