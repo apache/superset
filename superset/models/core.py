@@ -165,7 +165,13 @@ class Database(
 
     @property
     def function_names(self) -> List[str]:
-        return self.db_engine_spec.get_function_names(self)
+        try:
+            return self.db_engine_spec.get_function_names(self)
+        except Exception as ex:  # pylint: disable=broad-except
+            # function_names property is used in bulk APIs and should not hard crash
+            # more info in: https://github.com/apache/incubator-superset/issues/9678
+            logger.error(f"Failed to fetch database function names with error: {ex}")
+        return []
 
     @property
     def allows_cost_estimate(self) -> bool:
