@@ -333,7 +333,7 @@ class SupersetSecurityManager(SecurityManager):
         if self.database_access(database) or self.all_datasource_access():
             return True
 
-        schema_perm = self.get_schema_perm(database, schema)
+        schema_perm = self.get_schema_perm(database, schema=table.schema or schema)
         if schema_perm and self.can_access("schema_access", schema_perm):
             return True
 
@@ -356,7 +356,6 @@ class SupersetSecurityManager(SecurityManager):
         :param schema: The SQL database schema
         :returns: The rejected tables
         """
-
         query = sql_parse.ParsedQuery(sql)
 
         return {
