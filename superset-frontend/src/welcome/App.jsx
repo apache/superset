@@ -29,6 +29,7 @@ import { initFeatureFlags } from 'src/featureFlags';
 import { supersetTheme } from '@superset-ui/style';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
+import FlashProvider from 'src/components/FlashProvider';
 import DashboardList from 'src/views/dashboardList/DashboardList';
 import ChartList from 'src/views/chartList/ChartList';
 import DatasetList from 'src/views/datasetList/DatasetList';
@@ -47,7 +48,7 @@ const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));
 const user = { ...bootstrap.user };
 const menu = { ...bootstrap.common.menu_data };
-
+const common = { ...bootstrap.common };
 initFeatureFlags(bootstrap.common.feature_flags);
 
 const store = createStore(
@@ -61,34 +62,36 @@ const store = createStore(
 const App = () => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
-      <Router>
-        <QueryParamProvider ReactRouterRoute={Route}>
-          <Menu data={menu} />
-          <Switch>
-            <Route path="/superset/welcome/">
-              <ErrorBoundary>
-                <Welcome user={user} />
-              </ErrorBoundary>
-            </Route>
-            <Route path="/dashboard/list/">
-              <ErrorBoundary>
-                <DashboardList user={user} />
-              </ErrorBoundary>
-            </Route>
-            <Route path="/chart/list/">
-              <ErrorBoundary>
-                <ChartList user={user} />
-              </ErrorBoundary>
-            </Route>
-            <Route path="/tablemodelview/list/">
-              <ErrorBoundary>
-                <DatasetList user={user} />
-              </ErrorBoundary>
-            </Route>
-          </Switch>
-          <ToastPresenter />
-        </QueryParamProvider>
-      </Router>
+      <FlashProvider common={common}>
+        <Router>
+          <QueryParamProvider ReactRouterRoute={Route}>
+            <Menu data={menu} />
+            <Switch>
+              <Route path="/superset/welcome/">
+                <ErrorBoundary>
+                  <Welcome user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/dashboard/list/">
+                <ErrorBoundary>
+                  <DashboardList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/chart/list/">
+                <ErrorBoundary>
+                  <ChartList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/tablemodelview/list/">
+                <ErrorBoundary>
+                  <DatasetList user={user} />
+                </ErrorBoundary>
+              </Route>
+            </Switch>
+            <ToastPresenter />
+          </QueryParamProvider>
+        </Router>
+      </FlashProvider>
     </ThemeProvider>
   </Provider>
 );
