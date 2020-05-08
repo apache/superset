@@ -17,26 +17,24 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
-import controlPanel from './controlPanel';
 
-const metadata = new ChartMetadata({
-  credits: ['https://github.com/d3/d3-sankey'],
-  description: '',
-  name: t('Sankey Diagram'),
-  thumbnail,
-  useLegacyApi: true,
-});
-
-export default class SankeyChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./ReactSankey.js'),
-      metadata,
-      transformProps,
-      controlPanel,
-    });
-  }
-}
+export default {
+  controlPanelSections: [
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit']],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [['color_scheme', 'label_colors']],
+    },
+  ],
+  controlOverrides: {
+    groupby: {
+      label: t('Source / Target'),
+      description: t('Choose a source and a target'),
+    },
+  },
+};
