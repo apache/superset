@@ -51,7 +51,7 @@
     "vx"
   ],
   "license": "Apache-2.0",
-  "devDependencies": {
+  "dependencies": {
     "@airbnb/config-babel": "^3.1.0",
     "@airbnb/config-eslint": "^3.1.0",
     "@airbnb/config-jest": "^3.0.1",
@@ -204,12 +204,16 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged"
+      "pre-commit": "lint-staged",
+      "commit-msg": "./scripts/commitlint.js HUSKY_GIT_PARAMS"
     }
   },
   "lint-staged": {
     "./{packages,plugins}/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}": [
-      "yarn prettier --write"
+      "yarn prettier"
+    ],
+    "./{packages,plugins}/*.md": [
+      "yarn prettier"
     ]
   }
 }
