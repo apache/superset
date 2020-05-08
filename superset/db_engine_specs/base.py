@@ -52,6 +52,7 @@ from sqlalchemy.types import TypeEngine
 from superset import app, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.sql_parse import Table
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -455,8 +456,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def create_table_from_csv(  # pylint: disable=too-many-arguments
         cls,
         filename: str,
-        table_name: str,
-        schema_name: str,
+        table: Table,
         database: "Database",
         csv_to_df_kwargs: Dict[str, Any],
         df_to_sql_kwargs: Dict[str, Any],
@@ -467,9 +467,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs,)
         engine = cls.get_engine(database)
-        if schema_name:
+        if table.schema:
             # only add schema when it is preset and non empty
-            df_to_sql_kwargs["schema"] = schema_name
+            df_to_sql_kwargs["schema"] = table.schema
         if engine.dialect.supports_multivalues_insert:
             df_to_sql_kwargs["method"] = "multi"
         cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)

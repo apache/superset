@@ -46,6 +46,7 @@ from superset import (
     is_feature_enabled,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.datasets.dao import DatasetDAO
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
@@ -848,6 +849,39 @@ class CoreTests(SupersetTestCase):
             )
         finally:
             os.remove(filename)
+
+    def test_import_csv_explore_database(self):
+        if utils.get_example_database().backend == "sqlite":
+            # sqlite doesn't support schema / database creation
+            return
+        explore_db_id = utils.get_example_database().id
+
+        upload_db = utils.get_or_create_db(
+            "csv_explore_db", app.config["SQLALCHEMY_DATABASE_URI"]
+        )
+        upload_db_id = upload_db.id
+        extra = upload_db.get_extra()
+        extra["explore_database_id"] = explore_db_id
+        upload_db.extra = json.dumps(extra)
+        db.session.commit()
+
+        self.login(username="admin")
+        self.enable_csv_upload(DatasetDAO.get_database_by_id(upload_db_id))
+        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+
+        f = "testCSV.csv"
+        self.create_sample_csvfile(f, ["a,b", "john,1", "paul,2"])
+        # initial upload with fail mode
+        resp = self.upload_csv(f, table_name)
+        self.assertIn(f'CSV file "{f}" uploaded to table "{table_name}"', resp)
+        table = self.get_table_by_name(table_name)
+        self.assertEqual(table.database_id, explore_db_id)
+
+        # cleanup
+        db.session.delete(table)
+        db.session.delete(DatasetDAO.get_database_by_id(upload_db_id))
+        db.session.commit()
+        os.remove(f)
 
     def test_import_csv(self):
         self.login(username="admin")

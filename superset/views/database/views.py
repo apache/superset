@@ -30,6 +30,7 @@ from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.exceptions import CertificateException
+from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
@@ -109,15 +110,25 @@ class CsvToDatabaseView(SimpleFormView):
 
     def form_post(self, form):
         database = form.con.data
-        schema_name = form.schema.data
-        table_name = form.name.data
+        csv_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, schema_name):
+        if not schema_allows_csv_upload(database, csv_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
-                schema_name=schema_name,
+                schema_name=csv_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/csvtodatabaseview/form")
+
+        if "." in csv_table.table and csv_table.schema:
+            message = _(
+                "You cannot specify a namespace both in the name of the table: "
+                '"%(csv_table.table)s" and in the schema field: '
+                '"%(csv_table.schema)s". Please remove one',
+                table=csv_table.table,
+                schema=csv_table.schema,
             )
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
@@ -150,7 +161,7 @@ class CsvToDatabaseView(SimpleFormView):
                 "chunksize": 1000,
             }
             df_to_sql_kwargs = {
-                "name": table_name,
+                "name": csv_table.table,
                 "if_exists": form.if_exists.data,
                 "index": form.index.data,
                 "index_label": form.index_label.data,
@@ -158,31 +169,45 @@ class CsvToDatabaseView(SimpleFormView):
             }
             database.db_engine_spec.create_table_from_csv(
                 uploaded_tmp_file_path,
-                table_name,
-                schema_name,
+                csv_table,
                 database,
                 csv_to_df_kwargs,
                 df_to_sql_kwargs,
             )
 
-            table = (
+            # Connect table to the database that should be used for exploration.
+            # E.g. if hive was used to upload a csv, presto will be a better option
+            # to explore the table.
+            expore_database = database
+            explore_database_id = database.get_extra().get("explore_database_id", None)
+            if explore_database_id:
+                expore_database = (
+                    db.session.query(models.Database)
+                    .filter_by(id=explore_database_id)
+                    .one_or_none()
+                    or database
+                )
+
+            sqla_table = (
                 db.session.query(SqlaTable)
                 .filter_by(
-                    table_name=table_name, schema=schema_name, database_id=database.id,
+                    table_name=csv_table.table,
+                    schema=csv_table.schema,
+                    database_id=expore_database.id,
                 )
                 .one_or_none()
             )
 
-            if table:
-                table.fetch_metadata()
-            if not table:
-                table = SqlaTable(table_name=table_name)
-                table.database = database
-                table.database_id = database.id
-                table.user_id = g.user.id
-                table.schema = schema_name
-                table.fetch_metadata()
-                db.session.add(table)
+            if sqla_table:
+                sqla_table.fetch_metadata()
+            if not sqla_table:
+                sqla_table = SqlaTable(table_name=csv_table.table)
+                sqla_table.database = expore_database
+                sqla_table.database_id = database.id
+                sqla_table.user_id = g.user.id
+                sqla_table.schema = csv_table.schema
+                sqla_table.fetch_metadata()
+                db.session.add(sqla_table)
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
@@ -210,10 +235,8 @@ class CsvToDatabaseView(SimpleFormView):
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
             csv_filename=form.csv_file.data.filename,
-            table_name=f"{schema_name}.{form.name.data}"
-            if schema_name
-            else form.name.data,
-            db_name=table.database.database_name,
+            table_name=str(csv_table),
+            db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
         stats_logger.incr("successful_csv_upload")
