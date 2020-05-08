@@ -20,6 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { InfoTooltipWithTrigger } from '@superset-ui/control-util';
 
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 import MetricOption from '../../../src/components/MetricOption';
 import ColumnTypeLabel from '../../../src/components/ColumnTypeLabel';
 
