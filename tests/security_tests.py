@@ -832,10 +832,10 @@ class RowLevelSecurityTests(SupersetTestCase):
         self.rls_entry = RowLevelSecurityFilter()
         self.rls_entry.tables.extend(
             session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names", "bart_lines"]))
+            .filter(SqlaTable.table_name.in_(["energy_usage", "unicode_test"]))
             .all()
         )
-        self.rls_entry.clause = "name = 'Anna'"
+        self.rls_entry.clause = "value > 1"
         self.rls_entry.roles.append(
             security_manager.find_role("Gamma")
         )  # db.session.query(Role).filter_by(name="Gamma").first())
@@ -854,55 +854,55 @@ class RowLevelSecurityTests(SupersetTestCase):
         g.user = self.get_user(
             username="alpha"
         )  # self.login() doesn't actually set the user
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table_by_name("energy_usage")
         query_obj = dict(
             groupby=[],
             metrics=[],
             filter=[],
             is_timeseries=False,
-            columns=["name"],
+            columns=["value"],
             granularity=None,
             from_dttm=None,
             to_dttm=None,
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertIn("name = 'Anna'", sql)
+        self.assertIn("value > 1", sql)
 
     def test_rls_filter_doesnt_alter_query(self):
         g.user = self.get_user(
             username="admin"
         )  # self.login() doesn't actually set the user
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table_by_name("energy_usage")
         query_obj = dict(
             groupby=[],
             metrics=[],
             filter=[],
             is_timeseries=False,
-            columns=["name"],
+            columns=["value"],
             granularity=None,
             from_dttm=None,
             to_dttm=None,
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertNotIn("name = 'Anna'", sql)
+        self.assertNotIn("value > 1", sql)
 
     def test_multiple_table_filter_alters_another_tables_query(self):
         g.user = self.get_user(
             username="alpha"
         )  # self.login() doesn't actually set the user
-        tbl = self.get_table_by_name("bart_lines")
+        tbl = self.get_table_by_name("unicode_test")
         query_obj = dict(
             groupby=[],
             metrics=[],
             filter=[],
             is_timeseries=False,
-            columns=["name"],
+            columns=["value"],
             granularity=None,
             from_dttm=None,
             to_dttm=None,
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertIn("name = 'Anna'", sql)
+        self.assertIn("value > 1", sql)

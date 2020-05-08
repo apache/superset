@@ -40,9 +40,6 @@ class SupersetDataFrameTestCase(SupersetTestCase):
     def test_load_birth_names(self):
         self.examples.load_birth_names()
 
-    def test_load_bart_lines(self):
-        self.examples.load_bart_lines()
-
     def test_load_test_users_run(self):
         from superset.cli import load_test_users_run
 
