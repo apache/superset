@@ -19,6 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
+import TrackVisibility from 'react-on-screen';
 import { exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
@@ -255,7 +256,7 @@ class Chart extends React.Component {
         })
       : {};
 
-    return (
+    const chartComponent = (
       <div>
         <SliceHeader
           innerRef={this.setHeaderRef}
@@ -324,6 +325,11 @@ class Chart extends React.Component {
           />
         </div>
       </div>
+    );
+    return (
+      <TrackVisibility partialVisibility once offset={1000}>
+        {({ isVisible }) => isVisible && chartComponent}
+      </TrackVisibility>
     );
   }
 }
