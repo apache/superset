@@ -594,6 +594,9 @@ class TableViz(BaseViz):
         the percent metrics have yet to be transformed.
         """
 
+        if df.empty:
+            return None
+
         non_percent_metric_columns = []
         # Transform the data frame to adhere to the UI ordering of the columns and
         # metrics whilst simultaneously computing the percentages (via normalization)
@@ -1092,6 +1095,8 @@ class BulletViz(NVD3Viz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         df["metric"] = df[[utils.get_metric_name(self.metric)]]
         values = df["metric"].values
         return {
@@ -1124,6 +1129,8 @@ class BigNumberViz(BaseViz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         df = df.pivot_table(
             index=DTTM_ALIAS,
             columns=[],
@@ -1673,6 +1680,8 @@ class SunburstViz(BaseViz):
     )
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         fd = self.form_data
         cols = fd.get("groupby") or []
         cols.extend(["m1", "m2"])
@@ -1717,6 +1726,8 @@ class SankeyViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         df.columns = ["source", "target", "value"]
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)
@@ -1770,6 +1781,8 @@ class DirectedForceViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         df.columns = ["source", "target", "value"]
         return df.to_dict(orient="records")
 
@@ -1823,6 +1836,8 @@ class CountryMapViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         fd = self.form_data
         cols = [fd.get("entity")]
         metric = self.metric_labels[0]
@@ -1849,6 +1864,9 @@ class WorldMapViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         from superset.examples import countries
 
         fd = self.form_data
@@ -1925,15 +1943,17 @@ class FilterBoxViz(BaseViz):
             df = self.dataframes.get(col)
             if df is not None:
                 if metric:
-                    df = df.sort_values(
-                        utils.get_metric_name(metric), ascending=flt.get("asc")
-                    )
+                    if not df.empty:
+                        df = df.sort_values(
+                            utils.get_metric_name(metric), ascending=flt.get("asc")
+                        )
                     d[col] = [
                         {"id": row[0], "text": row[0], "metric": row[1]}
                         for row in df.itertuples(index=False)
                     ]
                 else:
-                    df = df.sort_values(col, ascending=flt.get("asc"))
+                    if not df.empty:
+                        df = df.sort_values(col, ascending=flt.get("asc"))
                     d[col] = [
                         {"id": row[0], "text": row[0]}
                         for row in df.itertuples(index=False)
@@ -2865,6 +2885,8 @@ class PartitionViz(NVD3TimeSeriesViz):
         ]
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         fd = self.form_data
         groups = fd.get("groupby", [])
         time_op = fd.get("time_series_option", "not_time")

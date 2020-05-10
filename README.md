@@ -164,6 +164,7 @@ the world know they are using Superset. Join our growing community!
  1. [Lyft](https://www.lyft.com/)
  1. [Maieutical Labs](https://maieuticallabs.it)
  1. [Myra Labs](http://www.myralabs.com/)
+ 1. [Netflix](https://www.netflix.com/)
  1. [Now](https://www.now.vn/)
  1. [Ona](https://ona.io)
  1. [Peak AI](https://www.peak.ai/)
