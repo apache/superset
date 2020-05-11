@@ -58,8 +58,8 @@ CACHE_CONFIG = {"CACHE_TYPE": "simple"}
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
-REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 3)
-REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 4)
+REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
+REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 
 
 class CeleryConfig(object):

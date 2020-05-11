@@ -82,6 +82,7 @@ export SUPERSET__SQLALCHEMY_DATABASE_URI=${SUPERSET__SQLALCHEMY_DATABASE_URI:-po
 export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.superset_test_config}
 RUN_INIT=1
 RUN_RESET_DB=1
+RUN_TESTS=1
 TEST_MODULE="${1}"
 
 # Shift to pass the first cmd parameter for the test module
@@ -97,6 +98,15 @@ while (( "$#" )); do
       ;;
     --no-reset-db)
       RUN_RESET_DB=0
+      shift 1
+      ;;
+    --no-tests)
+      RUN_TESTS=0
+      shift 1
+      ;;
+    --reset-db)
+      RUN_TESTS=0
+      RUN_INIT=0
       shift 1
       ;;
     --) # end argument parsing
@@ -133,4 +143,7 @@ then
   test_init
 fi
 
-nosetests --exclude=load_examples_test "${TEST_MODULE}"
+if [ $RUN_TESTS -eq 1 ]
+then
+  nosetests --exclude=load_examples_test "${TEST_MODULE}"
+fi
