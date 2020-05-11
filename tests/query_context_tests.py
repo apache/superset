@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
-
+import tests.test_app
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
@@ -23,7 +22,6 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils.core import TimeRangeEndpoint
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
-from tests.test_app import app
 
 
 class QueryContextTests(SupersetTestCase):
