@@ -21,12 +21,10 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import MetricsControl from '../../../../src/explore/components/controls/MetricsControl';
-import { AGGREGATES } from '../../../../src/explore/constants';
-import OnPasteSelect from '../../../../src/components/OnPasteSelect';
-import AdhocMetric, {
-  EXPRESSION_TYPES,
-} from '../../../../src/explore/AdhocMetric';
+import MetricsControl from 'src/explore/components/controls/MetricsControl';
+import { AGGREGATES } from 'src/explore/constants';
+import OnPasteSelect from 'src/components/OnPasteSelect';
+import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
 
 const defaultProps = {
   name: 'metrics',

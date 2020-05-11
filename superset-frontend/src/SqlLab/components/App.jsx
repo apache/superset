@@ -89,11 +89,13 @@ class App extends React.PureComponent {
       tabsEl.length > 0 ? tabsEl.outerHeight() : searchHeaderHeight;
     const warningHeight = warningEl.length > 0 ? warningEl.outerHeight() : 0;
     const alertHeight = alertEl.length > 0 ? alertEl.outerHeight() : 0;
-    return `${window.innerHeight -
+    return `${
+      window.innerHeight -
       headerHeight -
       tabsHeight -
       warningHeight -
-      alertHeight}px`;
+      alertHeight
+    }px`;
   }
   showLocalStorageUsageWarning(currentUsage) {
     this.props.actions.addDangerToast(

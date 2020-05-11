@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import getDragDropManager from '../../../../src/dashboard/util/getDragDropManager';
+import getDragDropManager from 'src/dashboard/util/getDragDropManager';
 
 // A helper component that provides a DragDropContext for components that require it
 class WithDragDropContext extends React.Component {

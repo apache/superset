@@ -51,8 +51,8 @@ function toggleCheckbox(apiUrlPrefix: string, selector: string) {
 }
 
 export default function setupApp() {
-  $(document).ready(function() {
-    $(':checkbox[data-checkbox-api-prefix]').change(function(
+  $(document).ready(function () {
+    $(':checkbox[data-checkbox-api-prefix]').change(function (
       this: HTMLElement,
     ) {
       const $this = $(this);
@@ -62,7 +62,7 @@ export default function setupApp() {
     });
 
     // for language picker dropdown
-    $('#language-picker a').click(function(
+    $('#language-picker a').click(function (
       ev: JQuery.ClickEvent<
         HTMLLinkElement,
         null,

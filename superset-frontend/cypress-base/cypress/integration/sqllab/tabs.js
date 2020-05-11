@@ -29,9 +29,7 @@ export default () => {
         const initialTabCount = tabList.length;
 
         // add tab
-        cy.get('#a11y-query-editor-tabs > ul > li')
-          .last()
-          .click();
+        cy.get('#a11y-query-editor-tabs > ul > li').last().click();
 
         cy.get('#a11y-query-editor-tabs > ul > li').should(
           'have.length',
@@ -50,9 +48,7 @@ export default () => {
         ).click();
 
         // first item is close
-        cy.get('#a11y-query-editor-tabs > ul > li:first ul li a')
-          .eq(0)
-          .click();
+        cy.get('#a11y-query-editor-tabs > ul > li:first ul li a').eq(0).click();
 
         cy.get('#a11y-query-editor-tabs > ul > li').should(
           'have.length',

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import { applyDefaultFormData } from '../../../src/explore/store';
+import { applyDefaultFormData } from 'src/explore/store';
 
 describe('store', () => {
   beforeAll(() => {

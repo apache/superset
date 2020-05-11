@@ -21,17 +21,17 @@ import { Provider } from 'react-redux';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
 
-import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';
-import EditableTitle from '../../../../../src/components/EditableTitle';
-import HoverMenu from '../../../../../src/dashboard/components/menu/HoverMenu';
-import WithPopoverMenu from '../../../../../src/dashboard/components/menu/WithPopoverMenu';
-import DragDroppable from '../../../../../src/dashboard/components/dnd/DragDroppable';
-import Header from '../../../../../src/dashboard/components/gridComponents/Header';
-import newComponentFactory from '../../../../../src/dashboard/util/newComponentFactory';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import EditableTitle from 'src/components/EditableTitle';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import Header from 'src/dashboard/components/gridComponents/Header';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
   HEADER_TYPE,
   DASHBOARD_GRID_TYPE,
-} from '../../../../../src/dashboard/util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 
 import WithDragDropContext from '../../helpers/WithDragDropContext';
 import { mockStoreWithTabs } from '../../fixtures/mockStore';

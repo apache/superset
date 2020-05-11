@@ -195,10 +195,7 @@ export default class AnnotationLayer extends React.PureComponent {
   isValidFormula(value, annotationType) {
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
       try {
-        mathjs
-          .parse(value)
-          .compile()
-          .eval({ x: 0 });
+        mathjs.parse(value).compile().eval({ x: 0 });
       } catch (err) {
         return true;
       }

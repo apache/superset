@@ -19,18 +19,18 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { Checkbox } from 'react-bootstrap';
-
-import { defaultQueryEditor, initialState, queries, table } from './fixtures';
 import {
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
-} from '../../../src/SqlLab/constants';
-import AceEditorWrapper from '../../../src/SqlLab/components/AceEditorWrapper';
-import LimitControl from '../../../src/SqlLab/components/LimitControl';
-import SouthPane from '../../../src/SqlLab/components/SouthPane';
-import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
-import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
+} from 'src/SqlLab/constants';
+import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
+import LimitControl from 'src/SqlLab/components/LimitControl';
+import SouthPane from 'src/SqlLab/components/SouthPane';
+import SqlEditor from 'src/SqlLab/components/SqlEditor';
+import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
+
+import { defaultQueryEditor, initialState, queries, table } from './fixtures';
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
@@ -109,10 +109,7 @@ describe('SqlEditor', () => {
   it('allows toggling autocomplete', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
     expect(wrapper.find(AceEditorWrapper).props().autocomplete).toBe(true);
-    wrapper
-      .find(Checkbox)
-      .props()
-      .onChange();
+    wrapper.find(Checkbox).props().onChange();
     expect(wrapper.find(AceEditorWrapper).props().autocomplete).toBe(false);
   });
 });

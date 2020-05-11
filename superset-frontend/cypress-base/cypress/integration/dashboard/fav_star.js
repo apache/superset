@@ -39,9 +39,7 @@ export default () =>
 
     it('should allow favor/unfavor', () => {
       if (!isFavoriteDashboard) {
-        cy.get('.favstar')
-          .find('i')
-          .should('have.class', 'fa-star-o');
+        cy.get('.favstar').find('i').should('have.class', 'fa-star-o');
         cy.get('.favstar').trigger('click');
         cy.get('.favstar')
           .find('i')

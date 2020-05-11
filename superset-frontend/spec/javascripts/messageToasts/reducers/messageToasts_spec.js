@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ADD_TOAST, REMOVE_TOAST } from '../../../../src/messageToasts/actions';
-import messageToastsReducer from '../../../../src/messageToasts/reducers';
+import { ADD_TOAST, REMOVE_TOAST } from 'src/messageToasts/actions';
+import messageToastsReducer from 'src/messageToasts/reducers';
 
 describe('messageToasts reducer', () => {
   it('should return initial state', () => {

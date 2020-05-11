@@ -20,13 +20,13 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import DashboardComponent from '../../../../src/dashboard/containers/DashboardComponent';
-import DashboardGrid from '../../../../src/dashboard/components/DashboardGrid';
-import DragDroppable from '../../../../src/dashboard/components/dnd/DragDroppable';
-import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import DashboardGrid from 'src/dashboard/components/DashboardGrid';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
-import { DASHBOARD_GRID_TYPE } from '../../../../src/dashboard/util/componentTypes';
-import { GRID_COLUMN_COUNT } from '../../../../src/dashboard/util/constants';
+import { DASHBOARD_GRID_TYPE } from 'src/dashboard/util/componentTypes';
+import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
 describe('DashboardGrid', () => {
   const props = {

@@ -21,12 +21,12 @@ import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
 
-import Chart from '../../../../../src/dashboard/containers/Chart';
-import ChartHolder from '../../../../../src/dashboard/components/gridComponents/ChartHolder';
-import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';
-import DragDroppable from '../../../../../src/dashboard/components/dnd/DragDroppable';
-import HoverMenu from '../../../../../src/dashboard/components/menu/HoverMenu';
-import ResizableContainer from '../../../../../src/dashboard/components/resizable/ResizableContainer';
+import Chart from 'src/dashboard/containers/Chart';
+import ChartHolder from 'src/dashboard/components/gridComponents/ChartHolder';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
 import { mockStore } from '../../fixtures/mockStore';
 import { sliceId } from '../../fixtures/mockSliceEntities';

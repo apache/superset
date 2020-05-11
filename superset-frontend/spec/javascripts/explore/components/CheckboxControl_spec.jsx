@@ -21,9 +21,9 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow, mount } from 'enzyme';
 
-import CheckboxControl from '../../../../src/explore/components/controls/CheckboxControl';
-import ControlHeader from '../../../../src/explore/components/ControlHeader';
-import Checkbox from '../../../../src/components/Checkbox';
+import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import Checkbox from 'src/components/Checkbox';
 
 const defaultProps = {
   name: 'show_legend',
@@ -54,10 +54,7 @@ describe('CheckboxControl', () => {
 
     fullComponent.instance().forceUpdate();
 
-    fullComponent
-      .find('label span')
-      .last()
-      .simulate('click');
+    fullComponent.find('label span').last().simulate('click');
 
     expect(spy.calledOnce).toBe(true);
   });

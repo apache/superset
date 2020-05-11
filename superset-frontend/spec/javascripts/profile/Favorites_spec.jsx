@@ -20,10 +20,10 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import Favorites from 'src/profile/components/Favorites';
+import TableLoader from 'src/components/TableLoader';
 
 import { user } from './fixtures';
-import Favorites from '../../../src/profile/components/Favorites';
-import TableLoader from '../../../src/components/TableLoader';
 
 // store needed for withToasts(TableLoader)
 const mockStore = configureStore([thunk]);

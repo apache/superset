@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getChartAndLabelComponentIdFromPath from '../../../../src/dashboard/util/getChartAndLabelComponentIdFromPath';
+import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 
 describe('getChartAndLabelComponentIdFromPath', () => {
   it('should return label and component id', () => {

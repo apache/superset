@@ -19,9 +19,9 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { ExploreChartHeader } from '../../../../src/explore/components/ExploreChartHeader';
-import ExploreActionButtons from '../../../../src/explore/components/ExploreActionButtons';
-import EditableTitle from '../../../../src/components/EditableTitle';
+import { ExploreChartHeader } from 'src/explore/components/ExploreChartHeader';
+import ExploreActionButtons from 'src/explore/components/ExploreActionButtons';
+import EditableTitle from 'src/components/EditableTitle';
 
 const stub = jest.fn(() => ({
   then: () => {},

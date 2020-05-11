@@ -20,8 +20,8 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import QueryAndSaveButtons from '../../../../src/explore/components/QueryAndSaveBtns';
-import Button from '../../../../src/components/Button';
+import QueryAndSaveButtons from 'src/explore/components/QueryAndSaveBtns';
+import Button from 'src/components/Button';
 
 describe('QueryAndSaveButtons', () => {
   const defaultProps = {

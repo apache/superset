@@ -22,7 +22,7 @@ import { Button } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import QuerySearch from '../../../src/SqlLab/components/QuerySearch';
+import QuerySearch from 'src/SqlLab/components/QuerySearch';
 
 describe('QuerySearch', () => {
   const search = sinon.spy(QuerySearch.prototype, 'refreshQueries');

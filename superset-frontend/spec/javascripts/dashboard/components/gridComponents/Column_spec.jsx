@@ -21,15 +21,15 @@ import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
 
-import BackgroundStyleDropdown from '../../../../../src/dashboard/components/menu/BackgroundStyleDropdown';
-import Column from '../../../../../src/dashboard/components/gridComponents/Column';
-import DashboardComponent from '../../../../../src/dashboard/containers/DashboardComponent';
-import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';
-import DragDroppable from '../../../../../src/dashboard/components/dnd/DragDroppable';
-import HoverMenu from '../../../../../src/dashboard/components/menu/HoverMenu';
-import IconButton from '../../../../../src/dashboard/components/IconButton';
-import ResizableContainer from '../../../../../src/dashboard/components/resizable/ResizableContainer';
-import WithPopoverMenu from '../../../../../src/dashboard/components/menu/WithPopoverMenu';
+import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
+import Column from 'src/dashboard/components/gridComponents/Column';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
+import IconButton from 'src/dashboard/components/IconButton';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
 import { mockStore } from '../../fixtures/mockStore';
 import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';

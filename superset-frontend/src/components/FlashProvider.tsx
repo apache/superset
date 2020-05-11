@@ -17,28 +17,37 @@
  * under the License.
  */
 import React from 'react';
-import { Col, Row, Tab } from 'react-bootstrap';
-import { shallow } from 'enzyme';
-import App from 'src/profile/components/App';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 
-import { user } from './fixtures';
+type Message = Array<string>;
 
-describe('App', () => {
-  const mockedProps = {
-    user,
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<App {...mockedProps} />)).toBe(true);
-  });
+interface CommonObject {
+  flash_messages: Array<Message>;
+}
+interface Props {
+  children: Node;
+  common: CommonObject;
+}
 
-  it('renders 2 Col', () => {
-    const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Row)).toHaveLength(1);
-    expect(wrapper.find(Col)).toHaveLength(2);
-  });
+const flashObj = {
+  info: 'addInfoToast',
+  danger: 'addDangerToast',
+  warning: 'addWarningToast',
+  success: 'addSuccessToast',
+};
 
-  it('renders 4 Tabs', () => {
-    const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(4);
-  });
-});
+class FlashProvider extends React.PureComponent<Props> {
+  componentDidMount() {
+    const flashMessages = this.props.common.flash_messages;
+    flashMessages.forEach(message => {
+      const [type, text] = message;
+      const flash = flashObj[type];
+      this.props[flash](text);
+    });
+  }
+  render() {
+    return this.props.children;
+  }
+}
+
+export default withToasts(FlashProvider);
