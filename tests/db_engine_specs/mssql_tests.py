@@ -15,18 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import unittest.mock as mock
-from typing import Optional
 
 from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
-from sqlalchemy.sql import select, Select
+from sqlalchemy.sql import select
 from sqlalchemy.types import String, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from superset.extensions import db
-from superset.models.core import Database
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
 
