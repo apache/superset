@@ -26,7 +26,7 @@ function reset_db() {
   echo --------------------
   echo Reseting test DB
   echo --------------------
-  docker exec -i superset_db bash -c "/usr/bin/psql -h 127.0.0.1 -U ${DB_USER} -w -c 'DROP DATABASE ${DB_NAME};'"
+  docker exec -i superset_db bash -c "/usr/bin/psql -h 127.0.0.1 -U ${DB_USER} -w -c 'DROP DATABASE IF EXISTS ${DB_NAME};'"
   docker exec -i superset_db bash -c "/usr/bin/psql -h 127.0.0.1 -U ${DB_USER} -w -c 'CREATE DATABASE ${DB_NAME};'"
 }
 
