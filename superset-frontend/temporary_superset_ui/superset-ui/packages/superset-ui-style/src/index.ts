@@ -19,7 +19,7 @@
 import styled, { CreateStyled } from '@emotion/styled';
 
 const defaultTheme = {
-  borderRadius: '4px',
+  borderRadius: 4,
   colors: {
     primary: {
       base: '#20A7C9',
@@ -36,7 +36,28 @@ const defaultTheme = {
       light5: '#F5F5F8',
     },
   },
-  gridUnit: '4px',
+  typography: {
+    families: {
+      sansSerif: `'Inter', Helvetica, Arial`,
+      serif: `Georgia, 'Times New Roman', Times, serif`,
+      monospace: `'Fira Code', 'Courier New', monospace`,
+    },
+    weights: {
+      light: 200,
+      normal: 400,
+      bold: 700,
+    },
+    sizes: {
+      xxs: 9,
+      xs: 10,
+      s: 12,
+      m: 14,
+      l: 16,
+      xl: 21,
+      xxl: 28,
+    },
+  },
+  gridUnit: 4,
 };
 
 export default styled as CreateStyled<typeof defaultTheme>;
