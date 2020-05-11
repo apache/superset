@@ -490,6 +490,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
         validate=validate.OneOf(
             choices=(
                 "aggregate",
+                "cum",
                 "geodetic_parse",
                 "geohash_decode",
                 "geohash_encode",
@@ -501,8 +502,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
         ),
         example="aggregate",
     )
-    options = fields.Nested(
-        ChartDataPostProcessingOperationOptionsSchema,
+    options = fields.Dict(
         description="Options specifying how to perform the operation. Please refer "
         "to the respective post processing operation option schemas. "
         "For example, `ChartDataPostProcessingOperationOptions` specifies "
