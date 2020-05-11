@@ -17,6 +17,7 @@
 from typing import Any, Dict, List, Optional
 
 from superset import db
+from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils.core import TimeRangeEndpoint
@@ -36,7 +37,8 @@ class QueryContextTests(SupersetTestCase):
         payload = get_query_context(
             table.name, table.id, table.type, add_postprocessing_operations=True
         )
-        query_context = QueryContext(**payload)
+        query_context, errors = ChartDataQueryContextSchema().load(payload)
+        self.assertDictEqual(errors, {})
         self.assertEqual(len(query_context.queries), len(payload["queries"]))
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
