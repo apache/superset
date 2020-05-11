@@ -22,7 +22,6 @@ from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
-from superset.sql_parse import ParsedQuery
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pylint: disable=unused-import
@@ -85,15 +84,15 @@ class MssqlEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def apply_limit_to_sql(cls, sql: str, limit: int, database: "Database") -> str:
-        return super().apply_limit_to_sql(sql, limit, database)
-
-    @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
-        from pymssql import OperationalError
+        try:
+            from pymssql import OperationalError
+        except ModuleNotFoundError:
+            from sqlalchemy.exc import OperationalError
 
         if isinstance(ex, OperationalError) and str(ex).startswith("(8155"):
             return (
-                f"{cls.engine} error: All your functions need to have alias on MSSQL."
+                f"{cls.engine} error: All your SQL functions need to "
+                f"have alias on MSSQL."
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
