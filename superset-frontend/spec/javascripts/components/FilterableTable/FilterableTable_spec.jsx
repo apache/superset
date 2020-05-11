@@ -20,7 +20,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
-} from '../../../../src/components/FilterableTable/FilterableTable';
+} from 'src/components/FilterableTable/FilterableTable';
 
 describe('FilterableTable', () => {
   const mockedProps = {

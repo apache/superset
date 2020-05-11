@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getDashboardUrl from '../../../../src/dashboard/util/getDashboardUrl';
-import { DASHBOARD_FILTER_SCOPE_GLOBAL } from '../../../../src/dashboard/reducers/dashboardFilters';
+import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
+import { DASHBOARD_FILTER_SCOPE_GLOBAL } from 'src/dashboard/reducers/dashboardFilters';
 
 describe('getChartIdsFromLayout', () => {
   it('should encode filters', () => {

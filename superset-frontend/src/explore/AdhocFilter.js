@@ -100,9 +100,7 @@ export default class AdhocFilter {
       adhocFilter.filterOptionName ||
       `filter_${Math.random()
         .toString(36)
-        .substring(2, 15)}_${Math.random()
-        .toString(36)
-        .substring(2, 15)}`;
+        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
   duplicateWith(nextFields) {
@@ -135,13 +133,17 @@ export default class AdhocFilter {
         return !!(this.operator && this.subject);
       }
 
-      return !!(
-        this.operator &&
-        this.subject &&
-        this.comparator &&
-        this.comparator.length > 0 &&
-        this.clause
-      );
+      if (this.operator && this.subject && this.clause) {
+        if (Array.isArray(this.comparator)) {
+          if (this.comparator.length > 0) {
+            // A non-empty array of values ('IN' or 'NOT IN' clauses)
+            return true;
+          }
+        } else if (this.comparator !== null) {
+          // A value has been selected or typed
+          return true;
+        }
+      }
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return !!(this.sqlExpression && this.clause);
     }

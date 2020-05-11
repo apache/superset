@@ -27,7 +27,6 @@ import os
 
 from werkzeug.contrib.cache import FileSystemCache
 
-
 logger = logging.getLogger()
 
 
@@ -68,7 +67,7 @@ REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", 0)
 REDIS_RESULTS_DB = get_env_variable("REDIS_CELERY_DB", 1)
 
 
-RESULTS_BACKEND = FileSystemCache('/app/superset_home/sqllab')
+RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 
 class CeleryConfig(object):

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import chartReducer, { chart } from '../../../src/chart/chartReducer';
-import * as actions from '../../../src/chart/chartAction';
+import chartReducer, { chart } from 'src/chart/chartReducer';
+import * as actions from 'src/chart/chartAction';
 
 describe('chart reducers', () => {
   const chartKey = 1;

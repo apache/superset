@@ -16,29 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { Col, Row, Tab } from 'react-bootstrap';
-import { shallow } from 'enzyme';
-import App from 'src/profile/components/App';
+import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
+import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 
-import { user } from './fixtures';
-
-describe('App', () => {
-  const mockedProps = {
-    user,
+describe('isDashboardEmpty', () => {
+  const emptyLayout: object = getEmptyLayout();
+  const testLayout: object = {
+    ...emptyLayout,
+    'MARKDOWN-IhTGLhyiTd': {
+      children: [],
+      id: 'MARKDOWN-IhTGLhyiTd',
+      meta: { code: 'test me', height: 50, width: 4 },
+      parents: ['ROOT_ID', 'GRID_ID', 'ROW-uPjcKNYJQy'],
+      type: 'MARKDOWN',
+    },
   };
-  it('is valid', () => {
-    expect(React.isValidElement(<App {...mockedProps} />)).toBe(true);
+
+  it('should return true for empty dashboard', () => {
+    expect(isDashboardEmpty(emptyLayout)).toBe(true);
   });
 
-  it('renders 2 Col', () => {
-    const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Row)).toHaveLength(1);
-    expect(wrapper.find(Col)).toHaveLength(2);
-  });
-
-  it('renders 4 Tabs', () => {
-    const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(4);
+  it('should return false for non-empty dashboard', () => {
+    expect(isDashboardEmpty(testLayout)).toBe(false);
   });
 });

@@ -23,8 +23,8 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 
-import DatasourceEditor from '../../../src/datasource/DatasourceEditor';
-import Field from '../../../src/CRUD/Field';
+import DatasourceEditor from 'src/datasource/DatasourceEditor';
+import Field from 'src/CRUD/Field';
 import mockDatasource from '../../fixtures/mockDatasource';
 
 const props = {
@@ -94,10 +94,7 @@ describe('DatasourceEditor', () => {
     wrapper.setState({ activeTabKey: 4 });
     expect(wrapper.state('isSqla')).toBe(true);
     expect(
-      wrapper
-        .find(Field)
-        .find({ fieldKey: 'fetch_values_predicate' })
-        .exists(),
+      wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists(),
     ).toBe(true);
   });
 });

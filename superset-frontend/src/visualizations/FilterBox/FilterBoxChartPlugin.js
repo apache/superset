@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description:
     'A multi filter, multi-choice filter box to make dashboards interactive',
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class FilterBoxChartPlugin extends ChartPlugin {

@@ -19,8 +19,8 @@
 import {
   emptyQueryResults,
   clearQueryEditors,
-} from '../../../../src/SqlLab/utils/reduxStateToLocalStorageHelper';
-import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from '../../../../src/SqlLab/constants';
+} from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
+import { LOCALSTORAGE_MAX_QUERY_AGE_MS } from 'src/SqlLab/constants';
 import { queries, defaultQueryEditor } from '../fixtures';
 
 describe('reduxStateToLocalStorageHelper', () => {

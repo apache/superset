@@ -133,7 +133,7 @@ class QuerySearch extends React.PureComponent {
   }
 
   insertParams(baseUrl, params) {
-    const validParams = params.filter(function(p) {
+    const validParams = params.filter(function (p) {
       return p !== '';
     });
     return baseUrl + '?' + validParams.join('&');

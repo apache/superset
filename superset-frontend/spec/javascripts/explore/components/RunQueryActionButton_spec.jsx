@@ -19,8 +19,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import RunQueryActionButton from '../../../../src/SqlLab/components/RunQueryActionButton';
-import Button from '../../../../src/components/Button';
+import RunQueryActionButton from 'src/SqlLab/components/RunQueryActionButton';
+import Button from 'src/components/Button';
 
 describe('RunQueryActionButton', () => {
   let wrapper;

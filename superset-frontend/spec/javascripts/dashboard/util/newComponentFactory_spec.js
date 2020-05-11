@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
 import {
   CHART_TYPE,
@@ -30,7 +30,7 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
-} from '../../../../src/dashboard/util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 
 const types = [
   CHART_TYPE,

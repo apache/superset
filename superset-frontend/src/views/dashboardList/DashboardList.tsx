@@ -482,7 +482,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       filters,
       dashboardToEdit,
     } = this.state;
-
     return (
       <div className="container welcome">
         <Panel>

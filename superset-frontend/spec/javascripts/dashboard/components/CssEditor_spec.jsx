@@ -19,7 +19,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 
-import CssEditor from '../../../../src/dashboard/components/CssEditor';
+import CssEditor from 'src/dashboard/components/CssEditor';
 
 describe('CssEditor', () => {
   const mockedProps = {

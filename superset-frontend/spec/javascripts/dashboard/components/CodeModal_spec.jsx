@@ -19,7 +19,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 
-import CodeModal from '../../../../src/dashboard/components/CodeModal';
+import CodeModal from 'src/dashboard/components/CodeModal';
 
 describe('CodeModal', () => {
   const mockedProps = {

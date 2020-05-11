@@ -21,7 +21,7 @@ import getDropPosition, {
   DROP_RIGHT,
   DROP_BOTTOM,
   DROP_LEFT,
-} from '../../../../src/dashboard/util/getDropPosition';
+} from 'src/dashboard/util/getDropPosition';
 
 import {
   CHART_TYPE,
@@ -30,7 +30,7 @@ import {
   HEADER_TYPE,
   ROW_TYPE,
   TAB_TYPE,
-} from '../../../../src/dashboard/util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 
 describe('getDropPosition', () => {
   // helper to easily configure test

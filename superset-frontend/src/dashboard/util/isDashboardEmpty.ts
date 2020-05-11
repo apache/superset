@@ -16,29 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { Col, Row, Tab } from 'react-bootstrap';
-import { shallow } from 'enzyme';
-import App from 'src/profile/components/App';
+import { CHART_TYPE, MARKDOWN_TYPE } from './componentTypes';
 
-import { user } from './fixtures';
-
-describe('App', () => {
-  const mockedProps = {
-    user,
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<App {...mockedProps} />)).toBe(true);
-  });
-
-  it('renders 2 Col', () => {
-    const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Row)).toHaveLength(1);
-    expect(wrapper.find(Col)).toHaveLength(2);
-  });
-
-  it('renders 4 Tabs', () => {
-    const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(4);
-  });
-});
+const USER_CONTENT_COMPONENT_TYPE: string[] = [CHART_TYPE, MARKDOWN_TYPE];
+export default function isDashboardEmpty(layout: any): boolean {
+  // has at least one chart or markdown component
+  return !Object.values(layout).some(
+    ({ type }: { type?: string }) =>
+      type && USER_CONTENT_COMPONENT_TYPE.includes(type),
+  );
+}

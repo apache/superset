@@ -21,8 +21,8 @@ import { shallow, mount } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 import sinon from 'sinon';
 
-import EmbedCodeButton from '../../../../src/explore/components/EmbedCodeButton';
-import * as exploreUtils from '../../../../src/explore/exploreUtils';
+import EmbedCodeButton from 'src/explore/components/EmbedCodeButton';
+import * as exploreUtils from 'src/explore/exploreUtils';
 
 describe('EmbedCodeButton', () => {
   const defaultProps = {

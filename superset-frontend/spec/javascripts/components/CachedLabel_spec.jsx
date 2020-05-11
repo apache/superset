@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { Label } from 'react-bootstrap';
 
-import CachedLabel from '../../../src/components/CachedLabel';
+import CachedLabel from 'src/components/CachedLabel';
 
 describe('CachedLabel', () => {
   const defaultProps = {

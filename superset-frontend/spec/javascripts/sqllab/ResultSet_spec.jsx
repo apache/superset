@@ -21,9 +21,9 @@ import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
 import { Alert, ProgressBar } from 'react-bootstrap';
-import FilterableTable from '../../../src/components/FilterableTable/FilterableTable';
-import ExploreResultsButton from '../../../src/SqlLab/components/ExploreResultsButton';
-import ResultSet from '../../../src/SqlLab/components/ResultSet';
+import FilterableTable from 'src/components/FilterableTable/FilterableTable';
+import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
+import ResultSet from 'src/SqlLab/components/ResultSet';
 import { queries, stoppedQuery, runningQuery, cachedQuery } from './fixtures';
 
 describe('ResultSet', () => {
@@ -97,12 +97,9 @@ describe('ResultSet', () => {
       wrapper.setProps({ query: emptyResults });
       expect(wrapper.find(FilterableTable)).toHaveLength(0);
       expect(wrapper.find(Alert)).toHaveLength(1);
-      expect(
-        wrapper
-          .find(Alert)
-          .shallow()
-          .text(),
-      ).toBe('The query returned no data');
+      expect(wrapper.find(Alert).shallow().text()).toBe(
+        'The query returned no data',
+      );
     });
     it('should render cached query', () => {
       const wrapper = shallow(<ResultSet {...cachedQueryProps} />);

@@ -23,12 +23,12 @@ import sinon from 'sinon';
 import AceEditor from 'react-ace';
 import ReactMarkdown from 'react-markdown';
 
-import Markdown from '../../../../../src/dashboard/components/gridComponents/Markdown';
-import MarkdownModeDropdown from '../../../../../src/dashboard/components/menu/MarkdownModeDropdown';
-import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';
-import DragDroppable from '../../../../../src/dashboard/components/dnd/DragDroppable';
-import WithPopoverMenu from '../../../../../src/dashboard/components/menu/WithPopoverMenu';
-import ResizableContainer from '../../../../../src/dashboard/components/resizable/ResizableContainer';
+import Markdown from 'src/dashboard/components/gridComponents/Markdown';
+import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
 import { mockStore } from '../../fixtures/mockStore';
 import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';

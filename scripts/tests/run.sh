@@ -28,7 +28,7 @@ function reset_db() {
   echo --------------------
   docker-compose stop superset-tests-worker
   RESET_DB_CMD="psql \"postgresql://superset:superset@127.0.0.1:5432\" <<-EOF
-    DROP DATABASE ${DB_NAME};
+    DROP DATABASE IF EXISTS ${DB_NAME};
     CREATE DATABASE ${DB_NAME};
     \\c ${DB_NAME}
     DROP SCHEMA IF EXISTS sqllab_test_db;

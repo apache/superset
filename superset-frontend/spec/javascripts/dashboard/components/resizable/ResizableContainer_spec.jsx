@@ -20,7 +20,7 @@ import React from 'react';
 import Resizable from 're-resizable';
 import { shallow } from 'enzyme';
 
-import ResizableContainer from '../../../../../src/dashboard/components/resizable/ResizableContainer';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
 describe('ResizableContainer', () => {
   const props = { editMode: false, id: 'id' };

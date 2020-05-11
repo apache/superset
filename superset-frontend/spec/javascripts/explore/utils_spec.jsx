@@ -22,8 +22,8 @@ import URI from 'urijs';
 import {
   getExploreUrlAndPayload,
   getExploreLongUrl,
-} from '../../../src/explore/exploreUtils';
-import * as hostNamesConfig from '../../../src/utils/hostNamesConfig';
+} from 'src/explore/exploreUtils';
+import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 
 describe('exploreUtils', () => {
   const location = window.location;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isValidChild from '../../../../src/dashboard/util/isValidChild';
+import isValidChild from 'src/dashboard/util/isValidChild';
 
 import {
   CHART_TYPE as CHART,
@@ -29,7 +29,7 @@ import {
   ROW_TYPE as ROW,
   TABS_TYPE as TABS,
   TAB_TYPE as TAB,
-} from '../../../../src/dashboard/util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 
 const getIndentation = depth =>
   Array(depth * 3)

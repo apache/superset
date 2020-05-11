@@ -20,7 +20,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import TabStatusIcon from '../../../src/SqlLab/components/TabStatusIcon';
+import TabStatusIcon from 'src/SqlLab/components/TabStatusIcon';
 
 function setup() {
   const onClose = sinon.spy();
