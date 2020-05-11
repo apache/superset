@@ -21,6 +21,7 @@ import json
 import prison
 from sqlalchemy.sql import func
 
+import tests.test_app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database

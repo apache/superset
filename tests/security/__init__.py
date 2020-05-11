@@ -14,18 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from superset.security.analytics_db_safety import (
-    check_sqlalchemy_uri,
-    DBSecurityException,
-)
-from tests.base_tests import SupersetTestCase
-
-
-class DBConnectionsTest(SupersetTestCase):
-    def test_check_sqlalchemy_uri_ok(self):
-        check_sqlalchemy_uri("postgres://user:password@test.com")
-
-    def test_check_sqlalchemy_url_sqlite(self):
-        with self.assertRaises(DBSecurityException):
-            check_sqlalchemy_uri("sqlite:///home/superset/bad.db")
