@@ -19,8 +19,7 @@ from superset.security.analytics_db_safety import (
     check_sqlalchemy_uri,
     DBSecurityException,
 )
-
-from ..base_tests import SupersetTestCase
+from tests.base_tests import SupersetTestCase
 
 
 class DBConnectionsTest(SupersetTestCase):
