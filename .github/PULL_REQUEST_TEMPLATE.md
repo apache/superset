@@ -1,14 +1,3 @@
-### CATEGORY
-
-Choose one
-
-- [ ] Bug Fix
-- [ ] Enhancement (new features, refinement)
-- [ ] Refactor
-- [ ] Add tests
-- [ ] Build / Development Environment
-- [ ] Documentation
-
 ### SUMMARY
 <!--- Describe the change below, including rationale and design decisions -->
 
@@ -27,5 +16,3 @@ Choose one
 - [ ] Confirm DB Migration upgrade and downgrade tested.
 - [ ] Introduces new feature or API
 - [ ] Removes existing feature or API
-
-### REVIEWERS
