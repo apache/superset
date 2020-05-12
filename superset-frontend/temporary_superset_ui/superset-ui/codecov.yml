@@ -1,27 +1,21 @@
 coverage:
   status:
-    patch:
-      default:
-        target: 0%
-        threshold: 0%
-      core-packages:
-        target: 0%
-        paths:
-          - packages
-      plugins:
-        target: 0%
-        paths:
-          - plugins
+    patch: off
     project:
       default:
         target: 0%
-        # send notification if coverage change exceed this threshold
-        threshold: 0%
-      core-packages:
+        threshold: 10%
+      core-packages-ts:
         target: 100%
         paths:
-          - packages
+          - packages/**/*.js
+          - packages/**/*.ts
+      core-packages-tsx:
+        target: 50%
+        paths:
+          - packages/**/*.jsx
+          - packages/**/*.tsx
       plugins:
-        target: 0%
+        target: 0
         paths:
           - plugins
