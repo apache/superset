@@ -18,7 +18,7 @@
  */
 import React from 'react';
 
-import CopyToClipboard from '../../../src/components/CopyToClipboard';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 
 describe('CopyToClipboard', () => {
   const defaultProps = {

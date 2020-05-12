@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import PropTypes from 'prop-types';
 import { shallow } from 'enzyme';
 
-import VirtualizedRendererWrap from '../../../src/components/VirtualizedRendererWrap';
+import VirtualizedRendererWrap from 'src/components/VirtualizedRendererWrap';
 
 const defaultProps = {
   focusedOption: { label: 'focusedOn', value: 'focusedOn' },
@@ -48,7 +48,7 @@ describe('VirtualizedRendererWrap', () => {
   let props;
   beforeEach(() => {
     wrapper = shallow(<RendererWrap {...defaultProps} />);
-    props = Object.assign({}, defaultProps);
+    props = { ...defaultProps };
   });
 
   it('uses the provided renderer', () => {

@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
+import Security from 'src/profile/components/Security';
 
 import { user, userNoPerms } from './fixtures';
-import Security from '../../../src/profile/components/Security';
 
 describe('Security', () => {
   const mockedProps = {

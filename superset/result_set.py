@@ -117,9 +117,9 @@ class SupersetResultSet:
         if pa_data:
             for i, column in enumerate(column_names):
                 if pa.types.is_nested(pa_data[i].type):
-                    # TODO: revisit nested column serialization once PyArrow updated with:
-                    # https://github.com/apache/arrow/pull/6199
-                    # Related issue: https://github.com/apache/incubator-superset/issues/8978
+                    # TODO: revisit nested column serialization once nested types
+                    #  are added as a natively supported column type in Superset
+                    #  (superset.utils.core.DbColumnType).
                     stringified_arr = stringify_values(array[column])
                     pa_data[i] = pa.array(stringified_arr.tolist())
 
@@ -138,8 +138,8 @@ class SupersetResultSet:
                                 pa_data[i] = pa.Array.from_pandas(
                                     series, type=pa.timestamp("ns", tz=tz)
                                 )
-                        except Exception as e:
-                            logger.exception(e)
+                        except Exception as ex:
+                            logger.exception(ex)
 
         self.table = pa.Table.from_arrays(pa_data, names=column_names)
         self._type_dict: Dict[str, Any] = {}
@@ -150,8 +150,8 @@ class SupersetResultSet:
                 for i, col in enumerate(column_names)
                 if deduped_cursor_desc
             }
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ex:
+            logger.exception(ex)
 
     @staticmethod
     def convert_pa_dtype(pa_dtype: pa.DataType) -> Optional[str]:

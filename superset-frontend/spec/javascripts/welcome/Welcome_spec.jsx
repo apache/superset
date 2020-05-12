@@ -20,7 +20,7 @@ import React from 'react';
 import { Panel, Row, Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 
-import Welcome from '../../../src/welcome/Welcome';
+import Welcome from 'src/welcome/Welcome';
 
 describe('Welcome', () => {
   const mockedProps = {};

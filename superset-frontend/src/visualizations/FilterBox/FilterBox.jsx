@@ -120,14 +120,15 @@ class FilterBox extends React.Component {
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
-    const control = Object.assign({}, controls[controlName], {
+    const control = {
+      ...controls[controlName], // TODO: make these controls ('druid_time_origin', 'granularity', 'granularity_sqla', 'time_grain_sqla') accessible from getControlsForVizType.
       name: controlName,
       key: `control-${controlName}`,
       value: selectedValues[TIME_FILTER_MAP[controlName]],
       actions: { setControlValue: this.changeFilter },
-    });
+    };
     const mapFunc = control.mapStateToProps;
-    return mapFunc ? Object.assign({}, control, mapFunc(this.props)) : control;
+    return mapFunc ? { ...control, ...mapFunc(this.props) } : control;
   }
 
   clickApply() {

@@ -16,6 +16,7 @@
 # under the License.
 import json
 import re
+from typing import Any, Dict, Union
 
 from marshmallow import fields, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
@@ -25,16 +26,66 @@ from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+thumbnail_query_schema = {
+    "type": "object",
+    "properties": {"force": {"type": "boolean"}},
+}
+
+dashboard_title_description = "A title for the dashboard."
+slug_description = "Unique identifying part for the web address of the dashboard."
+owners_description = (
+    "Owner are users ids allowed to delete or change this dashboard. "
+    "If left empty you will be one of the owners of the dashboard."
+)
+position_json_description = (
+    "This json object describes the positioning of the widgets "
+    "in the dashboard. It is dynamically generated when "
+    "adjusting the widgets size and positions by using "
+    "drag & drop in the dashboard view"
+)
+css_description = "Override CSS for the dashboard."
+json_metadata_description = (
+    "This JSON object is generated dynamically when clicking "
+    "the save or overwrite button in the dashboard view. "
+    "It is exposed here for reference and for power users who may want to alter "
+    " specific parameters."
+)
+published_description = (
+    "Determines whether or not this dashboard is visible in "
+    "the list of all dashboards."
+)
 
 
-def validate_json(value):
+openapi_spec_methods_override = {
+    "get": {"get": {"description": "Get a dashboard detail information."}},
+    "get_list": {
+        "get": {
+            "description": "Get a list of dashboards, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {
+        "get": {
+            "description": "Several metadata information about dashboard API "
+            "endpoints.",
+        }
+    },
+    "related": {
+        "get": {"description": "Get a list of all possible owners for a dashboard."}
+    },
+}
+""" Overrides GET methods OpenApi descriptions """
+
+
+def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
     except SupersetException:
         raise ValidationError("JSON not valid")
 
 
-def validate_json_metadata(value):
+def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
     if not value:
         return
     try:
@@ -60,7 +111,7 @@ class DashboardJSONMetadataSchema(Schema):
 
 class BaseDashboardSchema(Schema):
     @pre_load
-    def pre_load(self, data):  # pylint: disable=no-self-use
+    def pre_load(self, data: Dict[str, Any]) -> None:  # pylint: disable=no-self-use
         if data.get("slug"):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")
@@ -68,20 +119,44 @@ class BaseDashboardSchema(Schema):
 
 
 class DashboardPostSchema(BaseDashboardSchema):
-    dashboard_title = fields.String(allow_none=True, validate=Length(0, 500))
-    slug = fields.String(allow_none=True, validate=[Length(1, 255)])
-    owners = fields.List(fields.Integer())
-    position_json = fields.String(validate=validate_json)
+    dashboard_title = fields.String(
+        description=dashboard_title_description,
+        allow_none=True,
+        validate=Length(0, 500),
+    )
+    slug = fields.String(
+        description=slug_description, allow_none=True, validate=[Length(1, 255)]
+    )
+    owners = fields.List(fields.Integer(description=owners_description))
+    position_json = fields.String(
+        description=position_json_description, validate=validate_json
+    )
     css = fields.String()
-    json_metadata = fields.String(validate=validate_json_metadata)
-    published = fields.Boolean()
+    json_metadata = fields.String(
+        description=json_metadata_description, validate=validate_json_metadata
+    )
+    published = fields.Boolean(description=published_description)
 
 
 class DashboardPutSchema(BaseDashboardSchema):
-    dashboard_title = fields.String(allow_none=True, validate=Length(0, 500))
-    slug = fields.String(allow_none=True, validate=Length(0, 255))
-    owners = fields.List(fields.Integer(allow_none=True))
-    position_json = fields.String(allow_none=True, validate=validate_json)
-    css = fields.String(allow_none=True)
-    json_metadata = fields.String(allow_none=True, validate=validate_json_metadata)
-    published = fields.Boolean(allow_none=True)
+    dashboard_title = fields.String(
+        description=dashboard_title_description,
+        allow_none=True,
+        validate=Length(0, 500),
+    )
+    slug = fields.String(
+        description=slug_description, allow_none=True, validate=Length(0, 255)
+    )
+    owners = fields.List(
+        fields.Integer(description=owners_description, allow_none=True)
+    )
+    position_json = fields.String(
+        description=position_json_description, allow_none=True, validate=validate_json
+    )
+    css = fields.String(description=css_description, allow_none=True)
+    json_metadata = fields.String(
+        description=json_metadata_description,
+        allow_none=True,
+        validate=validate_json_metadata,
+    )
+    published = fields.Boolean(description=published_description, allow_none=True)

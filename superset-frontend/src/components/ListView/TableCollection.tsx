@@ -69,11 +69,13 @@ export default function TableCollection({
       <tbody {...getTableBodyProps()}>
         {rows.map(row => {
           prepareRow(row);
-          const loadingProps = loading ? { className: 'table-row-loader' } : {};
           return (
             <tr
               {...row.getRowProps()}
-              {...loadingProps}
+              className={cx({
+                'table-row-loader': loading,
+                'table-row-selected': row.isSelected,
+              })}
               onMouseEnter={() => row.setState && row.setState({ hover: true })}
               onMouseLeave={() =>
                 row.setState && row.setState({ hover: false })
@@ -85,7 +87,11 @@ export default function TableCollection({
                 const columnCellProps = cell.column.cellProps || {};
 
                 return (
-                  <td {...cell.getCellProps()} {...columnCellProps}>
+                  <td
+                    className="table-cell"
+                    {...cell.getCellProps()}
+                    {...columnCellProps}
+                  >
                     <span>{cell.render('Cell')}</span>
                   </td>
                 );

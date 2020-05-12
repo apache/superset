@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '../controls';
 
 export default {
   controlPanelSections: [
@@ -48,7 +49,20 @@ export default {
             },
           },
         ],
-        ['number_format'],
+        [
+          {
+            name: 'number_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Number format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
       ],
     },
   ],

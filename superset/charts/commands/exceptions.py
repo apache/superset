@@ -32,7 +32,7 @@ class DatabaseNotFoundValidationError(ValidationError):
     Marshmallow validation error for database does not exist
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(_("Database does not exist"), field_names=["database"])
 
 
@@ -41,7 +41,7 @@ class DashboardsNotFoundValidationError(ValidationError):
     Marshmallow validation error for dashboards don't exist
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(_("Dashboards do not exist"), field_names=["dashboards"])
 
 
@@ -50,7 +50,7 @@ class DatasourceTypeUpdateRequiredValidationError(ValidationError):
     Marshmallow validation error for dashboards don't exist
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             _("Datasource type is required when datasource_id is given"),
             field_names=["datasource_type"],

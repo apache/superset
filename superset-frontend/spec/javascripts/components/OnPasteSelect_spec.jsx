@@ -23,7 +23,7 @@ import { shallow } from 'enzyme';
 import VirtualizedSelect from 'react-virtualized-select';
 import Select, { Creatable } from 'react-select';
 
-import OnPasteSelect from '../../../src/components/OnPasteSelect';
+import OnPasteSelect from 'src/components/OnPasteSelect';
 
 const defaultProps = {
   onChange: sinon.spy(),
@@ -54,9 +54,9 @@ describe('OnPasteSelect', () => {
   let evt;
   let expected;
   beforeEach(() => {
-    props = Object.assign({}, defaultProps);
+    props = { ...defaultProps };
     wrapper = shallow(<OnPasteSelect {...props} />);
-    evt = Object.assign({}, defaultEvt);
+    evt = { ...defaultEvt };
   });
 
   it('renders the supplied selectWrap component', () => {

@@ -166,14 +166,14 @@ class ImportMixin:
         try:
             obj_query = session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
-        except MultipleResultsFound as e:
+        except MultipleResultsFound as ex:
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
                 str(obj_query),
                 yaml.safe_dump(dict_rep),
             )
-            raise e
+            raise ex
 
         if not obj:
             is_new_obj = True
@@ -274,14 +274,14 @@ class ImportMixin:
         return new_obj
 
     def alter_params(self, **kwargs):
-        d = self.params_dict
-        d.update(kwargs)
-        self.params = json.dumps(d)
+        params = self.params_dict
+        params.update(kwargs)
+        self.params = json.dumps(params)
 
     def remove_params(self, param_to_remove: str) -> None:
-        d = self.params_dict
-        d.pop(param_to_remove, None)
-        self.params = json.dumps(d)
+        params = self.params_dict
+        params.pop(param_to_remove, None)
+        self.params = json.dumps(params)
 
     def reset_ownership(self):
         """ object will belong to the user the current user """
@@ -376,7 +376,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
     def __init__(  # pylint: disable=too-many-arguments
         self, df, query, duration, status=QueryStatus.SUCCESS, error_message=None
     ):
-        self.df: pd.DataFrame = df  # pylint: disable=invalid-name
+        self.df: pd.DataFrame = df
         self.query: str = query
         self.duration: int = duration
         self.status: str = status
@@ -395,8 +395,8 @@ class ExtraJSONMixin:
         except Exception:  # pylint: disable=broad-except
             return {}
 
-    def set_extra_json(self, d):
-        self.extra_json = json.dumps(d)
+    def set_extra_json(self, extras):
+        self.extra_json = json.dumps(extras)
 
     def set_extra_json_key(self, key, value):
         extra = self.extra

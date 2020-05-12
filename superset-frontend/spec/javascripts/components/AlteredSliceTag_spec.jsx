@@ -18,15 +18,16 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-
 import { Table, Thead, Td, Th, Tr } from 'reactable-arc';
+import { getChartControlPanelRegistry } from '@superset-ui/chart';
 
-import AlteredSliceTag from '../../../src/components/AlteredSliceTag';
-import ModalTrigger from '../../../src/components/ModalTrigger';
-import TooltipWrapper from '../../../src/components/TooltipWrapper';
+import AlteredSliceTag from 'src/components/AlteredSliceTag';
+import ModalTrigger from 'src/components/ModalTrigger';
+import TooltipWrapper from 'src/components/TooltipWrapper';
 
 const defaultProps = {
   origFormData: {
+    viz_type: 'altered_slice_tag_spec',
     adhoc_filters: [
       {
         clause: 'WHERE',
@@ -111,12 +112,53 @@ const expectedDiffs = {
   },
 };
 
+const fakePluginControls = {
+  controlPanelSections: [
+    {
+      label: 'Fake Control Panel Sections',
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'y_axis_bounds',
+            config: {
+              type: 'BoundsControl',
+              label: 'Value bounds',
+              default: [null, null],
+              description: 'Value bounds for the y axis',
+            },
+          },
+          {
+            name: 'column_collection',
+            config: {
+              type: 'CollectionControl',
+              label: 'Fake Collection Control',
+            },
+          },
+          {
+            name: 'adhoc_filters',
+            config: {
+              type: 'AdhocFilterControl',
+              label: 'Fake Filters',
+              default: null,
+            },
+          },
+        ],
+      ],
+    },
+  ],
+};
+
 describe('AlteredSliceTag', () => {
   let wrapper;
   let props;
 
   beforeEach(() => {
-    props = Object.assign({}, defaultProps);
+    getChartControlPanelRegistry().registerValue(
+      'altered_slice_tag_spec',
+      fakePluginControls,
+    );
+    props = { ...defaultProps };
     wrapper = shallow(<AlteredSliceTag {...props} />);
   });
 
@@ -140,8 +182,8 @@ describe('AlteredSliceTag', () => {
 
   it('sets new diffs when receiving new props', () => {
     const newProps = {
-      currentFormData: Object.assign({}, props.currentFormData),
-      origFormData: Object.assign({}, props.origFormData),
+      currentFormData: { ...props.currentFormData },
+      origFormData: { ...props.origFormData },
     };
     newProps.currentFormData.beta = 10;
     wrapper = shallow(<AlteredSliceTag {...props} />);
@@ -237,6 +279,7 @@ describe('AlteredSliceTag', () => {
     });
 
     it('returns "Max" and "Min" for BoundsControl', () => {
+      // need to pass the viz type to the wrapper
       expect(wrapper.instance().formatValue([5, 6], 'y_axis_bounds')).toBe(
         'Min: 5, Max: 6',
       );

@@ -17,8 +17,20 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import { validateNonEmpty } from '@superset-ui/validator';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import {
+  lineInterpolation,
+  showLegend,
+  xAxisLabel,
+  bottomMargin,
+  xTicksLayout,
+  xAxisFormat,
+  xAxisShowMinmax,
+  showMarkers,
+  yAxis2Format,
+} from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -28,29 +40,96 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['prefix_metric_with_slice_name', null],
-        ['show_legend', 'show_markers'],
-        ['line_interpolation', null],
+        [
+          {
+            name: 'prefix_metric_with_slice_name',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Prefix metric name with slice name'),
+              default: false,
+              renderTrigger: true,
+            },
+          },
+          null,
+        ],
+        [showLegend, showMarkers],
+        [lineInterpolation, null],
       ],
     },
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        ['x_axis_label', 'bottom_margin'],
-        ['x_ticks_layout', 'x_axis_format'],
-        ['x_axis_showminmax', null],
+        [xAxisLabel, bottomMargin],
+        [xTicksLayout, xAxisFormat],
+        [xAxisShowMinmax, null],
       ],
     },
     {
       label: t('Y Axis 1'),
       expanded: true,
-      controlSetRows: [['line_charts', 'y_axis_format']],
+      controlSetRows: [
+        [
+          {
+            name: 'line_charts',
+            config: {
+              type: 'SelectAsyncControl',
+              multi: true,
+              label: t('Left Axis chart(s)'),
+              validators: [validateNonEmpty],
+              default: [],
+              description: t('Choose one or more charts for left axis'),
+              dataEndpoint:
+                '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+              placeholder: t('Select charts'),
+              onAsyncErrorMessage: t('Error while fetching charts'),
+              mutator: data => {
+                if (!data || !data.result) {
+                  return [];
+                }
+                return data.result.map(o => ({
+                  value: o.id,
+                  label: o.slice_name,
+                }));
+              },
+            },
+          },
+          'y_axis_format',
+        ],
+      ],
     },
     {
       label: t('Y Axis 2'),
       expanded: false,
-      controlSetRows: [['line_charts_2', 'y_axis_2_format']],
+      controlSetRows: [
+        [
+          {
+            name: 'line_charts_2',
+            config: {
+              type: 'SelectAsyncControl',
+              multi: true,
+              label: t('Right Axis chart(s)'),
+              validators: [],
+              default: [],
+              description: t('Choose one or more charts for right axis'),
+              dataEndpoint:
+                '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+              placeholder: t('Select charts'),
+              onAsyncErrorMessage: t('Error while fetching charts'),
+              mutator: data => {
+                if (!data || !data.result) {
+                  return [];
+                }
+                return data.result.map(o => ({
+                  value: o.id,
+                  label: o.slice_name,
+                }));
+              },
+            },
+          },
+          yAxis2Format,
+        ],
+      ],
     },
     {
       label: t('Query'),
@@ -60,10 +139,6 @@ export default {
     annotations,
   ],
   controlOverrides: {
-    line_charts: {
-      label: t('Left Axis chart(s)'),
-      description: t('Choose one or more charts for left axis'),
-    },
     y_axis_format: {
       label: t('Left Axis Format'),
     },

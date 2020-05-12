@@ -18,6 +18,11 @@
  */
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries } from './sections';
+import {
+  D3_TIME_FORMAT_OPTIONS,
+  D3_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+} from '../controls';
 
 export default {
   requiresTime: true,
@@ -28,9 +33,45 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme', 'label_colors'],
-        ['number_format', 'date_time_format'],
         [
-          'rich_tooltip',
+          {
+            name: 'number_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Number format'),
+              renderTrigger: true,
+              default: 'SMART_NUMBER',
+              choices: D3_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+          {
+            name: 'date_time_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Date Time Format'),
+              renderTrigger: true,
+              default: 'smart_date',
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
+        [
+          {
+            name: 'rich_tooltip',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Rich Tooltip'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'The rich tooltip shows a list of all series for that point in time',
+              ),
+            },
+          },
           {
             name: 'rose_area_proportion',
             config: {

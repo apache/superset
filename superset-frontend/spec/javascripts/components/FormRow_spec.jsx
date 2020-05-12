@@ -20,9 +20,9 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import { Col, Row } from 'react-bootstrap';
-import TextControl from '../../../src/explore/components/controls/TextControl';
-import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
-import FormRow from '../../../src/components/FormRow';
+import TextControl from 'src/explore/components/controls/TextControl';
+import InfoTooltipWithTrigger from 'src/components/InfoTooltipWithTrigger';
+import FormRow from 'src/components/FormRow';
 
 const defaultProps = {
   label: 'Hello',

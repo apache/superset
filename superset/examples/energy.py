@@ -29,7 +29,7 @@ from superset.utils import core as utils
 from .helpers import get_example_data, merge_slice, misc_dash_slices, TBL
 
 
-def load_energy(only_metadata=False, force=False):
+def load_energy(only_metadata: bool = False, force: bool = False) -> None:
     """Loads an energy related dataset to use with sankey and graphs"""
     tbl_name = "energy_usage"
     database = utils.get_example_database()

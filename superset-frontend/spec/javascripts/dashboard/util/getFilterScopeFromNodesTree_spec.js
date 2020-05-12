@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getFilterScopeFromNodesTree from '../../../../src/dashboard/util/getFilterScopeFromNodesTree';
+import getFilterScopeFromNodesTree from 'src/dashboard/util/getFilterScopeFromNodesTree';
 
 describe('getFilterScopeFromNodesTree', () => {
   it('should return empty scope', () => {
@@ -210,6 +210,20 @@ describe('getFilterScopeFromNodesTree', () => {
       ).toEqual({
         scope: ['TAB-Rb5aaqKWgG', 'TAB-E4mJaZ-uQM'],
         immune: [],
+      });
+    });
+
+    it('mixed row level tab and chart scope', () => {
+      const checkedChartIds = [103, 105, 102];
+      expect(
+        getFilterScopeFromNodesTree({
+          filterKey: '107_region',
+          nodes,
+          checkedChartIds,
+        }),
+      ).toEqual({
+        scope: ['TAB-E4mJaZ-uQM', 'TAB-rLYu-Cryu'],
+        immune: [101],
       });
     });
   });

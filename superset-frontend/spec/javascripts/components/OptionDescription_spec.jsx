@@ -19,8 +19,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
-import OptionDescription from '../../../src/components/OptionDescription';
+import InfoTooltipWithTrigger from 'src/components/InfoTooltipWithTrigger';
+import OptionDescription from 'src/components/OptionDescription';
 
 const defaultProps = {
   option: {
@@ -34,7 +34,7 @@ describe('OptionDescription', () => {
   let props;
 
   beforeEach(() => {
-    props = { option: Object.assign({}, defaultProps.option) };
+    props = { option: { ...defaultProps.option } };
     wrapper = shallow(<OptionDescription {...props} />);
   });
 

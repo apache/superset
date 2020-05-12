@@ -82,9 +82,7 @@ export default class AdhocMetric {
       adhocMetric.optionName ||
       `metric_${Math.random()
         .toString(36)
-        .substring(2, 15)}_${Math.random()
-        .toString(36)
-        .substring(2, 15)}`;
+        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
   getDefaultLabel() {
@@ -94,9 +92,9 @@ export default class AdhocMetric {
 
   translateToSql() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      return `${this.aggregate || ''}(${(this.column &&
-        this.column.column_name) ||
-        ''})`;
+      return `${this.aggregate || ''}(${
+        (this.column && this.column.column_name) || ''
+      })`;
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return this.sqlExpression;
     }

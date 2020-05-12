@@ -26,9 +26,9 @@ import { Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
-import * as exploreUtils from '../../../../src/explore/exploreUtils';
-import * as saveModalActions from '../../../../src/explore/actions/saveModalActions';
-import SaveModal from '../../../../src/explore/components/SaveModal';
+import * as exploreUtils from 'src/explore/exploreUtils';
+import * as saveModalActions from 'src/explore/actions/saveModalActions';
+import SaveModal from 'src/explore/components/SaveModal';
 
 describe('SaveModal', () => {
   const middlewares = [thunk];

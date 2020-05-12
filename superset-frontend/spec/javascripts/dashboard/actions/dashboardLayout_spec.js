@@ -36,14 +36,11 @@ import {
   updateDashboardTitle,
   undoLayoutAction,
   redoLayoutAction,
-} from '../../../../src/dashboard/actions/dashboardLayout';
+} from 'src/dashboard/actions/dashboardLayout';
 
-import { setUnsavedChanges } from '../../../../src/dashboard/actions/dashboardState';
-import * as dashboardFilters from '../../../../src/dashboard/actions/dashboardFilters';
-import {
-  addWarningToast,
-  ADD_TOAST,
-} from '../../../../src/messageToasts/actions';
+import { setUnsavedChanges } from 'src/dashboard/actions/dashboardState';
+import * as dashboardFilters from 'src/dashboard/actions/dashboardFilters';
+import { addWarningToast, ADD_TOAST } from 'src/messageToasts/actions';
 
 import {
   DASHBOARD_GRID_TYPE,
@@ -51,7 +48,7 @@ import {
   CHART_TYPE,
   TABS_TYPE,
   TAB_TYPE,
-} from '../../../../src/dashboard/util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 
 import {
   DASHBOARD_HEADER_ID,
@@ -59,7 +56,7 @@ import {
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
   NEW_ROW_ID,
-} from '../../../../src/dashboard/util/constants';
+} from 'src/dashboard/util/constants';
 
 describe('dashboardLayout actions', () => {
   const mockState = {

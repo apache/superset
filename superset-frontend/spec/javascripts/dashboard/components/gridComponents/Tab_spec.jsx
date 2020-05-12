@@ -21,15 +21,15 @@ import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
 
-import DashboardComponent from '../../../../../src/dashboard/containers/DashboardComponent';
-import DeleteComponentModal from '../../../../../src/dashboard/components/DeleteComponentModal';
-import DragDroppable from '../../../../../src/dashboard/components/dnd/DragDroppable';
-import EditableTitle from '../../../../../src/components/EditableTitle';
-import WithPopoverMenu from '../../../../../src/dashboard/components/menu/WithPopoverMenu';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import DeleteComponentModal from 'src/dashboard/components/DeleteComponentModal';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import EditableTitle from 'src/components/EditableTitle';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import Tab, {
   RENDER_TAB,
   RENDER_TAB_CONTENT,
-} from '../../../../../src/dashboard/components/gridComponents/Tab';
+} from 'src/dashboard/components/gridComponents/Tab';
 import WithDragDropContext from '../../helpers/WithDragDropContext';
 import { dashboardLayoutWithTabs } from '../../fixtures/mockDashboardLayout';
 import { mockStoreWithTabs } from '../../fixtures/mockStore';

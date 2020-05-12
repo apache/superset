@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MULTI_OPERATORS } from './constants';
+import { MULTI_OPERATORS, CUSTOM_OPERATORS } from './constants';
 
 export const EXPRESSION_TYPES = {
   SIMPLE: 'SIMPLE',
@@ -41,16 +41,22 @@ const OPERATORS_TO_SQL = {
   regex: 'regex',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
+  'LATEST PARTITION': ({ datasource }) => {
+    return `= '{{ presto.latest_partition('${datasource.schema}.${datasource.datasource_name}') }}'`;
+  },
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
   if (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE || useSimple) {
     const isMulti = MULTI_OPERATORS.indexOf(adhocMetric.operator) >= 0;
     const subject = adhocMetric.subject;
-    const operator = OPERATORS_TO_SQL[adhocMetric.operator];
+    const operator =
+      adhocMetric.operator && CUSTOM_OPERATORS.includes(adhocMetric.operator)
+        ? OPERATORS_TO_SQL[adhocMetric.operator](adhocMetric)
+        : OPERATORS_TO_SQL[adhocMetric.operator];
     const comparator = Array.isArray(adhocMetric.comparator)
       ? adhocMetric.comparator.join("','")
-      : adhocMetric.comparator;
+      : adhocMetric.comparator || '';
     return `${subject} ${operator} ${isMulti ? "('" : ''}${comparator}${
       isMulti ? "')" : ''
     }`;
@@ -75,8 +81,16 @@ export default class AdhocFilter {
           ? adhocFilter.sqlExpression
           : translateToSql(adhocFilter, { useSimple: true });
       this.clause = adhocFilter.clause;
-      this.subject = null;
-      this.operator = null;
+      if (
+        adhocFilter.operator &&
+        CUSTOM_OPERATORS.includes(adhocFilter.operator)
+      ) {
+        this.subject = adhocFilter.subject;
+        this.operator = adhocFilter.operator;
+      } else {
+        this.subject = null;
+        this.operator = null;
+      }
       this.comparator = null;
     }
     this.isExtra = !!adhocFilter.isExtra;
@@ -86,9 +100,7 @@ export default class AdhocFilter {
       adhocFilter.filterOptionName ||
       `filter_${Math.random()
         .toString(36)
-        .substring(2, 15)}_${Math.random()
-        .toString(36)
-        .substring(2, 15)}`;
+        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
   duplicateWith(nextFields) {
@@ -121,13 +133,17 @@ export default class AdhocFilter {
         return !!(this.operator && this.subject);
       }
 
-      return !!(
-        this.operator &&
-        this.subject &&
-        this.comparator &&
-        this.comparator.length > 0 &&
-        this.clause
-      );
+      if (this.operator && this.subject && this.clause) {
+        if (Array.isArray(this.comparator)) {
+          if (this.comparator.length > 0) {
+            // A non-empty array of values ('IN' or 'NOT IN' clauses)
+            return true;
+          }
+        } else if (this.comparator !== null) {
+          // A value has been selected or typed
+          return true;
+        }
+      }
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return !!(this.sqlExpression && this.clause);
     }

@@ -154,6 +154,16 @@ const babelLoader = {
     // disable gzip compression for cache files
     // faster when there are millions of small files
     cacheCompression: false,
+    plugins: ['emotion'],
+    presets: [
+      [
+        '@emotion/babel-preset-css-prop',
+        {
+          autoLabel: true,
+          labelFormat: '[local]',
+        },
+      ],
+    ],
   },
 };
 
@@ -198,6 +208,7 @@ const config = {
     alias: {
       src: path.resolve(APP_DIR, './src'),
       'react-dom': '@hot-loader/react-dom',
+      stylesheets: path.resolve(APP_DIR, './stylesheets'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     symlinks: false,
@@ -224,6 +235,15 @@ const config = {
               // type checking is done via fork-ts-checker-webpack-plugin
               happyPackMode: true,
               transpileOnly: true,
+              // must override compiler options here, even though we have set
+              // the same options in `tsconfig.json`, because they may still
+              // be overriden by `tsconfig.json` in node_modules subdirectories.
+              compilerOptions: {
+                esModuleInterop: false,
+                importHelpers: false,
+                module: 'esnext',
+                target: 'esnext',
+              },
             },
           },
         ],

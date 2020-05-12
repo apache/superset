@@ -20,9 +20,9 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import Chart from '../../../../../src/dashboard/components/gridComponents/Chart';
-import SliceHeader from '../../../../../src/dashboard/components/SliceHeader';
-import ChartContainer from '../../../../../src/chart/ChartContainer';
+import Chart from 'src/dashboard/components/gridComponents/Chart';
+import SliceHeader from 'src/dashboard/components/SliceHeader';
+import ChartContainer from 'src/chart/ChartContainer';
 
 import mockDatasource from '../../../../fixtures/mockDatasource';
 import { sliceEntitiesForChart as sliceEntities } from '../../fixtures/mockSliceEntities';

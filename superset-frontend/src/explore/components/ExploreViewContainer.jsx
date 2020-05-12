@@ -418,13 +418,12 @@ function mapStateToProps(state) {
 }
 
 function mapDispatchToProps(dispatch) {
-  const actions = Object.assign(
-    {},
-    exploreActions,
-    saveModalActions,
-    chartActions,
-    logActions,
-  );
+  const actions = {
+    ...exploreActions,
+    ...saveModalActions,
+    ...chartActions,
+    ...logActions,
+  };
   return {
     actions: bindActionCreators(actions, dispatch),
   };

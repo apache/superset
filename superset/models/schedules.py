@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 """Models for scheduled execution of jobs"""
-
 import enum
+from typing import Optional, Type
 
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
@@ -29,17 +29,17 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-class ScheduleType(enum.Enum):
+class ScheduleType(str, enum.Enum):
     slice = "slice"
     dashboard = "dashboard"
 
 
-class EmailDeliveryType(enum.Enum):
+class EmailDeliveryType(str, enum.Enum):
     attachment = "Attachment"
     inline = "Inline"
 
 
-class SliceEmailReportFormat(enum.Enum):
+class SliceEmailReportFormat(str, enum.Enum):
     visualization = "Visualization"
     data = "Raw data"
 
@@ -50,7 +50,7 @@ class EmailSchedule:
 
     __tablename__ = "email_schedules"
 
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    id = Column(Integer, primary_key=True)
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(50))
 
@@ -86,9 +86,9 @@ class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
     email_format = Column(Enum(SliceEmailReportFormat))
 
 
-def get_scheduler_model(report_type):
-    if report_type == ScheduleType.dashboard.value:
+def get_scheduler_model(report_type: ScheduleType) -> Optional[Type[EmailSchedule]]:
+    if report_type == ScheduleType.dashboard:
         return DashboardEmailSchedule
-    elif report_type == ScheduleType.slice.value:
+    elif report_type == ScheduleType.slice:
         return SliceEmailSchedule
     return None

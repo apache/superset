@@ -19,9 +19,9 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { Table } from 'reactable-arc';
+import QueryTable from 'src/SqlLab/components/QueryTable';
 
 import { queries } from './fixtures';
-import QueryTable from '../../../src/SqlLab/components/QueryTable';
 
 describe('QueryTable', () => {
   const mockedProps = {
@@ -36,18 +36,9 @@ describe('QueryTable', () => {
   it('renders a proper table', () => {
     const wrapper = shallow(<QueryTable {...mockedProps} />);
     expect(wrapper.find(Table)).toHaveLength(1);
-    expect(
-      wrapper
-        .find(Table)
-        .shallow()
-        .find('table'),
-    ).toHaveLength(1);
-    expect(
-      wrapper
-        .find(Table)
-        .shallow()
-        .find('table')
-        .find('Tr'),
-    ).toHaveLength(2);
+    expect(wrapper.find(Table).shallow().find('table')).toHaveLength(1);
+    expect(wrapper.find(Table).shallow().find('table').find('Tr')).toHaveLength(
+      2,
+    );
   });
 });

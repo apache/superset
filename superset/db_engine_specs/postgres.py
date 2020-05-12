@@ -20,11 +20,11 @@ from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec
 
 if TYPE_CHECKING:
-    # prevent circular imports
-    from superset.models.core import Database  # pylint: disable=unused-import
+    # pylint: disable=unused-import
+    from superset.models.core import Database  # pragma: no cover
 
 
 # Replace psycopg2.tz.FixedOffsetTimezone with pytz, which is serializable by PyArrow
@@ -55,9 +55,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         cursor.tzinfo_factory = FixedOffsetTimezone
         if not cursor.description:
             return []
-        if cls.limit_method == LimitMethod.FETCH_MANY:
-            return cursor.fetchmany(limit)
-        return cursor.fetchall()
+        return super().fetch_data(cursor, limit)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

@@ -101,8 +101,8 @@ def upgrade():
                 dashboard.json_metadata = None
 
             session.merge(dashboard)
-        except Exception as e:
-            logging.exception(f"dashboard {dashboard.id} has error: {e}")
+        except Exception as ex:
+            logging.exception(f"dashboard {dashboard.id} has error: {ex}")
 
     session.commit()
     session.close()

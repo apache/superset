@@ -32,6 +32,7 @@ const propTypes = {
   onClick: PropTypes.func,
   disabled: PropTypes.bool,
   bsSize: PropTypes.string,
+  bsStyle: PropTypes.string,
   btnStyles: PropTypes.string,
 };
 const defaultProps = {
@@ -42,7 +43,7 @@ const defaultProps = {
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
 
 export default function Button(props) {
-  const buttonProps = Object.assign({}, props);
+  const buttonProps = { ...props };
   const tooltip = props.tooltip;
   const placement = props.placement;
   delete buttonProps.tooltip;

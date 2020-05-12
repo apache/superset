@@ -24,9 +24,9 @@ import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
 import { shallow } from 'enzyme';
 
-import * as utils from '../../../src/utils/common';
-import Button from '../../../src/components/Button';
-import ShareSqlLabQuery from '../../../src/SqlLab/components/ShareSqlLabQuery';
+import * as utils from 'src/utils/common';
+import Button from 'src/components/Button';
+import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore();
@@ -132,7 +132,8 @@ describe('ShareSqlLabQuery via /kv/store', () => {
         .instance()
         .getCopyUrl()
         .then(() => {
-          expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1);
+          // Fails then retries thrice
+          expect(fetchMock.calls(storeQueryUrl)).toHaveLength(4);
           expect(addDangerToastSpy.mock.calls).toHaveLength(1);
           expect(addDangerToastSpy.mock.calls[0][0]).toBe(error);
 

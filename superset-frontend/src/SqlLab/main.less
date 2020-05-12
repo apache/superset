@@ -158,6 +158,7 @@ div.Workspace {
 
       &:last-child {
         margin-right: 0;
+        font-feature-settings: 'kern' 1, 'tnum' 1;
       }
     }
   }
@@ -359,7 +360,21 @@ div.tablePopover {
 }
 
 .ResultSetControls {
+  display: flex;
+  justify-content: space-between;
   padding: 8px 0;
+  position: fixed;
+}
+
+.ResultSetButtons {
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: 4px;
+  padding-right: 8px;
+}
+
+.filterable-table-container {
+  margin-top: 48px;
 }
 
 .ace_editor {

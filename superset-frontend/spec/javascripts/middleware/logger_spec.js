@@ -18,9 +18,9 @@
  */
 import sinon from 'sinon';
 import { SupersetClient } from '@superset-ui/connection';
-import logger from '../../../src/middleware/loggerMiddleware';
-import { LOG_EVENT } from '../../../src/logger/actions';
-import { LOG_ACTIONS_LOAD_CHART } from '../../../src/logger/LogUtils';
+import logger from 'src/middleware/loggerMiddleware';
+import { LOG_EVENT } from 'src/logger/actions';
+import { LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 
 describe('logger middleware', () => {
   const next = sinon.spy();

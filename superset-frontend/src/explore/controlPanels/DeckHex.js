@@ -17,6 +17,23 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import {
+  formatSelectOptions,
+  formatSelectOptionsForRange,
+} from '../../modules/utils';
+import {
+  filterNulls,
+  autozoom,
+  jsColumns,
+  jsDataMutator,
+  jsTooltip,
+  jsOnclickHref,
+  extruded,
+  gridSize,
+  viewport,
+  spatial,
+  mapboxStyle,
+} from './Shared_DeckGL';
 
 export default {
   requiresTime: true,
@@ -25,27 +42,56 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['spatial', 'size'],
-        ['row_limit', 'filter_nulls'],
+        [spatial, 'size'],
+        ['row_limit', filterNulls],
         ['adhoc_filters'],
       ],
     },
     {
       label: t('Map'),
       controlSetRows: [
-        ['mapbox_style', 'viewport'],
-        ['color_picker', 'autozoom'],
-        ['grid_size', 'extruded'],
-        ['js_agg_function', null],
+        [mapboxStyle, viewport],
+        ['color_picker', autozoom],
+        [gridSize, extruded],
+        [
+          {
+            name: 'js_agg_function',
+            config: {
+              type: 'SelectControl',
+              label: t('Dynamic Aggregation Function'),
+              description: t(
+                'The function to use when aggregating points into groups',
+              ),
+              default: 'sum',
+              clearable: false,
+              renderTrigger: true,
+              choices: formatSelectOptions([
+                'sum',
+                'min',
+                'max',
+                'mean',
+                'median',
+                'count',
+                'variance',
+                'deviation',
+                'p1',
+                'p5',
+                'p95',
+                'p99',
+              ]),
+            },
+          },
+          null,
+        ],
       ],
     },
     {
       label: t('Advanced'),
       controlSetRows: [
-        ['js_columns'],
-        ['js_data_mutator'],
-        ['js_tooltip'],
-        ['js_onclick_href'],
+        [jsColumns],
+        [jsDataMutator],
+        [jsTooltip],
+        [jsOnclickHref],
       ],
     },
   ],

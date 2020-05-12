@@ -20,7 +20,7 @@ import {
   optionFromValue,
   prepareCopyToClipboardTabularData,
   NULL_STRING,
-} from '../../../src/utils/common';
+} from 'src/utils/common';
 
 describe('utils/common', () => {
   describe('optionFromValue', () => {

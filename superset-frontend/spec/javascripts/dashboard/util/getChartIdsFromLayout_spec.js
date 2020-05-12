@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getChartIdsFromLayout from '../../../../src/dashboard/util/getChartIdsFromLayout';
-import {
-  ROW_TYPE,
-  CHART_TYPE,
-} from '../../../../src/dashboard/util/componentTypes';
+import getChartIdsFromLayout from 'src/dashboard/util/getChartIdsFromLayout';
+import { ROW_TYPE, CHART_TYPE } from 'src/dashboard/util/componentTypes';
 
 describe('getChartIdsFromLayout', () => {
   const mockLayout = {

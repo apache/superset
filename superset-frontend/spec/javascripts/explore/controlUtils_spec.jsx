@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import React from 'react';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { t } from '@superset-ui/translation';
 import {
   getControlConfig,
   getControlState,
+  getFormDataFromControls,
   applyMapStateToPropsToControl,
-} from '../../../src/explore/controlUtils';
+  getAllControlsState,
+} from 'src/explore/controlUtils';
+import ColumnOption from 'src/components/ColumnOption';
 
 describe('controlUtils', () => {
   const state = {
@@ -57,6 +62,23 @@ describe('controlUtils', () => {
                   },
                 },
               ],
+              [
+                {
+                  name: 'stacked_style',
+                  config: {
+                    type: 'SelectControl',
+                    label: t('Stacked Style'),
+                    renderTrigger: true,
+                    choices: [
+                      ['stack', 'stack'],
+                      ['stream', 'stream'],
+                      ['expand', 'expand'],
+                    ],
+                    default: 'stack',
+                    description: '',
+                  },
+                },
+              ],
             ],
           },
         ],
@@ -75,6 +97,40 @@ describe('controlUtils', () => {
             label: t('My beautiful colors'),
           },
         },
+      })
+      .registerValue('table', {
+        controlPanelSections: [
+          {
+            label: t('Chart Options'),
+            expanded: true,
+            controlSetRows: [
+              [
+                {
+                  name: 'all_columns',
+                  config: {
+                    type: 'SelectControl',
+                    controlGroup: 'columns',
+                    multi: true,
+                    label: t('Columns'),
+                    default: [],
+                    description: t('Columns to display'),
+                    optionRenderer: c => <ColumnOption column={c} showType />,
+                    valueRenderer: c => <ColumnOption column={c} />,
+                    valueKey: 'column_name',
+                    allowAll: true,
+                    mapStateToProps: stateRef => ({
+                      options: stateRef.datasource
+                        ? stateRef.datasource.columns
+                        : [],
+                    }),
+                    commaChoosesOption: false,
+                    freeForm: true,
+                  },
+                },
+              ],
+            ],
+          },
+        ],
       });
   });
 
@@ -148,10 +204,15 @@ describe('controlUtils', () => {
     });
 
     it('removes missing/invalid choice', () => {
-      let control = getControlState('stacked_style', 'area', state, 'stack');
+      let control = getControlState(
+        'stacked_style',
+        'test-chart',
+        state,
+        'stack',
+      );
       expect(control.value).toBe('stack');
 
-      control = getControlState('stacked_style', 'area', state, 'FOO');
+      control = getControlState('stacked_style', 'test-chart', state, 'FOO');
       expect(control.value).toBe(null);
     });
 
@@ -186,6 +247,14 @@ describe('controlUtils', () => {
     it('validates the control, returns an error if empty', () => {
       const control = getControlState('metric', 'table', state, null);
       expect(control.validationErrors).toEqual(['cannot be empty']);
+    });
+  });
+
+  describe('controlGroup', () => {
+    it('in formData', () => {
+      const controlsState = getAllControlsState('table', 'table', {}, {});
+      const formData = getFormDataFromControls(controlsState);
+      expect(formData.controlGroups).toEqual({ all_columns: 'columns' });
     });
   });
 });

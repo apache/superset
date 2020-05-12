@@ -21,8 +21,8 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import fetchMock from 'fetch-mock';
 
-import MetricsControl from '../../../../src/explore/components/controls/MetricsControl';
-import withVerification from '../../../../src/explore/components/controls/withVerification';
+import MetricsControl from 'src/explore/components/controls/MetricsControl';
+import withVerification from 'src/explore/components/controls/withVerification';
 
 const defaultProps = {
   name: 'metrics',

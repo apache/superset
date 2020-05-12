@@ -19,15 +19,15 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
+import FilterIndicatorsContainer from 'src/dashboard/components/FilterIndicatorsContainer';
+import FilterIndicator from 'src/dashboard/components/FilterIndicator';
+import * as colorMap from 'src/dashboard/util/dashboardFiltersColorMap';
+import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { getDashboardFilterKey } from 'src/dashboard/util/getDashboardFilterKey';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { dashboardFilters } from '../fixtures/mockDashboardFilters';
 import { sliceId as chartId } from '../fixtures/mockChartQueries';
 import { filterId, column } from '../fixtures/mockSliceEntities';
-import FilterIndicatorsContainer from '../../../../src/dashboard/components/FilterIndicatorsContainer';
-import FilterIndicator from '../../../../src/dashboard/components/FilterIndicator';
-import * as colorMap from '../../../../src/dashboard/util/dashboardFiltersColorMap';
-import { buildActiveFilters } from '../../../../src/dashboard/util/activeDashboardFilters';
-import { getDashboardFilterKey } from '../../../../src/dashboard/util/getDashboardFilterKey';
-import { DASHBOARD_ROOT_ID } from '../../../../src/dashboard/util/constants';
 import { dashboardWithFilter } from '../fixtures/mockDashboardLayout';
 
 describe('FilterIndicatorsContainer', () => {
@@ -84,5 +84,24 @@ describe('FilterIndicatorsContainer', () => {
     };
     const wrapper = setup({ dashboardFilters: overwriteDashboardFilters });
     expect(wrapper.find(FilterIndicator)).toHaveLength(0);
+  });
+
+  it('should show single number type value', () => {
+    const overwriteDashboardFilters = {
+      ...dashboardFilters,
+      [filterId]: {
+        ...dashboardFilters[filterId],
+        columns: {
+          testField: 0,
+        },
+      },
+    };
+    const wrapper = setup({ dashboardFilters: overwriteDashboardFilters });
+    expect(wrapper.find(FilterIndicator)).toHaveLength(1);
+
+    const indicatorProps = wrapper.find(FilterIndicator).first().props()
+      .indicator;
+    expect(indicatorProps.label).toEqual('testField');
+    expect(indicatorProps.values).toEqual([0]);
   });
 });

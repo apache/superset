@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/translation';
 import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import { xAxisFormat, yAxis2Format } from './Shared_NVD3';
 
 export default {
   requiresTime: true,
@@ -26,7 +27,7 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme', 'label_colors'], ['x_axis_format']],
+      controlSetRows: [['color_scheme', 'label_colors'], [xAxisFormat]],
     },
     {
       label: t('Y Axis 1'),
@@ -36,7 +37,7 @@ export default {
     {
       label: t('Y Axis 2'),
       expanded: true,
-      controlSetRows: [['metric_2', 'y_axis_2_format']],
+      controlSetRows: [['metric_2', yAxis2Format]],
     },
     {
       label: t('Query'),
@@ -52,10 +53,6 @@ export default {
     },
     y_axis_format: {
       label: t('Left Axis Format'),
-    },
-    x_axis_format: {
-      choices: D3_TIME_FORMAT_OPTIONS,
-      default: 'smart_date',
     },
   },
   sectionOverrides: {

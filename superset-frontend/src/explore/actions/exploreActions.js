@@ -76,7 +76,7 @@ export function toggleFaveStar(isStarred) {
 
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId) {
-  return function(dispatch) {
+  return function (dispatch) {
     SupersetClient.get({
       endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count`,
     }).then(({ json }) => {
@@ -89,7 +89,7 @@ export function fetchFaveStar(sliceId) {
 
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId, isStarred) {
-  return function(dispatch) {
+  return function (dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
     SupersetClient.get({
       endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`,

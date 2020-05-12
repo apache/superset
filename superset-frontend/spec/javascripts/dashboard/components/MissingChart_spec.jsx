@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import MissingChart from '../../../../src/dashboard/components/MissingChart';
+import MissingChart from 'src/dashboard/components/MissingChart';
 
 describe('MissingChart', () => {
   function setup(overrideProps) {

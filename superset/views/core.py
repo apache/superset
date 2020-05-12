@@ -67,7 +67,9 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
 from superset.constants import RouteMethod
 from superset.exceptions import (
+    CertificateException,
     DatabaseNotFound,
+    QueryObjectValidationError,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
@@ -83,7 +85,7 @@ from superset.security.analytics_db_safety import (
     check_sqlalchemy_uri,
     DBSecurityException,
 )
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
@@ -97,6 +99,7 @@ from .base import (
     BaseSupersetView,
     check_ownership,
     common_bootstrap_payload,
+    create_table_permissions,
     CsvResponse,
     data_payload_response,
     DeleteMixin,
@@ -107,6 +110,7 @@ from .base import (
     json_error_response,
     json_success,
     SupersetModelView,
+    validate_sqlatable,
 )
 from .utils import (
     apply_display_max_row_limit,
@@ -184,10 +188,13 @@ def check_datasource_perms(
         datasource_id, datasource_type = get_datasource_info(
             datasource_id, datasource_type, form_data
         )
-    except SupersetException as e:
-        raise SupersetSecurityException(str(e))
+    except SupersetException as ex:
+        raise SupersetSecurityException(str(ex))
 
-    viz_obj = get_viz(  # type: ignore
+    if datasource_type is None:
+        raise SupersetSecurityException("Could not determine datasource type")
+
+    viz_obj = get_viz(
         datasource_type=datasource_type,
         datasource_id=datasource_id,
         form_data=form_data,
@@ -313,8 +320,8 @@ class KV(BaseSupersetView):
             obj = models.KeyValue(value=value)
             db.session.add(obj)
             db.session.commit()
-        except Exception as e:
-            return json_error_response(e)
+        except Exception as ex:
+            return json_error_response(ex)
         return Response(json.dumps({"id": obj.id}), status=200)
 
     @event_logger.log_this
@@ -325,8 +332,8 @@ class KV(BaseSupersetView):
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
             if not kv:
                 return Response(status=404, content_type="text/plain")
-        except Exception as e:
-            return json_error_response(e)
+        except Exception as ex:
+            return json_error_response(ex)
         return Response(kv.value, status=200, content_type="text/plain")
 
 
@@ -596,9 +603,9 @@ class Superset(BaseSupersetView):
             query_obj = viz_obj.query_obj()
             if query_obj:
                 query = viz_obj.datasource.get_query_str(query_obj)
-        except Exception as e:
-            logger.exception(e)
-            return json_error_response(e)
+        except Exception as ex:
+            logger.exception(ex)
+            return json_error_response(ex)
 
         if not query:
             query = "No query."
@@ -647,13 +654,16 @@ class Superset(BaseSupersetView):
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         datasource_type = slc.datasource.type
         datasource_id = slc.datasource.id
-        viz_obj = get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            form_data=form_data,
-            force=False,
-        )
-        return self.generate_json(viz_obj)
+        try:
+            viz_obj = get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                form_data=form_data,
+                force=False,
+            )
+            return self.generate_json(viz_obj)
+        except SupersetException as ex:
+            return json_error_response(utils.error_msg_from_exception(ex))
 
     @event_logger.log_this
     @api
@@ -702,19 +712,19 @@ class Superset(BaseSupersetView):
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
-        except SupersetException as e:
-            return json_error_response(utils.error_msg_from_exception(e))
 
-        viz_obj = get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            form_data=form_data,
-            force=force,
-        )
+            viz_obj = get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                form_data=form_data,
+                force=force,
+            )
 
-        return self.generate_json(
-            viz_obj, csv=csv, query=query, results=results, samples=samples
-        )
+            return self.generate_json(
+                viz_obj, csv=csv, query=query, results=results, samples=samples
+            )
+        except SupersetException as ex:
+            return json_error_response(utils.error_msg_from_exception(ex))
 
     @event_logger.log_this
     @has_access
@@ -725,19 +735,19 @@ class Superset(BaseSupersetView):
         if request.method == "POST" and f:
             try:
                 dashboard_import_export.import_dashboards(db.session, f.stream)
-            except DatabaseNotFound as e:
-                logger.exception(e)
+            except DatabaseNotFound as ex:
+                logger.exception(ex)
                 flash(
                     _(
                         "Cannot import dashboard: %(db_error)s.\n"
                         "Make sure to create the database before "
                         "importing the dashboard.",
-                        db_error=e,
+                        db_error=ex,
                     ),
                     "danger",
                 )
-            except Exception as e:
-                logger.exception(e)
+            except Exception as ex:
+                logger.exception(ex)
                 flash(
                     _(
                         "An unknown error occurred. "
@@ -1353,6 +1363,7 @@ class Superset(BaseSupersetView):
             # this is the database instance that will be tested
             database = models.Database(
                 # extras is sent as json, but required to be a string in the Database model
+                server_cert=request.json.get("server_cert"),
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
                 encrypted_extra=json.dumps(request.json.get("encrypted_extra", {})),
@@ -1366,8 +1377,11 @@ class Superset(BaseSupersetView):
             with closing(engine.connect()) as conn:
                 conn.scalar(select([1]))
                 return json_success('"OK"')
-        except NoSuchModuleError as e:
-            logger.info("Invalid driver %s", e)
+        except CertificateException as ex:
+            logger.info(ex.message)
+            return json_error_response(ex.message)
+        except (NoSuchModuleError, ModuleNotFoundError) as ex:
+            logger.info("Invalid driver %s", ex)
             driver_name = make_url(uri).drivername
             return json_error_response(
                 _(
@@ -1376,24 +1390,24 @@ class Superset(BaseSupersetView):
                 ),
                 400,
             )
-        except ArgumentError as e:
-            logger.info("Invalid URI %s", e)
+        except ArgumentError as ex:
+            logger.info("Invalid URI %s", ex)
             return json_error_response(
                 _(
                     "Invalid connection string, a valid string usually follows:\n"
                     "'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'"
                 )
             )
-        except OperationalError as e:
-            logger.warning("Connection failed %s", e)
+        except OperationalError as ex:
+            logger.warning("Connection failed %s", ex)
             return json_error_response(
                 _("Connection failed, please check your connection settings."), 400
             )
-        except DBSecurityException as e:
-            logger.warning("Stopped an unsafe database connection. %s", e)
-            return json_error_response(_(str(e)), 400)
-        except Exception as e:
-            logger.error("Unexpected error %s", e)
+        except DBSecurityException as ex:
+            logger.warning("Stopped an unsafe database connection. %s", ex)
+            return json_error_response(_(str(ex)), 400)
+        except Exception as ex:
+            logger.error("Unexpected error %s", ex)
             return json_error_response(
                 _("Unexpected error occurred, please check your logs for details"), 400
             )
@@ -1630,6 +1644,7 @@ class Superset(BaseSupersetView):
             payload.append(d)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
+    @event_logger.log_this
     @api
     @has_access_api
     @expose("/warm_up_cache/", methods=["GET"])
@@ -1684,6 +1699,8 @@ class Superset(BaseSupersetView):
                 .all()
             )
 
+        result = []
+
         for slc in slices:
             try:
                 form_data = get_form_data(slc.id, use_slice_data=True)[0]
@@ -1691,21 +1708,32 @@ class Superset(BaseSupersetView):
                     form_data["extra_filters"] = get_dashboard_extra_filters(
                         slc.id, dashboard_id
                     )
+
                 obj = get_viz(
                     datasource_type=slc.datasource.type,
                     datasource_id=slc.datasource.id,
                     form_data=form_data,
                     force=True,
                 )
-                obj.get_json()
-            except Exception as e:
-                logger.exception("Failed to warm up cache")
-                return json_error_response(utils.error_msg_from_exception(e))
-        return json_success(
-            json.dumps(
-                [{"slice_id": slc.id, "slice_name": slc.slice_name} for slc in slices]
+
+                # Temporarily define the form-data in the request context which may be
+                # leveraged by the Jinja macros.
+                with app.test_request_context(
+                    data={"form_data": json.dumps(form_data)}
+                ):
+                    payload = obj.get_payload()
+
+                error = payload["error"]
+                status = payload["status"]
+            except Exception as ex:
+                error = utils.error_msg_from_exception(ex)
+                status = None
+
+            result.append(
+                {"slice_id": slc.id, "viz_error": error, "viz_status": status}
             )
-        )
+
+        return json_success(json.dumps(result))
 
     @has_access_api
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
@@ -1942,10 +1970,52 @@ class Superset(BaseSupersetView):
             return json_error_response(err_msg)
         try:
             DruidDatasource.sync_to_db_from_config(druid_config, user, cluster)
-        except Exception as e:
-            logger.exception(utils.error_msg_from_exception(e))
-            return json_error_response(utils.error_msg_from_exception(e))
+        except Exception as ex:
+            logger.exception(utils.error_msg_from_exception(ex))
+            return json_error_response(utils.error_msg_from_exception(ex))
         return Response(status=201)
+
+    @has_access
+    @expose("/get_or_create_table/", methods=["POST"])
+    @event_logger.log_this
+    def sqllab_table_viz(self):
+        """ Gets or creates a table object with attributes passed to the API.
+
+        It expects the json with params:
+        * datasourceName - e.g. table name, required
+        * dbId - database id, required
+        * schema - table schema, optional
+        * templateParams - params for the Jinja templating syntax, optional
+        :return: Response
+        """
+        SqlaTable = ConnectorRegistry.sources["table"]
+        data = json.loads(request.form.get("data"))
+        table_name = data.get("datasourceName")
+        database_id = data.get("dbId")
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
+        if not table:
+            # Create table if doesn't exist.
+            with db.session.no_autoflush:
+                table = SqlaTable(table_name=table_name, owners=[g.user])
+                table.database_id = database_id
+                table.database = (
+                    db.session.query(models.Database).filter_by(id=database_id).one()
+                )
+                table.schema = data.get("schema")
+                table.template_params = data.get("templateParams")
+                # needed for the table validation.
+                validate_sqlatable(table)
+
+            db.session.add(table)
+            table.fetch_metadata()
+            create_table_permissions(table)
+            db.session.commit()
+
+        return json_success(json.dumps({"table_id": table.id}))
 
     @has_access
     @expose("/sqllab_viz/", methods=["POST"])
@@ -2018,7 +2088,9 @@ class Superset(BaseSupersetView):
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         # Check that the user can access the datasource
-        if not self.appbuilder.sm.can_access_datasource(database, table_name, schema):
+        if not self.appbuilder.sm.can_access_datasource(
+            database, Table(table_name, schema), schema
+        ):
             stats_logger.incr(
                 f"deprecated.{self.__class__.__name__}.select_star.permission_denied"
             )
@@ -2056,11 +2128,11 @@ class Superset(BaseSupersetView):
                 cost = mydb.db_engine_spec.estimate_query_cost(
                     mydb, schema, sql, utils.QuerySource.SQL_LAB
                 )
-        except SupersetTimeoutException as e:
-            logger.exception(e)
+        except SupersetTimeoutException as ex:
+            logger.exception(ex)
             return json_error_response(timeout_msg)
-        except Exception as e:
-            return json_error_response(str(e))
+        except Exception as ex:
+            return json_error_response(str(ex))
 
         spec = mydb.db_engine_spec
         query_cost_formatters = get_feature_flags().get(
@@ -2218,15 +2290,15 @@ class Superset(BaseSupersetView):
                 encoding=None,
             )
             return json_success(payload)
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ex:
+            logger.exception(ex)
             msg = _(
                 f"{validator.name} was unable to check your query.\n"
                 "Please recheck your query.\n"
-                f"Exception: {e}"
+                f"Exception: {ex}"
             )
             # Return as a 400 if the database error message says we got a 4xx error
-            if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(e)):
+            if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(ex)):
                 return json_error_response(f"{msg}", status=400)
             else:
                 return json_error_response(f"{msg}")
@@ -2260,8 +2332,8 @@ class Superset(BaseSupersetView):
                 expand_data=expand_data,
                 log_params=log_params,
             )
-        except Exception as e:
-            logger.exception(f"Query {query.id}: {e}")
+        except Exception as ex:
+            logger.exception(f"Query {query.id}: {ex}")
             msg = _(
                 "Failed to start remote query on a worker. "
                 "Tell your administrator to verify the availability of "
@@ -2322,8 +2394,8 @@ class Superset(BaseSupersetView):
                 ignore_nan=True,
                 encoding=None,
             )
-        except Exception as e:
-            logger.exception(f"Query {query.id}: {e}")
+        except Exception as ex:
+            logger.exception(f"Query {query.id}: {ex}")
             return json_error_response(f"{{e}}")
         if data.get("status") == QueryStatus.FAILED:
             return json_error_response(payload=data)
@@ -2406,8 +2478,8 @@ class Superset(BaseSupersetView):
             session.flush()
             query_id = query.id
             session.commit()  # shouldn't be necessary
-        except SQLAlchemyError as e:
-            logger.error(f"Errors saving query details {e}")
+        except SQLAlchemyError as ex:
+            logger.error(f"Errors saving query details {ex}")
             session.rollback()
             raise Exception(_("Query record was not created as expected."))
         if not query_id:
@@ -2432,8 +2504,8 @@ class Superset(BaseSupersetView):
             rendered_query = template_processor.process_template(
                 query.sql, **template_params
             )
-        except Exception as e:
-            error_msg = utils.error_msg_from_exception(e)
+        except Exception as ex:
+            error_msg = utils.error_msg_from_exception(ex)
             return json_error_response(
                 f"Query {query_id}: Template rendering failed: {error_msg}"
             )
@@ -2791,8 +2863,8 @@ class Superset(BaseSupersetView):
                 database, schemas_allowed, False
             )
             return self.json_response(schemas_allowed_processed)
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ex:
+            logger.exception(ex)
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
                 "Please contact your Superset Admin!"
