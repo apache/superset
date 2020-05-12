@@ -49,7 +49,6 @@ import Iframe from '../explore/controlPanels/Iframe';
 import Line from '../explore/controlPanels/Line';
 import LineMulti from '../explore/controlPanels/LineMulti';
 import Mapbox from '../explore/controlPanels/Mapbox';
-import Markup from '../explore/controlPanels/Markup';
 import PairedTtest from '../explore/controlPanels/PairedTtest';
 import Para from '../explore/controlPanels/Para';
 import Partition from '../explore/controlPanels/Partition';
@@ -89,7 +88,6 @@ export default function setupPlugins() {
     .registerValue('line', Line)
     .registerValue('line_multi', LineMulti)
     .registerValue('mapbox', Mapbox)
-    .registerValue('markup', Markup)
     .registerValue('paired_ttest', PairedTtest)
     .registerValue('para', Para)
     .registerValue('partition', Partition)
