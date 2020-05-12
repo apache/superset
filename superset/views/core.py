@@ -1687,9 +1687,9 @@ class Superset(BaseSupersetView):
             if not table:
                 return json_error_response(
                     __(
-                        "Table %(t)s wasn't found in the database %(d)s",
-                        t=table_name,
-                        s=db_name,
+                        "Table %(table)s wasn't found in the database %(db)s",
+                        table=table_name,
+                        db=db_name,
                     ),
                     status=404,
                 )
@@ -2293,9 +2293,11 @@ class Superset(BaseSupersetView):
         except Exception as ex:
             logger.exception(ex)
             msg = _(
-                f"{validator.name} was unable to check your query.\n"
+                f"%(validator)s was unable to check your query.\n"
                 "Please recheck your query.\n"
-                f"Exception: {ex}"
+                f"Exception: %(ex)s",
+                validator=validator.name,
+                ex=ex,
             )
             # Return as a 400 if the database error message says we got a 4xx error
             if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(ex)):
