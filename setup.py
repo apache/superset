@@ -88,7 +88,7 @@ setup(
         "humanize",
         "isodate",
         "markdown>=3.0",
-        "msgpack>=0.6.1, <0.7.0",
+        "msgpack>=1.0.0, <1.1",
         "pandas>=1.0.3, <1.1",
         "parsedatetime",
         "pathlib2",
