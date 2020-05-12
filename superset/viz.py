@@ -1123,6 +1123,9 @@ class BigNumberViz(BaseViz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         df = df.pivot_table(
             index=DTTM_ALIAS,
             columns=[],
