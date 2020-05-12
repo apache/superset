@@ -18,7 +18,7 @@ black==19.10b0
 cachelib==0.1
 coverage==4.5.3
 flask-cors==3.0.7
-flask-testing==0.7.1
+flask-testing==0.8.0
 ipdb==0.12
 isort==4.3.21
 mypy==0.770
