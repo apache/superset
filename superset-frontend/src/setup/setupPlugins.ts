@@ -52,7 +52,6 @@ import Mapbox from '../explore/controlPanels/Mapbox';
 import Markup from '../explore/controlPanels/Markup';
 import PairedTtest from '../explore/controlPanels/PairedTtest';
 import Para from '../explore/controlPanels/Para';
-import Partition from '../explore/controlPanels/Partition';
 import Pie from '../explore/controlPanels/Pie';
 import PivotTable from '../explore/controlPanels/PivotTable';
 import Rose from '../explore/controlPanels/Rose';
@@ -92,7 +91,6 @@ export default function setupPlugins() {
     .registerValue('markup', Markup)
     .registerValue('paired_ttest', PairedTtest)
     .registerValue('para', Para)
-    .registerValue('partition', Partition)
     .registerValue('pie', Pie)
     .registerValue('pivot_table', PivotTable)
     .registerValue('rose', Rose)
