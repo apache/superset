@@ -102,7 +102,10 @@ setup(
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
         "sqlalchemy>=1.3.16, <2.0",
-        "sqlalchemy-utils>=0.33.2,<0.36.5",  # Regression on MySQL: https://github.com/kvesteri/sqlalchemy-utils/pull/426
+        # Breaking change in sqlalchemy-utils==0.36.6, upgrading will probably
+        # require a migration on EncryptedType columns. For more information, see
+        # https://github.com/kvesteri/sqlalchemy-utils/issues/444
+        "sqlalchemy-utils>=0.33.2,<0.36.5",
         "sqlparse>=0.3.0, <0.4",
         "wtforms-json",
     ],
