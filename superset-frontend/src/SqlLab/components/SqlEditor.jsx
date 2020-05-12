@@ -54,6 +54,7 @@ import {
 } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+import { CtasEnum } from '../actions/sqlLab';
 
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
@@ -284,7 +285,7 @@ class SqlEditor extends React.PureComponent {
       this.startQuery();
     }
   }
-  startQuery(ctas = false) {
+  startQuery(ctas = false, ctas_method = CtasEnum.TABLE) {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
@@ -299,6 +300,7 @@ class SqlEditor extends React.PureComponent {
         ? this.props.database.allow_run_async
         : false,
       ctas,
+      ctas_method,
       updateTabState: !qe.selectedText,
     };
     this.props.actions.runQuery(query);
@@ -313,7 +315,10 @@ class SqlEditor extends React.PureComponent {
     }
   }
   createTableAs() {
-    this.startQuery(true);
+    this.startQuery(true, CtasEnum.TABLE);
+  }
+  createViewAs() {
+    this.startQuery(true, CtasEnum.VIEW);
   }
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
@@ -372,8 +377,13 @@ class SqlEditor extends React.PureComponent {
   }
   renderEditorBottomBar(hotkeys) {
     let ctasControls;
-    if (this.props.database && this.props.database.allow_ctas) {
+    if (
+      this.props.database &&
+      (this.props.database.allow_ctas || this.props.database.allow_cvas)
+    ) {
       const ctasToolTip = t('Create table as with query results');
+      const cvasToolTip = t('Create view as with query results');
+
       ctasControls = (
         <FormGroup>
           <InputGroup>
@@ -385,14 +395,26 @@ class SqlEditor extends React.PureComponent {
               onChange={this.ctasChanged.bind(this)}
             />
             <InputGroup.Button>
-              <Button
-                bsSize="small"
-                disabled={this.state.ctas.length === 0}
-                onClick={this.createTableAs.bind(this)}
-                tooltip={ctasToolTip}
-              >
-                <i className="fa fa-table" /> CTAS
-              </Button>
+              {this.props.database.allow_ctas && (
+                <Button
+                  bsSize="small"
+                  disabled={this.state.ctas.length === 0}
+                  onClick={this.createTableAs.bind(this)}
+                  tooltip={ctasToolTip}
+                >
+                  <i className="fa fa-table" /> CTAS
+                </Button>
+              )}
+              {this.props.database.allow_cvas && (
+                <Button
+                  bsSize="small"
+                  disabled={this.state.ctas.length === 0}
+                  onClick={this.createViewAs.bind(this)}
+                  tooltip={cvasToolTip}
+                >
+                  <i className="fa fa-table" /> CVAS
+                </Button>
+              )}
             </InputGroup.Button>
           </InputGroup>
         </FormGroup>

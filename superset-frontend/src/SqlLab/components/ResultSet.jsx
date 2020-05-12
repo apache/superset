@@ -30,6 +30,7 @@ import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
+import { CtasEnum } from '../actions/sqlLab';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -219,10 +220,14 @@ export default class ResultSet extends React.PureComponent {
         tmpTable = query.results.query.tempTable;
         tmpSchema = query.results.query.tempSchema;
       }
+      let object = 'Table';
+      if (query.ctas_method === CtasEnum.VIEW) {
+        object = 'View';
+      }
       return (
         <div>
           <Alert bsStyle="info">
-            {t('Table')} [
+            {t(object)} [
             <strong>
               {tmpSchema}.{tmpTable}
             </strong>
