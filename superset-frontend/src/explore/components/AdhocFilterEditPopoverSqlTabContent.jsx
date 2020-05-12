@@ -24,15 +24,13 @@ import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import { FormGroup } from 'react-bootstrap';
-import VirtualizedSelect from 'react-virtualized-select';
+import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
 
 import sqlKeywords from '../../SqlLab/utils/sqlKeywords';
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
-import OnPasteSelect from '../../components/OnPasteSelect';
-import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -59,12 +57,11 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
 
     this.selectProps = {
-      multi: false,
+      isMulti: false,
       name: 'select-column',
       labelKey: 'label',
       autosize: false,
       clearable: false,
-      selectWrap: VirtualizedSelect,
     };
 
     if (langTools) {
@@ -123,18 +120,15 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
 
     const clauseSelectProps = {
       placeholder: t('choose WHERE or HAVING...'),
-      options: Object.keys(CLAUSES).map(clause => ({ clause })),
+      options: Object.keys(CLAUSES),
       value: adhocFilter.clause,
       onChange: this.onSqlExpressionClauseChange,
-      optionRenderer: VirtualizedRendererWrap(clause => clause.clause),
-      valueRenderer: clause => <span>{clause.clause}</span>,
-      valueKey: 'clause',
     };
 
     return (
       <span>
         <FormGroup className="filter-edit-clause-section">
-          <OnPasteSelect
+          <Select
             {...this.selectProps}
             {...clauseSelectProps}
             className="filter-edit-clause-dropdown"

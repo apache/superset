@@ -50,12 +50,12 @@ export default function MetricOption({
     verbose
   );
   return (
-    <div>
+    <div className="metric-option">
       {showType && <ColumnTypeLabel type="expression" />}
-      <span className="m-r-5 option-label">{link}</span>
+      <span className="option-label">{link}</span>
       {metric.description && (
         <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
+          className="text-muted"
           icon="info"
           tooltip={metric.description}
           label={`descr-${metric.metric_name}`}
@@ -63,7 +63,7 @@ export default function MetricOption({
       )}
       {showFormula && (
         <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
+          className="text-muted"
           icon="question-circle-o"
           tooltip={metric.expression}
           label={`expr-${metric.metric_name}`}
@@ -71,7 +71,7 @@ export default function MetricOption({
       )}
       {metric.warning_text && (
         <InfoTooltipWithTrigger
-          className="m-r-5 text-danger"
+          className="text-danger"
           icon="warning"
           tooltip={metric.warning_text}
           label={`warn-${metric.metric_name}`}

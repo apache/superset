@@ -16,4 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '../stylesheets/superset.less';
+export * from './SupersetStyledSelect';
+export * from './styles';
+export { default } from './SupersetStyledSelect';
+export { default as OnPasteSelect } from './OnPasteSelect';

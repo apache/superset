@@ -38,7 +38,7 @@ export default function FilterDefinitionOption({ option }) {
     return (
       <div>
         <ColumnTypeLabel type="expression" />
-        <span className="m-r-5 option-label">{option.saved_metric_name}</span>
+        <span className="option-label">{option.saved_metric_name}</span>
       </div>
     );
   } else if (option.column_name) {

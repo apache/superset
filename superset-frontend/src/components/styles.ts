@@ -16,4 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '../stylesheets/superset.less';
+
+// Variables ported from "src/stylesheets/less/variables.less"
+// TODO: move to `@superset-ui/style`
+// Keep it here to make PRs easier for review.
+export const supersetColors = {
+  primary: '#00a699',
+  danger: '#fe4a49',
+  warning: '#ffab00',
+  indicator: '#44c0ff',
+  almostBlack: '#263238',
+  grayDark: '#484848',
+  grayLight: '#cfd8dc',
+  gray: '#879399',
+  grayBg: '#f5f5f5',
+  grayBgDarker: '#e8e8e8', // select option menu hover
+  grayBgDarkest: '#d2d2d2', // table cell bar chart
+  grayHeading: '#a3a3a3',
+  menuHover: '#f2f3f5',
+  lightest: '#fff',
+  darkest: '#000',
+
+  // addition most common colors
+  grayBorder: '#ccc',
+  grayBorderLight: '#d9d9d9',
+  grayBorderDark: '#b3b3b3',
+  textDefault: '#333',
+  textDarkest: '#111',
+};
