@@ -16,26 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
-import controlPanel from './controlPanel';
+import React from 'react';
+import { shallow } from 'enzyme';
 
-const metadata = new ChartMetadata({
-  description: '',
-  name: t('Partition Chart'),
-  thumbnail,
-  useLegacyApi: true,
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
+import OptionDescription from '../src/OptionDescription';
+
+const defaultProps = {
+  option: {
+    label: 'Some option',
+    description: 'Description for some option',
+  },
+};
+
+describe('OptionDescription', () => {
+  let wrapper;
+  let props;
+
+  beforeEach(() => {
+    props = { option: { ...defaultProps.option } };
+    wrapper = shallow(<OptionDescription {...props} />);
+  });
+
+  it('renders an InfoTooltipWithTrigger', () => {
+    expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(1);
+  });
+
+  it('renders a span with the label', () => {
+    expect(wrapper.find('.option-label').text()).toBe('Some option');
+  });
 });
-
-export default class PartitionChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./ReactPartition.js'),
-      metadata,
-      transformProps,
-      controlPanel,
-    });
-  }
-}

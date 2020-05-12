@@ -3251,6 +3251,15 @@
     conventional-changelog-cli "^2.0.12"
     cz-conventional-changelog "^2.1.0"
 
+"@superset-ui/legacy-plugin-chart-partition@0.13.5":
+  version "0.13.5"
+  resolved "https://registry.yarnpkg.com/@superset-ui/legacy-plugin-chart-partition/-/legacy-plugin-chart-partition-0.13.5.tgz#f34d14bc204ef2ad7acb7dee32ee09c46726535b"
+  integrity sha512-YsgbAqj/sQKEWUmI0XXy6rJvGsWSPwfekmtWpa55CF19A+TJEuCCHmIGDPupgZsIqgJBZArwYT3HNnn7a8TfxA==
+  dependencies:
+    d3 "^3.5.17"
+    d3-hierarchy "^1.1.8"
+    prop-types "^15.6.2"
+
 "@superset-ui/legacy-plugin-chart-word-cloud@^0.11.15":
   version "0.11.15"
   resolved "https://registry.yarnpkg.com/@superset-ui/legacy-plugin-chart-word-cloud/-/legacy-plugin-chart-word-cloud-0.11.15.tgz#70a146aaf3cf1977c29086c069f0216325f092b2"

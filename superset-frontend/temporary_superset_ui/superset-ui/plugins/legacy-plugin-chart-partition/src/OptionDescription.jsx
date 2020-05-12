@@ -16,26 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
-import controlPanel from './controlPanel';
 
-const metadata = new ChartMetadata({
-  description: '',
-  name: t('Partition Chart'),
-  thumbnail,
-  useLegacyApi: true,
-});
+import React from 'react';
+import PropTypes from 'prop-types';
 
-export default class PartitionChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./ReactPartition.js'),
-      metadata,
-      transformProps,
-      controlPanel,
-    });
-  }
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
+
+const propTypes = {
+  option: PropTypes.object.isRequired,
+};
+
+// This component provides a general tooltip for options
+// in a SelectControl
+export default function OptionDescription({ option }) {
+  return (
+    <span>
+      <span className="m-r-5 option-label">{option.label}</span>
+      {option.description && (
+        <InfoTooltipWithTrigger
+          className="m-r-5 text-muted"
+          icon="question-circle-o"
+          tooltip={option.description}
+          label={`descr-${option.label}`}
+        />
+      )}
+    </span>
+  );
 }
+OptionDescription.propTypes = propTypes;
