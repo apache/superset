@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements.txt setup.py
 #
-alembic==1.4.2            # via flask-migrate
+alembic==1.3.2            # via flask-migrate
 amqp==2.5.2               # via kombu
 apispec[yaml]==1.3.3      # via flask-appbuilder
 attrs==19.3.0             # via jsonschema
