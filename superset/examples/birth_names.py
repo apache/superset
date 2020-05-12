@@ -49,7 +49,6 @@ def gen_filter(
         "expressionType": "SIMPLE",
         "operator": operator,
         "subject": subject,
-        "fromFormData": True,
     }
 
 

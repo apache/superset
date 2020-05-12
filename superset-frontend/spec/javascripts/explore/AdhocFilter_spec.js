@@ -39,13 +39,14 @@ describe('AdhocFilter', () => {
       clause: CLAUSES.WHERE,
       filterOptionName: adhocFilter.filterOptionName,
       sqlExpression: null,
-      fromFormData: false,
       isExtra: false,
+      isNew: false,
     });
   });
 
   it('can create altered duplicates', () => {
     const adhocFilter1 = new AdhocFilter({
+      isNew: true,
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',
       operator: '>',
@@ -61,6 +62,10 @@ describe('AdhocFilter', () => {
 
     expect(adhocFilter1.operator).toBe('>');
     expect(adhocFilter2.operator).toBe('<');
+
+    // duplicated clone should not be new
+    expect(adhocFilter1.isNew).toBe(true);
+    expect(adhocFilter2.isNew).toStrictEqual(false);
   });
 
   it('can verify equality', () => {

@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import Select from 'react-select';
 import { shallow } from 'enzyme';
 import fetchMock from 'fetch-mock';
-
+import Select from 'src/components/Select';
 import AsyncSelect from 'src/components/AsyncSelect';
 
 describe('AsyncSelect', () => {

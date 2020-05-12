@@ -67,7 +67,6 @@ export default () =>
             comparator: 'boy',
             clause: 'WHERE',
             sqlExpression: null,
-            fromFormData: true,
             filterOptionName: 'filter_tqx1en70hh_7nksse7nqic',
           },
         ],
