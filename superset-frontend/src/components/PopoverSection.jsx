@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
 const propTypes = {
   title: PropTypes.string.isRequired,

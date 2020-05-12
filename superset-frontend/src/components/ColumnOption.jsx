@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import ColumnTypeLabel from './ColumnTypeLabel';
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
 const propTypes = {
   column: PropTypes.object.isRequired,

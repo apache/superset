@@ -25,7 +25,7 @@ import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,

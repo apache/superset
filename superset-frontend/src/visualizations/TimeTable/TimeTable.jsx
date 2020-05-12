@@ -26,7 +26,7 @@ import { formatTime } from '@superset-ui/time-format';
 import moment from 'moment';
 
 import MetricOption from '../../components/MetricOption';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 import './TimeTable.less';

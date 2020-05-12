@@ -28,7 +28,7 @@ import { connect } from 'react-redux';
 import { t } from '@superset-ui/translation';
 import { getChartKey } from '../../exploreUtils';
 import { runAnnotationQuery } from '../../../chart/chartAction';
-import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
 import AnnotationLayer from './AnnotationLayer';
 

@@ -29,7 +29,7 @@ import 'brace/theme/textmate';
 import { t } from '@superset-ui/translation';
 
 import ModalTrigger from '../../components/ModalTrigger';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 import Button from '../../components/Button';
 
 const propTypes = {
