@@ -21,6 +21,7 @@ import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import { ANNOTATION_TYPES } from '../vendor/superset/AnnotationTypes';
+import controlPanel from './controlPanel.ts';
 
 const metadata = new ChartMetadata({
   credits: ['http://nvd3.org'],
@@ -37,6 +38,7 @@ export default class BarChartPlugin extends ChartPlugin {
       loadChart: () => import('../ReactNVD3'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
