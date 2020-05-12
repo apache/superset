@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import thumbnail from './images/thumbnail.png';
 import transformProps from './transformProps';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   description: 'HTML Markup',
@@ -34,6 +35,7 @@ export default class IframeChartPlugin extends ChartPlugin {
       loadChart: () => import('./Markup'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
