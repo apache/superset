@@ -186,6 +186,9 @@ APP_ICON_WIDTH = 126
 # e.g. setting it to '/welcome' would take the user to '/superset/welcome'
 LOGO_TARGET_PATH = None
 
+# Set this to true to change the default welcome page to the user's profile page
+WELCOME_WITH_USER_PROFILE = False
+
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swaggerview/v1
 FAB_API_SWAGGER_UI = True

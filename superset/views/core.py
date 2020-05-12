@@ -2728,6 +2728,9 @@ class Superset(BaseSupersetView):
             "common": common_bootstrap_payload(),
         }
 
+        if config["WELCOME_WITH_USER_PROFILE"]:
+            return self.profile(g.user.username)
+
         return self.render_template(
             "superset/welcome.html",
             entry="welcome",
