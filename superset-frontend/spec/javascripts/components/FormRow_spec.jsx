@@ -19,8 +19,12 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { Col, Row } from 'react-bootstrap';
 import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
+import { Col, Row } from 'react-bootstrap';
+<<<<<<< HEAD
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
+=======
+>>>>>>> fix: lint error
 import TextControl from '../../../src/explore/components/controls/TextControl';
 import FormRow from '../../../src/components/FormRow';
 
