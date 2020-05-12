@@ -13,6 +13,7 @@ backoff==1.10.0           # via apache-superset (setup.py)
 billiard==3.6.3.0         # via celery
 bleach==3.1.5             # via apache-superset (setup.py)
 brotli==1.0.7             # via flask-compress
+cachelib==0.1             # via apache-superset (setup.py)
 celery==4.4.2             # via apache-superset (setup.py)
 cffi==1.14.0              # via cryptography
 click==7.1.2              # via apache-superset (setup.py), flask, flask-appbuilder

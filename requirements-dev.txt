@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 black==19.10b0
-cachelib==0.1
 coverage==4.5.3
 flask-cors==3.0.7
 flask-testing==0.8.0
