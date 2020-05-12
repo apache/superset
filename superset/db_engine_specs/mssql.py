@@ -85,14 +85,9 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
-        try:
-            from pymssql import OperationalError
-        except ModuleNotFoundError:
-            from sqlalchemy.exc import OperationalError
-
-        if isinstance(ex, OperationalError) and str(ex).startswith("(8155"):
+        if str(ex).startswith("(8155"):
             return (
                 f"{cls.engine} error: All your SQL functions need to "
-                f"have alias on MSSQL."
+                "have alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
