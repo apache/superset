@@ -49,7 +49,8 @@ export default () =>
           requests.map(async xhr => {
             expect(xhr.status).to.eq(200);
             const responseBody = await readResponseBlob(xhr.response.body);
-            expect(responseBody).to.have.property('error', null);
+            expect(responseBody).to.have.property('errors');
+            expect(responseBody.errors.length).to.eq(0);
             const sliceId = responseBody.form_data.slice_id;
             cy.get(`#chart-id-${sliceId}`).should('be.visible');
           }),

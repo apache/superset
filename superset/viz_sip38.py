@@ -33,6 +33,7 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
+import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
@@ -47,6 +48,7 @@ from pandas.tseries.frequencies import to_offset
 
 from superset import app, cache, get_manifest_files, security_manager
 from superset.constants import NULL_STRING
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     NullValueException,
     QueryObjectValidationError,
@@ -161,7 +163,7 @@ class BaseViz:
         self.status: Optional[str] = None
         self.error_msg = ""
         self.results: Optional[QueryResult] = None
-        self.error_message: Optional[str] = None
+        self.errors: List[Dict[str, Any]] = []
         self.force = force
         self.from_ddtm: Optional[datetime] = None
         self.to_dttm: Optional[datetime] = None
@@ -279,7 +281,7 @@ class BaseViz:
         self.results = self.datasource.query(query_obj)
         self.query = self.results.query
         self.status = self.results.status
-        self.error_message = self.results.error_message
+        self.errors = self.results.errors
 
         df = self.results.df
         # Transform the timestamp we received from database to pandas supported
@@ -501,8 +503,14 @@ class BaseViz:
                     is_loaded = True
             except Exception as ex:
                 logger.exception(ex)
-                if not self.error_message:
-                    self.error_message = "{}".format(ex)
+                error = dataclasses.asdict(
+                    SupersetError(
+                        message=str(ex),
+                        level=ErrorLevel.ERROR,
+                        type=SupersetErrorType.VIZ_GET_DF_ERROR,
+                    )
+                )
+                self.errors.append(error)
                 self.status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
@@ -534,7 +542,7 @@ class BaseViz:
             "cached_dttm": self._any_cached_dttm,
             "cache_timeout": self.cache_timeout,
             "df": df,
-            "error": self.error_message,
+            "errors": self.errors,
             "form_data": self.form_data,
             "is_cached": self._any_cache_key is not None,
             "query": self.query,
@@ -554,6 +562,7 @@ class BaseViz:
         has_error = (
             payload.get("status") == utils.QueryStatus.FAILED
             or payload.get("error") is not None
+            or len(payload.get("errors")) > 0
         )
         return self.json_dumps(payload), has_error
 

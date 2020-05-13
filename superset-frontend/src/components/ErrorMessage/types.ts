@@ -17,23 +17,27 @@
  * under the License.
  */
 
-// TODO: Add more error types as we classify more errors
+// Keep in sync with superset/views/errors.py
 export const ErrorTypeEnum = {
-  // Generic errors created on the frontend
   FRONTEND_CSRF_ERROR: 'FRONTEND_CSRF_ERROR',
   FRONTEND_NETWORK_ERROR: 'FRONTEND_NETWORK_ERROR',
   FRONTEND_TIMEOUT_ERROR: 'FRONTEND_TIMEOUT_ERROR',
+
+  GENERIC_DB_ENGINE_ERROR: 'GENERIC_DB_ENGINE_ERROR',
+
+  VIZ_GET_DF_ERROR: 'VIZ_GET_DF_ERROR',
 } as const;
 
 type ValueOf<T> = T[keyof T];
 
 export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 
+// Keep in sync with superset/views/errors.py
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
 export type SupersetError = {
   errorType: ErrorType;
-  extra: Record<string, any>;
+  extra: Record<string, any> | null;
   level: ErrorLevel;
   message: string;
 };

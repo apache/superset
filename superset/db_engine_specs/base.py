@@ -34,6 +34,7 @@ from typing import (
     Union,
 )
 
+import dataclasses
 import pandas as pd
 import sqlparse
 from flask import g
@@ -51,6 +52,7 @@ from sqlalchemy.types import TypeEngine
 from wtforms.form import Form
 
 from superset import app, sql_parse
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
@@ -567,6 +569,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def _extract_error_message(cls, ex: Exception) -> Optional[str]:
         """Extract error message for queries"""
         return utils.error_msg_from_exception(ex)
+
+    @classmethod
+    def extract_errors(cls, ex: Exception) -> List[Dict[str, Any]]:
+        return [
+            dataclasses.asdict(
+                SupersetError(
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    message=cls.extract_error_message(ex),
+                    level=ErrorLevel.ERROR,
+                    extra={"engine": cls.engine},
+                )
+            )
+        ]
 
     @classmethod
     def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
