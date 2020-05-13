@@ -3251,15 +3251,6 @@
     conventional-changelog-cli "^2.0.12"
     cz-conventional-changelog "^2.1.0"
 
-"@superset-ui/legacy-plugin-chart-partition@0.13.5":
-  version "0.13.5"
-  resolved "https://registry.yarnpkg.com/@superset-ui/legacy-plugin-chart-partition/-/legacy-plugin-chart-partition-0.13.5.tgz#f34d14bc204ef2ad7acb7dee32ee09c46726535b"
-  integrity sha512-YsgbAqj/sQKEWUmI0XXy6rJvGsWSPwfekmtWpa55CF19A+TJEuCCHmIGDPupgZsIqgJBZArwYT3HNnn7a8TfxA==
-  dependencies:
-    d3 "^3.5.17"
-    d3-hierarchy "^1.1.8"
-    prop-types "^15.6.2"
-
 "@superset-ui/legacy-plugin-chart-word-cloud@^0.11.15":
   version "0.11.15"
   resolved "https://registry.yarnpkg.com/@superset-ui/legacy-plugin-chart-word-cloud/-/legacy-plugin-chart-word-cloud-0.11.15.tgz#70a146aaf3cf1977c29086c069f0216325f092b2"
@@ -3729,9 +3720,9 @@
     "@types/react" "*"
 
 "@types/react@*", "@types/react@^16.3.0", "@types/react@^16.9.11", "@types/react@^16.9.34":
-  version "16.9.35"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-16.9.35.tgz#a0830d172e8aadd9bd41709ba2281a3124bbd368"
-  integrity sha512-q0n0SsWcGc8nDqH2GJfWQWUOmZSJhXV64CjVN5SvcNti3TdEaA3AH0D8DwNmMdzjMAC/78tB8nAZIlV8yTz+zQ==
+  version "16.9.34"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-16.9.34.tgz#f7d5e331c468f53affed17a8a4d488cd44ea9349"
+  integrity sha512-8AJlYMOfPe1KGLKyHpflCg5z46n0b5DbRfqDksxBLBTUpB75ypDBAO9eCUcjNwE6LCUslwTz00yyG/X9gaVtow==
   dependencies:
     "@types/prop-types" "*"
     csstype "^2.2.0"

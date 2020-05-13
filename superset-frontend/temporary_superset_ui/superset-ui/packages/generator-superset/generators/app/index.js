@@ -18,11 +18,15 @@ module.exports = class extends Generator {
         message: 'What do you want to do?',
         choices: [
           {
-            name: 'Create superset-ui package in the monorepo',
+            name: 'Create superset-ui core package',
             value: 'package',
           },
           {
-            name: 'Create superset-ui-legacy package in the monorepo',
+            name: 'Create superset-ui chart plugin package',
+            value: 'plugin-chart',
+          },
+          {
+            name: 'Create superset-ui-legacy package',
             value: 'legacy-plugin-chart',
           },
           {
