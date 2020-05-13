@@ -1055,7 +1055,7 @@ class SqlaTable(Model, BaseDatasource):
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
         status = utils.QueryStatus.SUCCESS
-        error_message = None
+        errors = None
 
         def mutator(df: pd.DataFrame) -> None:
             """
@@ -1084,14 +1084,14 @@ class SqlaTable(Model, BaseDatasource):
             status = utils.QueryStatus.FAILED
             logger.exception(f"Query {sql} on schema {self.schema} failed")
             db_engine_spec = self.database.db_engine_spec
-            error_message = db_engine_spec.extract_error_message(ex)
+            errors = db_engine_spec.extract_errors(ex)
 
         return QueryResult(
             status=status,
             df=df,
             duration=datetime.now() - qry_start_dttm,
             query=sql,
-            error_message=error_message,
+            errors=errors,
         )
 
     def get_sqla_table_object(self) -> Table:
