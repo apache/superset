@@ -202,6 +202,7 @@ Join our growing community!
  1. [Twitter](https://twitter.com/) 
  1. [Udemy](https://www.udemy.com/) [@sungjuly]
  1. [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
+ 1. [whale.im](http://whale.im)
  1. [WeSure](https://www.wesure.cn/) 
  1. [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
  1. [Yahoo!](https://yahoo.com/) 
