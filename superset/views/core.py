@@ -2293,9 +2293,9 @@ class Superset(BaseSupersetView):
         except Exception as ex:
             logger.exception(ex)
             msg = _(
-                f"%(validator)s was unable to check your query.\n"
+                "%(validator)s was unable to check your query.\n"
                 "Please recheck your query.\n"
-                f"Exception: %(ex)s",
+                "Exception: %(ex)s",
                 validator=validator.name,
                 ex=ex,
             )
