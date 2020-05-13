@@ -20,6 +20,7 @@ import traceback
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+import dataclasses
 import simplejson as json
 import yaml
 from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
@@ -44,6 +45,7 @@ from superset import (
     security_manager,
 )
 from superset.connectors.sqla import models
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
@@ -81,7 +83,7 @@ def get_error_msg() -> str:
 def json_error_response(
     msg: Optional[str] = None,
     status: int = 500,
-    payload: Optional[dict] = None,
+    payload: Optional[Dict[str, Any]] = None,
     link: Optional[str] = None,
 ) -> Response:
     if not payload:
@@ -89,6 +91,22 @@ def json_error_response(
     if link:
         payload["link"] = link
 
+    return Response(
+        json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
+        status=status,
+        mimetype="application/json",
+    )
+
+
+def json_errors_response(
+    errors: List[SupersetError],
+    status: int = 500,
+    payload: Optional[Dict[str, Any]] = None,
+) -> Response:
+    if not payload:
+        payload = {}
+
+    payload["errors"] = [dataclasses.asdict(error) for error in errors]
     return Response(
         json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
         status=status,
@@ -142,8 +160,8 @@ def handle_api_exception(f):
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
             logger.exception(ex)
-            return json_error_response(
-                utils.error_msg_from_exception(ex), status=ex.status, link=ex.link
+            return json_errors_response(
+                errors=[ex.error], status=ex.status, payload=ex.payload
             )
         except SupersetException as ex:
             logger.exception(ex)
@@ -432,7 +450,11 @@ def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
         return False
 
     security_exception = SupersetSecurityException(
-        "You don't have the rights to alter [{}]".format(obj)
+        SupersetError(
+            error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+            message="You don't have the rights to alter [{}]".format(obj),
+            level=ErrorLevel.ERROR,
+        )
     )
 
     if g.user.is_anonymous:
