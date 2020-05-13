@@ -42,7 +42,7 @@ class CeleryStartMixin:
     @classmethod
     def setUpClass(cls):
         with app.app_context():
-            from werkzeug.contrib.cache import RedisCache
+            from cachelib.redis import RedisCache
 
             class CeleryConfig(object):
                 BROKER_URL = "redis://localhost"

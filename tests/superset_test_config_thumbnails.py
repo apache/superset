@@ -17,8 +17,8 @@
 # type: ignore
 from copy import copy
 
+from cachelib.redis import RedisCache
 from flask import Flask
-from werkzeug.contrib.cache import RedisCache
 
 from superset.config import *  # type: ignore
 

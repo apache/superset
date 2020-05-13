@@ -568,7 +568,7 @@ SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
     Callable[["Database", "models.User", str, str], str]
 ] = None
 
-# An instantiated derivative of werkzeug.contrib.cache.BaseCache
+# An instantiated derivative of cachelib.base.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None

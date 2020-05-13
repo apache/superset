@@ -69,6 +69,7 @@ setup(
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
+        "cachelib>=0.1,<0.2",
         "celery>=4.3.0, <5.0.0, !=4.4.1",
         "click<8",
         "colorama",
@@ -88,7 +89,7 @@ setup(
         "humanize",
         "isodate",
         "markdown>=3.0",
-        "msgpack>=0.6.1, <0.7.0",
+        "msgpack>=1.0.0, <1.1",
         "pandas>=1.0.3, <1.1",
         "parsedatetime",
         "pathlib2",
@@ -102,7 +103,10 @@ setup(
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
         "sqlalchemy>=1.3.16, <2.0",
-        "sqlalchemy-utils>=0.33.2",
+        # Breaking change in sqlalchemy-utils==0.36.6, upgrading will probably
+        # require a migration on EncryptedType columns. For more information, see
+        # https://github.com/kvesteri/sqlalchemy-utils/issues/444
+        "sqlalchemy-utils>=0.33.2,<0.36.5",
         "sqlparse>=0.3.0, <0.4",
         "wtforms-json",
     ],
@@ -130,5 +134,5 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
     ],
-    tests_require=["flask-testing==0.7.1"],
+    tests_require=["flask-testing==0.8.0"],
 )
