@@ -53,11 +53,12 @@ export default () =>
     });
 
     it('should apply filter', () => {
+      // parent of placeholder component
       cy.get('.Select__control')
         .contains('Select [region]')
-        // parent of placeholder module
-        .parent()
-        .find('input')
+        .click({ force: true });
+      cy.get('.Select__control input[type=text]')
+        .first()
         .type('South Asia{enter}', { force: true });
 
       // wait again after applied filters
