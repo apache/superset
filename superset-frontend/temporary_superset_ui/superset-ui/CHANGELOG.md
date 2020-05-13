@@ -1,3 +1,50 @@
+## [0.13.12](https://github.com/apache-superset/superset-ui/compare/v0.13.11...v0.13.12) (2020-05-13)
+
+
+### Features
+
+* **control-utils:** add shared controls + dependencies, convert to typescript ([#459](https://github.com/apache-superset/superset-ui/issues/459)) ([befe0c7](https://github.com/apache-superset/superset-ui/commit/befe0c767378d14d0e18bb690deee913274840a6))
+* **legacy-plugin-chart-markup:** add controls to markup chart ([#479](https://github.com/apache-superset/superset-ui/issues/479)) ([7801121](https://github.com/apache-superset/superset-ui/commit/780112118afd6e52b988139bf608acbf1e90cc9f))
+
+
+
+## [0.13.11](https://github.com/apache-superset/superset-ui/compare/v0.13.10...v0.13.11) (2020-05-12)
+
+
+### Features
+
+* **legacy-plugin-chart-nvd3:** add control panels ([#469](https://github.com/apache-superset/superset-ui/issues/469)) ([ad267db](https://github.com/apache-superset/superset-ui/commit/ad267dbd19637cf3988bf5732b2018d748ab7b3e))
+* **legacy-plugin-chart-partition:** add control panel  ([#470](https://github.com/apache-superset/superset-ui/issues/470)) ([b569c34](https://github.com/apache-superset/superset-ui/commit/b569c34db5b8d810154dcaa695eed8ef163ff08a))
+* **plugin-chart-boxplot:** add control panel ([#464](https://github.com/apache-superset/superset-ui/issues/464)) ([1c8b257](https://github.com/apache-superset/superset-ui/commit/1c8b257a6c081575070abf54cc52538d03b21f9f))
+* **style:** adding typographic variables to theme ([#463](https://github.com/apache-superset/superset-ui/issues/463)) ([f06cb4a](https://github.com/apache-superset/superset-ui/commit/f06cb4a98f4e79bc52be91741cf522ae2cdc328d))
+
+
+
+## [0.13.10](https://github.com/apache-superset/superset-ui/compare/v0.13.9...v0.13.10) (2020-05-08)
+
+
+### Features
+
+* **plugin-chart-treemap:** add control panel ([#461](https://github.com/apache-superset/superset-ui/issues/461)) ([8964341](https://github.com/apache-superset/superset-ui/commit/89643415da095a08dc3385c117a727bbb430c35d))
+* **plugin-chart-world-map:** add control panel ([#462](https://github.com/apache-superset/superset-ui/issues/462)) ([e914a2b](https://github.com/apache-superset/superset-ui/commit/e914a2bd71be7f87197f5505ff052606eb7b97cb))
+
+
+
+## [0.13.9](https://github.com/apache-superset/superset-ui/compare/v0.13.8...v0.13.9) (2020-05-08)
+
+
+### Bug Fixes
+
+* hundreds lint warning ([#447](https://github.com/apache-superset/superset-ui/issues/447)) ([ce0e23c](https://github.com/apache-superset/superset-ui/commit/ce0e23c65390441df7acd2f5d70f4e1797eebdca))
+
+
+### Features
+
+* **control-utils:** add infotooltipwithtrigger ([#442](https://github.com/apache-superset/superset-ui/issues/442)) ([488e945](https://github.com/apache-superset/superset-ui/commit/488e9459794b3e81d29ebe295d5c643014c7f954))
+* **plugin-chart-word-cloud:** add control panel ([#454](https://github.com/apache-superset/superset-ui/issues/454)) ([18375db](https://github.com/apache-superset/superset-ui/commit/18375db48968899e6e48a69c0014c1fd51f1e924))
+
+
+
 ## [0.13.8](https://github.com/apache-superset/superset-ui/compare/v0.13.7...v0.13.8) (2020-05-07)
 
 
