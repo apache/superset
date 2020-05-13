@@ -16,7 +16,14 @@ function getMetricLabel(metric: LegacyWordCloudFormData['metric']): string | und
 
 export default function transformProps(chartProps: ChartProps): WordCloudProps {
   const { width, height, formData, queryData } = chartProps;
-  const { colorScheme, metric, rotation, series, sizeTo } = formData as LegacyWordCloudFormData;
+  const {
+    colorScheme,
+    metric,
+    rotation,
+    series,
+    sizeFrom = 0,
+    sizeTo,
+  } = formData as LegacyWordCloudFormData;
 
   const metricLabel = getMetricLabel(metric);
 
@@ -34,7 +41,7 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
         : {
             field: metricLabel,
             scale: {
-              range: [0, sizeTo],
+              range: [sizeFrom, sizeTo],
               zero: true,
             },
             type: 'quantitative',
