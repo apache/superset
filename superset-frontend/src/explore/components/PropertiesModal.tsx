@@ -126,15 +126,14 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
     }).then(
       response => {
         const { result } = response.json as Json;
-        const options = result.map((item: any) => ({
+        return result.map((item: any) => ({
           value: item.value,
           label: item.text,
         }));
-        return { options };
       },
       badResponse => {
         getClientErrorObject(badResponse).then(showError);
-        return { options: [] };
+        return [];
       },
     );
   };
@@ -250,6 +249,8 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 name="owners"
                 value={owners || []}
                 loadOptions={loadOptions}
+                defaultOptions // load options on render
+                cacheOptions
                 onChange={setOwners}
                 disabled={!owners}
                 filterOption={null} // options are filtered at the api
