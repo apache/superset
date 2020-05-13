@@ -467,7 +467,7 @@ class BaseViz:
                     SupersetError(
                         message=str(ex),
                         level=ErrorLevel.ERROR,
-                        type=SupersetErrorType.VIZ_GET_DF_ERROR,
+                        error_type=SupersetErrorType.VIZ_GET_DF_ERROR,
                     )
                 )
                 self.errors.append(error)
