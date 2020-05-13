@@ -176,6 +176,7 @@
         {
           "files": "*.{js,jsx,ts,tsx}",
           "rules": {
+            "import/extensions": "off",
             "no-plusplus": "off",
             "react/jsx-no-literals": "off",
             "@typescript-eslint/no-explicit-any": [
