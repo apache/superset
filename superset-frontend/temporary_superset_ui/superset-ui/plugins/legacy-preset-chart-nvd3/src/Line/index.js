@@ -21,7 +21,7 @@ import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import { ANNOTATION_TYPES } from '../vendor/superset/AnnotationTypes';
-import controlPanel from './controlPanel.ts';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   canBeAnnotationTypes: [ANNOTATION_TYPES.TIME_SERIES],

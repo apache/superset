@@ -2,7 +2,6 @@ import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import data from './data';
-// eslint-disable-next-line import/extensions
 import dummyDatasource from '../../../shared/dummyDatasource';
 
 new CalendarChartPlugin().configure({ key: 'calendar' }).register();

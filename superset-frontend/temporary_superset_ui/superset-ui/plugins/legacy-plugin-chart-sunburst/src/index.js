@@ -20,7 +20,6 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
-// eslint-disable-next-line import/extensions
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
