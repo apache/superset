@@ -37,7 +37,7 @@ describe('WordCloud tranformProps', () => {
         fontSize: {
           field: 'sum__num',
           scale: {
-            range: [0, 70],
+            range: [10, 70],
             zero: true,
           },
           type: 'quantitative',
