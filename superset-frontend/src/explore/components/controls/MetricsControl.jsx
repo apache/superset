@@ -252,16 +252,13 @@ export default class MetricsControl extends React.PureComponent {
   }
 
   checkIfAggregateInInput(input) {
-    const nextState = { aggregateInInput: null };
     const lowercaseInput = input.toLowerCase();
-    for (const aggregate of AGGREGATES_OPTIONS) {
-      if (lowercaseInput.startsWith(aggregate.toLowerCase() + '(')) {
-        nextState.aggregateInInput = aggregate;
-        break;
-      }
-    }
+    const aggregateInInput =
+      AGGREGATES_OPTIONS.find(x =>
+        lowercaseInput.startsWith(`${x.toLowerCase()}(`),
+      ) || null;
     this.clearedAggregateInInput = this.state.aggregateInInput;
-    this.setState(nextState);
+    this.setState({ aggregateInInput });
   }
 
   optionsForSelect(props) {

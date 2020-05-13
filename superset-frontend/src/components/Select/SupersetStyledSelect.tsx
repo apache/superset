@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { SyntheticEvent, MutableRefObject } from 'react';
+import { merge } from 'lodash';
 import BasicSelect, {
   OptionTypeBase,
   MultiValueProps,
@@ -55,7 +56,7 @@ import {
   PartialThemeConfig,
   PartialStylesConfig,
 } from './styles';
-import { findValue, deepMerge } from './utils';
+import { findValue } from './utils';
 
 const DEFAULT_WINDOW_THRESHOLD = 100;
 
@@ -259,7 +260,6 @@ function styled<
     };
 
     return (
-      // @ts-ignore (needed for passing `styles`)
       <MaybeSortableSelect
         ref={setRef}
         className={className}
@@ -277,12 +277,10 @@ function styled<
             : createFilter({ ignoreAccents })
         }
         windowThreshold={windowThreshold}
-        styles={{ ...DEFAULT_STYLES, ...stylesConfig }}
+        styles={{ ...DEFAULT_STYLES, ...stylesConfig } as SelectProps['styles']}
         // merge default theme from `react-select`, default theme for Superset,
         // and the theme from props.
-        theme={defaultTheme =>
-          deepMerge(defaultTheme, DEFAULT_THEME, themeConfig)
-        }
+        theme={defaultTheme => merge(defaultTheme, DEFAULT_THEME, themeConfig)}
         formatOptionLabel={formatOptionLabel}
         getOptionLabel={getOptionLabel}
         getOptionValue={getOptionValue}

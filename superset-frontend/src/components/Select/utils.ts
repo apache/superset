@@ -33,49 +33,27 @@ import {
  */
 export function findValue<OptionType extends OptionTypeBase>(
   value: ValueType<OptionType> | string,
-  options: GroupedOptionsType<OptionType> | OptionsType<OptionType>,
+  options: GroupedOptionsType<OptionType> | OptionsType<OptionType> = [],
   valueKey = 'value',
 ): OptionType[] {
   if (value === null || value === undefined || value === '') {
     return [];
   }
+  const isGroup = Array.isArray((options[0] || {}).options);
+  const flatOptions = isGroup
+    ? (options as GroupedOptionsType<OptionType>).flatMap(x => x.options || [])
+    : (options as OptionsType<OptionType>);
+
   const find = (val: OptionType) => {
     const realVal = (value || {}).hasOwnProperty(valueKey)
       ? val[valueKey]
       : val;
-    const isGroup = Array.isArray((options[0] || {}).options);
-    const flatOptions: OptionsType<OptionType> = isGroup
-      ? (options as GroupedOptionsType<OptionType>)
-          .map(x => x.options || x)
-          .flat()
-      : (options as OptionsType<OptionType>);
     return (
       flatOptions.find(x => x === realVal || x[valueKey] === realVal) || val
     );
   };
 
-  if (Array.isArray(value)) {
-    return value.map(find);
-  }
-
   // If value is a single string, must return an Array so `cleanValue` won't be
   // empty: https://github.com/JedWatson/react-select/blob/32ad5c040bdd96cd1ca71010c2558842d684629c/packages/react-select/src/utils.js#L64
-  const result = find(value as OptionType);
-  return Array.isArray(result) ? result : [result];
-}
-
-export function deepMerge(source: any, ...overrides: any) {
-  const result = { ...source };
-  overrides
-    .filter((x: any) => !!x)
-    .forEach((obj: any) => {
-      Object.keys(obj).forEach(key => {
-        if (typeof result[key] === 'object') {
-          result[key] = deepMerge(result[key], obj[key]);
-        } else {
-          result[key] = obj[key];
-        }
-      });
-    });
-  return result;
+  return (Array.isArray(value) ? value : [value]).map(find);
 }
