@@ -20,7 +20,12 @@ import React, { useState, useRef } from 'react';
 import styled from '@superset-ui/style';
 import { withTheme } from 'emotion-theming';
 
-import { Select, AsyncSelect, PartialThemeConfig } from 'src/components/Select';
+import {
+  Select,
+  AsyncSelect,
+  PartialThemeConfig,
+  PartialStylesConfig,
+} from 'src/components/Select';
 import SearchInput from 'src/components/SearchInput';
 import {
   Filter,
@@ -44,7 +49,7 @@ interface SelectFilterProps extends BaseFilter {
 
 const FilterContainer = styled.div`
   display: inline-flex;
-  margin-right: 1.2em;
+  margin-right: 2em;
 `;
 
 const FilterTitle = styled.label`
@@ -56,7 +61,24 @@ const FilterTitle = styled.label`
 const filterSelectTheme: PartialThemeConfig = {
   spacing: {
     baseUnit: 2,
+    minWidth: '5em',
   },
+};
+
+const filterSelectStyles: PartialStylesConfig = {
+  container: (provider, { getValue }) => ({
+    ...provider,
+    // dynamic width based on label string length
+    minWidth: `${Math.min(
+      12,
+      Math.max(5, 3 + getValue()[0].label.length / 2),
+    )}em`,
+  }),
+  control: provider => ({
+    ...provider,
+    borderWidth: 0,
+    boxShadow: 'none',
+  }),
 };
 
 const CLEAR_SELECT_FILTER_VALUE = 'CLEAR_SELECT_FILTER_VALUE';
@@ -113,6 +135,7 @@ function SelectFilter({
         <AsyncSelect
           data-test="filters-select"
           themeConfig={filterSelectTheme}
+          stylesConfig={filterSelectStyles}
           value={selectedOption}
           onChange={onChange}
           loadOptions={fetchAndFormatSelects}
@@ -125,6 +148,7 @@ function SelectFilter({
         <Select
           data-test="filters-select"
           themeConfig={filterSelectTheme}
+          stylesConfig={filterSelectStyles}
           value={selectedOption}
           options={options}
           onChange={onChange}
