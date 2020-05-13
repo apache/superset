@@ -25,7 +25,7 @@
 import logging
 import os
 
-from werkzeug.contrib.cache import FileSystemCache
+from cachelib.file import FileSystemCache
 
 logger = logging.getLogger()
 
