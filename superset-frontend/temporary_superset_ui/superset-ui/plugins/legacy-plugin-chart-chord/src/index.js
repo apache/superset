@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['https://github.com/d3/d3-chord'],
@@ -35,6 +36,7 @@ export default class ChordChartPlugin extends ChartPlugin {
       loadChart: () => import('./ReactChord'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
