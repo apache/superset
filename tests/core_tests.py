@@ -1209,6 +1209,16 @@ class CoreTests(SupersetTestCase):
         payload = views.Superset._get_sqllab_tabs(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
+    def test_welcome_flag(self):
+        self.login(username="admin")
+        app.config["WELCOME_WITH_USER_PROFILE"] = False
+        resp = self.get_resp("/superset/welcome")
+        self.assertNotIn("<!-- Bundle js profile START -->", resp)
+
+        app.config["WELCOME_WITH_USER_PROFILE"] = True
+        resp = self.get_resp("/superset/welcome")
+        self.assertIn("<!-- Bundle js profile START -->", resp)
+
 
 if __name__ == "__main__":
     unittest.main()
