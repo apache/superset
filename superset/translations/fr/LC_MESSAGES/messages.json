@@ -128,7 +128,7 @@
             "Nombre de lignes à ignorer au début du fichier."
          ],
          "Rows to Read": [
-            "Rows to Read""
+            "Lignes à lire"
          ],
          "Number of rows of file to read.": [
             "Nombre de lignes de fichier à lire."
