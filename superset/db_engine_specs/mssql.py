@@ -22,7 +22,6 @@ from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
-from superset.sql_parse import ParsedQuery
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pylint: disable=unused-import
@@ -85,6 +84,10 @@ class MssqlEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def apply_limit_to_sql(cls, sql: str, limit: int, database: "Database") -> str:
-        new_sql = ParsedQuery(sql).set_alias()
-        return super().apply_limit_to_sql(new_sql, limit, database)
+    def extract_error_message(cls, ex: Exception) -> str:
+        if str(ex).startswith("(8155,"):
+            return (
+                f"{cls.engine} error: All your SQL functions need to "
+                "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
+            )
+        return f"{cls.engine} error: {cls._extract_error_message(ex)}"
