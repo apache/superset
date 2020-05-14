@@ -88,6 +88,6 @@ class MssqlEngineSpec(BaseEngineSpec):
         if str(ex).startswith("(8155"):
             return (
                 f"{cls.engine} error: All your SQL functions need to "
-                "have alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
+                "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
