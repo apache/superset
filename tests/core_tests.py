@@ -933,7 +933,7 @@ class CoreTests(SupersetTestCase):
         )
         data = self.get_json_resp(json_endpoint, {"form_data": json.dumps(form_data)})
         self.assertEqual(data["status"], utils.QueryStatus.SUCCESS)
-        self.assertEqual(data["error"], None)
+        self.assertEqual(data["errors"], [])
 
     def test_slice_payload_invalid_query(self):
         self.login(username="admin")
@@ -951,7 +951,8 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp("/superset/explore_json/", raise_on_error=False)
 
         self.assertEqual(
-            data["error"], "The datasource associated with this chart no longer exists"
+            data["errors"][0]["message"],
+            "The datasource associated with this chart no longer exists",
         )
 
     @mock.patch("superset.security.SupersetSecurityManager.schemas_accessible_by_user")

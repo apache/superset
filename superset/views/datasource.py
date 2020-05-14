@@ -39,7 +39,7 @@ class Datasource(BaseSupersetView):
     def save(self) -> Response:
         data = request.form.get("data")
         if not isinstance(data, str):
-            return json_error_response("Request missing data field.", status="500")
+            return json_error_response("Request missing data field.", status=500)
 
         datasource_dict = json.loads(data)
         datasource_id = datasource_dict.get("id")
@@ -66,7 +66,7 @@ class Datasource(BaseSupersetView):
         ]
         if duplicates:
             return json_error_response(
-                f"Duplicate column name(s): {','.join(duplicates)}", status="409"
+                f"Duplicate column name(s): {','.join(duplicates)}", status=409
             )
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data
@@ -85,11 +85,11 @@ class Datasource(BaseSupersetView):
             )
             if not orm_datasource.data:
                 return json_error_response(
-                    "Error fetching datasource data.", status="500"
+                    "Error fetching datasource data.", status=500
                 )
             return self.json_response(orm_datasource.data)
         except NoResultFound:
-            return json_error_response("This datasource does not exist", status="400")
+            return json_error_response("This datasource does not exist", status=400)
 
     @expose("/external_metadata/<datasource_type>/<datasource_id>/")
     @has_access_api

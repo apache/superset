@@ -25,6 +25,7 @@ const metadata = new ChartMetadata({
   name: t('Time-series Table'),
   description: '',
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class TimeTableChartPlugin extends ChartPlugin {

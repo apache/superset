@@ -66,6 +66,7 @@ from superset import (
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource
 from superset.constants import RouteMethod
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
@@ -108,6 +109,7 @@ from .base import (
     get_user_roles,
     handle_api_exception,
     json_error_response,
+    json_errors_response,
     json_success,
     SupersetModelView,
     validate_sqlatable,
@@ -189,10 +191,22 @@ def check_datasource_perms(
             datasource_id, datasource_type, form_data
         )
     except SupersetException as ex:
-        raise SupersetSecurityException(str(ex))
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
+                level=ErrorLevel.ERROR,
+                message=str(ex),
+            )
+        )
 
     if datasource_type is None:
-        raise SupersetSecurityException("Could not determine datasource type")
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+                level=ErrorLevel.ERROR,
+                message="Could not determine datasource type",
+            )
+        )
 
     viz_obj = get_viz(
         datasource_type=datasource_type,
@@ -1716,10 +1730,14 @@ class Superset(BaseSupersetView):
                     force=True,
                 )
 
-                g.form_data = form_data
-                payload = obj.get_payload()
-                delattr(g, "form_data")
-                error = payload["error"]
+                # Temporarily define the form-data in the request context which may be
+                # leveraged by the Jinja macros.
+                with app.test_request_context(
+                    data={"form_data": json.dumps(form_data)}
+                ):
+                    payload = obj.get_payload()
+
+                error = payload["errors"] or None
                 status = payload["status"]
             except Exception as ex:
                 error = utils.error_msg_from_exception(ex)
@@ -2183,8 +2201,9 @@ class Superset(BaseSupersetView):
             query.sql, query.database, query.schema
         )
         if rejected_tables:
-            return json_error_response(
-                security_manager.get_table_access_error_msg(rejected_tables), status=403
+            return json_errors_response(
+                [security_manager.get_table_access_error_object(rejected_tables)],
+                status=403,
             )
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
@@ -2306,14 +2325,14 @@ class Superset(BaseSupersetView):
         query: Query,
         expand_data: bool,
         log_params: Optional[Dict[str, Any]] = None,
-    ) -> str:
+    ) -> Response:
         """
             Send SQL JSON query to celery workers
 
         :param session: SQLAlchemy session object
         :param rendered_query: the rendered query to perform by workers
         :param query: The query (SQLAlchemy) object
-        :return: String JSON response
+        :return: A Flask Response
         """
         logger.info(f"Query {query.id}: Running query on a Celery worker")
         # Ignore the celery future object and the request may time out.
@@ -2357,13 +2376,13 @@ class Superset(BaseSupersetView):
         query: Query,
         expand_data: bool,
         log_params: Optional[Dict[str, Any]] = None,
-    ) -> str:
+    ) -> Response:
         """
             Execute SQL query (sql json)
 
         :param rendered_query: The rendered query (included templates)
         :param query: The query SQL (SQLAlchemy) object
-        :return: String JSON response
+        :return: A Flask Response
         """
         try:
             timeout = config["SQLLAB_TIMEOUT"]
@@ -2487,9 +2506,8 @@ class Superset(BaseSupersetView):
         if rejected_tables:
             query.status = QueryStatus.FAILED
             session.commit()
-            return json_error_response(
-                security_manager.get_table_access_error_msg(rejected_tables),
-                link=security_manager.get_table_access_link(rejected_tables),
+            return json_errors_response(
+                [security_manager.get_table_access_error_object(rejected_tables)],
                 status=403,
             )
 

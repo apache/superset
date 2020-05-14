@@ -17,23 +17,38 @@
  * under the License.
  */
 
-// TODO: Add more error types as we classify more errors
+// Keep in sync with superset/views/errors.py
 export const ErrorTypeEnum = {
-  // Generic errors created on the frontend
+  // Frontend errors
   FRONTEND_CSRF_ERROR: 'FRONTEND_CSRF_ERROR',
   FRONTEND_NETWORK_ERROR: 'FRONTEND_NETWORK_ERROR',
   FRONTEND_TIMEOUT_ERROR: 'FRONTEND_TIMEOUT_ERROR',
+
+  // DB Engine errors
+  GENERIC_DB_ENGINE_ERROR: 'GENERIC_DB_ENGINE_ERROR',
+
+  // Viz errors
+  VIZ_GET_DF_ERROR: 'VIZ_GET_DF_ERROR',
+  UNKNOWN_DATASOURCE_TYPE_ERROR: 'UNKNOWN_DATASOURCE_TYPE_ERROR',
+  FAILED_FETCHING_DATASOURCE_INFO_ERROR:
+    'FAILED_FETCHING_DATASOURCE_INFO_ERROR',
+
+  // Security access errors
+  TABLE_SECURITY_ACCESS_ERROR: 'TABLE_SECURITY_ACCESS_ERROR',
+  DATASOURCE_SECURITY_ACCESS_ERROR: 'DATASOURCE_SECURITY_ACCESS_ERROR',
+  MISSING_OWNERSHIP_ERROR: 'MISSING_OWNERSHIP_ERROR',
 } as const;
 
 type ValueOf<T> = T[keyof T];
 
 export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 
+// Keep in sync with superset/views/errors.py
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
 export type SupersetError = {
   errorType: ErrorType;
-  extra: Record<string, any>;
+  extra: Record<string, any> | null;
   level: ErrorLevel;
   message: string;
 };

@@ -19,7 +19,7 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 # isort and pylint disagree, isort should win
 # pylint: disable=ungrouped-imports
@@ -374,13 +374,20 @@ class QueryResult:  # pylint: disable=too-few-public-methods
     """Object returned by the query interface"""
 
     def __init__(  # pylint: disable=too-many-arguments
-        self, df, query, duration, status=QueryStatus.SUCCESS, error_message=None
+        self,
+        df,
+        query,
+        duration,
+        status=QueryStatus.SUCCESS,
+        error_message=None,
+        errors=None,
     ):
         self.df: pd.DataFrame = df
         self.query: str = query
         self.duration: int = duration
         self.status: str = status
         self.error_message: Optional[str] = error_message
+        self.errors: List[Dict[str, Any]] = errors or []
 
 
 class ExtraJSONMixin:

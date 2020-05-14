@@ -121,6 +121,9 @@ const plugins = [
     { copyUnmodified: true },
   ),
 ];
+if (!process.env.CI) {
+  plugins.push(new webpack.ProgressPlugin());
+}
 if (!isDevMode) {
   // text loading (webpack 4+)
   plugins.push(

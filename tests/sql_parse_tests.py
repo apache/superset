@@ -187,8 +187,7 @@ class SupersetTestCase(unittest.TestCase):
     # SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?
     def test_show_tables(self):
         query = "SHOW TABLES FROM s1 like '%order%'"
-        # TODO: figure out what should code do here
-        self.assertEqual({Table("s1")}, self.extract_tables(query))
+        self.assertEqual(set(), self.extract_tables(query))
 
     # SHOW COLUMNS (FROM | IN) qualifiedName
     def test_show_columns(self):
