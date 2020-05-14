@@ -49,3 +49,13 @@ scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts --no-i
 ```$bash
 scripts/tests/run.sh tests.charts.api_tests:ChartApiTests.test_get_charts --no-reset-db
 ```
+
+- Example for not running tests just initialize the test DB (drop/create, upgrade and load examples)
+```$bash
+scripts/tests/run.sh . --no-tests
+```
+
+- Example for just resetting the tests DB
+```$bash
+scripts/tests/run.sh . --reset-db
+```
