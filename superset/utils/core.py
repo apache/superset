@@ -444,7 +444,7 @@ def json_dumps_w_dates(payload):
     return json.dumps(payload, default=json_int_dttm_ser)
 
 
-def error_msg_from_exception(e: Exception) -> str:
+def error_msg_from_exception(ex: Exception) -> str:
     """Translate exception into error message
 
     Database have different ways to handle exception. This function attempts
@@ -459,12 +459,12 @@ def error_msg_from_exception(e: Exception) -> str:
     The latter version is parsed correctly by this function.
     """
     msg = ""
-    if hasattr(e, "message"):
-        if isinstance(e.message, dict):  # type: ignore
-            msg = e.message.get("message")  # type: ignore
-        elif e.message:  # type: ignore
-            msg = e.message  # type: ignore
-    return msg or str(e)
+    if hasattr(ex, "message"):
+        if isinstance(ex.message, dict):  # type: ignore
+            msg = ex.message.get("message")  # type: ignore
+        elif ex.message:  # type: ignore
+            msg = ex.message  # type: ignore
+    return msg or str(ex)
 
 
 def markdown(s: str, markup_wrap: Optional[bool] = False) -> str:
