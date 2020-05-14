@@ -38,49 +38,7 @@ from tests.test_app import app
 from .base_tests import SupersetTestCase
 
 
-class CeleryStartMixin:
-    @classmethod
-    def setUpClass(cls):
-        with app.app_context():
-            from cachelib.redis import RedisCache
-
-            class CeleryConfig(object):
-                BROKER_URL = "redis://localhost"
-                CELERY_IMPORTS = ("superset.tasks.thumbnails",)
-                CONCURRENCY = 1
-
-            app.config["CELERY_CONFIG"] = CeleryConfig
-
-            def init_thumbnail_cache(app) -> RedisCache:
-                return RedisCache(
-                    host="localhost",
-                    key_prefix="superset_thumbnails_",
-                    default_timeout=10000,
-                )
-
-            app.config["THUMBNAIL_CACHE_CONFIG"] = init_thumbnail_cache
-
-            base_dir = app.config["BASE_DIR"]
-            worker_command = base_dir + "/bin/superset worker -w 2"
-            subprocess.Popen(
-                worker_command,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-
-    @classmethod
-    def tearDownClass(cls):
-        subprocess.call(
-            "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9", shell=True
-        )
-        subprocess.call(
-            "ps auxww | grep 'superset worker' | awk '{print $2}' | xargs kill -9",
-            shell=True,
-        )
-
-
-class ThumbnailsSeleniumLive(CeleryStartMixin, LiveServerTestCase):
+class ThumbnailsSeleniumLive(LiveServerTestCase):
     def create_app(self):
         return app
 
@@ -108,7 +66,7 @@ class ThumbnailsSeleniumLive(CeleryStartMixin, LiveServerTestCase):
             self.assertEqual(response.getcode(), 202)
 
 
-class ThumbnailsTests(CeleryStartMixin, SupersetTestCase):
+class ThumbnailsTests(SupersetTestCase):
 
     mock_image = b"bytes mock image"
 
