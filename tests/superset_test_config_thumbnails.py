@@ -56,9 +56,14 @@ EMAIL_NOTIFICATIONS = False
 
 CACHE_CONFIG = {"CACHE_TYPE": "simple"}
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
+REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
+REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
+
 
 class CeleryConfig(object):
-    BROKER_URL = "redis://localhost"
+    BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
     CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks.thumbnails")
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1
@@ -77,7 +82,11 @@ FEATURE_FLAGS = {
 
 def init_thumbnail_cache(app: Flask) -> RedisCache:
     return RedisCache(
-        host="localhost", key_prefix="superset_thumbnails_", default_timeout=10000
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=REDIS_CELERY_DB,
+        key_prefix="superset_thumbnails_",
+        default_timeout=10000,
     )
 
 

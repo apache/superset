@@ -26,8 +26,19 @@ function reset_db() {
   echo --------------------
   echo Reseting test DB
   echo --------------------
-  docker exec -i superset_db bash -c "/usr/bin/psql -h 127.0.0.1 -U ${DB_USER} -w -c 'DROP DATABASE IF EXISTS ${DB_NAME};'"
-  docker exec -i superset_db bash -c "/usr/bin/psql -h 127.0.0.1 -U ${DB_USER} -w -c 'CREATE DATABASE ${DB_NAME};'"
+  docker-compose stop superset-tests-worker
+  RESET_DB_CMD="psql \"postgresql://superset:superset@127.0.0.1:5432\" <<-EOF
+    DROP DATABASE IF EXISTS ${DB_NAME};
+    CREATE DATABASE ${DB_NAME};
+    \\c ${DB_NAME}
+    DROP SCHEMA IF EXISTS sqllab_test_db;
+    CREATE SCHEMA sqllab_test_db;
+    DROP SCHEMA IF EXISTS admin_database;
+    CREATE SCHEMA admin_database;
+EOF
+"
+  docker exec -i superset_db bash -c "${RESET_DB_CMD}"
+  docker-compose start superset-tests-worker
 }
 
 #
@@ -71,6 +82,7 @@ export SUPERSET__SQLALCHEMY_DATABASE_URI=${SUPERSET__SQLALCHEMY_DATABASE_URI:-po
 export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.superset_test_config}
 RUN_INIT=1
 RUN_RESET_DB=1
+RUN_TESTS=1
 TEST_MODULE="${1}"
 
 # Shift to pass the first cmd parameter for the test module
@@ -86,6 +98,15 @@ while (( "$#" )); do
       ;;
     --no-reset-db)
       RUN_RESET_DB=0
+      shift 1
+      ;;
+    --no-tests)
+      RUN_TESTS=0
+      shift 1
+      ;;
+    --reset-db)
+      RUN_TESTS=0
+      RUN_INIT=0
       shift 1
       ;;
     --) # end argument parsing
@@ -122,4 +143,7 @@ then
   test_init
 fi
 
-nosetests --exclude=load_examples_test "${TEST_MODULE}"
+if [ $RUN_TESTS -eq 1 ]
+then
+  nosetests --exclude=load_examples_test "${TEST_MODULE}"
+fi

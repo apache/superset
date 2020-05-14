@@ -61,6 +61,8 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.superset_test_config
       REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI:
+        postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
         image: postgres:10-alpine
@@ -87,10 +89,9 @@ jobs:
         run: |
           pip-install
           setup-postgres
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
     - name: Python unit tests (PostgreSQL)
-      env:
-        SUPERSET__SQLALCHEMY_DATABASE_URI:
-          postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       run: |
         ./scripts/python_tests.sh
     - name: Upload code coverage
@@ -106,6 +107,8 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.superset_test_config
       REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
     services:
       mysql:
         image: mysql:5.7
@@ -130,10 +133,9 @@ jobs:
         run: |
           pip-install
           setup-mysql
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
     - name: Python unit tests (MySQL)
-      env:
-        SUPERSET__SQLALCHEMY_DATABASE_URI: |
-          mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
       run: |
         ./scripts/python_tests.sh
     - name: Upload code coverage
@@ -149,6 +151,8 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.superset_test_config
       REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        sqlite:///${{ github.workspace }}/.temp/unittest.db
     services:
       redis:
         image: redis:5-alpine
@@ -166,10 +170,9 @@ jobs:
         run: |
           pip-install
           mkdir ${{ github.workspace }}/.temp
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
     - name: Python unit tests (SQLite)
-      env:
-        SUPERSET__SQLALCHEMY_DATABASE_URI: |
-          sqlite:///${{ github.workspace }}/.temp/unittest.db
       run: |
         ./scripts/python_tests.sh
     - name: Upload code coverage
