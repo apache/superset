@@ -21,7 +21,9 @@
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx . && npm run type",
     "prettier-check": "prettier --check '{src,stylesheets}/**/*.{css,less,sass,scss}'",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css && npm run type",
-    "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'"
+    "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'",
+    "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
+    "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json"
   },
   "repository": {
     "type": "git",
