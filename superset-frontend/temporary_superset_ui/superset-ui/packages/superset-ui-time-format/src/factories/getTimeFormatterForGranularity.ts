@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getTimeFormatter, TimeFormats, smartDateVerboseFormatter } from '@superset-ui/time-format';
+import TimeFormats from '../TimeFormats';
+import { getTimeFormatter } from '../TimeFormatterRegistrySingleton';
+import smartDateVerboseFormatter from '../formatters/smartDateVerbose';
+import { TimeGranularity } from '../types';
 
 // Translate time granularity to d3-format
 const MINUTE = '%Y-%m-%d %H:%M';
-const SUNDAY_BASED_WEEK = '%Y W%U';
-const MONDAY_BASED_WEEK = '%Y W%W';
+const SUNDAY_BASED_WEEK = '%Y-%m-%d W%U';
+const MONDAY_BASED_WEEK = '%Y-%m-%d W%W';
 const { DATABASE_DATE, DATABASE_DATETIME } = TimeFormats;
 
 // search for `builtin_time_grains` in incubator-superset/superset/db_engine_specs/base.py
@@ -39,16 +42,13 @@ const formats = {
   P1M: '%Y-%m', // month
   'P0.25Y': '%Y Q%q', // quarter
   P1Y: '%Y', // year
-  // d3-time-format weeks does not support weeks start on Sunday
   '1969-12-28T00:00:00Z/P1W': SUNDAY_BASED_WEEK, // 'week_start_sunday'
   '1969-12-29T00:00:00Z/P1W': MONDAY_BASED_WEEK, // 'week_start_monday'
   'P1W/1970-01-03T00:00:00Z': SUNDAY_BASED_WEEK, // 'week_ending_saturday'
   'P1W/1970-01-04T00:00:00Z': MONDAY_BASED_WEEK, // 'week_ending_sunday'
 };
 
-export type TimeGranularity = keyof typeof formats;
-
-export default function getTimeFormatterForGranularity(granularity: TimeGranularity | undefined) {
+export default function getTimeFormatterForGranularity(granularity?: TimeGranularity) {
   return granularity && granularity in formats
     ? getTimeFormatter(formats[granularity])
     : smartDateVerboseFormatter;
