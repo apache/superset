@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,invalid-name
 from enum import Enum
 from typing import Any, Dict, Optional
 
@@ -28,13 +28,23 @@ class SupersetErrorType(str, Enum):
     Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
     """
 
+    # Frontend errors
     FRONTEND_CSRF_ERROR = "FRONTEND_CSRF_ERROR"
     FRONTEND_NETWORK_ERROR = "FRONTEND_NETWORK_ERROR"
     FRONTEND_TIMEOUT_ERROR = "FRONTEND_TIMEOUT_ERROR"
 
+    # DB Engine errors
     GENERIC_DB_ENGINE_ERROR = "GENERIC_DB_ENGINE_ERROR"
 
+    # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
+    UNKNOWN_DATASOURCE_TYPE_ERROR = "UNKNOWN_DATASOURCE_TYPE_ERROR"
+    FAILED_FETCHING_DATASOURCE_INFO_ERROR = "FAILED_FETCHING_DATASOURCE_INFO_ERROR"
+
+    # Security access errors
+    TABLE_SECURITY_ACCESS_ERROR = "TABLE_SECURITY_ACCESS_ERROR"
+    DATASOURCE_SECURITY_ACCESS_ERROR = "DATASOURCE_SECURITY_ACCESS_ERROR"
+    MISSING_OWNERSHIP_ERROR = "MISSING_OWNERSHIP_ERROR"
 
 
 class ErrorLevel(str, Enum):
