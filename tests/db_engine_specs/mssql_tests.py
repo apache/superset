@@ -103,7 +103,7 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
         error_message = MssqlEngineSpec.extract_error_message(test_mssql_exception)
         expected_message = (
             "mssql error: All your SQL functions need to "
-            "have alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
+            "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
         )
         self.assertEqual(expected_message, error_message)
 
