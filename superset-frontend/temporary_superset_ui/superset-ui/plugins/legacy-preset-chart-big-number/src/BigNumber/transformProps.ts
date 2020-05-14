@@ -19,9 +19,7 @@
 import * as color from 'd3-color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { ChartProps } from '@superset-ui/chart';
-import getTimeFormatterForGranularity, {
-  TimeGranularity,
-} from '../utils/getTimeFormatterForGranularity';
+import { TimeGranularity, getTimeFormatterForGranularity } from '@superset-ui/time-format';
 
 const TIME_COLUMN = '__timestamp';
 const formatPercentChange = getNumberFormatter(NumberFormats.PERCENT_SIGNED_1_POINT);
