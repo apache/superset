@@ -9,6 +9,9 @@ export {
 
 export { default as createD3TimeFormatter } from './factories/createD3TimeFormatter';
 export { default as createMultiFormatter } from './factories/createMultiFormatter';
+export { default as getTimeFormatterForGranularity } from './factories/getTimeFormatterForGranularity';
 
 export { default as smartDateFormatter } from './formatters/smartDate';
 export { default as smartDateVerboseFormatter } from './formatters/smartDateVerbose';
+
+export * from './types';

@@ -37,6 +37,7 @@ const formData = {
   metric: 'sum__SP_POP_TOTL',
   showTrendLine: true,
   startYAxisAtZero: true,
+  timeGrainSqla: 'P1Y',
   vizType: 'big_number',
   yAxisFormat: '.3s',
 };
@@ -68,6 +69,19 @@ export const basicWithTrendline = () => (
   />
 );
 
+export const weeklyTimeGranularity = () => (
+  <SuperChart
+    chartType="big-number"
+    width={400}
+    height={400}
+    queryData={{ data: testData }}
+    formData={{
+      ...formData,
+      timeGrainSqla: 'P1W',
+    }}
+  />
+);
+
 export const nullInTheMiddle = () => (
   <SuperChart
     chartType="big-number"
@@ -90,7 +104,6 @@ export const fixedRange = () => (
     }}
     formData={{
       ...formData,
-      timeGrainSqla: 'P1Y',
       timeRangeFixed: true,
     }}
   />
