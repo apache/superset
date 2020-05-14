@@ -26,8 +26,9 @@ import COMMON_ERR_MESSAGES from './errorMessages';
 export type ClientErrorObject = {
   error: string;
   errors?: SupersetError[];
-  severity?: string;
+  link?: string;
   message?: string;
+  severity?: string;
   stacktrace?: string;
 } & Partial<SupersetClientResponse>;
 
@@ -54,6 +55,7 @@ export default function getClientErrorObject(
             // Backwards compatibility for old error renderers with the new error object
             if (error.errors && error.errors.length > 0) {
               error.error = error.description = error.errors[0].message;
+              error.link = error.errors[0]?.extra?.link;
             }
 
             if (error.stack) {

@@ -951,7 +951,8 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp("/superset/explore_json/", raise_on_error=False)
 
         self.assertEqual(
-            data["error"], "The datasource associated with this chart no longer exists"
+            data["errors"][0]["message"],
+            "The datasource associated with this chart no longer exists",
         )
 
     @mock.patch("superset.security.SupersetSecurityManager.schemas_accessible_by_user")
