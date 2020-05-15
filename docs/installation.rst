@@ -562,7 +562,7 @@ The connection string for PostgreSQL looks like this ::
 
     postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}
 
-Additional  may be configured via the ``extra`` field under ``engine_params``. 
+Additional  may be configured via the ``extra`` field under ``engine_params``.
 If you would like to enable mutual SSL here is a sample configuration:
 
 .. code-block:: json
@@ -577,7 +577,7 @@ If you would like to enable mutual SSL here is a sample configuration:
          }
     }
 
-If the key ``sslrootcert`` is present the server's certificate will be verified to be signed by the same Certificate Authority (CA). 
+If the key ``sslrootcert`` is present the server's certificate will be verified to be signed by the same Certificate Authority (CA).
 
 If you would like to enable mutual SSL here is a sample configuration:
 
@@ -1056,7 +1056,7 @@ have the same configuration.
     celery beat --app=superset.tasks.celery_app:app
 
 To setup a result backend, you need to pass an instance of a derivative
-of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
+of ``from cachelib.base.BaseCache`` to the ``RESULTS_BACKEND``
 configuration key in your ``superset_config.py``. It's possible to use
 Memcached, Redis, S3 (https://pypi.python.org/pypi/s3werkzeugcache),
 memory or the file system (in a single server-type setup or for testing),
@@ -1072,7 +1072,7 @@ look something like:
     RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
 
     # On Redis
-    from werkzeug.contrib.cache import RedisCache
+    from cachelib.redis import RedisCache
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
 

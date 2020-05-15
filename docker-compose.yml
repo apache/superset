@@ -83,8 +83,24 @@ services:
   superset-worker:
     build: *superset-build
     container_name: superset_worker
-    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair"]
+    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
     env_file: docker/.env
+    restart: unless-stopped
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+
+  superset-tests-worker:
+    build: *superset-build
+    container_name: superset_tests_worker
+    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
+    env_file: docker/.env
+    environment:
+      DATABASE_HOST: localhost
+      DATABASE_DB: test
+      REDIS_CELERY_DB: 2
+      REDIS_RESULTS_DB: 3
+      REDIS_HOST: localhost
+    network_mode: host
     restart: unless-stopped
     depends_on: *superset-depends-on
     volumes: *superset-volumes

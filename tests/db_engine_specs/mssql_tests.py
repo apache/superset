@@ -15,18 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import unittest.mock as mock
-from typing import Optional
 
 from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
-from sqlalchemy.sql import select, Select
+from sqlalchemy.sql import select
 from sqlalchemy.types import String, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from superset.extensions import db
-from superset.models.core import Database
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
 
@@ -97,64 +94,28 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
         for actual, expected in test_cases:
             self.assertEqual(actual, expected)
 
-    def test_apply_limit(self):
-        def compile_sqla_query(qry: Select, schema: Optional[str] = None) -> str:
-            return str(
-                qry.compile(
-                    dialect=mssql.dialect(), compile_kwargs={"literal_binds": True}
-                )
-            )
-
-        database = Database(
-            database_name="mssql_test",
-            sqlalchemy_uri="mssql+pymssql://sa:Password_123@localhost:1433/msdb",
+    def test_extract_error_message(self):
+        test_mssql_exception = Exception(
+            "(8155, b\"No column name was specified for column 1 of 'inner_qry'."
+            "DB-Lib error message 20018, severity 16:\\nGeneral SQL Server error: "
+            'Check messages from the SQL Server\\n")'
         )
-        db.session.add(database)
-        db.session.commit()
+        error_message = MssqlEngineSpec.extract_error_message(test_mssql_exception)
+        expected_message = (
+            "mssql error: All your SQL functions need to "
+            "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
+        )
+        self.assertEqual(expected_message, error_message)
 
-        with mock.patch.object(database, "compile_sqla_query", new=compile_sqla_query):
-            test_sql = "SELECT COUNT(*) FROM FOO_TABLE"
-
-            limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, database)
-
-            expected_sql = (
-                "SELECT TOP 1000 * \n"
-                "FROM (SELECT COUNT(*) AS COUNT_1 FROM FOO_TABLE) AS inner_qry"
-            )
-            self.assertEqual(expected_sql, limited_sql)
-
-            test_sql = "SELECT COUNT(*), SUM(id) FROM FOO_TABLE"
-            limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, database)
-
-            expected_sql = (
-                "SELECT TOP 1000 * \n"
-                "FROM (SELECT COUNT(*) AS COUNT_1, SUM(id) AS SUM_2 FROM FOO_TABLE) "
-                "AS inner_qry"
-            )
-            self.assertEqual(expected_sql, limited_sql)
-
-            test_sql = "SELECT COUNT(*), FOO_COL1 FROM FOO_TABLE GROUP BY FOO_COL1"
-            limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, database)
-
-            expected_sql = (
-                "SELECT TOP 1000 * \n"
-                "FROM (SELECT COUNT(*) AS COUNT_1, "
-                "FOO_COL1 FROM FOO_TABLE GROUP BY FOO_COL1)"
-                " AS inner_qry"
-            )
-            self.assertEqual(expected_sql, limited_sql)
-
-            test_sql = "SELECT COUNT(*), COUNT(*) FROM FOO_TABLE"
-            limited_sql = MssqlEngineSpec.apply_limit_to_sql(test_sql, 1000, database)
-            expected_sql = (
-                "SELECT TOP 1000 * \n"
-                "FROM (SELECT COUNT(*) AS COUNT_1, COUNT(*) AS COUNT_2 FROM FOO_TABLE)"
-                " AS inner_qry"
-            )
-            self.assertEqual(expected_sql, limited_sql)
-
-        db.session.delete(database)
-        db.session.commit()
+        test_mssql_exception = Exception(
+            '(8200, b"A correlated expression is invalid because it is not in a '
+            "GROUP BY clause.\\n\")'"
+        )
+        error_message = MssqlEngineSpec.extract_error_message(test_mssql_exception)
+        expected_message = "mssql error: " + MssqlEngineSpec._extract_error_message(
+            test_mssql_exception
+        )
+        self.assertEqual(expected_message, error_message)
 
     @mock.patch.object(
         MssqlEngineSpec, "pyodbc_rows_to_tuples", return_value="converted"

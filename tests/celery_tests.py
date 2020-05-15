@@ -45,7 +45,8 @@ from superset.utils.core import get_example_database
 from .base_tests import SupersetTestCase
 
 CELERY_SHORT_SLEEP_TIME = 2
-CELERY_SLEEP_TIME = 5
+CELERY_SLEEP_TIME = 10
+DROP_TABLE_SLEEP_TIME = 10
 
 
 class UtilityFunctionTests(SupersetTestCase):
@@ -115,31 +116,8 @@ class CeleryTestCase(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         with app.app_context():
-
-            class CeleryConfig(object):
-                BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
-                CELERY_IMPORTS = ("superset.sql_lab",)
-                CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
-                CONCURRENCY = 1
-
-            app.config["CELERY_CONFIG"] = CeleryConfig
-
             db.session.query(Query).delete()
             db.session.commit()
-
-            base_dir = app.config["BASE_DIR"]
-            worker_command = base_dir + "/bin/superset worker -w 2"
-            subprocess.Popen(worker_command, shell=True, stdout=subprocess.PIPE)
-
-    @classmethod
-    def tearDownClass(cls):
-        subprocess.call(
-            "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9", shell=True
-        )
-        subprocess.call(
-            "ps auxww | grep 'superset worker' | awk '{print $2}' | xargs kill -9",
-            shell=True,
-        )
 
     def run_sql(
         self, db_id, sql, client_id=None, cta=False, tmp_table="tmp", async_=False
@@ -286,7 +264,7 @@ class CeleryTestCase(SupersetTestCase):
 
         table_name = "tmp_async_4"
         self.drop_table_if_exists(table_name, main_db)
-        time.sleep(CELERY_SLEEP_TIME)
+        time.sleep(DROP_TABLE_SLEEP_TIME)
 
         sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
         result = self.run_sql(
@@ -305,6 +283,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(QueryStatus.SUCCESS, query.status)
 
         self.assertTrue(f"FROM {table_name}" in query.select_sql)
+
         self.assertEqual(
             f"CREATE TABLE {table_name} AS \n"
             "SELECT name FROM birth_names "

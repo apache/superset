@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from flask_babel import gettext as _
+
+from superset.errors import SupersetError
 
 
 class SupersetException(Exception):
@@ -41,9 +43,12 @@ class SupersetTimeoutException(SupersetException):
 class SupersetSecurityException(SupersetException):
     status = 401
 
-    def __init__(self, msg: str, link: Optional[str] = None) -> None:
-        super(SupersetSecurityException, self).__init__(msg)
-        self.link = link
+    def __init__(
+        self, error: SupersetError, payload: Optional[Dict[str, Any]] = None
+    ) -> None:
+        super(SupersetSecurityException, self).__init__(error.message)
+        self.error = error
+        self.payload = payload
 
 
 class NoDataException(SupersetException):

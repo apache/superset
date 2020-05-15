@@ -1,0 +1,19 @@
+name: Translations
+
+on: [push, pull_request]
+
+jobs:
+  frontend-build:
+    name: build
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@adc6f73
+      with:
+        run: npm-install
+    - name: lint
+      working-directory: ./superset-frontend
+      run: |
+        npm run check-translation
