@@ -53,7 +53,6 @@ export default () =>
     });
 
     it('should apply filter', () => {
-      // parent of placeholder component
       cy.get('.Select__control')
         .contains('Select [region]')
         .click({ force: true });

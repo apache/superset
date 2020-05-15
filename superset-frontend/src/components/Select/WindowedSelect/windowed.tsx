@@ -27,6 +27,8 @@ import WindowedMenuList, { WindowedMenuListProps } from './WindowedMenuList';
 
 const { MenuList: DefaultMenuList } = defaultComponents;
 
+export const DEFAULT_WINDOW_THRESHOLD = 100;
+
 export type WindowedSelectProps<
   OptionType extends OptionTypeBase
 > = SelectProps<OptionType> & {
@@ -43,7 +45,7 @@ export function MenuList<OptionType extends OptionTypeBase>({
 }: MenuListComponentProps<OptionType> & {
   selectProps: WindowedSelectProps<OptionType>;
 }) {
-  const { windowThreshold = 100 } = props.selectProps;
+  const { windowThreshold = DEFAULT_WINDOW_THRESHOLD } = props.selectProps;
   if (Array.isArray(children) && children.length > windowThreshold) {
     // @ts-ignore
     return <WindowedMenuList {...props}>{children}</WindowedMenuList>;

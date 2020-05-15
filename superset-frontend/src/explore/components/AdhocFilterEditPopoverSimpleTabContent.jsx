@@ -231,13 +231,21 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       SupersetClient.get({
         signal,
         endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
-      }).then(({ json }) => {
-        this.setState(() => ({
-          suggestions: json,
-          abortActiveRequest: null,
-          loading: false,
-        }));
-      });
+      })
+        .then(({ json }) => {
+          this.setState(() => ({
+            suggestions: json,
+            abortActiveRequest: null,
+            loading: false,
+          }));
+        })
+        .catch(error => {
+          this.setState(() => ({
+            suggestions: [],
+            abortActiveRequest: null,
+            loading: false,
+          }));
+        });
     }
   }
 
@@ -343,7 +351,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               name="filter-value"
               autoFocus
               freeForm
-              isMulti={MULTI_OPERATORS.has(operator)}
+              multi={MULTI_OPERATORS.has(operator)}
               value={comparator}
               isLoading={this.state.loading}
               choices={this.state.suggestions}

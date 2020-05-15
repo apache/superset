@@ -90,8 +90,6 @@ export type StylesConfig = {
 };
 export type PartialStylesConfig = Partial<StylesConfig>;
 
-// Please install "vscode-styled-components" to get properly syntax highlight
-// for CSS styles.
 export const DEFAULT_STYLES: PartialStylesConfig = {
   container: (
     provider,
@@ -252,6 +250,7 @@ export const DEFAULT_COMPONENTS: SelectComponentsConfig<any> = {
       data={data}
       innerProps={{
         ...innerProps,
+        // `@types/react-select` didn't define `style` for `innerProps`
         // @ts-ignore
         style: data && data.style ? data.style : null,
       }}

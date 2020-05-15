@@ -91,7 +91,7 @@ export default class AdhocFilter {
       this.comparator = null;
     }
     this.isExtra = !!adhocFilter.isExtra;
-    this.isNew = adhocFilter.isNew || false;
+    this.isNew = !!adhocFilter.isNew;
 
     this.filterOptionName =
       adhocFilter.filterOptionName ||

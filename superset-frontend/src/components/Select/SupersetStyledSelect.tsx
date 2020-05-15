@@ -58,8 +58,6 @@ import {
 } from './styles';
 import { findValue } from './utils';
 
-const DEFAULT_WINDOW_THRESHOLD = 100;
-
 type AnyReactSelect<OptionType extends OptionTypeBase> =
   | BasicSelect<OptionType>
   | Async<OptionType>
@@ -126,33 +124,34 @@ function styled<
   function StyledSelect(selectProps: SelectProps) {
     let stateManager: AnyReactSelect<OptionType>; // reference to react-select StateManager
     const {
+      // additional props for Superset Select
       selectRef,
-      options,
-      value: value_,
-      className = DEFAULT_CLASS_NAME,
-      classNamePrefix = DEFAULT_CLASS_NAME_PREFIX,
-      themeConfig,
-      stylesConfig = {},
-
-      // automatically apply `react-window` when list is too large
-      windowThreshold = DEFAULT_WINDOW_THRESHOLD,
-
       labelKey = 'label',
       valueKey = 'value',
-      components: components_,
-      onPaste,
-
-      filterOption,
-      ignoreAccents = false, // ignore accents by default
-
-      // whether the values are sortable using drag & drop
-      sortable = true,
-
+      themeConfig,
+      stylesConfig = {},
       optionRenderer,
       valueRenderer,
       // whether value is rendered as `option-label` in input,
       // useful for AdhocMetric and AdhocFilter
       valueRenderedAsLabel: valueRenderedAsLabel_,
+      onPaste,
+      multi = false, // same as `isMulti`, used for backward compatibility
+      clearable, // same as `isClearable`
+      sortable = true, // whether to enable drag & drop sorting
+
+      // react-select props
+      className = DEFAULT_CLASS_NAME,
+      classNamePrefix = DEFAULT_CLASS_NAME_PREFIX,
+      options,
+      value: value_,
+      components: components_,
+      isMulti: isMulti_,
+      isClearable: isClearable_,
+      minMenuHeight = 100, // apply different defaults
+      maxMenuHeight = 220,
+      filterOption,
+      ignoreAccents = false, // default is `true`, but it is slow
 
       getOptionValue = option =>
         typeof option === 'string' ? option : option[valueKey],
@@ -171,16 +170,6 @@ function styled<
         }
         return optionRenderer ? optionRenderer(option) : getOptionLabel(option);
       },
-
-      // consolidate renamed props
-      multi = false,
-      isMulti: isMulti_,
-      clearable,
-      isClearable: isClearable_,
-
-      // reset defaults
-      minMenuHeight = 100,
-      maxMenuHeight = 220,
 
       ...restProps
     } = selectProps;
@@ -276,7 +265,6 @@ function styled<
             ? filterOption
             : createFilter({ ignoreAccents })
         }
-        windowThreshold={windowThreshold}
         styles={{ ...DEFAULT_STYLES, ...stylesConfig } as SelectProps['styles']}
         // merge default theme from `react-select`, default theme for Superset,
         // and the theme from props.

@@ -32,6 +32,7 @@ const propTypes = {
   isLoading: PropTypes.bool,
   label: PropTypes.string,
   multi: PropTypes.bool,
+  isMulti: PropTypes.bool,
   allowAll: PropTypes.bool,
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
@@ -194,7 +195,7 @@ export default class SelectControl extends React.PureComponent {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const placeholder =
       this.props.placeholder || t('%s option(s)', this.state.options.length);
-    const isMulti = this.props.multi;
+    const isMulti = this.props.isMulti || this.props.multi;
 
     const selectProps = {
       autoFocus: this.props.autoFocus,

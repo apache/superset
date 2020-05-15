@@ -63,17 +63,16 @@ export type MenuListProps<
   className?: string;
 } & WindowedMenuListProps;
 
+const DEFAULT_OPTION_HEIGHT = 30;
+
 /**
  * Get the index of the last selected option.
  */
 function getLastSelected(children: Component<any>[]) {
   return Array.isArray(children)
-    ? Math.max(
-        children.findIndex(
-          ({ props: { isFocused = false } = {} }) => isFocused,
-        ),
-        0,
-      )
+    ? children.findIndex(
+        ({ props: { isFocused = false } = {} }) => isFocused,
+      ) || 0
     : -1;
 }
 
@@ -81,6 +80,7 @@ function getLastSelected(children: Component<any>[]) {
  * Calculate probable option height as set in theme configs
  */
 function detectHeight({ spacing: { baseUnit, lineHeight } }: ThemeConfig) {
+  // Option item expects 2 * baseUnit for each of top and bottom padding.
   return baseUnit * 4 + lineHeight;
 }
 
@@ -107,7 +107,7 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
   // try get default option height from theme configs
   let optionHeight = selectProps.optionHeight;
   if (!optionHeight) {
-    optionHeight = theme ? detectHeight(theme) : 30;
+    optionHeight = theme ? detectHeight(theme) : DEFAULT_OPTION_HEIGHT;
   }
 
   const itemCount = children.length;

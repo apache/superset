@@ -72,7 +72,7 @@ export default class AdhocMetric {
       this.column = null;
       this.aggregate = null;
     }
-    this.isNew = adhocMetric.isNew || false;
+    this.isNew = !!adhocMetric.isNew;
     this.hasCustomLabel = !!(adhocMetric.hasCustomLabel && adhocMetric.label);
     this.label = this.hasCustomLabel
       ? adhocMetric.label
