@@ -62,7 +62,7 @@ export function removeSaveModalAlert() {
 
 export function saveSlice(formData, requestParams) {
   return dispatch => {
-    const { url, payload } = getExploreUrlAndPayload({
+    const url = getExploreUrlAndPayload({
       formData,
       endpointType: 'base',
       force: false,
@@ -70,7 +70,7 @@ export function saveSlice(formData, requestParams) {
       requestParams,
     });
 
-    return SupersetClient.post({ url, postPayload: { form_data: payload } })
+    return SupersetClient.post({ url, postPayload: { form_data: formData } })
       .then(({ json }) => dispatch(saveSliceSuccess(json)))
       .catch(() => dispatch(saveSliceFailed()));
   };

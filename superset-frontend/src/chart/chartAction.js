@@ -213,7 +213,7 @@ function legacyChartDataRequest(
   dashboardId,
   requestParams,
 ) {
-  const { url, payload } = getExploreUrlAndPayload({
+  const url = getExploreUrlAndPayload({
     formData,
     endpointType: 'json',
     force,
@@ -224,7 +224,7 @@ function legacyChartDataRequest(
   const querySettings = {
     ...requestParams,
     url,
-    postPayload: { form_data: payload },
+    postPayload: { form_data: formData },
   };
 
   const clientMethod =
@@ -400,7 +400,7 @@ export function postChartFormData(
 
 export function redirectSQLLab(formData) {
   return dispatch => {
-    const { url } = getExploreUrlAndPayload({
+    const url = getExploreUrlAndPayload({
       formData,
       endpointType: 'query',
     });

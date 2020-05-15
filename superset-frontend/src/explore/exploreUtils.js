@@ -63,7 +63,7 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
     .toString();
 }
 
-export function getURIDirectory(formData, endpointType = 'base') {
+export function getURIDirectory(endpointType = 'base') {
   // Building the directory part of the URI
   let directory = '/superset/explore/';
   if (
@@ -84,8 +84,9 @@ export function getExploreLongUrl(
     return null;
   }
 
+
   const uri = new URI('/');
-  const directory = getURIDirectory(formData, endpointType);
+  const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
@@ -134,7 +135,7 @@ export function getExploreUrlAndPayload({
     uri = URI(URI(curUrl).search());
   }
 
-  const directory = getURIDirectory(formData, endpointType);
+  const directory = getURIDirectory(endpointType);
 
   // Building the querystring (search) part of the URI
   const search = uri.search(true);
@@ -178,13 +179,7 @@ export function getExploreUrlAndPayload({
       }
     });
   }
-  uri = uri.search(search).directory(directory);
-  const payload = { ...formData };
-
-  return {
-    url: uri.toString(),
-    payload,
-  };
+  return uri.search(search).directory(directory).toString();
 }
 
 export function postForm(url, payload, target = '_blank') {
@@ -213,10 +208,10 @@ export function postForm(url, payload, target = '_blank') {
 }
 
 export function exportChart(formData, endpointType) {
-  const { url, payload } = getExploreUrlAndPayload({
+  const url = getExploreUrlAndPayload({
     formData,
     endpointType,
     allowDomainSharding: false,
   });
-  postForm(url, payload);
+  postForm(url, formData);
 }

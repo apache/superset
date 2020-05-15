@@ -89,13 +89,13 @@ export class DisplayQueryButton extends React.PureComponent {
   }
   beforeOpen(endpointType) {
     this.setState({ isLoading: true });
-    const { url, payload } = getExploreUrlAndPayload({
+    const url = getExploreUrlAndPayload({
       formData: this.props.latestQueryFormData,
       endpointType,
     });
     SupersetClient.post({
       url,
-      postPayload: { form_data: payload },
+      postPayload: { form_data: this.props.latestQueryFormData },
     })
       .then(({ json }) => {
         this.setState({
