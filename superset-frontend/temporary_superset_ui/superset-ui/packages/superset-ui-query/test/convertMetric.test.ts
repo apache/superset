@@ -1,5 +1,4 @@
 import { ColumnType, convertMetric } from '../src';
-import { LABEL_MAX_LENGTH } from '../src/convertMetric';
 
 describe('convertMetric', () => {
   it('should handle string metric name', () => {
@@ -54,14 +53,5 @@ describe('convertMetric', () => {
       label: 'foo',
       sqlExpression: 'COUNT(sum_girls)',
     });
-  });
-
-  it('should truncate labels if they are too long', () => {
-    expect(
-      convertMetric({
-        expressionType: 'SQL',
-        sqlExpression: 'COUNT(verrrrrrrrry_loooooooooooooooooooooong_string)',
-      }).label.length,
-    ).toBeLessThanOrEqual(LABEL_MAX_LENGTH);
   });
 });
