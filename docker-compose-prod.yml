@@ -39,22 +39,22 @@ services:
     container_name: superset_cache
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      - 6379:6379
     volumes:
       - redis:/data
 
   db:
-    env_file: docker/.env
+    env_file: docker/.prod.env
     image: postgres:10
     container_name: superset_db
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - 5432:5432
     volumes:
       - db_home:/var/lib/postgresql/data
 
   superset:
-    env_file: docker/.env
+    env_file: docker/.prod.env
     build: *superset-build
     container_name: superset_app
     command: ["flask", "run", "-p", "8088", "--with-threads", "--host=0.0.0.0"]
@@ -68,7 +68,7 @@ services:
     build: *superset-build
     container_name: superset_init
     command: ["/app/docker-init.sh"]
-    env_file: docker/.env
+    env_file: docker/.prod.env
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
@@ -80,7 +80,7 @@ services:
         "bash", "-c",
         "cd /app/superset-frontend && npm install --global webpack webpack-cli && npm install && npm run prod"
       ]
-    env_file: docker/.env
+    env_file: docker/.prod.env
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
@@ -88,7 +88,7 @@ services:
     build: *superset-build
     container_name: superset_worker
     command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair"]
-    env_file: docker/.env
+    env_file: docker/.prod.env
     restart: unless-stopped
     depends_on: *superset-depends-on
     volumes: *superset-volumes
