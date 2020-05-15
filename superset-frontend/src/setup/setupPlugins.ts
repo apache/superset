@@ -20,13 +20,6 @@ import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import MainPreset from '../visualizations/presets/MainPreset';
 import setupPluginsExtra from './setupPluginsExtra';
 
-import Area from '../explore/controlPanels/Area';
-import Bar from '../explore/controlPanels/Bar';
-import BoxPlot from '../explore/controlPanels/BoxPlot';
-import Bubble from '../explore/controlPanels/Bubble';
-import Bullet from '../explore/controlPanels/Bullet';
-import Chord from '../explore/controlPanels/Chord';
-import Compare from '../explore/controlPanels/Compare';
 import CountryMap from '../explore/controlPanels/CountryMap';
 import DeckArc from '../explore/controlPanels/DeckArc';
 import DeckGeojson from '../explore/controlPanels/DeckGeojson';
@@ -38,71 +31,42 @@ import DeckPolygon from '../explore/controlPanels/DeckPolygon';
 import DeckScatter from '../explore/controlPanels/DeckScatter';
 import DeckScreengrid from '../explore/controlPanels/DeckScreengrid';
 import DirectedForce from '../explore/controlPanels/DirectedForce';
-import DistBar from '../explore/controlPanels/DistBar';
-import DualLine from '../explore/controlPanels/DualLine';
 import EventFlow from '../explore/controlPanels/EventFlow';
 import FilterBox from '../explore/controlPanels/FilterBox';
 import Heatmap from '../explore/controlPanels/Heatmap';
 import Histogram from '../explore/controlPanels/Histogram';
 import Horizon from '../explore/controlPanels/Horizon';
 import Iframe from '../explore/controlPanels/Iframe';
-import Line from '../explore/controlPanels/Line';
-import LineMulti from '../explore/controlPanels/LineMulti';
 import Mapbox from '../explore/controlPanels/Mapbox';
 import Markup from '../explore/controlPanels/Markup';
 import PairedTtest from '../explore/controlPanels/PairedTtest';
 import Para from '../explore/controlPanels/Para';
 import Partition from '../explore/controlPanels/Partition';
-import Pie from '../explore/controlPanels/Pie';
-import PivotTable from '../explore/controlPanels/PivotTable';
-import Rose from '../explore/controlPanels/Rose';
-import Sankey from '../explore/controlPanels/Sankey';
 import Separator from '../explore/controlPanels/Separator';
 import Table from '../explore/controlPanels/Table';
-import TimePivot from '../explore/controlPanels/TimePivot';
 import TimeTable from '../explore/controlPanels/TimeTable';
-import Treemap from '../explore/controlPanels/Treemap';
-import WorldMap from '../explore/controlPanels/WorldMap';
 
 export default function setupPlugins() {
   new MainPreset().register();
 
   // TODO: Remove these shims once the control panel configs are moved into the plugin package.
   getChartControlPanelRegistry()
-    .registerValue('area', Area)
-    .registerValue('bar', Bar)
-    .registerValue('box_plot', BoxPlot)
-    .registerValue('bubble', Bubble)
-    .registerValue('bullet', Bullet)
-    .registerValue('chord', Chord)
-    .registerValue('compare', Compare)
     .registerValue('country_map', CountryMap)
     .registerValue('directed_force', DirectedForce)
-    .registerValue('dist_bar', DistBar)
-    .registerValue('dual_line', DualLine)
     .registerValue('event_flow', EventFlow)
     .registerValue('filter_box', FilterBox)
     .registerValue('heatmap', Heatmap)
     .registerValue('histogram', Histogram)
     .registerValue('horizon', Horizon)
     .registerValue('iframe', Iframe)
-    .registerValue('line', Line)
-    .registerValue('line_multi', LineMulti)
     .registerValue('mapbox', Mapbox)
     .registerValue('markup', Markup)
     .registerValue('paired_ttest', PairedTtest)
     .registerValue('para', Para)
     .registerValue('partition', Partition)
-    .registerValue('pie', Pie)
-    .registerValue('pivot_table', PivotTable)
-    .registerValue('rose', Rose)
-    .registerValue('sankey', Sankey)
     .registerValue('separator', Separator)
     .registerValue('table', Table)
-    .registerValue('time_pivot', TimePivot)
     .registerValue('time_table', TimeTable)
-    .registerValue('treemap', Treemap)
-    .registerValue('world_map', WorldMap)
     .registerValue('deck_arc', DeckArc)
     .registerValue('deck_geojson', DeckGeojson)
     .registerValue('deck_grid', DeckGrid)
