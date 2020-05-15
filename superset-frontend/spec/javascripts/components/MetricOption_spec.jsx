@@ -20,8 +20,8 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
-import MetricOption from 'src/components/MetricOption';	
-import ColumnTypeLabel from 'src/components/ColumnTypeLabel';    
+import MetricOption from 'src/components/MetricOption';
+import ColumnTypeLabel from 'src/components/ColumnTypeLabel';
 
 describe('MetricOption', () => {
   const defaultProps = {
