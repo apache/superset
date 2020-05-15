@@ -927,7 +927,7 @@ To do this, you'll need to:
   but perfect for testing (stores cache in `/tmp`)
 
   ```python
-  from werkzeug.contrib.cache import FileSystemCache
+  from cachelib.file import FileSystemCache
   RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
   ```
 

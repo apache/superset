@@ -32,8 +32,8 @@ if "SUPERSET__SQLALCHEMY_DATABASE_URI" in os.environ:
 
 if "sqlite" in SQLALCHEMY_DATABASE_URI:
     logger.warning(
-        "SQLite Database support for metadata databases will be \
-        removed in a future version of Superset."
+        "SQLite Database support for metadata databases will be "
+        "removed in a future version of Superset."
     )
 
 SQL_MAX_ROW = 666
@@ -57,11 +57,16 @@ ENABLE_ROW_LEVEL_SECURITY = True
 CACHE_CONFIG = {"CACHE_TYPE": "simple"}
 
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
+REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
+REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
+
+
 class CeleryConfig(object):
-    BROKER_URL = "redis://{}:{}".format(
-        os.environ.get("REDIS_HOST", "localhost"), os.environ.get("REDIS_PORT", "6379")
-    )
+    BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
     CELERY_IMPORTS = ("superset.sql_lab",)
+    CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1
 
