@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { MouseEvent, MouseEventHandler } from 'react';
 import domToImage from 'dom-to-image';
 import kebabCase from 'lodash/kebabCase';
 
 /**
  * generate a consistent file stem from a description and date
  *
- * @param {string} description title or description of content of file
- * @param {Date} [date] date when file was generated
+ * @param description title or description of content of file
+ * @param date date when file was generated
  */
-export const generateFileStem = (description, date = new Date()) => {
+export const generateFileStem = (description: string, date = new Date()) => {
   return `${kebabCase(description)}-${date
     .toISOString()
     .replace(/[: ]/g, '-')}`;
@@ -34,17 +35,18 @@ export const generateFileStem = (description, date = new Date()) => {
 /**
  * Create an event handler for turning an element into an image
  *
- * @param {string} selector css selector of the parent element which should be turned into image
- * @param {string} fileStem name of generated file, without extension
- * @param {string} [backgroundColor] background color to apply to screenshot document
- * @returns DOM event handler
+ * @param selector css selector of the parent element which should be turned into image
+ * @param fileStem name of generated file, without extension
+ * @param backgroundColor background color to apply to screenshot document
  */
 export const downloadAsImage = (
-  selector,
-  fileStem,
+  selector: string,
+  fileStem: string,
   backgroundColor = '#f5f5f5',
-) => event => {
+): MouseEventHandler => (event: MouseEvent) => {
   const elementToPrint = event.currentTarget.closest(selector);
+
+  if (!elementToPrint) throw new Error('printable element not found');
 
   domToImage
     .toJpeg(elementToPrint, { quality: 0.95, bgcolor: backgroundColor })
