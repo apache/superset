@@ -115,6 +115,7 @@
     "d3-color": "^1.2.0",
     "d3-scale": "^2.1.2",
     "dnd-core": "^2.6.0",
+    "dom-to-image": "^2.6.0",
     "dompurify": "^2.0.7",
     "emotion-theming": "^10.0.27",
     "geolib": "^2.0.24",
