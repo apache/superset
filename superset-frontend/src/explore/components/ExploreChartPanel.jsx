@@ -37,6 +37,7 @@ const propTypes = {
   width: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
+  sliceName: PropTypes.string,
   table_name: PropTypes.string,
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
@@ -103,6 +104,7 @@ class ExploreChartPanel extends React.PureComponent {
         can_download={this.props.can_download}
         isStarred={this.props.isStarred}
         slice={this.props.slice}
+        sliceName={this.props.sliceName}
         table_name={this.props.table_name}
         form_data={this.props.form_data}
         timeout={this.props.timeout}

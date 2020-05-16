@@ -45,7 +45,7 @@ class SaveModal extends React.Component {
     this.state = {
       saveToDashboardId: null,
       newDashboardName: '',
-      newSliceName: '',
+      newSliceName: props.sliceName,
       dashboards: [],
       alert: null,
       action: props.can_overwrite ? 'overwrite' : 'saveas',
@@ -100,21 +100,17 @@ class SaveModal extends React.Component {
     this.props.actions.removeSaveModalAlert();
     const sliceParams = {};
 
-    let sliceName = null;
-    sliceParams.action = this.state.action;
     if (this.props.slice && this.props.slice.slice_id) {
       sliceParams.slice_id = this.props.slice.slice_id;
     }
     if (sliceParams.action === 'saveas') {
-      sliceName = this.state.newSliceName;
-      if (sliceName === '') {
+      if (this.state.newSliceName === '') {
         this.setState({ alert: t('Please enter a chart name') });
         return;
       }
-      sliceParams.slice_name = sliceName;
-    } else {
-      sliceParams.slice_name = this.props.slice.slice_name;
     }
+    sliceParams.action = this.state.action;
+    sliceParams.slice_name = this.state.newSliceName;
 
     const addToDash = this.state.addToDash;
     sliceParams.add_to_dash = addToDash;
@@ -208,7 +204,7 @@ class SaveModal extends React.Component {
           </Radio>
           <input
             name="new_slice_name"
-            placeholder={t('[chart name]')}
+            placeholder={this.state.newSliceName || t('[chart name]')}
             onChange={this.onChange.bind(this, 'newSliceName')}
             onFocus={this.changeAction.bind(this, 'saveas')}
           />
