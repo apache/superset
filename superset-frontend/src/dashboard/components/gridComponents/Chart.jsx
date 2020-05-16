@@ -28,6 +28,7 @@ import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_EXCEL_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from '../../../logger/LogUtils';
 import { isFilterBox } from '../../util/activeDashboardFilters';
@@ -63,6 +64,7 @@ const propTypes = {
   isCached: PropTypes.bool,
   supersetCanExplore: PropTypes.bool.isRequired,
   supersetCanCSV: PropTypes.bool.isRequired,
+  supersetCanExcel: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
   addDangerToast: PropTypes.func.isRequired,
 };
@@ -94,6 +96,7 @@ class Chart extends React.Component {
     this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
+    this.exportExcel = this.exportExcel.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
@@ -213,6 +216,14 @@ class Chart extends React.Component {
     });
   }
 
+  exportExcel() {
+    this.props.logEvent(LOG_ACTIONS_EXPORT_EXCEL_DASHBOARD_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
+    exportChart(this.props.formData, 'excel');
+  }
+
   forceRefresh() {
     this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
       slice_id: this.props.slice.slice_id,
@@ -243,6 +254,7 @@ class Chart extends React.Component {
       timeout,
       supersetCanExplore,
       supersetCanCSV,
+      supersetCanExcel,
       sliceCanEdit,
       addDangerToast,
       handleToggleFullSize,
@@ -283,10 +295,12 @@ class Chart extends React.Component {
           annotationQuery={chart.annotationQuery}
           exploreChart={this.exploreChart}
           exportCSV={this.exportCSV}
+          exportExcel={this.exportExcel}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
           supersetCanCSV={supersetCanCSV}
+          supersetCanExcel={supersetCanExcel}
           sliceCanEdit={sliceCanEdit}
           componentId={componentId}
           dashboardId={dashboardId}

@@ -274,6 +274,7 @@ export default function (bootstrapData) {
       dash_save_perm: dashboard.dash_save_perm,
       superset_can_explore: dashboard.superset_can_explore,
       superset_can_csv: dashboard.superset_can_csv,
+      superset_can_excel: dashboard.superset_can_excel,
       slice_can_edit: dashboard.slice_can_edit,
       common: {
         flash_messages: common.flash_messages,

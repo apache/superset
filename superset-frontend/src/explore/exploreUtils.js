@@ -169,6 +169,9 @@ export function getExploreUrl({
   if (endpointType === 'csv') {
     search.csv = 'true';
   }
+  if (endpointType === 'excel') {
+    search.excel = 'true';
+  }
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }

@@ -109,8 +109,19 @@ export function setControlValue(controlName, value, validationErrors) {
 }
 
 export const UPDATE_EXPLORE_ENDPOINTS = 'UPDATE_EXPLORE_ENDPOINTS';
-export function updateExploreEndpoints(jsonUrl, csvUrl, standaloneUrl) {
-  return { type: UPDATE_EXPLORE_ENDPOINTS, jsonUrl, csvUrl, standaloneUrl };
+export function updateExploreEndpoints(
+  jsonUrl,
+  csvUrl,
+  excelUrl,
+  standaloneUrl,
+) {
+  return {
+    type: UPDATE_EXPLORE_ENDPOINTS,
+    jsonUrl,
+    csvUrl,
+    excelUrl,
+    standaloneUrl,
+  };
 }
 
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';

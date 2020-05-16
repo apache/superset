@@ -100,6 +100,17 @@ export default function ExploreActionButtons({
           <i className="fa fa-file-text-o" /> .csv
         </a>
       )}
+      {latestQueryFormData && (
+        <a
+          onClick={doExportExcel}
+          className={exportToExcelClasses}
+          title={t('Export to .xlsx format')}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <i className="fa fa-file-text-o" /> .xlsx
+        </a>
+      )}
       <DisplayQueryButton
         chartHeight={chartHeight}
         queryResponse={queryResponse}
