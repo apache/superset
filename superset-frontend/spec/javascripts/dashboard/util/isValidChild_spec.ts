@@ -31,7 +31,7 @@ import {
   TAB_TYPE as TAB,
 } from 'src/dashboard/util/componentTypes';
 
-const getIndentation = depth =>
+const getIndentation = (depth: number) =>
   Array(depth * 3)
     .fill('')
     .join('-');
