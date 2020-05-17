@@ -22,6 +22,12 @@ import kebabCase from 'lodash/kebabCase';
 import { addWarningToast } from 'src/messageToasts/actions';
 
 /**
+ * @remark
+ * same as https://github.com/apache/incubator-superset/blob/c53bc4ddf9808a8bb6916bbe3cb31935d33a2420/superset-frontend/stylesheets/less/variables.less#L34
+ */
+const GRAY_BACKGROUND_COLOR = '#F5F5F5';
+
+/**
  * generate a consistent file stem from a description and date
  *
  * @param description title or description of content of file
@@ -45,14 +51,14 @@ const generateFileStem = (description: string, date = new Date()) => {
 export default function downloadAsImage(
   selector: string,
   description: string,
-  backgroundColor = '#f5f5f5',
+  backgroundColor = GRAY_BACKGROUND_COLOR,
 ) {
   return (event: SyntheticEvent) => {
     const elementToPrint = event.currentTarget.closest(selector);
 
     if (!elementToPrint) return addWarningToast('no element to print');
 
-    domToImage
+    return domToImage
       .toJpeg(elementToPrint, { quality: 0.95, bgcolor: backgroundColor })
       .then(dataUrl => {
         const link = document.createElement('a');
