@@ -76,8 +76,7 @@ jobs:
     strategy:
       matrix:
         # run unit tests in multiple version just for fun
-        # (3.8 is not supported yet, some dependencies need an update)
-        python-version: [3.6, 3.7]
+        python-version: [3.6, 3.7, 3.8]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.superset_test_config
