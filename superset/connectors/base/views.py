@@ -16,12 +16,13 @@
 # under the License.
 from flask import Markup
 
+from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import SupersetException
 from superset.views.base import SupersetModelView
 
 
 class DatasourceModelView(SupersetModelView):
-    def pre_delete(self, item):
+    def pre_delete(self, item: BaseDatasource) -> None:
         if item.slices:
             raise SupersetException(
                 Markup(

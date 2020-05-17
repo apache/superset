@@ -43,10 +43,12 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     Iterator,
     List,
     NamedTuple,
     Optional,
+    Sequence,
     Set,
     Tuple,
     TYPE_CHECKING,
@@ -79,6 +81,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
+from superset.typing import Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
 try:
@@ -101,7 +104,7 @@ JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 try:
     # Having might not have been imported.
     class DimSelector(Having):
-        def __init__(self, **args):
+        def __init__(self, **args: Any) -> None:
             # Just a hack to prevent any exceptions
             Having.__init__(self, type="equalTo", aggregation=None, value=None)
 
@@ -118,7 +121,7 @@ except NameError:
     pass
 
 
-def flasher(msg, severity=None):
+def flasher(msg: str, severity: str) -> None:
     """Flask's flash if available, logging call if not"""
     try:
         flash(msg, severity)
@@ -235,7 +238,7 @@ def list_minus(l: List, minus: List) -> List:
     return [o for o in l if o not in minus]
 
 
-def parse_human_datetime(s: Optional[str]) -> Optional[datetime]:
+def parse_human_datetime(s: str) -> datetime:
     """
     Returns ``datetime.datetime`` from human readable strings
 
@@ -256,8 +259,6 @@ def parse_human_datetime(s: Optional[str]) -> Optional[datetime]:
     >>> year_ago_1 == year_ago_2
     True
     """
-    if not s:
-        return None
     try:
         dttm = parse(s)
     except Exception:
@@ -564,7 +565,9 @@ def generic_find_uq_constraint_name(table, columns, insp):
             return uq["name"]
 
 
-def get_datasource_full_name(database_name, datasource_name, schema=None):
+def get_datasource_full_name(
+    database_name: str, datasource_name: str, schema: Optional[str] = None
+) -> str:
     if not schema:
         return "[{}].[{}]".format(database_name, datasource_name)
     return "[{}].[{}].[{}]".format(database_name, schema, datasource_name)
@@ -792,7 +795,7 @@ def get_email_address_list(address_string: str) -> List[str]:
     return [x.strip() for x in address_string_list if x.strip()]
 
 
-def choicify(values):
+def choicify(values: Iterable[Any]) -> List[Tuple[Any, Any]]:
     """Takes an iterable and makes an iterable of tuples with it"""
     return [(v, v) for v in values]
 
@@ -967,7 +970,7 @@ def get_example_database() -> "Database":
     return get_or_create_db("examples", db_uri)
 
 
-def is_adhoc_metric(metric) -> bool:
+def is_adhoc_metric(metric: Metric) -> bool:
     return bool(
         isinstance(metric, dict)
         and (
@@ -985,11 +988,11 @@ def is_adhoc_metric(metric) -> bool:
     )
 
 
-def get_metric_name(metric):
-    return metric["label"] if is_adhoc_metric(metric) else metric
+def get_metric_name(metric: Metric) -> str:
+    return metric["label"] if is_adhoc_metric(metric) else metric  # type: ignore
 
 
-def get_metric_names(metrics):
+def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
     return [get_metric_name(metric) for metric in metrics]
 
 

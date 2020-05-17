@@ -21,7 +21,6 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
-import dataclasses
 import hashlib
 import inspect
 import logging
@@ -34,6 +33,7 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
+import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
@@ -1077,9 +1077,9 @@ class BubbleViz(NVD3Viz):
         form_data = self.form_data
         d = super().query_obj()
 
-        self.x_metric = form_data.get("x")
-        self.y_metric = form_data.get("y")
-        self.z_metric = form_data.get("size")
+        self.x_metric = form_data["x"]
+        self.y_metric = form_data["y"]
+        self.z_metric = form_data["size"]
         self.entity = form_data.get("entity")
         self.series = form_data.get("series") or self.entity
         d["row_limit"] = form_data.get("limit")
@@ -1476,8 +1476,8 @@ class NVD3DualLineViz(NVD3Viz):
                 _("Pick a time granularity for your time series")
             )
 
-        metric = utils.get_metric_name(fd.get("metric"))
-        metric_2 = utils.get_metric_name(fd.get("metric_2"))
+        metric = utils.get_metric_name(fd["metric"])
+        metric_2 = utils.get_metric_name(fd["metric_2"])
         df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2])
 
         chart_data = self.to_series(df)
@@ -1532,7 +1532,7 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         df = df.pivot_table(
             index=DTTM_ALIAS,
             columns="series",
-            values=utils.get_metric_name(fd.get("metric")),
+            values=utils.get_metric_name(fd["metric"]),
         )
         chart_data = self.to_series(df)
         for serie in chart_data:
@@ -1710,8 +1710,12 @@ class SunburstViz(BaseViz):
         fd = self.form_data
         cols = fd.get("groupby") or []
         cols.extend(["m1", "m2"])
-        metric = utils.get_metric_name(fd.get("metric"))
-        secondary_metric = utils.get_metric_name(fd.get("secondary_metric"))
+        metric = utils.get_metric_name(fd["metric"])
+        secondary_metric = (
+            utils.get_metric_name(fd["secondary_metric"])
+            if "secondary_metric" in fd
+            else None
+        )
         if metric == secondary_metric or secondary_metric is None:
             df.rename(columns={df.columns[-1]: "m1"}, inplace=True)
             df["m2"] = df["m1"]
@@ -1868,8 +1872,12 @@ class WorldMapViz(BaseViz):
 
         fd = self.form_data
         cols = [fd.get("entity")]
-        metric = utils.get_metric_name(fd.get("metric"))
-        secondary_metric = utils.get_metric_name(fd.get("secondary_metric"))
+        metric = utils.get_metric_name(fd["metric"])
+        secondary_metric = (
+            utils.get_metric_name(fd["secondary_metric"])
+            if "secondary_metric" in fd
+            else None
+        )
         columns = ["country", "m1", "m2"]
         if metric == secondary_metric:
             ndf = df[cols]

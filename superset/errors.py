@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-few-public-methods,invalid-name
-from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional
+
+from dataclasses import dataclass
 
 
 class SupersetErrorType(str, Enum):
