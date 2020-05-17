@@ -105,15 +105,15 @@ const parentMaxDepthLookup = {
   [MARKDOWN_TYPE]: {},
 };
 
-export type ParentMaxDepthLookup = typeof parentMaxDepthLookup;
+type ParentMaxDepthLookup = typeof parentMaxDepthLookup;
 
-export interface IsValidChildProps {
+interface IsValidChildProps {
   parentType?: unknown;
   childType?: unknown;
   parentDepth?: unknown;
 }
 
-export interface ValidChild<
+interface ValidChild<
   P extends keyof ParentMaxDepthLookup,
   C extends keyof ParentMaxDepthLookup[P],
   D extends ParentMaxDepthLookup[P][C]

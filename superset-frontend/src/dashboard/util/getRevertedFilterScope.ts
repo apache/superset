@@ -18,11 +18,11 @@
  */
 import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
 
-export interface FilterScopeMap {
+interface FilterScopeMap {
   [key: string]: number[];
 }
 
-export interface GetRevertFilterScopeProps {
+interface GetRevertFilterScopeProps {
   checked: string[];
   filterFields: string[];
   filterScopeMap: FilterScopeMap;

@@ -17,9 +17,9 @@
  * under the License.
  */
 
-export interface GetDashboardFilterKeyProps {
+interface GetDashboardFilterKeyProps {
   chartId: string;
-  column: number;
+  column: string;
 }
 
 export function getDashboardFilterKey({

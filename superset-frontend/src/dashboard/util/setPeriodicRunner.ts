@@ -22,7 +22,7 @@ const stopPeriodicRender = (refreshTimer?: number) => {
   }
 };
 
-export interface SetPeriodicRunnerProps {
+interface SetPeriodicRunnerProps {
   interval?: number;
   periodicRender: TimerHandler;
   refreshTimer?: number;
