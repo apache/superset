@@ -24,7 +24,7 @@ replicaCount: 1
 ## These requirements are used to build a requirements file which is then applied on init
 ## of superset containers
 additionalRequirements:
-  - "psycopg2==2.8.3"
+  - "psycopg2==2.8.5"
   - "redis==3.2.1"
 
 ## The name of the secret which we will use to generate a superset_config.py file
@@ -84,7 +84,7 @@ supersetNode:
     - "/bin/sh"
     - "-c"
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/docker-entrypoint.sh"
-  connections: 
+  connections:
     redis_host: '{{ template "superset.fullname" . }}-redis-headless'
     redis_port: "6379"
     db_host: '{{ template "superset.fullname" . }}-postgresql'
