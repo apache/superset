@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEvent, MouseEventHandler } from 'react';
+import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image';
 import kebabCase from 'lodash/kebabCase';
+import { addWarningToast } from 'src/messageToasts/actions';
 
 /**
  * generate a consistent file stem from a description and date
@@ -26,7 +27,7 @@ import kebabCase from 'lodash/kebabCase';
  * @param description title or description of content of file
  * @param date date when file was generated
  */
-export const generateFileStem = (description: string, date = new Date()) => {
+const generateFileStem = (description: string, date = new Date()) => {
   return `${kebabCase(description)}-${date
     .toISOString()
     .replace(/[: ]/g, '-')}`;
@@ -36,26 +37,28 @@ export const generateFileStem = (description: string, date = new Date()) => {
  * Create an event handler for turning an element into an image
  *
  * @param selector css selector of the parent element which should be turned into image
- * @param fileStem name of generated file, without extension
+ * @param description name or a short description of what is being printed.
+ *   Value will be normalized, and a date as well as a file extension will be added.
  * @param backgroundColor background color to apply to screenshot document
+ * @returns event handler
  */
-export const downloadAsImage = (
+export default function downloadAsImage(
   selector: string,
-  fileStem: string,
+  description: string,
   backgroundColor = '#f5f5f5',
-): MouseEventHandler => (event: MouseEvent) => {
-  const elementToPrint = event.currentTarget.closest(selector);
+) {
+  return (event: SyntheticEvent) => {
+    const elementToPrint = event.currentTarget.closest(selector);
 
-  if (!elementToPrint) throw new Error('printable element not found');
+    if (!elementToPrint) return addWarningToast('no element to print');
 
-  domToImage
-    .toJpeg(elementToPrint, { quality: 0.95, bgcolor: backgroundColor })
-    .then(dataUrl => {
-      const link = document.createElement('a');
-      link.download = `${fileStem}.jpeg`;
-      link.href = dataUrl;
-      link.click();
-    });
-};
-
-export default downloadAsImage;
+    domToImage
+      .toJpeg(elementToPrint, { quality: 0.95, bgcolor: backgroundColor })
+      .then(dataUrl => {
+        const link = document.createElement('a');
+        link.download = `${generateFileStem(description)}.jpg`;
+        link.href = dataUrl;
+        link.click();
+      });
+  };
+}

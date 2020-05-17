@@ -28,7 +28,7 @@ import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
-import { downloadAsImage, generateFileStem } from '../util/downloadAsImage';
+import downloadAsImage from '../util/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 
@@ -220,12 +220,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
 
         {!editMode && (
-          <MenuItem
-            onClick={downloadAsImage(
-              '.dashboard',
-              generateFileStem(dashboardTitle),
-            )}
-          >
+          <MenuItem onClick={downloadAsImage('.dashboard', dashboardTitle)}>
             {t('Download as image')}
           </MenuItem>
         )}

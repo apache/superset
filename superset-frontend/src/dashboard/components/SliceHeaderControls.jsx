@@ -22,7 +22,7 @@ import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
-import { downloadAsImage, generateFileStem } from '../util/downloadAsImage';
+import downloadAsImage from '../util/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 
@@ -181,7 +181,7 @@ class SliceHeaderControls extends React.PureComponent {
           <MenuItem
             onClick={downloadAsImage(
               '.dashboard-component-chart-holder',
-              generateFileStem(slice.slice_name),
+              slice.slice_name,
             )}
           >
             {t('Download as image')}
