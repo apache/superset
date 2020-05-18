@@ -48,7 +48,7 @@ describe('getClientErrorObject()', () => {
     const jsonError = {
       errors: [
         {
-          errorType: ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
+          error_type: ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
           extra: { engine: 'presto', link: 'https://www.google.com' },
           level: 'error',
           message: 'presto error: test error',
