@@ -26,9 +26,24 @@ import FormRow from '../../../components/FormRow';
 import SelectControl from './SelectControl';
 import CheckboxControl from './CheckboxControl';
 import TextControl from './TextControl';
+import { FILTER_CONFIG_ATTRIBUTES } from '../../constants';
 
-const INTEGRAL_TYPES = ['TINYINT', 'SMALLINT', 'INT', 'INTEGER', 'BIGINT'];
-const DECIMAL_TYPES = ['FLOAT', 'DOUBLE'];
+const INTEGRAL_TYPES = new Set([
+  'TINYINT',
+  'SMALLINT',
+  'INT',
+  'INTEGER',
+  'BIGINT',
+  'LONG',
+]);
+const DECIMAL_TYPES = new Set([
+  'FLOAT',
+  'DOUBLE',
+  'REAL',
+  'NUMERIC',
+  'DECIMAL',
+  'MONEY',
+]);
 
 const propTypes = {
   datasource: PropTypes.object.isRequired,
@@ -65,29 +80,22 @@ export default class FilterBoxItemControl extends React.Component {
   onControlChange(attr, value) {
     let typedValue = value;
     const { column: selectedColumnName, multiple } = this.state;
-    if (value && !multiple && attr === 'defaultValue') {
+    if (value && !multiple && attr === FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE) {
       // if single value filter_box,
       // convert input value string to the column's data type
       const { datasource } = this.props;
-      const selectedColumn = (
-        datasource.columns.filter(
-          col => col.column_name === selectedColumnName,
-        ) || []
-      ).pop();
+      const selectedColumn = datasource.columns.find(
+        col => col.column_name === selectedColumnName,
+      );
 
       if (selectedColumn && selectedColumn.type) {
         const type = selectedColumn.type.toUpperCase();
-        try {
-          if (type === 'BOOLEAN') {
-            typedValue = value === 'true';
-          } else if (INTEGRAL_TYPES.includes(type)) {
-            typedValue = parseInt(value, 10);
-          } else if (DECIMAL_TYPES.includes(type)) {
-            typedValue = parseFloat(value);
-          }
-        } catch (ex) {
-          // eslint-disable-next-line no-console
-          console.warn(`parsing value ${value} to type ${type} error`);
+        if (type === 'BOOLEAN') {
+          typedValue = value === 'true';
+        } else if (INTEGRAL_TYPES.has(type)) {
+          typedValue = isNaN(value) ? null : parseInt(value, 10);
+        } else if (DECIMAL_TYPES.has(type)) {
+          typedValue = isNaN(value) ? null : parseFloat(value);
         }
       }
     }
@@ -141,7 +149,9 @@ export default class FilterBoxItemControl extends React.Component {
             <TextControl
               value={this.state.defaultValue}
               name="defaultValue"
-              onChange={v => this.onControlChange('defaultValue', v)}
+              onChange={v =>
+                this.onControlChange(FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE, v)
+              }
             />
           }
         />
@@ -186,7 +196,9 @@ export default class FilterBoxItemControl extends React.Component {
           control={
             <CheckboxControl
               value={this.state.multiple}
-              onChange={v => this.onControlChange('multiple', v)}
+              onChange={v =>
+                this.onControlChange(FILTER_CONFIG_ATTRIBUTES.MULTIPLE, v)
+              }
             />
           }
         />

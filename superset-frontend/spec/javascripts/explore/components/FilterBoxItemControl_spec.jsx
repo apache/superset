@@ -91,9 +91,14 @@ describe('FilterBoxItemControl', () => {
       multiple: false,
     });
     inst.setState = sinon.spy();
-    inst.onControlChange('defaultValue', '1');
 
+    inst.onControlChange('defaultValue', '1');
     expect(inst.setState.callCount).toBe(1);
     expect(inst.setState.getCall(0).args[0]).toEqual({ defaultValue: 1 });
+
+    // user input is invalid for number type column
+    inst.onControlChange('defaultValue', 'abc');
+    expect(inst.setState.callCount).toBe(2);
+    expect(inst.setState.getCall(1).args[0]).toEqual({ defaultValue: null });
   });
 });
