@@ -28,7 +28,7 @@ import {
 import Select from 'react-select';
 import { t } from '@superset-ui/translation';
 
-import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 
