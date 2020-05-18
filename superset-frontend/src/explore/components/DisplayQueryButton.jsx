@@ -41,7 +41,7 @@ import { SupersetClient } from '@superset-ui/connection';
 
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
-import { getExploreUrlAndPayload } from '../exploreUtils';
+import { getExploreUrl } from '../exploreUtils';
 
 import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
@@ -89,13 +89,13 @@ export class DisplayQueryButton extends React.PureComponent {
   }
   beforeOpen(endpointType) {
     this.setState({ isLoading: true });
-    const { url, payload } = getExploreUrlAndPayload({
+    const url = getExploreUrl({
       formData: this.props.latestQueryFormData,
       endpointType,
     });
     SupersetClient.post({
       url,
-      postPayload: { form_data: payload },
+      postPayload: { form_data: this.props.latestQueryFormData },
     })
       .then(({ json }) => {
         this.setState({
