@@ -27,7 +27,7 @@ import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
-import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
+import { getExploreUrl, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
 import { chartPropShape } from '../../dashboard/util/propShapes';
@@ -231,9 +231,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   addHistory({ isReplace = false, title }) {
-    const { payload } = getExploreUrlAndPayload({
-      formData: this.props.form_data,
-    });
+    const payload = { ...this.props.form_data };
     const longUrl = getExploreLongUrl(this.props.form_data, null, false);
     try {
       if (isReplace) {

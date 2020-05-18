@@ -19,10 +19,7 @@
 import sinon from 'sinon';
 
 import URI from 'urijs';
-import {
-  getExploreUrlAndPayload,
-  getExploreLongUrl,
-} from 'src/explore/exploreUtils';
+import { getExploreUrl, getExploreLongUrl } from 'src/explore/exploreUtils';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 
 describe('exploreUtils', () => {
@@ -35,33 +32,31 @@ describe('exploreUtils', () => {
     expect(uri1.toString()).toBe(uri2.toString());
   }
 
-  describe('getExploreUrlAndPayload', () => {
+  describe('getExploreUrl', () => {
     it('generates proper base url', () => {
       // This assertion is to show clearly the value of location.href
       // in the context of unit tests.
       expect(location.href).toBe('http://localhost/');
 
-      const { url, payload } = getExploreUrlAndPayload({
+      const url = getExploreUrl({
         formData,
         endpointType: 'base',
         force: false,
         curUrl: 'http://superset.com',
       });
       compareURI(URI(url), URI('/superset/explore/'));
-      expect(payload).toEqual(formData);
     });
     it('generates proper json url', () => {
-      const { url, payload } = getExploreUrlAndPayload({
+      const url = getExploreUrl({
         formData,
         endpointType: 'json',
         force: false,
         curUrl: 'http://superset.com',
       });
       compareURI(URI(url), URI('/superset/explore_json/'));
-      expect(payload).toEqual(formData);
     });
     it('generates proper json forced url', () => {
-      const { url, payload } = getExploreUrlAndPayload({
+      const url = getExploreUrl({
         formData,
         endpointType: 'json',
         force: true,
@@ -71,10 +66,9 @@ describe('exploreUtils', () => {
         URI(url),
         URI('/superset/explore_json/').search({ force: 'true' }),
       );
-      expect(payload).toEqual(formData);
     });
     it('generates proper csv URL', () => {
-      const { url, payload } = getExploreUrlAndPayload({
+      const url = getExploreUrl({
         formData,
         endpointType: 'csv',
         force: false,
@@ -84,10 +78,9 @@ describe('exploreUtils', () => {
         URI(url),
         URI('/superset/explore_json/').search({ csv: 'true' }),
       );
-      expect(payload).toEqual(formData);
     });
     it('generates proper standalone URL', () => {
-      const { url, payload } = getExploreUrlAndPayload({
+      const url = getExploreUrl({
         formData,
         endpointType: 'standalone',
         force: false,
@@ -97,10 +90,9 @@ describe('exploreUtils', () => {
         URI(url),
         URI('/superset/explore/').search({ standalone: 'true' }),
       );
-      expect(payload).toEqual(formData);
     });
     it('preserves main URLs params', () => {
-      const { url, payload } = getExploreUrlAndPayload({
+      const url = getExploreUrl({
         formData,
         endpointType: 'json',
         force: false,
@@ -110,10 +102,9 @@ describe('exploreUtils', () => {
         URI(url),
         URI('/superset/explore_json/').search({ foo: 'bar' }),
       );
-      expect(payload).toEqual(formData);
     });
     it('generate proper save slice url', () => {
-      const { url, payload } = getExploreUrlAndPayload({
+      const url = getExploreUrl({
         formData,
         endpointType: 'json',
         force: false,
@@ -123,20 +114,6 @@ describe('exploreUtils', () => {
         URI(url),
         URI('/superset/explore_json/').search({ foo: 'bar' }),
       );
-      expect(payload).toEqual(formData);
-    });
-    it('generate proper saveas slice url', () => {
-      const { url, payload } = getExploreUrlAndPayload({
-        formData,
-        endpointType: 'json',
-        force: false,
-        curUrl: 'superset.com?foo=bar',
-      });
-      compareURI(
-        URI(url),
-        URI('/superset/explore_json/').search({ foo: 'bar' }),
-      );
-      expect(payload).toEqual(formData);
     });
   });
 
@@ -158,48 +135,48 @@ describe('exploreUtils', () => {
     });
 
     it('generate url to different domains', () => {
-      let url = getExploreUrlAndPayload({
+      let url = getExploreUrl({
         formData,
         endpointType: 'json',
         allowDomainSharding: true,
-      }).url;
+      });
       // skip main domain for fetching chart if domain sharding is enabled
       // to leave main domain free for other calls like fav star, save change, etc.
       expect(url).toMatch(availableDomains[1]);
 
-      url = getExploreUrlAndPayload({
+      url = getExploreUrl({
         formData,
         endpointType: 'json',
         allowDomainSharding: true,
-      }).url;
+      });
       expect(url).toMatch(availableDomains[2]);
 
-      url = getExploreUrlAndPayload({
+      url = getExploreUrl({
         formData,
         endpointType: 'json',
         allowDomainSharding: true,
-      }).url;
+      });
       expect(url).toMatch(availableDomains[3]);
 
       // circle back to first available domain
-      url = getExploreUrlAndPayload({
+      url = getExploreUrl({
         formData,
         endpointType: 'json',
         allowDomainSharding: true,
-      }).url;
+      });
       expect(url).toMatch(availableDomains[1]);
     });
     it('not generate url to different domains without flag', () => {
-      let csvURL = getExploreUrlAndPayload({
+      let csvURL = getExploreUrl({
         formData,
         endpointType: 'csv',
-      }).url;
+      });
       expect(csvURL).toMatch(availableDomains[0]);
 
-      csvURL = getExploreUrlAndPayload({
+      csvURL = getExploreUrl({
         formData,
         endpointType: 'csv',
-      }).url;
+      });
       expect(csvURL).toMatch(availableDomains[0]);
     });
   });
