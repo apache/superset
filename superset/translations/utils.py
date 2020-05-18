@@ -16,15 +16,15 @@
 # under the License.
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # Global caching for JSON language packs
-ALL_LANGUAGE_PACKS: Dict[str, Dict[Any, Any]] = {"en": {}}
+ALL_LANGUAGE_PACKS: Dict[str, Dict[str, Any]] = {"en": {}}
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def get_language_pack(locale):
+def get_language_pack(locale: str) -> Optional[Dict[str, Any]]:
     """Get/cache a language pack
 
     Returns the langugage pack from cache if it exists, caches otherwise
@@ -38,7 +38,7 @@ def get_language_pack(locale):
         try:
             with open(filename, encoding="utf8") as f:
                 pack = json.load(f)
-                ALL_LANGUAGE_PACKS[locale] = pack
+                ALL_LANGUAGE_PACKS[locale] = pack or {}
         except Exception:  # pylint: disable=broad-except
             # Assuming english, client side falls back on english
             pass
