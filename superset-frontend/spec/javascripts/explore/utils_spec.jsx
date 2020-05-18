@@ -139,7 +139,7 @@ describe('exploreUtils', () => {
         formData,
         endpointType: 'json',
         allowDomainSharding: true,
-      }).url;
+      });
       // skip main domain for fetching chart if domain sharding is enabled
       // to leave main domain free for other calls like fav star, save change, etc.
       expect(url).toMatch(availableDomains[1]);
@@ -148,14 +148,14 @@ describe('exploreUtils', () => {
         formData,
         endpointType: 'json',
         allowDomainSharding: true,
-      }).url;
+      });
       expect(url).toMatch(availableDomains[2]);
 
       url = getExploreUrl({
         formData,
         endpointType: 'json',
         allowDomainSharding: true,
-      }).url;
+      });
       expect(url).toMatch(availableDomains[3]);
 
       // circle back to first available domain
@@ -163,20 +163,20 @@ describe('exploreUtils', () => {
         formData,
         endpointType: 'json',
         allowDomainSharding: true,
-      }).url;
+      });
       expect(url).toMatch(availableDomains[1]);
     });
     it('not generate url to different domains without flag', () => {
       let csvURL = getExploreUrl({
         formData,
         endpointType: 'csv',
-      }).url;
+      });
       expect(csvURL).toMatch(availableDomains[0]);
 
       csvURL = getExploreUrl({
         formData,
         endpointType: 'csv',
-      }).url;
+      });
       expect(csvURL).toMatch(availableDomains[0]);
     });
   });
