@@ -140,9 +140,7 @@ describe('SaveModal', () => {
 
   describe('saveOrOverwrite', () => {
     beforeEach(() => {
-      sinon
-        .stub(exploreUtils, 'getExploreUrl')
-        .callsFake(() => 'mockURL');
+      sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => 'mockURL');
 
       sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
         Promise.resolve({

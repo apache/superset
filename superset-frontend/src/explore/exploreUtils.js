@@ -84,7 +84,6 @@ export function getExploreLongUrl(
     return null;
   }
 
-
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
   const search = uri.search(true);

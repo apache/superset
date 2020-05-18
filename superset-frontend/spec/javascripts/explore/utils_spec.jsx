@@ -19,10 +19,7 @@
 import sinon from 'sinon';
 
 import URI from 'urijs';
-import {
-  getExploreUrl,
-  getExploreLongUrl,
-} from 'src/explore/exploreUtils';
+import { getExploreUrl, getExploreLongUrl } from 'src/explore/exploreUtils';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 
 describe('exploreUtils', () => {
