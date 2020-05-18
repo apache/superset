@@ -19,8 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 import ColumnTypeLabel from './ColumnTypeLabel';
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
 const propTypes = {
   metric: PropTypes.object.isRequired,

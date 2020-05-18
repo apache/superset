@@ -24,11 +24,11 @@ import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/translation';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
 import shortid from 'shortid';
 import { exportChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import Button from '../../components/Button';
 
 const propTypes = {

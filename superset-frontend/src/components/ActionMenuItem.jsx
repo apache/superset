@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { MenuItem } from 'react-bootstrap';
 
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
 export function MenuItemContent({ faIcon, text, tooltip, children }) {
   return (

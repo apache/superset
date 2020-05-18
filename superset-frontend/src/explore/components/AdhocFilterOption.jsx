@@ -20,12 +20,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Label, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
