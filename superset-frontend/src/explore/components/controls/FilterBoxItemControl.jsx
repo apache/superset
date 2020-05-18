@@ -27,6 +27,9 @@ import SelectControl from './SelectControl';
 import CheckboxControl from './CheckboxControl';
 import TextControl from './TextControl';
 
+const INTEGRAL_TYPES = ['TINYINT', 'SMALLINT', 'INT', 'INTEGER', 'BIGINT'];
+const DECIMAL_TYPES = ['FLOAT', 'DOUBLE'];
+
 const propTypes = {
   datasource: PropTypes.object.isRequired,
   onChange: PropTypes.func,
@@ -60,7 +63,35 @@ export default class FilterBoxItemControl extends React.Component {
     this.props.onChange(this.state);
   }
   onControlChange(attr, value) {
-    this.setState({ [attr]: value }, this.onChange);
+    let typedValue = value;
+    const { column: selectedColumnName, multiple } = this.state;
+    if (value && !multiple && attr === 'defaultValue') {
+      // if single value filter_box,
+      // convert input value string to the column's data type
+      const { datasource } = this.props;
+      const selectedColumn = (
+        datasource.columns.filter(
+          col => col.column_name === selectedColumnName,
+        ) || []
+      ).pop();
+
+      if (selectedColumn && selectedColumn.type) {
+        const type = selectedColumn.type.toUpperCase();
+        try {
+          if (type === 'BOOLEAN') {
+            typedValue = value === 'true';
+          } else if (INTEGRAL_TYPES.includes(type)) {
+            typedValue = parseInt(value, 10);
+          } else if (DECIMAL_TYPES.includes(type)) {
+            typedValue = parseFloat(value);
+          }
+        } catch (ex) {
+          // eslint-disable-next-line no-console
+          console.warn(`parsing value ${value} to type ${type} error`);
+        }
+      }
+    }
+    this.setState({ [attr]: typedValue }, this.onChange);
   }
   setType() {}
   textSummary() {

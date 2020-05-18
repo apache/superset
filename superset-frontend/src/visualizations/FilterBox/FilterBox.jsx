@@ -259,7 +259,7 @@ class FilterBox extends React.Component {
     let value = selectedValues[key] || null;
 
     // Assign default value if required
-    if (!value && filterConfig.defaultValue) {
+    if (value === undefined && filterConfig.defaultValue) {
       if (filterConfig.multiple) {
         // Support for semicolon-delimited multiple values
         value = filterConfig.defaultValue.split(';');

@@ -34,7 +34,7 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
       let defaultValues = config.defaultValue;
       // defaultValue could be ; separated values,
       // could be null or ''
-      if (config.defaultValue) {
+      if (config.defaultValue && config.multiple) {
         defaultValues = config.defaultValue.split(';');
       }
       const updatedColumns = {
