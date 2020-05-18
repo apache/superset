@@ -47,8 +47,8 @@ describe('chart actions', () => {
   beforeEach(() => {
     dispatch = sinon.spy();
     urlStub = sinon
-      .stub(exploreUtils, 'getExploreUrlAndPayload')
-      .callsFake(() => ({ url: MOCK_URL, payload: {} }));
+      .stub(exploreUtils, 'getExploreUrl')
+      .callsFake(() => MOCK_URL);
     fakeMetadata = { useLegacyApi: true };
     metadataRegistryStub = sinon
       .stub(chartlib, 'getChartMetadataRegistry')
