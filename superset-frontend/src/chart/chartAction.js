@@ -27,7 +27,7 @@ import {
 import { SupersetClient } from '@superset-ui/connection';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
-  getExploreUrlAndPayload,
+  getExploreUrl,
   getAnnotationJsonUrl,
   postForm,
 } from '../explore/exploreUtils';
@@ -213,7 +213,7 @@ function legacyChartDataRequest(
   dashboardId,
   requestParams,
 ) {
-  const url = getExploreUrlAndPayload({
+  const url = getExploreUrl({
     formData,
     endpointType: 'json',
     force,
@@ -400,7 +400,7 @@ export function postChartFormData(
 
 export function redirectSQLLab(formData) {
   return dispatch => {
-    const url = getExploreUrlAndPayload({
+    const url = getExploreUrl({
       formData,
       endpointType: 'query',
     });

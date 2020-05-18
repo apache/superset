@@ -177,17 +177,14 @@ describe('ExploreResultsButton', () => {
     fetchMock.post(visualizeEndpoint, visualizationPayload);
 
     beforeEach(() => {
-      sinon.stub(exploreUtils, 'getExploreUrlAndPayload').callsFake(() => ({
-        url: 'mockURL',
-        payload: { datasource: '107__table' },
-      }));
+      sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => 'mockURL');
       sinon.spy(exploreUtils, 'exportChart');
       sinon
         .stub(wrapper.instance(), 'buildVizOptions')
         .callsFake(() => mockOptions);
     });
     afterEach(() => {
-      exploreUtils.getExploreUrlAndPayload.restore();
+      exploreUtils.getExploreUrl.restore();
       exploreUtils.exportChart.restore();
       wrapper.instance().buildVizOptions.restore();
       fetchMock.reset();

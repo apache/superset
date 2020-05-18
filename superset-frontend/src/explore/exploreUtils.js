@@ -108,7 +108,7 @@ export function getExploreLongUrl(
   return url;
 }
 
-export function getExploreUrlAndPayload({
+export function getExploreUrl({
   formData,
   endpointType = 'base',
   force = false,
@@ -208,7 +208,7 @@ export function postForm(url, payload, target = '_blank') {
 }
 
 export function exportChart(formData, endpointType) {
-  const url = getExploreUrlAndPayload({
+  const url = getExploreUrl({
     formData,
     endpointType,
     allowDomainSharding: false,

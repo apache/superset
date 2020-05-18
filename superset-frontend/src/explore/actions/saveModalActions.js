@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/connection';
-import { getExploreUrlAndPayload } from '../exploreUtils';
+import { getExploreUrl } from '../exploreUtils';
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
 export function fetchDashboardsSucceeded(choices) {
@@ -62,7 +62,7 @@ export function removeSaveModalAlert() {
 
 export function saveSlice(formData, requestParams) {
   return dispatch => {
-    const url = getExploreUrlAndPayload({
+    const url = getExploreUrl({
       formData,
       endpointType: 'base',
       force: false,

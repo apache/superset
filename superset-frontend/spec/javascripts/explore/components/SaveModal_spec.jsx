@@ -141,8 +141,8 @@ describe('SaveModal', () => {
   describe('saveOrOverwrite', () => {
     beforeEach(() => {
       sinon
-        .stub(exploreUtils, 'getExploreUrlAndPayload')
-        .callsFake(() => ({ url: 'mockURL', payload: defaultProps.form_data }));
+        .stub(exploreUtils, 'getExploreUrl')
+        .callsFake(() => 'mockURL');
 
       sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
         Promise.resolve({
@@ -155,7 +155,7 @@ describe('SaveModal', () => {
     });
 
     afterEach(() => {
-      exploreUtils.getExploreUrlAndPayload.restore();
+      exploreUtils.getExploreUrl.restore();
       defaultProps.actions.saveSlice.restore();
     });
 
