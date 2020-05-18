@@ -47,7 +47,7 @@ export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
 export type SupersetError = {
-  errorType: ErrorType;
+  error_type: ErrorType;
   extra: Record<string, any> | null;
   level: ErrorLevel;
   message: string;
