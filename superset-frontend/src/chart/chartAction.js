@@ -20,13 +20,11 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
-import {
-  getChartBuildQueryRegistry,
-  getChartMetadataRegistry,
-} from '@superset-ui/chart';
+import { getChartBuildQueryRegistry } from '@superset-ui/chart';
 import { SupersetClient } from '@superset-ui/connection';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
+  shouldUseLegacyApi,
   getExploreUrl,
   getAnnotationJsonUrl,
   postForm,
@@ -260,7 +258,7 @@ export function exploreJSON(
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
 
-    const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
+    const useLegacyApi = shouldUseLegacyApi(formData);
 
     let requestParams = {
       signal: controller.signal,
