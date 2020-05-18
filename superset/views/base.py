@@ -141,9 +141,6 @@ def api(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except SupersetSecurityException as ex:
-            logger.exception(ex)
-            return self.response_401()
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(get_error_msg())
@@ -162,7 +159,7 @@ def handle_api_exception(f):
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
-            logger.exception(ex)
+            logger.warning(ex)
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
