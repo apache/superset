@@ -67,6 +67,7 @@ export const FilterMenu = ({
           <MenuItem
             key={ft.id}
             eventKey={ft}
+            // @ts-ignore
             onSelect={(fltr: typeof ft) =>
               setInternalFilters([...internalFilters, fltr])
             }
@@ -112,6 +113,7 @@ export const FilterInputs = ({
                 bsSize="small"
                 value={ft.operator}
                 placeholder={filter ? getDefaultFilterOperator(filter) : ''}
+                // @ts-ignore
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   updateInternalFilter(i, {
                     operator: e.currentTarget.value,
@@ -146,6 +148,7 @@ export const FilterInputs = ({
                 />
               )}
               {filter.input !== 'select' && (
+                // @ts-ignore
                 <FormControl
                   type={filter.input ? filter.input : 'text'}
                   bsSize="small"

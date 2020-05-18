@@ -206,6 +206,7 @@ const ListView: FunctionComponent<Props> = ({
                     }
                   >
                     {bulkActions.map(action => (
+                      // @ts-ignore
                       <MenuItem
                         id={action.name}
                         key={action.key || action.name}

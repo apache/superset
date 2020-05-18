@@ -183,6 +183,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setName(event.target.value)
                 }
@@ -198,6 +199,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setDescription(event.target.value)
                 }
@@ -221,6 +223,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
                 }
