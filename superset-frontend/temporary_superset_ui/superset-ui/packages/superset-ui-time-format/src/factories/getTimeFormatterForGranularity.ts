@@ -23,8 +23,6 @@ import { TimeGranularity } from '../types';
 
 // Translate time granularity to d3-format
 const MINUTE = '%Y-%m-%d %H:%M';
-const SUNDAY_BASED_WEEK = '%Y-%m-%d W%U';
-const MONDAY_BASED_WEEK = '%Y-%m-%d W%W';
 const { DATABASE_DATE, DATABASE_DATETIME } = TimeFormats;
 
 // search for `builtin_time_grains` in incubator-superset/superset/db_engine_specs/base.py
@@ -38,14 +36,14 @@ const formats = {
   'PT0.5H': MINUTE, // half hour
   PT1H: '%Y-%m-%d %H:00', // hour
   P1D: DATABASE_DATE, // day
-  P1W: SUNDAY_BASED_WEEK, // week
+  P1W: DATABASE_DATE, // week
   P1M: '%Y-%m', // month
   'P0.25Y': '%Y Q%q', // quarter
   P1Y: '%Y', // year
-  '1969-12-28T00:00:00Z/P1W': SUNDAY_BASED_WEEK, // 'week_start_sunday'
-  '1969-12-29T00:00:00Z/P1W': MONDAY_BASED_WEEK, // 'week_start_monday'
-  'P1W/1970-01-03T00:00:00Z': SUNDAY_BASED_WEEK, // 'week_ending_saturday'
-  'P1W/1970-01-04T00:00:00Z': MONDAY_BASED_WEEK, // 'week_ending_sunday'
+  '1969-12-28T00:00:00Z/P1W': DATABASE_DATE, // 'week_start_sunday'
+  '1969-12-29T00:00:00Z/P1W': DATABASE_DATE, // 'week_start_monday'
+  'P1W/1970-01-03T00:00:00Z': DATABASE_DATE, // 'week_ending_saturday'
+  'P1W/1970-01-04T00:00:00Z': DATABASE_DATE, // 'week_ending_sunday'
 };
 
 export default function getTimeFormatterForGranularity(granularity?: TimeGranularity) {
