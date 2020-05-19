@@ -636,7 +636,7 @@ class Superset(BaseSupersetView):
     def get_samples(self, viz_obj):
         return self.json_response({"data": viz_obj.get_samples()})
 
-    def generate_json(self, viz_obj, response_type: str) -> Response:
+    def generate_json(self, viz_obj, response_type: Optional[str] = None) -> Response:
         if response_type == utils.ChartDataResponseFormat.CSV:
             return CsvResponse(
                 viz_obj.get_csv(),
