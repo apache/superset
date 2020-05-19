@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
-import ColumnOption from 'src/components/ColumnOption';
+import { ColumnOption } from '@superset-ui/control-utils';
 import ColumnTypeLabel from 'src/components/ColumnTypeLabel';
 
 describe('ColumnOption', () => {

@@ -27,7 +27,7 @@ import {
   applyMapStateToPropsToControl,
   getAllControlsState,
 } from 'src/explore/controlUtils';
-import ColumnOption from 'src/components/ColumnOption';
+import { ColumnOption } from '@superset-ui/control-utils';
 
 describe('controlUtils', () => {
   const state = {
