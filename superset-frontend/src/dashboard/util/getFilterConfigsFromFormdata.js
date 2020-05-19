@@ -18,7 +18,10 @@
  */
 /* eslint-disable camelcase */
 import { TIME_FILTER_MAP } from '../../visualizations/FilterBox/FilterBox';
-import { TIME_FILTER_LABELS } from '../../explore/constants';
+import {
+  FILTER_CONFIG_ATTRIBUTES,
+  TIME_FILTER_LABELS,
+} from '../../explore/constants';
 
 export default function getFilterConfigsFromFormdata(form_data = {}) {
   const {
@@ -31,10 +34,13 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
   } = form_data;
   let configs = filter_configs.reduce(
     ({ columns, labels }, config) => {
-      let defaultValues = config.defaultValue;
+      let defaultValues = config[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
       // defaultValue could be ; separated values,
       // could be null or ''
-      if (config.defaultValue) {
+      if (
+        config[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE] &&
+        config[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]
+      ) {
         defaultValues = config.defaultValue.split(';');
       }
       const updatedColumns = {

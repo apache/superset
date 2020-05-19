@@ -78,3 +78,8 @@ export const TIME_FILTER_LABELS = {
   druid_time_origin: t('Origin'),
   granularity: t('Time Granularity'),
 };
+
+export const FILTER_CONFIG_ATTRIBUTES = {
+  DEFAULT_VALUE: 'defaultValue',
+  MULTIPLE: 'multiple',
+};
