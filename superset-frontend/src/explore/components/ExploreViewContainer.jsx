@@ -61,6 +61,7 @@ const propTypes = {
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   chart: chartPropShape.isRequired,
   slice: PropTypes.object,
+  sliceName: PropTypes.string,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
@@ -335,6 +336,7 @@ class ExploreViewContainer extends React.Component {
             onHide={this.toggleModal}
             actions={this.props.actions}
             form_data={this.props.form_data}
+            sliceName={this.props.sliceName}
           />
         )}
         <div className="row">
@@ -403,6 +405,7 @@ function mapStateToProps(state) {
       : 'slice-container',
     isStarred: explore.isStarred,
     slice: explore.slice,
+    sliceName: explore.sliceName,
     triggerRender: explore.triggerRender,
     form_data,
     table_name: form_data.datasource_name,

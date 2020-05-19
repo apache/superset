@@ -124,8 +124,8 @@ export function removeControlPanelAlert() {
 }
 
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
-export function updateChartTitle(slice_name) {
-  return { type: UPDATE_CHART_TITLE, slice_name };
+export function updateChartTitle(sliceName) {
+  return { type: UPDATE_CHART_TITLE, sliceName };
 }
 
 export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';
