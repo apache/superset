@@ -21,6 +21,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
+import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
@@ -28,7 +29,6 @@ import AdhocFilter, {
 import AdhocFilterControl from 'src/explore/components/controls/AdhocFilterControl';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import { AGGREGATES, OPERATORS } from 'src/explore/constants';
-import OnPasteSelect from 'src/components/OnPasteSelect';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,

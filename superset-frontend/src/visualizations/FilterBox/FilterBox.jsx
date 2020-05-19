@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import VirtualizedSelect from 'react-virtualized-select';
-import { Creatable } from 'react-select';
+import { CreatableSelect } from 'src/components/Select';
 import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
@@ -27,8 +26,7 @@ import DateFilterControl from '../../explore/components/controls/DateFilterContr
 import ControlRow from '../../explore/components/ControlRow';
 import Control from '../../explore/components/Control';
 import controls from '../../explore/controls';
-import OnPasteSelect from '../../components/OnPasteSelect';
-import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
+import OnPasteSelect from '../../components/Select/OnPasteSelect';
 import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKey';
 import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
 import {
@@ -102,23 +100,18 @@ class FilterBox extends React.Component {
       // this flag is used by non-instant filter, to make the apply button enabled/disabled
       hasChanged: false,
     };
-    this.changeFilter = this.changeFilter.bind(this);
-    this.onFilterMenuOpen = this.onFilterMenuOpen.bind(this, props.chartId);
-    this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
+    this.onFilterMenuClose = () => {
+      this.props.onFilterMenuClose();
+    };
+    this.onFilterMenuOpen = (...args) => {
+      return this.props.onFilterMenuOpen(this.props.chartId, ...args);
+    };
+    this.onOpenDateFilterControl = (...args) => {
+      return this.onFilterMenuOpen(TIME_RANGE, ...args);
+    };
     this.onFocus = this.onFilterMenuOpen;
     this.onBlur = this.onFilterMenuClose;
-    this.onOpenDateFilterControl = this.onFilterMenuOpen.bind(
-      props.chartId,
-      TIME_RANGE,
-    );
-  }
-
-  onFilterMenuOpen(chartId, column) {
-    this.props.onFilterMenuOpen(chartId, column);
-  }
-
-  onFilterMenuClose() {
-    this.props.onFilterMenuClose();
+    this.changeFilter = this.changeFilter.bind(this);
   }
 
   getControlData(controlName) {
@@ -275,22 +268,20 @@ class FilterBox extends React.Component {
     }
     return (
       <OnPasteSelect
-        placeholder={t('Select [%s]', label)}
         key={key}
-        multi={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
+        placeholder={t('Select [%s]', label)}
+        isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
         clearable={filterConfig.clearable}
         value={value}
-        options={data.map(opt => {
-          const perc = Math.round((opt.metric / max) * 100);
-          const backgroundImage =
-            'linear-gradient(to right, lightgrey, ' +
-            `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`;
-          const style = {
-            backgroundImage,
-            padding: '2px 5px',
-          };
-          return { value: opt.id, label: opt.id, style };
-        })}
+        options={data
+          .filter(opt => opt.id !== null)
+          .map(opt => {
+            const perc = Math.round((opt.metric / max) * 100);
+            const color = 'lightgrey';
+            const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
+            const style = { backgroundImage };
+            return { value: opt.id, label: opt.id, style };
+          })}
         onChange={(...args) => {
           this.changeFilter(key, ...args);
         }}
@@ -300,9 +291,7 @@ class FilterBox extends React.Component {
           this.onFilterMenuOpen(key, ...args);
         }}
         onClose={this.onFilterMenuClose}
-        selectComponent={Creatable}
-        selectWrap={VirtualizedSelect}
-        optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
+        selectComponent={CreatableSelect}
         noResultsText={t('No results found')}
       />
     );

@@ -18,11 +18,16 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Select from 'react-select';
+import { Select } from 'src/components/Select';
 
 export default class OnPasteSelect extends React.Component {
+  constructor(props) {
+    super(props);
+    this.onPaste = this.onPaste.bind(this);
+  }
+
   onPaste(evt) {
-    if (!this.props.multi) {
+    if (!this.props.isMulti) {
       return;
     }
     evt.preventDefault();
@@ -68,39 +73,31 @@ export default class OnPasteSelect extends React.Component {
       }
     }
   }
+
   render() {
-    const SelectComponent = this.props.selectWrap;
-    const refFunc = ref => {
-      if (this.props.refFunc) {
-        this.props.refFunc(ref);
-      }
-      this.pasteInput = ref;
-    };
-    const inputProps = { onPaste: this.onPaste.bind(this) };
-    return (
-      <SelectComponent {...this.props} ref={refFunc} inputProps={inputProps} />
-    );
+    const { selectWrap: SelectComponent, ...restProps } = this.props;
+    return <SelectComponent {...restProps} onPaste={this.onPaste} />;
   }
 }
 
 OnPasteSelect.propTypes = {
   separator: PropTypes.array.isRequired,
-  selectWrap: PropTypes.func.isRequired,
-  refFunc: PropTypes.func,
+  selectWrap: PropTypes.elementType,
+  selectRef: PropTypes.func,
   onChange: PropTypes.func.isRequired,
   valueKey: PropTypes.string.isRequired,
   labelKey: PropTypes.string.isRequired,
   options: PropTypes.array,
-  multi: PropTypes.bool.isRequired,
+  isMulti: PropTypes.bool,
   value: PropTypes.any,
   isValidNewOption: PropTypes.func,
   noResultsText: PropTypes.string,
 };
 OnPasteSelect.defaultProps = {
-  separator: [',', '\n', '\t'],
+  separator: [',', '\n', '\t', ';'],
   selectWrap: Select,
   valueKey: 'value',
   labelKey: 'label',
   options: [],
-  multi: false,
+  isMulti: false,
 };

@@ -20,7 +20,7 @@ import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { act } from 'react-dom/test-utils';
 import { MenuItem, Pagination } from 'react-bootstrap';
-import Select from 'react-select';
+import Select from 'src/components/Select';
 import { QueryParamProvider } from 'use-query-params';
 
 import ListView from 'src/components/ListView/ListView';

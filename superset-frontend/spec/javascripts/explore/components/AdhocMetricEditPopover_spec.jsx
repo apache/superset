@@ -75,7 +75,7 @@ describe('AdhocMetricEditPopover', () => {
 
   it('overwrites the adhocMetric in state with onAggregateChange', () => {
     const { wrapper } = setup();
-    wrapper.instance().onAggregateChange({ aggregate: AGGREGATES.AVG });
+    wrapper.instance().onAggregateChange(AGGREGATES.AVG);
     expect(wrapper.state('adhocMetric')).toEqual(
       sumValueAdhocMetric.duplicateWith({ aggregate: AGGREGATES.AVG }),
     );

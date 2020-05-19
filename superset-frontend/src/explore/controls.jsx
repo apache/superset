@@ -136,7 +136,7 @@ const groupByControl = {
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   allowAll: true,
-  filterOption: (opt, text) =>
+  filterOption: ({ label, value, data: opt }, text) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&
@@ -397,6 +397,7 @@ export const controls = {
     type: 'MetricsControl',
     label: t('Sort By'),
     default: null,
+    clearable: true,
     description: t('Metric used to define the top series'),
     mapStateToProps: state => ({
       columns: state.datasource ? state.datasource.columns : [],

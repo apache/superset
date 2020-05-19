@@ -17,8 +17,6 @@
  * under the License.
  */
 import React, { ReactNode, useState } from 'react';
-// @ts-ignore
-import { css } from '@emotion/core';
 import Button from 'src/components/Button';
 
 interface Props {

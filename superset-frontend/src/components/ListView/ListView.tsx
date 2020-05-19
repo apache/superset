@@ -18,17 +18,7 @@
  */
 import { t } from '@superset-ui/translation';
 import React, { FunctionComponent } from 'react';
-import {
-  Col,
-  DropdownButton,
-  MenuItem,
-  Row,
-  // @ts-ignore
-} from 'react-bootstrap';
-// @ts-ignore
-import SelectComponent from 'react-select';
-// @ts-ignore
-import VirtualizedSelect from 'react-virtualized-select';
+import { Col, DropdownButton, MenuItem, Row } from 'react-bootstrap';
 import IndeterminateCheckbox from '../IndeterminateCheckbox';
 import TableCollection from './TableCollection';
 import Pagination from './Pagination';
@@ -208,9 +198,9 @@ const ListView: FunctionComponent<Props> = ({
                     {bulkActions.map(action => (
                       // @ts-ignore
                       <MenuItem
-                        id={action.name}
-                        key={action.key || action.name}
+                        key={action.key}
                         eventKey={selectedFlatRows}
+                        // @ts-ignore
                         onSelect={(selectedRows: typeof selectedFlatRows) => {
                           action.onSelect(
                             selectedRows.map((r: any) => r.original),

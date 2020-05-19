@@ -56,15 +56,15 @@ export default class AdhocFilterOption extends React.PureComponent {
   }
 
   onOverlayEntered() {
+    // isNew is used to indicate whether to automatically open the overlay
+    // once the overlay has been opened, the metric/filter will never be
+    // considered new again.
+    this.props.adhocFilter.isNew = false;
     this.setState({ overlayShown: true });
   }
 
   onOverlayExited() {
     this.setState({ overlayShown: false });
-  }
-
-  onMouseDown(e) {
-    e.stopPropagation();
   }
 
   closeFilterEditOverlay() {
@@ -85,43 +85,38 @@ export default class AdhocFilterOption extends React.PureComponent {
       />
     );
     return (
-      <OverlayTrigger
-        ref="overlay"
-        placement="right"
-        trigger="click"
-        disabled
-        overlay={overlay}
-        rootClose
-        shouldUpdatePosition
-        onEntered={this.onOverlayEntered}
-        onExited={this.onOverlayExited}
-      >
-        <div>
-          {adhocFilter.isExtra && (
-            <InfoTooltipWithTrigger
-              icon="exclamation-triangle"
-              placement="top"
-              className="m-r-5 text-muted"
-              tooltip={t(`
+      <div onMouseDownCapture={e => e.stopPropagation()}>
+        {adhocFilter.isExtra && (
+          <InfoTooltipWithTrigger
+            icon="exclamation-triangle"
+            placement="top"
+            className="m-r-5 text-muted"
+            tooltip={t(`
                 This filter was inherited from the dashboard's context.
                 It won't be saved when saving the chart.
               `)}
+          />
+        )}
+        <OverlayTrigger
+          ref="overlay"
+          placement="right"
+          trigger="click"
+          disabled
+          overlay={overlay}
+          rootClose
+          shouldUpdatePosition
+          defaultOverlayShown={adhocFilter.isNew}
+          onEntered={this.onOverlayEntered}
+          onExited={this.onOverlayExited}
+        >
+          <Label className="option-label adhoc-option adhoc-filter-option">
+            {adhocFilter.getDefaultLabel()}
+            <i
+              className={`glyphicon glyphicon-triangle-right adhoc-label-arrow`}
             />
-          )}
-          <Label className="adhoc-filter-option">
-            <div onMouseDownCapture={this.onMouseDown}>
-              <span className="m-r-5 option-label">
-                {adhocFilter.getDefaultLabel()}
-                <i
-                  className={`glyphicon glyphicon-triangle-${
-                    this.state.overlayShown ? 'left' : 'right'
-                  } adhoc-label-arrow`}
-                />
-              </span>
-            </div>
           </Label>
-        </div>
-      </OverlayTrigger>
+        </OverlayTrigger>
+      </div>
     );
   }
 }

@@ -16,32 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { DisplayQueryButton } from 'src/explore/components/DisplayQueryButton';
 
-describe('DisplayQueryButton', () => {
-  const defaultProps = {
-    animation: false,
-    queryResponse: {
-      query: 'SELECT * FROM foo',
-      language: 'sql',
-    },
-    chartStatus: 'success',
-    queryEndpoint: 'localhost',
-    latestQueryFormData: {
-      datasource: '1__table',
-    },
-  };
+// Variables ported from "src/stylesheets/less/variables.less"
+// TODO: move to `@superset-ui/style`
+// Keep it here to make PRs easier for review.
+export const supersetColors = {
+  primary: '#00a699',
+  danger: '#fe4a49',
+  warning: '#ffab00',
+  indicator: '#44c0ff',
+  almostBlack: '#263238',
+  grayDark: '#484848',
+  grayLight: '#cfd8dc',
+  gray: '#879399',
+  grayBg: '#f5f5f5',
+  grayBgDarker: '#e8e8e8', // select option menu hover
+  grayBgDarkest: '#d2d2d2', // table cell bar chart
+  grayHeading: '#a3a3a3',
+  menuHover: '#f2f3f5',
+  lightest: '#fff',
+  darkest: '#000',
 
-  it('is valid', () => {
-    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).toBe(
-      true,
-    );
-  });
-  it('renders a dropdown', () => {
-    const wrapper = mount(<DisplayQueryButton {...defaultProps} />);
-    expect(wrapper.find(ModalTrigger)).toHaveLength(3);
-  });
-});
+  // addition most common colors
+  grayBorder: '#ccc',
+  grayBorderLight: '#d9d9d9',
+  grayBorderDark: '#b3b3b3',
+  textDefault: '#333',
+  textDarkest: '#111',
+};

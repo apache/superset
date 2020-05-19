@@ -21,7 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
-import Select from 'react-select';
+import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
 
 import { supersetURL } from '../../utils/common';

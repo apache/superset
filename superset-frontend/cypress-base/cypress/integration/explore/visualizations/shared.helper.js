@@ -59,7 +59,6 @@ export const NUM_METRIC = {
   aggregate: 'SUM',
   sqlExpression: null,
   hasCustomLabel: false,
-  fromFormData: false,
   label: 'Sum(num)',
   optionName: 'metric_1de0s4viy5d_ly7y8k6ghvk',
 };
@@ -71,6 +70,5 @@ export const SIMPLE_FILTER = {
   comparator: ['Aaron', 'Amy', 'Andrea'],
   clause: 'WHERE',
   sqlExpression: null,
-  fromFormData: true,
   filterOptionName: 'filter_4y6teao56zs_ebjsvwy48c',
 };

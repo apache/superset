@@ -72,8 +72,8 @@ export default class AdhocMetric {
       this.column = null;
       this.aggregate = null;
     }
+    this.isNew = !!adhocMetric.isNew;
     this.hasCustomLabel = !!(adhocMetric.hasCustomLabel && adhocMetric.label);
-    this.fromFormData = !!adhocMetric.optionName;
     this.label = this.hasCustomLabel
       ? adhocMetric.label
       : this.getDefaultLabel();
@@ -104,6 +104,9 @@ export default class AdhocMetric {
   duplicateWith(nextFields) {
     return new AdhocMetric({
       ...this,
+      // all duplicate metrics are not considered new by default
+      isNew: false,
+      // but still overriddable by nextFields
       ...nextFields,
     });
   }
