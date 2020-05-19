@@ -17,25 +17,35 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import thumbnail from './images/thumbnail.png';
-import transformProps from './transformProps';
-import controlPanel from './controlPanel';
 
-const metadata = new ChartMetadata({
-  description: 'HTML Inline Frame',
-  name: t('IFrame'),
-  thumbnail,
-  useLegacyApi: true,
-});
-
-export default class IframeChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./Iframe'),
-      metadata,
-      transformProps,
-      controlPanel,
-    });
-  }
-}
+export default {
+  controlPanelSections: [
+    {
+      label: t('Options'),
+      controlSetRows: [
+        [
+          {
+            name: 'url',
+            config: {
+              type: 'TextControl',
+              label: t('URL'),
+              description: t(
+                'The URL, this control is templated, so you can integrate ' +
+                  '{{ width }} and/or {{ height }} in your URL string.',
+              ),
+              default: '',
+            },
+          },
+        ],
+      ],
+    },
+  ],
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [],
+    },
+  },
+};
