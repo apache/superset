@@ -18,8 +18,7 @@ x-superset-build: &superset-build
   args:
     NPM_BUILD_CMD: build-dev
   context: ./
-  dockerfile: Dockerfile
-  target: dev
+  dockerfile: Dockerfile-dev
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -101,7 +100,6 @@ services:
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
     network_mode: host
-    restart: unless-stopped
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
