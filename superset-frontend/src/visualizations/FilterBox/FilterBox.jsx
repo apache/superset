@@ -31,7 +31,10 @@ import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKey';
 import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
-import { TIME_FILTER_LABELS } from '../../explore/constants';
+import {
+  FILTER_CONFIG_ATTRIBUTES,
+  TIME_FILTER_LABELS,
+} from '../../explore/constants';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
 
 import './FilterBox.less';
@@ -259,19 +262,22 @@ class FilterBox extends React.Component {
     let value = selectedValues[key] || null;
 
     // Assign default value if required
-    if (!value && filterConfig.defaultValue) {
-      if (filterConfig.multiple) {
+    if (
+      value === undefined &&
+      filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE]
+    ) {
+      if (filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]) {
         // Support for semicolon-delimited multiple values
-        value = filterConfig.defaultValue.split(';');
+        value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE].split(';');
       } else {
-        value = filterConfig.defaultValue;
+        value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
       }
     }
     return (
       <OnPasteSelect
         placeholder={t('Select [%s]', label)}
         key={key}
-        multi={filterConfig.multiple}
+        multi={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
         clearable={filterConfig.clearable}
         value={value}
         options={data.map(opt => {
