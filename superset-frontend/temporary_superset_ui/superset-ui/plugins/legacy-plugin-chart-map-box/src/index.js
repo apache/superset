@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['https://www.mapbox.com/mapbox-gl-js/api/'],
@@ -34,6 +35,7 @@ export default class MapBoxChartPlugin extends ChartPlugin {
       loadChart: () => import('./MapBox'),
       loadTransformProps: () => import('./transformProps.js'),
       metadata,
+      controlPanel,
     });
   }
 }
