@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['https://github.com/williaster/data-ui'],
@@ -34,6 +35,7 @@ export default class EventFlowChartPlugin extends ChartPlugin {
       loadChart: () => import('./EventFlow'),
       loadTransformProps: () => import('./transformProps.js'),
       metadata,
+      controlPanel,
     });
   }
 }
