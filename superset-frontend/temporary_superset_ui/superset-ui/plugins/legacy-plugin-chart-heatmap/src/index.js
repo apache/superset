@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['http://bl.ocks.org/mbostock/3074470'],
@@ -35,6 +36,7 @@ export default class HeatmapChartPlugin extends ChartPlugin {
       loadChart: () => import('./ReactHeatmap.js'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
