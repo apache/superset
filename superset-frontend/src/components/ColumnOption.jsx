@@ -42,14 +42,14 @@ export default function ColumnOption({ column, showType }) {
   }
 
   return (
-    <span>
+    <div className="column-option">
       {showType && columnType && <ColumnTypeLabel type={columnType} />}
-      <span className="m-r-5 option-label">
+      <span className="option-label column-option-label">
         {column.verbose_name || column.column_name}
       </span>
       {column.description && (
         <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
+          className="text-muted"
           icon="info"
           tooltip={column.description}
           label={`descr-${column.column_name}`}
@@ -57,13 +57,13 @@ export default function ColumnOption({ column, showType }) {
       )}
       {hasExpression && (
         <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
+          className="text-muted"
           icon="question-circle-o"
           tooltip={column.expression}
           label={`expr-${column.column_name}`}
         />
       )}
-    </span>
+    </div>
   );
 }
 ColumnOption.propTypes = propTypes;

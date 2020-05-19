@@ -16,32 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { DisplayQueryButton } from 'src/explore/components/DisplayQueryButton';
+import Select from 'react-select';
+import Async from 'react-select/async';
+import Creatable from 'react-select/creatable';
+import AsyncCreatable from 'react-select/async-creatable';
+import windowed from './windowed';
 
-describe('DisplayQueryButton', () => {
-  const defaultProps = {
-    animation: false,
-    queryResponse: {
-      query: 'SELECT * FROM foo',
-      language: 'sql',
-    },
-    chartStatus: 'success',
-    queryEndpoint: 'localhost',
-    latestQueryFormData: {
-      datasource: '1__table',
-    },
-  };
+export * from './windowed';
 
-  it('is valid', () => {
-    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).toBe(
-      true,
-    );
-  });
-  it('renders a dropdown', () => {
-    const wrapper = mount(<DisplayQueryButton {...defaultProps} />);
-    expect(wrapper.find(ModalTrigger)).toHaveLength(3);
-  });
-});
+export const WindowedSelect = windowed(Select);
+export const WindowedAsyncSelect = windowed(Async);
+export const WindowedCreatableSelect = windowed(Creatable);
+export const WindowedAsyncCreatableSelect = windowed(AsyncCreatable);
+export default WindowedSelect;

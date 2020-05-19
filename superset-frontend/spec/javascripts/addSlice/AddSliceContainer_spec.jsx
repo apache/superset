@@ -19,8 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { Button } from 'react-bootstrap';
-import Select from 'react-virtualized-select';
-
+import Select from 'src/components/Select';
 import AddSliceContainer from 'src/addSlice/AddSliceContainer';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
 

@@ -946,6 +946,7 @@ class Superset(BaseSupersetView):
         payload = json.dumps(
             datasource.values_for_column(column, config["FILTER_SELECT_ROW_LIMIT"]),
             default=utils.json_int_dttm_ser,
+            ignore_nan=True,
         )
         return json_success(payload)
 

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Select from 'react-select';
+import Select from 'src/components/Select';
 import AceEditor from 'react-ace';
 import 'brace/mode/css';
 import 'brace/theme/github';

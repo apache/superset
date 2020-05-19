@@ -17,11 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
+import Select from 'src/components/Select';
 import QuerySearch from 'src/SqlLab/components/QuerySearch';
 
 describe('QuerySearch', () => {
@@ -39,7 +39,7 @@ describe('QuerySearch', () => {
   });
 
   it('should have three Select', () => {
-    expect(wrapper.find(Select)).toHaveLength(3);
+    expect(wrapper.findWhere(x => x.type() === Select)).toHaveLength(3);
   });
 
   it('updates fromTime on user selects from time', () => {
