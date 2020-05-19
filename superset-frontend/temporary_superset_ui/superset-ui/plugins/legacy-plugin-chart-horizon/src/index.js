@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['http://kmandov.github.io/d3-horizon-chart/'],
@@ -35,6 +36,7 @@ export default class HorizonChartPlugin extends ChartPlugin {
       loadChart: () => import('./HorizonChart'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
