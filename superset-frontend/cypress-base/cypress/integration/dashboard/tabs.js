@@ -128,7 +128,8 @@ export default () =>
       cy.wait('@treemapRequest');
 
       // apply filter
-      cy.get('.Select__control').first().should('be.visible').click();
+      cy.get('.Select__control').first().should('be.visible');
+      cy.get('.Select__control').first().click({ force: true });
       cy.get('.Select__control input[type=text]')
         .first()
         .should('be.visible')
