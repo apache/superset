@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['http://bl.ocks.org/d3noob/5141278'],
@@ -35,6 +36,7 @@ export default class ForceDirectedChartPlugin extends ChartPlugin {
       loadChart: () => import('./ReactForceDirected.js'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
