@@ -26,6 +26,24 @@ import FormRow from '../../../components/FormRow';
 import SelectControl from './SelectControl';
 import CheckboxControl from './CheckboxControl';
 import TextControl from './TextControl';
+import { FILTER_CONFIG_ATTRIBUTES } from '../../constants';
+
+const INTEGRAL_TYPES = new Set([
+  'TINYINT',
+  'SMALLINT',
+  'INT',
+  'INTEGER',
+  'BIGINT',
+  'LONG',
+]);
+const DECIMAL_TYPES = new Set([
+  'FLOAT',
+  'DOUBLE',
+  'REAL',
+  'NUMERIC',
+  'DECIMAL',
+  'MONEY',
+]);
 
 const propTypes = {
   datasource: PropTypes.object.isRequired,
@@ -60,7 +78,28 @@ export default class FilterBoxItemControl extends React.Component {
     this.props.onChange(this.state);
   }
   onControlChange(attr, value) {
-    this.setState({ [attr]: value }, this.onChange);
+    let typedValue = value;
+    const { column: selectedColumnName, multiple } = this.state;
+    if (value && !multiple && attr === FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE) {
+      // if single value filter_box,
+      // convert input value string to the column's data type
+      const { datasource } = this.props;
+      const selectedColumn = datasource.columns.find(
+        col => col.column_name === selectedColumnName,
+      );
+
+      if (selectedColumn && selectedColumn.type) {
+        const type = selectedColumn.type.toUpperCase();
+        if (type === 'BOOLEAN') {
+          typedValue = value === 'true';
+        } else if (INTEGRAL_TYPES.has(type)) {
+          typedValue = isNaN(value) ? null : parseInt(value, 10);
+        } else if (DECIMAL_TYPES.has(type)) {
+          typedValue = isNaN(value) ? null : parseFloat(value);
+        }
+      }
+    }
+    this.setState({ [attr]: typedValue }, this.onChange);
   }
   setType() {}
   textSummary() {
@@ -110,7 +149,9 @@ export default class FilterBoxItemControl extends React.Component {
             <TextControl
               value={this.state.defaultValue}
               name="defaultValue"
-              onChange={v => this.onControlChange('defaultValue', v)}
+              onChange={v =>
+                this.onControlChange(FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE, v)
+              }
             />
           }
         />
@@ -155,7 +196,9 @@ export default class FilterBoxItemControl extends React.Component {
           control={
             <CheckboxControl
               value={this.state.multiple}
-              onChange={v => this.onControlChange('multiple', v)}
+              onChange={v =>
+                this.onControlChange(FILTER_CONFIG_ATTRIBUTES.MULTIPLE, v)
+              }
             />
           }
         />
