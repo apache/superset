@@ -47,6 +47,7 @@ const propTypes = {
   can_download: PropTypes.bool.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
+  sliceName: PropTypes.string,
   table_name: PropTypes.string,
   form_data: PropTypes.object,
   timeout: PropTypes.number,
@@ -63,6 +64,10 @@ export class ExploreChartHeader extends React.PureComponent {
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
   }
 
+  getSliceName() {
+    return this.props.sliceName || t('%s - untitled', this.props.table_name);
+  }
+
   postChartFormData() {
     this.props.actions.postChartFormData(
       this.props.form_data,
@@ -70,40 +75,6 @@ export class ExploreChartHeader extends React.PureComponent {
       this.props.timeout,
       this.props.chart.id,
     );
-  }
-
-  updateChartTitleOrSaveSlice(newTitle) {
-    const isNewSlice = !this.props.slice;
-    const currentFormData = isNewSlice
-      ? this.props.form_data
-      : this.props.slice.form_data;
-
-    const params = {
-      slice_name: newTitle,
-      action: isNewSlice ? 'saveas' : 'overwrite',
-    };
-    // this.props.slice hold the original slice params stored in slices table
-    // when chart is saved or overwritten, the explore view will reload page
-    // to make sure sync with updated query params
-    this.props.actions.saveSlice(currentFormData, params).then(json => {
-      const { data } = json;
-      if (isNewSlice) {
-        this.props.actions.updateChartId(data.slice.slice_id, 0);
-        this.props.actions.createNewSlice(
-          data.can_add,
-          data.can_download,
-          data.can_overwrite,
-          data.slice,
-          data.form_data,
-        );
-        this.props.addHistory({
-          isReplace: true,
-          title: `[chart] ${data.slice.slice_name}`,
-        });
-      } else {
-        this.props.actions.updateChartTitle(newTitle);
-      }
-    });
   }
 
   openProperiesModal() {
@@ -116,16 +87,6 @@ export class ExploreChartHeader extends React.PureComponent {
     this.setState({
       isPropertiesModalOpen: false,
     });
-  }
-
-  renderChartTitle() {
-    let title;
-    if (this.props.slice) {
-      title = this.props.slice.slice_name;
-    } else {
-      title = t('%s - untitled', this.props.table_name);
-    }
-    return title;
   }
 
   render() {
@@ -143,9 +104,9 @@ export class ExploreChartHeader extends React.PureComponent {
     return (
       <div id="slice-header" className="clearfix panel-title-large">
         <EditableTitle
-          title={this.renderChartTitle()}
+          title={this.getSliceName()}
           canEdit={!this.props.slice || this.props.can_overwrite}
-          onSaveTitle={this.updateChartTitleOrSaveSlice.bind(this)}
+          onSaveTitle={this.props.actions.updateChartTitle}
         />
 
         {this.props.slice && (

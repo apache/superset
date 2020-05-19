@@ -41,6 +41,7 @@ export default function getInitialState(bootstrapData) {
   };
 
   const slice = bootstrappedState.slice;
+  const sliceName = slice ? slice.slice_name : null;
 
   const sliceFormData = slice
     ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
@@ -68,7 +69,10 @@ export default function getInitialState(bootstrapData) {
       dashboards: [],
       saveModalAlert: null,
     },
-    explore: bootstrappedState,
+    explore: {
+      ...bootstrappedState,
+      sliceName,
+    },
     impressionId: shortid.generate(),
     messageToasts: getToastsFromPyFlashMessages(
       (bootstrapData.common || {}).flash_messages || [],
