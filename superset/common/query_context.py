@@ -61,8 +61,8 @@ class QueryContext:
         queries: List[Dict[str, Any]],
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
-        response_format: Optional[str] = None,
-        response_type: Optional[str] = None,
+        response_format: Optional[utils.ChartDataResponseFormat] = None,
+        response_type: Optional[utils.ChartDataResponseType] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
