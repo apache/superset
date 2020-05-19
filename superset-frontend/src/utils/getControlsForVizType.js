@@ -23,13 +23,10 @@ import controls from '../explore/controls';
 
 const getControlsForVizType = memoize(vizType => {
   const controlsMap = {};
-  console.log('controlsMap', controlsMap, vizType)
   getChartControlPanelRegistry()
     .get(vizType)
     .controlPanelSections.forEach(section => {
-      console.log('section', section)
       section.controlSetRows.forEach(row => {
-        console.log('row', row)
         row.forEach(control => {
           if (!control) return;
           if (typeof control === 'string') {
