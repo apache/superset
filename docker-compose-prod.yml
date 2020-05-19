@@ -29,8 +29,8 @@ x-superset-volumes: &superset-volumes
   - ./docker/pythonpath_dev:/app/pythonpath
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
-  - node_modules:/app/superset-frontend/node_modules
-  - superset_home:/app/superset_home
+  - ./data/node_modules:/app/superset-frontend/node_modules
+  - ./data/superset_home:/app/superset_home
 
 version: "3.7"
 services:
@@ -41,7 +41,7 @@ services:
     ports:
       - 6379:6379
     volumes:
-      - redis:/data
+      - ./data/redis:/data
 
   db:
     env_file: docker/.prod.env
@@ -51,7 +51,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - db_home:/var/lib/postgresql/data
+      - ./data/db_home:/var/lib/postgresql/data
 
   superset:
     env_file: docker/.prod.env
@@ -102,3 +102,8 @@ volumes:
     external: false
   redis:
     external: false
+
+networks:
+  default:
+    external:
+      name: prod
