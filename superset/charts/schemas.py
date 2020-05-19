@@ -711,6 +711,14 @@ class ChartDataQueryContextSchema(Schema):
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
     )
+    result_type = fields.String(
+        description="Type of results to return",
+        validate=validate.OneOf(choices=("query", "results", "samples")),
+    )
+    result_format = fields.String(
+        description="Format of result payload",
+        validate=validate.OneOf(choices=("json", "csv")),
+    )
 
     # pylint: disable=no-self-use
     @post_load
