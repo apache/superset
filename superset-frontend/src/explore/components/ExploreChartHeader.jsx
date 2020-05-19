@@ -147,8 +147,8 @@ export class ExploreChartHeader extends React.PureComponent {
         <div className="pull-right">
           {chartFinished && queryResponse && (
             <RowCountLabel
-              rowcount={queryResponse.rowcount}
-              limit={formData.row_limit}
+              rowcount={Number(queryResponse.rowcount) || 0}
+              limit={Number(formData.row_limit) || 0}
             />
           )}
           {chartFinished && queryResponse && queryResponse.is_cached && (

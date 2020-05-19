@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Panel } from 'react-bootstrap';
-import Select from 'react-virtualized-select';
+import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';

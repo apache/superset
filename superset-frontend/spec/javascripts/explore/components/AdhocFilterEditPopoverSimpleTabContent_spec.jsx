@@ -95,58 +95,50 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       .instance()
       .onSubjectChange({ type: 'VARCHAR(255)', column_name: 'source' });
     expect(onChange.calledOnce).toBe(true);
-    expect(
-      onChange.lastCall.args[0].equals(
-        simpleAdhocFilter.duplicateWith({ subject: 'source' }),
-      ),
-    ).toBe(true);
+    expect(onChange.lastCall.args[0]).toEqual(
+      simpleAdhocFilter.duplicateWith({ subject: 'source' }),
+    );
   });
 
   it('may alter the clause in onSubjectChange if the old clause is not appropriate', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onSubjectChange(sumValueAdhocMetric);
     expect(onChange.calledOnce).toBe(true);
-    expect(
-      onChange.lastCall.args[0].equals(
-        simpleAdhocFilter.duplicateWith({
-          subject: sumValueAdhocMetric.label,
-          clause: CLAUSES.HAVING,
-        }),
-      ),
-    ).toBe(true);
+    expect(onChange.lastCall.args[0]).toEqual(
+      simpleAdhocFilter.duplicateWith({
+        subject: sumValueAdhocMetric.label,
+        clause: CLAUSES.HAVING,
+      }),
+    );
   });
 
   it('will convert from individual comparator to array if the operator changes to multi', () => {
     const { wrapper, onChange } = setup();
-    wrapper.instance().onOperatorChange({ operator: 'in' });
+    wrapper.instance().onOperatorChange('in');
     expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0].comparator).toHaveLength(1);
-    expect(onChange.lastCall.args[0].comparator[0]).toBe('10');
-    expect(onChange.lastCall.args[0].operator).toBe('in');
+    expect(onChange.lastCall.args[0]).toEqual(
+      simpleAdhocFilter.duplicateWith({ operator: 'in', comparator: ['10'] }),
+    );
   });
 
   it('will convert from array to individual comparators if the operator changes from multi', () => {
     const { wrapper, onChange } = setup({
       adhocFilter: simpleMultiAdhocFilter,
     });
-    wrapper.instance().onOperatorChange({ operator: '<' });
+    wrapper.instance().onOperatorChange('<');
     expect(onChange.calledOnce).toBe(true);
-    expect(
-      onChange.lastCall.args[0].equals(
-        simpleAdhocFilter.duplicateWith({ operator: '<', comparator: '10' }),
-      ),
-    ).toBe(true);
+    expect(onChange.lastCall.args[0]).toEqual(
+      simpleMultiAdhocFilter.duplicateWith({ operator: '<', comparator: '10' }),
+    );
   });
 
   it('passes the new adhocFilter to onChange after onComparatorChange', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onComparatorChange('20');
     expect(onChange.calledOnce).toBe(true);
-    expect(
-      onChange.lastCall.args[0].equals(
-        simpleAdhocFilter.duplicateWith({ comparator: '20' }),
-      ),
-    ).toBe(true);
+    expect(onChange.lastCall.args[0]).toEqual(
+      simpleAdhocFilter.duplicateWith({ comparator: '20' }),
+    );
   });
 
   it('will filter operators for table datasources', () => {
@@ -195,20 +187,17 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       partitionColumn: 'ds',
     });
 
-    wrapper.instance().onOperatorChange({ operator: 'LATEST PARTITION' });
-    expect(
-      onChange.lastCall.args[0].equals(
-        testAdhocFilter.duplicateWith({
-          subject: 'ds',
-          operator: 'LATEST PARTITION',
-          comparator: null,
-          clause: 'WHERE',
-          expressionType: 'SQL',
-          sqlExpression:
-            "ds = '{{ presto.latest_partition('schema.table1') }}' ",
-        }),
-      ),
-    ).toBe(true);
+    wrapper.instance().onOperatorChange('LATEST PARTITION');
+    expect(onChange.lastCall.args[0]).toEqual(
+      testAdhocFilter.duplicateWith({
+        subject: 'ds',
+        operator: 'LATEST PARTITION',
+        comparator: null,
+        clause: 'WHERE',
+        expressionType: 'SQL',
+        sqlExpression: "ds = '{{ presto.latest_partition('schema.table1') }}' ",
+      }),
+    );
   });
 
   it('expands when its multi comparator input field expands', () => {

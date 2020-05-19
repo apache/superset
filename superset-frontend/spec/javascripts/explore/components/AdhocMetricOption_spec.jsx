@@ -55,4 +55,11 @@ describe('AdhocMetricOption', () => {
     expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
     expect(wrapper.find(Label)).toHaveLength(1);
   });
+
+  it('overlay should open if metric is new', () => {
+    const { wrapper } = setup({
+      adhocMetric: sumValueAdhocMetric.duplicateWith({ isNew: true }),
+    });
+    expect(wrapper.find(OverlayTrigger).props().defaultOverlayShown).toBe(true);
+  });
 });

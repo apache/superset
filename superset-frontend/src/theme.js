@@ -16,5 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '../stylesheets/react-select/select.less';
 import '../stylesheets/superset.less';

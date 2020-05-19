@@ -26,7 +26,7 @@ import {
   Tab,
   Tabs,
 } from 'react-bootstrap';
-import VirtualizedSelect from 'react-virtualized-select';
+import Select from 'src/components/Select';
 import ace from 'brace';
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
@@ -34,9 +34,7 @@ import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import { t } from '@superset-ui/translation';
 
-import { AGGREGATES } from '../constants';
-import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
-import OnPasteSelect from '../../components/OnPasteSelect';
+import { AGGREGATES, AGGREGATES_OPTIONS } from '../constants';
 import AdhocMetricEditPopoverTitle from './AdhocMetricEditPopoverTitle';
 import columnType from '../propTypes/columnType';
 import AdhocMetric, { EXPRESSION_TYPES } from '../AdhocMetric';
@@ -80,12 +78,10 @@ export default class AdhocMetricEditPopover extends React.Component {
       height: startingHeight,
     };
     this.selectProps = {
-      multi: false,
-      name: 'select-column',
       labelKey: 'label',
+      isMulti: false,
       autosize: false,
       clearable: true,
-      selectWrap: VirtualizedSelect,
     };
     if (langTools) {
       const words = sqlKeywords.concat(
@@ -129,7 +125,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     // we construct this object explicitly to overwrite the value in the case aggregate is null
     this.setState({
       adhocMetric: this.state.adhocMetric.duplicateWith({
-        aggregate: aggregate && aggregate.aggregate,
+        aggregate,
         expressionType: EXPRESSION_TYPES.SIMPLE,
       }),
     });
@@ -189,6 +185,10 @@ export default class AdhocMetricEditPopover extends React.Component {
     setTimeout(() => this.aceEditorRef.editor.resize(), 0);
   }
 
+  renderColumnOption(option) {
+    return <ColumnOption column={option} showType />;
+  }
+
   render() {
     const {
       adhocMetric: propsAdhocMetric,
@@ -209,26 +209,20 @@ export default class AdhocMetricEditPopover extends React.Component {
         (adhocMetric.column && adhocMetric.column.column_name) ||
         adhocMetric.inferSqlExpressionColumn(),
       onChange: this.onColumnChange,
-      optionRenderer: VirtualizedRendererWrap(option => (
-        <ColumnOption column={option} showType />
-      )),
-      valueRenderer: column => column.column_name,
+      optionRenderer: this.renderColumnOption,
       valueKey: 'column_name',
     };
 
     const aggregateSelectProps = {
-      placeholder: t('%s aggregates(s)', Object.keys(AGGREGATES).length),
-      options: Object.keys(AGGREGATES).map(aggregate => ({ aggregate })),
+      placeholder: t('%s aggregates(s)', AGGREGATES_OPTIONS.length),
+      options: AGGREGATES_OPTIONS,
       value: adhocMetric.aggregate || adhocMetric.inferSqlExpressionAggregate(),
       onChange: this.onAggregateChange,
-      optionRenderer: VirtualizedRendererWrap(aggregate => aggregate.aggregate),
-      valueRenderer: aggregate => aggregate.aggregate,
-      valueKey: 'aggregate',
     };
 
     if (this.props.datasourceType === 'druid') {
       aggregateSelectProps.options = aggregateSelectProps.options.filter(
-        option => option.aggregate !== 'AVG',
+        aggregate => aggregate !== 'AVG',
       );
     }
 
@@ -260,16 +254,21 @@ export default class AdhocMetricEditPopover extends React.Component {
               <ControlLabel>
                 <strong>column</strong>
               </ControlLabel>
-              <OnPasteSelect {...this.selectProps} {...columnSelectProps} />
+              <Select
+                name="select-column"
+                {...this.selectProps}
+                {...columnSelectProps}
+              />
             </FormGroup>
             <FormGroup>
               <ControlLabel>
                 <strong>aggregate</strong>
               </ControlLabel>
-              <OnPasteSelect
-                autoFocus
+              <Select
+                name="select-aggregate"
                 {...this.selectProps}
                 {...aggregateSelectProps}
+                autoFocus
               />
             </FormGroup>
           </Tab>
