@@ -144,7 +144,10 @@ class QueryContext:
     def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
         """Returns a payload of metadata and data"""
         if self.response_type == utils.ChartDataResponseType.QUERY:
-            return {"query": self.datasource.get_query_str(query_obj.to_dict())}
+            return {
+                "query": self.datasource.get_query_str(query_obj.to_dict()),
+                "language": self.datasource.query_language,
+            }
         if self.response_type == utils.ChartDataResponseType.SAMPLES:
             row_limit = query_obj.row_limit or 1000
             query_obj = copy.copy(query_obj)
