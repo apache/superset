@@ -23,7 +23,8 @@ import { connect } from 'react-redux';
 import $ from 'jquery';
 import { t } from '@superset-ui/translation';
 import throttle from 'lodash/throttle';
-
+import { ThemeProvider } from 'emotion-theming';
+import { supersetTheme } from '@superset-ui/style';
 import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
@@ -132,10 +133,12 @@ class App extends React.PureComponent {
       );
     }
     return (
-      <div className="App SqlLab">
-        {content}
-        <ToastPresenter />
-      </div>
+      <ThemeProvider theme={supersetTheme}>
+        <div className="App SqlLab">
+          {content}
+          <ToastPresenter />
+        </div>
+      </ThemeProvider>
     );
   }
 }

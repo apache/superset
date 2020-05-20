@@ -21,7 +21,8 @@ import { hot } from 'react-hot-loader/root';
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
-
+import { ThemeProvider } from 'emotion-theming';
+import { supersetTheme } from '@superset-ui/style';
 import App from './components/App';
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
@@ -46,7 +47,9 @@ const store = createStore(
 
 const Application = () => (
   <Provider store={store}>
-    <App user={bootstrap.user} />
+    <ThemeProvider theme={supersetTheme}>
+      <App user={bootstrap.user} />
+    </ThemeProvider>
   </Provider>
 );
 
