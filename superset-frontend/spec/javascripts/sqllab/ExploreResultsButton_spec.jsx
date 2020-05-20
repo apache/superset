@@ -101,6 +101,7 @@ describe('ExploreResultsButton', () => {
       '1',
       '123',
       'CASE WHEN 1=1 THEN 1 ELSE 0 END',
+      '__TIMESTAMP',
     ]);
 
     const msgWrapper = shallow(wrapper.instance().renderInvalidColumnMessage());
