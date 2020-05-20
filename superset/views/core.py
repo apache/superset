@@ -636,10 +636,8 @@ class Superset(BaseSupersetView):
     def get_samples(self, viz_obj):
         return self.json_response({"data": viz_obj.get_samples()})
 
-    def generate_json(
-        self, viz_obj, csv=False, query=False, results=False, samples=False
-    ):
-        if csv:
+    def generate_json(self, viz_obj, response_type: Optional[str] = None) -> Response:
+        if response_type == utils.ChartDataResponseFormat.CSV:
             return CsvResponse(
                 viz_obj.get_csv(),
                 status=200,
@@ -647,13 +645,13 @@ class Superset(BaseSupersetView):
                 mimetype="application/csv",
             )
 
-        if query:
+        if response_type == utils.ChartDataResponseType.QUERY:
             return self.get_query_string_response(viz_obj)
 
-        if results:
+        if response_type == utils.ChartDataResponseType.RESULTS:
             return self.get_raw_results(viz_obj)
 
-        if samples:
+        if response_type == utils.ChartDataResponseType.SAMPLES:
             return self.get_samples(viz_obj)
 
         payload = viz_obj.get_payload()
@@ -715,11 +713,14 @@ class Superset(BaseSupersetView):
         payloads based on the request args in the first block
 
         TODO: break into one endpoint for each return shape"""
-        csv = request.args.get("csv") == "true"
-        query = request.args.get("query") == "true"
-        results = request.args.get("results") == "true"
-        samples = request.args.get("samples") == "true"
-        force = request.args.get("force") == "true"
+        response_type = utils.ChartDataResponseFormat.JSON.value
+        responses = [resp_format for resp_format in utils.ChartDataResponseFormat]
+        responses.extend([resp_type for resp_type in utils.ChartDataResponseType])
+        for response_option in responses:
+            if request.args.get(response_option) == "true":
+                response_type = response_option
+                break
+
         form_data = get_form_data()[0]
 
         try:
@@ -731,12 +732,10 @@ class Superset(BaseSupersetView):
                 datasource_type=datasource_type,
                 datasource_id=datasource_id,
                 form_data=form_data,
-                force=force,
+                force=request.args.get("force") == "true",
             )
 
-            return self.generate_json(
-                viz_obj, csv=csv, query=query, results=results, samples=samples
-            )
+            return self.generate_json(viz_obj, response_type)
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex))
 
