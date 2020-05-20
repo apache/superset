@@ -15,5 +15,4 @@
 # limitations under the License.
 #
 sphinx==3.0.1
-sphinx-autodoc-typehints==1.10.3
 sphinx-rtd-theme==0.4.3
