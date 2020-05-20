@@ -58,7 +58,7 @@ pip install {{ range .Values.additionalRequirements }}{{ . }} {{ end }}
 
 {{- define "superset-config" }}
 import os
-from werkzeug.contrib.cache import RedisCache
+from flask_caching.backends.rediscache import RedisCache
 
 def env(key, default=None):
     return os.getenv(key, default)

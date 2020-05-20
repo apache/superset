@@ -24,6 +24,7 @@ replicaCount: 1
 ## These requirements are used to build a requirements file which is then applied on init
 ## of superset containers
 additionalRequirements:
+  - "Flask-Caching==1.8.0"
   - "psycopg2==2.8.5"
   - "redis==3.2.1"
 
