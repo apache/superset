@@ -19,6 +19,11 @@ jobs:
         FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
       run: |
         set -eo pipefail
+        if [[ "${{github.event_name}}" != "pull_request" ]]; then 
+          ./scripts/fossa.sh
+          exit 0
+        fi
+
         URL="https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files"
         FILES=$(curl -s -X GET -G $URL | jq -r '.[] | .filename')
 
