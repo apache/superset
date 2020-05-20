@@ -19,9 +19,10 @@
 import React from 'react';
 import { hot } from 'react-hot-loader/root';
 import { Provider } from 'react-redux';
+import { ThemeProvider } from 'emotion-theming';
+import styled, { supersetTheme } from '@superset-ui/style';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 import ExploreViewContainer from './components/ExploreViewContainer';
-
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import './main.less';
@@ -32,10 +33,12 @@ setupPlugins();
 
 const App = ({ store }) => (
   <Provider store={store}>
-    <div>
-      <ExploreViewContainer />
-      <ToastPresenter />
-    </div>
+    <ThemeProvider theme={supersetTheme}>
+      <div>
+        <ExploreViewContainer />
+        <ToastPresenter />
+      </div>
+    </ThemeProvider>
   </Provider>
 );
 
