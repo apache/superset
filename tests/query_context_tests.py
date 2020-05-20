@@ -136,7 +136,7 @@ class QueryContextTests(SupersetTestCase):
         self.assertEqual(query_object.granularity, "timecol")
         self.assertIn("having_druid", query_object.extras)
 
-    def test_csv_result_format(self):
+    def test_csv_response_format(self):
         """
         Ensure that CSV result format works
         """
@@ -156,7 +156,7 @@ class QueryContextTests(SupersetTestCase):
         self.assertIn("name,sum__num\n", data)
         self.assertEqual(len(data.split("\n")), 12)
 
-    def test_samples_result_type(self):
+    def test_samples_response_type(self):
         """
         Ensure that samples result type works
         """
@@ -176,7 +176,7 @@ class QueryContextTests(SupersetTestCase):
         self.assertEqual(len(data), 5)
         self.assertNotIn("sum__num", data[0])
 
-    def test_query_query_type(self):
+    def test_query_response_type(self):
         """
         Ensure that query result type works
         """
@@ -189,8 +189,10 @@ class QueryContextTests(SupersetTestCase):
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
         response = responses[0]
+        self.assertEqual(len(response), 2)
         self.assertIn("query", response)
-        self.assertEqual(len(response), 1)
+        self.assertIn("language", response)
+        self.assertEqual(response["language"], "sql")
         query = response["query"]
         self.assertIsInstance(query, str)
         self.assertIn("SELECT", query)
