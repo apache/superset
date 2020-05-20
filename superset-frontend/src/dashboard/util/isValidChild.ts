@@ -105,36 +105,21 @@ const parentMaxDepthLookup = {
   [MARKDOWN_TYPE]: {},
 };
 
-type ParentMaxDepthLookup = typeof parentMaxDepthLookup;
-
 interface IsValidChildProps {
-  parentType?: unknown;
-  childType?: unknown;
+  parentType?: string;
+  childType?: string;
   parentDepth?: unknown;
 }
 
-interface ValidChild<
-  P extends keyof ParentMaxDepthLookup,
-  C extends keyof ParentMaxDepthLookup[P],
-  D extends ParentMaxDepthLookup[P][C]
-> {
-  parentType: P;
-  childType: C;
-  parentDepth: D;
-}
-
-export default function isValidChild<
-  P extends keyof ParentMaxDepthLookup = any,
-  C extends keyof ParentMaxDepthLookup[P] = any,
-  D extends ParentMaxDepthLookup[P][C] = any
->(child: IsValidChildProps): child is ValidChild<P, C, D> {
+export default function isValidChild(child: IsValidChildProps): boolean {
   const { parentType, childType, parentDepth } = child;
   if (!parentType || !childType || typeof parentDepth !== 'number') {
     return false;
   }
 
-  const maxParentDepth = (parentMaxDepthLookup[parentType as P] ||
-    ({} as ParentMaxDepthLookup[P]))[childType as C];
+  const maxParentDepth: number | undefined = (parentMaxDepthLookup[
+    parentType
+  ] || {})[childType];
 
   return typeof maxParentDepth === 'number' && parentDepth <= maxParentDepth;
 }
