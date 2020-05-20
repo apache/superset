@@ -1082,7 +1082,7 @@ class SqlaTable(Model, BaseDatasource):
         except Exception as ex:
             df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
-            logger.exception(f"Query {sql} on schema {self.schema} failed")
+            logger.warning(f"Query {sql} on schema {self.schema} failed", exc_info=True)
             db_engine_spec = self.database.db_engine_spec
             errors = db_engine_spec.extract_errors(ex)
 
