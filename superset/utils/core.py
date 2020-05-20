@@ -1367,3 +1367,22 @@ class FilterOperator(str, Enum):
     IN = "IN"
     NOT_IN = "NOT IN"
     REGEX = "REGEX"
+
+
+class ChartDataResponseType(str, Enum):
+    """
+    Chart data response type
+    """
+
+    QUERY = "query"
+    RESULTS = "results"
+    SAMPLES = "samples"
+
+
+class ChartDataResponseFormat(str, Enum):
+    """
+    Chart data response format
+    """
+
+    CSV = "csv"
+    JSON = "json"
