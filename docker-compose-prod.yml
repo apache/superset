@@ -87,21 +87,11 @@ services:
   superset-worker:
     build: *superset-build
     container_name: superset_worker
-    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair"]
+    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
     env_file: docker/.prod.env
     restart: unless-stopped
     depends_on: *superset-depends-on
     volumes: *superset-volumes
-
-volumes:
-  superset_home:
-    external: false
-  node_modules:
-    external: false
-  db_home:
-    external: false
-  redis:
-    external: false
 
 networks:
   default:

@@ -29,7 +29,7 @@ pycodestyle==2.5.0
 pydruid==0.5.9
 pyhive==0.6.2
 pylint==1.9.2
-redis==3.5.1
+redis==3.2.1
 requests==2.23.0
 statsd==3.3.0
 tox==3.11.1
