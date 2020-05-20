@@ -167,15 +167,26 @@ class TableColumn(Model, BaseColumn):
             self.type, utils.DbColumnType.TEMPORAL
         )
 
-    def get_sqla_col(self, label: Optional[str] = None) -> Column:
-        label = label or self.column_name
+    def get_sqla_col(
+        self, label: Optional[str] = None, add_label: bool = True
+    ) -> Column:
+        """
+        Return a SqlAlchemy representation of the column object.
+
+        :param label: Alias to assign to column. If undefined, defaults to the
+                      column name.
+        :param add_label: Should an alias be added to the column object.
+        :return: SqlAlchemy column object.
+        """
         if self.expression:
             col = literal_column(self.expression)
         else:
             db_engine_spec = self.table.database.db_engine_spec
             type_ = db_engine_spec.get_sqla_column_type(self.type)
             col = column(self.column_name, type_=type_)
-        col = self.table.make_sqla_column_compatible(col, label)
+        if add_label:
+            label = label or self.column_name
+            col = self.table.make_sqla_column_compatible(col, label)
         return col
 
     @property
@@ -848,6 +859,7 @@ class SqlaTable(Model, BaseDatasource):
             op = flt["op"].upper()
             col_obj = cols.get(col)
             if col_obj:
+                sqla_col = col_obj.get_sqla_col(add_label=False)
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
@@ -861,9 +873,9 @@ class SqlaTable(Model, BaseDatasource):
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
                 ):
-                    cond = col_obj.get_sqla_col().in_(eq)
+                    cond = sqla_col.in_(eq)
                     if isinstance(eq, str) and NULL_STRING in eq:
-                        cond = or_(cond, col_obj.get_sqla_col() is None)
+                        cond = or_(cond, sqla_col is None)
                     if op == utils.FilterOperator.NOT_IN.value:
                         cond = ~cond
                     where_clause_and.append(cond)
@@ -871,23 +883,23 @@ class SqlaTable(Model, BaseDatasource):
                     if col_obj.is_numeric:
                         eq = utils.cast_to_num(flt["val"])
                     if op == utils.FilterOperator.EQUALS.value:
-                        where_clause_and.append(col_obj.get_sqla_col() == eq)
+                        where_clause_and.append(sqla_col == eq)
                     elif op == utils.FilterOperator.NOT_EQUALS.value:
-                        where_clause_and.append(col_obj.get_sqla_col() != eq)
+                        where_clause_and.append(sqla_col != eq)
                     elif op == utils.FilterOperator.GREATER_THAN.value:
-                        where_clause_and.append(col_obj.get_sqla_col() > eq)
+                        where_clause_and.append(sqla_col > eq)
                     elif op == utils.FilterOperator.LESS_THAN.value:
-                        where_clause_and.append(col_obj.get_sqla_col() < eq)
+                        where_clause_and.append(sqla_col < eq)
                     elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS.value:
-                        where_clause_and.append(col_obj.get_sqla_col() >= eq)
+                        where_clause_and.append(sqla_col >= eq)
                     elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS.value:
-                        where_clause_and.append(col_obj.get_sqla_col() <= eq)
+                        where_clause_and.append(sqla_col <= eq)
                     elif op == utils.FilterOperator.LIKE.value:
-                        where_clause_and.append(col_obj.get_sqla_col().like(eq))
+                        where_clause_and.append(sqla_col.like(eq))
                     elif op == utils.FilterOperator.IS_NULL.value:
-                        where_clause_and.append(col_obj.get_sqla_col() == None)
+                        where_clause_and.append(sqla_col == None)
                     elif op == utils.FilterOperator.IS_NOT_NULL.value:
-                        where_clause_and.append(col_obj.get_sqla_col() != None)
+                        where_clause_and.append(sqla_col != None)
                     else:
                         raise Exception(
                             _("Invalid filter operation type: %(op)s", op=op)
@@ -1068,7 +1080,7 @@ class SqlaTable(Model, BaseDatasource):
             """
 
             labels_expected = query_str_ext.labels_expected
-            if df is not None and not df.empty:
+            if df is not None:
                 if len(df.columns) != len(labels_expected):
                     raise Exception(
                         f"For {sql}, df.columns: {df.columns}"
