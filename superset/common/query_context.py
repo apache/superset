@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import logging
 import pickle as pkl
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -49,15 +50,19 @@ class QueryContext:
     queries: List[QueryObject]
     force: bool
     custom_cache_timeout: Optional[int]
+    response_type: utils.ChartDataResponseType
+    response_format: utils.ChartDataResponseFormat
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         datasource: Dict[str, Any],
         queries: List[Dict[str, Any]],
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
+        response_format: Optional[utils.ChartDataResponseFormat] = None,
+        response_type: Optional[utils.ChartDataResponseType] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
@@ -65,6 +70,8 @@ class QueryContext:
         self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
+        self.response_format = response_format or utils.ChartDataResponseFormat.JSON
+        self.response_type = response_type or utils.ChartDataResponseType.RESULTS
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""
@@ -124,12 +131,32 @@ class QueryContext:
             if dtype.type == np.object_ and col in query_object.metrics:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    @staticmethod
-    def get_data(df: pd.DataFrame,) -> List[Dict]:  # pylint: disable=no-self-use
+    def get_data(
+        self, df: pd.DataFrame,
+    ) -> Union[str, List[Dict[str, Any]]]:  # pylint: disable=no-self-use
+        if self.response_format == utils.ChartDataResponseFormat.CSV:
+            include_index = not isinstance(df.index, pd.RangeIndex)
+            result = df.to_csv(index=include_index, **config["CSV_EXPORT"])
+            return result or ""
+
         return df.to_dict(orient="records")
 
     def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
         """Returns a payload of metadata and data"""
+        if self.response_type == utils.ChartDataResponseType.QUERY:
+            return {
+                "query": self.datasource.get_query_str(query_obj.to_dict()),
+                "language": self.datasource.query_language,
+            }
+        if self.response_type == utils.ChartDataResponseType.SAMPLES:
+            row_limit = query_obj.row_limit or 1000
+            query_obj = copy.copy(query_obj)
+            query_obj.groupby = []
+            query_obj.metrics = []
+            query_obj.post_processing = []
+            query_obj.row_limit = row_limit
+            query_obj.columns = [o.column_name for o in self.datasource.columns]
+
         payload = self.get_df_payload(query_obj)
         df = payload["df"]
         status = payload["status"]
@@ -142,7 +169,7 @@ class QueryContext:
         return payload
 
     def get_payload(self) -> List[Dict[str, Any]]:
-        """Get all the payloads from the arrays"""
+        """Get all the payloads from the QueryObjects"""
         return [self.get_single_payload(query_object) for query_object in self.queries]
 
     @property
