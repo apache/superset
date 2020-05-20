@@ -28,7 +28,8 @@ import {
 } from 'react-bootstrap';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
-import { Async as SelectAsync, Option } from 'react-select';
+import { OptionsType } from 'react-select/src/types';
+import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
 import { t } from '@superset-ui/translation';
 import { SupersetClient, Json } from '@superset-ui/connection';
@@ -46,6 +47,11 @@ type InternalProps = {
   slice: Slice;
   onHide: () => void;
   onSave: (chart: Chart) => void;
+};
+
+type OwnerOption = {
+  label: string;
+  value: number;
 };
 
 export type WrapperProps = InternalProps & {
@@ -78,7 +84,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [owners, setOwners] = useState<Option[] | null>(null);
+  const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
 
   function showError({ error, statusText }: any) {
     errorDialog.current.show({
@@ -120,15 +126,14 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
     }).then(
       response => {
         const { result } = response.json as Json;
-        const options = result.map((item: any) => ({
+        return result.map((item: any) => ({
           value: item.value,
           label: item.text,
         }));
-        return { options };
       },
       badResponse => {
         getClientErrorObject(badResponse).then(showError);
-        return { options: [] };
+        return [];
       },
     );
   };
@@ -183,6 +188,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setName(event.target.value)
                 }
@@ -198,6 +204,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setDescription(event.target.value)
                 }
@@ -221,6 +228,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
                 }
@@ -236,14 +244,16 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
               <label className="control-label" htmlFor="owners">
                 {t('Owners')}
               </label>
-              <SelectAsync
-                multi
+              <AsyncSelect
+                isMulti
                 name="owners"
                 value={owners || []}
                 loadOptions={loadOptions}
+                defaultOptions // load options on render
+                cacheOptions
                 onChange={setOwners}
                 disabled={!owners}
-                filterOption={() => true} // options are filtered at the api
+                filterOption={null} // options are filtered at the api
               />
               <p className="help-block">
                 {t(

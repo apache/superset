@@ -25,13 +25,9 @@ import {
   FormControl,
   MenuItem,
   Row,
-  // @ts-ignore
 } from 'react-bootstrap';
-// @ts-ignore
-import SelectComponent from 'react-select';
-// @ts-ignore
-import VirtualizedSelect from 'react-virtualized-select';
-import { Filters, InternalFilter, Select } from './types';
+import { Select } from 'src/components/Select';
+import { Filters, InternalFilter, SelectOption } from './types';
 import { extractInputValue, getDefaultFilterOperator } from './utils';
 
 export const FilterMenu = ({
@@ -67,9 +63,10 @@ export const FilterMenu = ({
           <MenuItem
             key={ft.id}
             eventKey={ft}
-            onSelect={(fltr: typeof ft) =>
-              setInternalFilters([...internalFilters, fltr])
-            }
+            // @ts-ignore
+            onSelect={(fltr: typeof ft) => {
+              setInternalFilters([...internalFilters, fltr]);
+            }}
           >
             {ft.Header}
           </MenuItem>
@@ -97,6 +94,7 @@ export const FilterInputs = ({
     {internalFilters.map((ft, i) => {
       const filter = filters.find(f => f.id === ft.id);
       if (!filter) {
+        // eslint-disable-next-line no-console
         console.error(`could not find filter for ${ft.id}`);
         return null;
       }
@@ -112,32 +110,34 @@ export const FilterInputs = ({
                 bsSize="small"
                 value={ft.operator}
                 placeholder={filter ? getDefaultFilterOperator(filter) : ''}
+                // @ts-ignore
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   updateInternalFilter(i, {
                     operator: e.currentTarget.value,
                   });
                 }}
               >
-                {(filter.operators || []).map(({ label, value }: Select) => (
-                  <option key={label} value={value}>
-                    {label}
-                  </option>
-                ))}
+                {(filter.operators || []).map(
+                  ({ label, value }: SelectOption) => (
+                    <option key={label} value={value}>
+                      {label}
+                    </option>
+                  ),
+                )}
               </FormControl>
             </Col>
             <Col md={1} />
             <Col md={4}>
               {filter.input === 'select' && (
-                <VirtualizedSelect
+                <Select
                   autoFocus
                   multi
                   searchable
                   name={`filter-${filter.id}-select`}
                   options={filter.selects}
                   placeholder="Select Value"
-                  value={ft.value}
-                  selectComponent={SelectComponent}
-                  onChange={(e: Select[] | null) => {
+                  value={ft.value as SelectOption['value'][] | undefined}
+                  onChange={(e: SelectOption[] | null) => {
                     updateInternalFilter(i, {
                       operator: ft.operator || getDefaultFilterOperator(filter),
                       value: e ? e.map(s => s.value) : e,
@@ -146,11 +146,13 @@ export const FilterInputs = ({
                 />
               )}
               {filter.input !== 'select' && (
+                // @ts-ignore
                 <FormControl
                   type={filter.input ? filter.input : 'text'}
                   bsSize="small"
-                  value={ft.value || ''}
+                  value={String(ft.value || '')}
                   checked={Boolean(ft.value)}
+                  // @ts-ignore
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     e.persist();
                     updateInternalFilter(i, {

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Select from 'react-select';
+import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
 
 import ModalTrigger from '../../components/ModalTrigger';

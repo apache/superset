@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, Button, Modal, FormControl } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
-import { Async as SelectAsync } from 'react-select';
+import { AsyncSelect } from 'src/components/Select';
 import AceEditor from 'react-ace';
 import rison from 'rison';
 import { t } from '@superset-ui/translation';
@@ -116,15 +116,14 @@ class PropertiesModal extends React.PureComponent {
       endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
     }).then(
       response => {
-        const options = response.json.result.map(item => ({
+        return response.json.result.map(item => ({
           value: item.value,
           label: item.text,
         }));
-        return { options };
       },
       badResponse => {
         this.handleErrorResponse(badResponse);
-        return { options: [] };
+        return [];
       },
     );
   }
@@ -238,14 +237,16 @@ class PropertiesModal extends React.PureComponent {
                 <label className="control-label" htmlFor="owners">
                   {t('Owners')}
                 </label>
-                <SelectAsync
+                <AsyncSelect
                   name="owners"
-                  multi
+                  isMulti
                   value={values.owners}
                   loadOptions={this.loadOwnerOptions}
+                  defaultOptions // load options on render
+                  cacheOptions
                   onChange={this.onOwnersChange}
                   disabled={!isDashboardLoaded}
-                  filterOption={() => true} // options are filtered at the api
+                  filterOption={null} // options are filtered at the api
                 />
                 <p className="help-block">
                   {t(

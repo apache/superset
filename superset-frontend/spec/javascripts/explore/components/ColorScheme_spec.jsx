@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import { mount } from 'enzyme';
-import { Creatable } from 'react-select';
+import Creatable from 'react-select/creatable';
 import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';

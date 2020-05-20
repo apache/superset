@@ -40,7 +40,7 @@ export default function ErrorMessageWithStackTrace({
   // Check if a custom error message component was registered for this message
   if (error) {
     const ErrorMessageComponent = getErrorMessageComponentRegistry().get(
-      error.errorType,
+      error.error_type,
     );
     if (ErrorMessageComponent) {
       return <ErrorMessageComponent error={error} />;

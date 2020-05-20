@@ -23,12 +23,12 @@ import { ExploreChartHeader } from 'src/explore/components/ExploreChartHeader';
 import ExploreActionButtons from 'src/explore/components/ExploreActionButtons';
 import EditableTitle from 'src/components/EditableTitle';
 
-const stub = jest.fn(() => ({
-  then: () => {},
-}));
+const saveSliceStub = jest.fn();
+const updateChartTitleStub = jest.fn();
 const mockProps = {
   actions: {
-    saveSlice: stub,
+    saveSlice: saveSliceStub,
+    updateChartTitle: updateChartTitleStub,
   },
   can_overwrite: true,
   can_download: true,
@@ -65,24 +65,9 @@ describe('ExploreChartHeader', () => {
     expect(wrapper.find(ExploreActionButtons)).toHaveLength(1);
   });
 
-  it('should updateChartTitleOrSaveSlice for existed slice', () => {
+  it('should update title but not save', () => {
     const newTitle = 'New Chart Title';
-    wrapper.instance().updateChartTitleOrSaveSlice(newTitle);
-    expect(stub.call).toHaveLength(1);
-    expect(stub).toHaveBeenCalledWith(mockProps.slice.form_data, {
-      action: 'overwrite',
-      slice_name: newTitle,
-    });
-  });
-
-  it('should updateChartTitleOrSaveSlice for new slice', () => {
-    const newTitle = 'New Chart Title';
-    wrapper.setProps({ slice: undefined });
-    wrapper.instance().updateChartTitleOrSaveSlice(newTitle);
-    expect(stub.call).toHaveLength(1);
-    expect(stub).toHaveBeenCalledWith(mockProps.form_data, {
-      action: 'saveas',
-      slice_name: newTitle,
-    });
+    const editableTitle = wrapper.find(EditableTitle);
+    expect(editableTitle.props().onSaveTitle).toBe(updateChartTitleStub);
   });
 });

@@ -16,30 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import Select from 'react-select';
+import Async from 'react-select/async';
+import Creatable from 'react-select/creatable';
+import AsyncCreatable from 'react-select/async-creatable';
+import windowed from './windowed';
 
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
+export * from './windowed';
 
-const propTypes = {
-  option: PropTypes.object.isRequired,
-};
-
-// This component provides a general tooltip for options
-// in a SelectControl
-export default function OptionDescription({ option }) {
-  return (
-    <span>
-      <span className="m-r-5 option-label">{option.label}</span>
-      {option.description && (
-        <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
-          icon="question-circle-o"
-          tooltip={option.description}
-          label={`descr-${option.label}`}
-        />
-      )}
-    </span>
-  );
-}
-OptionDescription.propTypes = propTypes;
+export const WindowedSelect = windowed(Select);
+export const WindowedAsyncSelect = windowed(Async);
+export const WindowedCreatableSelect = windowed(Creatable);
+export const WindowedAsyncCreatableSelect = windowed(AsyncCreatable);
+export default WindowedSelect;

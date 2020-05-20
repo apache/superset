@@ -20,14 +20,16 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import VirtualizedSelect from 'react-virtualized-select';
-import Select, { Creatable } from 'react-select';
-
-import OnPasteSelect from 'src/components/OnPasteSelect';
+import {
+  Select,
+  AsyncSelect,
+  OnPasteSelect,
+  CreatableSelect,
+} from 'src/components/Select';
 
 const defaultProps = {
   onChange: sinon.spy(),
-  multi: true,
+  isMulti: true,
   isValidNewOption: sinon.spy(s => !!s.label),
   value: [],
   options: [
@@ -60,17 +62,16 @@ describe('OnPasteSelect', () => {
   });
 
   it('renders the supplied selectWrap component', () => {
-    const select = wrapper.find(Select);
+    const select = wrapper.findWhere(x => x.type() === Select);
     expect(select).toHaveLength(1);
   });
 
   it('renders custom selectWrap components', () => {
-    props.selectWrap = Creatable;
+    props.selectWrap = CreatableSelect;
     wrapper = shallow(<OnPasteSelect {...props} />);
-    expect(wrapper.find(Creatable)).toHaveLength(1);
-    props.selectWrap = VirtualizedSelect;
-    wrapper = shallow(<OnPasteSelect {...props} />);
-    expect(wrapper.find(VirtualizedSelect)).toHaveLength(1);
+    expect(wrapper.findWhere(x => x.type() === CreatableSelect)).toHaveLength(
+      1,
+    );
   });
 
   describe('onPaste', () => {

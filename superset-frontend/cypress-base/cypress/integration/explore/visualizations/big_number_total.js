@@ -53,7 +53,6 @@ export default () =>
           comparator: ['Aaron', 'Amy', 'Andrea'],
           clause: 'WHERE',
           sqlExpression: null,
-          fromFormData: true,
           filterOptionName: 'filter_4y6teao56zs_ebjsvwy48c',
         },
       ];

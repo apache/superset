@@ -109,7 +109,7 @@ The following RDBMS are currently supported:
 - `Apache Pinot <https://pinot.incubator.apache.org/>`_
 - `Apache Spark SQL <https://spark.apache.org/sql/>`_
 - `BigQuery <https://cloud.google.com/bigquery/>`_
-- `ClickHouse <https://clickhouse.yandex/>`_
+- `ClickHouse <https://clickhouse.tech/>`_
 - `CockroachDB <https://www.cockroachlabs.com/>`_
 - `Dremio <https://dremio.com/>`_
 - `Elasticsearch <https://www.elastic.co/elasticsearch/>`_

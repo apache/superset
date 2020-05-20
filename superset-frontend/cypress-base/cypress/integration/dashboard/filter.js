@@ -53,13 +53,11 @@ export default () =>
     });
 
     it('should apply filter', () => {
-      cy.wait(10);
-
-      cy.get('.Select-placeholder')
+      cy.get('.Select__control')
         .contains('Select [region]')
-        .click()
-        .next()
-        .find('input')
+        .click({ force: true });
+      cy.get('.Select__control input[type=text]')
+        .first()
         .type('South Asia{enter}', { force: true });
 
       // wait again after applied filters

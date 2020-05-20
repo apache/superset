@@ -38,10 +38,8 @@ import Histogram from '../explore/controlPanels/Histogram';
 import Horizon from '../explore/controlPanels/Horizon';
 import Iframe from '../explore/controlPanels/Iframe';
 import Mapbox from '../explore/controlPanels/Mapbox';
-import Markup from '../explore/controlPanels/Markup';
 import PairedTtest from '../explore/controlPanels/PairedTtest';
 import Para from '../explore/controlPanels/Para';
-import Partition from '../explore/controlPanels/Partition';
 import Separator from '../explore/controlPanels/Separator';
 import Table from '../explore/controlPanels/Table';
 import TimeTable from '../explore/controlPanels/TimeTable';
@@ -60,10 +58,8 @@ export default function setupPlugins() {
     .registerValue('horizon', Horizon)
     .registerValue('iframe', Iframe)
     .registerValue('mapbox', Mapbox)
-    .registerValue('markup', Markup)
     .registerValue('paired_ttest', PairedTtest)
     .registerValue('para', Para)
-    .registerValue('partition', Partition)
     .registerValue('separator', Separator)
     .registerValue('table', Table)
     .registerValue('time_table', TimeTable)
