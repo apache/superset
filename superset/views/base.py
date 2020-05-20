@@ -159,7 +159,7 @@ def handle_api_exception(f):
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
-            logger.exception(ex)
+            logger.warning(ex)
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
