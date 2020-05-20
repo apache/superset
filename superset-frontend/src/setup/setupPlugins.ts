@@ -38,7 +38,6 @@ import Histogram from '../explore/controlPanels/Histogram';
 import Horizon from '../explore/controlPanels/Horizon';
 import Iframe from '../explore/controlPanels/Iframe';
 import Mapbox from '../explore/controlPanels/Mapbox';
-import Markup from '../explore/controlPanels/Markup';
 import PairedTtest from '../explore/controlPanels/PairedTtest';
 import Para from '../explore/controlPanels/Para';
 import Separator from '../explore/controlPanels/Separator';
@@ -59,7 +58,6 @@ export default function setupPlugins() {
     .registerValue('horizon', Horizon)
     .registerValue('iframe', Iframe)
     .registerValue('mapbox', Mapbox)
-    .registerValue('markup', Markup)
     .registerValue('paired_ttest', PairedTtest)
     .registerValue('para', Para)
     .registerValue('separator', Separator)
