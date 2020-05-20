@@ -144,7 +144,7 @@ type Control = {
 
 const groupByControl = {
   type: 'SelectControl',
-  controlGroup: 'groupby',
+  queryField: 'groupby',
   multi: true,
   freeForm: true,
   label: t('Group by'),
@@ -174,7 +174,7 @@ const groupByControl = {
 
 const metrics = {
   type: 'MetricsControl',
-  controlGroup: 'metrics',
+  queryField: 'metrics',
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],

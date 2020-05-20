@@ -1,4 +1,4 @@
-import { QueryFormDataMetric } from './types/QueryFormData';
+import { QueryFormResidualDataValue } from './types/QueryFormData';
 import { QueryObjectMetric } from './types/Query';
 import { AdhocMetric } from './types/Metric';
 
@@ -9,7 +9,7 @@ function getDefaultLabel(metric: AdhocMetric) {
   return metric.sqlExpression;
 }
 
-export default function convertMetric(metric: QueryFormDataMetric): QueryObjectMetric {
+export default function convertMetric(metric: QueryFormResidualDataValue): QueryObjectMetric {
   let formattedMetric;
   if (typeof metric === 'string') {
     formattedMetric = {

@@ -3,6 +3,7 @@ import { DatasourceType } from './Datasource';
 import { AdhocMetric } from './Metric';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
 import { TimeRange } from './Time';
+import { QueryFormDataMetric, QueryFormResidualDataValue } from './QueryFormData';
 
 export type QueryObjectFilterClause = {
   col: string;
@@ -40,6 +41,10 @@ export type QueryObjectExtras = Partial<{
   where?: string;
 }>;
 
+export type ResidualQueryObjectData = {
+  [key: string]: unknown;
+};
+
 export type QueryObject = {
   /** Columns to group by */
   groupby?: string[];
@@ -73,7 +78,8 @@ export type QueryObject = {
 
   /** If set, will group by timestamp */
   is_timeseries?: boolean;
-} & TimeRange;
+} & TimeRange &
+  ResidualQueryObjectData;
 
 export interface QueryContext {
   datasource: {
@@ -84,3 +90,10 @@ export interface QueryContext {
   force: boolean;
   queries: QueryObject[];
 }
+
+export type QueryFieldData = {
+  columns: QueryFormResidualDataValue[];
+  groupby: QueryFormResidualDataValue[];
+  metrics: QueryFormDataMetric[];
+  [key: string]: QueryFormResidualDataValue[];
+};

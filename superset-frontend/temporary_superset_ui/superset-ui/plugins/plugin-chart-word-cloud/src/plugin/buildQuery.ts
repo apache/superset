@@ -6,7 +6,6 @@ export default function buildQuery(formData: WordCloudFormData) {
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      groupby: [formData.series],
     },
   ]);
 }
