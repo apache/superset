@@ -149,10 +149,7 @@ class QueryContextTests(SupersetTestCase):
         query_context = QueryContext(**payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        response = responses[0]
-        self.assertIn("data", response)
-        data = response["data"]
-        self.assertIsInstance(data, str)
+        data = responses[0]["data"]
         self.assertIn("name,sum__num\n", data)
         self.assertEqual(len(data.split("\n")), 12)
 
@@ -169,9 +166,7 @@ class QueryContextTests(SupersetTestCase):
         query_context = QueryContext(**payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        response = responses[0]
-        self.assertIn("data", response)
-        data = response["data"]
+        data = responses[0]["data"]
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 5)
         self.assertNotIn("sum__num", data[0])
@@ -190,9 +185,5 @@ class QueryContextTests(SupersetTestCase):
         self.assertEqual(len(responses), 1)
         response = responses[0]
         self.assertEqual(len(response), 2)
-        self.assertIn("query", response)
-        self.assertIn("language", response)
         self.assertEqual(response["language"], "sql")
-        query = response["query"]
-        self.assertIsInstance(query, str)
-        self.assertIn("SELECT", query)
+        self.assertIn("SELECT", response["query"])
