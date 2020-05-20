@@ -16,12 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export function getDashboardFilterKey({ chartId, column }) {
-  return `${chartId}_${column}`;
+const stopPeriodicRender = (refreshTimer?: number) => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+  }
+};
+
+interface SetPeriodicRunnerProps {
+  interval?: number;
+  periodicRender: TimerHandler;
+  refreshTimer?: number;
 }
 
-export function getChartIdAndColumnFromFilterKey(key) {
-  const [chartId, ...parts] = key.split('_');
-  const column = parts.slice().join('_');
-  return { chartId: parseInt(chartId, 10), column };
+export default function setPeriodicRunner({
+  interval = 0,
+  periodicRender,
+  refreshTimer,
+}: SetPeriodicRunnerProps) {
+  stopPeriodicRender(refreshTimer);
+
+  if (interval > 0) {
+    return setInterval(periodicRender, interval);
+  }
+  return 0;
 }

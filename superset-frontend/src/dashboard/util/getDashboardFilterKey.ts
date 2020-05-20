@@ -16,8 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE } from './componentTypes';
 
-export default function componentIsResizable(entity) {
-  return [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE].indexOf(entity.type) > -1;
+interface GetDashboardFilterKeyProps {
+  chartId: string;
+  column: string;
+}
+
+export function getDashboardFilterKey({
+  chartId,
+  column,
+}: GetDashboardFilterKeyProps) {
+  return `${chartId}_${column}`;
+}
+
+export function getChartIdAndColumnFromFilterKey(key: string) {
+  const [chartId, ...parts] = key.split('_');
+  const column = parts.slice().join('_');
+  return { chartId: parseInt(chartId, 10), column };
 }

@@ -31,7 +31,7 @@ import {
   TAB_TYPE as TAB,
 } from 'src/dashboard/util/componentTypes';
 
-const getIndentation = depth =>
+const getIndentation = (depth: number) =>
   Array(depth * 3)
     .fill('')
     .join('-');
@@ -136,11 +136,13 @@ describe('isValidChild', () => {
     invalidExamples.forEach((example, exampleIdx) => {
       let childDepth = 0;
       example.forEach((childType, i) => {
-        const shouldTestChild = Array.isArray(childType);
-
-        if (i > 0 && shouldTestChild) {
+        // should test child
+        if (i > 0 && Array.isArray(childType)) {
           const parentDepth = childDepth - 1;
           const parentType = example[i - 1];
+
+          if (typeof parentType !== 'string')
+            throw TypeError('parent must be string');
 
           it(`(${exampleIdx})${getIndentation(
             childDepth,
@@ -149,7 +151,7 @@ describe('isValidChild', () => {
               isValidChild({
                 parentDepth,
                 parentType,
-                childType,
+                childType: childType[0],
               }),
             ).toBe(false);
           });
