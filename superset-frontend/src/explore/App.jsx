@@ -21,6 +21,8 @@ import { hot } from 'react-hot-loader/root';
 import { Provider } from 'react-redux';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 import ExploreViewContainer from './components/ExploreViewContainer';
+import { ThemeProvider } from 'emotion-theming';
+import styled, { supersetTheme } from '@superset-ui/style';
 
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
@@ -32,10 +34,12 @@ setupPlugins();
 
 const App = ({ store }) => (
   <Provider store={store}>
-    <div>
-      <ExploreViewContainer />
-      <ToastPresenter />
-    </div>
+    <ThemeProvider theme={supersetTheme}>
+      <div>
+        <ExploreViewContainer />
+        <ToastPresenter />
+      </div>
+    </ThemeProvider>
   </Provider>
 );
 
