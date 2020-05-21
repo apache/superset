@@ -341,14 +341,15 @@ export default styled(BigNumberVis)`
     padding-bottom: 0;
   }
 
-  &.is-fallback-value{
-    .header-line, .subheader-line {
-    opacity: 0.5;
+  &.is-fallback-value {
+    .header-line,
+    .subheader-line {
+      opacity: 0.5;
+    }
   }
- 
+
   .superset-data-ui-tooltip {
     z-index: 1000;
     background: #000;
   }
-
 `;
