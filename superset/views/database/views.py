@@ -30,6 +30,7 @@ from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.exceptions import CertificateException
+from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
@@ -109,66 +110,116 @@ class CsvToDatabaseView(SimpleFormView):
 
     def form_post(self, form):
         database = form.con.data
-        schema_name = form.schema.data or ""
+        csv_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, schema_name):
+        if not schema_allows_csv_upload(database, csv_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
-                schema_name=schema_name,
+                schema_name=csv_table.schema,
             )
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
 
-        csv_filename = form.csv_file.data.filename
-        extension = os.path.splitext(csv_filename)[1].lower()
-        path = tempfile.NamedTemporaryFile(
-            dir=app.config["UPLOAD_FOLDER"], suffix=extension, delete=False
+        if "." in csv_table.table and csv_table.schema:
+            message = _(
+                "You cannot specify a namespace both in the name of the table: "
+                '"%(csv_table.table)s" and in the schema field: '
+                '"%(csv_table.schema)s". Please remove one',
+                table=csv_table.table,
+                schema=csv_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/csvtodatabaseview/form")
+
+        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(
+            dir=app.config["UPLOAD_FOLDER"],
+            suffix=os.path.splitext(form.csv_file.data.filename)[1].lower(),
+            delete=False,
         ).name
-        form.csv_file.data.filename = path
 
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
-            upload_stream_write(form.csv_file.data, path)
-            table_name = form.name.data
+            upload_stream_write(form.csv_file.data, uploaded_tmp_file_path)
 
             con = form.data.get("con")
             database = (
                 db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
             )
-            database.db_engine_spec.create_table_from_csv(form, database)
-            table = (
+            csv_to_df_kwargs = {
+                "sep": form.sep.data,
+                "header": form.header.data if form.header.data else 0,
+                "index_col": form.index_col.data,
+                "mangle_dupe_cols": form.mangle_dupe_cols.data,
+                "skipinitialspace": form.skipinitialspace.data,
+                "skiprows": form.skiprows.data,
+                "nrows": form.nrows.data,
+                "skip_blank_lines": form.skip_blank_lines.data,
+                "parse_dates": form.parse_dates.data,
+                "infer_datetime_format": form.infer_datetime_format.data,
+                "chunksize": 1000,
+            }
+            df_to_sql_kwargs = {
+                "name": csv_table.table,
+                "if_exists": form.if_exists.data,
+                "index": form.index.data,
+                "index_label": form.index_label.data,
+                "chunksize": 1000,
+            }
+            database.db_engine_spec.create_table_from_csv(
+                uploaded_tmp_file_path,
+                csv_table,
+                database,
+                csv_to_df_kwargs,
+                df_to_sql_kwargs,
+            )
+
+            # Connect table to the database that should be used for exploration.
+            # E.g. if hive was used to upload a csv, presto will be a better option
+            # to explore the table.
+            expore_database = database
+            explore_database_id = database.get_extra().get("explore_database_id", None)
+            if explore_database_id:
+                expore_database = (
+                    db.session.query(models.Database)
+                    .filter_by(id=explore_database_id)
+                    .one_or_none()
+                    or database
+                )
+
+            sqla_table = (
                 db.session.query(SqlaTable)
                 .filter_by(
-                    table_name=table_name,
-                    schema=form.schema.data,
-                    database_id=database.id,
+                    table_name=csv_table.table,
+                    schema=csv_table.schema,
+                    database_id=expore_database.id,
                 )
                 .one_or_none()
             )
-            if table:
-                table.fetch_metadata()
-            if not table:
-                table = SqlaTable(table_name=table_name)
-                table.database = database
-                table.database_id = database.id
-                table.user_id = g.user.id
-                table.schema = form.schema.data
-                table.fetch_metadata()
-                db.session.add(table)
+
+            if sqla_table:
+                sqla_table.fetch_metadata()
+            if not sqla_table:
+                sqla_table = SqlaTable(table_name=csv_table.table)
+                sqla_table.database = expore_database
+                sqla_table.database_id = database.id
+                sqla_table.user_id = g.user.id
+                sqla_table.schema = csv_table.schema
+                sqla_table.fetch_metadata()
+                db.session.add(sqla_table)
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
             try:
-                os.remove(path)
+                os.remove(uploaded_tmp_file_path)
             except OSError:
                 pass
             message = _(
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
-                filename=csv_filename,
+                filename=form.csv_file.data.filename,
                 table_name=form.name.data,
                 db_name=database.database_name,
                 error_msg=str(ex),
@@ -178,14 +229,14 @@ class CsvToDatabaseView(SimpleFormView):
             stats_logger.incr("failed_csv_upload")
             return redirect("/csvtodatabaseview/form")
 
-        os.remove(path)
+        os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
-            csv_filename=csv_filename,
-            table_name=form.name.data,
-            db_name=table.database.database_name,
+            csv_filename=form.csv_file.data.filename,
+            table_name=str(csv_table),
+            db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
         stats_logger.incr("successful_csv_upload")

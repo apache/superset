@@ -609,7 +609,13 @@ class Database(
     def get_schema_access_for_csv_upload(  # pylint: disable=invalid-name
         self,
     ) -> List[str]:
-        return self.get_extra().get("schemas_allowed_for_csv_upload", [])
+        allowed_databases = self.get_extra().get("schemas_allowed_for_csv_upload", [])
+        if hasattr(g, "user"):
+            extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
+                self, g.user
+            )
+            allowed_databases += extra_allowed_databases
+        return sorted(set(allowed_databases))
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
