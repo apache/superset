@@ -24,6 +24,8 @@ import io
 import json
 import logging
 import os
+from typing import Dict, List, Optional
+
 import pytz
 import random
 import re
@@ -44,6 +46,7 @@ from superset import (
     is_feature_enabled,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.datasets.dao import DatasetDAO
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
@@ -769,102 +772,163 @@ class CoreTests(SupersetTestCase):
         self.get_json_resp(slc_url, {"form_data": json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
 
-    def test_import_csv(self):
-        self.login(username="admin")
-        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+    def create_sample_csvfile(self, filename: str, content: List[str]) -> None:
+        with open(filename, "w+") as test_file:
+            for l in content:
+                test_file.write(f"{l}\n")
 
-        filename_1 = "testCSV.csv"
-        test_file_1 = open(filename_1, "w+")
-        test_file_1.write("a,b\n")
-        test_file_1.write("john,1\n")
-        test_file_1.write("paul,2\n")
-        test_file_1.close()
-
-        filename_2 = "testCSV2.csv"
-        test_file_2 = open(filename_2, "w+")
-        test_file_2.write("b,c,d\n")
-        test_file_2.write("john,1,x\n")
-        test_file_2.write("paul,2,y\n")
-        test_file_2.close()
-
-        example_db = utils.get_example_database()
-        example_db.allow_csv_upload = True
-        db_id = example_db.id
+    def enable_csv_upload(self, database: models.Database) -> None:
+        """Enables csv upload in the given database."""
+        database.allow_csv_upload = True
         db.session.commit()
+        add_datasource_page = self.get_resp("/databaseview/list/")
+        self.assertIn("Upload a CSV", add_datasource_page)
+
+        form_get = self.get_resp("/csvtodatabaseview/form")
+        self.assertIn("CSV to Database configuration", form_get)
+
+    def upload_csv(
+        self, filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    ):
         form_data = {
-            "csv_file": open(filename_1, "rb"),
+            "csv_file": open(filename, "rb"),
             "sep": ",",
             "name": table_name,
-            "con": db_id,
+            "con": utils.get_example_database().id,
             "if_exists": "fail",
             "index_label": "test_label",
             "mangle_dupe_cols": False,
         }
-        url = "/databaseview/list/"
-        add_datasource_page = self.get_resp(url)
-        self.assertIn("Upload a CSV", add_datasource_page)
+        if extra:
+            form_data.update(extra)
+        return self.get_resp("/csvtodatabaseview/form", data=form_data)
 
-        url = "/csvtodatabaseview/form"
-        form_get = self.get_resp(url)
-        self.assertIn("CSV to Database configuration", form_get)
+    @mock.patch(
+        "superset.models.core.config",
+        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": lambda d, u: ["admin_database"]},
+    )
+    def test_import_csv_enforced_schema(self):
+        if utils.get_example_database().backend == "sqlite":
+            # sqlite doesn't support schema / database creation
+            return
+        self.login(username="admin")
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+        full_table_name = f"admin_database.{table_name}"
+        filename = "testCSV.csv"
+        self.create_sample_csvfile(filename, ["a,b", "john,1", "paul,2"])
+        try:
+            self.enable_csv_upload(utils.get_example_database())
+
+            # no schema specified, fail upload
+            resp = self.upload_csv(filename, table_name)
+            self.assertIn(
+                'Database "examples" schema "None" is not allowed for csv uploads', resp
+            )
+
+            # user specified schema matches the expected schema, append
+            success_msg = f'CSV file "{filename}" uploaded to table "{full_table_name}"'
+            resp = self.upload_csv(
+                filename,
+                table_name,
+                extra={"schema": "admin_database", "if_exists": "append"},
+            )
+            self.assertIn(success_msg, resp)
+
+            resp = self.upload_csv(
+                filename,
+                table_name,
+                extra={"schema": "admin_database", "if_exists": "replace"},
+            )
+            self.assertIn(success_msg, resp)
+
+            # user specified schema doesn't match, fail
+            resp = self.upload_csv(filename, table_name, extra={"schema": "gold"})
+            self.assertIn(
+                'Database "examples" schema "gold" is not allowed for csv uploads',
+                resp,
+            )
+        finally:
+            os.remove(filename)
+
+    def test_import_csv_explore_database(self):
+        if utils.get_example_database().backend == "sqlite":
+            # sqlite doesn't support schema / database creation
+            return
+        explore_db_id = utils.get_example_database().id
+
+        upload_db = utils.get_or_create_db(
+            "csv_explore_db", app.config["SQLALCHEMY_DATABASE_URI"]
+        )
+        upload_db_id = upload_db.id
+        extra = upload_db.get_extra()
+        extra["explore_database_id"] = explore_db_id
+        upload_db.extra = json.dumps(extra)
+        db.session.commit()
+
+        self.login(username="admin")
+        self.enable_csv_upload(DatasetDAO.get_database_by_id(upload_db_id))
+        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+
+        f = "testCSV.csv"
+        self.create_sample_csvfile(f, ["a,b", "john,1", "paul,2"])
+        # initial upload with fail mode
+        resp = self.upload_csv(f, table_name)
+        self.assertIn(f'CSV file "{f}" uploaded to table "{table_name}"', resp)
+        table = self.get_table_by_name(table_name)
+        self.assertEqual(table.database_id, explore_db_id)
+
+        # cleanup
+        db.session.delete(table)
+        db.session.delete(DatasetDAO.get_database_by_id(upload_db_id))
+        db.session.commit()
+        os.remove(f)
+
+    def test_import_csv(self):
+        self.login(username="admin")
+        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+
+        f1 = "testCSV.csv"
+        self.create_sample_csvfile(f1, ["a,b", "john,1", "paul,2"])
+        f2 = "testCSV2.csv"
+        self.create_sample_csvfile(f2, ["b,c,d", "john,1,x", "paul,2,y"])
+        self.enable_csv_upload(utils.get_example_database())
 
         try:
+            success_msg_f1 = f'CSV file "{f1}" uploaded to table "{table_name}"'
+
             # initial upload with fail mode
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
-            )
+            resp = self.upload_csv(f1, table_name)
+            self.assertIn(success_msg_f1, resp)
 
             # upload again with fail mode; should fail
-            form_data["csv_file"] = open(filename_1, "rb")
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'Unable to upload CSV file "{filename_1}" to table "{table_name}"',
-                resp,
-            )
+            fail_msg = f'Unable to upload CSV file "{f1}" to table "{table_name}"'
+            resp = self.upload_csv(f1, table_name)
+            self.assertIn(fail_msg, resp)
 
             # upload again with append mode
-            form_data["csv_file"] = open(filename_1, "rb")
-            form_data["if_exists"] = "append"
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
-            )
+            resp = self.upload_csv(f1, table_name, extra={"if_exists": "append"})
+            self.assertIn(success_msg_f1, resp)
 
             # upload again with replace mode
-            form_data["csv_file"] = open(filename_1, "rb")
-            form_data["if_exists"] = "replace"
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
-            )
+            resp = self.upload_csv(f1, table_name, extra={"if_exists": "replace"})
+            self.assertIn(success_msg_f1, resp)
 
             # try to append to table from file with different schema
-            form_data["csv_file"] = open(filename_2, "rb")
-            form_data["if_exists"] = "append"
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'Unable to upload CSV file "{filename_2}" to table "{table_name}"',
-                resp,
-            )
+            resp = self.upload_csv(f2, table_name, extra={"if_exists": "append"})
+            fail_msg_f2 = f'Unable to upload CSV file "{f2}" to table "{table_name}"'
+            self.assertIn(fail_msg_f2, resp)
 
             # replace table from file with different schema
-            form_data["csv_file"] = open(filename_2, "rb")
-            form_data["if_exists"] = "replace"
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'CSV file "{filename_2}" uploaded to table "{table_name}"', resp
-            )
-            table = (
-                db.session.query(SqlaTable)
-                .filter_by(table_name=table_name, database_id=db_id)
-                .first()
-            )
+            resp = self.upload_csv(f2, table_name, extra={"if_exists": "replace"})
+            success_msg_f2 = f'CSV file "{f2}" uploaded to table "{table_name}"'
+            self.assertIn(success_msg_f2, resp)
+
+            table = self.get_table_by_name(table_name)
             # make sure the new column name is reflected in the table metadata
             self.assertIn("d", table.column_names)
         finally:
-            os.remove(filename_1)
-            os.remove(filename_2)
+            os.remove(f1)
+            os.remove(f2)
 
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)
