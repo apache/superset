@@ -20,6 +20,7 @@
 import React from 'react';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { t } from '@superset-ui/translation';
+import { ColumnOption } from '@superset-ui/control-utils';
 import {
   getControlConfig,
   getControlState,
@@ -27,7 +28,6 @@ import {
   applyMapStateToPropsToControl,
   getAllControlsState,
 } from 'src/explore/controlUtils';
-import ColumnOption from 'src/components/ColumnOption';
 
 describe('controlUtils', () => {
   const state = {
