@@ -211,7 +211,6 @@
         "aggregate": "SUM",
         "sqlExpression": null,
         "hasCustomLabel": true,
-        "fromFormData": true,
         "label": "total",
         "optionName": "metric_11"
       },
@@ -232,7 +231,6 @@
         "aggregate": "SUM",
         "sqlExpression": null,
         "hasCustomLabel": false,
-        "fromFormData": false,
         "label": "SUM(sum_boys)",
         "optionName": "metric_ufgxfk7yl5i_a5abvvqw2pg"
       },
@@ -253,7 +251,6 @@
         "aggregate": "SUM",
         "sqlExpression": null,
         "hasCustomLabel": false,
-        "fromFormData": false,
         "label": "SUM(sum_girls)",
         "optionName": "metric_xfniwund1q_16h27ybgnsd"
       }
@@ -265,7 +262,6 @@
         "column": null,
         "aggregate": null,
         "hasCustomLabel": true,
-        "fromFormData": true,
         "label": "pct_boys",
         "optionName": "metric_01elu1eg9g3t_0y3v2eutrutb"
       }
@@ -287,7 +283,6 @@
       "aggregate": "SUM",
       "sqlExpression": null,
       "hasCustomLabel": false,
-      "fromFormData": false,
       "label": "SUM(num)",
       "optionName": "metric_ti9n459f5h_46thexgwae"
     },
@@ -330,7 +325,6 @@
           "aggregate": "SUM",
           "sqlExpression": null,
           "hasCustomLabel": true,
-          "fromFormData": true,
           "label": "total",
           "optionName": "metric_11"
         },
@@ -351,7 +345,6 @@
           "aggregate": "SUM",
           "sqlExpression": null,
           "hasCustomLabel": false,
-          "fromFormData": false,
           "label": "SUM(sum_boys)",
           "optionName": "metric_ufgxfk7yl5i_a5abvvqw2pg"
         },
@@ -372,7 +365,6 @@
           "aggregate": "SUM",
           "sqlExpression": null,
           "hasCustomLabel": false,
-          "fromFormData": false,
           "label": "SUM(sum_girls)",
           "optionName": "metric_xfniwund1q_16h27ybgnsd"
         }
@@ -384,7 +376,6 @@
           "column": null,
           "aggregate": null,
           "hasCustomLabel": true,
-          "fromFormData": true,
           "label": "pct_boys",
           "optionName": "metric_01elu1eg9g3t_0y3v2eutrutb"
         }
@@ -406,7 +397,6 @@
         "aggregate": "SUM",
         "sqlExpression": null,
         "hasCustomLabel": false,
-        "fromFormData": false,
         "label": "SUM(num)",
         "optionName": "metric_ti9n459f5h_46thexgwae"
       },
