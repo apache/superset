@@ -133,7 +133,7 @@ class Slice(
         if self.table:
             return self.table.explore_url
         datasource = self.datasource
-        return datasource.name if datasource else None
+        return datasource.explore_url if datasource else None
 
     def datasource_name_text(self) -> Optional[str]:
         # pylint: disable=no-member
