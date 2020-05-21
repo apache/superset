@@ -19,9 +19,9 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
+import { ColumnOption } from '@superset-ui/control-utils';
 import { formatSelectOptionsForRange } from '../../modules/utils';
 import { columnChoices } from '../controls';
-import ColumnOption from '../../components/ColumnOption';
 
 export default {
   requiresTime: true,

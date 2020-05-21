@@ -33,12 +33,12 @@ import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import { t } from '@superset-ui/translation';
+import { ColumnOption } from '@superset-ui/control-utils';
 
 import { AGGREGATES, AGGREGATES_OPTIONS } from '../constants';
 import AdhocMetricEditPopoverTitle from './AdhocMetricEditPopoverTitle';
 import columnType from '../propTypes/columnType';
 import AdhocMetric, { EXPRESSION_TYPES } from '../AdhocMetric';
-import ColumnOption from '../../components/ColumnOption';
 import sqlKeywords from '../../SqlLab/utils/sqlKeywords';
 
 const langTools = ace.acequire('ace/ext/language_tools');

@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { ColumnOption } from '@superset-ui/control-utils';
 
 import MetricOption from '../../components/MetricOption';
-import ColumnOption from '../../components/ColumnOption';
 import AggregateOption from './AggregateOption';
 import columnType from '../propTypes/columnType';
 import savedMetricType from '../propTypes/savedMetricType';
