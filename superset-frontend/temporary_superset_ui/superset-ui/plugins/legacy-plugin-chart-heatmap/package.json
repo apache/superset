@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-heatmap",
-  "version": "0.13.16",
+  "version": "0.13.21",
   "description": "Superset Legacy Chart - Heatmap",
   "sideEffects": [
     "*.css"
