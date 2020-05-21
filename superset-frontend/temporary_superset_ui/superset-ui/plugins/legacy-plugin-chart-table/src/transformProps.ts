@@ -138,7 +138,7 @@ export default function transformProps(chartProps: TableChartProps): DataTablePr
     showCellBars,
     includeSearch,
     orderDesc,
-    pageLength: typeof pageLength === 'string' ? parseInt(pageLength, 10) || 0 : 0,
+    pageLength: typeof pageLength === 'string' ? parseInt(pageLength, 10) || 0 : pageLength,
     tableTimestampFormat,
     filters,
     emitFilter: tableFilter === true,
