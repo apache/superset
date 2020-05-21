@@ -34,6 +34,6 @@
   "peerDependencies": {
     "@superset-ui/chart": "^0.13.0",
     "@superset-ui/color": "^0.13.0",
-    "@superset-ui/translation": "^0.13.0"
+    "@superset-ui/translation": "0.13.3"
   }
 }
