@@ -26,7 +26,7 @@ const basicFormData = {
   showCellBars: true,
   includeSearch: false,
   orderDesc: true,
-  pageLength: 0,
+  pageLength: 20,
   metrics: [],
   percentMetrics: null,
   timeseriesLimitMetric: null,
