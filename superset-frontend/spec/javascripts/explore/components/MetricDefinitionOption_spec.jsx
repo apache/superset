@@ -20,9 +20,9 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 
+import { ColumnOption } from '@superset-ui/control-utils';
 import MetricDefinitionOption from 'src/explore/components/MetricDefinitionOption';
 import MetricOption from 'src/components/MetricOption';
-import ColumnOption from 'src/components/ColumnOption';
 import AggregateOption from 'src/explore/components/AggregateOption';
 
 describe('MetricDefinitionOption', () => {
