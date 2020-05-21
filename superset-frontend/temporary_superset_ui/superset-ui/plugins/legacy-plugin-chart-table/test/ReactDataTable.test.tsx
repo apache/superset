@@ -24,7 +24,23 @@ import testData from './testData';
 
 describe('legacy-table', () => {
   // Can test more prop transformation here. Not needed for now.
-  describe('transformProps', () => {});
+  describe('transformProps', () => {
+    it('should parse pageLength', () => {
+      expect(transformProps(testData.basic).pageLength).toBe(20);
+      expect(
+        transformProps({
+          ...testData.basic,
+          formData: { ...testData.basic.formData, pageLength: '20' },
+        }).pageLength,
+      ).toBe(20);
+      expect(
+        transformProps({
+          ...testData.basic,
+          formData: { ...testData.basic.formData, pageLength: '' },
+        }).pageLength,
+      ).toBe(0);
+    });
+  });
 
   describe('ReactDataTable', () => {
     let wrap: CommonWrapper; // the ReactDataTable wraper
