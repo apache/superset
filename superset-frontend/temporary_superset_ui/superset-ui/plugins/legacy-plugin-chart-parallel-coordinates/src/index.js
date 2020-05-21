@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel.ts';
 
 const metadata = new ChartMetadata({
   credits: ['https://syntagmatic.github.io/parallel-coordinates'],
@@ -35,6 +36,7 @@ export default class ParallelCoordinatesChartPlugin extends ChartPlugin {
       loadChart: () => import('./ReactParallelCoordinates.js'),
       metadata,
       transformProps,
+      controlPanel,
     });
   }
 }
