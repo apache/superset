@@ -27,3 +27,5 @@ class App extends React.Component {
   }
 }
 ```
+
+Note: the `ThemeProvider` is already included in the project's `Storybook` (as a decorator) meaning you should be able to apply/view any new Emotion-based theme attributes and see them reflected in the storybook without any additional setup.
