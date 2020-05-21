@@ -19,15 +19,13 @@
 import React from 'react';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
-import { getNumberFormatter } from '@superset-ui/number-format';
+import { getNumberFormatter, NumberFormatter } from '@superset-ui/number-format';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
 import { BRAND_COLOR } from '@superset-ui/color';
 import { computeMaxFontSize } from '@superset-ui/dimension';
-import NumberFormatter from '@superset-ui/number-format/src/NumberFormatter';
-import { smartDateVerboseFormatter } from '@superset-ui/time-format';
-import TimeFormatter from '@superset-ui/time-format/src/TimeFormatter';
 
-import './BigNumber.css';
+import styled from '@superset-ui/style';
+import { smartDateVerboseFormatter, TimeFormatter } from '@superset-ui/time-format';
 
 const defaultNumberFormatter = getNumberFormatter();
 
@@ -302,4 +300,55 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
   }
 }
 
-export default BigNumberVis;
+export default styled(BigNumberVis)`
+  font-family: ${({ theme }) => theme.typography.families.sansSerif};
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  &.no-trendline .subheader-line {
+    padding-bottom: 0.3em;
+  }
+
+  .text-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    .alert {
+      font-size: ${({ theme }) => theme.typography.sizes.s};
+      margin: -0.5em 0 0.4em;
+      line-height: 1;
+      padding: 2px 4px 3px;
+      border-radius: 3px;
+    }
+  }
+
+  .header-line {
+    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    position: relative;
+    line-height: 1em;
+    span {
+      position: absolute;
+      bottom: 0;
+    }
+  }
+
+  .subheader-line {
+    font-weight: ${({ theme }) => theme.typography.weights.light};
+    line-height: 1em;
+    padding-bottom: 0;
+  }
+
+  &.is-fallback-value{
+    .header-line, .subheader-line {
+    opacity: 0.5;
+  }
+ 
+  .superset-data-ui-tooltip {
+    z-index: 1000;
+    background: #000;
+  }
+
+`;

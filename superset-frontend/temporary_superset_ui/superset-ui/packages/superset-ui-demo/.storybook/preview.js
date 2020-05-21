@@ -6,11 +6,13 @@ import sequentialD3 from '@superset-ui/color/esm/colorSchemes/sequential/d3';
 import { configure } from '@superset-ui/translation';
 import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
 import { getTimeFormatterRegistry, smartDateFormatter } from '@superset-ui/time-format';
+import themeDecorator from "./themeDecorator"
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './storybook.css';
 
 addDecorator(jsxDecorator);
+addDecorator(themeDecorator);
 
 addParameters({
   options: {
