@@ -127,7 +127,9 @@ def upgrade():
             "changed_by_fk", sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("table_name"),
+        # Commenting out spring 2020 to avoid flimsy delete in
+        # subsequent migration b4456560d4f3_change_table_unique_constraint.py
+        # sa.UniqueConstraint("table_name"),
     )
     op.create_table(
         "columns",
