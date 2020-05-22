@@ -1,5 +1,6 @@
 import { ExtensibleFunction, isRequired } from '@superset-ui/core';
 import { TimeFormatFunction } from './types';
+import stringifyTimeInput from './utils/stringifyTimeInput';
 
 export const PREVIEW_TIME = new Date(Date.UTC(2017, 1, 14, 11, 22, 33));
 
@@ -45,11 +46,7 @@ class TimeFormatter extends ExtensibleFunction {
   }
 
   format(value: Date | number | null | undefined) {
-    if (value === null || value === undefined) {
-      return `${value}`;
-    }
-
-    return this.formatFunc(value instanceof Date ? value : new Date(value));
+    return stringifyTimeInput(value, time => this.formatFunc(time));
   }
 
   preview(value: Date = PREVIEW_TIME) {

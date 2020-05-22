@@ -1,4 +1,4 @@
-import { utcUtils, localTimeUtils } from '../src/utils';
+import { utcUtils, localTimeUtils } from '../../src/utils/d3Time';
 
 describe('utils', () => {
   describe('utcUtils', () => {
