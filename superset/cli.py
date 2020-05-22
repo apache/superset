@@ -68,7 +68,6 @@ def superset():
 @with_appcontext
 def init():
     """Inits the Superset application"""
-    utils.get_example_database()
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
 
