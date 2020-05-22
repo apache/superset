@@ -30,13 +30,15 @@ down_revision = "bb51420eaf83"
 
 def upgrade():
     try:
-        # Trying to drop the constraint if it exists
-        op.drop_constraint("tables_table_name_key", "tables", type_="unique")
+        with op.batch_alter_table("tables") as batch_op:
+            # Trying to drop the constraint if it exists
+            batch_op.drop_constraint("tables_table_name_key", type_="unique")
     except Exception:
         pass
-    op.create_unique_constraint(
-        "_customer_location_uc", "tables", ["database_id", "schema", "table_name"]
-    )
+    with op.batch_alter_table("tables") as batch_op:
+        batch_op.create_unique_constraint(
+            "_customer_location_uc", ["database_id", "schema", "table_name"],
+        )
 
 
 def downgrade():
