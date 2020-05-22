@@ -84,7 +84,7 @@
     "@superset-ui/legacy-plugin-chart-rose": "^0.13.10",
     "@superset-ui/legacy-plugin-chart-sankey": "^0.13.10",
     "@superset-ui/legacy-plugin-chart-sunburst": "^0.13.7",
-    "@superset-ui/legacy-plugin-chart-table": "^0.13.16",
+    "@superset-ui/legacy-plugin-chart-table": "^0.13.21",
     "@superset-ui/legacy-plugin-chart-treemap": "^0.13.10",
     "@superset-ui/legacy-plugin-chart-world-map": "^0.13.10",
     "@superset-ui/legacy-preset-chart-big-number": "^0.13.14",
