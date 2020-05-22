@@ -1,3 +1,103 @@
+## [0.13.21](https://github.com/apache-superset/superset-ui/compare/v0.13.20...v0.13.21) (2020-05-21)
+
+
+### Bug Fixes
+
+* **legacy-plugin-chart-table:** parse numeric pageLength ([#522](https://github.com/apache-superset/superset-ui/issues/522)) ([4831f7f](https://github.com/apache-superset/superset-ui/commit/4831f7fbe4954b5acfb05176f8fd807c4c5e8339))
+
+
+### Features
+
+* **legacy-plugin-chart-event-flow:** migrate package ([#514](https://github.com/apache-superset/superset-ui/issues/514)) ([3589e31](https://github.com/apache-superset/superset-ui/commit/3589e31dec2279b9b032f5cb654cd069e1d13611))
+
+
+
+## [0.13.20](https://github.com/apache-superset/superset-ui/compare/v0.13.19...v0.13.20) (2020-05-21)
+
+
+
+## [0.13.19](https://github.com/apache-superset/superset-ui/compare/v0.13.18...v0.13.19) (2020-05-21)
+
+
+### Bug Fixes
+
+* missing bracket, little linty things ([#517](https://github.com/apache-superset/superset-ui/issues/517)) ([b8c91ba](https://github.com/apache-superset/superset-ui/commit/b8c91ba93a29943b6f599b7eb6cb8cb49637d3c8))
+
+
+
+## [0.13.18](https://github.com/apache-superset/superset-ui/compare/v0.13.17...v0.13.18) (2020-05-21)
+
+
+### Features
+
+* **legacy-plugin-chart-parallel-coordinates:** add control panels ([#510](https://github.com/apache-superset/superset-ui/issues/510)) ([b9bc48d](https://github.com/apache-superset/superset-ui/commit/b9bc48d16e9b5fe06c2d9638deeb11ffeade94eb))
+* **legacy-preset-big-number:** use emotion styling ([#455](https://github.com/apache-superset/superset-ui/issues/455)) ([46eb663](https://github.com/apache-superset/superset-ui/commit/46eb663665c7cd7d45cfe495556a1e54dfeb54dd))
+
+
+
+## [0.13.17](https://github.com/apache-superset/superset-ui/compare/v0.13.16...v0.13.17) (2020-05-20)
+
+
+### Features
+
+* add control grouping functionality ([#485](https://github.com/apache-superset/superset-ui/issues/485)) ([4ceacfb](https://github.com/apache-superset/superset-ui/commit/4ceacfb1da28ec58695bfa7417b0157518e89cad))
+
+
+
+## [0.13.16](https://github.com/apache-superset/superset-ui/compare/v0.13.15...v0.13.16) (2020-05-19)
+
+
+### Features
+
+* **legacy-plugin-chart-event-flow:** control panel ([#501](https://github.com/apache-superset/superset-ui/issues/501)) ([34541df](https://github.com/apache-superset/superset-ui/commit/34541df50e335eccfc5b34240587d6ae16f09977))
+* **legacy-plugin-chart-force-directed:** control panel ([#502](https://github.com/apache-superset/superset-ui/issues/502)) ([bf573a0](https://github.com/apache-superset/superset-ui/commit/bf573a0240a8c05697d98d47921b5ed71ba2d2cd))
+* **legacy-plugin-chart-heatmap:** control panel ([#503](https://github.com/apache-superset/superset-ui/issues/503)) ([0111fa7](https://github.com/apache-superset/superset-ui/commit/0111fa7ed4f98a1e48b0858533ed23df1b670ecc))
+* **legacy-plugin-chart-histogram:** control panel ([#504](https://github.com/apache-superset/superset-ui/issues/504)) ([e5106ee](https://github.com/apache-superset/superset-ui/commit/e5106ee54fa12942f09f71558af7e80e7da5b26e))
+* **legacy-plugin-chart-horizon:** control panel ([#505](https://github.com/apache-superset/superset-ui/issues/505)) ([e63b079](https://github.com/apache-superset/superset-ui/commit/e63b079a43b4cc07f35321d10d530574c942c033))
+* **legacy-plugin-chart-iframe:** control panel ([#506](https://github.com/apache-superset/superset-ui/issues/506)) ([51d0894](https://github.com/apache-superset/superset-ui/commit/51d0894581542977230fceeb41e2017114b8724e))
+* **legacy-plugin-chart-map-box:** control panel ([#507](https://github.com/apache-superset/superset-ui/issues/507)) ([9f79870](https://github.com/apache-superset/superset-ui/commit/9f798709892525d8c85106d33d4d08eef05fd0fd))
+
+
+
+## [0.13.15](https://github.com/apache-superset/superset-ui/compare/v0.13.14...v0.13.15) (2020-05-18)
+
+
+### Bug Fixes
+
+* **time-format:** remove week number ([#493](https://github.com/apache-superset/superset-ui/issues/493)) ([0d13ff0](https://github.com/apache-superset/superset-ui/commit/0d13ff0f7ad13d565933a52f910278177d9318f3))
+
+
+### Features
+
+* **query:** remove redundant metric label truncation ([#492](https://github.com/apache-superset/superset-ui/issues/492)) ([5b42bc1](https://github.com/apache-superset/superset-ui/commit/5b42bc17f78d0c32ea69f9351f3f25e054911222))
+
+
+
+## [0.13.14](https://github.com/apache-superset/superset-ui/compare/v0.13.13...v0.13.14) (2020-05-14)
+
+
+### Features
+
+* **time-format:** add full-date to weekly time formatter ([#486](https://github.com/apache-superset/superset-ui/issues/486)) ([b2d0426](https://github.com/apache-superset/superset-ui/commit/b2d04267b60760f76373fc2d5d094e6102b676fe))
+
+
+
+## [0.13.13](https://github.com/apache-superset/superset-ui/compare/v0.13.12...v0.13.13) (2020-05-13)
+
+
+### Bug Fixes
+
+* **legacy-plugin-chart-nvd3:** disable bad linting rule ([#488](https://github.com/apache-superset/superset-ui/issues/488)) ([9b6d611](https://github.com/apache-superset/superset-ui/commit/9b6d61194326c8d2d2996aad7b20648f95f8a804))
+
+
+### Features
+
+* **generator-superset:** add scaffolder for chart plugin ([#456](https://github.com/apache-superset/superset-ui/issues/456)) ([f339466](https://github.com/apache-superset/superset-ui/commit/f3394666fdfe5472d353cfb83540868b7185c9df))
+* **legacy-plugin-chart-chord:** control panel ([#481](https://github.com/apache-superset/superset-ui/issues/481)) ([d82d948](https://github.com/apache-superset/superset-ui/commit/d82d948145c2fa642d62bd65ab9b9a844b5a6aff))
+* **plugin-chart-word-cloud:** allow minimum size ([#487](https://github.com/apache-superset/superset-ui/issues/487)) ([356229b](https://github.com/apache-superset/superset-ui/commit/356229be1bb620b2e98e13e72a8a5071655489b4))
+
+
+
 ## [0.13.12](https://github.com/apache-superset/superset-ui/compare/v0.13.11...v0.13.12) (2020-05-13)
 
 
