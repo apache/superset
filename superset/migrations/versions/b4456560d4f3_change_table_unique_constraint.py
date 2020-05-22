@@ -27,19 +27,24 @@ from alembic import op
 revision = "b4456560d4f3"
 down_revision = "bb51420eaf83"
 
+conv = {
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+}
+
 
 def upgrade():
     try:
-        with op.batch_alter_table("tables") as batch_op:
-            # Trying to drop the constraint if it exists
-            batch_op.drop_constraint("tables_table_name_key", type_="unique")
+        with op.get_context().autocommit_block():
+            with op.batch_alter_table("tables", naming_convention=conv) as batch_op:
+                # Trying to drop the constraint if it exists
+                batch_op.drop_constraint("tables_table_name_key", type_="unique")
     except Exception:
         pass
-    with op.batch_alter_table("tables") as batch_op:
+    with op.batch_alter_table("tables", naming_convention=conv) as batch_op:
         batch_op.create_unique_constraint(
             "_customer_location_uc", ["database_id", "schema", "table_name"],
         )
 
 
 def downgrade():
-    op.drop_constraint(u"_customer_location_uc", "tables", type_="unique")
+    op.drop_constraint("_customer_location_uc", "tables", type_="unique")
