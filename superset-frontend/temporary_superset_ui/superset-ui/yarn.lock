@@ -91,9 +91,9 @@
     fast-glob "^3.2.2"
 
 "@airbnb/nimbus@^3.1.2":
-  version "3.1.3"
-  resolved "https://registry.yarnpkg.com/@airbnb/nimbus/-/nimbus-3.1.3.tgz#cb9feb0f7b48af3d90a79638f2b239aebc07c7c5"
-  integrity sha512-pCgieJ93G0BULt/B8SSaBRpLDfISRI7e2Vy2C2VOq4P2Po+GvJH5H11LhqsFMeH4pPi+yz3bT4zfl8LR7dhLyw==
+  version "3.1.4"
+  resolved "https://registry.yarnpkg.com/@airbnb/nimbus/-/nimbus-3.1.4.tgz#1ff29814e8d5f17be3b9db5ed675ca4f4191311e"
+  integrity sha512-DYoaBtkxjLRu9GfSMLPNgJ1Z+t9teUy3ELzVQPRpl6iu0AqojSdmmzDLSYXrFeg3fku4HDSo/5MGytuWqRwaTA==
   dependencies:
     "@airbnb/nimbus-common" "^3.0.1"
     "@beemo/cli" "^1.0.10"
