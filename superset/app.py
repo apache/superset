@@ -199,15 +199,6 @@ class SupersetAppInitializer:
             category_icon="",
         )
         appbuilder.add_view(
-            AnnotationModelView,
-            "Annotations",
-            label=__("Annotations"),
-            icon="fa-comments",
-            category="Manage",
-            category_label=__("Manage"),
-            category_icon="",
-        )
-        appbuilder.add_view(
             DatabaseView,
             "Databases",
             label=__("Databases"),
@@ -288,6 +279,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqlLab)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
+        appbuilder.add_view_no_menu(AnnotationModelView)
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableColumnInlineView)
         appbuilder.add_view_no_menu(TableModelView)
