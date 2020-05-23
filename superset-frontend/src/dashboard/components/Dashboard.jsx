@@ -159,11 +159,27 @@ class Dashboard extends React.PureComponent {
           // added filter?
           [].push.apply(affectedChartIds, activeFilters[filterKey].scope);
         } else {
-          // changed filter field value or scope?
-          const affectedScope = (activeFilters[filterKey].scope || []).concat(
-            appliedFilters[filterKey].scope || [],
-          );
-          [].push.apply(affectedChartIds, affectedScope);
+          // has filter field value change?
+          if (
+            !areObjectsEqual(
+              appliedFilters[filterKey].values,
+              activeFilters[filterKey].values,
+            )
+          ) {
+            [].push.apply(affectedChartIds, activeFilters[filterKey].scope);
+          }
+
+          if (
+            !areObjectsEqual(
+              appliedFilters[filterKey].scope,
+              activeFilters[filterKey].scope,
+            )
+          ) {
+            const chartsInScope = (activeFilters[filterKey].scope || []).concat(
+              appliedFilters[filterKey].scope || [],
+            );
+            [].push.apply(affectedChartIds, chartsInScope);
+          }
         }
       });
 
