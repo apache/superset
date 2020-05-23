@@ -255,7 +255,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                             full_parent_path = cls._get_full_name(stack)
                             result.append(
                                 cls._create_column_info(
-                                    full_parent_path, presto_type_map[field_info[1]]()
+                                    full_parent_path, presto_type_map[field_info[1].split('(')[0]]()
                                 )
                             )
                         else:  # otherwise this field is a basic data type
@@ -265,7 +265,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                             )
                             result.append(
                                 cls._create_column_info(
-                                    column_name, presto_type_map[field_info[1]]()
+                                    column_name, presto_type_map[field_info[1].split('(')[0]]()
                                 )
                             )
                     # If the component type ends with a structural data type, do not pop
@@ -337,7 +337,8 @@ class PrestoEngineSpec(BaseEngineSpec):
                     result[structural_column_index]["default"] = None
                     continue
                 else:  # otherwise column is a basic data type
-                    column_type = presto_type_map[column.Type]()
+                    newtyp = column.Type
+                    column_type = presto_type_map[newtyp.split('(')[0]]()
             except KeyError:
                 logger.info(
                     "Did not recognize type {} of column {}".format(  # pylint: disable=logging-format-interpolation
