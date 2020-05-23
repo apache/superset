@@ -18,7 +18,7 @@
 import logging
 import re
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
@@ -103,7 +103,11 @@ class AnnotationDatasource(BaseDatasource):
             logger.exception(ex)
             error_message = utils.error_msg_from_exception(ex)
         return QueryResult(
-            status=status, df=df, duration=0, query="", error_message=error_message
+            status=status,
+            df=df,
+            duration=timedelta(0),
+            query="",
+            error_message=error_message,
         )
 
     def get_query_str(self, query_obj):
