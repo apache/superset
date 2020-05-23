@@ -27,11 +27,14 @@ const propTypes = {
   showType: PropTypes.bool,
 };
 
-export default function AdhocMetricStaticOption({ adhocMetric, showType }) {
+export default function AdhocMetricStaticOption({
+  adhocMetric,
+  showType = false,
+}) {
   return (
     <div>
       {showType && <ColumnTypeLabel type="expression" />}
-      <span className="m-r-5 option-label">{adhocMetric.label}</span>
+      <span className="option-label">{adhocMetric.label}</span>
     </div>
   );
 }

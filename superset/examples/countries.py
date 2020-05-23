@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """This module contains data related to countries and is used for geo mapping"""
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 countries: List[Dict[str, Any]] = [
     {
@@ -2498,13 +2498,8 @@ for lookup in lookups:
         all_lookups[lookup][country[lookup].lower()] = country
 
 
-def get(field, symbol):
+def get(field: str, symbol: str) -> Optional[Dict[str, Any]]:
     """
     Get country data based on a standard code and a symbol
-
-    >>> get('cioc', 'CUB')['name']
-    "Cuba"
-    >>> get('cca2', 'CA')['name']
-    "Canada"
     """
     return all_lookups[field].get(symbol.lower())

@@ -26,9 +26,9 @@ import { Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
-import * as exploreUtils from '../../../../src/explore/exploreUtils';
-import * as saveModalActions from '../../../../src/explore/actions/saveModalActions';
-import SaveModal from '../../../../src/explore/components/SaveModal';
+import * as exploreUtils from 'src/explore/exploreUtils';
+import * as saveModalActions from 'src/explore/actions/saveModalActions';
+import SaveModal from 'src/explore/components/SaveModal';
 
 describe('SaveModal', () => {
   const middlewares = [thunk];
@@ -140,9 +140,7 @@ describe('SaveModal', () => {
 
   describe('saveOrOverwrite', () => {
     beforeEach(() => {
-      sinon
-        .stub(exploreUtils, 'getExploreUrlAndPayload')
-        .callsFake(() => ({ url: 'mockURL', payload: defaultProps.form_data }));
+      sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => 'mockURL');
 
       sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
         Promise.resolve({
@@ -155,7 +153,7 @@ describe('SaveModal', () => {
     });
 
     afterEach(() => {
-      exploreUtils.getExploreUrlAndPayload.restore();
+      exploreUtils.getExploreUrl.restore();
       defaultProps.actions.saveSlice.restore();
     });
 

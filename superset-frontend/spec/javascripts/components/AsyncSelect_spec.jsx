@@ -17,11 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import Select from 'react-select';
 import { shallow } from 'enzyme';
 import fetchMock from 'fetch-mock';
-
-import AsyncSelect from '../../../src/components/AsyncSelect';
+import Select from 'src/components/Select';
+import AsyncSelect from 'src/components/AsyncSelect';
 
 describe('AsyncSelect', () => {
   afterAll(fetchMock.reset);
@@ -113,7 +112,7 @@ describe('AsyncSelect', () => {
       });
     });
 
-    it('should call onAsyncError if there is an error fetching options', done => {
+    it('should call onAsyncError if there is an error fetching options', () => {
       expect.assertions(3);
 
       const errorEndpoint = 'async/error/';
@@ -121,7 +120,7 @@ describe('AsyncSelect', () => {
       fetchMock.get(errorGlob, { throws: 'error' });
 
       const onAsyncError = jest.fn();
-      shallow(
+      const wrapper = shallow(
         <AsyncSelect
           {...mockedProps}
           dataEndpoint={errorEndpoint}
@@ -129,12 +128,18 @@ describe('AsyncSelect', () => {
         />,
       );
 
-      setTimeout(() => {
-        expect(fetchMock.calls(errorGlob)).toHaveLength(1);
-        expect(onAsyncError.mock.calls).toHaveLength(1);
-        expect(onAsyncError).toBeCalledWith('error');
-        done();
-      });
+      return wrapper
+        .instance()
+        .fetchOptions()
+        .then(() => {
+          // Fails then retries thrice whenever fetching options, which happens twice:
+          // once on component mount and once when calling `fetchOptions` again
+          expect(fetchMock.calls(errorGlob)).toHaveLength(8);
+          expect(onAsyncError.mock.calls).toHaveLength(2);
+          expect(onAsyncError).toBeCalledWith('error');
+
+          return Promise.resolve();
+        });
     });
   });
 });

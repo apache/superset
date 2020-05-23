@@ -34,6 +34,9 @@ from celery.schedules import crontab
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
+from superset.jinja_context import (  # pylint: disable=unused-import
+    BaseTemplateProcessor,
+)
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
 from superset.utils.log import DBEventLogger
@@ -282,10 +285,14 @@ DEFAULT_FEATURE_FLAGS = {
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "KV_STORE": False,
     "PRESTO_EXPAND_DATA": False,
-    "REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD": False,
+    # Exposes API endpoint to compute thumbnails
+    "THUMBNAILS": False,
+    "REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD": True,
     "SHARE_QUERIES_VIA_KV_STORE": False,
+    "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
+    "LIST_VIEWS_NEW_UI": False,
 }
 
 # This is merely a default.
@@ -307,6 +314,11 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
 
+# ---------------------------------------------------
+# Thumbnail config (behind feature flag)
+# ---------------------------------------------------
+THUMBNAIL_SELENIUM_USER = "Admin"
+THUMBNAIL_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -556,7 +568,7 @@ SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
     Callable[["Database", "models.User", str, str], str]
 ] = None
 
-# An instantiated derivative of werkzeug.contrib.cache.BaseCache
+# An instantiated derivative of cachelib.base.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None
@@ -574,16 +586,39 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 # The directory within the bucket specified above that will
 # contain all the external tables
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
+# Function that creates upload directory dynamically based on the
+# database used, user and schema provided.
+CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC: Callable[
+    ["Database", "models.User", str], Optional[str]
+] = lambda database, user, schema: CSV_TO_HIVE_UPLOAD_DIRECTORY
 
 # The namespace within hive where the tables created from
 # uploading CSVs will be stored.
 UPLOADED_CSV_HIVE_NAMESPACE = None
+
+# Function that computes the allowed schemas for the CSV uploads.
+# Allowed schemas will be a union of schemas_allowed_for_csv_upload
+# db configuration and a result of this function.
+
+# mypy doesn't catch that if case ensures list content being always str
+ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[
+    ["Database", "models.User"], List[str]
+] = lambda database, user: [
+    UPLOADED_CSV_HIVE_NAMESPACE  # type: ignore
+] if UPLOADED_CSV_HIVE_NAMESPACE else []
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
 # dictionary.
 JINJA_CONTEXT_ADDONS: Dict[str, Callable] = {}
+
+# A dictionary of macro template processors that gets merged into global
+# template processors. The existing template processors get updated with this
+# dictionary, which means the existing keys get overwritten by the content of this
+# dictionary. The customized addons don't necessarily need to use jinjia templating
+# language. This allows you to define custom logic to process macro template.
+CUSTOM_TEMPLATE_PROCESSORS = {}  # type: Dict[str, BaseTemplateProcessor]
 
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.
@@ -732,6 +767,11 @@ WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
+# The base URL for the email report hyperlinks.
+WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+# Time in seconds, selenium will wait for the page to load
+# and render for the email report.
+EMAIL_PAGE_RENDER_WAIT = 30
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None

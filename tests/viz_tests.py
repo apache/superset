@@ -431,7 +431,7 @@ class TableVizTestCase(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz = viz.TableViz(datasource, form_data)
         data = test_viz.get_data(df)
-        self.assertEqual(["sum_value", "SUM(value1)"], data["columns"])
+        self.assertEqual(["sum_value"], data["columns"])
 
 
 class DistBarVizTestCase(SupersetTestCase):

@@ -76,7 +76,7 @@ export function toggleFaveStar(isStarred) {
 
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId) {
-  return function(dispatch) {
+  return function (dispatch) {
     SupersetClient.get({
       endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count`,
     }).then(({ json }) => {
@@ -89,7 +89,7 @@ export function fetchFaveStar(sliceId) {
 
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId, isStarred) {
-  return function(dispatch) {
+  return function (dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
     SupersetClient.get({
       endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`,
@@ -124,8 +124,8 @@ export function removeControlPanelAlert() {
 }
 
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
-export function updateChartTitle(slice_name) {
-  return { type: UPDATE_CHART_TITLE, slice_name };
+export function updateChartTitle(sliceName) {
+  return { type: UPDATE_CHART_TITLE, sliceName };
 }
 
 export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';

@@ -48,7 +48,7 @@ class EmailScheduleView(
 ):  # pylint: disable=too-many-ancestors
     include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
-    schedule_type: Optional[Type] = None
+    schedule_type: Optional[str] = None
     schedule_type_model: Optional[Type] = None
 
     page_size = 20
@@ -156,7 +156,7 @@ class EmailScheduleView(
 class DashboardEmailScheduleView(
     EmailScheduleView
 ):  # pylint: disable=too-many-ancestors
-    schedule_type = ScheduleType.dashboard.value
+    schedule_type = ScheduleType.dashboard
     schedule_type_model = Dashboard
 
     add_title = _("Schedule Email Reports for Dashboards")
@@ -215,7 +215,7 @@ class DashboardEmailScheduleView(
 
 
 class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-ancestors
-    schedule_type = ScheduleType.slice.value
+    schedule_type = ScheduleType.slice
     schedule_type_model = Slice
     add_title = _("Schedule Email Reports for Charts")
     edit_title = add_title

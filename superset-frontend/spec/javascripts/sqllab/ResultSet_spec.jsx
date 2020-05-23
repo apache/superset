@@ -21,9 +21,9 @@ import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
 import { Alert, ProgressBar } from 'react-bootstrap';
-import FilterableTable from '../../../src/components/FilterableTable/FilterableTable';
-import ExploreResultsButton from '../../../src/SqlLab/components/ExploreResultsButton';
-import ResultSet from '../../../src/SqlLab/components/ResultSet';
+import FilterableTable from 'src/components/FilterableTable/FilterableTable';
+import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
+import ResultSet from 'src/SqlLab/components/ResultSet';
 import { queries, stoppedQuery, runningQuery, cachedQuery } from './fixtures';
 
 describe('ResultSet', () => {
@@ -38,15 +38,9 @@ describe('ResultSet', () => {
     query: queries[0],
     height: 0,
   };
-  const stoppedQueryProps = Object.assign({}, mockedProps, {
-    query: stoppedQuery,
-  });
-  const runningQueryProps = Object.assign({}, mockedProps, {
-    query: runningQuery,
-  });
-  const cachedQueryProps = Object.assign({}, mockedProps, {
-    query: cachedQuery,
-  });
+  const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
+  const runningQueryProps = { ...mockedProps, query: runningQuery };
+  const cachedQueryProps = { ...mockedProps, query: cachedQuery };
   const newProps = {
     query: {
       cached: false,
@@ -94,20 +88,18 @@ describe('ResultSet', () => {
     });
     it('should render empty results', () => {
       const wrapper = shallow(<ResultSet {...mockedProps} />);
-      const emptyResults = Object.assign({}, queries[0], {
+      const emptyResults = {
+        ...queries[0],
         results: {
           data: [],
         },
-      });
+      };
       wrapper.setProps({ query: emptyResults });
       expect(wrapper.find(FilterableTable)).toHaveLength(0);
       expect(wrapper.find(Alert)).toHaveLength(1);
-      expect(
-        wrapper
-          .find(Alert)
-          .shallow()
-          .text(),
-      ).toBe('The query returned no data');
+      expect(wrapper.find(Alert).shallow().text()).toBe(
+        'The query returned no data',
+      );
     });
     it('should render cached query', () => {
       const wrapper = shallow(<ResultSet {...cachedQueryProps} />);

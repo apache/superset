@@ -19,8 +19,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import AnchorLink from '../../../src/components/AnchorLink';
-import URLShortLinkButton from '../../../src/components/URLShortLinkButton';
+import AnchorLink from 'src/components/AnchorLink';
+import URLShortLinkButton from 'src/components/URLShortLinkButton';
 
 describe('AnchorLink', () => {
   const props = {

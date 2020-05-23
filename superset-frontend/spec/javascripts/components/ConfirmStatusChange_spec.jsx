@@ -38,10 +38,7 @@ describe('ConfirmStatusChange', () => {
   );
 
   it('opens a confirm modal', () => {
-    wrapper
-      .find('#btn1')
-      .props()
-      .onClick('foo');
+    wrapper.find('#btn1').props().onClick('foo');
 
     wrapper.update();
 
@@ -49,11 +46,7 @@ describe('ConfirmStatusChange', () => {
   });
 
   it('calls the function on confirm', () => {
-    wrapper
-      .find(Button)
-      .last()
-      .props()
-      .onClick();
+    wrapper.find(Button).last().props().onClick();
 
     expect(mockedProps.onConfirm).toHaveBeenCalledWith('foo');
   });

@@ -28,7 +28,9 @@ import {
 } from 'react-bootstrap';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
-import Select from 'react-select';
+import { OptionsType } from 'react-select/src/types';
+import { AsyncSelect } from 'src/components/Select';
+import rison from 'rison';
 import { t } from '@superset-ui/translation';
 import { SupersetClient, Json } from '@superset-ui/connection';
 import Chart from 'src/types/Chart';
@@ -45,6 +47,11 @@ type InternalProps = {
   slice: Slice;
   onHide: () => void;
   onSave: (chart: Chart) => void;
+};
+
+type OwnerOption = {
+  label: string;
+  value: number;
 };
 
 export type WrapperProps = InternalProps & {
@@ -70,7 +77,6 @@ export default function PropertiesModalWrapper({
 function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   const [submitting, setSubmitting] = useState(false);
   const errorDialog = useRef<any>(null);
-  const [ownerOptions, setOwnerOptions] = useState(null);
 
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
@@ -78,7 +84,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? slice.cache_timeout : '',
   );
-  const [owners, setOwners] = useState<any[] | null>(null);
+  const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
 
   function showError({ error, statusText }: any) {
     errorDialog.current.show({
@@ -90,7 +96,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
     });
   }
 
-  async function fetchOwners() {
+  async function fetchChartData() {
     try {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -99,7 +105,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
       setOwners(
         chart.owners.map((owner: any) => ({
           value: owner.id,
-          label: owner.username,
+          label: `${owner.first_name} ${owner.last_name}`,
         })),
       );
     } catch (response) {
@@ -110,34 +116,40 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
 
   // get the owners of this slice
   useEffect(() => {
-    fetchOwners();
+    fetchChartData();
   }, []);
 
-  // get the list of users who can own a chart
-  useEffect(() => {
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/related/owners`,
-    }).then(res => {
-      const { result } = res.json as Json;
-      setOwnerOptions(
-        result.map((item: any) => ({
+  const loadOptions = (input = '') => {
+    const query = rison.encode({ filter: input });
+    return SupersetClient.get({
+      endpoint: `/api/v1/chart/related/owners?q=${query}`,
+    }).then(
+      response => {
+        const { result } = response.json as Json;
+        return result.map((item: any) => ({
           value: item.value,
           label: item.text,
-        })),
-      );
-    });
-  }, []);
+        }));
+      },
+      badResponse => {
+        getClientErrorObject(badResponse).then(showError);
+        return [];
+      },
+    );
+  };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.stopPropagation();
     event.preventDefault();
     setSubmitting(true);
-    const payload = {
+    const payload: { [key: string]: any } = {
       slice_name: name || null,
       description: description || null,
       cache_timeout: cacheTimeout || null,
-      owners: owners!.map(o => o.value),
     };
+    if (owners) {
+      payload.owners = owners.map(o => o.value);
+    }
     try {
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -176,6 +188,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setName(event.target.value)
                 }
@@ -191,6 +204,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setDescription(event.target.value)
                 }
@@ -214,6 +228,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
+                // @ts-ignore
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
                 }
@@ -229,17 +244,21 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
               <label className="control-label" htmlFor="owners">
                 {t('Owners')}
               </label>
-              <Select
+              <AsyncSelect
+                isMulti
                 name="owners"
-                multi
-                isLoading={!ownerOptions}
-                value={owners}
-                options={ownerOptions || []}
+                value={owners || []}
+                loadOptions={loadOptions}
+                defaultOptions // load options on render
+                cacheOptions
                 onChange={setOwners}
-                disabled={!owners || !ownerOptions}
+                disabled={!owners}
+                filterOption={null} // options are filtered at the api
               />
               <p className="help-block">
-                {t('A list of users who can alter the chart')}
+                {t(
+                  'A list of users who can alter the chart. Searchable by name or username.',
+                )}
               </p>
             </FormGroup>
           </Col>

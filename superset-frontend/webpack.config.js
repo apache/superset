@@ -121,6 +121,9 @@ const plugins = [
     { copyUnmodified: true },
   ),
 ];
+if (!process.env.CI) {
+  plugins.push(new webpack.ProgressPlugin());
+}
 if (!isDevMode) {
   // text loading (webpack 4+)
   plugins.push(
@@ -154,6 +157,16 @@ const babelLoader = {
     // disable gzip compression for cache files
     // faster when there are millions of small files
     cacheCompression: false,
+    plugins: ['emotion'],
+    presets: [
+      [
+        '@emotion/babel-preset-css-prop',
+        {
+          autoLabel: true,
+          labelFormat: '[local]',
+        },
+      ],
+    ],
   },
 };
 
@@ -198,6 +211,7 @@ const config = {
     alias: {
       src: path.resolve(APP_DIR, './src'),
       'react-dom': '@hot-loader/react-dom',
+      stylesheets: path.resolve(APP_DIR, './stylesheets'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     symlinks: false,

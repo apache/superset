@@ -22,7 +22,7 @@ import sinon from 'sinon';
 
 import { List } from 'react-virtualized';
 
-import SliceAdder from '../../../../src/dashboard/components/SliceAdder';
+import SliceAdder from 'src/dashboard/components/SliceAdder';
 import { sliceEntitiesForDashboard as mockSliceEntities } from '../fixtures/mockSliceEntities';
 
 describe('SliceAdder', () => {

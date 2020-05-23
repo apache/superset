@@ -109,10 +109,10 @@ The following RDBMS are currently supported:
 - `Apache Pinot <https://pinot.incubator.apache.org/>`_
 - `Apache Spark SQL <https://spark.apache.org/sql/>`_
 - `BigQuery <https://cloud.google.com/bigquery/>`_
-- `ClickHouse <https://clickhouse.yandex/>`_
+- `ClickHouse <https://clickhouse.tech/>`_
 - `CockroachDB <https://www.cockroachlabs.com/>`_
 - `Dremio <https://dremio.com/>`_
-- `Elasticsearch <https://www.elastic.co/products/elasticsearch/>`_
+- `Elasticsearch <https://www.elastic.co/elasticsearch/>`_
 - `Exasol <https://www.exasol.com/>`_
 - `Google Sheets <https://www.google.com/sheets/about/>`_
 - `Greenplum <https://greenplum.org/>`_

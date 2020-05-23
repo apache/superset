@@ -17,7 +17,6 @@
  * under the License.
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
-import readResponseBlob from '../../utils/readResponseBlob';
 
 describe('No Results', () => {
   beforeEach(() => {
@@ -39,7 +38,6 @@ describe('No Results', () => {
           comparator: ['Fake State'],
           clause: 'WHERE',
           sqlExpression: null,
-          fromFormData: true,
         },
       ],
     };

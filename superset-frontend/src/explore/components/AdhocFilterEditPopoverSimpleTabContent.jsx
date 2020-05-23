@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import VirtualizedSelect from 'react-virtualized-select';
+import { Select, Creatable } from 'src/components/Select';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -28,15 +28,16 @@ import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
 import {
   OPERATORS,
+  OPERATORS_OPTIONS,
   TABLE_ONLY_OPERATORS,
   DRUID_ONLY_OPERATORS,
   HAVING_OPERATORS,
   MULTI_OPERATORS,
+  CUSTOM_OPERATORS,
+  DISABLE_INPUT_OPERATORS,
 } from '../constants';
 import FilterDefinitionOption from './FilterDefinitionOption';
-import OnPasteSelect from '../../components/OnPasteSelect';
 import SelectControl from './controls/SelectControl';
-import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -50,6 +51,7 @@ const propTypes = {
   ).isRequired,
   onHeightChange: PropTypes.func.isRequired,
   datasource: PropTypes.object,
+  partitionColumn: PropTypes.string,
 };
 
 const defaultProps = {
@@ -63,6 +65,8 @@ function translateOperator(operator) {
     return 'not equal to';
   } else if (operator === OPERATORS.LIKE) {
     return 'like';
+  } else if (operator === OPERATORS['LATEST PARTITION']) {
+    return 'use latest_partition template';
   }
   return operator;
 }
@@ -89,12 +93,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     };
 
     this.selectProps = {
-      multi: false,
+      isMulti: false,
       name: 'select-column',
       labelKey: 'label',
       autosize: false,
       clearable: false,
-      selectWrap: VirtualizedSelect,
     };
   }
 
@@ -124,10 +127,15 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       subject = option.saved_metric_name || option.label;
       clause = CLAUSES.HAVING;
     }
+    const { operator } = this.props.adhocFilter;
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
         subject,
         clause,
+        operator:
+          operator && this.isOperatorRelevant(operator, subject)
+            ? operator
+            : null,
         expressionType: EXPRESSION_TYPES.SIMPLE,
       }),
     );
@@ -138,7 +146,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     let newComparator;
     // convert between list of comparators and individual comparators
     // (e.g. `in ('North America', 'Africa')` to `== 'North America'`)
-    if (MULTI_OPERATORS.indexOf(operator.operator) >= 0) {
+    if (MULTI_OPERATORS.has(operator)) {
       newComparator = Array.isArray(currentComparator)
         ? currentComparator
         : [currentComparator].filter(element => element);
@@ -147,13 +155,26 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         ? currentComparator[0]
         : currentComparator;
     }
-    this.props.onChange(
-      this.props.adhocFilter.duplicateWith({
-        operator: operator && operator.operator,
-        comparator: newComparator,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-      }),
-    );
+
+    if (operator && CUSTOM_OPERATORS.has(operator)) {
+      this.props.onChange(
+        this.props.adhocFilter.duplicateWith({
+          subject: this.props.adhocFilter.subject,
+          clause: CLAUSES.WHERE,
+          operator,
+          expressionType: EXPRESSION_TYPES.SQL,
+          datasource: this.props.datasource,
+        }),
+      );
+    } else {
+      this.props.onChange(
+        this.props.adhocFilter.duplicateWith({
+          operator,
+          comparator: newComparator,
+          expressionType: EXPRESSION_TYPES.SIMPLE,
+        }),
+      );
+    }
   }
 
   onInputComparatorChange(event) {
@@ -210,17 +231,30 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       SupersetClient.get({
         signal,
         endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
-      }).then(({ json }) => {
-        this.setState(() => ({
-          suggestions: json,
-          abortActiveRequest: null,
-          loading: false,
-        }));
-      });
+      })
+        .then(({ json }) => {
+          this.setState(() => ({
+            suggestions: json,
+            abortActiveRequest: null,
+            loading: false,
+          }));
+        })
+        .catch(error => {
+          this.setState(() => ({
+            suggestions: [],
+            abortActiveRequest: null,
+            loading: false,
+          }));
+        });
     }
   }
 
-  isOperatorRelevant(operator) {
+  isOperatorRelevant(operator, subject) {
+    if (operator && CUSTOM_OPERATORS.has(operator)) {
+      const { partitionColumn } = this.props;
+      return partitionColumn && subject && subject === partitionColumn;
+    }
+
     return !(
       (this.props.datasource.type === 'druid' &&
         TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
@@ -243,16 +277,23 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  render() {
-    const { adhocFilter, options, datasource } = this.props;
+  renderSubjectOptionLabel(option) {
+    return <FilterDefinitionOption option={option} />;
+  }
 
-    let subjectSelectProps = {
-      value: adhocFilter.subject ? { value: adhocFilter.subject } : undefined,
+  renderSubjectOptionValue({ value }) {
+    return <span>{value}</span>;
+  }
+
+  render() {
+    const { adhocFilter, options: columns, datasource } = this.props;
+    const { subject, operator, comparator } = adhocFilter;
+    const subjectSelectProps = {
+      options: columns,
+      value: subject ? { value: subject } : undefined,
       onChange: this.onSubjectChange,
-      optionRenderer: VirtualizedRendererWrap(option => (
-        <FilterDefinitionOption option={option} />
-      )),
-      valueRenderer: option => <span>{option.value}</span>,
+      optionRenderer: this.renderSubjectOptionLabel,
+      valueRenderer: this.renderSubjectOptionValue,
       valueKey: 'filterOptionName',
       noResultsText: t(
         'No such column found. To filter on a metric, try the Custom SQL tab.',
@@ -260,80 +301,76 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     };
 
     if (datasource.type === 'druid') {
-      subjectSelectProps = {
-        ...subjectSelectProps,
-        placeholder: t('%s column(s) and metric(s)', options.length),
-        options,
-      };
+      subjectSelectProps.placeholder = t(
+        '%s column(s) and metric(s)',
+        columns.length,
+      );
     } else {
       // we cannot support simple ad-hoc filters for metrics because we don't know what type
       // the value should be cast to (without knowing the output type of the aggregate, which
       // becomes a rather complicated problem)
-      subjectSelectProps = {
-        ...subjectSelectProps,
-        placeholder:
-          adhocFilter.clause === CLAUSES.WHERE
-            ? t('%s column(s)', options.length)
-            : t('To filter on a metric, use Custom SQL tab.'),
-        options: options.filter(option => option.column_name),
-      };
+      subjectSelectProps.placeholder =
+        adhocFilter.clause === CLAUSES.WHERE
+          ? t('%s column(s)', columns.length)
+          : t('To filter on a metric, use Custom SQL tab.');
+      // make sure options have `column_name`
+      subjectSelectProps.options = columns.filter(option => option.column_name);
     }
 
     const operatorSelectProps = {
-      placeholder: t('%s operators(s)', Object.keys(OPERATORS).length),
-      options: Object.keys(OPERATORS)
-        .filter(this.isOperatorRelevant)
-        .map(operator => ({ operator })),
-      value: adhocFilter.operator,
+      placeholder: t('%s operators(s)', OPERATORS_OPTIONS.length),
+      // like AGGREGTES_OPTIONS, operator options are string
+      options: OPERATORS_OPTIONS.filter(op =>
+        this.isOperatorRelevant(op, subject),
+      ),
+      value: operator,
       onChange: this.onOperatorChange,
-      optionRenderer: VirtualizedRendererWrap(operator =>
-        translateOperator(operator.operator),
-      ),
-      valueRenderer: operator => (
-        <span>{translateOperator(operator.operator)}</span>
-      ),
-      valueKey: 'operator',
+      getOptionLabel: translateOperator,
     };
 
     return (
       <span>
         <FormGroup className="adhoc-filter-simple-column-dropdown">
-          <OnPasteSelect {...this.selectProps} {...subjectSelectProps} />
+          <Select
+            {...this.selectProps}
+            {...subjectSelectProps}
+            name="filter-column"
+          />
         </FormGroup>
         <FormGroup>
-          <OnPasteSelect {...this.selectProps} {...operatorSelectProps} />
+          <Select
+            {...this.selectProps}
+            {...operatorSelectProps}
+            name="filter-operator"
+          />
         </FormGroup>
         <FormGroup data-test="adhoc-filter-simple-value">
-          {MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0 ||
+          {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
             <SelectControl
-              multi={MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0}
+              name="filter-value"
+              autoFocus
               freeForm
-              name="filter-comparator-value"
-              value={adhocFilter.comparator}
+              multi={MULTI_OPERATORS.has(operator)}
+              value={comparator}
               isLoading={this.state.loading}
               choices={this.state.suggestions}
               onChange={this.onComparatorChange}
               showHeader={false}
               noResultsText={t('type a value here')}
-              refFunc={this.multiComparatorRef}
-              disabled={
-                adhocFilter.operator === 'IS NOT NULL' ||
-                adhocFilter.operator === 'IS NULL'
-              }
+              selectRef={this.multiComparatorRef}
+              disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />
           ) : (
             <input
+              name="filter-value"
               ref={this.focusComparator}
               type="text"
               onChange={this.onInputComparatorChange}
-              value={adhocFilter.comparator || ''}
+              value={comparator}
               className="form-control input-sm"
               placeholder={t('Filter value')}
-              disabled={
-                adhocFilter.operator === 'IS NOT NULL' ||
-                adhocFilter.operator === 'IS NULL'
-              }
+              disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />
           )}
         </FormGroup>

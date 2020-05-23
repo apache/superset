@@ -25,8 +25,8 @@ import { Label, OverlayTrigger } from 'react-bootstrap';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from '../../../../src/explore/AdhocFilter';
-import AdhocFilterOption from '../../../../src/explore/components/AdhocFilterOption';
+} from 'src/explore/AdhocFilter';
+import AdhocFilterOption from 'src/explore/components/AdhocFilterOption';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -52,7 +52,15 @@ function setup(overrides) {
 describe('AdhocFilterOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
+    const overlay = wrapper.find(OverlayTrigger);
+    expect(overlay).toHaveLength(1);
+    expect(overlay.props().defaultOverlayShown).toBe(false);
     expect(wrapper.find(Label)).toHaveLength(1);
+  });
+  it('should open new filter popup by default', () => {
+    const { wrapper } = setup({
+      adhocFilter: simpleAdhocFilter.duplicateWith({ isNew: true }),
+    });
+    expect(wrapper.find(OverlayTrigger).props().defaultOverlayShown).toBe(true);
   });
 });

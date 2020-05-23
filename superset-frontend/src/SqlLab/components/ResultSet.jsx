@@ -23,6 +23,7 @@ import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
 import Loading from '../../components/Loading';
+import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
@@ -101,13 +102,13 @@ export default class ResultSet extends React.PureComponent {
   clearQueryResults(query) {
     this.props.actions.clearQueryResults(query);
   }
-  popSelectStar() {
+  popSelectStar(tmpSchema, tmpTable) {
     const qe = {
       id: shortid.generate(),
-      title: this.props.query.tempTable,
+      title: tmpTable,
       autorun: false,
       dbId: this.props.query.dbId,
-      sql: `SELECT * FROM ${this.props.query.tempTable}`,
+      sql: `SELECT * FROM ${tmpSchema}.${tmpTable}`,
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -142,48 +143,42 @@ export default class ResultSet extends React.PureComponent {
       }
       return (
         <div className="ResultSetControls">
-          <div className="clearfix">
-            <div className="pull-left">
-              <ButtonGroup>
-                {this.props.visualize && (
-                  <ExploreResultsButton
-                    query={this.props.query}
-                    database={this.props.database}
-                    actions={this.props.actions}
-                  />
-                )}
-                {this.props.csv && (
-                  <Button
-                    bsSize="small"
-                    href={'/superset/csv/' + this.props.query.id}
-                  >
-                    <i className="fa fa-file-text-o" /> {t('.CSV')}
-                  </Button>
-                )}
+          <div className="ResultSetButtons">
+            {this.props.visualize && (
+              <ExploreResultsButton
+                query={this.props.query}
+                database={this.props.database}
+                actions={this.props.actions}
+              />
+            )}
+            {this.props.csv && (
+              <Button
+                bsSize="small"
+                href={'/superset/csv/' + this.props.query.id}
+              >
+                <i className="fa fa-file-text-o" /> {t('.CSV')}
+              </Button>
+            )}
 
-                <CopyToClipboard
-                  text={prepareCopyToClipboardTabularData(data)}
-                  wrapped={false}
-                  copyNode={
-                    <Button bsSize="small">
-                      <i className="fa fa-clipboard" /> {t('Clipboard')}
-                    </Button>
-                  }
-                />
-              </ButtonGroup>
-            </div>
-            <div className="pull-right">
-              {this.props.search && (
-                <input
-                  type="text"
-                  onChange={this.changeSearch}
-                  value={this.state.searchText}
-                  className="form-control input-sm"
-                  placeholder={t('Filter Results')}
-                />
-              )}
-            </div>
+            <CopyToClipboard
+              text={prepareCopyToClipboardTabularData(data)}
+              wrapped={false}
+              copyNode={
+                <Button bsSize="small">
+                  <i className="fa fa-clipboard" /> {t('Clipboard')}
+                </Button>
+              }
+            />
           </div>
+          {this.props.search && (
+            <input
+              type="text"
+              onChange={this.changeSearch}
+              value={this.state.searchText}
+              className="form-control input-sm"
+              placeholder={t('Filter Results')}
+            />
+          )}
         </div>
       );
     }
@@ -216,18 +211,38 @@ export default class ResultSet extends React.PureComponent {
         </Alert>
       );
     } else if (query.state === 'success' && query.ctas) {
+      // Async queries
+      let tmpSchema = query.tempSchema;
+      let tmpTable = query.tempTableName;
+      // Sync queries, query.results.query contains the source of truth for them.
+      if (query.results && query.results.query) {
+        tmpTable = query.results.query.tempTable;
+        tmpSchema = query.results.query.tempSchema;
+      }
       return (
         <div>
           <Alert bsStyle="info">
-            {t('Table')} [<strong>{query.tempTable}</strong>] {t('was created')}{' '}
-            &nbsp;
-            <Button
-              bsSize="small"
-              className="m-r-5"
-              onClick={this.popSelectStar}
-            >
-              {t('Query in a new tab')}
-            </Button>
+            {t('Table')} [
+            <strong>
+              {tmpSchema}.{tmpTable}
+            </strong>
+            ] {t('was created')} &nbsp;
+            <ButtonGroup>
+              <Button
+                bsSize="small"
+                className="m-r-5"
+                onClick={() => this.popSelectStar(tmpSchema, tmpTable)}
+              >
+                {t('Query in a new tab')}
+              </Button>
+              <ExploreCtasResultsButton
+                table={tmpTable}
+                schema={tmpSchema}
+                dbId={query.dbId}
+                database={this.props.database}
+                actions={this.props.actions}
+              />
+            </ButtonGroup>
           </Alert>
         </div>
       );

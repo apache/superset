@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from subprocess import Popen
 from sys import stdout
+from typing import Type, Union
 
 import click
 import yaml
@@ -67,7 +68,6 @@ def superset():
 @with_appcontext
 def init():
     """Inits the Superset application"""
-    utils.get_example_database()
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
 
@@ -197,9 +197,9 @@ def refresh_druid(datasource, merge):
     for cluster in session.query(DruidCluster).all():
         try:
             cluster.refresh_datasources(datasource_name=datasource, merge_flag=merge)
-        except Exception as e:  # pylint: disable=broad-except
-            print("Error while processing cluster '{}'\n{}".format(cluster, str(e)))
-            logger.exception(e)
+        except Exception as ex:  # pylint: disable=broad-except
+            print("Error while processing cluster '{}'\n{}".format(cluster, str(ex)))
+            logger.exception(ex)
         cluster.metadata_last_refreshed = datetime.now()
         print("Refreshed metadata from cluster " "[" + cluster.cluster_name + "]")
     session.commit()
@@ -245,9 +245,9 @@ def import_dashboards(path, recursive, username):
         try:
             with file_.open() as data_stream:
                 dashboard_import_export.import_dashboards(db.session, data_stream)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except
             logger.error("Error when importing dashboard from file %s", file_)
-            logger.error(e)
+            logger.error(ex)
 
 
 @superset.command()
@@ -317,9 +317,9 @@ def import_datasources(path, sync, recursive):
                 dict_import_export.import_from_dict(
                     db.session, yaml.safe_load(data_stream), sync=sync_array
                 )
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except
             logger.error("Error when importing datasources from file %s", file_)
-            logger.error(e)
+            logger.error(ex)
 
 
 @superset.command()
@@ -397,8 +397,8 @@ def update_datasources_cache():
                 database.get_all_view_names_in_database(
                     force=True, cache=True, cache_timeout=24 * 60 * 60
                 )
-            except Exception as e:  # pylint: disable=broad-except
-                print("{}".format(str(e)))
+            except Exception as ex:  # pylint: disable=broad-except
+                print("{}".format(str(ex)))
 
 
 @superset.command()
@@ -452,6 +452,78 @@ def flower(port, address):
     print(Fore.YELLOW + cmd)
     print(Fore.BLUE + "-=" * 40)
     Popen(cmd, shell=True).wait()
+
+
+@superset.command()
+@with_appcontext
+@click.option(
+    "--asynchronous",
+    "-a",
+    is_flag=True,
+    default=False,
+    help="Trigger commands to run remotely on a worker",
+)
+@click.option(
+    "--dashboards_only",
+    "-d",
+    is_flag=True,
+    default=False,
+    help="Only process dashboards",
+)
+@click.option(
+    "--charts_only", "-c", is_flag=True, default=False, help="Only process charts"
+)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    default=False,
+    help="Force refresh, even if previously cached",
+)
+@click.option("--model_id", "-i", multiple=True)
+def compute_thumbnails(
+    asynchronous: bool,
+    dashboards_only: bool,
+    charts_only: bool,
+    force: bool,
+    model_id: int,
+):
+    """Compute thumbnails"""
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tasks.thumbnails import (
+        cache_chart_thumbnail,
+        cache_dashboard_thumbnail,
+    )
+
+    def compute_generic_thumbnail(
+        friendly_type: str,
+        model_cls: Union[Type[Dashboard], Type[Slice]],
+        model_id: int,
+        compute_func,
+    ):
+        query = db.session.query(model_cls)
+        if model_id:
+            query = query.filter(model_cls.id.in_(model_id))
+        dashboards = query.all()
+        count = len(dashboards)
+        for i, model in enumerate(dashboards):
+            if asynchronous:
+                func = compute_func.delay
+                action = "Triggering"
+            else:
+                func = compute_func
+                action = "Processing"
+            msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
+            click.secho(msg, fg="green")
+            func(model.id, force=force)
+
+    if not charts_only:
+        compute_generic_thumbnail(
+            "dashboard", Dashboard, model_id, cache_dashboard_thumbnail
+        )
+    if not dashboards_only:
+        compute_generic_thumbnail("chart", Slice, model_id, cache_chart_thumbnail)
 
 
 @superset.command()

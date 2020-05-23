@@ -16,11 +16,31 @@
 # under the License.
 from typing import Any
 
+from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset import security_manager
+from superset.models.slice import Slice
 from superset.views.base import BaseFilter
+
+
+class ChartNameOrDescriptionFilter(
+    BaseFilter
+):  # pylint: disable=too-few-public-methods
+    name = _("Name or Description")
+    arg_name = "name_or_description"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        ilike_value = f"%{value}%"
+        return query.filter(
+            or_(
+                Slice.slice_name.ilike(ilike_value),
+                Slice.description.ilike(ilike_value),
+            )
+        )
 
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods

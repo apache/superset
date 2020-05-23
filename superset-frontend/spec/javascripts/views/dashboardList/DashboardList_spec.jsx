@@ -43,6 +43,7 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
   changed_by_fk: 1,
   published: true,
   changed_on: new Date().toISOString(),
+  owners: [{ first_name: 'admin', last_name: 'admin_user' }],
 }));
 
 fetchMock.get(dashboardsInfoEndpoint, {
@@ -94,13 +95,10 @@ describe('DashboardList', () => {
       `"/http//localhost/api/v1/dashboard/?q={%22order_column%22:%22changed_on%22,%22order_direction%22:%22desc%22,%22page%22:0,%22page_size%22:25}"`,
     );
   });
-
-  it('edits', async () => {
+  it('edits', () => {
     expect(wrapper.find(PropertiesModal)).toHaveLength(0);
-    wrapper
-      .find('.fa-pencil')
-      .first()
-      .simulate('click');
+
+    wrapper.find('.fa-pencil').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toHaveLength(1);
   });
 });

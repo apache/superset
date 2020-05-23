@@ -27,7 +27,7 @@ import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
-import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
+import { getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
 import { chartPropShape } from '../../dashboard/util/propShapes';
@@ -61,6 +61,7 @@ const propTypes = {
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   chart: chartPropShape.isRequired,
   slice: PropTypes.object,
+  sliceName: PropTypes.string,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
@@ -231,9 +232,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   addHistory({ isReplace = false, title }) {
-    const { payload } = getExploreUrlAndPayload({
-      formData: this.props.form_data,
-    });
+    const payload = { ...this.props.form_data };
     const longUrl = getExploreLongUrl(this.props.form_data, null, false);
     try {
       if (isReplace) {
@@ -337,6 +336,7 @@ class ExploreViewContainer extends React.Component {
             onHide={this.toggleModal}
             actions={this.props.actions}
             form_data={this.props.form_data}
+            sliceName={this.props.sliceName}
           />
         )}
         <div className="row">
@@ -405,6 +405,7 @@ function mapStateToProps(state) {
       : 'slice-container',
     isStarred: explore.isStarred,
     slice: explore.slice,
+    sliceName: explore.sliceName,
     triggerRender: explore.triggerRender,
     form_data,
     table_name: form_data.datasource_name,
@@ -418,13 +419,12 @@ function mapStateToProps(state) {
 }
 
 function mapDispatchToProps(dispatch) {
-  const actions = Object.assign(
-    {},
-    exploreActions,
-    saveModalActions,
-    chartActions,
-    logActions,
-  );
+  const actions = {
+    ...exploreActions,
+    ...saveModalActions,
+    ...chartActions,
+    ...logActions,
+  };
   return {
     actions: bindActionCreators(actions, dispatch),
   };

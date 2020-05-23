@@ -94,6 +94,29 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
         for actual, expected in test_cases:
             self.assertEqual(actual, expected)
 
+    def test_extract_error_message(self):
+        test_mssql_exception = Exception(
+            "(8155, b\"No column name was specified for column 1 of 'inner_qry'."
+            "DB-Lib error message 20018, severity 16:\\nGeneral SQL Server error: "
+            'Check messages from the SQL Server\\n")'
+        )
+        error_message = MssqlEngineSpec.extract_error_message(test_mssql_exception)
+        expected_message = (
+            "mssql error: All your SQL functions need to "
+            "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
+        )
+        self.assertEqual(expected_message, error_message)
+
+        test_mssql_exception = Exception(
+            '(8200, b"A correlated expression is invalid because it is not in a '
+            "GROUP BY clause.\\n\")'"
+        )
+        error_message = MssqlEngineSpec.extract_error_message(test_mssql_exception)
+        expected_message = "mssql error: " + MssqlEngineSpec._extract_error_message(
+            test_mssql_exception
+        )
+        self.assertEqual(expected_message, error_message)
+
     @mock.patch.object(
         MssqlEngineSpec, "pyodbc_rows_to_tuples", return_value="converted"
     )

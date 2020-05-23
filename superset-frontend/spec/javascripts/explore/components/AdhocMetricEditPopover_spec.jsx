@@ -22,11 +22,9 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Button, FormGroup, Popover } from 'react-bootstrap';
 
-import AdhocMetric, {
-  EXPRESSION_TYPES,
-} from '../../../../src/explore/AdhocMetric';
-import AdhocMetricEditPopover from '../../../../src/explore/components/AdhocMetricEditPopover';
-import { AGGREGATES } from '../../../../src/explore/constants';
+import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
+import AdhocMetricEditPopover from 'src/explore/components/AdhocMetricEditPopover';
+import { AGGREGATES } from 'src/explore/constants';
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source' },
@@ -77,7 +75,7 @@ describe('AdhocMetricEditPopover', () => {
 
   it('overwrites the adhocMetric in state with onAggregateChange', () => {
     const { wrapper } = setup();
-    wrapper.instance().onAggregateChange({ aggregate: AGGREGATES.AVG });
+    wrapper.instance().onAggregateChange(AGGREGATES.AVG);
     expect(wrapper.state('adhocMetric')).toEqual(
       sumValueAdhocMetric.duplicateWith({ aggregate: AGGREGATES.AVG }),
     );

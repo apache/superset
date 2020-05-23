@@ -22,7 +22,7 @@ import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { mount } from 'enzyme';
 
-import BoundsControl from '../../../../src/explore/components/controls/BoundsControl';
+import BoundsControl from 'src/explore/components/controls/BoundsControl';
 
 const defaultProps = {
   name: 'y_axis_bounds',

@@ -16,8 +16,11 @@
 # under the License.
 import logging
 from logging.config import fileConfig
+from typing import List
 
 from alembic import context
+from alembic.operations.ops import MigrationScript
+from alembic.runtime.migration import MigrationContext
 from flask import current_app
 from flask_appbuilder import Base
 from sqlalchemy import engine_from_config, pool
@@ -31,9 +34,15 @@ config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
-
-config.set_main_option("sqlalchemy.url", current_app.config["SQLALCHEMY_DATABASE_URI"])
+DATABASE_URI = current_app.config["SQLALCHEMY_DATABASE_URI"]
+if "sqlite" in DATABASE_URI:
+    logger.warning(
+        "SQLite Database support for metadata databases will \
+        be removed in a future version of Superset."
+    )
+config.set_main_option("sqlalchemy.url", DATABASE_URI)
 target_metadata = Base.metadata  # pylint: disable=no-member
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -41,7 +50,7 @@ target_metadata = Base.metadata  # pylint: disable=no-member
 # ... etc.
 
 
-def run_migrations_offline():
+def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
     This configures the context with just a URL
@@ -60,7 +69,7 @@ def run_migrations_offline():
         context.run_migrations()
 
 
-def run_migrations_online():
+def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 
     In this scenario we need to create an Engine
@@ -71,9 +80,9 @@ def run_migrations_online():
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
     # reference: https://alembic.sqlalchemy.org/en/latest/cookbook.html
-    def process_revision_directives(
-        context, revision, directives
-    ):  # pylint: disable=redefined-outer-name, unused-argument
+    def process_revision_directives(  # pylint: disable=redefined-outer-name, unused-argument
+        context: MigrationContext, revision: str, directives: List[MigrationScript]
+    ) -> None:
         if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
             if script.upgrade_ops.is_empty():

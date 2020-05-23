@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import logging
 import pickle as pkl
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -49,15 +50,19 @@ class QueryContext:
     queries: List[QueryObject]
     force: bool
     custom_cache_timeout: Optional[int]
+    response_type: utils.ChartDataResponseType
+    response_format: utils.ChartDataResponseFormat
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
-    # a vanilla python type https://github.com/python/mypy/issues/5288
-    def __init__(
+    #  a vanilla python type https://github.com/python/mypy/issues/5288
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         datasource: Dict[str, Any],
         queries: List[Dict[str, Any]],
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
+        response_format: Optional[utils.ChartDataResponseFormat] = None,
+        response_type: Optional[utils.ChartDataResponseType] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
@@ -65,13 +70,15 @@ class QueryContext:
         self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
+        self.response_format = response_format or utils.ChartDataResponseFormat.JSON
+        self.response_type = response_type or utils.ChartDataResponseType.RESULTS
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""
 
         # Here, we assume that all the queries will use the same datasource, which is
-        # is a valid assumption for current setting. In a long term, we may or maynot
-        # support multiple queries from different data source.
+        # a valid assumption for current setting. In the long term, we may
+        # support multiple queries from different data sources.
 
         timestamp_format = None
         if self.datasource.type == "table":
@@ -105,6 +112,9 @@ class QueryContext:
                 self.df_metrics_to_num(df, query_object)
 
             df.replace([np.inf, -np.inf], np.nan)
+
+        df = query_object.exec_post_processing(df)
+
         return {
             "query": result.query,
             "status": result.status,
@@ -113,7 +123,7 @@ class QueryContext:
         }
 
     @staticmethod
-    def df_metrics_to_num(  # pylint: disable=invalid-name,no-self-use
+    def df_metrics_to_num(  # pylint: disable=no-self-use
         df: pd.DataFrame, query_object: QueryObject
     ) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
@@ -121,14 +131,32 @@ class QueryContext:
             if dtype.type == np.object_ and col in query_object.metrics:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    @staticmethod
-    def get_data(  # pylint: disable=invalid-name,no-self-use
-        df: pd.DataFrame,
-    ) -> List[Dict]:
+    def get_data(
+        self, df: pd.DataFrame,
+    ) -> Union[str, List[Dict[str, Any]]]:  # pylint: disable=no-self-use
+        if self.response_format == utils.ChartDataResponseFormat.CSV:
+            include_index = not isinstance(df.index, pd.RangeIndex)
+            result = df.to_csv(index=include_index, **config["CSV_EXPORT"])
+            return result or ""
+
         return df.to_dict(orient="records")
 
     def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
         """Returns a payload of metadata and data"""
+        if self.response_type == utils.ChartDataResponseType.QUERY:
+            return {
+                "query": self.datasource.get_query_str(query_obj.to_dict()),
+                "language": self.datasource.query_language,
+            }
+        if self.response_type == utils.ChartDataResponseType.SAMPLES:
+            row_limit = query_obj.row_limit or 1000
+            query_obj = copy.copy(query_obj)
+            query_obj.groupby = []
+            query_obj.metrics = []
+            query_obj.post_processing = []
+            query_obj.row_limit = row_limit
+            query_obj.columns = [o.column_name for o in self.datasource.columns]
+
         payload = self.get_df_payload(query_obj)
         df = payload["df"]
         status = payload["status"]
@@ -141,7 +169,7 @@ class QueryContext:
         return payload
 
     def get_payload(self) -> List[Dict[str, Any]]:
-        """Get all the payloads from the arrays"""
+        """Get all the payloads from the QueryObjects"""
         return [self.get_single_payload(query_object) for query_object in self.queries]
 
     @property
@@ -157,13 +185,16 @@ class QueryContext:
             return self.datasource.database.cache_timeout
         return config["CACHE_DEFAULT_TIMEOUT"]
 
-    def cache_key(self, query_obj: QueryObject, **kwargs) -> Optional[str]:
+    def cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
         extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj.to_dict())
+
         cache_key = (
             query_obj.cache_key(
                 datasource=self.datasource.uid,
                 extra_cache_keys=extra_cache_keys,
-                rls=security_manager.get_rls_ids(self.datasource),
+                rls=security_manager.get_rls_ids(self.datasource)
+                if config["ENABLE_ROW_LEVEL_SECURITY"]
+                else [],
                 changed_on=self.datasource.changed_on,
                 **kwargs
             )
@@ -173,7 +204,7 @@ class QueryContext:
         return cache_key
 
     def get_df_payload(  # pylint: disable=too-many-locals,too-many-statements
-        self, query_obj: QueryObject, **kwargs
+        self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.cache_key(query_obj, **kwargs)
@@ -197,10 +228,10 @@ class QueryContext:
                     status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
-                except Exception as e:  # pylint: disable=broad-except
-                    logger.exception(e)
+                except Exception as ex:  # pylint: disable=broad-except
+                    logger.exception(ex)
                     logger.error(
-                        "Error reading cache: %s", utils.error_msg_from_exception(e)
+                        "Error reading cache: %s", utils.error_msg_from_exception(ex)
                     )
                 logger.info("Serving from cache")
 
@@ -216,10 +247,10 @@ class QueryContext:
                     if not self.force:
                         stats_logger.incr("loaded_from_source_without_force")
                     is_loaded = True
-            except Exception as e:  # pylint: disable=broad-except
-                logger.exception(e)
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.exception(ex)
                 if not error_message:
-                    error_message = "{}".format(e)
+                    error_message = "{}".format(ex)
                 status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
@@ -234,11 +265,11 @@ class QueryContext:
 
                     stats_logger.incr("set_cache_key")
                     cache.set(cache_key, cache_binary, timeout=self.cache_timeout)
-                except Exception as e:  # pylint: disable=broad-except
+                except Exception as ex:  # pylint: disable=broad-except
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
                     logger.warning("Could not cache key %s", cache_key)
-                    logger.exception(e)
+                    logger.exception(ex)
                     cache.delete(cache_key)
         return {
             "cache_key": cache_key,

@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Label, OverlayTrigger } from 'react-bootstrap';
+import { thresholdScott } from 'd3-array';
 
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
@@ -40,6 +41,7 @@ export default class AdhocMetricOption extends React.PureComponent {
     this.onOverlayExited = this.onOverlayExited.bind(this);
     this.onPopoverResize = this.onPopoverResize.bind(this);
     this.state = { overlayShown: false };
+    this.overlay = null;
   }
 
   onPopoverResize() {
@@ -47,6 +49,10 @@ export default class AdhocMetricOption extends React.PureComponent {
   }
 
   onOverlayEntered() {
+    // isNew is used to indicate whether to automatically open the overlay
+    // once the overlay has been opened, the metric/filter will never be
+    // considered new again.
+    this.props.adhocMetric.isNew = false;
     this.setState({ overlayShown: false });
   }
 
@@ -55,12 +61,12 @@ export default class AdhocMetricOption extends React.PureComponent {
   }
 
   closeMetricEditOverlay() {
-    this.refs.overlay.hide();
+    this.overlay.hide();
   }
 
   render() {
     const { adhocMetric } = this.props;
-    const overlay = (
+    const overlayContent = (
       <AdhocMetricEditPopover
         onResize={this.onPopoverResize}
         adhocMetric={adhocMetric}
@@ -72,35 +78,32 @@ export default class AdhocMetricOption extends React.PureComponent {
     );
 
     return (
-      <OverlayTrigger
-        ref="overlay"
-        placement="right"
-        trigger="click"
-        disabled
-        overlay={overlay}
-        rootClose
-        shouldUpdatePosition
-        defaultOverlayShown={!adhocMetric.fromFormData}
-        onEntered={this.onOverlayEntered}
-        onExited={this.onOverlayExited}
+      <div
+        className="metric-option"
+        onMouseDownCapture={e => e.stopPropagation()}
       >
-        <Label style={{ margin: this.props.multi ? 0 : 3, cursor: 'pointer' }}>
-          <div
-            onMouseDownCapture={e => {
-              e.stopPropagation();
-            }}
-          >
-            <span className="m-r-5 option-label">
-              {adhocMetric.label}
-              <i
-                className={`glyphicon glyphicon-triangle-${
-                  this.state.overlayShown ? 'left' : 'right'
-                } adhoc-label-arrow`}
-              />
-            </span>
-          </div>
-        </Label>
-      </OverlayTrigger>
+        <OverlayTrigger
+          ref={ref => {
+            this.overlay = ref;
+          }}
+          placement="right"
+          trigger="click"
+          disabled
+          overlay={overlayContent}
+          rootClose
+          shouldUpdatePosition
+          defaultOverlayShown={adhocMetric.isNew}
+          onEntered={this.onOverlayEntered}
+          onExited={this.onOverlayExited}
+        >
+          <Label className="option-label adhoc-option">
+            {adhocMetric.label}
+            <i
+              className={`glyphicon glyphicon-triangle-right adhoc-label-arrow`}
+            />
+          </Label>
+        </OverlayTrigger>
+      </div>
     );
   }
 }

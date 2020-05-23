@@ -22,7 +22,7 @@ import { FormControl, OverlayTrigger } from 'react-bootstrap';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import TimeSeriesColumnControl from '../../../../src/explore/components/controls/TimeSeriesColumnControl';
+import TimeSeriesColumnControl from 'src/explore/components/controls/TimeSeriesColumnControl';
 
 const defaultProps = {
   name: 'x_axis_label',

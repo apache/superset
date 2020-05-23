@@ -27,7 +27,7 @@ import {
   arrayMove,
 } from 'react-sortable-hoc';
 
-import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
+import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 import ControlHeader from '../ControlHeader';
 import controlMap from './';
 import './CollectionControl.less';

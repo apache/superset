@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findFirstParentContainerId from '../../../../src/dashboard/util/findFirstParentContainer';
+import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
-} from '../../../../src/dashboard/util/constants';
+} from 'src/dashboard/util/constants';
 
 describe('findFirstParentContainer', () => {
   const mockGridLayout = {

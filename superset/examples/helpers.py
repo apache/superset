@@ -19,7 +19,7 @@ import json
 import os
 import zlib
 from io import BytesIO
-from typing import Set
+from typing import Any, Dict, List, Set
 from urllib import request
 
 from superset import app, db
@@ -41,7 +41,7 @@ EXAMPLES_FOLDER = os.path.join(config["BASE_DIR"], "examples")
 misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboard
 
 
-def update_slice_ids(layout_dict, slices):
+def update_slice_ids(layout_dict: Dict[Any, Any], slices: List[Slice]) -> None:
     charts = [
         component
         for component in layout_dict.values()
@@ -53,7 +53,7 @@ def update_slice_ids(layout_dict, slices):
             chart_component["meta"]["chartId"] = int(slices[i].id)
 
 
-def merge_slice(slc):
+def merge_slice(slc: Slice) -> None:
     o = db.session.query(Slice).filter_by(slice_name=slc.slice_name).first()
     if o:
         db.session.delete(o)
@@ -61,13 +61,15 @@ def merge_slice(slc):
     db.session.commit()
 
 
-def get_slice_json(defaults, **kwargs):
-    d = defaults.copy()
-    d.update(kwargs)
-    return json.dumps(d, indent=4, sort_keys=True)
+def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
+    defaults_copy = defaults.copy()
+    defaults_copy.update(kwargs)
+    return json.dumps(defaults_copy, indent=4, sort_keys=True)
 
 
-def get_example_data(filepath, is_gzip=True, make_bytes=False):
+def get_example_data(
+    filepath: str, is_gzip: bool = True, make_bytes: bool = False
+) -> BytesIO:
     content = request.urlopen(f"{BASE_URL}{filepath}?raw=true").read()
     if is_gzip:
         content = zlib.decompress(content, zlib.MAX_WBITS | 16)

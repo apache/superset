@@ -19,7 +19,7 @@
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from '../../../src/explore/AdhocFilter';
+} from 'src/explore/AdhocFilter';
 
 describe('AdhocFilter', () => {
   it('sets filterOptionName in constructor', () => {
@@ -39,13 +39,14 @@ describe('AdhocFilter', () => {
       clause: CLAUSES.WHERE,
       filterOptionName: adhocFilter.filterOptionName,
       sqlExpression: null,
-      fromFormData: false,
       isExtra: false,
+      isNew: false,
     });
   });
 
   it('can create altered duplicates', () => {
     const adhocFilter1 = new AdhocFilter({
+      isNew: true,
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',
       operator: '>',
@@ -61,6 +62,10 @@ describe('AdhocFilter', () => {
 
     expect(adhocFilter1.operator).toBe('>');
     expect(adhocFilter2.operator).toBe('<');
+
+    // duplicated clone should not be new
+    expect(adhocFilter1.isNew).toBe(true);
+    expect(adhocFilter2.isNew).toStrictEqual(false);
   });
 
   it('can verify equality', () => {
@@ -153,6 +158,36 @@ describe('AdhocFilter', () => {
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter5.isValid()).toBe(true);
+
+    const adhocFilter6 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: '==',
+      comparator: 1,
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter6.isValid()).toBe(true);
+
+    const adhocFilter7 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: '==',
+      comparator: 0,
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter7.isValid()).toBe(true);
+
+    const adhocFilter8 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: '==',
+      comparator: null,
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter8.isValid()).toBe(false);
   });
 
   it('can translate from simple expressions to sql expressions', () => {

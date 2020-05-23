@@ -16,19 +16,20 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import cgi
 import csv
 import datetime
 import doctest
+import html
 import io
 import json
 import logging
 import os
+from typing import Dict, List, Optional
+
 import pytz
 import random
 import re
 import string
-from typing import Any, Dict
 import unittest
 from unittest import mock, skipUnless
 
@@ -44,9 +45,8 @@ from superset import (
     sql_lab,
     is_feature_enabled,
 )
-from superset.common.query_context import QueryContext
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
+from superset.datasets.dao import DatasetDAO
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
@@ -111,22 +111,6 @@ class CoreTests(SupersetTestCase):
         resp = self.client.get("/superset/slice/-1/")
         assert resp.status_code == 404
 
-    def _get_query_context_dict(self) -> Dict[str, Any]:
-        self.login(username="admin")
-        slc = self.get_slice("Girl Name Cloud", db.session)
-        return {
-            "datasource": {"id": slc.datasource_id, "type": slc.datasource_type},
-            "queries": [
-                {
-                    "granularity": "ds",
-                    "groupby": ["name"],
-                    "metrics": [{"label": "sum__num"}],
-                    "filters": [],
-                    "row_limit": 100,
-                }
-            ],
-        }
-
     def test_viz_cache_key(self):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
@@ -134,49 +118,9 @@ class CoreTests(SupersetTestCase):
         viz = slc.viz
         qobj = viz.query_obj()
         cache_key = viz.cache_key(qobj)
-        self.assertEqual(cache_key, viz.cache_key(qobj))
 
         qobj["groupby"] = []
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
-
-    def test_cache_key_changes_when_datasource_is_updated(self):
-        qc_dict = self._get_query_context_dict()
-
-        # construct baseline cache_key
-        query_context = QueryContext(**qc_dict)
-        query_object = query_context.queries[0]
-        cache_key_original = query_context.cache_key(query_object)
-
-        # make temporary change and revert it to refresh the changed_on property
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type=qc_dict["datasource"]["type"],
-            datasource_id=qc_dict["datasource"]["id"],
-            session=db.session,
-        )
-        description_original = datasource.description
-        datasource.description = "temporary description"
-        db.session.commit()
-        datasource.description = description_original
-        db.session.commit()
-
-        # create new QueryContext with unchanged attributes and extract new cache_key
-        query_context = QueryContext(**qc_dict)
-        query_object = query_context.queries[0]
-        cache_key_new = query_context.cache_key(query_object)
-
-        # the new cache_key should be different due to updated datasource
-        self.assertNotEqual(cache_key_original, cache_key_new)
-
-    def test_query_context_time_range_endpoints(self):
-        query_context = QueryContext(**self._get_query_context_dict())
-        query_object = query_context.queries[0]
-        extras = query_object.to_dict()["extras"]
-        self.assertTrue("time_range_endpoints" in extras)
-
-        self.assertEquals(
-            extras["time_range_endpoints"],
-            (utils.TimeRangeEndpoint.INCLUSIVE, utils.TimeRangeEndpoint.EXCLUSIVE),
-        )
 
     def test_get_superset_tables_not_allowed(self):
         example_db = utils.get_example_database()
@@ -214,13 +158,6 @@ class CoreTests(SupersetTestCase):
         uri = f"superset/tables/invalid/public/undefined/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
-
-    def test_api_v1_query_endpoint(self):
-        self.login(username="admin")
-        qc_dict = self._get_query_context_dict()
-        data = json.dumps(qc_dict)
-        resp = json.loads(self.get_resp("/api/v1/query/", {"query_context": data}))
-        self.assertEqual(resp[0]["rowcount"], 100)
 
     def test_old_slice_json_endpoint(self):
         self.login(username="admin")
@@ -505,6 +442,25 @@ class CoreTests(SupersetTestCase):
             expected_body,
         )
 
+        data = json.dumps(
+            {
+                "uri": "mssql+pymssql://url",
+                "name": "examples",
+                "impersonate_user": False,
+            }
+        )
+        response = self.client.post(
+            "/superset/testconn", data=data, content_type="application/json"
+        )
+        assert response.status_code == 400
+        assert response.headers["Content-Type"] == "application/json"
+        response_body = json.loads(response.data.decode("utf-8"))
+        expected_body = {"error": "Could not load database driver: mssql+pymssql"}
+        assert response_body == expected_body, "%s != %s" % (
+            response_body,
+            expected_body,
+        )
+
     def test_testconn_unsafe_uri(self, username="admin"):
         self.login(username=username)
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
@@ -564,7 +520,9 @@ class CoreTests(SupersetTestCase):
     def test_warm_up_cache(self):
         slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
-        self.assertEqual(data, [{"slice_id": slc.id, "slice_name": slc.slice_name}])
+        self.assertEqual(
+            data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
+        )
 
         data = self.get_json_resp(
             "/superset/warm_up_cache?table_name=energy_usage&db_name=main"
@@ -668,6 +626,89 @@ class CoreTests(SupersetTestCase):
         data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data["data"][0]["test"], "2017-01-01T00:00:00")
 
+    @mock.patch("tests.superset_test_custom_template_processors.datetime")
+    def test_custom_process_template(self, mock_dt) -> None:
+        """Test macro defined in custom template processor works."""
+        mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
+        db = mock.Mock()
+        db.backend = "presto"
+        tp = jinja_context.get_template_processor(database=db)
+
+        sql = "SELECT '$DATE()'"
+        rendered = tp.process_template(sql)
+        self.assertEqual("SELECT '{}'".format("1970-01-01"), rendered)
+
+        sql = "SELECT '$DATE(1, 2)'"
+        rendered = tp.process_template(sql)
+        self.assertEqual("SELECT '{}'".format("1970-01-02"), rendered)
+
+    def test_custom_get_template_kwarg(self):
+        """Test macro passed as kwargs when getting template processor
+        works in custom template processor."""
+        db = mock.Mock()
+        db.backend = "presto"
+        s = "$foo()"
+        tp = jinja_context.get_template_processor(database=db, foo=lambda: "bar")
+        rendered = tp.process_template(s)
+        self.assertEqual("bar", rendered)
+
+    def test_custom_template_kwarg(self) -> None:
+        """Test macro passed as kwargs when processing template
+        works in custom template processor."""
+        db = mock.Mock()
+        db.backend = "presto"
+        s = "$foo()"
+        tp = jinja_context.get_template_processor(database=db)
+        rendered = tp.process_template(s, foo=lambda: "bar")
+        self.assertEqual("bar", rendered)
+
+    def test_custom_template_processors_overwrite(self) -> None:
+        """Test template processor for presto gets overwritten by custom one."""
+        db = mock.Mock()
+        db.backend = "presto"
+        tp = jinja_context.get_template_processor(database=db)
+
+        sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
+        rendered = tp.process_template(sql)
+        self.assertEqual(sql, rendered)
+
+        sql = "SELECT '{{ DATE(1, 2) }}'"
+        rendered = tp.process_template(sql)
+        self.assertEqual(sql, rendered)
+
+    def test_custom_template_processors_ignored(self) -> None:
+        """Test custom template processor is ignored for a difference backend
+        database."""
+        maindb = utils.get_example_database()
+        sql = "SELECT '$DATE()'"
+        tp = jinja_context.get_template_processor(database=maindb)
+        rendered = tp.process_template(sql)
+        self.assertEqual(sql, rendered)
+
+    @mock.patch("tests.superset_test_custom_template_processors.datetime")
+    @mock.patch("superset.sql_lab.get_sql_results")
+    def test_custom_templated_sql_json(self, sql_lab_mock, mock_dt) -> None:
+        """Test sqllab receives macros expanded query."""
+        mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
+        self.login("admin")
+        sql = "SELECT '$DATE()' as test"
+        resp = {
+            "status": utils.QueryStatus.SUCCESS,
+            "query": {"rows": 1},
+            "data": [{"test": "'1970-01-01'"}],
+        }
+        sql_lab_mock.return_value = resp
+
+        dbobj = self.create_fake_presto_db()
+        json_payload = dict(database_id=dbobj.id, sql=sql)
+        self.get_json_resp(
+            "/superset/sql_json/", raise_on_error=False, json_=json_payload
+        )
+        assert sql_lab_mock.called
+        self.assertEqual(sql_lab_mock.call_args[0][1], "SELECT '1970-01-01' as test")
+
+        self.delete_fake_presto_db()
+
     def test_fetch_datasource_metadata(self):
         self.login(username="admin")
         url = "/superset/fetch_datasource_metadata?" "datasourceKey=1__table"
@@ -731,102 +772,163 @@ class CoreTests(SupersetTestCase):
         self.get_json_resp(slc_url, {"form_data": json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
 
-    def test_import_csv(self):
-        self.login(username="admin")
-        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+    def create_sample_csvfile(self, filename: str, content: List[str]) -> None:
+        with open(filename, "w+") as test_file:
+            for l in content:
+                test_file.write(f"{l}\n")
 
-        filename_1 = "testCSV.csv"
-        test_file_1 = open(filename_1, "w+")
-        test_file_1.write("a,b\n")
-        test_file_1.write("john,1\n")
-        test_file_1.write("paul,2\n")
-        test_file_1.close()
-
-        filename_2 = "testCSV2.csv"
-        test_file_2 = open(filename_2, "w+")
-        test_file_2.write("b,c,d\n")
-        test_file_2.write("john,1,x\n")
-        test_file_2.write("paul,2,y\n")
-        test_file_2.close()
-
-        example_db = utils.get_example_database()
-        example_db.allow_csv_upload = True
-        db_id = example_db.id
+    def enable_csv_upload(self, database: models.Database) -> None:
+        """Enables csv upload in the given database."""
+        database.allow_csv_upload = True
         db.session.commit()
+        add_datasource_page = self.get_resp("/databaseview/list/")
+        self.assertIn("Upload a CSV", add_datasource_page)
+
+        form_get = self.get_resp("/csvtodatabaseview/form")
+        self.assertIn("CSV to Database configuration", form_get)
+
+    def upload_csv(
+        self, filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    ):
         form_data = {
-            "csv_file": open(filename_1, "rb"),
+            "csv_file": open(filename, "rb"),
             "sep": ",",
             "name": table_name,
-            "con": db_id,
+            "con": utils.get_example_database().id,
             "if_exists": "fail",
             "index_label": "test_label",
             "mangle_dupe_cols": False,
         }
-        url = "/databaseview/list/"
-        add_datasource_page = self.get_resp(url)
-        self.assertIn("Upload a CSV", add_datasource_page)
+        if extra:
+            form_data.update(extra)
+        return self.get_resp("/csvtodatabaseview/form", data=form_data)
 
-        url = "/csvtodatabaseview/form"
-        form_get = self.get_resp(url)
-        self.assertIn("CSV to Database configuration", form_get)
+    @mock.patch(
+        "superset.models.core.config",
+        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": lambda d, u: ["admin_database"]},
+    )
+    def test_import_csv_enforced_schema(self):
+        if utils.get_example_database().backend == "sqlite":
+            # sqlite doesn't support schema / database creation
+            return
+        self.login(username="admin")
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+        full_table_name = f"admin_database.{table_name}"
+        filename = "testCSV.csv"
+        self.create_sample_csvfile(filename, ["a,b", "john,1", "paul,2"])
+        try:
+            self.enable_csv_upload(utils.get_example_database())
+
+            # no schema specified, fail upload
+            resp = self.upload_csv(filename, table_name)
+            self.assertIn(
+                'Database "examples" schema "None" is not allowed for csv uploads', resp
+            )
+
+            # user specified schema matches the expected schema, append
+            success_msg = f'CSV file "{filename}" uploaded to table "{full_table_name}"'
+            resp = self.upload_csv(
+                filename,
+                table_name,
+                extra={"schema": "admin_database", "if_exists": "append"},
+            )
+            self.assertIn(success_msg, resp)
+
+            resp = self.upload_csv(
+                filename,
+                table_name,
+                extra={"schema": "admin_database", "if_exists": "replace"},
+            )
+            self.assertIn(success_msg, resp)
+
+            # user specified schema doesn't match, fail
+            resp = self.upload_csv(filename, table_name, extra={"schema": "gold"})
+            self.assertIn(
+                'Database "examples" schema "gold" is not allowed for csv uploads',
+                resp,
+            )
+        finally:
+            os.remove(filename)
+
+    def test_import_csv_explore_database(self):
+        if utils.get_example_database().backend == "sqlite":
+            # sqlite doesn't support schema / database creation
+            return
+        explore_db_id = utils.get_example_database().id
+
+        upload_db = utils.get_or_create_db(
+            "csv_explore_db", app.config["SQLALCHEMY_DATABASE_URI"]
+        )
+        upload_db_id = upload_db.id
+        extra = upload_db.get_extra()
+        extra["explore_database_id"] = explore_db_id
+        upload_db.extra = json.dumps(extra)
+        db.session.commit()
+
+        self.login(username="admin")
+        self.enable_csv_upload(DatasetDAO.get_database_by_id(upload_db_id))
+        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+
+        f = "testCSV.csv"
+        self.create_sample_csvfile(f, ["a,b", "john,1", "paul,2"])
+        # initial upload with fail mode
+        resp = self.upload_csv(f, table_name)
+        self.assertIn(f'CSV file "{f}" uploaded to table "{table_name}"', resp)
+        table = self.get_table_by_name(table_name)
+        self.assertEqual(table.database_id, explore_db_id)
+
+        # cleanup
+        db.session.delete(table)
+        db.session.delete(DatasetDAO.get_database_by_id(upload_db_id))
+        db.session.commit()
+        os.remove(f)
+
+    def test_import_csv(self):
+        self.login(username="admin")
+        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+
+        f1 = "testCSV.csv"
+        self.create_sample_csvfile(f1, ["a,b", "john,1", "paul,2"])
+        f2 = "testCSV2.csv"
+        self.create_sample_csvfile(f2, ["b,c,d", "john,1,x", "paul,2,y"])
+        self.enable_csv_upload(utils.get_example_database())
 
         try:
+            success_msg_f1 = f'CSV file "{f1}" uploaded to table "{table_name}"'
+
             # initial upload with fail mode
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
-            )
+            resp = self.upload_csv(f1, table_name)
+            self.assertIn(success_msg_f1, resp)
 
             # upload again with fail mode; should fail
-            form_data["csv_file"] = open(filename_1, "rb")
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'Unable to upload CSV file "{filename_1}" to table "{table_name}"',
-                resp,
-            )
+            fail_msg = f'Unable to upload CSV file "{f1}" to table "{table_name}"'
+            resp = self.upload_csv(f1, table_name)
+            self.assertIn(fail_msg, resp)
 
             # upload again with append mode
-            form_data["csv_file"] = open(filename_1, "rb")
-            form_data["if_exists"] = "append"
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
-            )
+            resp = self.upload_csv(f1, table_name, extra={"if_exists": "append"})
+            self.assertIn(success_msg_f1, resp)
 
             # upload again with replace mode
-            form_data["csv_file"] = open(filename_1, "rb")
-            form_data["if_exists"] = "replace"
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'CSV file "{filename_1}" uploaded to table "{table_name}"', resp
-            )
+            resp = self.upload_csv(f1, table_name, extra={"if_exists": "replace"})
+            self.assertIn(success_msg_f1, resp)
 
             # try to append to table from file with different schema
-            form_data["csv_file"] = open(filename_2, "rb")
-            form_data["if_exists"] = "append"
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'Unable to upload CSV file "{filename_2}" to table "{table_name}"',
-                resp,
-            )
+            resp = self.upload_csv(f2, table_name, extra={"if_exists": "append"})
+            fail_msg_f2 = f'Unable to upload CSV file "{f2}" to table "{table_name}"'
+            self.assertIn(fail_msg_f2, resp)
 
             # replace table from file with different schema
-            form_data["csv_file"] = open(filename_2, "rb")
-            form_data["if_exists"] = "replace"
-            resp = self.get_resp(url, data=form_data)
-            self.assertIn(
-                f'CSV file "{filename_2}" uploaded to table "{table_name}"', resp
-            )
-            table = (
-                db.session.query(SqlaTable)
-                .filter_by(table_name=table_name, database_id=db_id)
-                .first()
-            )
+            resp = self.upload_csv(f2, table_name, extra={"if_exists": "replace"})
+            success_msg_f2 = f'CSV file "{f2}" uploaded to table "{table_name}"'
+            self.assertIn(success_msg_f2, resp)
+
+            table = self.get_table_by_name(table_name)
             # make sure the new column name is reflected in the table metadata
             self.assertIn("d", table.column_names)
         finally:
-            os.remove(filename_1)
-            os.remove(filename_2)
+            os.remove(f1)
+            os.remove(f2)
 
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)
@@ -895,7 +997,7 @@ class CoreTests(SupersetTestCase):
         )
         data = self.get_json_resp(json_endpoint, {"form_data": json.dumps(form_data)})
         self.assertEqual(data["status"], utils.QueryStatus.SUCCESS)
-        self.assertEqual(data["error"], None)
+        self.assertEqual(data["errors"], [])
 
     def test_slice_payload_invalid_query(self):
         self.login(username="admin")
@@ -913,7 +1015,8 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp("/superset/explore_json/", raise_on_error=False)
 
         self.assertEqual(
-            data["error"], "The datasource associated with this chart no longer exists"
+            data["errors"][0]["message"],
+            "The datasource associated with this chart no longer exists",
         )
 
     @mock.patch("superset.security.SupersetSecurityManager.schemas_accessible_by_user")
@@ -1111,7 +1214,11 @@ class CoreTests(SupersetTestCase):
             {"FOO": lambda x: 1, "super": "set"},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
-        html = cgi.escape(encoded).replace("'", "&#39;").replace('"', "&#34;")
+        html_string = (
+            html.escape(encoded, quote=False)
+            .replace("'", "&#39;")
+            .replace('"', "&#34;")
+        )
 
         urls = [
             "/superset/sqllab",
@@ -1122,7 +1229,7 @@ class CoreTests(SupersetTestCase):
         ]
         for url in urls:
             data = self.get_resp(url)
-            self.assertTrue(html in data)
+            self.assertTrue(html_string in data)
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",

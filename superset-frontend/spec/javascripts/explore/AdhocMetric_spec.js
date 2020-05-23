@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AdhocMetric, {
-  EXPRESSION_TYPES,
-} from '../../../src/explore/AdhocMetric';
-import { AGGREGATES } from '../../../src/explore/constants';
+import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
+import { AGGREGATES } from 'src/explore/constants';
 
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
 
@@ -34,11 +32,11 @@ describe('AdhocMetric', () => {
       expressionType: EXPRESSION_TYPES.SIMPLE,
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
-      fromFormData: false,
       label: 'SUM(value)',
       hasCustomLabel: false,
       optionName: adhocMetric.optionName,
       sqlExpression: null,
+      isNew: false,
     });
   });
 
@@ -46,6 +44,7 @@ describe('AdhocMetric', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
+      isNew: true,
     });
     const adhocMetric2 = adhocMetric1.duplicateWith({
       aggregate: AGGREGATES.AVG,
@@ -56,6 +55,10 @@ describe('AdhocMetric', () => {
 
     expect(adhocMetric1.aggregate).toBe(AGGREGATES.SUM);
     expect(adhocMetric2.aggregate).toBe(AGGREGATES.AVG);
+
+    // duplicated clone should not be new
+    expect(adhocMetric1.isNew).toBe(true);
+    expect(adhocMetric2.isNew).toStrictEqual(false);
   });
 
   it('can verify equality', () => {

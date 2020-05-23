@@ -131,12 +131,9 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.UPDATE_CHART_TITLE]() {
-      const updatedSlice = Object.assign({}, state.slice, {
-        slice_name: action.slice_name,
-      });
       return {
         ...state,
-        slice: updatedSlice,
+        sliceName: action.sliceName,
       };
     },
     [actions.RESET_FIELDS]() {

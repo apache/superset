@@ -28,6 +28,7 @@ import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
+import downloadAsImage from '../util/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 
@@ -37,7 +38,7 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
-  css: PropTypes.string.isRequired,
+  customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
   onChange: PropTypes.func.isRequired,
@@ -69,7 +70,7 @@ class HeaderActionsDropdown extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      css: props.css,
+      css: props.customCss,
       cssTemplates: [],
     };
 
@@ -116,7 +117,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       forceRefreshAllCharts,
       refreshFrequency,
       editMode,
-      css,
+      customCss,
       colorNamespace,
       colorScheme,
       hasUnsavedChanges,
@@ -150,7 +151,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             layout={layout}
             expandedSlices={expandedSlices}
             refreshFrequency={refreshFrequency}
-            css={css}
+            customCss={customCss}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}
             onSave={onSave}
@@ -216,6 +217,12 @@ class HeaderActionsDropdown extends React.PureComponent {
             templates={this.state.cssTemplates}
             onChange={this.changeCss}
           />
+        )}
+
+        {!editMode && (
+          <MenuItem onClick={downloadAsImage('.dashboard', dashboardTitle)}>
+            {t('Download as image')}
+          </MenuItem>
         )}
       </DropdownButton>
     );

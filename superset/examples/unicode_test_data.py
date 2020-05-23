@@ -36,7 +36,7 @@ from .helpers import (
 )
 
 
-def load_unicode_test_data(only_metadata=False, force=False):
+def load_unicode_test_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading unicode test dataset from a csv file in the repo"""
     tbl_name = "unicode_test"
     database = utils.get_example_database()

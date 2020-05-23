@@ -20,9 +20,8 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { Label } from 'react-bootstrap';
 
-import TooltipWrapper from './../../../../src/components/TooltipWrapper';
-
-import RowCountLabel from '../../../../src/explore/components/RowCountLabel';
+import TooltipWrapper from 'src/components/TooltipWrapper';
+import RowCountLabel from 'src/explore/components/RowCountLabel';
 
 describe('RowCountLabel', () => {
   const defaultProps = {
@@ -46,11 +45,6 @@ describe('RowCountLabel', () => {
       limit: 100,
     };
     const wrapper = shallow(<RowCountLabel {...props} />);
-    expect(
-      wrapper
-        .find(Label)
-        .first()
-        .props().bsStyle,
-    ).toBe('danger');
+    expect(wrapper.find(Label).first().props().bsStyle).toBe('danger');
   });
 });

@@ -27,10 +27,10 @@ import {
   SET_UNSAVED_CHANGES,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
-} from '../../../../src/dashboard/actions/dashboardState';
+} from 'src/dashboard/actions/dashboardState';
 
-import dashboardStateReducer from '../../../../src/dashboard/reducers/dashboardState';
-import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
+import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
+import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 
 describe('dashboardState reducer', () => {
   it('should return initial state', () => {

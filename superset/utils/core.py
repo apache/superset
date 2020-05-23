@@ -23,6 +23,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import signal
 import smtplib
 import tempfile
@@ -37,7 +38,20 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum
 from time import struct_time
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, Union
+from timeit import default_timer
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 from urllib.parse import unquote_plus
 
 import bleach
@@ -51,7 +65,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends.openssl.x509 import _Certificate
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import current_app, flash, Flask, g, Markup, render_template
+from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
@@ -71,6 +85,9 @@ try:
     from pydruid.utils.having import Having
 except ImportError:
     pass
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -126,7 +143,7 @@ class _memoized:
         self.func = func
         self.cache = {}
         self.is_method = False
-        self.watch = watch
+        self.watch = watch or []
 
     def __call__(self, *args, **kwargs):
         key = [args, frozenset(kwargs.items())]
@@ -155,7 +172,7 @@ class _memoized:
         return functools.partial(self.__call__, obj)
 
 
-def memoized(func=None, watch=None):
+def memoized(func: Optional[Callable] = None, watch: Optional[List[str]] = None):
     if func:
         return _memoized(func)
     else:
@@ -181,28 +198,30 @@ def parse_js_uri_path_item(
     return unquote_plus(item) if unquote and item else item
 
 
-def string_to_num(s: str):
-    """Converts a string to an int/float
+def cast_to_num(value: Union[float, int, str]) -> Optional[Union[float, int]]:
+    """Casts a value to an int/float
 
-    Returns ``None`` if it can't be converted
-
-    >>> string_to_num('5')
+    >>> cast_to_num('5')
     5
-    >>> string_to_num('5.2')
+    >>> cast_to_num('5.2')
     5.2
-    >>> string_to_num(10)
+    >>> cast_to_num(10)
     10
-    >>> string_to_num(10.1)
+    >>> cast_to_num(10.1)
     10.1
-    >>> string_to_num('this is not a string') is None
+    >>> cast_to_num('this is not a string') is None
     True
+
+    :param value: value to be converted to numeric representation
+    :returns: value cast to `int` if value is all digits, `float` if `value` is
+              decimal value and `None`` if it can't be converted
     """
-    if isinstance(s, (int, float)):
-        return s
-    if s.isdigit():
-        return int(s)
+    if isinstance(value, (int, float)):
+        return value
+    if value.isdigit():
+        return int(value)
     try:
-        return float(s)
+        return float(value)
     except ValueError:
         return None
 
@@ -216,7 +235,7 @@ def list_minus(l: List, minus: List) -> List:
     return [o for o in l if o not in minus]
 
 
-def parse_human_datetime(s):
+def parse_human_datetime(s: Optional[str]) -> Optional[datetime]:
     """
     Returns ``datetime.datetime`` from human readable strings
 
@@ -249,14 +268,18 @@ def parse_human_datetime(s):
             if parsed_flags & 2 == 0:
                 parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
             dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ex:
+            logger.exception(ex)
             raise ValueError("Couldn't parse date string [{}]".format(s))
     return dttm
 
 
 def dttm_from_timetuple(d: struct_time) -> datetime:
     return datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
+
+
+def md5_hex(data: str) -> str:
+    return hashlib.md5(data.encode()).hexdigest()
 
 
 class DashboardEncoder(json.JSONEncoder):
@@ -421,7 +444,7 @@ def json_dumps_w_dates(payload):
     return json.dumps(payload, default=json_int_dttm_ser)
 
 
-def error_msg_from_exception(e: Exception) -> str:
+def error_msg_from_exception(ex: Exception) -> str:
     """Translate exception into error message
 
     Database have different ways to handle exception. This function attempts
@@ -436,12 +459,12 @@ def error_msg_from_exception(e: Exception) -> str:
     The latter version is parsed correctly by this function.
     """
     msg = ""
-    if hasattr(e, "message"):
-        if isinstance(e.message, dict):  # type: ignore
-            msg = e.message.get("message")  # type: ignore
-        elif e.message:  # type: ignore
-            msg = e.message  # type: ignore
-    return msg or str(e)
+    if hasattr(ex, "message"):
+        if isinstance(ex.message, dict):  # type: ignore
+            msg = ex.message.get("message")  # type: ignore
+        elif ex.message:  # type: ignore
+            msg = ex.message  # type: ignore
+    return msg or str(ex)
 
 
 def markdown(s: str, markup_wrap: Optional[bool] = False) -> str:
@@ -551,8 +574,8 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
     if obj:
         try:
             json.loads(obj)
-        except Exception as e:
-            logger.error(f"JSON is not valid {e}")
+        except Exception as ex:
+            logger.error(f"JSON is not valid {ex}")
             raise SupersetException("JSON is not valid")
 
 
@@ -583,16 +606,16 @@ class timeout:
         try:
             signal.signal(signal.SIGALRM, self.handle_timeout)
             signal.alarm(self.seconds)
-        except ValueError as e:
+        except ValueError as ex:
             logger.warning("timeout can't be used in the current context")
-            logger.exception(e)
+            logger.exception(ex)
 
     def __exit__(self, type, value, traceback):
         try:
             signal.alarm(0)
-        except ValueError as e:
+        except ValueError as ex:
             logger.warning("timeout can't be used in the current context")
-            logger.exception(e)
+            logger.exception(ex)
 
 
 def pessimistic_connection_handling(some_engine):
@@ -664,42 +687,42 @@ def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, conf
 
 
 def send_email_smtp(
-    to,
-    subject,
-    html_content,
-    config,
-    files=None,
-    data=None,
-    images=None,
-    dryrun=False,
-    cc=None,
-    bcc=None,
-    mime_subtype="mixed",
-):
+    to: str,
+    subject: str,
+    html_content: str,
+    config: Dict[str, Any],
+    files: Optional[List[str]] = None,
+    data: Optional[Dict[str, str]] = None,
+    images: Optional[Dict[str, str]] = None,
+    dryrun: bool = False,
+    cc: Optional[str] = None,
+    bcc: Optional[str] = None,
+    mime_subtype: str = "mixed",
+) -> None:
     """
     Send an email with html content, eg:
     send_email_smtp(
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
     smtp_mail_from = config["SMTP_MAIL_FROM"]
-    to = get_email_address_list(to)
+    smtp_mail_to = get_email_address_list(to)
 
     msg = MIMEMultipart(mime_subtype)
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
-    msg["To"] = ", ".join(to)
+    msg["To"] = ", ".join(smtp_mail_to)
     msg.preamble = "This is a multi-part message in MIME format."
 
-    recipients = to
+    recipients = smtp_mail_to
     if cc:
-        cc = get_email_address_list(cc)
-        msg["CC"] = ", ".join(cc)
-        recipients = recipients + cc
+        smtp_mail_cc = get_email_address_list(cc)
+        msg["CC"] = ", ".join(smtp_mail_cc)
+        recipients = recipients + smtp_mail_cc
 
     if bcc:
         # don't add bcc in header
-        bcc = get_email_address_list(bcc)
-        recipients = recipients + bcc
+        smtp_mail_bcc = get_email_address_list(bcc)
+        recipients = recipients + smtp_mail_bcc
 
     msg["Date"] = formatdate(localtime=True)
     mime_text = MIMEText(html_content, "html")
@@ -765,14 +788,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
 def get_email_address_list(address_string: str) -> List[str]:
     address_string_list: List[str] = []
     if isinstance(address_string, str):
-        if "," in address_string:
-            address_string_list = address_string.split(",")
-        elif "\n" in address_string:
-            address_string_list = address_string.split("\n")
-        elif ";" in address_string:
-            address_string_list = address_string.split(";")
-        else:
-            address_string_list = [address_string]
+        address_string_list = re.split(",|\s|;", address_string)
     return [x.strip() for x in address_string_list if x.strip()]
 
 
@@ -944,7 +960,7 @@ def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     return database
 
 
-def get_example_database():
+def get_example_database() -> "Database":
     from superset import conf
 
     db_uri = conf.get("SQLALCHEMY_EXAMPLES_URI") or conf.get("SQLALCHEMY_DATABASE_URI")
@@ -1018,8 +1034,8 @@ def get_since_until(
 
     """
     separator = " : "
-    relative_start = parse_human_datetime(relative_start if relative_start else "today")
-    relative_end = parse_human_datetime(relative_end if relative_end else "today")
+    relative_start = parse_human_datetime(relative_start if relative_start else "today")  # type: ignore
+    relative_end = parse_human_datetime(relative_end if relative_end else "today")  # type: ignore
     common_time_frames = {
         "Last day": (
             relative_start - relativedelta(days=1),  # type: ignore
@@ -1048,8 +1064,8 @@ def get_since_until(
             since, until = time_range.split(separator, 1)
             if since and since not in common_time_frames:
                 since = add_ago_to_since(since)
-            since = parse_human_datetime(since)
-            until = parse_human_datetime(until)
+            since = parse_human_datetime(since)  # type: ignore
+            until = parse_human_datetime(until)  # type: ignore
         elif time_range in common_time_frames:
             since, until = common_time_frames[time_range]
         elif time_range == "No filter":
@@ -1058,20 +1074,20 @@ def get_since_until(
             rel, num, grain = time_range.split()
             if rel == "Last":
                 since = relative_start - relativedelta(  # type: ignore
-                    **{grain: int(num)}
+                    **{grain: int(num)}  # type: ignore
                 )
                 until = relative_end
             else:  # rel == 'Next'
                 since = relative_start
                 until = relative_end + relativedelta(  # type: ignore
-                    **{grain: int(num)}
+                    **{grain: int(num)}  # type: ignore
                 )
     else:
         since = since or ""
         if since:
             since = add_ago_to_since(since)
-        since = parse_human_datetime(since)
-        until = parse_human_datetime(until) if until else relative_end
+        since = parse_human_datetime(since)  # type: ignore
+        until = parse_human_datetime(until) if until else relative_end  # type: ignore
 
     if time_shift:
         time_delta = parse_past_timedelta(time_shift)
@@ -1184,7 +1200,7 @@ def parse_ssl_cert(certificate: str) -> _Certificate:
         return x509.load_pem_x509_certificate(
             certificate.encode("utf-8"), default_backend()
         )
-    except ValueError as e:
+    except ValueError:
         raise CertificateException("Invalid certificate")
 
 
@@ -1211,6 +1227,21 @@ def create_ssl_cert_file(certificate: str) -> str:
     return path
 
 
+def time_function(func: Callable, *args, **kwargs) -> Tuple[float, Any]:
+    """
+    Measures the amount of time a function takes to execute in ms
+
+    :param func: The function execution time to measure
+    :param args: args to be passed to the function
+    :param kwargs: kwargs to be passed to the function
+    :return: A tuple with the duration and response from the function
+    """
+    start = default_timer()
+    response = func(*args, **kwargs)
+    stop = default_timer()
+    return (stop - start) * 1000.0, response
+
+
 def MediumText() -> Variant:
     return Text().with_variant(MEDIUMTEXT(), "mysql")
 
@@ -1224,9 +1255,10 @@ class DatasourceName(NamedTuple):
     schema: str
 
 
-def get_stacktrace():
+def get_stacktrace() -> Optional[str]:
     if current_app.config["SHOW_STACKTRACE"]:
         return traceback.format_exc()
+    return None
 
 
 def split(
@@ -1316,3 +1348,41 @@ class DbColumnType(Enum):
     NUMERIC = 0
     STRING = 1
     TEMPORAL = 2
+
+
+class FilterOperator(str, Enum):
+    """
+    Operators used filter controls
+    """
+
+    EQUALS = "=="
+    NOT_EQUALS = "!="
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    GREATER_THAN_OR_EQUALS = ">="
+    LESS_THAN_OR_EQUALS = "<="
+    LIKE = "LIKE"
+    IS_NULL = "IS NULL"
+    IS_NOT_NULL = "IS NOT NULL"
+    IN = "IN"
+    NOT_IN = "NOT IN"
+    REGEX = "REGEX"
+
+
+class ChartDataResponseType(str, Enum):
+    """
+    Chart data response type
+    """
+
+    QUERY = "query"
+    RESULTS = "results"
+    SAMPLES = "samples"
+
+
+class ChartDataResponseFormat(str, Enum):
+    """
+    Chart data response format
+    """
+
+    CSV = "csv"
+    JSON = "json"

@@ -24,7 +24,7 @@ import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
 
-import ChangeDatasourceModal from '../../../src/datasource/ChangeDatasourceModal';
+import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import mockDatasource from '../../fixtures/mockDatasource';
 
 const props = {

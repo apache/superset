@@ -19,18 +19,17 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
-
 import shortid from 'shortid';
+import sqlLabReducer from 'src/SqlLab/reducers/index';
+import * as actions from 'src/SqlLab/actions/sqlLab';
+import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
+import * as exploreUtils from 'src/explore/exploreUtils';
+import Button from 'src/components/Button';
+
 import { queries, queryWithBadColumns } from './fixtures';
-import sqlLabReducer from '../../../src/SqlLab/reducers/index';
-import * as actions from '../../../src/SqlLab/actions/sqlLab';
-import ExploreResultsButton from '../../../src/SqlLab/components/ExploreResultsButton';
-import * as exploreUtils from '../../../src/explore/exploreUtils';
-import Button from '../../../src/components/Button';
 
 describe('ExploreResultsButton', () => {
   const middlewares = [thunk];
@@ -178,17 +177,14 @@ describe('ExploreResultsButton', () => {
     fetchMock.post(visualizeEndpoint, visualizationPayload);
 
     beforeEach(() => {
-      sinon.stub(exploreUtils, 'getExploreUrlAndPayload').callsFake(() => ({
-        url: 'mockURL',
-        payload: { datasource: '107__table' },
-      }));
+      sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => 'mockURL');
       sinon.spy(exploreUtils, 'exportChart');
       sinon
         .stub(wrapper.instance(), 'buildVizOptions')
         .callsFake(() => mockOptions);
     });
     afterEach(() => {
-      exploreUtils.getExploreUrlAndPayload.restore();
+      exploreUtils.getExploreUrl.restore();
       exploreUtils.exportChart.restore();
       wrapper.instance().buildVizOptions.restore();
       fetchMock.reset();

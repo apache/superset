@@ -21,9 +21,9 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { OverlayTrigger, Label } from 'react-bootstrap';
 
-import ViewportControl from '../../../../src/explore/components/controls/ViewportControl';
-import TextControl from '../../../../src/explore/components/controls/TextControl';
-import ControlHeader from '../../../../src/explore/components/ControlHeader';
+import ViewportControl from 'src/explore/components/controls/ViewportControl';
+import TextControl from 'src/explore/components/controls/TextControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const defaultProps = {
   value: {
@@ -55,12 +55,8 @@ describe('ViewportControl', () => {
   });
 
   it('renders a summary in the label', () => {
-    expect(
-      wrapper
-        .find(Label)
-        .first()
-        .render()
-        .text(),
-    ).toBe('6° 51\' 8.50" | 31° 13\' 21.56"');
+    expect(wrapper.find(Label).first().render().text()).toBe(
+      '6° 51\' 8.50" | 31° 13\' 21.56"',
+    );
   });
 });

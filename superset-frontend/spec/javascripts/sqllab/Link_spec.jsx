@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import Link from '../../../src/components/Link';
+import Link from 'src/components/Link';
 
 describe('Link', () => {
   const mockedProps = {

@@ -45,7 +45,7 @@ import sphinx_rtd_theme
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx_autodoc_typehints"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -63,7 +63,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Apache Superset"
-copyright = "Copyright © 2019 The Apache Software Foundation, Licensed under the Apache License, Version 2.0."
+copyright = "Copyright © 2020 The Apache Software Foundation, Licensed under the Apache License, Version 2.0."
 author = u"Apache Superset Dev"
 
 # The version info for the project you're documenting, acts as replacement for

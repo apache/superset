@@ -23,7 +23,8 @@ import { connect } from 'react-redux';
 import $ from 'jquery';
 import { t } from '@superset-ui/translation';
 import throttle from 'lodash/throttle';
-
+import { ThemeProvider } from 'emotion-theming';
+import { supersetTheme } from '@superset-ui/style';
 import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
@@ -89,11 +90,13 @@ class App extends React.PureComponent {
       tabsEl.length > 0 ? tabsEl.outerHeight() : searchHeaderHeight;
     const warningHeight = warningEl.length > 0 ? warningEl.outerHeight() : 0;
     const alertHeight = alertEl.length > 0 ? alertEl.outerHeight() : 0;
-    return `${window.innerHeight -
+    return `${
+      window.innerHeight -
       headerHeight -
       tabsHeight -
       warningHeight -
-      alertHeight}px`;
+      alertHeight
+    }px`;
   }
   showLocalStorageUsageWarning(currentUsage) {
     this.props.actions.addDangerToast(
@@ -130,10 +133,12 @@ class App extends React.PureComponent {
       );
     }
     return (
-      <div className="App SqlLab">
-        {content}
-        <ToastPresenter />
-      </div>
+      <ThemeProvider theme={supersetTheme}>
+        <div className="App SqlLab">
+          {content}
+          <ToastPresenter />
+        </div>
+      </ThemeProvider>
     );
   }
 }

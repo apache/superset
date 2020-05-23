@@ -19,7 +19,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import ColumnTypeLabel from '../../../src/components/ColumnTypeLabel';
+import { ColumnOption } from '@superset-ui/control-utils';
+import ColumnTypeLabel from 'src/components/ColumnTypeLabel';
 
 describe('ColumnOption', () => {
   const defaultProps = {
