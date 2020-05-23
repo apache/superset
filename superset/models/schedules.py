@@ -21,7 +21,7 @@ from typing import Optional, Type
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, RelationshipProperty
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportMixin
@@ -55,11 +55,11 @@ class EmailSchedule:
     crontab = Column(String(50))
 
     @declared_attr
-    def user_id(self):
+    def user_id(self) -> int:
         return Column(Integer, ForeignKey("ab_user.id"))
 
     @declared_attr
-    def user(self):
+    def user(self) -> RelationshipProperty:
         return relationship(
             security_manager.user_model,
             backref=self.__tablename__,
