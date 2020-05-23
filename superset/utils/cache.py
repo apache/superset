@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Callable, Optional
+
 from flask import request
 
 from superset.extensions import cache_manager
@@ -24,7 +26,9 @@ def view_cache_key(*_, **__) -> str:
     return "view/{}/{}".format(request.path, args_hash)
 
 
-def memoized_func(key=view_cache_key, attribute_in_key=None):
+def memoized_func(
+    key: Callable = view_cache_key, attribute_in_key: Optional[str] = None
+) -> Callable:
     """Use this decorator to cache functions that have predefined first arg.
 
     enable_cache is treated as True by default,
