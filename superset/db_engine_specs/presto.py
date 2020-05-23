@@ -671,7 +671,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             full_table_name = table_name
             if schema_name and "." not in table_name:
                 full_table_name = "{}.{}".format(schema_name, table_name)
-            pql = cls._partition_query(full_table_name, database)
+            pql = cls._partition_query(full_table_name, schema_name, database)
             col_names, latest_parts = cls.latest_partition(
                 table_name, schema_name, database, show_first=True
             )
@@ -783,6 +783,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
         cls,
         table_name: str,
+        schema: Optional[str],
         database: "Database",
         limit: int = 0,
         order_by: Optional[List[Tuple[str, bool]]] = None,
@@ -817,13 +818,17 @@ class PrestoEngineSpec(BaseEngineSpec):
 
         presto_version = database.get_extra().get("version")
 
+        partdollarqry = f"SHOW PARTITIONS FROM {table_name}"
+        if not presto_version or StrictVersion(presto_version) >= StrictVersion("0.199"):
+            if schema and len(schema) > 0:
+                partdollarqry = f'SELECT * FROM {schema}."{table_name}$partitions"'
+            else:
+                partdollarqry = f'SELECT * FROM "{table_name}$partitions"'
+
         # Partition select syntax changed in v0.199, so check here.
         # Default to the new syntax if version is unset.
         partition_select_clause = (
-            f'SELECT * FROM "{table_name}$partitions"'
-            if not presto_version
-            or StrictVersion(presto_version) >= StrictVersion("0.199")
-            else f"SHOW PARTITIONS FROM {table_name}"
+            partdollarqry
         )
 
         sql = textwrap.dedent(
@@ -908,7 +913,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             )
         column_names = indexes[0]["column_names"]
         part_fields = [(column_name, True) for column_name in column_names]
-        sql = cls._partition_query(table_name, database, 1, part_fields)
+        sql = cls._partition_query(table_name, schema, database, 1, part_fields)
         df = database.get_df(sql, schema)
         return column_names, cls._latest_partition_from_df(df)
 
@@ -958,7 +963,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 field_to_return = field
 
         sql = cls._partition_query(
-            table_name, database, 1, [(field_to_return, True)], kwargs
+            table_name, schema, database, 1, [(field_to_return, True)], kwargs
         )
         df = database.get_df(sql, schema)
         if df.empty:
