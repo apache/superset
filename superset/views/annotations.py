@@ -22,7 +22,7 @@ from wtforms.validators import StopValidation
 from superset.constants import RouteMethod
 from superset.models.annotations import Annotation, AnnotationLayer
 
-from .base import DeleteMixin, SupersetModelView
+from .base import SupersetModelView
 
 
 class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
