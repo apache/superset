@@ -36,7 +36,9 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
+from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportMixin
@@ -59,7 +61,7 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(mapper, connection, target):
+def copy_dashboard(mapper: Mapper, connection: Connection, target: "Dashboard") -> None:
     # pylint: disable=unused-argument
     dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
@@ -140,7 +142,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         "slug",
     ]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.dashboard_title or str(self.id)
 
     @property
@@ -202,13 +204,13 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return f"/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
 
     @property
-    def changed_by_name(self):
+    def changed_by_name(self) -> str:
         if not self.changed_by:
             return ""
         return str(self.changed_by)
 
     @property
-    def changed_by_url(self):
+    def changed_by_url(self) -> str:
         if not self.changed_by:
             return ""
         return f"/superset/profile/{self.changed_by.username}"
@@ -229,8 +231,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             "position_json": positions,
         }
 
-    @property
-    def params(self) -> str:
+    @property  # type: ignore
+    def params(self) -> str:  # type: ignore
         return self.json_metadata
 
     @params.setter
@@ -257,7 +259,9 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
          Audit metadata isn't copied over.
         """
 
-        def alter_positions(dashboard, old_to_new_slc_id_dict):
+        def alter_positions(
+            dashboard: Dashboard, old_to_new_slc_id_dict: Dict[int, int]
+        ) -> None:
             """ Updates slice_ids in the position json.
 
             Sample position_json data:
@@ -291,9 +295,9 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                 if (
                     isinstance(value, dict)
                     and value.get("meta")
-                    and value.get("meta").get("chartId")
+                    and value.get("meta", {}).get("chartId")
                 ):
-                    old_slice_id = value.get("meta").get("chartId")
+                    old_slice_id = value["meta"]["chartId"]
 
                     if old_slice_id in old_to_new_slc_id_dict:
                         value["meta"]["chartId"] = old_to_new_slc_id_dict[old_slice_id]
@@ -470,8 +474,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
 
 def event_after_dashboard_changed(  # pylint: disable=unused-argument
-    mapper, connection, target
-):
+    mapper: Mapper, connection: Connection, target: Dashboard
+) -> None:
     cache_dashboard_thumbnail.delay(target.id, force=True)
 
 
