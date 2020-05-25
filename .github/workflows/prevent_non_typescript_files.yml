@@ -21,7 +21,7 @@ jobs:
           cat ${HOME}/files_added.json
           jq 'map(endswith(".js") or endswith(".jsx"))' ${HOME}/files_added.json | jq 'reduce .[] as $is_js (false; . or $is_js)'
           echo ::set-output name=was_js_file_added::$(jq 'map(endswith(".js") or endswith(".jsx"))' ${HOME}/files_added.json | jq 'reduce .[] as $is_js (false; . or $is_js)')
-      - if: steps.check.outputs.was_js_file_added 
+      - if: steps.check.outputs.was_js_file_added != 'false'
         name: Comment about preferring TypeScript
         uses: unsplash/comment-on-pr@master
         env:
