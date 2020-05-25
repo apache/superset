@@ -32,7 +32,7 @@ if (process.env.WEBPACK_MODE === 'development') {
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
   const bootstrapData = root
-    ? JSON.parse(root.getAttribute('data-bootstrap'))
+    ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
     : {};
   if (bootstrapData.common && bootstrapData.common.language_pack) {
     const languagePack = bootstrapData.common.language_pack;

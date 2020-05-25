@@ -103,6 +103,7 @@
     "@types/react-json-tree": "^0.6.11",
     "@types/react-select": "^3.0.12",
     "@types/react-window": "^1.8.2",
+    "@types/redux-localstorage": "^1.0.8",
     "@types/rison": "0.0.6",
     "@vx/responsive": "^0.0.195",
     "abortcontroller-polyfill": "^1.1.9",
