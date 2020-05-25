@@ -1,1 +1,0 @@
-It looks like your PR contains new `.js` or `.jsx` files. As decided in [SIP-36](https://github.com/apache/incubator-superset/issues/9101), all new files should be written in TypeScript. Please convert new JavaScript files to TypeScript and then re-request review.
