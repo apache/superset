@@ -1,0 +1,28 @@
+name: Prevent non-TypeScript files
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  comment:
+    name: Comment about preferring TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get changed files
+        id: changed
+        uses: lots0logs/gh-action-get-changed-files@2.0.6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine if a .js or .jsx file was added
+        id: check
+        run: |
+          echo ::set-output name=was_js_file_added::$(jq 'map(endswith(".js") or endswith(".jsx"))' ${HOME}/files_added.json | jq 'reduce .[] as $is_js (false; . or $is_js)')
+      - name: Comment about preferring TypeScript
+        uses: harupy/comment-on-pr@master
+        if: ${{ steps.check.outputs.was_js_file_added }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          filename: comment_preferring_typescript.md
