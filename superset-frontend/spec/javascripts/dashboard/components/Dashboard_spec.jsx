@@ -63,7 +63,7 @@ describe('Dashboard', () => {
   // activeFilters map use id_column) as key
   const OVERRIDE_FILTERS = {
     '1_region': { values: [], scope: [1] },
-    '2_country_name': { values: ['USA'], scope: [1] },
+    '2_country_name': { values: ['USA'], scope: [1, 2] },
     '3_region': { values: [], scope: [1] },
     '3_country_name': { values: ['USA'], scope: [] },
   };
@@ -171,6 +171,19 @@ describe('Dashboard', () => {
       expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual(newFilters);
       expect(refreshSpy.getCall(0).args[0]).toEqual([1]);
+    });
+
+    it('should call refresh with multiple chart ids', () => {
+      const newFilters = {
+        ...OVERRIDE_FILTERS,
+        '2_country_name': { values: ['New Country'], scope: [1, 2] },
+      };
+      wrapper.setProps({
+        activeFilters: newFilters,
+      });
+      expect(refreshSpy.callCount).toBe(1);
+      expect(wrapper.instance().appliedFilters).toEqual(newFilters);
+      expect(refreshSpy.getCall(0).args[0]).toEqual([1, 2]);
     });
 
     it('should call refresh if a filter scope is changed', () => {
