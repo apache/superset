@@ -12,9 +12,9 @@ jobs:
     steps:
       - name: Get changed files
         id: changed
-        uses: lots0logs/gh-action-get-changed-files@2.0.6
+        uses: trilom/file-changes-action@v1.2.3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
       - name: Determine if a .js or .jsx file was added
         id: check
         run: |
