@@ -14,13 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses
 import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
+import dataclasses
 import simplejson as json
 import yaml
 from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
@@ -48,9 +48,15 @@ from superset.connectors.sqla import models
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
+from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
 from .utils import bootstrap_user_data
+
+if TYPE_CHECKING:
+    from superset.connectors.druid.views import (  # pylint: disable=unused-import
+        DruidClusterModelView,
+    )
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -305,7 +311,7 @@ class SupersetModelView(ModelView):
     page_size = 100
     list_widget = SupersetListWidget
 
-    def render_app_template(self):
+    def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user),
             "common": common_bootstrap_payload(),
@@ -359,7 +365,9 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 
 
 class DeleteMixin:  # pylint: disable=too-few-public-methods
-    def _delete(self, primary_key):
+    def _delete(
+        self: Union[BaseView, "DeleteMixin", "DruidClusterModelView"], primary_key: int,
+    ) -> None:
         """
             Delete function logic, override to implement diferent logic
             deletes the record with primary_key = primary_key
@@ -367,11 +375,11 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
             :param primary_key:
                 record primary key to delete
         """
-        item = self.datamodel.get(primary_key, self._base_filters)
+        item = self.datamodel.get(primary_key, self._base_filters)  # type: ignore
         if not item:
             abort(404)
         try:
-            self.pre_delete(item)
+            self.pre_delete(item)  # type: ignore
         except Exception as ex:  # pylint: disable=broad-except
             flash(str(ex), "danger")
         else:
@@ -384,8 +392,8 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 .all()
             )
 
-            if self.datamodel.delete(item):
-                self.post_delete(item)
+            if self.datamodel.delete(item):  # type: ignore
+                self.post_delete(item)  # type: ignore
 
                 for pv in pvs:
                     security_manager.get_session.delete(pv)
@@ -395,8 +403,8 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
 
                 security_manager.get_session.commit()
 
-            flash(*self.datamodel.message)
-            self.update_redirect()
+            flash(*self.datamodel.message)  # type: ignore
+            self.update_redirect()  # type: ignore
 
     @action(
         "muldelete", __("Delete"), __("Delete all Really?"), "fa-trash", single=False
