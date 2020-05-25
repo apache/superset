@@ -10,6 +10,8 @@ jobs:
     name: Comment about preferring TypeScript
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v1
       - name: Get changed files
         id: changed
         uses: lots0logs/gh-action-get-changed-files@2.0.6
