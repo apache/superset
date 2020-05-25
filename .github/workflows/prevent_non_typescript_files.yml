@@ -20,9 +20,9 @@ jobs:
         run: |
           echo ::set-output name=was_js_file_added::$(jq 'map(endswith(".js") or endswith(".jsx"))' ${HOME}/files_added.json | jq 'reduce .[] as $is_js (false; . or $is_js)')
       - name: Comment about preferring TypeScript
-        uses: harupy/comment-on-pr@master
         if: ${{ steps.check.outputs.was_js_file_added }}
+        uses: unsplash/comment-on-pr@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          filename: comment_preferring_typescript.md
+          msg: "It looks like your PR contains new `.js` or `.jsx` files. As decided in [SIP-36](https://github.com/apache/incubator-superset/issues/9101), all new files should be written in TypeScript. Please convert new JavaScript files to TypeScript and then re-request review."
