@@ -20,9 +20,9 @@ from typing import TYPE_CHECKING
 
 from flask import flash, g, redirect
 from flask_appbuilder import SimpleFormView
-from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
+from werkzeug.wrappers import Response
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
@@ -32,12 +32,10 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.exceptions import CertificateException
 from superset.sql_parse import Table
-from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
-from superset.views.database.forms import CsvToDatabaseForm
 
-from .forms import CsvToDatabaseForm
+from .forms import CsvToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
 from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
 
@@ -48,9 +46,7 @@ config = app.config
 stats_logger = config["STATS_LOGGER"]
 
 
-def sqlalchemy_uri_form_validator(  # pylint: disable=unused-argument
-    form: DynamicForm, field: StringField
-) -> None:
+def sqlalchemy_uri_form_validator(_: _, field: StringField) -> None:
     """
         Check if user has submitted a valid SQLAlchemy URI
     """
@@ -58,9 +54,7 @@ def sqlalchemy_uri_form_validator(  # pylint: disable=unused-argument
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
 
 
-def certificate_form_validator(  # pylint: disable=unused-argument
-    form: DynamicForm, field: StringField
-) -> None:
+def certificate_form_validator(_: _, field: StringField) -> None:
     """
         Check if user has submitted a valid SSL certificate
     """
@@ -116,7 +110,7 @@ class CsvToDatabaseView(SimpleFormView):
         form.decimal.data = "."
         form.if_exists.data = "fail"
 
-    def form_post(self, form: CsvToDatabaseForm) -> FlaskResponse:
+    def form_post(self, form: CsvToDatabaseForm) -> Response:
         database = form.con.data
         csv_table = Table(table=form.name.data, schema=form.schema.data)
 
@@ -248,4 +242,150 @@ class CsvToDatabaseView(SimpleFormView):
         )
         flash(message, "info")
         stats_logger.incr("successful_csv_upload")
+        return redirect("/tablemodelview/list/")
+
+
+class ExcelToDatabaseView(SimpleFormView):
+    form = ExcelToDatabaseForm
+    form_template = "superset/form_view/excel_to_database_view/edit.html"
+    form_title = _("Excel to Database configuration")
+    add_columns = ["database", "schema", "table_name"]
+
+    def form_get(self, form: ExcelToDatabaseForm) -> None:
+        form.header.data = 0
+        form.mangle_dupe_cols.data = True
+        form.skipinitialspace.data = False
+        form.decimal.data = "."
+        form.if_exists.data = "fail"
+        form.sheet_name = None
+
+    def form_post(self, form: ExcelToDatabaseForm) -> Response:
+        database = form.con.data
+        excel_table = Table(table=form.name.data, schema=form.schema.data)
+
+        if not schema_allows_csv_upload(database, excel_table.schema):
+            message = _(
+                'Database "%(database_name)s" schema "%(schema_name)s" '
+                "is not allowed for excel uploads. Please contact your Superset Admin.",
+                database_name=database.database_name,
+                schema_name=excel_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/exceltodatabaseview/form")
+
+        if "." in excel_table.table and excel_table.schema:
+            message = _(
+                "You cannot specify a namespace both in the name of the table: "
+                '"%(excel_table.table)s" and in the schema field: '
+                '"%(excel_table.schema)s". Please remove one',
+                table=excel_table.table,
+                schema=excel_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/exceltodatabaseview/form")
+
+        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(
+            dir=app.config["UPLOAD_FOLDER"],
+            suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
+            delete=False,
+        ).name
+
+        try:
+            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
+            upload_stream_write(form.excel_file.data, uploaded_tmp_file_path)
+
+            con = form.data.get("con")
+            database = (
+                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+            )
+            excel_to_df_kwargs = {
+                "header": form.header.data if form.header.data else 0,
+                "index_col": form.index_col.data,
+                "mangle_dupe_cols": form.mangle_dupe_cols.data,
+                "skipinitialspace": form.skipinitialspace.data,
+                "skiprows": form.skiprows.data,
+                "nrows": form.nrows.data,
+                "sheet_name": form.sheet_name.data,
+                "chunksize": 1000,
+            }
+            df_to_sql_kwargs = {
+                "name": excel_table.table,
+                "if_exists": form.if_exists.data,
+                "index": form.index.data,
+                "index_label": form.index_label.data,
+                "chunksize": 1000,
+            }
+            database.db_engine_spec.create_table_from_excel(
+                uploaded_tmp_file_path,
+                excel_table,
+                database,
+                excel_to_df_kwargs,
+                df_to_sql_kwargs,
+            )
+
+            # Connect table to the database that should be used for exploration.
+            # E.g. if hive was used to upload a excel, presto will be a better option
+            # to explore the table.
+            expore_database = database
+            explore_database_id = database.get_extra().get("explore_database_id", None)
+            if explore_database_id:
+                expore_database = (
+                    db.session.query(models.Database)
+                    .filter_by(id=explore_database_id)
+                    .one_or_none()
+                    or database
+                )
+
+            sqla_table = (
+                db.session.query(SqlaTable)
+                .filter_by(
+                    table_name=excel_table.table,
+                    schema=excel_table.schema,
+                    database_id=expore_database.id,
+                )
+                .one_or_none()
+            )
+
+            if sqla_table:
+                sqla_table.fetch_metadata()
+            if not sqla_table:
+                sqla_table = SqlaTable(table_name=excel_table.table)
+                sqla_table.database = expore_database
+                sqla_table.database_id = database.id
+                sqla_table.user_id = g.user.id
+                sqla_table.schema = excel_table.schema
+                sqla_table.fetch_metadata()
+                db.session.add(sqla_table)
+            db.session.commit()
+        except Exception as ex:  # pylint: disable=broad-except
+            db.session.rollback()
+            try:
+                os.remove(uploaded_tmp_file_path)
+            except OSError:
+                pass
+            message = _(
+                'Unable to upload Excel file "%(filename)s" to table '
+                '"%(table_name)s" in database "%(db_name)s". '
+                "Error message: %(error_msg)s",
+                filename=form.excel_file.data.filename,
+                table_name=form.name.data,
+                db_name=database.database_name,
+                error_msg=str(ex),
+            )
+
+            flash(message, "danger")
+            stats_logger.incr("failed_excel_upload")
+            return redirect("/exceltodatabaseview/form")
+
+        os.remove(uploaded_tmp_file_path)
+        # Go back to welcome page / splash screen
+        message = _(
+            'CSV file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
+            'database "%(db_name)s"',
+            excel_filename=form.excel_file.data.filename,
+            table_name=str(excel_table),
+            db_name=sqla_table.database.database_name,
+        )
+        flash(message, "info")
+        stats_logger.incr("successful_excel_upload")
         return redirect("/tablemodelview/list/")

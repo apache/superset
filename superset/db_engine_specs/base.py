@@ -431,6 +431,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.set_or_update_query_limit(limit)
 
     @staticmethod
+    def excel_to_df(**kwargs: Any) -> pd.DataFrame:
+        """ Read excel into Pandas DataFrame
+           :param kwargs: params to be passed to DataFrame.read_excel
+           :return: Pandas DataFrame containing data from excel
+        """
+        kwargs["encoding"] = "utf-8"
+        kwargs["iterator"] = True
+        chunks = pd.io.excel.read_excel(
+            io=kwargs["filepath_or_buffer"], sheet_name=kwargs["sheet_name"]
+        )
+        df = pd.concat(chunk for chunk in chunks.values())
+        return df
+
+    @staticmethod
     def csv_to_df(**kwargs: Any) -> pd.DataFrame:
         """ Read csv into Pandas DataFrame
         :param kwargs: params to be passed to DataFrame.read_csv
@@ -485,6 +499,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: The SQL expression
         """
         return None
+
+    @classmethod
+    def create_table_from_excel(  # pylint: disable=too-many-arguments
+        cls,
+        filename: str,
+        table: Table,
+        database: "Database",
+        excel_to_df_kwargs: Dict[str, Any],
+        df_to_sql_kwargs: Dict[str, Any],
+    ) -> None:
+        """
+        Create table from contents of a excel. Note: this method does not create
+        metadata for the table.
+        """
+        df = cls.excel_to_df(filepath_or_buffer=filename, **excel_to_df_kwargs,)
+        engine = cls.get_engine(database)
+        if table.schema:
+            # only add schema when it is preset and non empty
+            df_to_sql_kwargs["schema"] = table.schema
+        if engine.dialect.supports_multivalues_insert:
+            df_to_sql_kwargs["method"] = "multi"
+        cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)
 
     @classmethod
     def get_all_datasource_names(
