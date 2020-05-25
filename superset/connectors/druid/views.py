@@ -31,6 +31,7 @@ from superset import app, appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
+from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
@@ -106,7 +107,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
     edit_form_extra_fields = add_form_extra_fields
 
-    def pre_update(self, col):
+    def pre_update(self, col: "DruidColumnInlineView") -> None:
         # If a dimension spec JSON is given, ensure that it is
         # valid JSON and that `outputName` is specified
         if col.dimension_spec_json:
@@ -128,10 +129,10 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
                     )
                 )
 
-    def post_update(self, col):
+    def post_update(self, col: "DruidColumnInlineView") -> None:
         col.refresh_metrics()
 
-    def post_add(self, col):
+    def post_add(self, col: "DruidColumnInlineView") -> None:
         self.post_update(col)
 
 
@@ -240,13 +241,13 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
 
     yaml_dict_key = "databases"
 
-    def pre_add(self, cluster):
+    def pre_add(self, cluster: "DruidClusterModelView") -> None:
         security_manager.add_permission_view_menu("database_access", cluster.perm)
 
-    def pre_update(self, cluster):
+    def pre_update(self, cluster: "DruidClusterModelView") -> None:
         self.pre_add(cluster)
 
-    def _delete(self, pk):
+    def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
 
 
@@ -334,7 +335,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         "modified": _("Modified"),
     }
 
-    def pre_add(self, datasource):
+    def pre_add(self, datasource: "DruidDatasourceModelView") -> None:
         with db.session.no_autoflush:
             query = db.session.query(models.DruidDatasource).filter(
                 models.DruidDatasource.datasource_name == datasource.datasource_name,
@@ -343,7 +344,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
             if db.session.query(query.exists()).scalar():
                 raise Exception(get_datasource_exist_error_msg(datasource.full_name))
 
-    def post_add(self, datasource):
+    def post_add(self, datasource: "DruidDatasourceModelView") -> None:
         datasource.refresh_metrics()
         security_manager.add_permission_view_menu(
             "datasource_access", datasource.get_perm()
@@ -353,10 +354,10 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
                 "schema_access", datasource.schema_perm
             )
 
-    def post_update(self, datasource):
+    def post_update(self, datasource: "DruidDatasourceModelView") -> None:
         self.post_add(datasource)
 
-    def _delete(self, pk):
+    def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
 
 
@@ -365,7 +366,7 @@ class Druid(BaseSupersetView):
 
     @has_access
     @expose("/refresh_datasources/")
-    def refresh_datasources(self, refresh_all=True):
+    def refresh_datasources(self, refresh_all: bool = True) -> FlaskResponse:
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         DruidCluster = ConnectorRegistry.sources["druid"].cluster_class
@@ -397,7 +398,7 @@ class Druid(BaseSupersetView):
 
     @has_access
     @expose("/scan_new_datasources/")
-    def scan_new_datasources(self):
+    def scan_new_datasources(self) -> FlaskResponse:
         """
         Calling this endpoint will cause a scan for new
         datasources only and add them.
