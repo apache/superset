@@ -154,7 +154,8 @@
   font-weight: normal;
 }
 
-.d3-tip.nv-event-annotation-layer-table {
+.d3-tip.nv-event-annotation-layer-table,
+.d3-tip.nv-event-annotation-layer-NATIVE {
   width: 200px;
   border-radius: 2px;
   background-color: #484848;
@@ -164,7 +165,8 @@
   color: #fff;
 }
 
-.d3-tip.nv-event-annotation-layer-table::after {
+.d3-tip.nv-event-annotation-layer-table::after,
+.d3-tip.nv-event-annotation-layer-NATIVE::after {
   content: '\25BC';
   font-size: 14px;
   color: #484848;
