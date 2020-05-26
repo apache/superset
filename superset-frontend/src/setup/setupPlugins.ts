@@ -33,7 +33,6 @@ import DeckScreengrid from '../explore/controlPanels/DeckScreengrid';
 import EventFlow from '../explore/controlPanels/EventFlow';
 import FilterBox from '../explore/controlPanels/FilterBox';
 import PairedTtest from '../explore/controlPanels/PairedTtest';
-import Para from '../explore/controlPanels/Para';
 import Separator from '../explore/controlPanels/Separator';
 import TimeTable from '../explore/controlPanels/TimeTable';
 
@@ -46,7 +45,6 @@ export default function setupPlugins() {
     .registerValue('event_flow', EventFlow)
     .registerValue('filter_box', FilterBox)
     .registerValue('paired_ttest', PairedTtest)
-    .registerValue('para', Para)
     .registerValue('separator', Separator)
     .registerValue('time_table', TimeTable)
     .registerValue('deck_arc', DeckArc)
