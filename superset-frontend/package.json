@@ -77,7 +77,7 @@
     "@superset-ui/legacy-plugin-chart-iframe": "^0.13.16",
     "@superset-ui/legacy-plugin-chart-map-box": "^0.13.16",
     "@superset-ui/legacy-plugin-chart-markup": "^0.13.12",
-    "@superset-ui/legacy-plugin-chart-paired-t-test": "^0.13.5",
+    "@superset-ui/legacy-plugin-chart-paired-t-test": "^0.13.21",
     "@superset-ui/legacy-plugin-chart-parallel-coordinates": "^0.13.20",
     "@superset-ui/legacy-plugin-chart-partition": "^0.13.11",
     "@superset-ui/legacy-plugin-chart-pivot-table": "^0.13.10",
