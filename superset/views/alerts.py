@@ -60,19 +60,22 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
 
     list_columns = (
         "label",
+        "database",
         "crontab",
         "active",
     )
     add_columns = (
         "label",
-        "crontab",
         "active",
+        "crontab",
+        "database",
         "sql",
         "alert_type",
         "owners",
         "recipients",
         "slice",
         "dashboard",
+        "log_retention",
     )
     edit_columns = add_columns
     description_columns = {}

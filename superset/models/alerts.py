@@ -32,7 +32,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportMixin
@@ -65,11 +65,20 @@ class Alert(Model):
     owners = relationship(security_manager.user_model, secondary=alert_owner)
     recipients = Column(Text)
 
+    log_retention = Column(Integer, default=90)
+
     slice_id = Column(Integer, ForeignKey("slices.id"))
     slice = relationship("Slice", backref="alerts", foreign_keys=[slice_id])
 
     dashboard_id = Column(Integer, ForeignKey("dashboards.id"))
     dashboard = relationship("Dashboard", backref="alert", foreign_keys=[dashboard_id])
+
+    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
+    database = relationship(
+        "Database",
+        foreign_keys=[database_id],
+        backref=backref("alerts", cascade="all, delete-orphan"),
+    )
 
 
 class AlertLog(Model):
