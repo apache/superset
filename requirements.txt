@@ -63,6 +63,7 @@ marshmallow==3.6.1        # via flask-appbuilder, marshmallow-enum, marshmallow-
 msgpack==1.0.0            # via apache-superset (setup.py)
 multidict==4.7.6          # via aiohttp, yarl
 numpy==1.18.4             # via pandas, pyarrow
+openpyxl==3.0.3
 packaging==20.3           # via bleach
 pandas==1.0.3             # via apache-superset (setup.py)
 parsedatetime==2.5        # via apache-superset (setup.py)

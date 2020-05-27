@@ -49,10 +49,18 @@ export default function ExploreActionButtons({
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
+  const exportToExcelClasses = cx('btn btn-default btn-sm', {
+    'disabled disabledButton': !canDownload,
+  });
   const doExportCSV = exportChart.bind(this, {
     formData: latestQueryFormData,
     resultType: 'results',
     resultFormat: 'csv',
+  });
+  const doExportExcel = exportChart.bind(this, {
+    formData: latestQueryFormData,
+    resultType: 'results',
+    resultFormat: 'xlsx',
   });
   const doExportChart = exportChart.bind(this, {
     formData: latestQueryFormData,
@@ -102,6 +110,8 @@ export default function ExploreActionButtons({
       )}
       {latestQueryFormData && (
         <a
+          role="button"
+          tabIndex={0}
           onClick={doExportExcel}
           className={exportToExcelClasses}
           title={t('Export to .xlsx format')}

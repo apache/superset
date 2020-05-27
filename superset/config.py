@@ -376,6 +376,7 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS}
 # method.
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
+EXCEL_EXPORT = {"encoding": "utf-8"}
 
 # ---------------------------------------------------
 # Time grain configurations

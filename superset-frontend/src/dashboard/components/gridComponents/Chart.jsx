@@ -221,7 +221,11 @@ class Chart extends React.Component {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
-    exportChart(this.props.formData, 'excel');
+    exportChart({
+      formData: this.props.formData,
+      resultType: 'results',
+      resultFormat: 'xlsx',
+    });
   }
 
   forceRefresh() {

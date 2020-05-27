@@ -90,6 +90,7 @@ setup(
         "isodate",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
+        "openpyxl>=3.0.3",
         "pandas>=1.0.3, <1.1",
         "parsedatetime",
         "pathlib2",
