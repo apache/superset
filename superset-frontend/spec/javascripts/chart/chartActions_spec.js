@@ -55,7 +55,13 @@ describe('chart actions', () => {
       .callsFake(() => ({ get: () => fakeMetadata }));
     buildQueryRegistryStub = sinon
       .stub(chartlib, 'getChartBuildQueryRegistry')
-      .callsFake(() => ({ get: () => () => ({ some_param: 'fake query!' }) }));
+      .callsFake(() => ({
+        get: () => () => ({
+          some_param: 'fake query!',
+          result_type: 'full',
+          result_format: 'json',
+        }),
+      }));
   });
 
   afterEach(() => {
@@ -76,7 +82,11 @@ describe('chart actions', () => {
 
       expect(fetchMock.calls(V1_URL)).toHaveLength(1);
       expect(fetchMock.calls(V1_URL)[0][1].body).toBe(
-        JSON.stringify({ some_param: 'fake query!' }),
+        JSON.stringify({
+          some_param: 'fake query!',
+          result_type: 'full',
+          result_format: 'json',
+        }),
       );
       expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
     });
@@ -154,6 +164,7 @@ describe('chart actions', () => {
       return actionThunk(dispatch).then(() => {
         // chart update, trigger query, update form data, fail
         expect(dispatch.callCount).toBe(5);
+        expect(dispatch.args).toEqual({});
         expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
         setupDefaultFetchMock();
       });
@@ -174,7 +185,9 @@ describe('chart actions', () => {
         expect(dispatch.callCount).toBe(5);
         const updateFailedAction = dispatch.args[4][0];
         expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
-        expect(updateFailedAction.queryResponse.error).toBe('misc error');
+        expect(updateFailedAction.queryResponse.error).toBe(
+          'An error occurred',
+        );
 
         setupDefaultFetchMock();
       });
