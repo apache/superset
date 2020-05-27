@@ -25,7 +25,8 @@ replicaCount: 1
 ## of superset containers
 additionalRequirements:
   - "psycopg2==2.8.5"
-  - "redis==3.2.1"
+  - "pyodbc==4.0.27"
+  - "redis==3.3.11"
 
 ## The name of the secret which we will use to generate a superset_config.py file
 ## Note: this secret must have the key superset_config.py in it and can include other files as well

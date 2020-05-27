@@ -127,18 +127,3 @@ RUN cd /app \
     && pip install --ignore-installed -r requirements-local.txt || true
 USER superset
 
-######################################################################
-# Prod image...
-######################################################################
-FROM lean AS prod
-
-COPY ./requirements* ./docker/requirements* /app/
-
-USER root
-RUN cd /app \
-    && pip install --ignore-installed -e . \
-    && pip install --ignore-installed -r requirements.txt \
-    && pip install --ignore-installed -r requirements-dev.txt \
-    && pip install --ignore-installed -r requirements-extra.txt \
-    && pip install --ignore-installed -r requirements-local.txt || true
-USER superset

@@ -19,7 +19,6 @@ x-superset-build: &superset-build
     NPM_BUILD_CMD: build
   context: ./
   dockerfile: Dockerfile
-  target: prod
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
