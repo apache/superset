@@ -62,8 +62,8 @@ describe('ResultSet', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     let spy;
     beforeEach(() => {
-      clearQuerySpy.reset();
-      fetchQuerySpy.reset();
+      clearQuerySpy.resetHistory();
+      fetchQuerySpy.resetHistory();
       spy = sinon.spy(ResultSet.prototype, 'UNSAFE_componentWillReceiveProps');
     });
     afterEach(() => {
