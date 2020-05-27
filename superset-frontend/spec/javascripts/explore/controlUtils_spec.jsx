@@ -109,7 +109,7 @@ describe('controlUtils', () => {
                   name: 'all_columns',
                   config: {
                     type: 'SelectControl',
-                    queryField: 'columns',
+                    controlGroup: 'columns',
                     multi: true,
                     label: t('Columns'),
                     default: [],
@@ -250,11 +250,11 @@ describe('controlUtils', () => {
     });
   });
 
-  describe('queryFields', () => {
+  describe('controlGroup', () => {
     it('in formData', () => {
       const controlsState = getAllControlsState('table', 'table', {}, {});
       const formData = getFormDataFromControls(controlsState);
-      expect(formData.queryFields).toEqual({ all_columns: 'columns' });
+      expect(formData.controlGroups).toEqual({ all_columns: 'columns' });
     });
   });
 });
