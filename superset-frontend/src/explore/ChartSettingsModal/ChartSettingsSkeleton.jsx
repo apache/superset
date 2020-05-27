@@ -17,29 +17,34 @@
  * under the License.
  */
 import React from 'react';
-import { hot } from 'react-hot-loader/root';
-import { Provider } from 'react-redux';
-import ToastPresenter from '../messageToasts/containers/ToastPresenter';
-import ExploreViewContainer from './components/ExploreViewContainer';
-import ChartSettingsModal from './ChartSettingsModal/ChartSettingsModal';
+import {Row, Col, Skeleton, Form} from 'antd';
 
-import setupApp from '../setup/setupApp';
-import setupPlugins from '../setup/setupPlugins';
-import './main.less';
-import '../../stylesheets/reactable-pagination.less';
-import '../../stylesheets/antd.less';
+const titleProps = {
+  width: '30%',
+};
 
-setupApp();
-setupPlugins();
-
-const App = ({ store }) => (
-  <Provider store={store}>
+const ChartSettingsSkeleton = () => {
+  return (
     <div>
-      <ChartSettingsModal />
-      <ExploreViewContainer />
-      <ToastPresenter />
+      <Row gutter={[16, 16]}>
+        <Col md={24}>
+          <Skeleton title={titleProps} paragraph={false} />
+          <Skeleton.Input />
+        </Col>
+        <Col md={24}>
+          <Skeleton title={titleProps} paragraph={false} />
+          <Skeleton.Input />
+        </Col>
+        <Col md={24}>
+          <Skeleton title={titleProps} paragraph={false} />
+          <Skeleton.Input />
+        </Col>
+        <Col md={24}>
+          <Skeleton title={titleProps} paragraph={false} />
+          <Skeleton.Input />
+        </Col>
+      </Row>
     </div>
-  </Provider>
-);
-
-export default hot(App);
+  );
+};
+export default ChartSettingsSkeleton;

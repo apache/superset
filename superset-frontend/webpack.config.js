@@ -32,6 +32,7 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package.json');
+const { NormalModuleReplacementPlugin } = webpack;
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -59,6 +60,13 @@ if (isDevMode) {
 }
 
 const plugins = [
+  /*
+  new webpack.NormalModuleReplacementPlugin(
+    /node_modules\/antd\/lib\/style\/index\.less/,
+    path.resolve(APP_DIR, './stylesheets/antd.less'),
+  ),
+  */
+
   // creates a manifest.json mapping of name to hashed output used in template files
   new ManifestPlugin({
     publicPath: output.publicPath,
@@ -274,6 +282,7 @@ const config = {
       {
         test: /\.less$/,
         include: APP_DIR,
+        exclude: [/antd/],
         use: [
           isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
           {
@@ -286,6 +295,26 @@ const config = {
             loader: 'less-loader',
             options: {
               sourceMap: isDevMode,
+            },
+          },
+        ],
+      },
+      {
+        test: /\.less$/,
+        include: [/antd/],
+        use: [
+          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          {
+            loader: 'css-loader',
+            options: {
+              sourceMap: isDevMode,
+            },
+          },
+          {
+            loader: 'less-loader',
+            options: {
+              sourceMap: isDevMode,
+              javascriptEnabled: true,
             },
           },
         ],

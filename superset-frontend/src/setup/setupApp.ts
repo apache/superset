@@ -80,6 +80,13 @@ export default function setupApp() {
     });
   });
 
+  /*
+     Antd's less styles are being imported in a namespace to get them to coexist with Bootstrap. Because
+     some of the Antd components, like the Modal, rely on react portals to insert elements to the body, we ]
+     need to temporarily provide a container that has the proper namespacing.
+    */
+  $(document.body).append('<div id="antdPortal" class="antd"></div>');
+
   // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
   // @ts-ignore

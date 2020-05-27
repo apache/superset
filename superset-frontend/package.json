@@ -104,6 +104,7 @@
     "@types/rison": "0.0.6",
     "@vx/responsive": "^0.0.195",
     "abortcontroller-polyfill": "^1.1.9",
+    "antd": "^4.2.4",
     "aphrodite": "^2.3.1",
     "bootstrap": "^3.4.1",
     "bootstrap-slider": "^10.0.0",

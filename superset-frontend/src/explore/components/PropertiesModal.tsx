@@ -95,6 +95,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
       });
+      console.log(response);
       const chart = (response.json as Json).result;
       setOwners(
         chart.owners.map((owner: any) => ({
