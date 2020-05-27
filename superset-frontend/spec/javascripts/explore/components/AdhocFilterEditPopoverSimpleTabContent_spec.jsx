@@ -204,7 +204,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     const { wrapper, onHeightChange } = setup();
 
     wrapper.instance().multiComparatorComponent = {
-      _selectRef: { select: { control: { clientHeight: 57 } } },
+      select: { select: { controlRef: { clientHeight: 57 } } },
     };
     wrapper.instance().handleMultiComparatorInputHeightChange();
 

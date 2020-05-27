@@ -53,12 +53,34 @@ export default () =>
     });
 
     it('should apply filter', () => {
-      cy.get('.Select__control')
-        .contains('Select [region]')
-        .click({ force: true });
+      cy.get('.Select__control input[type=text]').first().focus();
+
+      // should open the filter indicator
+      cy.get('.filter-indicator.active')
+        .should('be.visible')
+        .should(nodes => {
+          expect(nodes).to.have.length(9);
+        });
+
+      cy.get('.Select__control input[type=text]').first().blur();
+
+      // should hide the filter indicator
+      cy.get('.filter-indicator')
+        .not('.active')
+        .should(nodes => {
+          expect(nodes).to.have.length(18);
+        });
+
       cy.get('.Select__control input[type=text]')
         .first()
-        .type('South Asia{enter}', { force: true });
+        .focus({ force: true })
+        .type('South Asia', { force: true });
+
+      // type text and <Enter> separately to reduce the change of failing tests
+      cy.get('.Select__control input[type=text]')
+        .first()
+        .focus({ force: true })
+        .type('{enter}', { force: true });
 
       // wait again after applied filters
       cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
