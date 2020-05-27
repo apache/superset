@@ -16,7 +16,6 @@
 # under the License.
 import os
 import tempfile
-import math
 from typing import TYPE_CHECKING
 
 from flask import flash, g, redirect
