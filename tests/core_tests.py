@@ -25,6 +25,7 @@ import json
 import logging
 import os
 from typing import Dict, List, Optional
+from urllib.parse import quote
 
 import pytz
 import random
@@ -50,6 +51,7 @@ from superset.datasets.dao import DatasetDAO
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
+from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
@@ -76,12 +78,10 @@ class CoreTests(SupersetTestCase):
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }
         self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
-        self.original_rls_setting = app.config["ENABLE_ROW_LEVEL_SECURITY"]
 
     def tearDown(self):
         db.session.query(Query).delete()
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
-        app.config["ENABLE_ROW_LEVEL_SECURITY"] = self.original_rls_setting
 
     def test_login(self):
         resp = self.get_resp("/login/", data=dict(username="admin", password="general"))
@@ -180,33 +180,26 @@ class CoreTests(SupersetTestCase):
         assert '"Jennifer"' in resp
 
     def test_annotation_json_endpoint(self):
-        # Something is broken with annotations and RLS, teardown will undo this
-        app.config["ENABLE_ROW_LEVEL_SECURITY"] = False
-
-        self.login(username="admin")
-
         # Set up an annotation layer and annotation
-        self.get_resp(
-            "/annotationlayermodelview/add",
-            {"form_data": json.dumps({"name": "foo", "descr": "bar"})},
+        layer = AnnotationLayer(name="foo", descr="bar")
+        db.session.add(layer)
+        db.session.commit()
+
+        annotation = Annotation(
+            layer_id=layer.id,
+            short_descr="my_annotation",
+            start_dttm=datetime.datetime(2020, 5, 20, 18, 21, 51),
+            end_dttm=datetime.datetime(2020, 5, 20, 18, 31, 51),
         )
-        self.get_resp(
-            "/annotationmodelview/add",
-            {
-                "form_data": json.dumps(
-                    {
-                        "layer": "1",
-                        "short_descr": "my_annotation",
-                        "start_dttm": "2020-05-20 18:21:51",
-                        "end_dttm": "2020-05-20 18:31:51",
-                    }
-                )
-            },
-        )
+
+        db.session.add(annotation)
+        db.session.commit()
 
         resp = self.get_resp(
-            "/superset/annotation_json/1?form_data=%7B%22time_range%22%3A%22100+years+ago+%3A+now%22%7D"
+            f"/superset/annotation_json/{layer.id}?form_data="
+            + quote(json.dumps({"time_range": "100 years ago : now"}))
         )
+
         assert "my_annotation" in resp
 
     def test_old_slice_csv_endpoint(self):
