@@ -32,6 +32,7 @@ metadata = Model.metadata  # pylint: disable=no-member
 class ScheduleType(str, enum.Enum):
     slice = "slice"
     dashboard = "dashboard"
+    alert = "alert"
 
 
 class EmailDeliveryType(str, enum.Enum):
@@ -91,4 +92,6 @@ def get_scheduler_model(report_type: ScheduleType) -> Optional[Type[EmailSchedul
         return DashboardEmailSchedule
     elif report_type == ScheduleType.slice:
         return SliceEmailSchedule
+    elif report_type == ScheduleType.alert:
+        return Alert
     return None

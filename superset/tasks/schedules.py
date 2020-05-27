@@ -409,6 +409,35 @@ def schedule_email_report(  # pylint: disable=unused-argument
     else:
         raise RuntimeError("Unknown report type")
 
+@celery_app.task(
+    name="alerts.run_query",
+    bind=True,
+    soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
+)
+def schedule_alert_query(  # pylint: disable=unused-argument
+    task: Task,
+    report_type: ScheduleType,
+    schedule_id: int,
+    recipients: Optional[str] = None,
+) -> None:
+    model_cls = get_scheduler_model(report_type)
+    schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
+
+    # The user may have disabled the schedule. If so, ignore this
+    if not schedule or not schedule.active:
+        logger.info("Ignoring deactivated alert")
+        return
+
+    if report_type == ScheduleType.alert:
+        if run_alert_query(schedule):
+            # deliver_dashboard OR deliver_slice
+    else:
+        raise RuntimeError("Unknown report type")
+
+
+def run_alert_query(alert: Alert) -> Optional[Boolean]:
+    #run alert.sql and return value if any rows are returned
+)
 
 def next_schedules(
     crontab: str, start_at: datetime, stop_at: datetime, resolution: int = 0
@@ -455,10 +484,18 @@ def schedule_window(
         for eta in next_schedules(
             schedule.crontab, start_at, stop_at, resolution=resolution
         ):
-            schedule_email_report.apply_async(args, eta=eta)
+            get_scheduler_action(report_type).apply_async(args, eta=eta)
 
     return None
 
+def get_scheduler_action(report_type: ScheduleType) -> Optional[Callable]:
+    if report_type == ScheduleType.dashboard:
+        return schedule_email_report
+    elif report_type == ScheduleType.slice:
+        return schedule_email_report
+    elif report_type == ScheduleType.alert:
+        return schedule_alert_query
+    return None
 
 @celery_app.task(name="email_reports.schedule_hourly")
 def schedule_hourly() -> None:
@@ -475,3 +512,20 @@ def schedule_hourly() -> None:
     stop_at = start_at + timedelta(seconds=3600)
     schedule_window(ScheduleType.dashboard, start_at, stop_at, resolution)
     schedule_window(ScheduleType.slice, start_at, stop_at, resolution)
+
+
+@celery_app.task(name="alerts.schedule_check")
+def schedule_alerts() -> None:
+    """ Celery beat job meant to be invoked every minute to check alerts """
+
+    # if not config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
+    #     logger.info("Scheduled email reports not enabled in config")
+    #     return
+
+    resolution = 1 * 60
+
+    # Get the top of the hour
+    start_at = datetime.now(tzlocal()).replace(microsecond=0, second=0, minute=0)
+    stop_at = start_at + timedelta(seconds=3600)
+
+    schedule_window(ScheduleType.alert, start_at, stop_at, resolution)
