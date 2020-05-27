@@ -248,7 +248,7 @@
     "prettier": "^2.0.5",
     "react-test-renderer": "^16.9.0",
     "redux-mock-store": "^1.2.3",
-    "sinon": "^4.5.0",
+    "sinon": "^9.0.2",
     "source-map-support": "^0.5.16",
     "speed-measure-webpack-plugin": "^1.2.3",
     "style-loader": "^1.0.0",

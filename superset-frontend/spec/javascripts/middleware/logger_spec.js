@@ -48,7 +48,7 @@ describe('logger middleware', () => {
     postStub = sinon.stub(SupersetClient, 'post');
   });
   afterEach(() => {
-    next.reset();
+    next.resetHistory();
     postStub.restore();
   });
 
