@@ -105,12 +105,21 @@ const parentMaxDepthLookup = {
   [MARKDOWN_TYPE]: {},
 };
 
-export default function isValidChild({ parentType, childType, parentDepth }) {
+interface IsValidChildProps {
+  parentType?: string;
+  childType?: string;
+  parentDepth?: unknown;
+}
+
+export default function isValidChild(child: IsValidChildProps): boolean {
+  const { parentType, childType, parentDepth } = child;
   if (!parentType || !childType || typeof parentDepth !== 'number') {
     return false;
   }
 
-  const maxParentDepth = (parentMaxDepthLookup[parentType] || {})[childType];
+  const maxParentDepth: number | undefined = (parentMaxDepthLookup[
+    parentType
+  ] || {})[childType];
 
   return typeof maxParentDepth === 'number' && parentDepth <= maxParentDepth;
 }

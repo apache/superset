@@ -30,18 +30,9 @@ import DeckPath from '../explore/controlPanels/DeckPath';
 import DeckPolygon from '../explore/controlPanels/DeckPolygon';
 import DeckScatter from '../explore/controlPanels/DeckScatter';
 import DeckScreengrid from '../explore/controlPanels/DeckScreengrid';
-import DirectedForce from '../explore/controlPanels/DirectedForce';
 import EventFlow from '../explore/controlPanels/EventFlow';
 import FilterBox from '../explore/controlPanels/FilterBox';
-import Heatmap from '../explore/controlPanels/Heatmap';
-import Histogram from '../explore/controlPanels/Histogram';
-import Horizon from '../explore/controlPanels/Horizon';
-import Iframe from '../explore/controlPanels/Iframe';
-import Mapbox from '../explore/controlPanels/Mapbox';
-import PairedTtest from '../explore/controlPanels/PairedTtest';
-import Para from '../explore/controlPanels/Para';
 import Separator from '../explore/controlPanels/Separator';
-import Table from '../explore/controlPanels/Table';
 import TimeTable from '../explore/controlPanels/TimeTable';
 
 export default function setupPlugins() {
@@ -50,18 +41,9 @@ export default function setupPlugins() {
   // TODO: Remove these shims once the control panel configs are moved into the plugin package.
   getChartControlPanelRegistry()
     .registerValue('country_map', CountryMap)
-    .registerValue('directed_force', DirectedForce)
     .registerValue('event_flow', EventFlow)
     .registerValue('filter_box', FilterBox)
-    .registerValue('heatmap', Heatmap)
-    .registerValue('histogram', Histogram)
-    .registerValue('horizon', Horizon)
-    .registerValue('iframe', Iframe)
-    .registerValue('mapbox', Mapbox)
-    .registerValue('paired_ttest', PairedTtest)
-    .registerValue('para', Para)
     .registerValue('separator', Separator)
-    .registerValue('table', Table)
     .registerValue('time_table', TimeTable)
     .registerValue('deck_arc', DeckArc)
     .registerValue('deck_geojson', DeckGeojson)

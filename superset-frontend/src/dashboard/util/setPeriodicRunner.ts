@@ -16,8 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE } from './componentTypes';
+const stopPeriodicRender = (refreshTimer?: number) => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+  }
+};
 
-export default function componentIsResizable(entity) {
-  return [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE].indexOf(entity.type) > -1;
+interface SetPeriodicRunnerProps {
+  interval?: number;
+  periodicRender: TimerHandler;
+  refreshTimer?: number;
+}
+
+export default function setPeriodicRunner({
+  interval = 0,
+  periodicRender,
+  refreshTimer,
+}: SetPeriodicRunnerProps) {
+  stopPeriodicRender(refreshTimer);
+
+  if (interval > 0) {
+    return setInterval(periodicRender, interval);
+  }
+  return 0;
 }

@@ -62,7 +62,7 @@ export type ThemeConfig = {
 export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
 export const DEFAULT_THEME: PartialThemeConfig = {
-  borderRadius: parseInt(supersetTheme.borderRadius, 10),
+  borderRadius: supersetTheme.borderRadius,
   zIndex: 11,
   colors: {
     ...supersetColors,
