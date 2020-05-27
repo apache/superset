@@ -168,6 +168,10 @@ class SupersetAppInitializer:
             DashboardEmailScheduleView,
             SliceEmailScheduleView,
         )
+        from superset.views.alerts import (
+            AlertModelView,
+            AlertLogModelView,
+        )
         from superset.views.sql_lab import (
             QueryView,
             SavedQueryViewApi,
@@ -378,6 +382,17 @@ class SupersetAppInitializer:
                 category_label=__("Manage"),
                 icon="fa-search",
             )
+
+        if True:
+            appbuilder.add_view(
+                AlertModelView,
+                "Alerts",
+                label=__("Alerts"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-exclamation-triangle",
+            )
+            appbuilder.add_view_no_menu(AlertLogModelView)
 
         #
         # Conditionally add Access Request Model View

@@ -16,10 +16,21 @@
 # under the License.
 """Models for scheduled execution of jobs"""
 import enum
+from datetime import datetime
 from typing import Optional, Type
 
 from flask_appbuilder import Model
-from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 
@@ -38,13 +49,14 @@ alert_owner = Table(
 )
 
 
-class Alert:
+class Alert(Model):
 
     """Schedules for emailing slices / dashboards"""
 
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True)
+    label = Column(String(150))
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(50))
     sql = Column(Text)
@@ -60,7 +72,11 @@ class Alert:
     dashboard = relationship("Dashboard", backref="alert", foreign_keys=[dashboard_id])
 
 
-class AlertLog:
+class AlertLog(Model):
+    """Keeps track of alert-related operations"""
+
+    __tablename__ = "alert_logs"
+
     id = Column(Integer, primary_key=True)
     scheduled_dttm = Column(DateTime)
     dttm_start = Column(DateTime, default=datetime.utcnow)

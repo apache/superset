@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from . import (
+    alerts,
     annotations,
     api,
     base,
