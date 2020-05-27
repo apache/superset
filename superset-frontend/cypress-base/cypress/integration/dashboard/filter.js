@@ -56,8 +56,26 @@ export default () =>
       cy.get('.Select__control')
         .contains('Select [region]')
         .click({ force: true });
+
+      // should open the filter indicator
+      cy.get('.filter-indicator.active')
+        .should('be.visible')
+        .should($node => {
+          expect($node).to.have.length(9);
+        });
+
+      cy.get('.chart-header').first().click({ force: true });
+
+      // should hide the filter indicator
+      cy.get('.filter-indicator')
+        .not('.active')
+        .should($node => {
+          expect($node).to.have.length(18);
+        });
+
       cy.get('.Select__control input[type=text]')
         .first()
+        .focus({ force: true })
         .type('South Asia{enter}', { force: true });
 
       // wait again after applied filters
