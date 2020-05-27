@@ -71,8 +71,7 @@ def upload_stream_write(form_file_field: "FileStorage", path: str):
             chunk = form_file_field.stream.read(chunk_size)
             max_size -= len(chunk)
             if max_size < 0:
-                raise UploadOverFlowException(
-                    _("Upload Max Size %(size)s", size=app.config.get("UPLOAD_MAX_SIZE")))
+                raise UploadOverFlowException(_("Upload Max Size %(size)s", size=app.config.get("UPLOAD_MAX_SIZE")))
             if not chunk:
                 break
             file_description.write(chunk)
