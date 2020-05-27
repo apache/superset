@@ -79,7 +79,7 @@ describe('EditableTitle', () => {
       expect(editableWrapper.find('input').props().type).toBe('text');
     });
     afterEach(() => {
-      callback.reset();
+      callback.resetHistory();
       editableWrapper.setState({ title: 'my title' });
       editableWrapper.setState({ lastTitle: 'my title' });
     });
