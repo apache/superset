@@ -216,7 +216,12 @@ class ParsedQuery:
 
     def _extract_from_token(self, token: Token):  # pylint: disable=too-many-branches
         """
-        Populate self._tables from token
+        <Identifier> store a list of subtokens and <IdentifierList> store lists of
+        subtoken list.
+
+        It extracts <IdentifierList> and <Identifier> from :param token: and loops through
+        all subtokens recursively. It finds table_name_preceding_token and passes
+        <IdentifierList> and <Identifier> to self._process_tokenlist to populate self._tables.
 
         :param token: instance of Token or child class, e.g. TokenList, to be processed
         """
