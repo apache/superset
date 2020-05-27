@@ -24,6 +24,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship, RelationshipProperty
 
 from superset import security_manager
+from superset.models.alerts import Alert
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 metadata = Model.metadata  # pylint: disable=no-member

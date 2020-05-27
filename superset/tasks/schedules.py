@@ -23,7 +23,7 @@ import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
@@ -51,6 +51,7 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
     SliceEmailSchedule,
 )
+from superset.models.alerts import Alert
 from superset.utils.core import get_email_address_list, send_email_smtp
 
 # Globals
@@ -431,13 +432,14 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     if report_type == ScheduleType.alert:
         if run_alert_query(schedule):
             # deliver_dashboard OR deliver_slice
+            return
     else:
         raise RuntimeError("Unknown report type")
 
 
-def run_alert_query(alert: Alert) -> Optional[Boolean]:
+def run_alert_query(alert: Alert) -> Optional[bool]:
     #run alert.sql and return value if any rows are returned
-)
+    return None
 
 def next_schedules(
     crontab: str, start_at: datetime, stop_at: datetime, resolution: int = 0
