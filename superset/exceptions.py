@@ -71,6 +71,10 @@ class CertificateException(SupersetException):
     message = _("Invalid certificate")
 
 
+class UploadOverFlowException(SupersetException):
+    pass
+
+
 class DatabaseNotFound(SupersetException):
     status = 400
 
