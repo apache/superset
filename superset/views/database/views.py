@@ -29,7 +29,7 @@ import superset.models.core as models
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
-from superset.exceptions import CertificateException, UploadOverFlowException
+from superset.exceptions import CertificateException, UploadOverflowException
 from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
@@ -65,14 +65,17 @@ def certificate_form_validator(_, field: StringField) -> None:
 
 def upload_stream_write(form_file_field: "FileStorage", path: str):
     chunk_size = app.config["UPLOAD_CHUNK_SIZE"]
-    max_size = app.config["UPLOAD_MAX_SIZE"] or float("inf")
+    max_size = app.config["UPLOAD_MAX_BYTES"] or float("inf")
     with open(path, "bw") as file_description:
         while True:
             chunk = form_file_field.stream.read(chunk_size)
             max_size -= len(chunk)
             if max_size < 0:
-                raise UploadOverFlowException(
-                    _("Upload Max Size %(size)s", size=app.config["UPLOAD_MAX_SIZE"])
+                raise UploadOverflowException(
+                    _(
+                        "Exceeded the upload maximum size of %(size)s bytes",
+                        size=app.config["UPLOAD_MAX_BYTES"],
+                    )
                 )
             if not chunk:
                 break

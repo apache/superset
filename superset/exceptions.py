@@ -71,7 +71,7 @@ class CertificateException(SupersetException):
     message = _("Invalid certificate")
 
 
-class UploadOverFlowException(SupersetException):
+class UploadOverflowException(SupersetException):
     pass
 
 

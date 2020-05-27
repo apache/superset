@@ -326,7 +326,7 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 # The file upload folder, when using models with files
 UPLOAD_FOLDER = BASE_DIR + "/app/static/uploads/"
 UPLOAD_CHUNK_SIZE = 4096
-UPLOAD_MAX_SIZE = 50 * 1024 * 1024
+UPLOAD_MAX_BYTES = 50 * 1024 * 1024
 
 # The image upload folder, when using models with images
 IMG_UPLOAD_FOLDER = BASE_DIR + "/app/static/uploads/"
