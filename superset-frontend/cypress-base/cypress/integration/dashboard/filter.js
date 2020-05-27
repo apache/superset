@@ -53,9 +53,7 @@ export default () =>
     });
 
     it('should apply filter', () => {
-      cy.get('.Select__control')
-        .contains('Select [region]')
-        .click({ force: true });
+      cy.get('.Select__control input[type=text]').first().focus();
 
       // should open the filter indicator
       cy.get('.filter-indicator.active')
