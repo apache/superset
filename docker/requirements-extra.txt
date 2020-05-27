@@ -16,4 +16,5 @@
 #
 gevent==1.4.0
 psycopg2-binary==2.8.5
+pymssql==2.1.3
 redis==3.2.1
