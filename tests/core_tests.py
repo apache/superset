@@ -76,10 +76,12 @@ class CoreTests(SupersetTestCase):
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }
         self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
+        self.original_rls_setting = app.config["ENABLE_ROW_LEVEL_SECURITY"]
 
     def tearDown(self):
         db.session.query(Query).delete()
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
+        app.config["ENABLE_ROW_LEVEL_SECURITY"] = self.original_rls_setting
 
     def test_login(self):
         resp = self.get_resp("/login/", data=dict(username="admin", password="general"))
@@ -176,6 +178,36 @@ class CoreTests(SupersetTestCase):
         slc = self.get_slice("Girls", db.session)
         resp = self.get_resp(slc.explore_json_url)
         assert '"Jennifer"' in resp
+
+    def test_annotation_json_endpoint(self):
+        # Something is broken with annotations and RLS, teardown will undo this
+        app.config["ENABLE_ROW_LEVEL_SECURITY"] = False
+
+        self.login(username="admin")
+
+        # Set up an annotation layer and annotation
+        self.get_resp(
+            "/annotationlayermodelview/add",
+            {"form_data": json.dumps({"name": "foo", "descr": "bar"})},
+        )
+        self.get_resp(
+            "/annotationmodelview/add",
+            {
+                "form_data": json.dumps(
+                    {
+                        "layer": "1",
+                        "short_descr": "my_annotation",
+                        "start_dttm": "2020-05-20 18:21:51",
+                        "end_dttm": "2020-05-20 18:31:51",
+                    }
+                )
+            },
+        )
+
+        resp = self.get_resp(
+            "/superset/annotation_json/1?form_data=%7B%22time_range%22%3A%22100+years+ago+%3A+now%22%7D"
+        )
+        assert "my_annotation" in resp
 
     def test_old_slice_csv_endpoint(self):
         self.login(username="admin")
