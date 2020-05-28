@@ -95,6 +95,10 @@ PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
 PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 
+RoleModelView.list_columns = ["name"]
+RoleModelView.edit_columns = ["name", "permissions", "user"]
+RoleModelView.related_views = []
+
 
 class SupersetSecurityManager(SecurityManager):
     userstatschartview = None

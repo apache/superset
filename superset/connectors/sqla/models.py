@@ -90,6 +90,7 @@ class AnnotationDatasource(BaseDatasource):
 
     cache_timeout = 0
     changed_on = None
+    type = "annotation"
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         error_message = None

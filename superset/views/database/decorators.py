@@ -16,7 +16,7 @@
 # under the License.
 import functools
 import logging
-from typing import Optional
+from typing import Any, Callable, Optional
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -24,16 +24,22 @@ from flask_babel import lazy_gettext as _
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.utils.core import parse_js_uri_path_item
+from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
 
 
-def check_datasource_access(f):
+def check_datasource_access(f: Callable) -> Callable:
     """
     A Decorator that checks if a user has datasource access
     """
 
-    def wraps(self, pk: int, table_name: str, schema_name: Optional[str] = None):
+    def wraps(
+        self: BaseSupersetModelRestApi,
+        pk: int,
+        table_name: str,
+        schema_name: Optional[str] = None,
+    ) -> Any:
         schema_name_parsed = parse_js_uri_path_item(schema_name, eval_undefined=True)
         table_name_parsed = parse_js_uri_path_item(table_name)
         if not table_name_parsed:

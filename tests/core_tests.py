@@ -25,6 +25,7 @@ import json
 import logging
 import os
 from typing import Dict, List, Optional
+from urllib.parse import quote
 
 import pytz
 import random
@@ -50,6 +51,7 @@ from superset.datasets.dao import DatasetDAO
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
+from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
@@ -176,6 +178,29 @@ class CoreTests(SupersetTestCase):
         slc = self.get_slice("Girls", db.session)
         resp = self.get_resp(slc.explore_json_url)
         assert '"Jennifer"' in resp
+
+    def test_annotation_json_endpoint(self):
+        # Set up an annotation layer and annotation
+        layer = AnnotationLayer(name="foo", descr="bar")
+        db.session.add(layer)
+        db.session.commit()
+
+        annotation = Annotation(
+            layer_id=layer.id,
+            short_descr="my_annotation",
+            start_dttm=datetime.datetime(2020, 5, 20, 18, 21, 51),
+            end_dttm=datetime.datetime(2020, 5, 20, 18, 31, 51),
+        )
+
+        db.session.add(annotation)
+        db.session.commit()
+
+        resp = self.get_resp(
+            f"/superset/annotation_json/{layer.id}?form_data="
+            + quote(json.dumps({"time_range": "100 years ago : now"}))
+        )
+
+        assert "my_annotation" in resp
 
     def test_old_slice_csv_endpoint(self):
         self.login(username="admin")
