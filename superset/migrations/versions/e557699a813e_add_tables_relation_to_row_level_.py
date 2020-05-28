@@ -34,9 +34,10 @@ from superset.utils.core import generic_find_fk_constraint_name
 
 def upgrade():
     bind = op.get_bind()
+    metadata = sa.MetaData(bind=bind)
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 
-    op.create_table(
+    rls_filter_tables = op.create_table(
         "rls_filter_tables",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("table_id", sa.Integer(), nullable=True),
@@ -45,6 +46,15 @@ def upgrade():
         sa.ForeignKeyConstraint(["table_id"], ["tables.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
+
+    rlsf = sa.Table("row_level_security_filters", metadata, autoload=True)
+    filter_ids = sa.select([rlsf.c.id, rlsf.c.table_id])
+
+    for row in bind.execute(filter_ids):
+        move_table_id = rls_filter_tables.insert().values(
+            rls_filter_id=row["id"], table_id=row["table_id"]
+        )
+        bind.execute(move_table_id)
 
     with op.batch_alter_table("row_level_security_filters") as batch_op:
         fk_constraint_name = generic_find_fk_constraint_name(
@@ -56,6 +66,9 @@ def upgrade():
 
 
 def downgrade():
+    bind = op.get_bind()
+    metadata = sa.MetaData(bind=bind)
+
     op.add_column(
         "row_level_security_filters",
         sa.Column(
@@ -63,7 +76,19 @@ def downgrade():
             sa.INTEGER(),
             sa.ForeignKey("tables.id"),
             autoincrement=False,
-            nullable=False,
+            nullable=True,
         ),
     )
+
+    rlsf = sa.Table("row_level_security_filters", metadata, autoload=True)
+    rls_filter_tables = sa.Table("rls_filter_tables", metadata, autoload=True)
+
+    move_table_ids = rlsf.update().values(
+        table_id=sa.select([rls_filter_tables.c.table_id]).where(
+            rlsf.c.id == rls_filter_tables.c.rls_filter_id
+        )
+    )
+    bind.execute(move_table_ids)
+
+    op.alter_column("row_level_security_filters", "table_id", nullable=False)
     op.drop_table("rls_filter_tables")
