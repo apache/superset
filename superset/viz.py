@@ -525,7 +525,7 @@ class BaseViz:
         has_error = (
             payload.get("status") == utils.QueryStatus.FAILED
             or payload.get("error") is not None
-            or len(payload.get("errors") or []) > 0
+            or bool(payload.get("errors"))
         )
         return self.json_dumps(payload), has_error
 

@@ -62,14 +62,26 @@ class BaseDatasource(
     # ---------------------------------------------------------------
     __tablename__: Optional[str] = None  # {connector_name}_datasource
     baselink: Optional[str] = None  # url portion pointing to ModelView endpoint
-    column_class: Optional[Type] = None  # link to derivative of BaseColumn
-    metric_class: Optional[Type] = None  # link to derivative of BaseMetric
+
+    @property
+    def column_class(self) -> Type:
+        # link to derivative of BaseColumn
+        raise NotImplementedError()
+
+    @property
+    def metric_class(self) -> Type:
+        # link to derivative of BaseMetric
+        raise NotImplementedError()
+
     owner_class: Optional[User] = None
 
     # Used to do code highlighting when displaying the query in the UI
     query_language: Optional[str] = None
 
-    name = None  # can be a Column or a property pointing to one
+    @property
+    def name(self) -> str:
+        # can be a Column or a property pointing to one
+        raise NotImplementedError()
 
     # ---------------------------------------------------------------
 
