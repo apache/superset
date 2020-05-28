@@ -442,10 +442,16 @@ def schedule_alert_query(  # pylint: disable=unused-argument
         raise RuntimeError("Unknown report type")
 
 
-class AlertSate:
+class AlertState:
     ERROR = "error"
     TRIGGER = "trigger"
     PASS = "pass"
+
+
+def deliver_alert(alert):
+    # image_url = generate_image()
+    # send_email_smtp()
+    pass
 
 
 def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
@@ -479,6 +485,7 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
         if result.rowcount > 0:
             alert.state = AlertSate.TRIGGER
             # TODO: SENDALERT!!
+            deliver_alert(alert)
         else:
             alert.state = AlertSate.PASS
 
