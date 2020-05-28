@@ -33,6 +33,11 @@ width_heiht_schema = {
 }
 thumbnail_query_schema = {
     "type": "object",
+    "properties": {"force": {"type": "boolean"},},
+}
+
+screenshot_query_schema = {
+    "type": "object",
     "properties": {
         "force": {"type": "boolean"},
         "window_size": width_heiht_schema,

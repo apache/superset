@@ -48,6 +48,7 @@ from superset.charts.schemas import (
     ChartPutSchema,
     get_delete_ids_schema,
     openapi_spec_methods_override,
+    screenshot_query_schema,
     thumbnail_query_schema,
 )
 from superset.constants import RouteMethod
@@ -460,7 +461,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>/screenshot/", methods=["GET"])
     @expose("/<pk>/screenshot/<digest>/", methods=["GET"])
     @protect()
-    @rison(thumbnail_query_schema)
+    @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     def screenshot(
@@ -500,32 +501,37 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         rison = kwargs["rison"]
         window_size = rison.get("window_size") or (1600, 1201)
+
+        # Don't shrink the image if thumb_size is not specified
+        thumb_size = rison.get("thumb_size") or window_size
+
         chart = self.datamodel.get(pk, self._base_filters)
         url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if not chart:
             return self.response_404()
 
-        def trigger_async():
+        def trigger_celery():
             logger.info("Triggering screenshot ASYNC")
-            cache_chart_thumbnail.delay(
-                url,
-                chart.digest,
-                force=True,
-                window_size=window_size,
-                thumb_size=window_size,
-            )
+            kwargs = {
+                "url": url,
+                "digest": chart.digest,
+                "force": True,
+                "window_size": window_size,
+                "thumb_size": thumb_size,
+            }
+            cache_chart_thumbnail.delay(**kwargs)
             return self.response(202, message="OK Async")
 
         if rison.get("force", False):
-            return trigger_async()
+            return trigger_celery()
 
         # fetch the chart screenshot using the current user and cache if set
         screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
-            thumbnail_cache, window_size=window_size, thumb_size=window_size
+            thumbnail_cache, window_size=window_size, thumb_size=thumb_size
         )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
-            return trigger_async()
+            return trigger_celery()
 
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
