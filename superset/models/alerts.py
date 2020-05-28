@@ -80,6 +80,8 @@ class Alert(Model):
         backref=backref("alerts", cascade="all, delete-orphan"),
     )
 
+    last_eval_dttm = Column(DateTime, default=datetime.utcnow)
+
 
 class AlertLog(Model):
     """Keeps track of alert-related operations"""

@@ -21,8 +21,10 @@ import logging
 import time
 import urllib.request
 from collections import namedtuple
+from contextlib import closing
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
+from sqlalchemy.orm import Session
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
@@ -52,6 +54,7 @@ from superset.models.schedules import (
     SliceEmailSchedule,
 )
 from superset.models.alerts import Alert
+from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_email_address_list, send_email_smtp
 
 # Globals
@@ -422,7 +425,8 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     recipients: Optional[str] = None,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
-    schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
+    dbsession = db.create_scoped_session()
+    schedule = dbsession.query(model_cls).get(schedule_id)
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:
@@ -430,15 +434,39 @@ def schedule_alert_query(  # pylint: disable=unused-argument
         return
 
     if report_type == ScheduleType.alert:
-        if run_alert_query(schedule):
+        if run_alert_query(schedule, dbsession):
             # deliver_dashboard OR deliver_slice
             return
     else:
         raise RuntimeError("Unknown report type")
 
 
-def run_alert_query(alert: Alert) -> Optional[bool]:
-    #run alert.sql and return value if any rows are returned
+def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
+    """
+    Execute alert.sql and return value if any rows are returned
+    """
+    database = alert.database
+    if not database:
+        logger.error("Alert database not preset")
+        return
+
+    if not alert.sql:
+        logger.error("Alert SQL not preset")
+        return
+
+    engine = database.get_sqla_engine()
+    db_engine_spec = database.db_engine_spec
+    parsed_query = ParsedQuery(alert.sql)
+    sql = parsed_query.stripped()
+
+    # update alert.last_eval_dttm
+    alert.last_eval_dttm = datetime.utcnow()
+    session.commit()
+
+    with closing(engine.connect()) as conn:
+        result = conn.execute(sql)
+        return result.rowcount > 0
+
     return None
 
 def next_schedules(
@@ -482,11 +510,15 @@ def schedule_window(
     for schedule in schedules:
         args = (report_type, schedule.id)
 
+        if hasattr(schedule, 'last_eval_dttm') and schedule.last_eval_dttm and schedule.last_eval_dttm > start_at:
+            start_at = schedule.last_eval_dttm + timedelta(seconds=1)
+
         # Schedule the job for the specified time window
         for eta in next_schedules(
             schedule.crontab, start_at, stop_at, resolution=resolution
         ):
             get_scheduler_action(report_type).apply_async(args, eta=eta)
+            break
 
     return None
 
@@ -524,10 +556,10 @@ def schedule_alerts() -> None:
     #     logger.info("Scheduled email reports not enabled in config")
     #     return
 
-    resolution = 1 * 60
+    resolution = 0
 
-    # Get the top of the hour
-    start_at = datetime.now(tzlocal()).replace(microsecond=0, second=0, minute=0)
-    stop_at = start_at + timedelta(seconds=3600)
+    now = datetime.utcnow()
+    start_at = now - timedelta(seconds=3600)    # process any missed tasks in the past hour
+    stop_at = now + timedelta(seconds=1)
 
     schedule_window(ScheduleType.alert, start_at, stop_at, resolution)
