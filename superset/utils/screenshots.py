@@ -208,9 +208,6 @@ class BaseScreenshot:
             "window_size": window_size,
             "thumb_size": thumb_size,
         }
-        import json
-
-        print(json.dumps(d, indent=2, sort_keys=True))
         return md5_sha_from_dict(d)
 
     def get_screenshot(self, user: "User", window_size=None) -> Optional[bytes]:
@@ -290,7 +287,6 @@ class BaseScreenshot:
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Failed at generating thumbnail %s", ex)
 
-        print(f"COMPUTE {window_size}, {thumb_size}")
         if payload and window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, thumb_size=thumb_size)

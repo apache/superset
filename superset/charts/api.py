@@ -48,6 +48,7 @@ from superset.charts.schemas import (
     ChartPutSchema,
     get_delete_ids_schema,
     openapi_spec_methods_override,
+    screenshot_query_schema,
     thumbnail_query_schema,
 )
 from superset.constants import RouteMethod
@@ -460,7 +461,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/<pk>/screenshot/", methods=["GET"])
     @expose("/<pk>/screenshot/<digest>/", methods=["GET"])
     @protect()
-    @rison(thumbnail_query_schema)
+    @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     def screenshot(
@@ -509,19 +510,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
-        def trigger_async():
+        def trigger_celery():
             logger.info("Triggering screenshot ASYNC")
-            cache_chart_thumbnail.delay(
-                url,
-                chart.digest,
-                force=True,
-                window_size=window_size,
-                thumb_size=thumb_size,
-            )
+            kwargs = {
+                "url": url,
+                "digest": chart.digest,
+                "force": True,
+                "window_size": window_size,
+                "thumb_size": thumb_size,
+            }
+            cache_chart_thumbnail.delay(**kwargs)
             return self.response(202, message="OK Async")
 
         if rison.get("force", False):
-            return trigger_async()
+            return trigger_celery()
 
         # fetch the chart screenshot using the current user and cache if set
         screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
@@ -529,7 +531,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
-            return trigger_async()
+            return trigger_celery()
 
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
