@@ -149,7 +149,12 @@ class AuthWebDriverProxy:
             pass
 
     def get_screenshot(
-        self, url: str, element_name: str, user: "User", retries: int = SELENIUM_RETRIES
+        self,
+        url: str,
+        element_name: str,
+        user: "User",
+        retries: int = SELENIUM_RETRIES,
+        window_size=None,
     ) -> Optional[bytes]:
         driver = self.auth(user)
         driver.set_window_size(*self._window)
@@ -190,7 +195,9 @@ class BaseScreenshot:
     def __init__(self, model_id: int):
         self.model_id: int = model_id
         self.screenshot: Optional[bytes] = None
-        self._driver = AuthWebDriverProxy(self.driver_type, self.window_size)
+
+    def driver(self, window_size=None):
+        return AuthWebDriverProxy(self.driver_type, window_size or self.window_size)
 
     @property
     def cache_key(self) -> str:
@@ -200,8 +207,11 @@ class BaseScreenshot:
     def url(self) -> str:
         raise NotImplementedError()
 
-    def get_screenshot(self, user: "User") -> Optional[bytes]:
-        self.screenshot = self._driver.get_screenshot(self.url, self.element, user)
+    def get_screenshot(self, user: "User", window_size=None) -> Optional[bytes]:
+        window_size = window_size or self.window_size
+        self.screenshot = self.driver(window_size).get_screenshot(
+            self.url, self.element, user
+        )
         return self.screenshot
 
     def get(
@@ -240,6 +250,7 @@ class BaseScreenshot:
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
         user: "User" = None,
+        window_size: Optional[WindowSize] = None,
         thumb_size: Optional[WindowSize] = None,
         cache: "Cache" = None,
         force: bool = True,
@@ -255,6 +266,7 @@ class BaseScreenshot:
         :return: Image payload
         """
         cache_key = self.cache_key
+        eff_window_size = window_size or self.window_size
         if not force and cache and cache.get(cache_key):
             logger.info("Thumb already cached, skipping...")
             return None
@@ -269,7 +281,7 @@ class BaseScreenshot:
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Failed at generating thumbnail %s", ex)
 
-        if payload and self.window_size != thumb_size:
+        if payload and eff_window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, thumb_size=thumb_size)
             except Exception as ex:  # pylint: disable=broad-except
@@ -279,6 +291,7 @@ class BaseScreenshot:
         if payload and cache:
             logger.info(f"Caching thumbnail: {cache_key} {cache}")
             cache.set(cache_key, payload)
+            logger.info("Done caching thumbnail")
         return payload
 
     @classmethod

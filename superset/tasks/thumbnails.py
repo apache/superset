@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
-def cache_chart_thumbnail(chart_id: int, force: bool = False) -> None:
+def cache_chart_thumbnail(chart_id: int, force: bool = False, thumb_size=None) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logger.warning("No cache set, refusing to compute")
@@ -38,11 +38,15 @@ def cache_chart_thumbnail(chart_id: int, force: bool = False) -> None:
         logging.info(f"Caching chart {chart_id}")
         screenshot = ChartScreenshot(model_id=chart_id)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
-        screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)
+        screenshot.compute_and_cache(
+            user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,
+        )
 
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
-def cache_dashboard_thumbnail(dashboard_id: int, force: bool = False) -> None:
+def cache_dashboard_thumbnail(
+    dashboard_id: int, force: bool = False, thumb_size=None
+) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logging.warning("No cache set, refusing to compute")
@@ -50,4 +54,6 @@ def cache_dashboard_thumbnail(dashboard_id: int, force: bool = False) -> None:
         logger.info(f"Caching dashboard {dashboard_id}")
         screenshot = DashboardScreenshot(model_id=dashboard_id)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
-        screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)
+        screenshot.compute_and_cache(
+            user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,
+        )
