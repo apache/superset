@@ -61,9 +61,6 @@ class BaseDatasource(
     # class attributes to define when deriving BaseDatasource
     # ---------------------------------------------------------------
     __tablename__: Optional[str] = None  # {connector_name}_datasource
-    type: Optional[  # datasoure type, str to be defined when deriving this class
-        str
-    ] = None
     baselink: Optional[str] = None  # url portion pointing to ModelView endpoint
     column_class: Optional[Type] = None  # link to derivative of BaseColumn
     metric_class: Optional[Type] = None  # link to derivative of BaseMetric
@@ -106,6 +103,10 @@ class BaseDatasource(
     columns: List[Any] = []
     # placeholder for a relationship to a derivative of BaseMetric
     metrics: List[Any] = []
+
+    @property
+    def type(self) -> str:
+        raise NotImplementedError()
 
     @property
     def uid(self) -> str:
