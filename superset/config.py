@@ -432,11 +432,9 @@ class CeleryConfig(object):
     CELERYBEAT_SCHEDULE = {
         'cache-warmup-hourly': {
             'task': 'cache-warmup',
-            'schedule': crontab(minute=0, hour='*'),  # hourly
+            'schedule': crontab(minute=1, hour='*'),  # hourly
             'kwargs': {
-                'strategy_name': 'top_n_dashboards',
-                'top_n': 5,
-                'since': '7 days ago',
+                'strategy_name': 'dummy',
             },
         },
     }
