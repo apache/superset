@@ -74,13 +74,15 @@ export default () =>
       cy.get('.Select__control input[type=text]')
         .first()
         .focus({ force: true })
-        .type('South Asia', { force: true });
+        .type('South Asiaa', { force: true });
+
+      cy.get('.Select__menu').first().contains('Create "South Asiaa"');
 
       // type text and <Enter> separately to reduce the change of failing tests
       cy.get('.Select__control input[type=text]')
         .first()
         .focus({ force: true })
-        .type('{enter}', { force: true });
+        .type('{backspace}{enter}', { force: true });
 
       // wait again after applied filters
       cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
