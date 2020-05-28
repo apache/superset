@@ -270,12 +270,13 @@ class FilterBox extends React.Component {
         value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
       }
     }
+
     return (
       <OnPasteSelect
         key={key}
         placeholder={t('Select [%s]', label)}
         isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
-        clearable={filterConfig.clearable}
+        isClearable={filterConfig.clearable}
         value={value}
         options={data
           .filter(opt => opt.id !== null)
@@ -286,12 +287,17 @@ class FilterBox extends React.Component {
             const style = { backgroundImage };
             return { value: opt.id, label: opt.id, style };
           })}
-        onChange={newValue => this.changeFilter(key, newValue)}
+        onChange={newValue => {
+          // avoid excessive re-renders
+          if (newValue !== value) {
+            this.changeFilter(key, newValue);
+          }
+        }}
         onFocus={() => this.onFilterMenuOpen(key)}
         onMenuOpen={() => this.onFilterMenuOpen(key)}
         onBlur={this.onFilterMenuClose}
         onMenuClose={this.onFilterMenuClose}
-        selectComponent={CreatableSelect}
+        selectWrap={CreatableSelect}
         noResultsText={t('No results found')}
       />
     );
