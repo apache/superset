@@ -21,19 +21,23 @@ import logging
 import textwrap
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, cast, Type
+from typing import Any, Callable, cast, Optional, Type
 
 from flask import current_app, g, request
+
+from superset.stats_logger import BaseStatsLogger
 
 
 class AbstractEventLogger(ABC):
     @abstractmethod
-    def log(self, user_id, action, *args, **kwargs):
+    def log(
+        self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
+    ) -> None:
         pass
 
-    def log_this(self, f):
+    def log_this(self, f: Callable) -> Callable:
         @functools.wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
@@ -49,7 +53,12 @@ class AbstractEventLogger(ABC):
 
             try:
                 slice_id = int(
-                    slice_id or json.loads(form_data.get("form_data")).get("slice_id")
+                    slice_id
+                    or json.loads(
+                        form_data.get("form_data")  # type: ignore
+                    ).get(
+                        "slice_id"
+                    )
                 )
             except (ValueError, TypeError):
                 slice_id = 0
@@ -62,7 +71,7 @@ class AbstractEventLogger(ABC):
             # bulk insert
             try:
                 explode_by = form_data.get("explode")
-                records = json.loads(form_data.get(explode_by))
+                records = json.loads(form_data.get(explode_by))  # type: ignore
             except Exception:  # pylint: disable=broad-except
                 records = [form_data]
 
@@ -82,11 +91,11 @@ class AbstractEventLogger(ABC):
         return wrapper
 
     @property
-    def stats_logger(self):
+    def stats_logger(self) -> BaseStatsLogger:
         return current_app.config["STATS_LOGGER"]
 
 
-def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
+def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
     """
     This function implements the deprecation of assignment
     of class objects to EVENT_LOGGER configuration, and validates
@@ -130,7 +139,9 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
 
 
 class DBEventLogger(AbstractEventLogger):
-    def log(self, user_id, action, *args, **kwargs):  # pylint: disable=too-many-locals
+    def log(  # pylint: disable=too-many-locals
+        self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
+    ) -> None:
         from superset.models.core import Log
 
         records = kwargs.get("records", list())
@@ -141,6 +152,7 @@ class DBEventLogger(AbstractEventLogger):
 
         logs = list()
         for record in records:
+            json_string: Optional[str]
             try:
                 json_string = json.dumps(record)
             except Exception:  # pylint: disable=broad-except

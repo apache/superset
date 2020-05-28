@@ -73,8 +73,8 @@ WHITELIST_CUMULATIVE_FUNCTIONS = (
 
 
 def validate_column_args(*argnames: str) -> Callable:
-    def wrapper(func):
-        def wrapped(df, **options):
+    def wrapper(func: Callable) -> Callable:
+        def wrapped(df: DataFrame, **options: Any) -> Any:
             columns = df.columns.tolist()
             for name in argnames:
                 if name in options and not all(
@@ -159,7 +159,7 @@ def pivot(  # pylint: disable=too-many-arguments
     metric_fill_value: Optional[Any] = None,
     column_fill_value: Optional[str] = None,
     drop_missing_columns: Optional[bool] = True,
-    combine_value_with_metric=False,
+    combine_value_with_metric: bool = False,
     marginal_distributions: Optional[bool] = None,
     marginal_distribution_name: Optional[str] = None,
 ) -> DataFrame:
