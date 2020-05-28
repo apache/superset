@@ -169,6 +169,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             self.include_route_methods = self.include_route_methods | {
                 "thumbnail",
                 "screenshot",
+                "cache_screenshot",
             }
         super().__init__()
 
@@ -458,7 +459,83 @@ class ChartRestApi(BaseSupersetModelRestApi):
         resp.headers["Content-Type"] = "application/json; charset=utf-8"
         return resp
 
-    @expose("/<pk>/screenshot/", methods=["GET"])
+    @expose("/<pk>/cache_screenshot/", methods=["GET"])
+    @protect()
+    @rison(screenshot_query_schema)
+    @safe
+    @statsd_metrics
+    def cache_screenshot(
+        self, pk: int, digest: str = None, **kwargs: Dict[str, bool]
+    ) -> WerkzeugResponse:
+        """Get Chart screenshot
+        ---
+        get:
+          description: Compute or get already computed screenshot from cache.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: path
+            schema:
+              type: string
+            name: sha
+          responses:
+            200:
+              description: Chart thumbnail image
+              content:
+               image/*:
+                 schema:
+                   type: string
+                   format: binary
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        rison = kwargs["rison"]
+        window_size = rison.get("window_size") or (800, 600)
+
+        # Don't shrink the image if thumb_size is not specified
+        thumb_size = rison.get("thumb_size") or window_size
+
+        chart = self.datamodel.get(pk, self._base_filters)
+        if not chart:
+            return self.response_404()
+
+        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        screenshot_obj = ChartScreenshot(chart_url, chart.digest)
+        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
+        image_url = get_url_path(
+            "ChartRestApi.screenshot", pk=chart.id, digest=cache_key
+        )
+
+        def trigger_celery():
+            logger.info("Triggering screenshot ASYNC")
+            kwargs = {
+                "url": chart_url,
+                "digest": chart.digest,
+                "force": True,
+                "window_size": window_size,
+                "thumb_size": thumb_size,
+            }
+            cache_chart_thumbnail.delay(**kwargs)
+            return self.response(
+                202,
+                message="Triggering async",
+                cache_key=cache_key,
+                chart_url=chart_url,
+                image_url=image_url,
+            )
+
+        return trigger_celery()
+
     @expose("/<pk>/screenshot/<digest>/", methods=["GET"])
     @protect()
     @rison(screenshot_query_schema)
@@ -499,44 +576,19 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        rison = kwargs["rison"]
-        window_size = rison.get("window_size") or (1600, 1201)
-
-        # Don't shrink the image if thumb_size is not specified
-        thumb_size = rison.get("thumb_size") or window_size
-
         chart = self.datamodel.get(pk, self._base_filters)
-        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+
+        # Making sure the chart still exists
         if not chart:
             return self.response_404()
 
-        screenshot_obj = ChartScreenshot(url, chart.digest)
-        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
-
-        def trigger_celery():
-            logger.info("Triggering screenshot ASYNC")
-            kwargs = {
-                "url": url,
-                "digest": chart.digest,
-                "force": True,
-                "window_size": window_size,
-                "thumb_size": thumb_size,
-            }
-            cache_chart_thumbnail.delay(**kwargs)
-            return self.response(202, message="Triggering async", cache_key=cache_key)
-
-        if rison.get("force", False):
-            return trigger_celery()
-
         # fetch the chart screenshot using the current user and cache if set
-        img = screenshot_obj.get_from_cache(
-            thumbnail_cache, window_size=window_size, thumb_size=thumb_size
-        )
-        # If not screenshot then send request to compute thumb to celery
-        if not img:
-            return trigger_celery()
-
-        return Response(FileWrapper(img), mimetype="image/png", direct_passthrough=True)
+        img = ChartScreenshot.get_from_cache_key(thumbnail_cache, digest)
+        if img:
+            return Response(
+                FileWrapper(img), mimetype="image/png", direct_passthrough=True
+            )
+        # TODO: return an empty image
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
     @protect()

@@ -246,6 +246,11 @@ class BaseScreenshot:
         self, cache: "Cache", window_size=None, thumb_size=None,
     ) -> Optional[BytesIO]:
         cache_key = self.cache_key(window_size, thumb_size)
+        payload = cache.get(cache_key)
+        return self.get_from_cache_key(cache, cache_key)
+
+    @staticmethod
+    def get_from_cache_key(cache: "Cache", cache_key: str) -> Optional[BytesIO]:
         logger.info("Attempting to get from cache: %s", cache_key)
         payload = cache.get(cache_key)
         if payload:
