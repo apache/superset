@@ -2164,7 +2164,7 @@ class Superset(BaseSupersetView):
             return json_error_response(str(ex))
 
         spec = mydb.db_engine_spec
-        query_cost_formatters = get_feature_flags().get(
+        query_cost_formatters: Dict[str, Any] = get_feature_flags().get(
             "QUERY_COST_FORMATTERS_BY_ENGINE", {}
         )
         query_cost_formatter = query_cost_formatters.get(

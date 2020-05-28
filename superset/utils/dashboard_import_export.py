@@ -19,6 +19,10 @@ import json
 import logging
 import time
 from datetime import datetime
+from io import BytesIO
+from typing import Any, Dict, Optional
+
+from sqlalchemy.orm import Session
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.dashboard import Dashboard
@@ -27,7 +31,7 @@ from superset.models.slice import Slice
 logger = logging.getLogger(__name__)
 
 
-def decode_dashboards(o):
+def decode_dashboards(o: Dict[str, Any]) -> Any:
     """
     Function to be passed into json.loads obj_hook parameter
     Recreates the dashboard object from a json representation.
@@ -50,7 +54,9 @@ def decode_dashboards(o):
         return o
 
 
-def import_dashboards(session, data_stream, import_time=None):
+def import_dashboards(
+    session: Session, data_stream: BytesIO, import_time: Optional[int] = None
+) -> None:
     """Imports dashboards from a stream to databases"""
     current_tt = int(time.time())
     import_time = current_tt if import_time is None else import_time
@@ -64,7 +70,7 @@ def import_dashboards(session, data_stream, import_time=None):
     session.commit()
 
 
-def export_dashboards(session):
+def export_dashboards(session: Session) -> str:
     """Returns all dashboards metadata as a json dump"""
     logger.info("Starting export")
     dashboards = session.query(Dashboard)
