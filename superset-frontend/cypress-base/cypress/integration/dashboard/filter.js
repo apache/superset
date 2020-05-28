@@ -74,13 +74,16 @@ export default () =>
       cy.get('.Select__control input[type=text]')
         .first()
         .focus({ force: true })
-        .type('South Asia', { force: true });
+        .type('So', { force: true });
 
-      // type text and <Enter> separately to reduce the change of failing tests
+      cy.get('.Select__menu').first().contains('Create "So"');
+
+      // Somehow Input loses focus after typing "So" while in Cypress, so
+      // we refocus the input again here. The is not happening in real life.
       cy.get('.Select__control input[type=text]')
         .first()
         .focus({ force: true })
-        .type('{enter}', { force: true });
+        .type('uth Asia{enter}', { force: true });
 
       // wait again after applied filters
       cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
