@@ -30,16 +30,26 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
-def cache_chart_thumbnail(chart_id: int, force: bool = False, thumb_size=None) -> None:
+def cache_chart_thumbnail(
+    chart_url: str,
+    chart_digest: str,
+    force: bool = False,
+    window_size=None,
+    thumb_size=None,
+) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logger.warning("No cache set, refusing to compute")
             return None
-        logging.info(f"Caching chart {chart_id}")
-        screenshot = ChartScreenshot(model_id=chart_id)
+        logging.info(f"Caching chart at {chart_url}")
+        screenshot = ChartScreenshot(chart_url, chart_digest)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         screenshot.compute_and_cache(
-            user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,
+            user=user,
+            cache=thumbnail_cache,
+            force=force,
+            window_size=window_size,
+            thumb_size=thumb_size,
         )
 
 

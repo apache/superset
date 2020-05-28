@@ -21,7 +21,7 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
-import hashlib
+import dataclasses
 import inspect
 import logging
 import math
@@ -33,7 +33,6 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
-import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
@@ -63,6 +62,7 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
+from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -408,7 +408,7 @@ class BaseViz:
         )
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
-        return hashlib.md5(json_data.encode("utf-8")).hexdigest()
+        return md5_sha_from_str(json_data)
 
     def get_payload(self, query_obj=None):
         """Returns a payload of metadata and data"""

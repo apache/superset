@@ -57,6 +57,7 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.core import json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
+from superset.utils.urls import get_url_path
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -497,31 +498,35 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        rison = kwargs["rison"]
+        window_size = rison.get("window_size") or (1600, 1201)
         chart = self.datamodel.get(pk, self._base_filters)
+        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if not chart:
             return self.response_404()
 
         def trigger_async():
             logger.info("Triggering screenshot ASYNC")
-            cache_chart_thumbnail.delay(chart.id, force=True, thumb_size=(800, 600))
+            cache_chart_thumbnail.delay(
+                url,
+                chart.digest,
+                force=True,
+                window_size=window_size,
+                thumb_size=window_size,
+            )
             return self.response(202, message="OK Async")
 
-        if kwargs["rison"].get("force", False):
+        if rison.get("force", False):
             return trigger_async()
 
         # fetch the chart screenshot using the current user and cache if set
-        screenshot = ChartScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
+            thumbnail_cache, window_size=window_size, thumb_size=window_size
+        )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
             return trigger_async()
 
-        # If digests
-        if chart.digest != digest:
-            return redirect(
-                url_for(
-                    f"{self.__class__.__name__}.screenshot", pk=pk, digest=chart.digest
-                )
-            )
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
@@ -574,7 +579,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             cache_chart_thumbnail.delay(chart.id, force=True)
             return self.response(202, message="OK Async")
         # fetch the chart screenshot using the current user and cache if set
-        screenshot = ChartScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
+            cache=thumbnail_cache
+        )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
             logger.info("Triggering thumbnail compute ASYNC")

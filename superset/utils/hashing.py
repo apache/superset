@@ -7,5 +7,5 @@ def md5_sha_from_str(s: str):
 
 
 def md5_sha_from_dict(d: dict):
-    json_data = json.dumps(cache_dict, sort_keys=True)
+    json_data = json.dumps(d, sort_keys=True)
     return md5_sha_from_str(json_data)
