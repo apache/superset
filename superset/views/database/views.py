@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 
 from flask import flash, g, redirect
 from flask_appbuilder import SimpleFormView
+from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from wtforms.fields import StringField
@@ -31,8 +32,10 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.exceptions import CertificateException
 from superset.sql_parse import Table
+from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
+from superset.views.database.forms import CsvToDatabaseForm
 
 from .forms import CsvToDatabaseForm
 from .mixins import DatabaseMixin
@@ -45,14 +48,19 @@ config = app.config
 stats_logger = config["STATS_LOGGER"]
 
 
-def sqlalchemy_uri_form_validator(_, field: StringField) -> None:
+def sqlalchemy_uri_form_validator(  # pylint: disable=unused-argument
+    form: DynamicForm, field: StringField
+) -> None:
     """
         Check if user has submitted a valid SQLAlchemy URI
     """
+
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
 
 
-def certificate_form_validator(_, field: StringField) -> None:
+def certificate_form_validator(  # pylint: disable=unused-argument
+    form: DynamicForm, field: StringField
+) -> None:
     """
         Check if user has submitted a valid SSL certificate
     """
@@ -63,7 +71,7 @@ def certificate_form_validator(_, field: StringField) -> None:
             raise ValidationError(ex.message)
 
 
-def upload_stream_write(form_file_field: "FileStorage", path: str):
+def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:
     chunk_size = app.config["UPLOAD_CHUNK_SIZE"]
     with open(path, "bw") as file_description:
         while True:
@@ -88,7 +96,7 @@ class DatabaseView(
 
     yaml_dict_key = "databases"
 
-    def _delete(self, pk):
+    def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
 
 
@@ -98,7 +106,7 @@ class CsvToDatabaseView(SimpleFormView):
     form_title = _("CSV to Database configuration")
     add_columns = ["database", "schema", "table_name"]
 
-    def form_get(self, form):
+    def form_get(self, form: CsvToDatabaseForm) -> None:
         form.sep.data = ","
         form.header.data = 0
         form.mangle_dupe_cols.data = True
@@ -108,7 +116,7 @@ class CsvToDatabaseView(SimpleFormView):
         form.decimal.data = "."
         form.if_exists.data = "fail"
 
-    def form_post(self, form):
+    def form_post(self, form: CsvToDatabaseForm) -> FlaskResponse:
         database = form.con.data
         csv_table = Table(table=form.name.data, schema=form.schema.data)
 
