@@ -192,11 +192,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
 
   handleMultiComparatorInputHeightChange() {
     if (this.multiComparatorComponent) {
-      /* eslint-disable no-underscore-dangle */
-      const multiComparatorDOMNode =
-        this.multiComparatorComponent._selectRef &&
-        this.multiComparatorComponent._selectRef.select &&
-        this.multiComparatorComponent._selectRef.select.control;
+      const multiComparatorDOMNode = this.multiComparatorComponent?.select
+        ?.select.controlRef;
       if (multiComparatorDOMNode) {
         if (
           multiComparatorDOMNode.clientHeight !==
