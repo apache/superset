@@ -24,7 +24,6 @@ from collections import namedtuple
 from contextlib import closing
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-from sqlalchemy.orm import Session
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
@@ -38,12 +37,14 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
+from sqlalchemy.orm import Session
 from werkzeug.datastructures import TypeConversionDict
 from werkzeug.http import parse_cookie
 
 # Superset framework imports
 from superset import app, db, security_manager
 from superset.extensions import celery_app
+from superset.models.alerts import Alert
 from superset.models.schedules import (
     DashboardEmailSchedule,
     EmailDeliveryType,
@@ -53,7 +54,6 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
     SliceEmailSchedule,
 )
-from superset.models.alerts import Alert
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_email_address_list, send_email_smtp
 
@@ -413,6 +413,7 @@ def schedule_email_report(  # pylint: disable=unused-argument
     else:
         raise RuntimeError("Unknown report type")
 
+
 @celery_app.task(
     name="alerts.run_query",
     bind=True,
@@ -441,6 +442,12 @@ def schedule_alert_query(  # pylint: disable=unused-argument
         raise RuntimeError("Unknown report type")
 
 
+class AlertSate:
+    ERROR = "error"
+    TRIGGER = "trigger"
+    PASS = "pass"
+
+
 def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
@@ -459,15 +466,26 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
     parsed_query = ParsedQuery(alert.sql)
     sql = parsed_query.stripped()
 
-    # update alert.last_eval_dttm
-    alert.last_eval_dttm = datetime.utcnow()
+    with closing(engine.connect()) as conn:
+        try:
+            result = conn.execute(sql)
+        except Exception as e:
+            alert.state = AlertSate.ERROR
+            logging.exception(e)
+            logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
+
+    if alert.state != AlertState.ERROR:
+        alert.last_eval_dttm = datetime.utcnow()
+        if result.rowcount > 0:
+            alert.state = AlertSate.TRIGGER
+            # TODO: SENDALERT!!
+        else:
+            alert.state = AlertSate.PASS
+
     session.commit()
 
-    with closing(engine.connect()) as conn:
-        result = conn.execute(sql)
-        return result.rowcount > 0
-
     return None
+
 
 def next_schedules(
     crontab: str, start_at: datetime, stop_at: datetime, resolution: int = 0
@@ -510,7 +528,11 @@ def schedule_window(
     for schedule in schedules:
         args = (report_type, schedule.id)
 
-        if hasattr(schedule, 'last_eval_dttm') and schedule.last_eval_dttm and schedule.last_eval_dttm > start_at:
+        if (
+            hasattr(schedule, "last_eval_dttm")
+            and schedule.last_eval_dttm
+            and schedule.last_eval_dttm > start_at
+        ):
             start_at = schedule.last_eval_dttm + timedelta(seconds=1)
 
         # Schedule the job for the specified time window
@@ -522,6 +544,7 @@ def schedule_window(
 
     return None
 
+
 def get_scheduler_action(report_type: ScheduleType) -> Optional[Callable]:
     if report_type == ScheduleType.dashboard:
         return schedule_email_report
@@ -530,6 +553,7 @@ def get_scheduler_action(report_type: ScheduleType) -> Optional[Callable]:
     elif report_type == ScheduleType.alert:
         return schedule_alert_query
     return None
+
 
 @celery_app.task(name="email_reports.schedule_hourly")
 def schedule_hourly() -> None:
@@ -559,7 +583,9 @@ def schedule_alerts() -> None:
     resolution = 0
 
     now = datetime.utcnow()
-    start_at = now - timedelta(seconds=3600)    # process any missed tasks in the past hour
+    start_at = now - timedelta(
+        seconds=3600
+    )  # process any missed tasks in the past hour
     stop_at = now + timedelta(seconds=1)
 
     schedule_window(ScheduleType.alert, start_at, stop_at, resolution)
