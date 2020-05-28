@@ -22,6 +22,7 @@ from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from superset import event_logger
 from superset.models.core import Database
+from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.decorators import check_datasource_access
@@ -49,7 +50,7 @@ def get_indexes_metadata(
     return indexes
 
 
-def get_col_type(col: Dict) -> str:
+def get_col_type(col: Dict[Any, Any]) -> str:
     try:
         dtype = f"{col['type']}"
     except Exception:  # pylint: disable=broad-except
@@ -145,14 +146,14 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Database"
 
-    @expose(
-        "/<int:pk>/table/<string:table_name>/<string:schema_name>/", methods=["GET"]
-    )
+    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
     @check_datasource_access
     @safe
     @event_logger.log_this
-    def table_metadata(self, database: Database, table_name: str, schema_name: str):
+    def table_metadata(
+        self, database: Database, table_name: str, schema_name: str
+    ) -> FlaskResponse:
         """ Table schema info
         ---
         get:
@@ -276,18 +277,15 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
-    @expose("/<int:pk>/select_star/<string:table_name>/", methods=["GET"])
-    @expose(
-        "/<int:pk>/select_star/<string:table_name>/<string:schema_name>/",
-        methods=["GET"],
-    )
+    @expose("/<int:pk>/select_star/<table_name>/", methods=["GET"])
+    @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
     @check_datasource_access
     @safe
     @event_logger.log_this
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
-    ):
+    ) -> FlaskResponse:
         """ Table schema info
         ---
         get:
