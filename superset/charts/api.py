@@ -510,6 +510,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
+        screenshot_obj = ChartScreenshot(url, chart.digest)
+        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
+
         def trigger_celery():
             logger.info("Triggering screenshot ASYNC")
             kwargs = {
@@ -520,22 +523,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 "thumb_size": thumb_size,
             }
             cache_chart_thumbnail.delay(**kwargs)
-            return self.response(202, message="OK Async")
+            return self.response(202, message="Triggering async", cache_key=cache_key)
 
         if rison.get("force", False):
             return trigger_celery()
 
         # fetch the chart screenshot using the current user and cache if set
-        screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
+        img = screenshot_obj.get_from_cache(
             thumbnail_cache, window_size=window_size, thumb_size=thumb_size
         )
         # If not screenshot then send request to compute thumb to celery
-        if not screenshot:
+        if not img:
             return trigger_celery()
 
-        return Response(
-            FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
-        )
+        return Response(FileWrapper(img), mimetype="image/png", direct_passthrough=True)
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
     @protect()
