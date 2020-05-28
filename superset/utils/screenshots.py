@@ -113,6 +113,7 @@ class AuthWebDriverProxy:
             options = chrome.options.Options()
             arg: str = f"--window-size={self._window[0]},{self._window[1]}"
             options.add_argument(arg)
+            # TODO: 2 lines attempting retina PPI don't seem to be working
             options.add_argument(f"--force-device-scale-factor=2.0")
             options.add_argument("--high-dpi-support=2.0")
         else:
@@ -207,7 +208,9 @@ class BaseScreenshot:
             "window_size": window_size,
             "thumb_size": thumb_size,
         }
-        print(d)
+        import json
+
+        print(json.dumps(d, indent=2, sort_keys=True))
         return md5_sha_from_dict(d)
 
     def get_screenshot(self, user: "User", window_size=None) -> Optional[bytes]:
@@ -273,10 +276,10 @@ class BaseScreenshot:
         """
         cache_key = self.cache_key(window_size, thumb_size)
         window_size = window_size or self.window_size
+        thumb_size = thumb_size or self.thumb_size
         if not force and cache and cache.get(cache_key):
             logger.info("Thumb already cached, skipping...")
             return None
-        thumb_size = thumb_size or self.thumb_size
         logger.info(f"Processing url for thumbnail: %s", cache_key)
 
         payload = None
@@ -287,6 +290,7 @@ class BaseScreenshot:
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Failed at generating thumbnail %s", ex)
 
+        print(f"COMPUTE {window_size}, {thumb_size}")
         if payload and window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, thumb_size=thumb_size)

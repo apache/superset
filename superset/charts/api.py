@@ -500,6 +500,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         rison = kwargs["rison"]
         window_size = rison.get("window_size") or (1600, 1201)
+
+        # Don't shrink the image if thumb_size is not specified
+        thumb_size = rison.get("thumb_size") or window_size
+
         chart = self.datamodel.get(pk, self._base_filters)
         url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if not chart:
@@ -512,7 +516,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 chart.digest,
                 force=True,
                 window_size=window_size,
-                thumb_size=window_size,
+                thumb_size=thumb_size,
             )
             return self.response(202, message="OK Async")
 
@@ -521,7 +525,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         # fetch the chart screenshot using the current user and cache if set
         screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
-            thumbnail_cache, window_size=window_size, thumb_size=window_size
+            thumbnail_cache, window_size=window_size, thumb_size=thumb_size
         )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
