@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Optional
 
 from colorama import Fore, Style
 
@@ -40,7 +41,7 @@ class BaseStatsLogger:
         """Decrement a counter"""
         raise NotImplementedError()
 
-    def timing(self, key, value: float) -> None:
+    def timing(self, key: str, value: float) -> None:
         raise NotImplementedError()
 
     def gauge(self, key: str) -> None:
@@ -49,18 +50,18 @@ class BaseStatsLogger:
 
 
 class DummyStatsLogger(BaseStatsLogger):
-    def incr(self, key):
+    def incr(self, key: str) -> None:
         logger.debug(Fore.CYAN + "[stats_logger] (incr) " + key + Style.RESET_ALL)
 
-    def decr(self, key):
+    def decr(self, key: str) -> None:
         logger.debug((Fore.CYAN + "[stats_logger] (decr) " + key + Style.RESET_ALL))
 
-    def timing(self, key, value):
+    def timing(self, key: str, value: float) -> None:
         logger.debug(
             (Fore.CYAN + f"[stats_logger] (timing) {key} | {value} " + Style.RESET_ALL)
         )
 
-    def gauge(self, key):
+    def gauge(self, key: str) -> None:
         logger.debug(
             (Fore.CYAN + "[stats_logger] (gauge) " + f"{key}" + Style.RESET_ALL)
         )
@@ -71,8 +72,12 @@ try:
 
     class StatsdStatsLogger(BaseStatsLogger):
         def __init__(  # pylint: disable=super-init-not-called
-            self, host="localhost", port=8125, prefix="superset", statsd_client=None
-        ):
+            self,
+            host: str = "localhost",
+            port: int = 8125,
+            prefix: str = "superset",
+            statsd_client: Optional[StatsClient] = None,
+        ) -> None:
             """
             Initializes from either params or a supplied, pre-constructed statsd client.
 
@@ -84,16 +89,16 @@ try:
             else:
                 self.client = StatsClient(host=host, port=port, prefix=prefix)
 
-        def incr(self, key):
+        def incr(self, key: str) -> None:
             self.client.incr(key)
 
-        def decr(self, key):
+        def decr(self, key: str) -> None:
             self.client.decr(key)
 
-        def timing(self, key, value):
+        def timing(self, key: str, value: float) -> None:
             self.client.timing(key, value)
 
-        def gauge(self, key):
+        def gauge(self, key: str) -> None:
             # pylint: disable=no-value-for-parameter
             self.client.gauge(key)
 
