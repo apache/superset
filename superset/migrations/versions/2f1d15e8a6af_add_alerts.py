@@ -42,6 +42,7 @@ def upgrade():
         sa.Column("sql", sa.Text(), nullable=True),
         sa.Column("alert_type", sa.String(length=50), nullable=True),
         sa.Column("log_retention", sa.Integer(), nullable=False, default=90),
+        sa.Column("grace_period", sa.Integer(), nullable=False, default=60 * 60 * 24),
         sa.Column("recipients", sa.Text(), nullable=True),
         sa.Column("slice_id", sa.Integer(), nullable=True),
         sa.Column("database_id", sa.Integer(), nullable=False),

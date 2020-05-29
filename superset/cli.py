@@ -599,6 +599,7 @@ def sync_tags():
 @superset.command()
 def alert():
     """Run the scheduler loop"""
+    # TODO DELETE ME this CLI command is just for testing purposes
     from superset.tasks.schedules import schedule_window
 
     click.secho("Processing one alert loop", fg="green")

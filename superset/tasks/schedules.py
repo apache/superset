@@ -44,7 +44,7 @@ from werkzeug.http import parse_cookie
 
 from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app
-from superset.models.alerts import Alert
+from superset.models.alerts import Alert, AlertLog
 from superset.models.schedules import (
     DashboardEmailSchedule,
     EmailDeliveryType,
@@ -90,7 +90,7 @@ def _deliver_email(
     email: EmailContent,
 ) -> None:
     for (to, bcc) in _get_recipients(schedule):
-        logging.info(f"Sending email to [{to}] bcc [{bcc}]")
+        logging.info("Sending email to [%s] bcc [%s]", to, bcc)
 
         send_email_smtp(
             to,
@@ -453,7 +453,7 @@ class AlertState:
 
 
 def deliver_alert(alert):
-    logging.info(f"Triggering alert: {alert}")
+    logging.info("Triggering alert: %s", alert)
     img_data = None
     if alert.slice:
 
@@ -513,17 +513,17 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
     sql = parsed_query.stripped()
 
     state = None
+    dttm_start = datetime.utcnow()
     with closing(engine.connect()) as conn:
         try:
-            logger.info(f"Evaluating SQL for alert {alert}")
-            start_dttm = datetime.utcnow()
+            logger.info("Evaluating SQL for alert %s", alert)
             result = conn.execute(sql)
         except Exception as e:
-            end_dttm = datetime.utcnow()
+            dttm_end = datetime.utcnow()
             state = AlertState.ERROR
             logging.exception(e)
             logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
-    end_dttm = datetime.utcnow()
+    dttm_end = datetime.utcnow()
 
     if state != AlertState.ERROR:
         alert.last_eval_dttm = datetime.utcnow()
@@ -534,6 +534,14 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
             state = AlertState.PASS
 
     alert.last_state = state
+    alert.logs.append(
+        AlertLog(
+            scheduled_dttm=dttm_start,
+            dttm_start=dttm_start,
+            dttm_end=dttm_end,
+            state=state,
+        )
+    )
     session.commit()
 
     return None

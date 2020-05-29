@@ -15,27 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 """Models for scheduled execution of jobs"""
-import enum
 from datetime import datetime
-from typing import Optional, Type
 
 from flask_appbuilder import Model
 from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     String,
     Table,
     Text,
 )
-from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
-from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -66,6 +61,7 @@ class Alert(Model):
     recipients = Column(Text)
 
     log_retention = Column(Integer, default=90)
+    grace_period = Column(Integer, default=60 * 60 * 24)
 
     slice_id = Column(Integer, ForeignKey("slices.id"))
     slice = relationship("Slice", backref="alerts", foreign_keys=[slice_id])
@@ -98,3 +94,8 @@ class AlertLog(Model):
     dttm_end = Column(DateTime, default=datetime.utcnow)
     alert_id = Column(Integer, ForeignKey("alerts.id"))
     alert = relationship("Alert", backref="logs", foreign_keys=[alert_id])
+    state = Column(String(10))
+
+    @property
+    def duration(self):
+        return (self.dttm_end - self.dttm_start).total_seconds()

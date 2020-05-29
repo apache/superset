@@ -49,6 +49,7 @@ class AlertLogModelView(CompactCRUDMixin, SupersetModelView):
     list_columns = (
         "scheduled_dttm",
         "dttm_start",
+        "duration",
         "state",
     )
 
@@ -78,6 +79,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "slice",
         "dashboard",
         "log_retention",
+        "grace_period",
     )
     label_columns = {
         "sql": "SQL",
@@ -99,6 +101,11 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
             True,
         ),
         "recipients": _("A semicolon ';' delimited list of email addresses"),
+        "log_retention": _("How long to keep the logs around for this alert"),
+        "grace_period": _(
+            "Once an alert is triggered, how long, in seconds, before "
+            "Superset nags you again."
+        ),
     }
     edit_columns = add_columns
     related_views = [AlertLogModelView]

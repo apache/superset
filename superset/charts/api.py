@@ -338,7 +338,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartForbiddenError:
             return self.response_403()
         except ChartDeleteFailedError as ex:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            logger.error("Error deleting model %s: %s", self.__class__.__name__, ex)
             return self.response_422(message=str(ex))
 
     @expose("/", methods=["DELETE"])
@@ -390,8 +390,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200,
                 message=ngettext(
-                    f"Deleted %(num)d chart",
-                    f"Deleted %(num)d charts",
+                    "Deleted %(num)d chart",
+                    "Deleted %(num)d charts",
                     num=len(item_ids),
                 ),
             )
@@ -464,9 +464,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
-    def cache_screenshot(
-        self, pk: int, digest: str = None, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
+    def cache_screenshot(self, pk: int, **kwargs: Dict[str, bool]) -> WerkzeugResponse:
         """Get Chart screenshot
         ---
         get:
@@ -484,10 +482,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
             200:
               description: Chart thumbnail image
               content:
-               image/*:
-                 schema:
-                   type: string
-                   format: binary
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      cache_key:
+                        type: string
+                      chart_url:
+                        type: string
+                      image_url:
+                        type: string
             302:
               description: Redirects to the current digest
             400:
@@ -499,11 +503,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        rison = kwargs["rison"]
-        window_size = rison.get("window_size") or (800, 600)
+        rison_dict = kwargs["rison"]
+        window_size = rison_dict.get("window_size") or (800, 600)
 
         # Don't shrink the image if thumb_size is not specified
-        thumb_size = rison.get("thumb_size") or window_size
+        thumb_size = rison_dict.get("thumb_size") or window_size
 
         chart = self.datamodel.get(pk, self._base_filters)
         if not chart:
@@ -527,11 +531,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             }
             cache_chart_thumbnail.delay(**kwargs)
             return self.response(
-                202,
-                message="Triggering async",
-                cache_key=cache_key,
-                chart_url=chart_url,
-                image_url=image_url,
+                202, cache_key=cache_key, chart_url=chart_url, image_url=image_url,
             )
 
         return trigger_celery()
@@ -547,7 +547,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """Get Chart screenshot
         ---
         get:
-          description: Compute or get already computed screenshot from cache.
+          description: Get a computed screenshot from cache.
           parameters:
           - in: path
             schema:
@@ -556,7 +556,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: sha
+            name: digest
           responses:
             200:
               description: Chart thumbnail image
@@ -582,6 +582,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
+        # TODO make sure the user has access to the chart
+
         # fetch the chart screenshot using the current user and cache if set
         img = ChartScreenshot.get_from_cache_key(thumbnail_cache, digest)
         if img:
@@ -589,6 +591,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 FileWrapper(img), mimetype="image/png", direct_passthrough=True
             )
         # TODO: return an empty image
+        return None
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
     @protect()
@@ -610,11 +613,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: sha
+            name: digest
           responses:
             200:
               description: Chart thumbnail image
-              content:
+              /content:
                image/*:
                  schema:
                    type: string
