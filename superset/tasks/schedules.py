@@ -70,11 +70,11 @@ EmailContent = namedtuple("EmailContent", ["body", "data", "images"])
 
 
 def _get_recipients(
-    schedule: Union[DashboardEmailSchedule, SliceEmailSchedule]
+    schedule: Union[DashboardEmailSchedule, SliceEmailSchedule, Alert]
 ) -> Iterator[Tuple[str, str]]:
     bcc = config["EMAIL_REPORT_BCC_ADDRESS"]
 
-    if schedule.deliver_as_group:
+    if hasattr(schedule, "deliver_as_group") and schedule.deliver_as_group:
         to = schedule.recipients
         yield (to, bcc)
     else:
@@ -83,7 +83,7 @@ def _get_recipients(
 
 
 def _deliver_email(
-    schedule: Union[DashboardEmailSchedule, SliceEmailSchedule],
+    schedule: Union[DashboardEmailSchedule, SliceEmailSchedule, Alert],
     subject: str,
     email: EmailContent,
 ) -> None:
@@ -451,7 +451,25 @@ class AlertState:
 def deliver_alert(alert):
     logging.info(f"Triggering alert: {alert}")
     # image_url = generate_image()
-    # send_email_smtp()
+    image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
+
+    # generate the email
+    subject = f"[Superset] Triggered alert: {alert.label}"
+    images = None
+    data = None
+    body = __(
+        """
+            <h2>Alert: %(label)s</h2>
+            <img src="%(image_url)s" alt="%(label)s" />
+            """,
+        label=alert.label,
+        image_url=image_url,
+    )
+
+    email = EmailContent(body, data, images)
+
+    # send the email
+    _deliver_email(alert, subject, email)
 
 
 def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
