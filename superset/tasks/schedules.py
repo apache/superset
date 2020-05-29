@@ -18,6 +18,7 @@
 """Utility functions used across Superset"""
 
 import logging
+import textwrap
 import time
 import urllib.request
 from collections import namedtuple
@@ -31,7 +32,7 @@ import croniter
 import simplejson as json
 from celery.app.task import Task
 from dateutil.tz import tzlocal
-from flask import render_template, Response, session, url_for
+from flask import current_app, render_template, Response, session, url_for
 from flask_babel import gettext as __
 from flask_login import login_user
 from retry.api import retry_call
@@ -41,8 +42,7 @@ from sqlalchemy.orm import Session
 from werkzeug.datastructures import TypeConversionDict
 from werkzeug.http import parse_cookie
 
-# Superset framework imports
-from superset import app, db, security_manager
+from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.models.alerts import Alert
 from superset.models.schedules import (
@@ -56,6 +56,7 @@ from superset.models.schedules import (
 )
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_email_address_list, send_email_smtp
+from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 
 # Globals
@@ -89,6 +90,8 @@ def _deliver_email(
     email: EmailContent,
 ) -> None:
     for (to, bcc) in _get_recipients(schedule):
+        logging.info(f"Sending email to [{to}] bcc [{bcc}]")
+
         send_email_smtp(
             to,
             subject,
@@ -109,7 +112,7 @@ def _generate_mail_content(
 
     if schedule.delivery_type == EmailDeliveryType.attachment:
         images = None
-        data = {"screenshot.png": screenshot}
+        data = {"screenshot": screenshot}
         body = __(
             '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
             name=name,
@@ -451,10 +454,8 @@ class AlertState:
 
 def deliver_alert(alert):
     logging.info(f"Triggering alert: {alert}")
+    img_data = None
     if alert.slice:
-        from superset.utils.screenshots import ChartScreenshot
-        from flask import current_app
-        from superset import thumbnail_cache
 
         chart_url = get_url_path(
             "Superset.slice", slice_id=alert.slice.id, standalone="true"
@@ -466,22 +467,23 @@ def deliver_alert(alert):
         )
 
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
-        screenshot.compute_and_cache(
+        img_data = screenshot.compute_and_cache(
             user=user, cache=thumbnail_cache, force=True,
         )
-        print(f"IMAGE IS HERE!!! {image_url}")
     else:
         image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
 
     # generate the email
     subject = f"[Superset] Triggered alert: {alert.label}"
-    images = None
     data = None
+    images = {"screenshot": img_data}
     body = __(
-        """
+        textwrap.dedent(
+            """\
             <h2>Alert: %(label)s</h2>
-            <img src="%(image_url)s" alt="%(label)s" />
-            """,
+            <img src="cid:screenshot" alt="%(label)s" />
+        """
+        ),
         label=alert.label,
         image_url=image_url,
     )
@@ -576,9 +578,7 @@ def schedule_window(
     schedules = dbsession.query(model_cls).filter(model_cls.active.is_(True))
 
     for schedule in schedules:
-        print("-=" * 40)
-        print(schedule)
-        print("-=" * 40)
+        logging.info("Processing schedule %s", schedule)
         args = (report_type, schedule.id)
 
         if (
@@ -588,7 +588,6 @@ def schedule_window(
         ):
             # start_at = schedule.last_eval_dttm + timedelta(seconds=1)
             pass
-        print(start_at, stop_at, resolution)
         # Schedule the job for the specified time window
         for eta in next_schedules(
             schedule.crontab, start_at, stop_at, resolution=resolution
