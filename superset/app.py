@@ -383,7 +383,7 @@ class SupersetAppInitializer:
                 icon="fa-search",
             )
 
-        if True:
+        if self.config["ENABLE_ALERTS"]:
             appbuilder.add_view(
                 AlertModelView,
                 "Alerts",

@@ -723,6 +723,11 @@ ENABLE_FLASK_COMPRESS = True
 # Enable / disable scheduled email reports
 ENABLE_SCHEDULED_EMAIL_REPORTS = False
 
+# Enable / disable Alerts, where users can define custom SQL that
+# will send emails with screenshots of charts or dashboards periodically
+# if it meets the criteria
+ENABLE_ALERTS = False
+
 # If enabled, certail features are run in debug mode
 # Current list:
 # * Emails are sent using dry-run mode (logging only)
