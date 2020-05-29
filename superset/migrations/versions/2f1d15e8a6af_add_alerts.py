@@ -47,6 +47,7 @@ def upgrade():
         sa.Column("database_id", sa.Integer(), nullable=False),
         sa.Column("dashboard_id", sa.Integer(), nullable=True),
         sa.Column("last_eval_dttm", sa.DateTime(), nullable=True),
+        sa.Column("last_state", sa.String(length=10), nullable=True),
         sa.ForeignKeyConstraint(["dashboard_id"], ["dashboards.id"],),
         sa.ForeignKeyConstraint(["slice_id"], ["slices.id"],),
         sa.PrimaryKeyConstraint("id"),

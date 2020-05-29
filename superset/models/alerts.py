@@ -81,6 +81,10 @@ class Alert(Model):
     )
 
     last_eval_dttm = Column(DateTime, default=datetime.utcnow)
+    last_state = Column(String(10))
+
+    def __str__(self):
+        return f"<{self.id}:{self.label}>"
 
 
 class AlertLog(Model):
@@ -94,4 +98,3 @@ class AlertLog(Model):
     dttm_end = Column(DateTime, default=datetime.utcnow)
     alert_id = Column(Integer, ForeignKey("alerts.id"))
     alert = relationship("Alert", backref="logs", foreign_keys=[alert_id])
-    state = Column(String(10))

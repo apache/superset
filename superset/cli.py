@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from subprocess import Popen
 from sys import stdout
 from typing import Type, Union
@@ -593,3 +593,13 @@ def sync_tags():
     add_types(db.engine, metadata)
     add_owners(db.engine, metadata)
     add_favorites(db.engine, metadata)
+
+
+@with_appcontext
+@superset.command()
+def alert():
+    """Run the scheduler loop"""
+    from superset.tasks.schedules import schedule_window
+
+    click.secho("Processing one alert loop", fg="green")
+    schedule_window("alert", datetime.now() - timedelta(1000), datetime.now(), 6000)

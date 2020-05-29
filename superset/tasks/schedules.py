@@ -449,15 +449,16 @@ class AlertState:
 
 
 def deliver_alert(alert):
+    logging.info(f"Triggering alert: {alert}")
     # image_url = generate_image()
     # send_email_smtp()
-    pass
 
 
 def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
     """
+    logger.info(f"Processing alert: {alert}")
     database = alert.database
     if not database:
         logger.error("Alert database not preset")
@@ -472,23 +473,28 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
     parsed_query = ParsedQuery(alert.sql)
     sql = parsed_query.stripped()
 
+    state = None
     with closing(engine.connect()) as conn:
         try:
+            logger.info(f"Evaluating SQL for alert {alert}")
+            start_dttm = datetime.utcnow()
             result = conn.execute(sql)
         except Exception as e:
-            alert.state = AlertSate.ERROR
+            end_dttm = datetime.utcnow()
+            state = AlertState.ERROR
             logging.exception(e)
             logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
+    end_dttm = datetime.utcnow()
 
-    if alert.state != AlertState.ERROR:
+    if state != AlertState.ERROR:
         alert.last_eval_dttm = datetime.utcnow()
         if result.rowcount > 0:
-            alert.state = AlertSate.TRIGGER
-            # TODO: SENDALERT!!
+            state = AlertState.TRIGGER
             deliver_alert(alert)
         else:
-            alert.state = AlertSate.PASS
+            state = AlertState.PASS
 
+    alert.last_state = state
     session.commit()
 
     return None
@@ -533,6 +539,9 @@ def schedule_window(
     schedules = dbsession.query(model_cls).filter(model_cls.active.is_(True))
 
     for schedule in schedules:
+        print("-=" * 40)
+        print(schedule)
+        print("-=" * 40)
         args = (report_type, schedule.id)
 
         if (
@@ -540,8 +549,9 @@ def schedule_window(
             and schedule.last_eval_dttm
             and schedule.last_eval_dttm > start_at
         ):
-            start_at = schedule.last_eval_dttm + timedelta(seconds=1)
-
+            # start_at = schedule.last_eval_dttm + timedelta(seconds=1)
+            pass
+        print(start_at, stop_at, resolution)
         # Schedule the job for the specified time window
         for eta in next_schedules(
             schedule.crontab, start_at, stop_at, resolution=resolution
