@@ -56,6 +56,7 @@ from superset.models.schedules import (
 )
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_email_address_list, send_email_smtp
+from superset.utils.urls import get_url_path
 
 # Globals
 config = app.config
@@ -450,8 +451,27 @@ class AlertState:
 
 def deliver_alert(alert):
     logging.info(f"Triggering alert: {alert}")
-    # image_url = generate_image()
-    image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
+    if alert.slice:
+        from superset.utils.screenshots import ChartScreenshot
+        from flask import current_app
+        from superset import thumbnail_cache
+
+        chart_url = get_url_path(
+            "Superset.slice", slice_id=alert.slice.id, standalone="true"
+        )
+        screenshot = ChartScreenshot(chart_url, alert.slice.digest)
+        cache_key = screenshot.cache_key()
+        image_url = get_url_path(
+            "ChartRestApi.screenshot", pk=alert.slice.id, digest=cache_key
+        )
+
+        user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
+        screenshot.compute_and_cache(
+            user=user, cache=thumbnail_cache, force=True,
+        )
+        print(f"IMAGE IS HERE!!! {image_url}")
+    else:
+        image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
 
     # generate the email
     subject = f"[Superset] Triggered alert: {alert.label}"
@@ -487,7 +507,6 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
         return
 
     engine = database.get_sqla_engine()
-    db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(alert.sql)
     sql = parsed_query.stripped()
 
