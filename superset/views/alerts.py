@@ -45,7 +45,7 @@ from .base import DeleteMixin, SupersetModelView
 
 class AlertLogModelView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(AlertLog)
-    include_route_methods = {RouteMethod.LIST}
+    include_route_methods = {RouteMethod.LIST} | {"show"}
     list_columns = (
         "scheduled_dttm",
         "dttm_start",

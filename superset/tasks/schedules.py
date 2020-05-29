@@ -29,6 +29,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
+import pandas as pd
 import simplejson as json
 from celery.app.task import Task
 from dateutil.tz import tzlocal
@@ -508,29 +509,34 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
         logger.error("Alert SQL not preset")
         return
 
-    engine = database.get_sqla_engine()
     parsed_query = ParsedQuery(alert.sql)
     sql = parsed_query.stripped()
 
     state = None
     dttm_start = datetime.utcnow()
-    with closing(engine.connect()) as conn:
-        try:
-            logger.info("Evaluating SQL for alert %s", alert)
-            result = conn.execute(sql)
-        except Exception as e:
-            dttm_end = datetime.utcnow()
-            state = AlertState.ERROR
-            logging.exception(e)
-            logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
+
+    df = pd.DataFrame()
+    try:
+        logger.info("Evaluating SQL for alert %s", alert)
+        df = database.get_df(sql)
+    except Exception as e:
+        dttm_end = datetime.utcnow()
+        state = AlertState.ERROR
+        logging.exception(e)
+        logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
+
     dttm_end = datetime.utcnow()
 
     if state != AlertState.ERROR:
         alert.last_eval_dttm = datetime.utcnow()
-        if result.rowcount > 0:
-            state = AlertState.TRIGGER
-            deliver_alert(alert)
-        else:
+        if not df.empty:
+            # Looking for truthy cells
+            for row in df.to_records():
+                if any(row):
+                    state = AlertState.TRIGGER
+                    deliver_alert(alert)
+                    break
+        if not state:
             state = AlertState.PASS
 
     alert.last_state = state
@@ -540,6 +546,7 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
             dttm_start=dttm_start,
             dttm_end=dttm_end,
             state=state,
+            resultset=json.dumps(df.to_dict(orient="records"), indent=2),
         )
     )
     session.commit()
