@@ -37,7 +37,7 @@ from superset.models.schedules import (
 )
 from superset.models.slice import Slice
 from superset.tasks.schedules import schedule_email_report
-from superset.utils.core import get_email_address_list, json_iso_dttm_ser
+from superset.utils.core import get_email_address_list, json_iso_dttm_ser, markdown
 from superset.views.core import json_success
 
 from .base import DeleteMixin, SupersetModelView
@@ -79,6 +79,26 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "dashboard",
         "log_retention",
     )
+    label_columns = {
+        "sql": "SQL",
+        "log_retention": _("Log Retentions (days)"),
+    }
+    description_columns = {
+        "sql": _(
+            "A SQL statement that defines whether the alert should get "
+            "triggered or not. If the statement return no row, the alert "
+            "is not triggered. If the statement returns one or many rows, "
+            "the cells will be evaluated to see if they are 'truthy' "
+            "if any cell is truthy, the alert will fire. Truthy values "
+            "are non zero, non null, non empty strings."
+        ),
+        "crontab": markdown(
+            "A CRON-like expression. "
+            "[Crontab Guru](https://crontab.guru/) is "
+            "a helpful resource that can help you craft a CRON expression.",
+            True,
+        ),
+        "recipients": _("A semicolon ';' delimited list of email addresses"),
+    }
     edit_columns = add_columns
-    description_columns = {}
     related_views = [AlertLogModelView]
