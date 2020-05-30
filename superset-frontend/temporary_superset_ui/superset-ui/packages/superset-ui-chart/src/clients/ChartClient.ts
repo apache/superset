@@ -3,7 +3,6 @@ import {
   SupersetClient,
   SupersetClientInterface,
   RequestConfig,
-  Json,
   SupersetClientClass,
 } from '@superset-ui/connection';
 import { QueryFormData, Datasource } from '@superset-ui/query';
@@ -52,11 +51,10 @@ export default class ChartClient {
     if ('sliceId' in input) {
       const promise = this.client
         .get({
-          endpoint: `/api/v1/formData/?slice_id=${input.sliceId}`,
+          endpoint: `/api/v1/form_data/?slice_id=${input.sliceId}`,
           ...options,
         } as RequestConfig)
-        .then(response => response.json as Json)
-        .then(json => json.form_data as QueryFormData);
+        .then(response => response.json as QueryFormData);
 
       /*
        * If formData is also specified, override API result
@@ -88,7 +86,8 @@ export default class ChartClient {
 
       return this.client
         .post({
-          endpoint: useLegacyApi ? '/superset/explore_json/' : '/api/v1/query/',
+          headers: { 'Content-Type': 'application/json' },
+          endpoint: useLegacyApi ? '/superset/explore_json/' : '/api/v1/chart/data',
           postPayload: {
             [useLegacyApi ? 'form_data' : 'query_context']: buildQuery(formData),
           },

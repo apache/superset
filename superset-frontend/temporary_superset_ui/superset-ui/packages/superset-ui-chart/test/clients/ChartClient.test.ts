@@ -9,6 +9,7 @@ import {
 } from '../../src';
 import { SliceIdAndOrFormData } from '../../src/clients/ChartClient';
 import { LOGIN_GLOB } from '../fixtures/constants';
+import { sankeyFormData } from '../fixtures/formData';
 
 describe('ChartClient', () => {
   let chartClient: ChartClient;
@@ -40,25 +41,12 @@ describe('ChartClient', () => {
   describe('.loadFormData({ sliceId, formData }, options)', () => {
     const sliceId = 123;
     it('fetches formData if given only sliceId', () => {
-      fetchMock.get(`glob:*/api/v1/formData/?slice_id=${sliceId}`, {
-        form_data: {
-          granularity: 'minute',
-          viz_type: 'line',
-        },
-      });
+      fetchMock.get(`glob:*/api/v1/form_data/?slice_id=${sliceId}`, sankeyFormData);
 
-      return expect(chartClient.loadFormData({ sliceId })).resolves.toEqual({
-        granularity: 'minute',
-        viz_type: 'line',
-      });
+      return expect(chartClient.loadFormData({ sliceId })).resolves.toEqual(sankeyFormData);
     });
     it('fetches formData from sliceId and merges with specify formData if both fields are specified', () => {
-      fetchMock.get(`glob:*/api/v1/formData/?slice_id=${sliceId}`, {
-        form_data: {
-          granularity: 'minute',
-          viz_type: 'line',
-        },
-      });
+      fetchMock.get(`glob:*/api/v1/form_data/?slice_id=${sliceId}`, sankeyFormData);
 
       return expect(
         chartClient.loadFormData({
@@ -69,6 +57,7 @@ describe('ChartClient', () => {
           },
         }),
       ).resolves.toEqual({
+        ...sankeyFormData,
         granularity: 'second',
         viz_type: 'bar',
       });
@@ -103,7 +92,7 @@ describe('ChartClient', () => {
       getChartBuildQueryRegistry().registerValue('word_cloud', (formData: QueryFormData) =>
         buildQueryContext(formData),
       );
-      fetchMock.post('glob:*/api/v1/query/', {
+      fetchMock.post('glob:*/api/v1/chart/data', {
         field1: 'abc',
         field2: 'def',
       });
@@ -139,7 +128,7 @@ describe('ChartClient', () => {
         }),
       );
 
-      fetchMock.post('glob:*/api/v1/query/', () =>
+      fetchMock.post('glob:*/api/v1/chart/data', () =>
         Promise.reject(new Error('Unexpected all to v1 API')),
       );
 
@@ -219,13 +208,11 @@ describe('ChartClient', () => {
   describe('.loadChartData({ sliceId, formData })', () => {
     const sliceId = 10120;
     it('loadAllDataNecessaryForAChart', () => {
-      fetchMock.get(`glob:*/api/v1/formData/?slice_id=${sliceId}`, {
-        form_data: {
-          granularity: 'minute',
-          viz_type: 'line',
-          datasource: '1__table',
-          color: 'living-coral',
-        },
+      fetchMock.get(`glob:*/api/v1/form_data/?slice_id=${sliceId}`, {
+        granularity: 'minute',
+        viz_type: 'line',
+        datasource: '1__table',
+        color: 'living-coral',
       });
 
       fetchMock.get('glob:*/superset/fetch_datasource_metadata?datasourceKey=1__table', {
@@ -233,7 +220,7 @@ describe('ChartClient', () => {
         schema: 'staging',
       });
 
-      fetchMock.post('glob:*/api/v1/query/', {
+      fetchMock.post('glob:*/api/v1/chart/data', {
         lorem: 'ipsum',
         dolor: 'sit',
         amet: true,
