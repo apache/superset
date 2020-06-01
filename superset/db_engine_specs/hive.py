@@ -23,18 +23,19 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
+from flask import g
 from sqlalchemy import Column
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
-from wtforms.form import Form
 
 from superset import app, cache, conf
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.models.sql_lab import Query
+from superset.sql_parse import Table
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -105,8 +106,13 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
-    def create_table_from_csv(  # pylint: disable=too-many-locals
-        cls, form: Form, database: "Database"
+    def create_table_from_csv(  # pylint: disable=too-many-arguments, too-many-locals
+        cls,
+        filename: str,
+        table: Table,
+        database: "Database",
+        csv_to_df_kwargs: Dict[str, Any],
+        df_to_sql_kwargs: Dict[str, Any],
     ) -> None:
         """Uploads a csv file and creates a superset datasource in Hive."""
 
@@ -128,38 +134,16 @@ class HiveEngineSpec(PrestoEngineSpec):
                 "No upload bucket specified. You can specify one in the config file."
             )
 
-        table_name = form.name.data
-        schema_name = form.schema.data
-
-        if config["UPLOADED_CSV_HIVE_NAMESPACE"]:
-            if "." in table_name or schema_name:
-                raise Exception(
-                    "You can't specify a namespace. "
-                    "All tables will be uploaded to the `{}` namespace".format(
-                        config["HIVE_NAMESPACE"]
-                    )
-                )
-            full_table_name = "{}.{}".format(
-                config["UPLOADED_CSV_HIVE_NAMESPACE"], table_name
-            )
-        else:
-            if "." in table_name and schema_name:
-                raise Exception(
-                    "You can't specify a namespace both in the name of the table "
-                    "and in the schema field. Please remove one"
-                )
-
-            full_table_name = (
-                "{}.{}".format(schema_name, table_name) if schema_name else table_name
-            )
-
-        filename = form.csv_file.data.filename
-        upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
+        upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
+            database, g.user, table.schema
+        )
 
         # Optional dependency
-        from tableschema import Table  # pylint: disable=import-error
+        from tableschema import (  # pylint: disable=import-error
+            Table as TableSchemaTable,
+        )
 
-        hive_table_schema = Table(filename).infer()
+        hive_table_schema = TableSchemaTable(filename).infer()
         column_name_and_type = []
         for column_info in hive_table_schema["fields"]:
             column_name_and_type.append(
@@ -173,13 +157,14 @@ class HiveEngineSpec(PrestoEngineSpec):
         import boto3  # pylint: disable=import-error
 
         s3 = boto3.client("s3")
-        location = os.path.join("s3a://", bucket_path, upload_prefix, table_name)
+        location = os.path.join("s3a://", bucket_path, upload_prefix, table.table)
         s3.upload_file(
             filename,
             bucket_path,
-            os.path.join(upload_prefix, table_name, os.path.basename(filename)),
+            os.path.join(upload_prefix, table.table, os.path.basename(filename)),
         )
-        sql = f"""CREATE TABLE {full_table_name} ( {schema_definition} )
+        # TODO(bkyryliuk): support other delimiters
+        sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')"""

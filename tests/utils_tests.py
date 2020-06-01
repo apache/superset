@@ -38,7 +38,6 @@ from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
-    datetime_f,
     format_timedelta,
     get_iterable,
     get_email_address_list,
@@ -559,17 +558,6 @@ class UtilsTestCase(SupersetTestCase):
         self.assertEquals(
             url_params["dashboard_ids"], form_data["url_params"]["dashboard_ids"]
         )
-
-    def test_datetime_f(self):
-        self.assertEqual(
-            datetime_f(datetime(1990, 9, 21, 19, 11, 19, 626096)),
-            "<nobr>1990-09-21T19:11:19.626096</nobr>",
-        )
-        self.assertEqual(len(datetime_f(datetime.now())), 28)
-        self.assertEqual(datetime_f(None), "<nobr>None</nobr>")
-        iso = datetime.now().isoformat()[:10].split("-")
-        [a, b, c] = [int(v) for v in iso]
-        self.assertEqual(datetime_f(datetime(a, b, c)), "<nobr>00:00:00</nobr>")
 
     def test_format_timedelta(self):
         self.assertEqual(format_timedelta(timedelta(0)), "0:00:00")

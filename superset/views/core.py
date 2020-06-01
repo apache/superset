@@ -685,6 +685,21 @@ class Superset(BaseSupersetView):
         form_data = get_form_data()[0]
         form_data["layer_id"] = layer_id
         form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
+        # Set all_columns to ensure the TableViz returns the necessary columns to the
+        # frontend.
+        form_data["all_columns"] = [
+            "created_on",
+            "changed_on",
+            "id",
+            "start_dttm",
+            "end_dttm",
+            "layer_id",
+            "short_descr",
+            "long_descr",
+            "json_metadata",
+            "created_by_fk",
+            "changed_by_fk",
+        ]
         datasource = AnnotationDatasource()
         viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=False)
         payload = viz_obj.get_payload()
@@ -2149,7 +2164,7 @@ class Superset(BaseSupersetView):
             return json_error_response(str(ex))
 
         spec = mydb.db_engine_spec
-        query_cost_formatters = get_feature_flags().get(
+        query_cost_formatters: Dict[str, Any] = get_feature_flags().get(
             "QUERY_COST_FORMATTERS_BY_ENGINE", {}
         )
         query_cost_formatter = query_cost_formatters.get(

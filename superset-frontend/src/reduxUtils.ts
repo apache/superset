@@ -18,10 +18,14 @@
  */
 import shortid from 'shortid';
 import { compose } from 'redux';
-import persistState from 'redux-localstorage';
+import persistState, { StorageAdapter } from 'redux-localstorage';
 import { isEqual } from 'lodash';
 
-export function addToObject(state, arrKey, obj) {
+export function addToObject(
+  state: Record<string, any>,
+  arrKey: string,
+  obj: Record<string, any>,
+) {
   const newObject = { ...state[arrKey] };
   const copiedObject = { ...obj };
 
@@ -32,17 +36,28 @@ export function addToObject(state, arrKey, obj) {
   return { ...state, [arrKey]: newObject };
 }
 
-export function alterInObject(state, arrKey, obj, alterations) {
+export function alterInObject(
+  state: Record<string, any>,
+  arrKey: string,
+  obj: Record<string, any>,
+  alterations: Record<string, any>,
+) {
   const newObject = { ...state[arrKey] };
   newObject[obj.id] = { ...newObject[obj.id], ...alterations };
   return { ...state, [arrKey]: newObject };
 }
 
-export function alterInArr(state, arrKey, obj, alterations, idKey = 'id') {
+export function alterInArr(
+  state: Record<string, any>,
+  arrKey: string,
+  obj: Record<string, any>,
+  alterations: Record<string, any>,
+  idKey = 'id',
+) {
   // Finds an item in an array in the state and replaces it with a
   // new object with an altered property
-  const newArr = [];
-  state[arrKey].forEach(arrItem => {
+  const newArr: unknown[] = [];
+  state[arrKey].forEach((arrItem: Record<string, any>) => {
     if (obj[idKey] === arrItem[idKey]) {
       newArr.push({ ...arrItem, ...alterations });
     } else {
@@ -52,9 +67,14 @@ export function alterInArr(state, arrKey, obj, alterations, idKey = 'id') {
   return { ...state, [arrKey]: newArr };
 }
 
-export function removeFromArr(state, arrKey, obj, idKey = 'id') {
-  const newArr = [];
-  state[arrKey].forEach(arrItem => {
+export function removeFromArr(
+  state: Record<string, any>,
+  arrKey: string,
+  obj: Record<string, any>,
+  idKey = 'id',
+) {
+  const newArr: unknown[] = [];
+  state[arrKey].forEach((arrItem: Record<string, any>) => {
     if (!(obj[idKey] === arrItem[idKey])) {
       newArr.push(arrItem);
     }
@@ -62,7 +82,7 @@ export function removeFromArr(state, arrKey, obj, idKey = 'id') {
   return { ...state, [arrKey]: newArr };
 }
 
-export function getFromArr(arr, id) {
+export function getFromArr(arr: Record<string, any>[], id: string) {
   let obj;
   arr.forEach(o => {
     if (o.id === id) {
@@ -72,7 +92,12 @@ export function getFromArr(arr, id) {
   return obj;
 }
 
-export function addToArr(state, arrKey, obj, prepend = false) {
+export function addToArr(
+  state: Record<string, any>,
+  arrKey: string,
+  obj: Record<string, any>,
+  prepend = false,
+) {
   const newObj = { ...obj };
   if (!newObj.id) {
     newObj.id = shortid.generate();
@@ -86,9 +111,14 @@ export function addToArr(state, arrKey, obj, prepend = false) {
   return { ...state, ...newState };
 }
 
-export function extendArr(state, arrKey, obj, prepend = false) {
-  const newObj = [...obj];
-  newObj.forEach(el => {
+export function extendArr(
+  state: Record<string, any>,
+  arrKey: string,
+  arr: Record<string, any>[],
+  prepend = false,
+) {
+  const newArr = [...arr];
+  newArr.forEach(el => {
     if (!el.id) {
       /* eslint-disable no-param-reassign */
       el.id = shortid.generate();
@@ -96,19 +126,22 @@ export function extendArr(state, arrKey, obj, prepend = false) {
   });
   const newState = {};
   if (prepend) {
-    newState[arrKey] = [...newObj, ...state[arrKey]];
+    newState[arrKey] = [...newArr, ...state[arrKey]];
   } else {
-    newState[arrKey] = [...state[arrKey], ...newObj];
+    newState[arrKey] = [...state[arrKey], ...newArr];
   }
   return { ...state, ...newState };
 }
 
-export function initEnhancer(persist = true, persistConfig = {}) {
+export function initEnhancer(
+  persist = true,
+  persistConfig: { paths?: StorageAdapter<unknown>; config?: string } = {},
+) {
   const { paths, config } = persistConfig;
   const composeEnhancers =
     process.env.WEBPACK_MODE === 'development'
-      ? /* eslint-disable-next-line no-underscore-dangle */
-        window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose
+      ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
+        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__'] || compose
       : compose;
 
   return persist
@@ -116,7 +149,7 @@ export function initEnhancer(persist = true, persistConfig = {}) {
     : composeEnhancers();
 }
 
-export function areArraysShallowEqual(arr1, arr2) {
+export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
   // returns whether 2 arrays are shallow equal
   // used in shouldComponentUpdate when denormalizing arrays
   // where the array object is different every time, but the content might
@@ -136,6 +169,9 @@ export function areArraysShallowEqual(arr1, arr2) {
   return true;
 }
 
-export function areObjectsEqual(obj1, obj2) {
+export function areObjectsEqual(
+  obj1: Record<string, any>,
+  obj2: Record<string, any>,
+) {
   return isEqual(obj1, obj2);
 }

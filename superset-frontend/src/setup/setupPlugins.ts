@@ -32,10 +32,7 @@ import DeckScatter from '../explore/controlPanels/DeckScatter';
 import DeckScreengrid from '../explore/controlPanels/DeckScreengrid';
 import EventFlow from '../explore/controlPanels/EventFlow';
 import FilterBox from '../explore/controlPanels/FilterBox';
-import PairedTtest from '../explore/controlPanels/PairedTtest';
-import Para from '../explore/controlPanels/Para';
 import Separator from '../explore/controlPanels/Separator';
-import Table from '../explore/controlPanels/Table';
 import TimeTable from '../explore/controlPanels/TimeTable';
 
 export default function setupPlugins() {
@@ -46,10 +43,7 @@ export default function setupPlugins() {
     .registerValue('country_map', CountryMap)
     .registerValue('event_flow', EventFlow)
     .registerValue('filter_box', FilterBox)
-    .registerValue('paired_ttest', PairedTtest)
-    .registerValue('para', Para)
     .registerValue('separator', Separator)
-    .registerValue('table', Table)
     .registerValue('time_table', TimeTable)
     .registerValue('deck_arc', DeckArc)
     .registerValue('deck_geojson', DeckGeojson)
