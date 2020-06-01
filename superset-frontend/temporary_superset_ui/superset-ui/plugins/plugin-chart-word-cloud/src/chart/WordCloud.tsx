@@ -1,8 +1,7 @@
 import React from 'react';
 import cloudLayout, { Word } from 'd3-cloud';
 import { PlainObject, createEncoderFactory, DeriveEncoding } from 'encodable';
-import { SupersetThemeProps } from '@superset-ui/style';
-import { withTheme } from 'emotion-theming';
+import { SupersetThemeProps, withTheme } from '@superset-ui/style';
 
 export const ROTATION = {
   flat: () => 0,
