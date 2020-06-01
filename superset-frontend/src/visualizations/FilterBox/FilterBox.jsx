@@ -89,7 +89,7 @@ const defaultProps = {
   showSqlaTimeColumn: false,
   showDruidTimeGrain: false,
   showDruidTimeOrigin: false,
-  instantFiltering: true,
+  instantFiltering: false,
 };
 
 class FilterBox extends React.Component {
