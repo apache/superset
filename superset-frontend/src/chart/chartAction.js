@@ -151,9 +151,6 @@ const legacyChartDataRequest = async (
         result: [json],
       };
     })
-    .catch(response => {
-      throw response;
-    });
 };
 
 const v1ChartDataRequest = async (
