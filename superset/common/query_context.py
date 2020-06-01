@@ -149,12 +149,11 @@ class QueryContext:
                 "language": self.datasource.query_language,
             }
         if self.result_type == utils.ChartDataResultType.SAMPLES:
-            row_limit = query_obj.row_limit or 1000
             query_obj = copy.copy(query_obj)
             query_obj.groupby = []
             query_obj.metrics = []
             query_obj.post_processing = []
-            query_obj.row_limit = row_limit
+            query_obj.row_limit = 1000
             query_obj.columns = [o.column_name for o in self.datasource.columns]
 
         payload = self.get_df_payload(query_obj)
