@@ -152,7 +152,7 @@ const legacyChartDataRequest = async (
       };
     })
     .catch(response => {
-      return response;
+      throw response;
     });
 };
 

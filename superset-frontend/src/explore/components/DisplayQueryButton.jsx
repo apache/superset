@@ -41,7 +41,7 @@ import { SupersetClient } from '@superset-ui/connection';
 
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
-import { getChartDataRequest } from '../exploreUtils';
+import { getChartDataRequest } from '../../chart/chartAction';
 
 import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';

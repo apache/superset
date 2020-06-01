@@ -163,14 +163,15 @@ describe('chart actions', () => {
 
       return actionThunk(dispatch).then(() => {
         // chart update, trigger query, update form data, fail
+        expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
         expect(dispatch.callCount).toBe(5);
-        expect(dispatch.args).toEqual({});
         expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
         setupDefaultFetchMock();
       });
     });
 
     it('should dispatch CHART_UPDATE_FAILED action upon non-timeout non-abort failure', () => {
+      console.log('misc error');
       fetchMock.post(
         MOCK_URL,
         { throws: { statusText: 'misc error' } },
@@ -185,9 +186,7 @@ describe('chart actions', () => {
         expect(dispatch.callCount).toBe(5);
         const updateFailedAction = dispatch.args[4][0];
         expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
-        expect(updateFailedAction.queryResponse.error).toBe(
-          'An error occurred',
-        );
+        expect(updateFailedAction.queryResponse.error).toBe('misc error',);
 
         setupDefaultFetchMock();
       });
