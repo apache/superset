@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import styled, { CreateStyled } from '@emotion/styled';
+import emotionStyled, { CreateStyled } from '@emotion/styled';
+
+export { useTheme, ThemeProvider, withTheme } from 'emotion-theming';
 
 const defaultTheme = {
   borderRadius: 4,
@@ -60,10 +62,11 @@ const defaultTheme = {
   gridUnit: 4,
 };
 
-export default styled as CreateStyled<typeof defaultTheme>;
-
-export const supersetTheme = defaultTheme;
-
 export interface SupersetThemeProps {
   theme: typeof defaultTheme;
 }
+
+export const styled: CreateStyled<typeof defaultTheme> = emotionStyled;
+export const supersetTheme = defaultTheme;
+
+export default styled;
