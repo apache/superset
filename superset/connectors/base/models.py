@@ -18,9 +18,9 @@ import json
 from typing import Any, Dict, Hashable, List, Optional, Type
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy import and_, Boolean, Column, Integer, String, Text
+from sqlalchemy import and_, Boolean, Column, func, Integer, select, String, Text
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import foreign, Query, relationship
+from sqlalchemy.orm import column_property, foreign, Query, relationship
 
 from superset.constants import NULL_STRING
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
@@ -101,6 +101,10 @@ class BaseDatasource(
                 foreign(Slice.datasource_type) == self.type,
             ),
         )
+
+    @property
+    def slice_count(self) -> int:
+        return len(self.slices)
 
     # placeholder for a relationship to a derivative of BaseColumn
     columns: List[Any] = []

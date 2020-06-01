@@ -80,6 +80,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "explore_url",
         "schema",
         "table_name",
+        "slices.id",
+        "slice_count",
     ]
     show_columns = [
         "database.database_name",

@@ -35,6 +35,7 @@ from sqlalchemy import (
     DateTime,
     desc,
     ForeignKey,
+    func,
     Integer,
     or_,
     select,
@@ -43,7 +44,15 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.exc import CompileError
-from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import (
+    backref,
+    column_property,
+    Query,
+    relationship,
+    RelationshipProperty,
+    Session,
+)
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
@@ -58,6 +67,7 @@ from superset.jinja_context import ExtraCache, get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.models.slice import Slice
 from superset.utils import core as utils, import_datasource
 
 config = app.config

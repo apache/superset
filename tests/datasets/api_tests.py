@@ -98,6 +98,8 @@ class DatasetApiTests(SupersetTestCase):
             "explore_url",
             "id",
             "schema",
+            "slice_count",
+            "slices",
             "table_name",
         ]
         self.assertEqual(sorted(list(response["result"][0].keys())), expected_columns)
