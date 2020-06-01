@@ -132,8 +132,8 @@ const legacyChartDataRequest = async (
     force,
     allowDomainSharding,
     method,
-    requestParams: requestParams.dashboardId
-      ? { dashboard_id: requestParams.dashboardId }
+    requestParams: requestParams.dashboard_id
+      ? { dashboard_id: requestParams.dashboard_id }
       : {},
   });
   const querySettings = {
