@@ -171,7 +171,6 @@ describe('chart actions', () => {
     });
 
     it('should dispatch CHART_UPDATE_FAILED action upon non-timeout non-abort failure', () => {
-      console.log('misc error');
       fetchMock.post(
         MOCK_URL,
         { throws: { statusText: 'misc error' } },
