@@ -143,14 +143,13 @@ const legacyChartDataRequest = async (
   };
 
   const clientMethod = getClientMethod(method);
-  return clientMethod(querySettings)
-    .then(({ json }) => {
-      // Make the legacy endpoint return a payload that corresponds to the
-      // V1 chart data endpoint response signature.
-      return {
-        result: [json],
-      };
-    })
+  return clientMethod(querySettings).then(({ json }) => {
+    // Make the legacy endpoint return a payload that corresponds to the
+    // V1 chart data endpoint response signature.
+    return {
+      result: [json],
+    };
+  });
 };
 
 const v1ChartDataRequest = async (
