@@ -8,8 +8,7 @@ Provides a style object containing a variety of style parameters for theming Sup
 ## Usage
 
 ```ts
-import { ThemeProvider } from 'emotion-theming';
-import styled, { supersetTheme } from '@superset-ui/style';
+import { styled, supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 // use emotion api as normal, but the theme uses the correct types
 const MyHeader = styled.h1`

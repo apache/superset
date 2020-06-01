@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@emotion/core": "^10.0.28",
-    "@emotion/styled": "^10.0.27"
+    "@emotion/styled": "^10.0.27",
+    "emotion-theming": "^10.0.27"
   }
 }
