@@ -125,6 +125,14 @@ class BaseDatasource(
         return {c.column_name: c.type for c in self.columns}
 
     @property
+    def column_count(self) -> int:
+        return len(self.columns)
+
+    @property
+    def metric_count(self) -> int:
+        return len(self.metrics)
+
+    @property
     def main_dttm_col(self) -> str:
         return "timestamp"
 
