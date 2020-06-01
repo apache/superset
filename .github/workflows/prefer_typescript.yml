@@ -1,0 +1,31 @@
+name: Prefer TypeScript
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  comment:
+    name: Comment about preferring TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get changed files
+        id: changed
+        uses: trilom/file-changes-action@v1.2.3
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine if a .js or .jsx file was added
+        id: check
+        run: |
+          echo ::set-output name=was_js_file_added::$(jq 'map(endswith(".js") or endswith(".jsx"))' ${HOME}/files_added.json | jq 'reduce .[] as $is_js (false; . or $is_js)')
+      - if: steps.check.outputs.was_js_file_added != 'false'
+        name: Comment about preferring TypeScript
+        uses: unsplash/comment-on-pr@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          msg: |
+            ## WARNING: Prefer TypeScript
+            
+            It looks like your PR contains new `.js` or `.jsx` files. As decided in [SIP-36](https://github.com/apache/incubator-superset/issues/9101), all new files should be written in TypeScript. Please convert new JavaScript files to TypeScript and then re-request review.
