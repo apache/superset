@@ -85,6 +85,9 @@ export default () =>
         .focus({ force: true })
         .type('uth Asia{enter}', { force: true });
 
+      // by default, need to click Apply button to apply filter
+      cy.get('.filter_box button').click({ force: true });
+
       // wait again after applied filters
       cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
         requests.forEach(xhr => {

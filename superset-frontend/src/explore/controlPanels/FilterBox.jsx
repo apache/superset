@@ -55,10 +55,10 @@ export default {
               type: 'CheckboxControl',
               label: t('Instant Filtering'),
               renderTrigger: true,
-              default: true,
-              description:
-                'Whether to apply filters as they change, or wait for ' +
-                'users to hit an [Apply] button',
+              default: false,
+              description: t(
+                'Check to apply filters instantly as they change instead of displaying [Apply] button',
+              ),
             },
           },
         ],
