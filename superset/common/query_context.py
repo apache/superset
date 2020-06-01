@@ -16,6 +16,7 @@
 # under the License.
 import copy
 import logging
+import math
 import pickle as pkl
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, List, Optional, Union
@@ -149,11 +150,12 @@ class QueryContext:
                 "language": self.datasource.query_language,
             }
         if self.result_type == utils.ChartDataResultType.SAMPLES:
+            row_limit = query_obj.row_limit or math.inf
             query_obj = copy.copy(query_obj)
             query_obj.groupby = []
             query_obj.metrics = []
             query_obj.post_processing = []
-            query_obj.row_limit = 1000
+            query_obj.row_limit = min(row_limit, config["SAMPLES_ROW_LIMIT"])
             query_obj.columns = [o.column_name for o in self.datasource.columns]
 
         payload = self.get_df_payload(query_obj)
