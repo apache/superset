@@ -86,7 +86,7 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         else:
             return TimestampExpression(f"{{col}}", col)
         # In pinot the output is a string since there is no timestamp column like pg
-        time_expr = f'DATETIMECONVERT({{col}}, "{tf}", "{tf}", "{granularity}")'
+        time_expr = f"DATETIMECONVERT({{col}}, '{tf}', '{tf}', '{granularity}')"
         return TimestampExpression(time_expr, col)
 
     @classmethod
