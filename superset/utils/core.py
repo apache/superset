@@ -1383,17 +1383,18 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
 
 
-class ChartDataResponseType(str, Enum):
+class ChartDataResultType(str, Enum):
     """
     Chart data response type
     """
 
+    FULL = "full"
     QUERY = "query"
     RESULTS = "results"
     SAMPLES = "samples"
 
 
-class ChartDataResponseFormat(str, Enum):
+class ChartDataResultFormat(str, Enum):
     """
     Chart data response format
     """
