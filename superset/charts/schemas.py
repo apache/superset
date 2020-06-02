@@ -725,7 +725,7 @@ class ChartDataQueryContextSchema(Schema):
 
     # pylint: disable=no-self-use,unused-argument
     @post_load
-    def make_query_context(self, data: Dict[str, Any], **kwargs) -> QueryContext:
+    def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
         query_context = QueryContext(**data)
         return query_context
 

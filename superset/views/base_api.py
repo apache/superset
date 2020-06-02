@@ -111,7 +111,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     """  # pylint: disable=pointless-string-statement
     allowed_rel_fields: Set[str] = set()
 
-    openapi_spec_component_schemas: Tuple[Schema, ...] = tuple()
+    openapi_spec_component_schemas: Tuple[Type[Schema], ...] = tuple()
     """
     Add extra schemas to the OpenAPI component schemas section
     """  # pylint: disable=pointless-string-statement
@@ -124,7 +124,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
         for schema in self.openapi_spec_component_schemas:
             api_spec.components.schema(
-                schema.__name__, schema=schema,
+                schema.__class__.__name__, schema=schema,
             )
         super().add_apispec_components(api_spec)
 
