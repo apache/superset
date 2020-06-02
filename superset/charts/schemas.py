@@ -713,7 +713,7 @@ class ChartDataQueryContextSchema(Schema):
     )
     result_type = fields.String(
         description="Type of results to return",
-        validate=validate.OneOf(choices=("query", "results", "samples")),
+        validate=validate.OneOf(choices=("full", "query", "results", "samples")),
     )
     result_format = fields.String(
         description="Format of result payload",
