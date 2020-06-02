@@ -48,7 +48,6 @@ import {
 import PropertiesModal from './PropertiesModal';
 import setPeriodicRunner from '../util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from './RefreshIntervalModal';
-import getPersistentRefreshFrequency from '../util/getPersistentRefreshFrequency';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -89,7 +88,7 @@ const propTypes = {
   setMaxUndoHistoryExceeded: PropTypes.func.isRequired,
   maxUndoHistoryToast: PropTypes.func.isRequired,
   refreshFrequency: PropTypes.number.isRequired,
-  isPersistentRefreshFrequency: PropTypes.number.isRequired,
+  shouldPersistRefreshFrequency: PropTypes.bool.isRequired,
   setRefreshFrequency: PropTypes.func.isRequired,
   dashboardInfoChanged: PropTypes.func.isRequired,
   dashboardTitleChanged: PropTypes.func.isRequired,
@@ -235,7 +234,10 @@ class Header extends React.PureComponent {
         chartCount: affectedCharts.length,
       });
       this.props.addWarningToast(
-        t(`This dashboard will force refresh at every ${intervalMessage}`),
+        t(
+          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
+          intervalMessage,
+        ),
       );
 
       return fetchCharts(
@@ -270,7 +272,7 @@ class Header extends React.PureComponent {
       colorScheme,
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
-      isPersistentRefreshFrequency,
+      shouldPersistRefreshFrequency,
     } = this.props;
 
     const scale = CategoricalColorNamespace.getScale(
@@ -279,11 +281,10 @@ class Header extends React.PureComponent {
     );
     const labelColors = colorScheme ? scale.getColorMap() : {};
     // check refresh frequency is for current session or persist
-    const refreshFrequency = getPersistentRefreshFrequency({
-      currentRefreshFrequency,
-      isPersistent: isPersistentRefreshFrequency,
-      dashboardInfo,
-    });
+    const refreshFrequency = shouldPersistRefreshFrequency
+      ? currentRefreshFrequency
+      : dashboardInfo.metadata.refresh_frequency; // eslint-disable camelcase
+
     const data = {
       positions,
       expanded_slices: expandedSlices,
@@ -345,17 +346,17 @@ class Header extends React.PureComponent {
       hasUnsavedChanges,
       isLoading,
       refreshFrequency,
-      isPersistentRefreshFrequency,
+      shouldPersistRefreshFrequency,
       setRefreshFrequency,
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
     const refreshLimit =
-      dashboardInfo?.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
+      dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
-      dashboardInfo?.common?.conf
-        ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
+      dashboardInfo.common.conf
+        .SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
     const popButton = hasUnsavedChanges;
 
     return (
@@ -518,7 +519,7 @@ class Header extends React.PureComponent {
             forceRefreshAllCharts={this.forceRefresh}
             startPeriodicRender={this.startPeriodicRender}
             refreshFrequency={refreshFrequency}
-            isPersistentRefreshFrequency={isPersistentRefreshFrequency}
+            shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             setRefreshFrequency={setRefreshFrequency}
             updateCss={updateCss}
             editMode={editMode}

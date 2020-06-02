@@ -293,8 +293,8 @@ export default function (bootstrapData) {
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       // dashboard viewers can set refresh frequency for the current visit,
-      // persistent refreshFrequency will be saved to backend
-      isPersistentRefreshFrequency: false,
+      // only persistent refreshFrequency will be saved to backend
+      shouldPersistRefreshFrequency: false,
       css: dashboard.css || '',
       colorNamespace: dashboard.metadata.color_namespace,
       colorScheme: dashboard.metadata.color_scheme,

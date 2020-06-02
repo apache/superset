@@ -26,7 +26,6 @@ import { t } from '@superset-ui/translation';
 import ModalTrigger from '../../components/ModalTrigger';
 import Checkbox from '../../components/Checkbox';
 import { SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
-import getPersistentRefreshFrequency from '../util/getPersistentRefreshFrequency';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -104,7 +103,7 @@ class SaveModal extends React.PureComponent {
       expandedSlices,
       dashboardId,
       refreshFrequency: currentRefreshFrequency,
-      isPersistentRefreshFrequency,
+      shouldPersistRefreshFrequency,
     } = this.props;
 
     const scale = CategoricalColorNamespace.getScale(
@@ -113,11 +112,9 @@ class SaveModal extends React.PureComponent {
     );
     const labelColors = colorScheme ? scale.getColorMap() : {};
     // check refresh frequency is for current session or persist
-    const refreshFrequency = getPersistentRefreshFrequency({
-      currentRefreshFrequency,
-      isPersistent: isPersistentRefreshFrequency,
-      dashboardInfo,
-    });
+    const refreshFrequency = shouldPersistRefreshFrequency
+      ? currentRefreshFrequency
+      : dashboardInfo.metadata.refresh_frequency; // eslint-disable camelcase
 
     const data = {
       positions,

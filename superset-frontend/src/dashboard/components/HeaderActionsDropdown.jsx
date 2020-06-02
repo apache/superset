@@ -46,7 +46,7 @@ const propTypes = {
   updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
   refreshFrequency: PropTypes.number.isRequired,
-  isPersistentRefreshFrequency: PropTypes.bool.isRequired,
+  shouldPersistRefreshFrequency: PropTypes.bool.isRequired,
   setRefreshFrequency: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
@@ -123,7 +123,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       dashboardInfo,
       forceRefreshAllCharts,
       refreshFrequency,
-      isPersistentRefreshFrequency,
+      shouldPersistRefreshFrequency,
       editMode,
       customCss,
       colorNamespace,
@@ -162,7 +162,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             layout={layout}
             expandedSlices={expandedSlices}
             refreshFrequency={refreshFrequency}
-            isPersistentRefreshFrequency={isPersistentRefreshFrequency}
+            shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             customCss={customCss}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}

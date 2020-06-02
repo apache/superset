@@ -54,7 +54,7 @@ export const options = [
 class RefreshIntervalModal extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.modal = React.createRef();
+    this.modalRef = React.createRef();
     this.state = {
       refreshFrequency: props.refreshFrequency,
     };
@@ -65,14 +65,14 @@ class RefreshIntervalModal extends React.PureComponent {
 
   onSave() {
     this.props.onChange(this.state.refreshFrequency, this.props.editMode);
-    this.modal.current.close();
+    this.modalRef.current.close();
   }
 
   onCancel() {
     this.setState({
       refreshFrequency: this.props.refreshFrequency,
     });
-    this.modal.current.close();
+    this.modalRef.current.close();
   }
 
   handleFrequencyChange(opt) {
@@ -90,7 +90,7 @@ class RefreshIntervalModal extends React.PureComponent {
 
     return (
       <ModalTrigger
-        ref={this.modal}
+        ref={this.modalRef}
         triggerNode={this.props.triggerNode}
         isMenuItem
         modalTitle={t('Refresh Interval')}
@@ -107,9 +107,7 @@ class RefreshIntervalModal extends React.PureComponent {
                 <Alert bsStyle="warning">
                   <div>{refreshWarning}</div>
                   <br />
-                  <div className="bold">
-                    {t('Are you sure you still want to proceed?')}
-                  </div>
+                  <strong>{t('Are you sure you want to proceed?')}</strong>
                 </Alert>
               </div>
             )}

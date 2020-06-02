@@ -36,6 +36,10 @@ describe('Header', () => {
       dash_edit_perm: true,
       dash_save_perm: true,
       userId: 1,
+      metadata: {},
+      common: {
+        conf: {},
+      },
     },
     dashboardTitle: 'title',
     charts: {},
@@ -79,6 +83,7 @@ describe('Header', () => {
   describe('read-only-user', () => {
     const overrideProps = {
       dashboardInfo: {
+        ...props.dashboardInfo,
         id: 1,
         dash_edit_perm: false,
         dash_save_perm: false,
@@ -121,6 +126,7 @@ describe('Header', () => {
     const overrideProps = {
       editMode: false,
       dashboardInfo: {
+        ...props.dashboardInfo,
         id: 1,
         dash_edit_perm: true,
         dash_save_perm: true,
@@ -163,6 +169,7 @@ describe('Header', () => {
     const overrideProps = {
       editMode: true,
       dashboardInfo: {
+        ...props.dashboardInfo,
         id: 1,
         dash_edit_perm: true,
         dash_save_perm: true,
@@ -204,6 +211,7 @@ describe('Header', () => {
   describe('logged-out-user', () => {
     const overrideProps = {
       dashboardInfo: {
+        ...props.dashboardInfo,
         id: 1,
         dash_edit_perm: false,
         dash_save_perm: false,
