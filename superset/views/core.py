@@ -1745,13 +1745,9 @@ class Superset(BaseSupersetView):
                     force=True,
                 )
 
-                # Temporarily define the form-data in the request context which may be
-                # leveraged by the Jinja macros.
-                with app.test_request_context(
-                    data={"form_data": json.dumps(form_data)}
-                ):
-                    payload = obj.get_payload()
-
+                g.form_data = form_data
+                payload = obj.get_payload()
+                delattr(g, "form_data")
                 error = payload["errors"] or None
                 status = payload["status"]
             except Exception as ex:
