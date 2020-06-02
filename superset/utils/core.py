@@ -147,11 +147,11 @@ class _memoized:
     should account for instance variable changes.
     """
 
-    def __init__(self, func: Callable, watch: Optional[List[str]] = None) -> None:
+    def __init__(self, func: Callable, watch: Optional[Tuple[str, ...]] = None) -> None:
         self.func = func
         self.cache: Dict[Any, Any] = {}
         self.is_method = False
-        self.watch = watch or []
+        self.watch = watch or ()
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         key = [args, frozenset(kwargs.items())]
@@ -181,7 +181,7 @@ class _memoized:
 
 
 def memoized(
-    func: Optional[Callable] = None, watch: Optional[List[str]] = None
+    func: Optional[Callable] = None, watch: Optional[Tuple[str, ...]] = None
 ) -> Callable:
     if func:
         return _memoized(func)
