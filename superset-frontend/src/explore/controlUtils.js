@@ -21,13 +21,12 @@ import { controls as SHARED_CONTROLS } from './controls';
 import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
-  const formData = {};
-  formData.controlGroups = {};
+  const formData = { queryFields: {} };
   Object.keys(controlsState).forEach(controlName => {
     const control = controlsState[controlName];
     formData[controlName] = control.value;
-    if (control.hasOwnProperty('controlGroup')) {
-      formData.controlGroups[controlName] = control.controlGroup;
+    if (control.hasOwnProperty('queryField')) {
+      formData.queryFields[controlName] = control.queryField;
     }
   });
   return formData;
