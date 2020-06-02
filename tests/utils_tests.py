@@ -1300,3 +1300,19 @@ class UtilsTestCase(SupersetTestCase):
             )
 
             self.assertEqual(slc, None)
+
+    def test_get_form_data_globals(self) -> None:
+        with app.test_request_context():
+            g.form_data = {"foo": "bar"}
+            form_data, slc = get_form_data()
+            delattr(g, "form_data")
+
+            self.assertEqual(
+                form_data,
+                {
+                    "foo": "bar",
+                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
+                },
+            )
+
+            self.assertEqual(slc, None)
