@@ -6,6 +6,7 @@ import {
   LegacyWordCloudChartPlugin,
 } from '@superset-ui/plugin-chart-word-cloud';
 import transformProps from '@superset-ui/plugin-chart-word-cloud/lib/plugin/transformProps';
+import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 import data from './data';
 
 new WordCloudChartPlugin().configure({ key: 'word-cloud2' }).register();
@@ -17,14 +18,14 @@ getChartTransformPropsRegistry().registerValue('word-cloud2', transformProps);
 
 export default {
   title: 'Chart Plugins|plugin-chart-word-cloud',
-  decorators: [withKnobs],
+  decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const basic = () => (
+export const basic = ({ width, height }) => (
   <SuperChart
     chartType="word-cloud2"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     queryData={{ data }}
     formData={{
       encoding: {
@@ -50,11 +51,11 @@ export const basic = () => (
   />
 );
 
-export const encodesColorByWordLength = () => (
+export const encodesColorByWordLength = ({ width, height }) => (
   <SuperChart
     chartType="word-cloud2"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     queryData={{ data }}
     formData={{
       encoding: {
@@ -86,11 +87,11 @@ export const encodesColorByWordLength = () => (
   />
 );
 
-export const encodesFontByFirstLetter = () => (
+export const encodesFontByFirstLetter = ({ width, height }) => (
   <SuperChart
     chartType="word-cloud2"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     queryData={{ data }}
     formData={{
       encoding: {
@@ -124,11 +125,11 @@ export const encodesFontByFirstLetter = () => (
   />
 );
 
-export const legacyShim = () => (
+export const legacyShim = ({ width, height }) => (
   <SuperChart
     chartType="legacy-word-cloud2"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     queryData={{ data }}
     formData={{
       colorScheme: 'd3Category10',
