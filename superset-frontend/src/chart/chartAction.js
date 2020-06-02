@@ -107,12 +107,6 @@ const shouldUseLegacyApi = formData => {
   return useLegacyApi || false;
 };
 
-const getClientMethod = method => {
-  return method === 'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
-    ? SupersetClient.get
-    : SupersetClient.post;
-};
-
 const legacyChartDataRequest = async (
   formData,
   resultFormat,
@@ -142,7 +136,10 @@ const legacyChartDataRequest = async (
     postPayload: { form_data: formData },
   };
 
-  const clientMethod = getClientMethod(method);
+  const clientMethod =
+    'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
+      ? SupersetClient.get
+      : SupersetClient.post;
   return clientMethod(querySettings).then(({ json }) => {
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
@@ -157,7 +154,6 @@ const v1ChartDataRequest = async (
   resultFormat,
   resultType,
   force,
-  method,
   requestParams,
 ) => {
   const buildQuery = await getChartBuildQueryRegistry().get(formData.viz_type);
@@ -174,8 +170,7 @@ const v1ChartDataRequest = async (
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   };
-  const clientMethod = getClientMethod(method);
-  return clientMethod(querySettings).then(({ json }) => {
+  return SupersetClient.post(querySettings).then(({ json }) => {
     return json;
   });
 };
@@ -200,16 +195,21 @@ export async function getChartDataRequest(
     };
   }
 
-  const chartDataRequest = shouldUseLegacyApi(formData)
-    ? legacyChartDataRequest
-    : v1ChartDataRequest;
-
-  return chartDataRequest(
+  if (shouldUseLegacyApi(formData)) {
+    return legacyChartDataRequest(
+      formData,
+      resultFormat,
+      resultType,
+      force,
+      method,
+      querySettings,
+    );
+  }
+  return v1ChartDataRequest(
     formData,
     resultFormat,
     resultType,
     force,
-    method,
     querySettings,
   );
 }
@@ -352,7 +352,6 @@ export function exploreJSON(
       .then(response => {
         // new API returns an object with an array of restults
         // problem: response holds a list of results, when before we were just getting one result.
-        // `queryResponse` state is used all over the place.
         // How to make the entire app compatible with multiple results?
         // For now just use the first result.
         const result = response.result[0];
