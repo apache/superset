@@ -355,7 +355,7 @@ class ChartDataSelectOptionsSchema(ChartDataPostProcessingOperationOptionsSchema
         "referenced here.",
         example=["country", "gender", "age"],
     )
-    exclude = fields.List(
+    exclude = fields.List(  # type: ignore
         fields.String(),
         description="Columns to exclude from selection.",
         example=["my_temp_column"],
