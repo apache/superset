@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SuperChart } from '@superset-ui/chart';
 import { Props as SuperChartProps } from '@superset-ui/chart/src/components/SuperChart';
 import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
+import { SupersetBody } from '../../../shared/components/ResizableChartDemo';
 import data, { birthNames } from './data';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -109,7 +110,7 @@ export const bigTable = () => {
   };
 
   return (
-    <div className="superset-body">
+    <SupersetBody>
       <div className="panel">
         <div className="panel-heading form-inline">
           <div className="form-group">
@@ -151,6 +152,6 @@ export const bigTable = () => {
           <SuperChart {...chartProps} chartType="table" />
         </div>
       </div>
-    </div>
+    </SupersetBody>
   );
 };

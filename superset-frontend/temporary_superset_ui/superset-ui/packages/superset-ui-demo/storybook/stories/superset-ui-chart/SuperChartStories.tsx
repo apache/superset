@@ -6,6 +6,7 @@ import {
   BuggyChartPlugin,
   ChartKeys,
 } from '@superset-ui/chart/test/components/MockChartPlugins';
+import ResizableChartDemo from '../../shared/components/ResizableChartDemo';
 
 new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }).register();
 new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }).register();
@@ -47,17 +48,18 @@ export const container50pct = () => {
 };
 container50pct.story = { name: '50% of container' };
 
-export const fixedDimension = () => {
-  const width = text('Vis width', '500');
-  const height = text('Vis height', '300');
-
+export const Resizable = () => {
   return (
-    <SuperChart
-      chartType={ChartKeys.DILIGENT}
-      height={height}
-      width={width}
-      queryData={DEFAULT_QUERY_DATA}
-    />
+    <ResizableChartDemo>
+      {size => (
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width={size.width}
+          height={size.height}
+          queryData={DEFAULT_QUERY_DATA}
+        />
+      )}
+    </ResizableChartDemo>
   );
 };
 

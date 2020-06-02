@@ -67,15 +67,18 @@
     "@superset-ui/number-format": "0.13.21",
     "@superset-ui/plugin-chart-word-cloud": "0.13.24",
     "@superset-ui/query": "0.13.21",
+    "@superset-ui/style": "0.13.21",
     "@superset-ui/time-format": "0.13.22",
     "@superset-ui/translation": "0.13.21",
+    "@types/react-resizable": "^1.7.2",
     "@types/storybook__react": "5.2.1",
     "bootstrap": "^3.4.1",
     "core-js": "3.6.5",
     "gh-pages": "^2.2.0",
     "jquery": "^3.4.1",
     "react": "^16.13.1",
-    "storybook-addon-jsx": "^7.1.0"
+    "react-resizable": "^1.10.1",
+    "storybook-addon-jsx": "^7.2.3"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",
