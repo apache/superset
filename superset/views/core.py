@@ -637,7 +637,7 @@ class Superset(BaseSupersetView):
         return self.json_response({"data": viz_obj.get_samples()})
 
     def generate_json(self, viz_obj, response_type: Optional[str] = None) -> Response:
-        if response_type == utils.ChartDataResponseFormat.CSV:
+        if response_type == utils.ChartDataResultFormat.CSV:
             return CsvResponse(
                 viz_obj.get_csv(),
                 status=200,
@@ -645,13 +645,13 @@ class Superset(BaseSupersetView):
                 mimetype="application/csv",
             )
 
-        if response_type == utils.ChartDataResponseType.QUERY:
+        if response_type == utils.ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
 
-        if response_type == utils.ChartDataResponseType.RESULTS:
+        if response_type == utils.ChartDataResultType.RESULTS:
             return self.get_raw_results(viz_obj)
 
-        if response_type == utils.ChartDataResponseType.SAMPLES:
+        if response_type == utils.ChartDataResultType.SAMPLES:
             return self.get_samples(viz_obj)
 
         payload = viz_obj.get_payload()
@@ -728,9 +728,9 @@ class Superset(BaseSupersetView):
         payloads based on the request args in the first block
 
         TODO: break into one endpoint for each return shape"""
-        response_type = utils.ChartDataResponseFormat.JSON.value
-        responses = [resp_format for resp_format in utils.ChartDataResponseFormat]
-        responses.extend([resp_type for resp_type in utils.ChartDataResponseType])
+        response_type = utils.ChartDataResultFormat.JSON.value
+        responses = [resp_format for resp_format in utils.ChartDataResultFormat]
+        responses.extend([resp_type for resp_type in utils.ChartDataResultType])
         for response_option in responses:
             if request.args.get(response_option) == "true":
                 response_type = response_option

@@ -18,8 +18,8 @@
  */
 /* eslint camelcase: 0 */
 import URI from 'urijs';
-import { getChartMetadataRegistry } from '@superset-ui/chart';
-import { availableDomains } from '../utils/hostNamesConfig';
+import { SupersetClient } from '@superset-ui/connection';
+import { allowCrossDomain, availableDomains } from '../utils/hostNamesConfig';
 import { safeStringify } from '../utils/safeStringify';
 
 const MAX_URL_LENGTH = 8000;
@@ -67,7 +67,9 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
 export function getURIDirectory(endpointType = 'base') {
   // Building the directory part of the URI
   if (
-    ['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0
+    ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
+      endpointType,
+    )
   ) {
     return '/superset/explore_json/';
   }
@@ -105,11 +107,6 @@ export function getExploreLongUrl(
     });
   }
   return url;
-}
-
-export function shouldUseLegacyApi(formData) {
-  const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
-  return useLegacyApi || false;
 }
 
 export function getExploreUrl({
