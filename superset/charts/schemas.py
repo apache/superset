@@ -233,8 +233,7 @@ class ChartDataAggregateConfigField(fields.Dict):
 
 
 class ChartDataPostProcessingOperationOptionsSchema(Schema):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    pass
 
 
 class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
@@ -661,6 +660,10 @@ class ChartDataQueryObjectSchema(Schema):
     timeseries_limit = fields.Integer(
         description="Maximum row count for timeseries queries. Default: `0`",
     )
+    timeseries_limit_metric = fields.Integer(
+        description="Maximum row count for timeseries queries. Default: `0`",
+        allow_none=True,
+    )
     row_limit = fields.Integer(
         description='Maximum row count. Default: `config["ROW_LIMIT"]`',
     )
@@ -713,20 +716,20 @@ class ChartDataQueryContextSchema(Schema):
     )
     result_type = fields.String(
         description="Type of results to return",
-        validate=validate.OneOf(choices=("full", "query", "results", "samples")),
+        validate=validate.OneOf(choices=("query", "results", "samples")),
     )
     result_format = fields.String(
         description="Format of result payload",
         validate=validate.OneOf(choices=("json", "csv")),
     )
 
-    # pylint: disable=no-self-use
+    # pylint: disable=no-self-use,unused-argument
     @post_load
-    def make_query_context(self, data: Dict[str, Any]) -> QueryContext:
+    def make_query_context(self, data: Dict[str, Any], **kwargs) -> QueryContext:
         query_context = QueryContext(**data)
         return query_context
 
-    # pylint: enable=no-self-use
+    # pylint: enable=no-self-use,unused-argument
 
 
 class ChartDataResponseResult(Schema):

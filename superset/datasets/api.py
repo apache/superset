@@ -21,6 +21,7 @@ import yaml
 from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
@@ -171,13 +172,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
-        item = self.add_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_400(message=item.errors)
         try:
-            new_model = CreateDatasetCommand(g.user, item.data).run()
-            return self.response(201, id=new_model.id, result=item.data)
+            item = self.add_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as err:
+            return self.response_400(message=err.messages)
+        try:
+            new_model = CreateDatasetCommand(g.user, item).run()
+            return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
@@ -235,13 +237,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
-        item = self.edit_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_400(message=item.errors)
         try:
-            changed_model = UpdateDatasetCommand(g.user, pk, item.data).run()
-            return self.response(200, id=changed_model.id, result=item.data)
+            item = self.edit_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as err:
+            return self.response_400(message=err.messages)
+        try:
+            changed_model = UpdateDatasetCommand(g.user, pk, item).run()
+            return self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             return self.response_404()
         except DatasetForbiddenError:

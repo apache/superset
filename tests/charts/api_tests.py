@@ -336,7 +336,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_type": ["Not a valid choice."]}}
+            response,
+            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
         )
         chart_data = {
             "slice_name": "title1",
@@ -442,7 +443,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_type": ["Not a valid choice."]}}
+            response,
+            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
         )
         chart_data = {"datasource_id": 0, "datasource_type": "table"}
         uri = f"api/v1/chart/{chart.id}"

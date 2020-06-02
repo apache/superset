@@ -20,8 +20,8 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils.core import (
-    ChartDataResultFormat,
-    ChartDataResultType,
+    ChartDataResponseFormat,
+    ChartDataResponseType,
     TimeRangeEndpoint,
 )
 from tests.base_tests import SupersetTestCase
@@ -39,8 +39,7 @@ class QueryContextTests(SupersetTestCase):
         payload = get_query_context(
             table.name, table.id, table.type, add_postprocessing_operations=True
         )
-        query_context, errors = ChartDataQueryContextSchema().load(payload)
-        self.assertDictEqual(errors, {})
+        query_context = ChartDataQueryContextSchema().load(payload)
         self.assertEqual(len(query_context.queries), len(payload["queries"]))
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
@@ -144,7 +143,7 @@ class QueryContextTests(SupersetTestCase):
         table_name = "birth_names"
         table = self.get_table_by_name(table_name)
         payload = get_query_context(table.name, table.id, table.type)
-        payload["result_format"] = ChartDataResultFormat.CSV.value
+        payload["response_format"] = ChartDataResponseFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
         query_context = QueryContext(**payload)
         responses = query_context.get_payload()
@@ -161,7 +160,7 @@ class QueryContextTests(SupersetTestCase):
         table_name = "birth_names"
         table = self.get_table_by_name(table_name)
         payload = get_query_context(table.name, table.id, table.type)
-        payload["result_type"] = ChartDataResultType.SAMPLES.value
+        payload["response_type"] = ChartDataResponseType.SAMPLES.value
         payload["queries"][0]["row_limit"] = 5
         query_context = QueryContext(**payload)
         responses = query_context.get_payload()
@@ -179,7 +178,7 @@ class QueryContextTests(SupersetTestCase):
         table_name = "birth_names"
         table = self.get_table_by_name(table_name)
         payload = get_query_context(table.name, table.id, table.type)
-        payload["result_type"] = ChartDataResultType.QUERY.value
+        payload["response_type"] = ChartDataResponseType.QUERY.value
         query_context = QueryContext(**payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)

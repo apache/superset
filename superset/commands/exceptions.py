@@ -77,11 +77,11 @@ class OwnersNotFoundValidationError(ValidationError):
     status = 422
 
     def __init__(self) -> None:
-        super().__init__(_("Owners are invalid"), field_names=["owners"])
+        super().__init__([_("Owners are invalid")], field_name="owners")
 
 
 class DatasourceNotFoundValidationError(ValidationError):
     status = 404
 
     def __init__(self) -> None:
-        super().__init__(_("Datasource does not exist"), field_names=["datasource_id"])
+        super().__init__([_("Datasource does not exist")], field_name="datasource_id")
