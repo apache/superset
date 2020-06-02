@@ -124,7 +124,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
         for schema in self.openapi_spec_component_schemas:
             api_spec.components.schema(
-                schema.__class__.__name__, schema=schema,
+                schema.__name__, schema=schema,
             )
         super().add_apispec_components(api_spec)
 

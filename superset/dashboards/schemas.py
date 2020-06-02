@@ -112,7 +112,7 @@ class DashboardJSONMetadataSchema(Schema):
 class BaseDashboardSchema(Schema):
     # pylint: disable=no-self-use,unused-argument
     @post_load
-    def pre_load(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def post_load(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         if data.get("slug"):
             data["slug"] = data["slug"].strip()
             data["slug"] = data["slug"].replace(" ", "-")
