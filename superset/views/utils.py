@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
 
 import simplejson as json
-from flask import request
+from flask import g, request
 
 import superset.models.core as models
 from superset import app, db, is_feature_enabled
@@ -110,6 +110,10 @@ def get_form_data(
     # request params can overwrite the body
     if request_args_data:
         form_data.update(json.loads(request_args_data))
+
+    # Fallback to using the Flask globals (used for cache warmup) if defined.
+    if not form_data and hasattr(g, "form_data"):
+        form_data = getattr(g, "form_data")
 
     url_id = request.args.get("r")
     if url_id:
