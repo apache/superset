@@ -18,9 +18,9 @@ import json
 from typing import Any, Dict, Hashable, List, Optional, Type
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy import and_, Boolean, Column, func, Integer, select, String, Text
+from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import column_property, foreign, Query, relationship, RelationshipProperty
+from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty
 
 from superset.constants import NULL_STRING
 from superset.models.helpers import AuditMixinNullable, ImportMixin, QueryResult
@@ -49,6 +49,9 @@ COLUMN_FORM_DATA_PARAMS = [
     "order_by_cols",
     "series",
 ]
+
+DATASOURCE_TYPE_VIRTUAL = "virtual"
+DATASOURCE_TYPE_PHYSICAL = "physical"
 
 
 class BaseDatasource(
@@ -98,6 +101,13 @@ class BaseDatasource(
                 foreign(Slice.datasource_type) == self.type,
             ),
         )
+
+    @property
+    def kind(self) -> str:
+        if self.sql:
+            return DATASOURCE_TYPE_VIRTUAL
+
+        return DATASOURCE_TYPE_PHYSICAL
 
     @property
     def slice_count(self) -> int:
@@ -389,7 +399,7 @@ class BaseDatasource(
 
     @staticmethod
     def get_fk_many_from_list(
-        object_list: List[Any], fkmany: List[Column], fkmany_class: Type, key_attr: str,
+        object_list: List[Any], fkmany: List[Column], fkmany_class: Type, key_attr: str
     ) -> List[Column]:  # pylint: disable=too-many-locals
         """Update ORM one-to-many list from object list
 

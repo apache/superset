@@ -80,6 +80,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "column_count",
         "default_endpoint",
         "explore_url",
+        "kind",
         "metrics.id",
         "metric_count",
         "owners.id",

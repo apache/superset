@@ -99,6 +99,7 @@ class DatasetApiTests(SupersetTestCase):
             "default_endpoint",
             "explore_url",
             "id",
+            "kind",
             "metric_count",
             "metrics",
             "owners",
