@@ -1,3 +1,51 @@
+## [0.13.26](https://github.com/apache-superset/superset-ui/compare/v0.13.25...v0.13.26) (2020-06-03)
+
+
+### Features
+
+* **demo:** add helpers for resizable chart demo ([#557](https://github.com/apache-superset/superset-ui/issues/557)) ([af7421d](https://github.com/apache-superset/superset-ui/commit/af7421d5b7a478ed8a9f0a952f4a111bdc3fec66))
+* **query:** add functions to wrap api calls with typings ([#555](https://github.com/apache-superset/superset-ui/issues/555)) ([9137580](https://github.com/apache-superset/superset-ui/commit/9137580d7e73c73d47bdd6d7ff905365e87d9a61))
+* **superset-ui-style:** export ThemeProvider and useTheme ([#553](https://github.com/apache-superset/superset-ui/issues/553)) ([f6a8949](https://github.com/apache-superset/superset-ui/commit/f6a8949e38eabe8c34e21419fb2f8d4c44bb7ad2))
+
+
+
+## [0.13.25](https://github.com/apache-superset/superset-ui/compare/v0.13.24...v0.13.25) (2020-05-30)
+
+
+### Features
+
+* **chart:** adjust chartclient to point to new endpoints ([#551](https://github.com/apache-superset/superset-ui/issues/551)) ([bbc42c2](https://github.com/apache-superset/superset-ui/commit/bbc42c2ff074a107f6ed563cd5ab6935a3fb92a0))
+* **connection:** allow developer to get supersetclient instance ([#552](https://github.com/apache-superset/superset-ui/issues/552)) ([c075070](https://github.com/apache-superset/superset-ui/commit/c075070e3cf9f535c81a4964e7ed97b0daf86179))
+
+
+
+## [0.13.24](https://github.com/apache-superset/superset-ui/compare/v0.13.23...v0.13.24) (2020-05-29)
+
+
+### Features
+
+* **color:** support better color interpolation for sequential schemes ([#547](https://github.com/apache-superset/superset-ui/issues/547)) ([f7d4648](https://github.com/apache-superset/superset-ui/commit/f7d4648fae7eb11032953987dca6736cc7547380))
+* Word cloud typography update ([#518](https://github.com/apache-superset/superset-ui/issues/518)) ([873973b](https://github.com/apache-superset/superset-ui/commit/873973b8a3b0b1b6aa8c8bfa4677d4a614c83500))
+
+
+
+## [0.13.23](https://github.com/apache-superset/superset-ui/compare/v0.13.22...v0.13.23) (2020-05-26)
+
+
+### Bug Fixes
+
+* nvd3 annotation tooltip ([#540](https://github.com/apache-superset/superset-ui/issues/540)) ([6ea134d](https://github.com/apache-superset/superset-ui/commit/6ea134d9e63d9cf55b2797b8732cc99853b6b77a))
+
+
+
+## [0.13.22](https://github.com/apache-superset/superset-ui/compare/v0.13.21...v0.13.22) (2020-05-26)
+
+
+### Features
+
+* **time-format:** improve support for formatting with granularity in mind ([#509](https://github.com/apache-superset/superset-ui/issues/509)) ([2d8afa8](https://github.com/apache-superset/superset-ui/commit/2d8afa87b4b34ab1990ecbeaab4060688e86554b))
+
+
 ## [0.13.21](https://github.com/apache-superset/superset-ui/compare/v0.13.20...v0.13.21) (2020-05-21)
 
 
