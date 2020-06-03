@@ -110,6 +110,14 @@ export function getExploreLongUrl(
   return url;
 }
 
+export function getLegacyEndpointType({ resultType = 'base', resultFormat = 'json' }) {
+  return ['base', 'csv', 'results', 'samples'].includes(
+      resultType,
+    )
+      ? resultType
+      : resultFormat;
+}
+
 export function getExploreUrl({
   formData,
   endpointType = 'base',
@@ -209,7 +217,8 @@ export function postForm(url, payload, target = '_blank') {
   document.body.removeChild(hiddenForm);
 }
 
-export function exportChart({ formData, endpointType }) {
+export function exportChart({ formData, resultType, resultFormat }) {
+  const endpointType = getLegacyEndpointType({ resultType, resultFormat });
   const url = getExploreUrl({
     formData,
     endpointType,

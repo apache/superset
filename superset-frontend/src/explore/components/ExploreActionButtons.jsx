@@ -49,11 +49,13 @@ export default function ExploreActionButtons({
   });
   const doExportCSV = exportChart.bind(this, {
     formData: latestQueryFormData,
-    endpointType: 'csv',
+    resultType: 'results',
+    resultFormat: 'csv',
   });
   const doExportChart = exportChart.bind(this, {
     formData: latestQueryFormData,
-    endpointType: 'results',
+    resultType: 'results',
+    resultFormat: 'json',
   });
 
   return (

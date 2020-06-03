@@ -29,6 +29,7 @@ import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getExploreUrl,
   getAnnotationJsonUrl,
+  getLegacyEndpointType,
   postForm,
 } from '../explore/exploreUtils';
 import {
@@ -115,11 +116,7 @@ const legacyChartDataRequest = async (
   method = 'POST',
   requestParams = {},
 ) => {
-  const endpointType = ['base', 'csv', 'results', 'samples'].includes(
-    resultType,
-  )
-    ? resultType
-    : resultFormat;
+  const endpointType = getLegacyEndpointType({ resultFormat, resultType });
   const url = getExploreUrl({
     formData,
     endpointType,
