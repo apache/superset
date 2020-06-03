@@ -126,6 +126,14 @@ SUPERSET_WEBSERVER_PORT = 8088
 # (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting
 SUPERSET_WEBSERVER_TIMEOUT = 60
 
+# this 2 settings are used by dashboard period force refresh feature
+# When user choose auto force refresh frequency
+# < SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT
+# they will see warning message in the Refresh Interval Modal.
+# please check PR #9886
+SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
+SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
+
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False

@@ -292,6 +292,9 @@ export default function (bootstrapData) {
       focusedFilterField: [],
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
+      // dashboard viewers can set refresh frequency for the current visit,
+      // only persistent refreshFrequency will be saved to backend
+      shouldPersistRefreshFrequency: false,
       css: dashboard.css || '',
       colorNamespace: dashboard.metadata.color_namespace,
       colorScheme: dashboard.metadata.color_scheme,
