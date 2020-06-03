@@ -29,5 +29,5 @@ class PinotTestCase(DbEngineSpecTestCase):
         result = str(expr.compile())
         self.assertEqual(
             result,
-            'DATETIMECONVERT(tstamp, "1:SECONDS:EPOCH", "1:SECONDS:EPOCH", "1:MONTHS")',
+            "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:MONTHS')",
         )  # noqa
