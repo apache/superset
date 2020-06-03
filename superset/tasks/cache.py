@@ -163,7 +163,7 @@ class TopNDashboardsStrategy(Strategy):
     def __init__(self, top_n: int = 5, since: str = "7 days ago") -> None:
         super(TopNDashboardsStrategy, self).__init__()
         self.top_n = top_n
-        self.since = parse_human_datetime(since)
+        self.since = parse_human_datetime(since) if since else None
 
     def get_urls(self) -> List[str]:
         urls = []
