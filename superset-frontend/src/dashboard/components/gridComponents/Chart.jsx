@@ -191,7 +191,7 @@ class Chart extends React.Component {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
-    exportChart(this.props.formData);
+    exportChart({ formData: this.props.formData });
   }
 
   exportCSV() {
@@ -199,7 +199,7 @@ class Chart extends React.Component {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
-    exportChart(this.props.formData, 'csv');
+    exportChart({ formData: this.props.formData, endpointType: 'csv' });
   }
 
   forceRefresh() {

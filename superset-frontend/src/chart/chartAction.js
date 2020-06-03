@@ -175,14 +175,16 @@ const v1ChartDataRequest = async (
   });
 };
 
-export async function getChartDataRequest(
+export async function getChartDataRequest({
   formData,
   resultFormat = 'json',
   resultType = 'full',
   force = false,
   method = 'POST',
   requestParams = {},
-) {
+}) {
+  console.log(formData, resultFormat, resultType);
+
   let querySettings = {
     ...requestParams,
   };
@@ -337,14 +339,14 @@ export function exploreJSON(
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
 
-    const chartDataRequest = getChartDataRequest(
+    const chartDataRequest = getChartDataRequest({
       formData,
-      'json',
-      'full',
+      resultFormat: 'json',
+      resultType: 'full',
       force,
       method,
       requestParams,
-    );
+    });
 
     dispatch(chartUpdateStarted(controller, formData, key));
 
@@ -460,24 +462,17 @@ export function postChartFormData(
 
 export function redirectSQLLab(formData) {
   return dispatch => {
-    const url = getExploreUrl({
-      formData,
-      endpointType: 'query',
-    });
-    return SupersetClient.post({
-      url,
-      postPayload: { form_data: formData },
-    })
-      .then(({ json }) => {
+    getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
+      .then(({ result }) => {
         const redirectUrl = '/superset/sqllab';
         const payload = {
           datasourceKey: formData.datasource,
-          sql: json.query,
+          sql: result[0].query,
         };
         postForm(redirectUrl, payload);
       })
-      .catch(() =>
-        dispatch(addDangerToast(t('An error occurred while loading the SQL'))),
+      .catch(error =>
+        addDangerToast(t('An error occurred while loading the SQL')),
       );
   };
 }

@@ -47,8 +47,14 @@ export default function ExploreActionButtons({
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
-  const doExportCSV = exportChart.bind(this, latestQueryFormData, 'csv');
-  const doExportChart = exportChart.bind(this, latestQueryFormData, 'results');
+  const doExportCSV = exportChart.bind(this, {
+    formData: latestQueryFormData,
+    endpointType: 'csv',
+  });
+  const doExportChart = exportChart.bind(this, {
+    formData: latestQueryFormData,
+    endpointType: 'results',
+  });
 
   return (
     <div className="btn-group results" role="group">

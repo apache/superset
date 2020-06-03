@@ -19,8 +19,9 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import { SupersetClient } from '@superset-ui/connection';
-import { allowCrossDomain, availableDomains } from '../utils/hostNamesConfig';
-import { safeStringify } from '../utils/safeStringify';
+import { allowCrossDomain, availableDomains } from 'src/utils/hostNamesConfig';
+import { shouldUseLegacyApi } from 'src/chart/chartAction';
+import { safeStringify } from 'src/utils/safeStringify';
 
 const MAX_URL_LENGTH = 8000;
 
@@ -208,7 +209,7 @@ export function postForm(url, payload, target = '_blank') {
   document.body.removeChild(hiddenForm);
 }
 
-export function exportChart(formData, endpointType) {
+export function exportChart({ formData, endpointType }) {
   const url = getExploreUrl({
     formData,
     endpointType,

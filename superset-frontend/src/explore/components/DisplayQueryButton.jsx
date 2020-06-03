@@ -90,7 +90,11 @@ export class DisplayQueryButton extends React.PureComponent {
   beforeOpen(resultType) {
     this.setState({ isLoading: true });
 
-    getChartDataRequest(this.props.latestQueryFormData, 'json', resultType)
+    getChartDataRequest({
+      formData: this.props.latestQueryFormData,
+      resultFormat: 'json',
+      resultType,
+    })
       .then(response => {
         // Currently displaying of only first query is supported
         const result = response.result[0];
