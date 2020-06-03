@@ -1022,7 +1022,7 @@ def get_since_until(
     time_shift: Optional[str] = None,
     relative_start: Optional[str] = None,
     relative_end: Optional[str] = None,
-) -> Tuple[datetime, datetime]:
+) -> Tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -1078,8 +1078,8 @@ def get_since_until(
             since, until = time_range.split(separator, 1)
             if since and since not in common_time_frames:
                 since = add_ago_to_since(since)
-            since = parse_human_datetime(since)  # type: ignore
-            until = parse_human_datetime(until)  # type: ignore
+            since = parse_human_datetime(since) if since else None  # type: ignore
+            until = parse_human_datetime(until) if until else None  # type: ignore
         elif time_range in common_time_frames:
             since, until = common_time_frames[time_range]
         elif time_range == "No filter":
@@ -1100,7 +1100,7 @@ def get_since_until(
         since = since or ""
         if since:
             since = add_ago_to_since(since)
-        since = parse_human_datetime(since)  # type: ignore
+        since = parse_human_datetime(since) if since else None  # type: ignore
         until = parse_human_datetime(until) if until else relative_end  # type: ignore
 
     if time_shift:
