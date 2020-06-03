@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/style",
-  "version": "0.13.21",
+  "version": "0.13.26",
   "description": "Component styles for Superset",
   "author": "Aaron Suddjian <aaron@preset.io>",
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
