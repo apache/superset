@@ -23,7 +23,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
-import Link from 'src/components/Link';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -436,32 +435,19 @@ class DatasetList extends React.PureComponent<Props, State> {
                     });
                   }
                   return (
-                    <>
-                      {this.canCreate && (
-                        <span className="list-add-action">
-                          <Link
-                            className="btn btn-sm btn-primary pull-right"
-                            href="/tablemodelview/add"
-                            tooltip="Add a new record"
-                          >
-                            <i className="fa fa-plus" />
-                          </Link>
-                        </span>
-                      )}
-                      <ListView
-                        className="dataset-list-view"
-                        title={'Datasets'}
-                        columns={this.columns}
-                        data={datasets}
-                        count={datasetCount}
-                        pageSize={PAGE_SIZE}
-                        fetchData={this.fetchData}
-                        loading={loading}
-                        initialSort={this.initialSort}
-                        filters={filters}
-                        bulkActions={bulkActions}
-                      />
-                    </>
+                    <ListView
+                      className="dataset-list-view"
+                      title={'Datasets'}
+                      columns={this.columns}
+                      data={datasets}
+                      count={datasetCount}
+                      pageSize={PAGE_SIZE}
+                      fetchData={this.fetchData}
+                      loading={loading}
+                      initialSort={this.initialSort}
+                      filters={filters}
+                      bulkActions={bulkActions}
+                    />
                   );
                 }}
               </ConfirmStatusChange>
