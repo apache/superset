@@ -9,3 +9,10 @@ export * from './types/Column';
 export * from './types/Datasource';
 export * from './types/Metric';
 export * from './types/Query';
+
+// API Calls
+export { default as fetchExploreJson } from './api/legacy/fetchExploreJson';
+export { default as postChartData } from './api/v1/postChartData';
+
+export * from './api/legacy/types';
+export * from './api/v1/types';

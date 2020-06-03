@@ -24,5 +24,13 @@
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@types/fetch-mock": "^6.0.4",
+    "fetch-mock": "^7.2.5",
+    "node-fetch": "^2.2.0"
+  },
+  "peerDependencies": {
+    "@superset-ui/connection": "^0.13.25"
   }
 }
