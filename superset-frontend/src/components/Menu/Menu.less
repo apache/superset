@@ -29,6 +29,10 @@
     }
   }
 
+  .navbar-inverse {
+    border-bottom: 2px solid @gray-bg;
+  }
+
   .version-info {
     padding: 5px 20px;
     color: @gray-heading;
@@ -36,6 +40,45 @@
 
     div {
       white-space: nowrap;
+    }
+  }
+}
+
+#secondary-menu {
+  margin-top: -20px;
+  .navbar-header .navbar-brand {
+    font-weight: @font-weight-bold;
+  }
+  .navbar-right {
+    .btn-default {
+      text-transform: uppercase;
+      font-weight: 500;
+      font-size: @font-size-s;
+      background-color: #20a7c9;
+      border-radius: 4px;
+      color: @lightest;
+      margin: 8px 43px;
+      padding: 8px 51px 8px 43px;
+      border: none;
+      i {
+        padding: 4px @font-size-xs;
+      }
+    }
+  }
+  .navbar-nav {
+    li {
+      a {
+        font-size: @font-size-s;
+        padding: 8px;
+        margin: 8px;
+        color: #3d3d3d;
+      }
+    }
+    li.active > a,
+    li > a:hover {
+      background: #eceef2;
+      border-bottom: none;
+      border-radius: 4px;
     }
   }
 }
