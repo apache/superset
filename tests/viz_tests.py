@@ -974,7 +974,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
         test_viz_deckgl.point_radius_fixed = {}
         result = test_viz_deckgl.get_metrics()
-        assert result is None
+        assert result == []
 
     def test_get_js_columns(self):
         form_data = load_fixture("deck_path_form_data.json")

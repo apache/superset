@@ -20,6 +20,7 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
+# mypy: ignore-errors
 import copy
 import hashlib
 import inspect
@@ -610,7 +611,7 @@ class TableViz(BaseViz):
             raise QueryObjectValidationError(
                 _("Pick a granularity in the Time section or " "uncheck 'Include Time'")
             )
-        return fd.get("include_time")
+        return bool(fd.get("include_time"))
 
     def query_obj(self):
         d = super().query_obj()

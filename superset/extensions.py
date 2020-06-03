@@ -20,10 +20,12 @@ import random
 import time
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, TYPE_CHECKING  # pylint: disable=unused-import
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 
 import celery
+from cachelib.base import BaseCache
 from dateutil.relativedelta import relativedelta
+from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -32,7 +34,6 @@ from werkzeug.local import LocalProxy
 from superset.utils.cache_manager import CacheManager
 from superset.utils.feature_flag_manager import FeatureFlagManager
 
-# Avoid circular import
 if TYPE_CHECKING:
     from superset.jinja_context import (  # pylint: disable=unused-import
         BaseTemplateProcessor,
@@ -49,18 +50,18 @@ class JinjaContextManager:
             "timedelta": timedelta,
             "uuid": uuid,
         }
-        self._template_processors = {}  # type: Dict[str, BaseTemplateProcessor]
+        self._template_processors: Dict[str, Type["BaseTemplateProcessor"]] = {}
 
-    def init_app(self, app):
+    def init_app(self, app: Flask) -> None:
         self._base_context.update(app.config["JINJA_CONTEXT_ADDONS"])
         self._template_processors.update(app.config["CUSTOM_TEMPLATE_PROCESSORS"])
 
     @property
-    def base_context(self):
+    def base_context(self) -> Dict[str, Any]:
         return self._base_context
 
     @property
-    def template_processors(self):
+    def template_processors(self) -> Dict[str, Type["BaseTemplateProcessor"]]:
         return self._template_processors
 
 
@@ -69,35 +70,35 @@ class ResultsBackendManager:
         self._results_backend = None
         self._use_msgpack = False
 
-    def init_app(self, app):
-        self._results_backend = app.config.get("RESULTS_BACKEND")
-        self._use_msgpack = app.config.get("RESULTS_BACKEND_USE_MSGPACK")
+    def init_app(self, app: Flask) -> None:
+        self._results_backend = app.config["RESULTS_BACKEND"]
+        self._use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
 
     @property
-    def results_backend(self):
+    def results_backend(self) -> Optional[BaseCache]:
         return self._results_backend
 
     @property
-    def should_use_msgpack(self):
+    def should_use_msgpack(self) -> bool:
         return self._use_msgpack
 
 
 class UIManifestProcessor:
     def __init__(self, app_dir: str) -> None:
-        self.app = None
-        self.manifest: dict = {}
+        self.app: Optional[Flask] = None
+        self.manifest: Dict[str, Dict[str, List[str]]] = {}
         self.manifest_file = f"{app_dir}/static/assets/manifest.json"
 
-    def init_app(self, app):
+    def init_app(self, app: Flask) -> None:
         self.app = app
         # Preload the cache
         self.parse_manifest_json()
 
         @app.context_processor
-        def get_manifest():  # pylint: disable=unused-variable
+        def get_manifest() -> Dict[str, Callable]:  # pylint: disable=unused-variable
             loaded_chunks = set()
 
-            def get_files(bundle, asset_type="js"):
+            def get_files(bundle: str, asset_type: str = "js") -> List[str]:
                 files = self.get_manifest_files(bundle, asset_type)
                 filtered_files = [f for f in files if f not in loaded_chunks]
                 for f in filtered_files:
@@ -109,18 +110,18 @@ class UIManifestProcessor:
                 css_manifest=lambda bundle: get_files(bundle, "css"),
             )
 
-    def parse_manifest_json(self):
+    def parse_manifest_json(self) -> None:
         try:
             with open(self.manifest_file, "r") as f:
-                # the manifest includes non-entry files
-                # we only need entries in templates
+                # the manifest includes non-entry files we only need entries in
+                # templates
                 full_manifest = json.load(f)
                 self.manifest = full_manifest.get("entrypoints", {})
         except Exception:  # pylint: disable=broad-except
             pass
 
-    def get_manifest_files(self, bundle, asset_type):
-        if self.app.debug:
+    def get_manifest_files(self, bundle: str, asset_type: str) -> List[str]:
+        if self.app and self.app.debug:
             self.parse_manifest_json()
         return self.manifest.get(bundle, {}).get(asset_type, [])
 
@@ -133,7 +134,7 @@ db = SQLA()
 _event_logger: dict = {}
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
-jinja_context_manager = JinjaContextManager()  # type: JinjaContextManager
+jinja_context_manager = JinjaContextManager()
 manifest_processor = UIManifestProcessor(APP_DIR)
 migrate = Migrate()
 results_backend_manager = ResultsBackendManager()

@@ -158,7 +158,7 @@ class ParsedQuery:
     def _is_identifier(token: Token) -> bool:
         return isinstance(token, (IdentifierList, Identifier))
 
-    def _process_tokenlist(self, token_list: TokenList):
+    def _process_tokenlist(self, token_list: TokenList) -> None:
         """
         Add table names to table set
 
@@ -204,7 +204,9 @@ class ParsedQuery:
         exec_sql += f"CREATE TABLE {full_table_name} AS \n{sql}"
         return exec_sql
 
-    def _extract_from_token(self, token: Token):  # pylint: disable=too-many-branches
+    def _extract_from_token(  # pylint: disable=too-many-branches
+        self, token: Token
+    ) -> None:
         """
         Populate self._tables from token
 
