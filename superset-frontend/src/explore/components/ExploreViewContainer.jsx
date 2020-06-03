@@ -349,7 +349,7 @@ class ExploreViewContainer extends React.Component {
               }}
             >
               <QueryAndSaveBtns
-                canAdd="True"
+                canAdd={!!(this.props.can_add || this.props.can_overwrite)}
                 onQuery={this.onQuery}
                 onSave={this.toggleModal}
                 onStop={this.onStop}
@@ -396,6 +396,7 @@ function mapStateToProps(state) {
     datasourceId: explore.datasource_id,
     controls: explore.controls,
     can_overwrite: !!explore.can_overwrite,
+    can_add: !!explore.can_add,
     can_download: !!explore.can_download,
     column_formats: explore.datasource
       ? explore.datasource.column_formats
