@@ -1,4 +1,3 @@
-/* eslint-disable sort-keys */
 export default [
   {
     country_id: 'FR-01',
