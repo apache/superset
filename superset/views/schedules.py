@@ -93,7 +93,7 @@ class EmailScheduleView(
         "test_slack_channel": StringField(
             "Test Slack Channel",
             default=None,
-            description="A slack channel to send test message to.",
+            description="A slack channel to send a test message to.",
         ),
     }
 

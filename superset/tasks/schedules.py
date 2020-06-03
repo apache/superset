@@ -33,7 +33,7 @@ from dateutil.tz import tzlocal
 from flask import render_template, Response, session, url_for
 from flask_babel import gettext as __
 from flask_login import login_user
-from retry.api import retry_call
+from retry.api import retry, retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
 from slack import WebClient
@@ -94,24 +94,14 @@ def _get_email_to_and_bcc(
             yield (to, bcc)
 
 
+@retry(SlackApiError, delay=10, backoff=2, tries=5)
 def _deliver_slack(slack_channel: str, subject: str, body: str, file: bytes,) -> None:
-    try:
-        client = WebClient(token=config["SLACK_API_TOKEN"], proxy=config["SLACK_PROXY"])
-        response = client.files_upload(
-            channels=slack_channel, file=file, initial_comment=body, title=subject
-        )
-        logger.info(f"Sent the report to the slack {slack_channel}")
-        assert response["file"], str(response)  # the uploaded file
-    except SlackApiError as ex:
-        if ex.response["error"] == "ratelimited":
-            delay = int(ex.response.headers["Retry-After"])
-            logger.info(f"Rate limited. Retrying in {delay} seconds")
-            time.sleep(delay)
-            client.files_upload(
-                channels=slack_channel, file=file, initial_comment=body, title=subject
-            )
-        else:  # other errors
-            raise ex
+    client = WebClient(token=config["SLACK_API_TOKEN"], proxy=config["SLACK_PROXY"])
+    response = client.files_upload(
+        channels=slack_channel, file=file, initial_comment=body, title=subject
+    )
+    logger.info(f"Sent the report to the slack {slack_channel}")
+    assert response["file"], str(response)  # the uploaded file
 
 
 def _deliver_email(  # pylint: disable=too-many-arguments
@@ -142,10 +132,14 @@ def _generate_report_content(
     data: Optional[Dict[str, Any]]
 
     # how to: https://api.slack.com/reference/surfaces/formatting
-    slack_message = f"""
-        *{name}*\n
-        <{url}|Explore in Superset>
-    """
+    slack_message = __(
+        """
+        *%(name)s*\n
+        <%(url)s|Explore in Superset>
+    """,
+        name=name,
+        url=url,
+    )
 
     if delivery_type == EmailDeliveryType.attachment:
         images = None
