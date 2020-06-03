@@ -58,8 +58,8 @@ class QueryObject:
     """
 
     granularity: Optional[str]
-    from_dttm: datetime
-    to_dttm: datetime
+    from_dttm: Optional[datetime]
+    to_dttm: Optional[datetime]
     is_timeseries: bool
     time_shift: Optional[timedelta]
     groupby: List[str]
