@@ -17,6 +17,7 @@
 
 import logging
 import os
+from typing import Any, Callable, Dict
 
 import wtforms_json
 from flask import Flask, redirect
@@ -41,13 +42,14 @@ from superset.extensions import (
     talisman,
 )
 from superset.security import SupersetSecurityManager
+from superset.typing import FlaskResponse
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
 logger = logging.getLogger(__name__)
 
 
-def create_app():
+def create_app() -> Flask:
     app = Flask(__name__)
 
     try:
@@ -68,7 +70,7 @@ def create_app():
 
 class SupersetIndexView(IndexView):
     @expose("/")
-    def index(self):
+    def index(self) -> FlaskResponse:
         return redirect("/superset/welcome")
 
 
@@ -109,8 +111,8 @@ class SupersetAppInitializer:
             abstract = True
 
             # Grab each call into the task and set up an app context
-            def __call__(self, *args, **kwargs):
-                with flask_app.app_context():
+            def __call__(self, *args: Any, **kwargs: Any) -> Any:
+                with flask_app.app_context():  # type: ignore
                     return task_base.__call__(self, *args, **kwargs)
 
         celery_app.Task = AppContextTask
@@ -454,51 +456,41 @@ class SupersetAppInitializer:
         order to fully init the app
         """
         self.pre_init()
-
         self.setup_db()
-
         self.configure_celery()
-
         self.setup_event_logger()
-
         self.setup_bundle_manifest()
-
         self.register_blueprints()
-
         self.configure_wtf()
-
         self.configure_logging()
-
         self.configure_middlewares()
-
         self.configure_cache()
-
         self.configure_jinja_context()
 
-        with self.flask_app.app_context():
+        with self.flask_app.app_context():  # type: ignore
             self.init_app_in_ctx()
 
         self.post_init()
 
-    def setup_event_logger(self):
+    def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(
             self.flask_app.config.get("EVENT_LOGGER", DBEventLogger())
         )
 
-    def configure_data_sources(self):
+    def configure_data_sources(self) -> None:
         # Registering sources
         module_datasource_map = self.config["DEFAULT_MODULE_DS_MAP"]
         module_datasource_map.update(self.config["ADDITIONAL_MODULE_DS_MAP"])
         ConnectorRegistry.register_sources(module_datasource_map)
 
-    def configure_cache(self):
+    def configure_cache(self) -> None:
         cache_manager.init_app(self.flask_app)
         results_backend_manager.init_app(self.flask_app)
 
-    def configure_feature_flags(self):
+    def configure_feature_flags(self) -> None:
         feature_flag_manager.init_app(self.flask_app)
 
-    def configure_fab(self):
+    def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
             logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
 
@@ -516,7 +508,7 @@ class SupersetAppInitializer:
         appbuilder.update_perms = False
         appbuilder.init_app(self.flask_app, db.session)
 
-    def configure_url_map_converters(self):
+    def configure_url_map_converters(self) -> None:
         #
         # Doing local imports here as model importing causes a reference to
         # app.config to be invoked and we need the current_app to have been setup
@@ -527,10 +519,10 @@ class SupersetAppInitializer:
         self.flask_app.url_map.converters["regex"] = RegexConverter
         self.flask_app.url_map.converters["object_type"] = ObjectTypeConverter
 
-    def configure_jinja_context(self):
+    def configure_jinja_context(self) -> None:
         jinja_context_manager.init_app(self.flask_app)
 
-    def configure_middlewares(self):
+    def configure_middlewares(self) -> None:
         if self.config["ENABLE_CORS"]:
             from flask_cors import CORS
 
@@ -539,24 +531,28 @@ class SupersetAppInitializer:
         if self.config["ENABLE_PROXY_FIX"]:
             from werkzeug.middleware.proxy_fix import ProxyFix
 
-            self.flask_app.wsgi_app = ProxyFix(
+            self.flask_app.wsgi_app = ProxyFix(  # type: ignore
                 self.flask_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
             )
 
         if self.config["ENABLE_CHUNK_ENCODING"]:
 
             class ChunkedEncodingFix:  # pylint: disable=too-few-public-methods
-                def __init__(self, app):
+                def __init__(self, app: Flask) -> None:
                     self.app = app
 
-                def __call__(self, environ, start_response):
+                def __call__(
+                    self, environ: Dict[str, Any], start_response: Callable
+                ) -> Any:
                     # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
                     # content-length and read the stream till the end.
                     if environ.get("HTTP_TRANSFER_ENCODING", "").lower() == "chunked":
                         environ["wsgi.input_terminated"] = True
                     return self.app(environ, start_response)
 
-            self.flask_app.wsgi_app = ChunkedEncodingFix(self.flask_app.wsgi_app)
+            self.flask_app.wsgi_app = ChunkedEncodingFix(  # type: ignore
+                self.flask_app.wsgi_app  # type: ignore
+            )
 
         if self.config["UPLOAD_FOLDER"]:
             try:
@@ -565,7 +561,9 @@ class SupersetAppInitializer:
                 pass
 
         for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
-            self.flask_app.wsgi_app = middleware(self.flask_app.wsgi_app)
+            self.flask_app.wsgi_app = middleware(  # type: ignore
+                self.flask_app.wsgi_app
+            )
 
         # Flask-Compress
         if self.config["ENABLE_FLASK_COMPRESS"]:
@@ -574,27 +572,27 @@ class SupersetAppInitializer:
         if self.config["TALISMAN_ENABLED"]:
             talisman.init_app(self.flask_app, **self.config["TALISMAN_CONFIG"])
 
-    def configure_logging(self):
+    def configure_logging(self) -> None:
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
             self.config, self.flask_app.debug
         )
 
-    def setup_db(self):
+    def setup_db(self) -> None:
         db.init_app(self.flask_app)
 
-        with self.flask_app.app_context():
+        with self.flask_app.app_context():  # type: ignore
             pessimistic_connection_handling(db.engine)
 
         migrate.init_app(self.flask_app, db=db, directory=APP_DIR + "/migrations")
 
-    def configure_wtf(self):
+    def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:
             csrf = CSRFProtect(self.flask_app)
             csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
 
-    def register_blueprints(self):
+    def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:
             try:
                 logger.info(f"Registering blueprint: '{bp.name}'")
@@ -602,5 +600,5 @@ class SupersetAppInitializer:
             except Exception:  # pylint: disable=broad-except
                 logger.exception("blueprint registration failed")
 
-    def setup_bundle_manifest(self):
+    def setup_bundle_manifest(self) -> None:
         manifest_processor.init_app(self.flask_app)

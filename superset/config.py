@@ -28,8 +28,9 @@ import os
 import sys
 from collections import OrderedDict
 from datetime import date
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 
+from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
@@ -78,7 +79,7 @@ PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "static", "assets", "package.json")
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
 
 
-def _try_json_readversion(filepath):
+def _try_json_readversion(filepath: str) -> Optional[str]:
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("version")
@@ -86,7 +87,9 @@ def _try_json_readversion(filepath):
         return None
 
 
-def _try_json_readsha(filepath, length):  # pylint: disable=unused-argument
+def _try_json_readsha(  # pylint: disable=unused-argument
+    filepath: str, length: int
+) -> Optional[str]:
     try:
         with open(filepath, "r") as f:
             return json.load(f).get("GIT_SHA")[:length]
@@ -453,6 +456,7 @@ BACKUP_COUNT = 30
 #     user=None,
 #     client=None,
 #     security_manager=None,
+#     log_params=None,
 # ):
 #     pass
 QUERY_LOGGER = None
@@ -578,10 +582,9 @@ SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
     Callable[["Database", "models.User", str, str], str]
 ] = None
 
-# An instantiated derivative of cachelib.base.BaseCache
-# if enabled, it can be used to store the results of long-running queries
+# If enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
-RESULTS_BACKEND = None
+RESULTS_BACKEND: Optional[BaseCache] = None
 
 # Use PyArrow and MessagePack for async query results serialization,
 # rather than JSON. This feature requires additional testing from the
@@ -604,7 +607,7 @@ CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC: Callable[
 
 # The namespace within hive where the tables created from
 # uploading CSVs will be stored.
-UPLOADED_CSV_HIVE_NAMESPACE = None
+UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 
 # Function that computes the allowed schemas for the CSV uploads.
 # Allowed schemas will be a union of schemas_allowed_for_csv_upload
@@ -614,7 +617,7 @@ UPLOADED_CSV_HIVE_NAMESPACE = None
 ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[
     ["Database", "models.User"], List[str]
 ] = lambda database, user: [
-    UPLOADED_CSV_HIVE_NAMESPACE  # type: ignore
+    UPLOADED_CSV_HIVE_NAMESPACE
 ] if UPLOADED_CSV_HIVE_NAMESPACE else []
 
 # A dictionary of items that gets merged into the Jinja context for
@@ -628,7 +631,7 @@ JINJA_CONTEXT_ADDONS: Dict[str, Callable] = {}
 # dictionary, which means the existing keys get overwritten by the content of this
 # dictionary. The customized addons don't necessarily need to use jinjia templating
 # language. This allows you to define custom logic to process macro template.
-CUSTOM_TEMPLATE_PROCESSORS = {}  # type: Dict[str, BaseTemplateProcessor]
+CUSTOM_TEMPLATE_PROCESSORS: Dict[str, Type[BaseTemplateProcessor]] = {}
 
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.
