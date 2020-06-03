@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Type
 
 from flask_appbuilder.security.sqla.models import User
@@ -50,8 +51,10 @@ COLUMN_FORM_DATA_PARAMS = [
     "series",
 ]
 
-DATASOURCE_TYPE_VIRTUAL = "virtual"
-DATASOURCE_TYPE_PHYSICAL = "physical"
+
+class DatasourceKind(Enum):
+    virtual = "virtual"
+    physical = "physical"
 
 
 class BaseDatasource(
@@ -105,9 +108,9 @@ class BaseDatasource(
     @property
     def kind(self) -> str:
         if self.sql:
-            return DATASOURCE_TYPE_VIRTUAL
+            return DatasourceKind.virtual.value
 
-        return DATASOURCE_TYPE_PHYSICAL
+        return DatasourceKind.physical.value
 
     @property
     def slice_count(self) -> int:
