@@ -172,7 +172,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: schema
+            name: schema_name
             description: Table schema
           responses:
             200:
