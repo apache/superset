@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import styled from '@superset-ui/style';
 import { withTheme } from 'emotion-theming';
 
@@ -97,9 +97,6 @@ function SelectFilter({
   };
 
   const options = [clearFilterSelect, ...selects];
-  const optionsCache: React.MutableRefObject<SelectOption[] | null> = useRef(
-    null,
-  );
 
   const [selectedOption, setSelectedOption] = useState(clearFilterSelect);
   const onChange = (selected: SelectOption | null) => {
@@ -110,11 +107,8 @@ function SelectFilter({
     setSelectedOption(selected);
   };
   const fetchAndFormatSelects = async (inputValue: string) => {
-    // only include clear filter when filter value exists
+    // only include clear filter when filter value does not exist
     let result = inputValue ? [] : [clearFilterSelect];
-    // only call fetch once
-    // TODO: allow real async search with `inputValue`
-    if (optionsCache.current) return optionsCache.current;
     if (fetchSelects) {
       const selectValues = await fetchSelects(inputValue);
       // update matching option at initial load
@@ -124,7 +118,6 @@ function SelectFilter({
       }
       result = [...result, ...selectValues];
     }
-    optionsCache.current = result;
     return result;
   };
 
