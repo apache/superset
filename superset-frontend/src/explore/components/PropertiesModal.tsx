@@ -122,8 +122,6 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   const loadOptions = (input = '') => {
     const query = rison.encode({
       filter: input,
-      page_index: -1,
-      page_size: -1,
     });
     return SupersetClient.get({
       endpoint: `/api/v1/chart/related/owners?q=${query}`,
