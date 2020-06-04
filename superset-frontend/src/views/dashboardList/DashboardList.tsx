@@ -389,13 +389,17 @@ class DashboardList extends React.PureComponent<Props, State> {
       });
   };
 
-  fetchOwners = async (filterValue = '', pageIndex = -1, pageSize = -1) => {
+  fetchOwners = async (
+    filterValue = '',
+    pageIndex?: number,
+    pageSize?: number,
+  ) => {
     const resource = '/api/v1/dashboard/related/owners';
 
     try {
       const queryParams = rison.encode({
-        page: pageIndex,
-        page_size: pageSize,
+        ...(pageIndex ? { page: pageIndex } : {}),
+        ...(pageSize ? { page_ize: pageSize } : {}),
         ...(filterValue ? { filter: filterValue } : {}),
       });
       const { json = {} } = await SupersetClient.get({
@@ -409,6 +413,7 @@ class DashboardList extends React.PureComponent<Props, State> {
         }),
       );
     } catch (e) {
+      console.error(e);
       this.props.addDangerToast(
         t(
           'An error occurred while fetching chart owner values: %s',
