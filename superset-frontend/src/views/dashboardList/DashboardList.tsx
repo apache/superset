@@ -21,7 +21,6 @@ import { t } from '@superset-ui/translation';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
-import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -49,6 +48,7 @@ interface State {
   loading: boolean;
   filterOperators: FilterOperatorMap;
   filters: Filters;
+  owners: Array<{ text: string; value: number }>;
   permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
   dashboardToEdit: Dashboard | null;
@@ -77,31 +77,44 @@ class DashboardList extends React.PureComponent<Props, State> {
     filters: [],
     lastFetchDataConfig: null,
     loading: false,
+    owners: [],
     permissions: [],
     dashboardToEdit: null,
   };
 
   componentDidMount() {
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/_info`,
-    }).then(
-      ({ json: infoJson = {} }) => {
+    Promise.all([
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/_info`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/related/owners`,
+      }),
+    ]).then(
+      ([{ json: infoJson = {} }, { json: ownersJson = {} }]) => {
         this.setState(
           {
             filterOperators: infoJson.filters,
+            owners: ownersJson.result,
             permissions: infoJson.permissions,
           },
           this.updateFilters,
         );
       },
-      e => {
+      ([e1, e2]) => {
         this.props.addDangerToast(
           t(
             'An error occurred while fetching Dashboards: %s, %s',
-            e.statusText,
+            e1.statusText,
+            e1.statusText,
           ),
         );
-        console.error(e);
+        if (e1) {
+          console.error(e1);
+        }
+        if (e2) {
+          console.error(e2);
+        }
       },
     );
   }
@@ -317,9 +330,9 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   handleBulkDashboardDelete = (dashboards: Dashboard[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/?q=${rison.encode(
-        dashboards.map(({ id }) => id),
-      )}`,
+      endpoint: `/api/v1/dashboard/?q=!(${dashboards
+        .map(({ id }) => id)
+        .join(',')})`,
     }).then(
       ({ json = {} }) => {
         const { lastFetchDataConfig } = this.state;
@@ -342,9 +355,9 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   handleBulkDashboardExport = (dashboards: Dashboard[]) => {
     return window.location.assign(
-      `/api/v1/dashboard/export/?q=${rison.encode(
-        dashboards.map(({ id }) => id).join(','),
-      )}`,
+      `/api/v1/dashboard/export/?q=!(${dashboards
+        .map(({ id }) => id)
+        .join(',')})`,
     );
   };
 
@@ -365,7 +378,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       value,
     }));
 
-    const queryParams = rison.encode({
+    const queryParams = JSON.stringify({
       order_column: sortBy[0].id,
       order_direction: sortBy[0].desc ? 'desc' : 'asc',
       page: pageIndex,
@@ -389,38 +402,8 @@ class DashboardList extends React.PureComponent<Props, State> {
       });
   };
 
-  fetchOwners = async (filterValue = '', pageIndex = -1, pageSize = -1) => {
-    const resource = '/api/v1/dashboard/related/owners';
-
-    try {
-      const queryParams = rison.encode({
-        page: pageIndex,
-        page_size: pageSize,
-        ...(filterValue ? { filter: filterValue } : {}),
-      });
-      const { json = {} } = await SupersetClient.get({
-        endpoint: `${resource}?q=${queryParams}`,
-      });
-
-      return json?.result?.map(
-        ({ text: label, value }: { text: string; value: any }) => ({
-          label,
-          value,
-        }),
-      );
-    } catch (e) {
-      this.props.addDangerToast(
-        t(
-          'An error occurred while fetching chart owner values: %s',
-          e.statusText,
-        ),
-      );
-    }
-    return [];
-  };
-
-  updateFilters = async () => {
-    const { filterOperators } = this.state;
+  updateFilters = () => {
+    const { filterOperators, owners } = this.state;
 
     if (this.isNewUIEnabled) {
       return this.setState({
@@ -431,7 +414,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             input: 'select',
             operator: 'rel_m_m',
             unfilteredLabel: 'All',
-            fetchSelects: this.fetchOwners,
+            selects: owners.map(({ text: label, value }) => ({ label, value })),
           },
           {
             Header: 'Published',
@@ -462,8 +445,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       operator: string;
     }) => ({ label, value: operator });
 
-    const owners = await this.fetchOwners();
-
     return this.setState({
       filters: [
         {
@@ -481,7 +462,7 @@ class DashboardList extends React.PureComponent<Props, State> {
           id: 'owners',
           input: 'select',
           operators: filterOperators.owners.map(convertFilter),
-          selects: owners,
+          selects: owners.map(({ text: label, value }) => ({ label, value })),
         },
         {
           Header: 'Published',

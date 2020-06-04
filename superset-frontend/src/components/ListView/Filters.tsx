@@ -116,7 +116,7 @@ function SelectFilter({
     // TODO: allow real async search with `inputValue`
     if (optionsCache.current) return optionsCache.current;
     if (fetchSelects) {
-      const selectValues = await fetchSelects(inputValue);
+      const selectValues = await fetchSelects();
       // update matching option at initial load
       const matchingOption = result.find(x => x.value === initialValue);
       if (matchingOption) {
