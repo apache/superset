@@ -26,7 +26,7 @@ import {
   getAnnotationJsonUrl,
   getExploreUrl,
   getLegacyEndpointType,
-  getV1ChartDataPayload,
+  buildV1ChartDataPayload,
   postForm,
   shouldUseLegacyApi,
 } from '../explore/exploreUtils';
@@ -146,7 +146,7 @@ const v1ChartDataRequest = async (
   force,
   requestParams,
 ) => {
-  const payload = getV1ChartDataPayload({ formData, force });
+  const payload = buildV1ChartDataPayload({ formData, force });
   // TODO: remove once these are added to superset-ui/query
   payload.result_type = resultType;
   payload.result_format = resultFormat;

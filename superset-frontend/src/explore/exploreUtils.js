@@ -192,7 +192,7 @@ export const shouldUseLegacyApi = formData => {
   return useLegacyApi || false;
 };
 
-export const getV1ChartDataPayload = ({ formData, force }) => {
+export const buildV1ChartDataPayload = ({ formData, force }) => {
   const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
   return buildQuery({
     ...formData,
