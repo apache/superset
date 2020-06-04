@@ -244,19 +244,19 @@ class DatasetList extends React.PureComponent<Props, State> {
     label: 'Data',
     name: 'Data',
     createButton: {
-      name: 'Dataset',
+      name: t('Dataset'),
       url: '/tablemodelview/add',
     },
     childs: [
       {
         name: 'Datasets',
-        label: 'Datasets',
+        label: t('Datasets'),
         url: '/tablemodelview/list/?_flt_1_is_sqllab_view=y',
       },
-      { name: 'Databases', label: 'Databases', url: '/databaseview/list/' },
+      { name: 'Databases', label: t('Databases'), url: '/databaseview/list/' },
       {
         name: 'Saved Queries',
-        label: 'Saved Queries',
+        label: t('Saved Queries'),
         url: '/sqllab/my_queries/',
       },
     ],

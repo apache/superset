@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
 import React from 'react';
 import { Button, Nav, Navbar, MenuItem } from 'react-bootstrap';
 
@@ -36,6 +35,7 @@ class SubMenu extends React.PureComponent<Props, State> {
   state: State = {
     selectedMenu: this.props.childs[0] && this.props.childs[0].label,
   };
+
   handleClick = (item: string) => () => {
     this.setState({ selectedMenu: item });
   };
@@ -47,7 +47,7 @@ class SubMenu extends React.PureComponent<Props, State> {
       <header className="top" id="secondary-menu">
         <Navbar inverse fluid role="navigation">
           <Navbar.Header>
-            <Navbar.Brand>{t('%s', `${label}`)}</Navbar.Brand>
+            <Navbar.Brand>{label}</Navbar.Brand>
           </Navbar.Header>
           <Nav>
             {childs &&
@@ -66,7 +66,7 @@ class SubMenu extends React.PureComponent<Props, State> {
           {canCreate && (
             <Nav className="navbar-right">
               <Button href={`${createButton.url}`}>
-                <i className="fa fa-plus" /> {t('%s', `${createButton.name}`)}
+                <i className="fa fa-plus" /> {createButton.name}
               </Button>
             </Nav>
           )}
