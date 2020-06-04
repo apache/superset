@@ -21,6 +21,7 @@ import { t } from '@superset-ui/translation';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
+import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
 import Link from 'src/components/Link';
@@ -273,9 +274,9 @@ class DatasetList extends React.PureComponent<Props, State> {
 
   handleBulkDatasetDelete = (datasets: Dataset[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/dataset/?q=!(${datasets
-        .map(({ id }) => id)
-        .join(',')})`,
+      endpoint: `/api/v1/dataset/?q=${rison.encode(
+        datasets.map(({ id }) => id),
+      )}`,
     }).then(
       ({ json = {} }) => {
         const { lastFetchDataConfig } = this.state;
@@ -310,7 +311,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       value,
     }));
 
-    const queryParams = JSON.stringify({
+    const queryParams = rison.encode({
       order_column: sortBy[0].id,
       order_direction: sortBy[0].desc ? 'desc' : 'asc',
       page: pageIndex,
