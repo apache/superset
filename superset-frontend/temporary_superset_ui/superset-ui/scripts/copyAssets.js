@@ -1,6 +1,8 @@
-/* eslint-disable import/no-extraneous-dependencies, no-console */
+#!/bin/env node
+/* eslint-disable no-console */
 const fg = require('fast-glob');
 const fs = require('fs-extra');
+
 const pkgGlob = process.argv[2] || '*';
 
 const packages = fg.sync([`{packages,plugins}/${pkgGlob}`], {

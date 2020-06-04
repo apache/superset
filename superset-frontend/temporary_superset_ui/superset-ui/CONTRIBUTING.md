@@ -11,6 +11,12 @@ yarn install
 yarn build
 ```
 
+To build only selected packages or plugins,
+
+```bash
+yarn build "*chart-table"
+```
+
 ### File organization
 
 [lerna](https://github.com/lerna/lerna/) and [yarn](https://yarnpkg.com) are used to manage versions
