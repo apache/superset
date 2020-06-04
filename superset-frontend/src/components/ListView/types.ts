@@ -37,7 +37,11 @@ export interface Filter {
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
-  fetchSelects?: () => Promise<SelectOption[]>;
+  fetchSelects?: (
+    filterValue?: string,
+    pageIndex?: number,
+    pageSize?: number,
+  ) => Promise<SelectOption[]>;
 }
 
 export type Filters = Filter[];
