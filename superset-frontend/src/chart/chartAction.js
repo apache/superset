@@ -26,10 +26,12 @@ import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
+  getHostName,
   getLegacyEndpointType,
   buildV1ChartDataPayload,
   postForm,
   shouldUseLegacyApi,
+  getChartDataUri,
 } from '../explore/exploreUtils';
 import {
   requiresQuery,
@@ -156,11 +158,15 @@ const v1ChartDataRequest = async (
   const qs = requestParams.dashboard_id
     ? { dashboard_id: requestParams.dashboard_id }
     : {};
-  const url = URI('/api/v1/chart/data').search(qs).toString();
+  const url = getChartDataUri({
+    path: '/api/v1/chart/data',
+    qs,
+    allowDomainSharding,
+  }).toString();
 
   const querySettings = {
     ...requestParams,
-    endpoint: url,
+    url,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   };

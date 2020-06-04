@@ -34,7 +34,7 @@ export function getChartKey(explore) {
 }
 
 let requestCounter = 0;
-function getHostName(allowDomainSharding = false) {
+export function getHostName(allowDomainSharding = false) {
   let currentIndex = 0;
   if (allowDomainSharding) {
     currentIndex = requestCounter % availableDomains.length;
@@ -48,7 +48,6 @@ function getHostName(allowDomainSharding = false) {
       requestCounter += 1;
     }
   }
-
   return availableDomains[currentIndex];
 }
 
@@ -113,6 +112,22 @@ export function getExploreLongUrl(
   return url;
 }
 
+export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
+  // The search params from the window.location are carried through,
+  // but can be specified with curUrl (used for unit tests to spoof
+  // the window.location).
+  let uri = new URI({
+    protocol: location.protocol.slice(0, -1),
+    hostname: getHostName(allowDomainSharding),
+    port: location.port ? location.port : '',
+    path,
+  });
+  if (qs) {
+    uri = uri.search(qs);
+  }
+  return uri;
+}
+
 export function getExploreUrl({
   formData,
   endpointType = 'base',
@@ -125,17 +140,7 @@ export function getExploreUrl({
   if (!formData.datasource) {
     return null;
   }
-
-  // The search params from the window.location are carried through,
-  // but can be specified with curUrl (used for unit tests to spoof
-  // the window.location).
-  let uri = new URI({
-    protocol: location.protocol.slice(0, -1),
-    hostname: getHostName(allowDomainSharding),
-    port: location.port ? location.port : '',
-    path: '/',
-  });
-
+  let uri = getChartDataUri({ path: '/', allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
