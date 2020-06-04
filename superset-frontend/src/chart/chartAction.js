@@ -18,6 +18,7 @@
  */
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
+import URI from 'urijs';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
@@ -150,9 +151,16 @@ const v1ChartDataRequest = async (
   // TODO: remove once these are added to superset-ui/query
   payload.result_type = resultType;
   payload.result_format = resultFormat;
+
+  // The dashboard id is added to query params for tracking purposes
+  const qs = requestParams.dashboard_id
+    ? { dashboard_id: requestParams.dashboard_id }
+    : {};
+  const url = URI('/api/v1/chart/data').search(qs).toString();
+
   const querySettings = {
     ...requestParams,
-    endpoint: '/api/v1/chart/data',
+    endpoint: url,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   };
