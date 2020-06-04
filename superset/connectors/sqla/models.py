@@ -300,6 +300,22 @@ class TableColumn(Model, BaseColumn):
         # TODO(john-bodley): SIP-15 will explicitly require a type conversion.
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
+    @property
+    def data(self) -> Dict[str, Any]:
+        attrs = (
+            "id",
+            "column_name",
+            "verbose_name",
+            "description",
+            "expression",
+            "filterable",
+            "groupby",
+            "is_dttm",
+            "type",
+            "python_date_format",
+        )
+        return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
+
 
 class SqlMetric(Model, BaseMetric):
 
