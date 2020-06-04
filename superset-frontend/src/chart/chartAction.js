@@ -21,16 +21,14 @@
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import {
-  getChartBuildQueryRegistry,
-  getChartMetadataRegistry,
-} from '@superset-ui/chart';
+import { getChartBuildQueryRegistry } from '@superset-ui/chart';
 import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
-  getExploreUrl,
   getAnnotationJsonUrl,
+  getExploreUrl,
   getLegacyEndpointType,
   postForm,
+  shouldUseLegacyApi,
 } from '../explore/exploreUtils';
 import {
   requiresQuery,
@@ -102,11 +100,6 @@ export const ANNOTATION_QUERY_FAILED = 'ANNOTATION_QUERY_FAILED';
 export function annotationQueryFailed(annotation, queryResponse, key) {
   return { type: ANNOTATION_QUERY_FAILED, annotation, queryResponse, key };
 }
-
-const shouldUseLegacyApi = formData => {
-  const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
-  return useLegacyApi || false;
-};
 
 const legacyChartDataRequest = async (
   formData,
@@ -180,8 +173,6 @@ export async function getChartDataRequest({
   method = 'POST',
   requestParams = {},
 }) {
-  console.log(formData, resultFormat, resultType);
-
   let querySettings = {
     ...requestParams,
   };

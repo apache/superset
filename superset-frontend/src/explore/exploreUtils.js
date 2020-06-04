@@ -20,8 +20,11 @@
 import URI from 'urijs';
 import { SupersetClient } from '@superset-ui/connection';
 import { allowCrossDomain, availableDomains } from 'src/utils/hostNamesConfig';
-import { shouldUseLegacyApi } from 'src/chart/chartAction';
 import { safeStringify } from 'src/utils/safeStringify';
+import {
+  getChartBuildQueryRegistry,
+  getChartMetadataRegistry,
+} from '@superset-ui/chart';
 
 const MAX_URL_LENGTH = 8000;
 
@@ -110,14 +113,6 @@ export function getExploreLongUrl(
   return url;
 }
 
-export function getLegacyEndpointType({ resultType = 'base', resultFormat = 'json' }) {
-  return ['base', 'csv', 'results', 'samples'].includes(
-      resultType,
-    )
-      ? resultType
-      : resultFormat;
-}
-
 export function getExploreUrl({
   formData,
   endpointType = 'base',
@@ -192,6 +187,24 @@ export function getExploreUrl({
   return uri.search(search).directory(directory).toString();
 }
 
+export const shouldUseLegacyApi = formData => {
+  const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
+  return useLegacyApi || false;
+};
+
+export const getV1ChartDataPayload = ({ formData, force }) => {
+  const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
+  return buildQuery({
+    ...formData,
+    force,
+  });
+};
+
+export const getLegacyEndpointType = ({ resultType, resultFormat }) => {
+  console.log(resultType, resultFormat);
+  return resultFormat === 'csv' ? resultFormat : resultType;
+};
+
 export function postForm(url, payload, target = '_blank') {
   if (!url) {
     return;
@@ -217,12 +230,40 @@ export function postForm(url, payload, target = '_blank') {
   document.body.removeChild(hiddenForm);
 }
 
-export function exportChart({ formData, resultType, resultFormat }) {
-  const endpointType = getLegacyEndpointType({ resultType, resultFormat });
+export const exportChart = ({
+  formData,
+  resultFormat = 'json',
+  resultType = 'full',
+  force = false,
+}) => {
+  let url;
+  let payload;
+  if (shouldUseLegacyApi(formData)) {
+    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+    url = getExploreUrl({
+      formData,
+      endpointType,
+      allowDomainSharding: false,
+    });
+    payload = formData;
+  } else {
+    url = '/api/v1/chart/data';
+    const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
+    payload = buildQuery({
+      ...formData,
+      force,
+    });
+    payload.result_type = resultType;
+    payload.result_format = resultFormat;
+  }
+  postForm(url, payload);
+};
+
+export const exploreChart = formData => {
   const url = getExploreUrl({
     formData,
-    endpointType,
+    endpointType: 'base',
     allowDomainSharding: false,
   });
   postForm(url, formData);
-}
+};
