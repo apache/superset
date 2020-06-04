@@ -227,9 +227,9 @@ describe('ExploreResultsButton', () => {
       setTimeout(() => {
         expect(datasourceSpy.callCount).toBe(1);
         expect(exploreUtils.exploreChart.callCount).toBe(1);
-        expect(
-          exploreUtils.exploreChart.getCall(0).args[0].datasource,
-        ).toBe('107__table');
+        expect(exploreUtils.exploreChart.getCall(0).args[0].datasource).toBe(
+          '107__table',
+        );
         expect(infoToastSpy.callCount).toBe(1);
         done();
       });
