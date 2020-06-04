@@ -76,7 +76,7 @@ class ExploreCtasResultsButton extends React.PureComponent {
         );
 
         // open new window for data visualization
-        exportChart({formData});
+        exploreChart(formData);
       })
       .catch(() => {
         this.props.actions.addDangerToast(

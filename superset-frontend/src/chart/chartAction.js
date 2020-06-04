@@ -21,12 +21,12 @@
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import { getChartBuildQueryRegistry } from '@superset-ui/chart';
 import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
   getLegacyEndpointType,
+  getV1ChartDataPayload,
   postForm,
   shouldUseLegacyApi,
 } from '../explore/exploreUtils';
@@ -146,11 +146,7 @@ const v1ChartDataRequest = async (
   force,
   requestParams,
 ) => {
-  const buildQuery = await getChartBuildQueryRegistry().get(formData.viz_type);
-  const payload = buildQuery({
-    ...formData,
-    force,
-  });
+  const payload = getV1ChartDataPayload({formData, force});
   // TODO: remove once these are added to superset-ui/query
   payload.result_type = resultType;
   payload.result_format = resultFormat;
@@ -459,8 +455,8 @@ export function redirectSQLLab(formData) {
         };
         postForm(redirectUrl, payload);
       })
-      .catch(error =>
-        addDangerToast(t('An error occurred while loading the SQL')),
+      .catch(() =>
+        dispatch(addDangerToast(t('An error occurred while loading the SQL'))),
       );
   };
 }

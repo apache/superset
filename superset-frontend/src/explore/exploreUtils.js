@@ -201,7 +201,6 @@ export const getV1ChartDataPayload = ({ formData, force }) => {
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) => {
-  console.log(resultType, resultFormat);
   return resultFormat === 'csv' ? resultFormat : resultType;
 };
 
