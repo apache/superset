@@ -4,11 +4,11 @@
   "description": "Superset UI",
   "private": true,
   "scripts": {
-    "build": "yarn babel && yarn type && yarn build:assets",
+    "build": "node ./scripts/build.js",
+    "build:assets": "node ./scripts/copyAssets.js",
     "babel": "yarn babel:cjs && yarn babel:esm",
     "babel:cjs": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\" --config-file=../../babel.config.js",
     "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\" --esm --config-file=../../babel.config.js",
-    "build:assets": "node ./scripts/buildAssets.js",
     "demo": "cd packages/superset-ui-demo && yarn demo:build",
     "demo:clean": "cd packages/superset-ui-demo && yarn demo:clean",
     "storybook": "cd packages/superset-ui-demo && yarn storybook",
