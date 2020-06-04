@@ -17,14 +17,14 @@
 """add_tables_relation_to_row_level_security
 
 Revision ID: e557699a813e
-Revises: 47a540c56d82
+Revises: 620241d1153f
 Create Date: 2020-04-24 10:46:24.119363
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "e557699a813e"
-down_revision = "f9a30386bd74"
+down_revision = "620241d1153f"
 
 import sqlalchemy as sa
 from alembic import op
