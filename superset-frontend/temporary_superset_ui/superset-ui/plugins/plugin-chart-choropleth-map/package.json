@@ -32,7 +32,7 @@
     "@types/geojson": "^7946.0.3",
     "@types/topojson-client": "^3.0.0",
     "@types/topojson-specification": "^1.0.0",
-    "@vx/clip-path": "^0.0.196",
+    "@vx/clip-path": "^0.0.197",
     "@vx/event": "^0.0.196",
     "@vx/pattern": "^0.0.196",
     "@vx/tooltip": "^0.0.196",
