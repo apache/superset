@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import URI from 'urijs';
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
@@ -25,17 +26,16 @@ import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/chart/chartAction';
 
 describe('chart actions', () => {
-  const V1_URL = '/http//localhost/api/v1/chart/data';
   const MOCK_URL = '/mockURL';
   let dispatch;
-  let urlStub;
+  let getExploreUrlStub;
+  let getChartDataUriStub;
   let metadataRegistryStub;
   let buildQueryRegistryStub;
   let fakeMetadata;
 
   const setupDefaultFetchMock = () => {
     fetchMock.post(MOCK_URL, { json: {} }, { overwriteRoutes: true });
-    fetchMock.post(V1_URL, { json: {} }, { overwriteRoutes: true });
   };
 
   beforeAll(() => {
@@ -46,9 +46,12 @@ describe('chart actions', () => {
 
   beforeEach(() => {
     dispatch = sinon.spy();
-    urlStub = sinon
+    getExploreUrlStub = sinon
       .stub(exploreUtils, 'getExploreUrl')
       .callsFake(() => MOCK_URL);
+    getChartDataUriStub = sinon
+      .stub(exploreUtils, 'getChartDataUri')
+      .callsFake(() => URI(MOCK_URL));
     fakeMetadata = { useLegacyApi: true };
     metadataRegistryStub = sinon
       .stub(chartlib, 'getChartMetadataRegistry')
@@ -65,7 +68,8 @@ describe('chart actions', () => {
   });
 
   afterEach(() => {
-    urlStub.restore();
+    getExploreUrlStub.restore();
+    getChartDataUriStub.restore();
     fetchMock.resetHistory();
     metadataRegistryStub.restore();
     buildQueryRegistryStub.restore();
@@ -80,8 +84,8 @@ describe('chart actions', () => {
       const actionThunk = actions.postChartFormData({});
       await actionThunk(dispatch);
 
-      expect(fetchMock.calls(V1_URL)).toHaveLength(1);
-      expect(fetchMock.calls(V1_URL)[0][1].body).toBe(
+      expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+      expect(fetchMock.calls(MOCK_URL)[0][1].body).toBe(
         JSON.stringify({
           some_param: 'fake query!',
           result_type: 'full',

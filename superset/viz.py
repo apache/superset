@@ -824,24 +824,6 @@ class SeparatorViz(MarkupViz):
     verbose_name = _("Separator")
 
 
-class WordCloudViz(BaseViz):
-
-    """Build a colorful word cloud
-
-    Uses the nice library at:
-    https://github.com/jasondavies/d3-cloud
-    """
-
-    viz_type = "word_cloud"
-    verbose_name = _("Word Cloud")
-    is_timeseries = False
-
-    def query_obj(self) -> QueryObjectDict:
-        d = super().query_obj()
-        d["groupby"] = [self.form_data.get("series")]
-        return d
-
-
 class TreemapViz(BaseViz):
 
     """Tree map visualisation for hierarchical data."""
