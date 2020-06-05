@@ -4533,10 +4533,10 @@
     prop-types "^15.6.1"
     resize-observer-polyfill "1.5.0"
 
-"@vx/responsive@^0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.196.tgz#28d7cfec8128a1c1d28fa98ef83b8ce3191a9044"
-  integrity sha512-mwV0pf7YjdzQH5vqA81vtDLuPT9cKFDu2+vfyP8e4Xun0eWato7ut3j9dP0QLZ3k71CJWeZ4v2thzlcUWafAow==
+"@vx/responsive@^0.0.197":
+  version "0.0.197"
+  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.197.tgz#e3ef1b7c2cdf3be8f579d618df637c0615f41586"
+  integrity sha512-Qv15PJ/Hy79LjyfJ/9E8z+zacKAnD43O2Jg9wvB6PFSNs73xPEDy/mHTYxH+FZv94ruAE3scBO0330W29sQpyg==
   dependencies:
     "@types/lodash" "^4.14.146"
     "@types/react" "*"

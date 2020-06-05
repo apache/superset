@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@types/react": "^16.9.34",
-    "@vx/responsive": "^0.0.196",
+    "@vx/responsive": "^0.0.197",
     "csstype": "^2.6.4"
   },
   "peerDependencies": {
