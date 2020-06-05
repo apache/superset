@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import enum
-from typing import Optional, Type
+from typing import Type
 
 import simplejson as json
 from croniter import croniter
@@ -24,7 +24,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
-from wtforms import BooleanField, StringField
+from wtforms import BooleanField, Form, StringField
 
 from superset import db, security_manager
 from superset.constants import RouteMethod
@@ -37,6 +37,7 @@ from superset.models.schedules import (
 )
 from superset.models.slice import Slice
 from superset.tasks.schedules import schedule_email_report
+from superset.typing import FlaskResponse
 from superset.utils.core import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
 
@@ -48,8 +49,14 @@ class EmailScheduleView(
 ):  # pylint: disable=too-many-ancestors
     include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
-    schedule_type: Optional[str] = None
-    schedule_type_model: Optional[Type] = None
+
+    @property
+    def schedule_type(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def schedule_type_model(self) -> Type:
+        raise NotImplementedError()
 
     page_size = 20
 
@@ -87,7 +94,7 @@ class EmailScheduleView(
 
     edit_form_extra_fields = add_form_extra_fields
 
-    def process_form(self, form, is_created):
+    def process_form(self, form: Form, is_created: bool) -> None:
         if form.test_email_recipients.data:
             test_email_recipients = form.test_email_recipients.data.strip()
         else:
@@ -95,7 +102,7 @@ class EmailScheduleView(
         self._extra_data["test_email"] = form.test_email.data
         self._extra_data["test_email_recipients"] = test_email_recipients
 
-    def pre_add(self, item):
+    def pre_add(self, item: "EmailScheduleView") -> None:
         try:
             recipients = get_email_address_list(item.recipients)
             item.recipients = ", ".join(recipients)
@@ -106,10 +113,10 @@ class EmailScheduleView(
         if not croniter.is_valid(item.crontab):
             raise SupersetException("Invalid crontab format")
 
-    def pre_update(self, item):
+    def pre_update(self, item: "EmailScheduleView") -> None:
         self.pre_add(item)
 
-    def post_add(self, item):
+    def post_add(self, item: "EmailScheduleView") -> None:
         # Schedule a test mail if the user requested for it.
         if self._extra_data["test_email"]:
             recipients = self._extra_data["test_email_recipients"] or item.recipients
@@ -122,12 +129,12 @@ class EmailScheduleView(
         if item.active:
             flash("Schedule changes will get applied in one hour", "warning")
 
-    def post_update(self, item):
+    def post_update(self, item: "EmailScheduleView") -> None:
         self.post_add(item)
 
     @has_access
     @expose("/fetch/<int:item_id>/", methods=["GET"])
-    def fetch_schedules(self, item_id):
+    def fetch_schedules(self, item_id: int) -> FlaskResponse:
 
         query = db.session.query(self.datamodel.obj)
         query = query.join(self.schedule_type_model).filter(
@@ -147,7 +154,9 @@ class EmailScheduleView(
                     info[col] = info[col].username
 
             info["user"] = schedule.user.username
-            info[self.schedule_type] = getattr(schedule, self.schedule_type).id
+            info[self.schedule_type] = getattr(  # type: ignore
+                schedule, self.schedule_type
+            ).id
             schedules.append(info)
 
         return json_success(json.dumps(schedules, default=json_iso_dttm_ser))
@@ -208,7 +217,7 @@ class DashboardEmailScheduleView(
         "delivery_type": _("Delivery Type"),
     }
 
-    def pre_add(self, item):
+    def pre_add(self, item: "DashboardEmailScheduleView") -> None:
         if item.dashboard is None:
             raise SupersetException("Dashboard is mandatory")
         super(DashboardEmailScheduleView, self).pre_add(item)
@@ -269,7 +278,7 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
         "email_format": _("Email Format"),
     }
 
-    def pre_add(self, item):
+    def pre_add(self, item: "SliceEmailScheduleView") -> None:
         if item.slice is None:
             raise SupersetException("Slice is mandatory")
         super(SliceEmailScheduleView, self).pre_add(item)

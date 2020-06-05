@@ -14,9 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, cast, Optional
+
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
 from sqlalchemy import or_
+from sqlalchemy.orm import Query
 
 from superset import security_manager
 
@@ -36,9 +39,9 @@ class FilterRelatedOwners(BaseFilter):
     name = lazy_gettext("Owner")
     arg_name = "owners"
 
-    def apply(self, query, value):
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
         user_model = security_manager.user_model
-        like_value = "%" + value + "%"
+        like_value = "%" + cast(str, value) + "%"
         return query.filter(
             or_(
                 # could be made to handle spaces between names more gracefully
