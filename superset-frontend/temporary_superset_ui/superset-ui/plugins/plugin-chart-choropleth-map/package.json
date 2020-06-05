@@ -36,7 +36,7 @@
     "@vx/event": "^0.0.196",
     "@vx/pattern": "^0.0.196",
     "@vx/tooltip": "^0.0.196",
-    "@vx/zoom": "^0.0.196",
+    "@vx/zoom": "^0.0.197",
     "encodable": "^0.3.7",
     "geojson": "^0.5.0",
     "lodash": "^4.17.15",
