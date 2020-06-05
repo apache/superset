@@ -34,6 +34,7 @@
     "@superset-ui/chart": "^0.13.0",
     "@superset-ui/control-utils": "^0.13.9",
     "@superset-ui/translation": "^0.13.0",
+    "@superset-ui/style": "^0.13.26",
     "@superset-ui/validator": "^0.13.0",
     "react": "^15 || ^16"
   }
