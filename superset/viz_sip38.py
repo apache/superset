@@ -860,19 +860,6 @@ class SeparatorViz(MarkupViz):
     verbose_name = _("Separator")
 
 
-class WordCloudViz(BaseViz):
-
-    """Build a colorful word cloud
-
-    Uses the nice library at:
-    https://github.com/jasondavies/d3-cloud
-    """
-
-    viz_type = "word_cloud"
-    verbose_name = _("Word Cloud")
-    is_timeseries = False
-
-
 class TreemapViz(BaseViz):
 
     """Tree map visualisation for hierarchical data."""
