@@ -225,9 +225,11 @@ def deliver_dashboard(schedule: DashboardEmailSchedule) -> None:
     """
     dashboard = schedule.dashboard
 
-    dashboard_url = _get_url_path("Superset.dashboard", dashboard_id=dashboard.id)
+    dashboard_url = _get_url_path(
+        "Superset.dashboard", dashboard_id_or_slug=dashboard.id
+    )
     dashboard_url_user_friendly = _get_url_path(
-        "Superset.dashboard", user_friendly=True, dashboard_id=dashboard.id
+        "Superset.dashboard", user_friendly=True, dashboard_id_or_slug=dashboard.id
     )
 
     # Create a driver, fetch the page, wait for the page to render

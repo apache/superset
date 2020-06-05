@@ -531,7 +531,7 @@ class SqlaTable(Model, BaseDatasource):
         return ("[{obj.database}].[{obj.table_name}]" "(id:{obj.id})").format(obj=self)
 
     @property
-    def name(self) -> str:  # type: ignore
+    def name(self) -> str:
         if not self.schema:
             return self.table_name
         return "{}.{}".format(self.schema, self.table_name)
