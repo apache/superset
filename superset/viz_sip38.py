@@ -56,7 +56,7 @@ from superset.exceptions import (
     SpatialException,
 )
 from superset.models.helpers import QueryResult
-from superset.typing import VizData
+from superset.typing import QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -251,7 +251,7 @@ class BaseViz:
             df = df[min_periods:]
         return df
 
-    def get_samples(self):
+    def get_samples(self) -> List[Dict[str, Any]]:
         query_obj = self.query_obj()
         query_obj.update(
             {
@@ -452,7 +452,7 @@ class BaseViz:
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
-    def get_payload(self, query_obj=None):
+    def get_payload(self, query_obj: Optional[QueryObjectDict] = None) -> VizPayload:
         """Returns a payload of metadata and data"""
         self.run_extra_queries()
         payload = self.get_df_payload(query_obj)
@@ -464,7 +464,9 @@ class BaseViz:
             del payload["df"]
         return payload
 
-    def get_df_payload(self, query_obj=None, **kwargs):
+    def get_df_payload(
+        self, query_obj: Optional[QueryObjectDict] = None, **kwargs: Any
+    ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         if not query_obj:
             query_obj = self.query_obj()
@@ -559,11 +561,11 @@ class BaseViz:
             obj, default=utils.json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
         )
 
-    def payload_json_and_has_error(self, payload):
+    def payload_json_and_has_error(self, payload: VizPayload) -> Tuple[str, bool]:
         has_error = (
             payload.get("status") == utils.QueryStatus.FAILED
             or payload.get("error") is not None
-            or len(payload.get("errors")) > 0
+            or len(payload.get("errors", [])) > 0
         )
         return self.json_dumps(payload), has_error
 
@@ -578,7 +580,7 @@ class BaseViz:
         }
         return content
 
-    def get_csv(self):
+    def get_csv(self) -> Optional[str]:
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config["CSV_EXPORT"])

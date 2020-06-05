@@ -548,7 +548,7 @@ class DruidDatasource(Model, BaseDatasource):
         return [c.column_name for c in self.columns if c.is_numeric]
 
     @property
-    def name(self) -> str:  # type: ignore
+    def name(self) -> str:
         return self.datasource_name
 
     @property

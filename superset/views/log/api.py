@@ -28,5 +28,5 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     class_permission_name = "LogModelView"
     resource_name = "log"
     allow_browser_login = True
-    list_columns = ("user.username", "action", "dttm")
+    list_columns = ["user.username", "action", "dttm"]
     show_columns = list_columns

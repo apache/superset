@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, Dict
+
 from flask_appbuilder import CompactCRUDMixin
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
@@ -30,7 +32,7 @@ class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
     Validates dttm fields.
     """
 
-    def __call__(self, form, field):
+    def __call__(self, form: Dict[str, Any], field: Any) -> None:
         if not form["start_dttm"].data and not form["end_dttm"].data:
             raise StopValidation(_("annotation start time or end time is required."))
         elif (
@@ -82,13 +84,13 @@ class AnnotationModelView(
 
     validators_columns = {"start_dttm": [StartEndDttmValidator()]}
 
-    def pre_add(self, item):
+    def pre_add(self, item: "AnnotationModelView") -> None:
         if not item.start_dttm:
             item.start_dttm = item.end_dttm
         elif not item.end_dttm:
             item.end_dttm = item.start_dttm
 
-    def pre_update(self, item):
+    def pre_update(self, item: "AnnotationModelView") -> None:
         self.pre_add(item)
 
 
