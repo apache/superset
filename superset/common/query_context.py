@@ -157,7 +157,6 @@ class QueryContext:
             query_obj.post_processing = []
             query_obj.row_limit = min(row_limit, config["SAMPLES_ROW_LIMIT"])
             query_obj.columns = [o.column_name for o in self.datasource.columns]
-
         payload = self.get_df_payload(query_obj)
         df = payload["df"]
         status = payload["status"]
@@ -167,6 +166,8 @@ class QueryContext:
             else:
                 payload["data"] = self.get_data(df)
         del payload["df"]
+        if self.result_type == utils.ChartDataResultType.RESULTS:
+            return {"data": payload["data"]}
         return payload
 
     def get_payload(self) -> List[Dict[str, Any]]:

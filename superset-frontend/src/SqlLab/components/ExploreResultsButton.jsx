@@ -27,7 +27,7 @@ import { t } from '@superset-ui/translation';
 import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
 
 import shortid from 'shortid';
-import { exportChart } from '../../explore/exploreUtils';
+import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
 import Button from '../../components/Button';
 
@@ -150,7 +150,7 @@ class ExploreResultsButton extends React.PureComponent {
         );
 
         // open new window for data visualization
-        exportChart(formData);
+        exploreChart(formData);
       })
       .catch(() => {
         this.props.actions.addDangerToast(
