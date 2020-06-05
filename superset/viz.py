@@ -2720,7 +2720,7 @@ class PairedTTestViz(BaseViz):
             else:
                 cols.append(col)
         df.columns = cols
-        data: Dict = {}
+        data: Dict[str, List[Dict[str, Any]]] = {}
         series = df.to_dict("series")
         for nameSet in df.columns:
             # If no groups are defined, nameSet will be the metric name
@@ -2750,7 +2750,7 @@ class RoseViz(NVD3TimeSeriesViz):
             return None
 
         data = super().get_data(df)
-        result: Dict = {}
+        result: Dict[str, List[Dict[str, str]]] = {}
         for datum in data:  # type: ignore
             key = datum["key"]
             for val in datum["values"]:

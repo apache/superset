@@ -33,6 +33,7 @@ from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
+from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.jinja_context import (  # pylint: disable=unused-import
@@ -421,7 +422,7 @@ DEFAULT_MODULE_DS_MAP = OrderedDict(
     ]
 )
 ADDITIONAL_MODULE_DS_MAP: Dict[str, List[str]] = {}
-ADDITIONAL_MIDDLEWARE: List[Callable] = []
+ADDITIONAL_MIDDLEWARE: List[Callable[..., Any]] = []
 
 # 1) https://docs.python-guide.org/writing/logging/
 # 2) https://docs.python.org/2/library/logging.config.html
@@ -624,7 +625,7 @@ ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
 # dictionary.
-JINJA_CONTEXT_ADDONS: Dict[str, Callable] = {}
+JINJA_CONTEXT_ADDONS: Dict[str, Callable[..., Any]] = {}
 
 # A dictionary of macro template processors that gets merged into global
 # template processors. The existing template processors get updated with this
@@ -684,7 +685,7 @@ PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your
 # configuration. These blueprints will get integrated in the app
-BLUEPRINTS: List[Callable] = []
+BLUEPRINTS: List[Blueprint] = []
 
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL

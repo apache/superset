@@ -597,7 +597,7 @@ class SqlaTable(Model, BaseDatasource):
         )
 
     @property
-    def data(self) -> Dict:
+    def data(self) -> Dict[str, Any]:
         d = super().data
         if self.type == "table":
             grains = self.database.grains() or []
@@ -684,7 +684,9 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias("expr_qry")
         return self.get_sqla_table()
 
-    def adhoc_metric_to_sqla(self, metric: Dict, cols: Dict) -> Optional[Column]:
+    def adhoc_metric_to_sqla(
+        self, metric: Dict[str, Any], cols: Dict[str, Any]
+    ) -> Optional[Column]:
         """
         Turn an adhoc metric into a sqlalchemy column.
 
@@ -804,7 +806,7 @@ class SqlaTable(Model, BaseDatasource):
             main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
 
         select_exprs: List[Column] = []
-        groupby_exprs_sans_timestamp: OrderedDict = OrderedDict()
+        groupby_exprs_sans_timestamp = OrderedDict()
 
         if (is_sip_38 and metrics and columns) or (not is_sip_38 and groupby):
             # dedup columns while preserving order
@@ -874,7 +876,7 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.group_by(*groupby_exprs_with_timestamp.values())
 
         where_clause_and = []
-        having_clause_and: List = []
+        having_clause_and = []
 
         for flt in filter:  # type: ignore
             if not all([flt.get(s) for s in ["col", "op"]]):
@@ -1082,7 +1084,10 @@ class SqlaTable(Model, BaseDatasource):
         return ob
 
     def _get_top_groups(
-        self, df: pd.DataFrame, dimensions: List, groupby_exprs: OrderedDict
+        self,
+        df: pd.DataFrame,
+        dimensions: List[str],
+        groupby_exprs: "OrderedDict[str, Any]",
     ) -> ColumnElement:
         groups = []
         for unused, row in df.iterrows():

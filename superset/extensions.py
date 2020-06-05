@@ -95,7 +95,9 @@ class UIManifestProcessor:
         self.parse_manifest_json()
 
         @app.context_processor
-        def get_manifest() -> Dict[str, Callable]:  # pylint: disable=unused-variable
+        def get_manifest() -> Dict[  # pylint: disable=unused-variable
+            str, Callable[[str], List[str]]
+        ]:
             loaded_chunks = set()
 
             def get_files(bundle: str, asset_type: str = "js") -> List[str]:
@@ -131,7 +133,7 @@ appbuilder = AppBuilder(update_perms=False)
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 db = SQLA()
-_event_logger: dict = {}
+_event_logger: Dict[str, Any] = {}
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
 jinja_context_manager = JinjaContextManager()

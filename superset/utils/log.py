@@ -35,7 +35,7 @@ class AbstractEventLogger(ABC):
     ) -> None:
         pass
 
-    def log_this(self, f: Callable) -> Callable:
+    def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             user_id = None
@@ -124,7 +124,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
             )
         )
 
-        event_logger_type = cast(Type, cfg_value)
+        event_logger_type = cast(Type[Any], cfg_value)
         result = event_logger_type()
 
     # Verify that we have a valid logger impl

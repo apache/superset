@@ -26,6 +26,7 @@ from pandas import DataFrame
 
 from superset import app, is_feature_enabled
 from superset.exceptions import QueryObjectValidationError
+from superset.typing import Metric
 from superset.utils import core as utils, pandas_postprocessing
 from superset.views.utils import get_time_range_endpoints
 
@@ -67,11 +68,11 @@ class QueryObject:
     row_limit: int
     filter: List[Dict[str, Any]]
     timeseries_limit: int
-    timeseries_limit_metric: Optional[Dict]
+    timeseries_limit_metric: Optional[Metric]
     order_desc: bool
-    extras: Dict
+    extras: Dict[str, Any]
     columns: List[str]
-    orderby: List[List]
+    orderby: List[List[str]]
     post_processing: List[Dict[str, Any]]
 
     def __init__(
@@ -85,11 +86,11 @@ class QueryObject:
         is_timeseries: bool = False,
         timeseries_limit: int = 0,
         row_limit: int = app.config["ROW_LIMIT"],
-        timeseries_limit_metric: Optional[Dict] = None,
+        timeseries_limit_metric: Optional[Metric] = None,
         order_desc: bool = True,
-        extras: Optional[Dict] = None,
+        extras: Optional[Dict[str, Any]] = None,
         columns: Optional[List[str]] = None,
-        orderby: Optional[List[List]] = None,
+        orderby: Optional[List[List[str]]] = None,
         post_processing: Optional[List[Dict[str, Any]]] = None,
         **kwargs: Any,
     ):
