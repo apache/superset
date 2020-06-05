@@ -67,6 +67,8 @@ export type QueryObject = {
 
   /** Maximum numbers of rows to return */
   row_limit?: number;
+  /** Number of rows to skip */
+  row_offset?: number;
   /** Maximum number of series */
   timeseries_limit?: number;
   /** The metric used to sort the returned result. */
@@ -88,6 +90,10 @@ export interface QueryContext {
   };
   /** Force refresh of all queries */
   force: boolean;
+  /** Type of result to return for queries */
+  result_type: string;
+  /** Response format */
+  result_format: string;
   queries: QueryObject[];
 }
 
