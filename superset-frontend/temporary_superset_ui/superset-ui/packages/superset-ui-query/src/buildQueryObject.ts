@@ -27,6 +27,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     until,
     order_desc,
     row_limit,
+    row_offset,
     limit,
     timeseries_limit_metric,
     queryFields,
@@ -34,6 +35,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
   } = formData;
 
   const numericRowLimit = Number(row_limit);
+  const numericRowOffset = Number(row_offset);
   const { metrics, groupby, columns } = extractQueryFields(residualFormData, queryFields);
   const groupbySet = new Set([...columns, ...groupby]);
 
@@ -46,6 +48,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     orderby: [],
     row_limit: row_limit == null || Number.isNaN(numericRowLimit) ? undefined : numericRowLimit,
+    row_offset: row_offset == null || Number.isNaN(numericRowOffset) ? undefined : numericRowOffset,
     since,
     time_range,
     timeseries_limit: limit ? Number(limit) : 0,

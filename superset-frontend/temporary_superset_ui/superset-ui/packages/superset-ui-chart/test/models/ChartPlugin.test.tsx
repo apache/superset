@@ -25,6 +25,8 @@ describe('ChartPlugin', () => {
     datasource: { id: 1, type: DatasourceType.Table },
     queries: [{ granularity: 'day' }],
     force: false,
+    result_format: 'json',
+    result_type: 'full',
   });
 
   const controlPanel = { abc: 1 };
