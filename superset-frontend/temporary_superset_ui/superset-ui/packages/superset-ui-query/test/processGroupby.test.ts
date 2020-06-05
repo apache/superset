@@ -6,7 +6,7 @@ describe('processGroupby', () => {
   });
 
   it('should exclude non-string values', () => {
-    // @ts-ignore, change to @ts-expect-error when updated to TypeScript>=3.9
+    // @ts-expect-error
     expect(processGroupby(['bar', 1, undefined, null, 'foo'])).toEqual(['bar', 'foo']);
   });
 });

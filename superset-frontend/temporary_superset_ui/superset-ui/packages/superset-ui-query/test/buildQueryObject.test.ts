@@ -88,7 +88,7 @@ describe('buildQueryObject', () => {
     expect(query.timeseries_limit_metric).toEqual({ label: metric });
   });
 
-  it('should handle null and non-numeric row_limit', () => {
+  it('should handle null and non-numeric row_limit and row_offset', () => {
     const baseQuery = {
       datasource: '5__table',
       granularity_sqla: 'ds',
@@ -99,20 +99,25 @@ describe('buildQueryObject', () => {
     // undefined
     query = buildQueryObject({ ...baseQuery });
     expect(query.row_limit).toBeUndefined();
+    expect(query.row_offset).toBeUndefined();
 
     // null value
-    query = buildQueryObject({ ...baseQuery, row_limit: null });
+    query = buildQueryObject({ ...baseQuery, row_limit: null, row_offset: null });
     expect(query.row_limit).toBeUndefined();
+    expect(query.row_offset).toBeUndefined();
 
-    query = buildQueryObject({ ...baseQuery, row_limit: 1000 });
+    query = buildQueryObject({ ...baseQuery, row_limit: 1000, row_offset: 50 });
     expect(query.row_limit).toStrictEqual(1000);
+    expect(query.row_offset).toStrictEqual(50);
 
     // valid string
-    query = buildQueryObject({ ...baseQuery, row_limit: '200' });
+    query = buildQueryObject({ ...baseQuery, row_limit: '200', row_offset: '100' });
     expect(query.row_limit).toStrictEqual(200);
+    expect(query.row_offset).toStrictEqual(100);
 
     // invalid string
-    query = buildQueryObject({ ...baseQuery, row_limit: 'two hundred' });
+    query = buildQueryObject({ ...baseQuery, row_limit: 'two hundred', row_offset: 'twenty' });
     expect(query.row_limit).toBeUndefined();
+    expect(query.row_offset).toBeUndefined();
   });
 });
