@@ -4292,10 +4292,10 @@
   resolved "https://registry.yarnpkg.com/@vx/clip-path/-/clip-path-0.0.165.tgz#93cd65cc6a35319c7e403ce7b973ac1c8045b741"
   integrity sha512-mBCbgguLMVyGvar5FbxqyyY4NQFlnXoSLF0TrhgWYkF/FCXdE1CzBC+Y4iXIJOY0ZTtluqL9XrNdIDpx49AmuA==
 
-"@vx/clip-path@^0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/clip-path/-/clip-path-0.0.196.tgz#a79e3fd5df0376a23a38b86a5eb7271a2a4fc4d6"
-  integrity sha512-yJmDaxEirHRUqJOGVaIUQQJ3HmV70JlT7TVXW//3LlNbAhR1gzBVnmi8wk02AvVog7h0NlR0jSHXCvGith8uLw==
+"@vx/clip-path@^0.0.197":
+  version "0.0.197"
+  resolved "https://registry.yarnpkg.com/@vx/clip-path/-/clip-path-0.0.197.tgz#9d7e5dc1f4f772352196226165e32fb8df39664b"
+  integrity sha512-uokRTnLXmbjFl0oGDDguWfYYRw4bMjzv8VNRxkENc7IILLz8HSiLH9xpNH4NaAvHtggkvgRR0RlkxvHimr7KDA==
   dependencies:
     "@types/react" "*"
     prop-types "^15.5.10"
