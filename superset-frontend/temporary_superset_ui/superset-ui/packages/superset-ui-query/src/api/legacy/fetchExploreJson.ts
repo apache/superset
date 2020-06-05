@@ -1,11 +1,10 @@
-import { SupersetClientInterface, SupersetClient, RequestConfig } from '@superset-ui/connection';
+import { SupersetClient, RequestConfig } from '@superset-ui/connection';
 import { QueryFormData } from '../../types/QueryFormData';
 import { LegacyChartDataResponse } from './types';
+import { BaseParams } from '../types';
 
-export interface Params {
-  client?: SupersetClientInterface;
+export interface Params extends BaseParams {
   method?: 'GET' | 'POST';
-  requestConfig?: Partial<RequestConfig>;
   url?: string;
   formData: QueryFormData;
 }
