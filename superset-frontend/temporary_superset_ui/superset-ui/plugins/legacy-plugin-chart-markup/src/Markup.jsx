@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import './Markup.css';
+import styled from '@superset-ui/style';
 
 const propTypes = {
   className: PropTypes.string,
@@ -42,7 +42,6 @@ const CONTAINER_STYLE = {
 class Markup extends React.PureComponent {
   render() {
     const { className, height, isSeparator, html, cssFiles } = this.props;
-
     return (
       <div className={className} style={CONTAINER_STYLE}>
         <iframe
@@ -68,4 +67,25 @@ class Markup extends React.PureComponent {
 Markup.propTypes = propTypes;
 Markup.defaultProps = defaultProps;
 
-export default Markup;
+export default styled(Markup)`
+  .markup.slice_container {
+    margin: 10px;
+  }
+  .separator {
+    background-color: transparent !important;
+  }
+  .separator hr {
+    border: 0;
+    height: 1px;
+    background-image: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 1),
+      rgba(0, 0, 0, 1),
+      rgba(0, 0, 0, 1),
+      rgba(0, 0, 0, 0)
+    );
+  }
+  .separator .chart-header {
+    border: none !important;
+  }
+`;
