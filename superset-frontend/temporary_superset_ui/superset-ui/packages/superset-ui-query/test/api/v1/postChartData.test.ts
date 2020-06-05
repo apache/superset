@@ -1,14 +1,10 @@
 import fetchMock from 'fetch-mock';
-import { SupersetClient } from '@superset-ui/connection';
-import { LOGIN_GLOB } from '../fixtures/constants';
-import { postChartData, buildQueryContext } from '../../../src';
+import { buildQueryContext } from '../../../src';
+import { postChartData } from '../../../src/api/v1';
+import setupClientForTest from '../setupClientForTest';
 
 describe('postChartData()', () => {
-  beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { csrf_token: '1234' });
-    SupersetClient.reset();
-    SupersetClient.configure().init();
-  });
+  beforeAll(setupClientForTest);
 
   afterEach(fetchMock.restore);
 

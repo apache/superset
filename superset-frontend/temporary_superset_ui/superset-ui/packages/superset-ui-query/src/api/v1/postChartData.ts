@@ -1,10 +1,9 @@
-import { SupersetClientInterface, SupersetClient, RequestConfig } from '@superset-ui/connection';
+import { SupersetClient, RequestConfig } from '@superset-ui/connection';
 import { QueryContext } from '../../types/Query';
+import { BaseParams } from '../types';
 import { V1ChartDataResponse } from './types';
 
-export interface Params {
-  client?: SupersetClientInterface;
-  requestConfig?: Partial<RequestConfig>;
+export interface Params extends BaseParams {
   queryContext: QueryContext;
 }
 

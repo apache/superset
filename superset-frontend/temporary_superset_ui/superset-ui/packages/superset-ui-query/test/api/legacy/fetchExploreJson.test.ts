@@ -1,14 +1,9 @@
 import fetchMock from 'fetch-mock';
-import { SupersetClient } from '@superset-ui/connection';
-import { LOGIN_GLOB } from '../fixtures/constants';
-import { fetchExploreJson } from '../../../src';
+import { fetchExploreJson } from '../../../src/api/legacy';
+import setupClientForTest from '../setupClientForTest';
 
 describe('fetchExploreJson()', () => {
-  beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { csrf_token: '1234' });
-    SupersetClient.reset();
-    SupersetClient.configure().init();
-  });
+  beforeAll(setupClientForTest);
 
   afterEach(fetchMock.restore);
 
