@@ -1737,7 +1737,14 @@ class SankeyViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
-        df.columns = ["source", "target", "value"]
+        df.rename(
+            columns={
+                self.form_data["groupby"][0]: "source",
+                self.form_data["groupby"][1]: "target",
+                df.columns[-1]: "value",
+            },
+            inplace=True,
+        )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)
         recs = df.to_dict(orient="records")
