@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 import imp
 import json
-from typing import Dict, Union, List
+from typing import Any, Dict, Union, List
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -397,7 +397,9 @@ class SupersetTestCase(TestCase):
             mock_method.assert_called_once_with("error", func_name)
         return rv
 
-    def post_assert_metric(self, uri: str, data: Dict, func_name: str) -> Response:
+    def post_assert_metric(
+        self, uri: str, data: Dict[str, Any], func_name: str
+    ) -> Response:
         """
         Simple client post with an extra assertion for statsd metrics
 
@@ -417,7 +419,9 @@ class SupersetTestCase(TestCase):
             mock_method.assert_called_once_with("error", func_name)
         return rv
 
-    def put_assert_metric(self, uri: str, data: Dict, func_name: str) -> Response:
+    def put_assert_metric(
+        self, uri: str, data: Dict[str, Any], func_name: str
+    ) -> Response:
         """
         Simple client put with an extra assertion for statsd metrics
 

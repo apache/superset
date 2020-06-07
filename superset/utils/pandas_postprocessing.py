@@ -72,8 +72,8 @@ WHITELIST_CUMULATIVE_FUNCTIONS = (
 )
 
 
-def validate_column_args(*argnames: str) -> Callable:
-    def wrapper(func: Callable) -> Callable:
+def validate_column_args(*argnames: str) -> Callable[..., Any]:
+    def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped(df: DataFrame, **options: Any) -> Any:
             columns = df.columns.tolist()
             for name in argnames:
@@ -471,7 +471,7 @@ def geodetic_parse(
         Parse a string containing a geodetic point and return latitude, longitude
         and altitude
         """
-        point = Point(location)  # type: ignore
+        point = Point(location)
         return point[0], point[1], point[2]
 
     try:

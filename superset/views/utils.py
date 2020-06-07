@@ -35,7 +35,7 @@ from superset.utils.core import QueryStatus, TimeRangeEndpoint
 from superset.viz import BaseViz
 
 if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
-    from superset import viz_sip38 as viz  # type: ignore
+    from superset import viz_sip38 as viz
 else:
     from superset import viz  # type: ignore
 
@@ -318,9 +318,9 @@ def get_dashboard_extra_filters(
 
 
 def build_extra_filters(
-    layout: Dict,
-    filter_scopes: Dict,
-    default_filters: Dict[str, Dict[str, List]],
+    layout: Dict[str, Dict[str, Any]],
+    filter_scopes: Dict[str, Dict[str, Any]],
+    default_filters: Dict[str, Dict[str, List[Any]]],
     slice_id: int,
 ) -> List[Dict[str, Any]]:
     extra_filters = []
@@ -343,7 +343,9 @@ def build_extra_filters(
     return extra_filters
 
 
-def is_slice_in_container(layout: Dict, container_id: str, slice_id: int) -> bool:
+def is_slice_in_container(
+    layout: Dict[str, Dict[str, Any]], container_id: str, slice_id: int
+) -> bool:
     if container_id == "ROOT_ID":
         return True
 

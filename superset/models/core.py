@@ -341,11 +341,14 @@ class Database(
     def get_reserved_words(self) -> Set[str]:
         return self.get_dialect().preparer.reserved_words
 
-    def get_quoter(self) -> Callable:
+    def get_quoter(self) -> Callable[[str, Any], str]:
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(  # pylint: disable=too-many-locals
-        self, sql: str, schema: Optional[str] = None, mutator: Optional[Callable] = None
+        self,
+        sql: str,
+        schema: Optional[str] = None,
+        mutator: Optional[Callable[[pd.DataFrame], None]] = None,
     ) -> pd.DataFrame:
         sqls = [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
@@ -450,7 +453,7 @@ class Database(
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: "db:{}:schema:None:view_list",
-        attribute_in_key="id",  # type: ignore
+        attribute_in_key="id",
     )
     def get_all_view_names_in_database(
         self,

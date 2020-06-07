@@ -51,7 +51,7 @@ SELENIUM_HEADSTART = 3
 WindowSize = Tuple[int, int]
 
 
-def get_auth_cookies(user: "User") -> List[Dict]:
+def get_auth_cookies(user: "User") -> List[Dict[Any, Any]]:
     # Login with the user specified to get the reports
     with current_app.test_request_context("/login"):
         login_user(user)
@@ -101,14 +101,14 @@ class AuthWebDriverProxy:
         self,
         driver_type: str,
         window: Optional[WindowSize] = None,
-        auth_func: Optional[Callable] = None,
+        auth_func: Optional[
+            Callable[..., Any]
+        ] = None,  # pylint: disable=bad-whitespace
     ):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-        config_auth_func: Callable = current_app.config.get(
-            "WEBDRIVER_AUTH_FUNC", auth_driver
-        )
-        self._auth_func: Callable = auth_func or config_auth_func
+        config_auth_func = current_app.config.get("WEBDRIVER_AUTH_FUNC", auth_driver)
+        self._auth_func = auth_func or config_auth_func
 
     def create(self) -> WebDriver:
         if self._driver_type == "firefox":
@@ -123,7 +123,7 @@ class AuthWebDriverProxy:
             raise Exception(f"Webdriver name ({self._driver_type}) not supported")
         # Prepare args for the webdriver init
         options.add_argument("--headless")
-        kwargs: Dict = dict(options=options)
+        kwargs: Dict[Any, Any] = dict(options=options)
         kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
         logger.info("Init selenium driver")
         return driver_class(**kwargs)

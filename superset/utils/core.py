@@ -85,7 +85,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import FormData, Metric
+from superset.typing import FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
 try:
@@ -147,7 +147,9 @@ class _memoized:
     should account for instance variable changes.
     """
 
-    def __init__(self, func: Callable, watch: Optional[Tuple[str, ...]] = None) -> None:
+    def __init__(
+        self, func: Callable[..., Any], watch: Optional[Tuple[str, ...]] = None
+    ) -> None:
         self.func = func
         self.cache: Dict[Any, Any] = {}
         self.is_method = False
@@ -173,7 +175,7 @@ class _memoized:
         """Return the function's docstring."""
         return self.func.__doc__ or ""
 
-    def __get__(self, obj: Any, objtype: Type) -> functools.partial:
+    def __get__(self, obj: Any, objtype: Type[Any]) -> functools.partial:  # type: ignore
         if not self.is_method:
             self.is_method = True
         """Support instance methods."""
@@ -181,13 +183,13 @@ class _memoized:
 
 
 def memoized(
-    func: Optional[Callable] = None, watch: Optional[Tuple[str, ...]] = None
-) -> Callable:
+    func: Optional[Callable[..., Any]] = None, watch: Optional[Tuple[str, ...]] = None
+) -> Callable[..., Any]:
     if func:
         return _memoized(func)
     else:
 
-        def wrapper(f: Callable) -> Callable:
+        def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
             return _memoized(f, watch)
 
         return wrapper
@@ -1241,7 +1243,9 @@ def create_ssl_cert_file(certificate: str) -> str:
     return path
 
 
-def time_function(func: Callable, *args: Any, **kwargs: Any) -> Tuple[float, Any]:
+def time_function(
+    func: Callable[..., FlaskResponse], *args: Any, **kwargs: Any
+) -> Tuple[float, Any]:
     """
     Measures the amount of time a function takes to execute in ms
 

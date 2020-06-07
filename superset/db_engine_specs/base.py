@@ -151,7 +151,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
 
     # default matching patterns for identifying column types
-    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern, ...]] = {
+    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern[Any], ...]] = {
         utils.DbColumnType.NUMERIC: (
             re.compile(r".*DOUBLE.*", re.IGNORECASE),
             re.compile(r".*FLOAT.*", re.IGNORECASE),
@@ -296,7 +296,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return select_exprs
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
         """
 
         :param cursor: Cursor instance
@@ -311,8 +311,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def expand_data(
-        cls, columns: List[dict], data: List[dict]
-    ) -> Tuple[List[dict], List[dict], List[dict]]:
+        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
+    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
         Some engines support expanding nested fields. See implementation in Presto
         spec for details.
@@ -645,7 +645,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str],
         database: "Database",
         query: Select,
-        columns: Optional[List] = None,
+        columns: Optional[List[Dict[str, str]]] = None,
     ) -> Optional[Select]:
         """
         Add a where clause to a query to reference only the most recent partition
@@ -925,7 +925,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return []
 
     @staticmethod
-    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple]:
+    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple[Any, ...]]:
         """
         Convert pyodbc.Row objects from `fetch_data` to tuples.
 
