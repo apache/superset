@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import enum
-from typing import Type
+from typing import Type, Union
 
 import simplejson as json
 from croniter import croniter
@@ -55,7 +55,7 @@ class EmailScheduleView(
         raise NotImplementedError()
 
     @property
-    def schedule_type_model(self) -> Type:
+    def schedule_type_model(self) -> Type[Union[Dashboard, Slice]]:
         raise NotImplementedError()
 
     page_size = 20
@@ -154,9 +154,7 @@ class EmailScheduleView(
                     info[col] = info[col].username
 
             info["user"] = schedule.user.username
-            info[self.schedule_type] = getattr(  # type: ignore
-                schedule, self.schedule_type
-            ).id
+            info[self.schedule_type] = getattr(schedule, self.schedule_type).id
             schedules.append(info)
 
         return json_success(json.dumps(schedules, default=json_iso_dttm_ser))

@@ -41,7 +41,7 @@ get_related_schema = {
 }
 
 
-def statsd_metrics(f: Callable) -> Callable:
+def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
     """
     Handle sending all statsd metrics from the REST API
     """

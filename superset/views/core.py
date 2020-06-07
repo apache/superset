@@ -251,7 +251,7 @@ def check_slice_perms(self: "Superset", slice_id: int) -> None:
 
 def _deserialize_results_payload(
     payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
-) -> Dict[Any, Any]:
+) -> Dict[str, Any]:
     logger.debug(f"Deserializing from msgpack: {use_msgpack}")
     if use_msgpack:
         with stats_timing(
@@ -278,7 +278,7 @@ def _deserialize_results_payload(
         with stats_timing(
             "sqllab.query.results_backend_json_deserialize", stats_logger
         ):
-            return json.loads(payload)  # type: ignore
+            return json.loads(payload)
 
 
 def get_cta_schema_name(
@@ -1343,7 +1343,7 @@ class Superset(BaseSupersetView):
 
         if "timed_refresh_immune_slices" not in md:
             md["timed_refresh_immune_slices"] = []
-        new_filter_scopes: Dict[str, Dict] = {}
+        new_filter_scopes = {}
         if "filter_scopes" in data:
             # replace filter_id and immune ids from old slice id to new slice id:
             # and remove slice ids that are not in dash anymore
@@ -2137,7 +2137,7 @@ class Superset(BaseSupersetView):
                 f"deprecated.{self.__class__.__name__}.select_star.database_not_found"
             )
             return json_error_response("Not found", 404)
-        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)  # type: ignore
+        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
         # Check that the user can access the datasource
         if not self.appbuilder.sm.can_access_datasource(
@@ -2245,7 +2245,7 @@ class Superset(BaseSupersetView):
             )
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
-        obj: dict = _deserialize_results_payload(
+        obj = _deserialize_results_payload(
             payload, query, cast(bool, results_backend_use_msgpack)
         )
 
@@ -2474,9 +2474,7 @@ class Superset(BaseSupersetView):
         schema: str = cast(str, query_params.get("schema"))
         sql: str = cast(str, query_params.get("sql"))
         try:
-            template_params: dict = json.loads(
-                query_params.get("templateParams") or "{}"
-            )
+            template_params = json.loads(query_params.get("templateParams") or "{}")
         except json.JSONDecodeError:
             logger.warning(
                 f"Invalid template parameter {query_params.get('templateParams')}"

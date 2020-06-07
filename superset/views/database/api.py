@@ -61,7 +61,7 @@ def get_col_type(col: Dict[Any, Any]) -> str:
 
 def get_table_metadata(
     database: Database, table_name: str, schema_name: Optional[str]
-) -> Dict:
+) -> Dict[str, Any]:
     """
         Get table metadata information, including type, pk, fks.
         This function raises SQLAlchemyError when a schema is not found.
@@ -72,7 +72,7 @@ def get_table_metadata(
     :param schema_name: schema name
     :return: Dict table metadata ready for API response
     """
-    keys: List = []
+    keys = []
     columns = database.get_columns(table_name, schema_name)
     primary_key = database.get_pk_constraint(table_name, schema_name)
     if primary_key and primary_key.get("constrained_columns"):
@@ -82,7 +82,7 @@ def get_table_metadata(
     foreign_keys = get_foreign_keys_metadata(database, table_name, schema_name)
     indexes = get_indexes_metadata(database, table_name, schema_name)
     keys += foreign_keys + indexes
-    payload_columns: List[Dict] = []
+    payload_columns: List[Dict[str, Any]] = []
     for col in columns:
         dtype = get_col_type(col)
         payload_columns.append(
@@ -90,7 +90,7 @@ def get_table_metadata(
                 "name": col["name"],
                 "type": dtype.split("(")[0] if "(" in dtype else dtype,
                 "longType": dtype,
-                "keys": [k for k in keys if col["name"] in k.get("column_names")],
+                "keys": [k for k in keys if col["name"] in k["column_names"]],
             }
         )
     return {
@@ -270,7 +270,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         """
         self.incr_stats("init", self.table_metadata.__name__)
         try:
-            table_info: Dict = get_table_metadata(database, table_name, schema_name)
+            table_info = get_table_metadata(database, table_name, schema_name)
         except SQLAlchemyError as ex:
             self.incr_stats("error", self.table_metadata.__name__)
             return self.response_422(error_msg_from_exception(ex))

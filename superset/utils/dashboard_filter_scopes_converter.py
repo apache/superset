@@ -29,7 +29,7 @@ def convert_filter_scopes(
 ) -> Dict[int, Dict[str, Dict[str, Any]]]:
     filter_scopes = {}
     immuned_by_id: List[int] = json_metadata.get("filter_immune_slices") or []
-    immuned_by_column: Dict = defaultdict(list)
+    immuned_by_column: Dict[str, List[int]] = defaultdict(list)
     for slice_id, columns in json_metadata.get(
         "filter_immune_slice_fields", {}
     ).items():
@@ -52,7 +52,7 @@ def convert_filter_scopes(
             logging.info(f"slice [{filter_id}] has invalid field: {filter_field}")
 
     for filter_slice in filters:
-        filter_fields: Dict = {}
+        filter_fields: Dict[str, Dict[str, Any]] = {}
         filter_id = filter_slice.id
         slice_params = json.loads(filter_slice.params or "{}")
         configs = slice_params.get("filter_configs") or []
@@ -77,9 +77,10 @@ def convert_filter_scopes(
 
 
 def copy_filter_scopes(
-    old_to_new_slc_id_dict: Dict[int, int], old_filter_scopes: Dict[str, Dict]
-) -> Dict:
-    new_filter_scopes: Dict[str, Dict] = {}
+    old_to_new_slc_id_dict: Dict[int, int],
+    old_filter_scopes: Dict[int, Dict[str, Dict[str, Any]]],
+) -> Dict[str, Dict[Any, Any]]:
+    new_filter_scopes: Dict[str, Dict[Any, Any]] = {}
     for (filter_id, scopes) in old_filter_scopes.items():
         new_filter_key = old_to_new_slc_id_dict.get(int(filter_id))
         if new_filter_key:

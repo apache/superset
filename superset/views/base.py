@@ -143,7 +143,7 @@ def generate_download_headers(
     return headers
 
 
-def api(f: Callable) -> Callable:
+def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     """
     A decorator to label an endpoint as an API. Catches uncaught exceptions and
     return the response in the JSON format
@@ -383,11 +383,11 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
             :param primary_key:
                 record primary key to delete
         """
-        item = self.datamodel.get(primary_key, self._base_filters)  # type: ignore
+        item = self.datamodel.get(primary_key, self._base_filters)
         if not item:
             abort(404)
         try:
-            self.pre_delete(item)  # type: ignore
+            self.pre_delete(item)
         except Exception as ex:  # pylint: disable=broad-except
             flash(str(ex), "danger")
         else:
@@ -400,8 +400,8 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 .all()
             )
 
-            if self.datamodel.delete(item):  # type: ignore
-                self.post_delete(item)  # type: ignore
+            if self.datamodel.delete(item):
+                self.post_delete(item)
 
                 for pv in pvs:
                     security_manager.get_session.delete(pv)
@@ -411,8 +411,8 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
 
                 security_manager.get_session.commit()
 
-            flash(*self.datamodel.message)  # type: ignore
-            self.update_redirect()  # type: ignore
+            flash(*self.datamodel.message)
+            self.update_redirect()
 
     @action(
         "muldelete", __("Delete"), __("Delete all Really?"), "fa-trash", single=False

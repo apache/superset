@@ -23,7 +23,7 @@ import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, TYPE_CHECKING, Union
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
@@ -36,7 +36,6 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
-from werkzeug.datastructures import TypeConversionDict
 from werkzeug.http import parse_cookie
 
 # Superset framework imports
@@ -52,6 +51,11 @@ from superset.models.schedules import (
     SliceEmailSchedule,
 )
 from superset.utils.core import get_email_address_list, send_email_smtp
+
+if TYPE_CHECKING:
+    # pylint: disable=unused-import
+    from werkzeug.datastructures import TypeConversionDict
+
 
 # Globals
 config = app.config
@@ -131,7 +135,7 @@ def _generate_mail_content(
     return EmailContent(body, data, images)
 
 
-def _get_auth_cookies() -> List[TypeConversionDict]:
+def _get_auth_cookies() -> List["TypeConversionDict[Any, Any]"]:
     # Login with the user specified to get the reports
     with app.test_request_context():
         user = security_manager.find_user(config["EMAIL_REPORTS_USER"])

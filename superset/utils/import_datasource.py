@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 def import_datasource(
     session: Session,
     i_datasource: Model,
-    lookup_database: Callable,
-    lookup_datasource: Callable,
+    lookup_database: Callable[[Model], Model],
+    lookup_datasource: Callable[[Model], Model],
     import_time: Optional[int] = None,
 ) -> int:
     """Imports the datasource from the object to the database.
@@ -82,7 +82,9 @@ def import_datasource(
     return datasource.id
 
 
-def import_simple_obj(session: Session, i_obj: Model, lookup_obj: Callable) -> Model:
+def import_simple_obj(
+    session: Session, i_obj: Model, lookup_obj: Callable[[Model], Model]
+) -> Model:
     make_transient(i_obj)
     i_obj.id = None
     i_obj.table = None
