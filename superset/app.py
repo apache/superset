@@ -80,7 +80,7 @@ class SupersetAppInitializer:
 
         self.flask_app = app
         self.config = app.config
-        self.manifest: dict = {}
+        self.manifest: Dict[Any, Any] = {}
 
     def pre_init(self) -> None:
         """
@@ -542,7 +542,7 @@ class SupersetAppInitializer:
                     self.app = app
 
                 def __call__(
-                    self, environ: Dict[str, Any], start_response: Callable
+                    self, environ: Dict[str, Any], start_response: Callable[..., Any]
                 ) -> Any:
                     # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
                     # content-length and read the stream till the end.

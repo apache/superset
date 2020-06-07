@@ -88,7 +88,9 @@ class BaseOwnedSchema(BaseSupersetSchema):
     owners_field_name = "owners"
 
     @post_load
-    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Model:
+    def make_object(
+        self, data: Dict[str, Any], discard: Optional[List[str]] = None
+    ) -> Model:
         discard = discard or []
         discard.append(self.owners_field_name)
         instance = super().make_object(data, discard)

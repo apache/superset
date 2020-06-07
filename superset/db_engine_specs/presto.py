@@ -164,7 +164,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return [row[0] for row in results]
 
     @classmethod
-    def _create_column_info(cls, name: str, data_type: str) -> dict:
+    def _create_column_info(cls, name: str, data_type: str) -> Dict[str, Any]:
         """
         Create column info object
         :param name: column name
@@ -213,7 +213,10 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _parse_structural_column(  # pylint: disable=too-many-locals,too-many-branches
-        cls, parent_column_name: str, parent_data_type: str, result: List[dict]
+        cls,
+        parent_column_name: str,
+        parent_data_type: str,
+        result: List[Dict[str, Any]],
     ) -> None:
         """
         Parse a row or array column
@@ -322,7 +325,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 (i.e. column name and data type)
         """
         columns = cls._show_columns(inspector, table_name, schema)
-        result: List[dict] = []
+        result: List[Dict[str, Any]] = []
         for column in columns:
             try:
                 # parse column if it is a row or array
@@ -361,7 +364,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return column_name.startswith('"') and column_name.endswith('"')
 
     @classmethod
-    def _get_fields(cls, cols: List[dict]) -> List[ColumnClause]:
+    def _get_fields(cls, cols: List[Dict[str, Any]]) -> List[ColumnClause]:
         """
         Format column clauses where names are in quotes and labels are specified
         :param cols: columns
@@ -561,8 +564,8 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def expand_data(  # pylint: disable=too-many-locals
-        cls, columns: List[dict], data: List[dict]
-    ) -> Tuple[List[dict], List[dict], List[dict]]:
+        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
+    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
         We do not immediately display rows and arrays clearly in the data grid. This
         method separates out nested fields and data values to help clearly display
@@ -590,7 +593,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         # process each column, unnesting ARRAY types and
         # expanding ROW types into new columns
         to_process = deque((column, 0) for column in columns)
-        all_columns: List[dict] = []
+        all_columns: List[Dict[str, Any]] = []
         expanded_columns = []
         current_array_level = None
         while to_process:
@@ -843,7 +846,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         schema: Optional[str],
         database: "Database",
         query: Select,
-        columns: Optional[List] = None,
+        columns: Optional[List[Dict[str, str]]] = None,
     ) -> Optional[Select]:
         try:
             col_names, values = cls.latest_partition(

@@ -299,9 +299,10 @@ def _serialize_and_expand_data(
     db_engine_spec: BaseEngineSpec,
     use_msgpack: Optional[bool] = False,
     expand_data: bool = False,
-) -> Tuple[Union[bytes, str], list, list, list]:
-    selected_columns: List[Dict] = result_set.columns
-    expanded_columns: List[Dict]
+) -> Tuple[Union[bytes, str], List[Any], List[Any], List[Any]]:
+    selected_columns = result_set.columns
+    all_columns: List[Any]
+    expanded_columns: List[Any]
 
     if use_msgpack:
         with stats_timing(
