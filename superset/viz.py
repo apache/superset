@@ -1737,11 +1737,13 @@ class SankeyViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        source, target = self.groupby
+        value, = self.metric_labels
         df.rename(
             columns={
-                self.form_data["groupby"][0]: "source",
-                self.form_data["groupby"][1]: "target",
-                df.columns[-1]: "value",
+                source: "source",
+                target: "target",
+                value: "value",
             },
             inplace=True,
         )
