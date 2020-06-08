@@ -1738,14 +1738,9 @@ class SankeyViz(BaseViz):
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         source, target = self.groupby
-        value, = self.metric_labels
+        (value,) = self.metric_labels
         df.rename(
-            columns={
-                source: "source",
-                target: "target",
-                value: "value",
-            },
-            inplace=True,
+            columns={source: "source", target: "target", value: "value",}, inplace=True,
         )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)
