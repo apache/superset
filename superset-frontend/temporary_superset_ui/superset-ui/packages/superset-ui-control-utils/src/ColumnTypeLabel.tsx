@@ -18,11 +18,11 @@
  */
 import React from 'react';
 
-export type Props = {
+export type ColumnTypeLabelProps = {
   type: string;
 };
 
-export function ColumnTypeLabel({ type }: Props) {
+export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
   let stringIcon = '';
   if (typeof type !== 'string') {
     stringIcon = '?';
@@ -51,3 +51,5 @@ export function ColumnTypeLabel({ type }: Props) {
 
   return <span>{typeIcon}</span>;
 }
+
+export default ColumnTypeLabel;
