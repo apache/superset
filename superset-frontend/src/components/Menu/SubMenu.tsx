@@ -17,7 +17,50 @@
  * under the License.
  */
 import React from 'react';
+import styled from '@superset-ui/style';
 import { Button, Nav, Navbar, MenuItem } from 'react-bootstrap';
+
+const StyledHeader = styled.header`
+  margin-top: -20px;
+  .navbar-header .navbar-brand {
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+
+  .navbar-right {
+    .btn-default {
+      background-color: ${({ theme }) => theme.colors.primary.base};
+      border-radius: 4px;
+      border: none;
+      color: ${({ theme }) => theme.colors.secondary.light5};
+      font-size: ${({ theme }) => theme.typography.sizes.s};
+      font-weight: ${({ theme }) => theme.typography.weights.bold};
+      margin: 8px 43px;
+      padding: 8px 51px 8px 43px;
+      text-transform: uppercase;
+      i {
+        padding: 4px ${({ theme }) => theme.typography.sizes.xs};
+      }
+    }
+  }
+
+  .navbar-nav {
+    li {
+      a {
+        font-size: ${({ theme }) => theme.typography.sizes.s};
+        padding: 8px;
+        margin: 8px;
+        color: ${({ theme }) => theme.colors.secondary.dark1};
+      }
+    }
+
+    li.active > a,
+    li > a:hover {
+      background-color: ${({ theme }) => theme.colors.secondary.light4};
+      border-bottom: none;
+      border-radius: 4px;
+    }
+  }
+`;
 
 interface Props {
   createButton: { name: string; url: string | null };
@@ -44,7 +87,7 @@ class SubMenu extends React.PureComponent<Props, State> {
     const { canCreate, childs, label, createButton } = this.props;
 
     return (
-      <header className="top" id="secondary-menu">
+      <StyledHeader>
         <Navbar inverse fluid role="navigation">
           <Navbar.Header>
             <Navbar.Brand>{label}</Navbar.Brand>
@@ -71,7 +114,7 @@ class SubMenu extends React.PureComponent<Props, State> {
             </Nav>
           )}
         </Navbar>
-      </header>
+      </StyledHeader>
     );
   }
 }
