@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { ColumnTypeLabel, Props } from '../src/ColumnTypeLabel';
+import { ColumnTypeLabel, ColumnTypeLabelProps } from '../src/ColumnTypeLabel';
 
 describe('ColumnOption', () => {
   const defaultProps = {
@@ -28,7 +28,7 @@ describe('ColumnOption', () => {
 
   const props = { ...defaultProps };
 
-  function getWrapper(overrides: Partial<Props>) {
+  function getWrapper(overrides: Partial<ColumnTypeLabelProps>) {
     const wrapper = shallow(<ColumnTypeLabel {...props} {...overrides} />);
     return wrapper;
   }
