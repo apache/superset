@@ -66,6 +66,7 @@ class QueryObject:
     groupby: List[str]
     metrics: List[Union[Dict[str, Any], str]]
     row_limit: int
+    row_offset: int
     filter: List[Dict[str, Any]]
     timeseries_limit: int
     timeseries_limit_metric: Optional[Metric]
@@ -86,6 +87,7 @@ class QueryObject:
         is_timeseries: bool = False,
         timeseries_limit: int = 0,
         row_limit: int = app.config["ROW_LIMIT"],
+        row_offset: int = 0,
         timeseries_limit_metric: Optional[Metric] = None,
         order_desc: bool = True,
         extras: Optional[Dict[str, Any]] = None,
@@ -124,6 +126,7 @@ class QueryObject:
         ]
 
         self.row_limit = row_limit
+        self.row_offset = row_offset
         self.filter = filters or []
         self.timeseries_limit = timeseries_limit
         self.timeseries_limit_metric = timeseries_limit_metric
@@ -184,6 +187,7 @@ class QueryObject:
             "is_timeseries": self.is_timeseries,
             "metrics": self.metrics,
             "row_limit": self.row_limit,
+            "row_offset": self.row_offset,
             "filter": self.filter,
             "timeseries_limit": self.timeseries_limit,
             "timeseries_limit_metric": self.timeseries_limit_metric,

@@ -664,6 +664,7 @@ class ChartDataQueryObjectSchema(Schema):
     row_limit = fields.Integer(
         description='Maximum row count. Default: `config["ROW_LIMIT"]`',
     )
+    row_offset = fields.Integer(description="Number of rows to skip. Default: `0`",)
     order_desc = fields.Boolean(
         description="Reverse order. Default: `false`", required=False
     )

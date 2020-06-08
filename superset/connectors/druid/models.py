@@ -1179,6 +1179,7 @@ class DruidDatasource(Model, BaseDatasource):
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         row_limit: Optional[int] = None,
+        row_offset: Optional[int] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
         orderby: Optional[Any] = None,
@@ -1192,6 +1193,8 @@ class DruidDatasource(Model, BaseDatasource):
         # TODO refactor into using a TBD Query object
         client = client or self.cluster.get_pydruid_client()
         row_limit = row_limit or conf.get("ROW_LIMIT")
+        if row_offset:
+            raise SupersetException("Offset not implemented for Druid connector")
 
         if not is_timeseries:
             granularity = "all"
