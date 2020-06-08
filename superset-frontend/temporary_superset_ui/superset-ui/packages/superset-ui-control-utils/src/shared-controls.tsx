@@ -71,7 +71,7 @@ import { legacyValidateInteger, validateNonEmpty } from '@superset-ui/validator'
 
 import { formatSelectOptions } from './selectOptions';
 import { mainMetric, Metric } from './mainMetric';
-import { ColumnOption, Column as ColumnOptionColumn } from './ColumnOption';
+import { ColumnOption, ColumnOptionColumn } from './ColumnOption';
 import { TIME_FILTER_LABELS } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();

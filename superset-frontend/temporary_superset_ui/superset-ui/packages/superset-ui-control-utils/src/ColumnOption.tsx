@@ -22,7 +22,7 @@ import React from 'react';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
-export type Column = {
+export type ColumnOptionColumn = {
   column_name: string;
   groupby?: string;
   verbose_name?: string;
@@ -33,12 +33,12 @@ export type Column = {
   filterable?: boolean;
 };
 
-export type Props = {
-  column: Column;
+export type ColumnOptionProps = {
+  column: ColumnOptionColumn;
   showType?: boolean;
 };
 
-export function ColumnOption({ column, showType = false }: Props) {
+export function ColumnOption({ column, showType = false }: ColumnOptionProps) {
   const hasExpression = column.expression && column.expression !== column.column_name;
 
   let columnType = column.type;
@@ -71,3 +71,5 @@ export function ColumnOption({ column, showType = false }: Props) {
     </span>
   );
 }
+
+export default ColumnOption;

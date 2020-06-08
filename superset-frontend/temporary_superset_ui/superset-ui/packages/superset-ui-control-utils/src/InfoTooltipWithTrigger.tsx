@@ -22,7 +22,7 @@ import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 
 const tooltipStyle: React.CSSProperties = { wordWrap: 'break-word' };
 
-interface Props {
+export interface InfoTooltipWithTriggerProps {
   label?: string;
   tooltip?: string;
   icon?: string;
@@ -32,7 +32,7 @@ interface Props {
   className?: string;
 }
 
-export default function InfoTooltipWithTrigger({
+export function InfoTooltipWithTrigger({
   label,
   tooltip,
   bsStyle,
@@ -40,7 +40,7 @@ export default function InfoTooltipWithTrigger({
   icon = 'info-circle',
   className = 'text-muted',
   placement = 'right',
-}: Props) {
+}: InfoTooltipWithTriggerProps) {
   const iconClass = `fa fa-${icon} ${className} ${bsStyle ? `text-${bsStyle}` : ''}`;
   const iconEl = (
     <i
@@ -75,3 +75,5 @@ export default function InfoTooltipWithTrigger({
     </OverlayTrigger>
   );
 }
+
+export default InfoTooltipWithTrigger;
