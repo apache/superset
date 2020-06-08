@@ -24,6 +24,8 @@ import fetchMock from 'fetch-mock';
 
 import DatasetList from 'src/views/datasetList/DatasetList';
 import ListView from 'src/components/ListView/ListView';
+import { ThemeProvider } from 'emotion-theming';
+import { supersetTheme } from '@superset-ui/style';
 
 // store needed for withToasts(datasetTable)
 const mockStore = configureStore([thunk]);
@@ -67,6 +69,8 @@ describe('DatasetList', () => {
   const mockedProps = {};
   const wrapper = mount(<DatasetList {...mockedProps} />, {
     context: { store },
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
   });
 
   it('renders', () => {
