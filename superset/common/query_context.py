@@ -25,13 +25,12 @@ import numpy as np
 import pandas as pd
 
 from superset import app, cache, db, security_manager
+from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
-
-from .query_object import QueryObject
 
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]

@@ -30,6 +30,7 @@ from superset.typing import Metric
 from superset.utils import core as utils, pandas_postprocessing
 from superset.views.utils import get_time_range_endpoints
 
+config = app.config
 logger = logging.getLogger(__name__)
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
@@ -86,8 +87,8 @@ class QueryObject:
         time_shift: Optional[str] = None,
         is_timeseries: bool = False,
         timeseries_limit: int = 0,
-        row_limit: int = app.config["ROW_LIMIT"],
-        row_offset: int = 0,
+        row_limit: Optional[int] = None,
+        row_offset: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         order_desc: bool = True,
         extras: Optional[Dict[str, Any]] = None,
@@ -102,10 +103,10 @@ class QueryObject:
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(
             relative_start=extras.get(
-                "relative_start", app.config["DEFAULT_RELATIVE_START_TIME"]
+                "relative_start", config["DEFAULT_RELATIVE_START_TIME"]
             ),
             relative_end=extras.get(
-                "relative_end", app.config["DEFAULT_RELATIVE_END_TIME"]
+                "relative_end", config["DEFAULT_RELATIVE_END_TIME"]
             ),
             time_range=time_range,
             time_shift=time_shift,
@@ -125,15 +126,15 @@ class QueryObject:
             for metric in metrics
         ]
 
-        self.row_limit = row_limit
-        self.row_offset = row_offset
+        self.row_limit = row_limit or config["ROW_LIMIT"]
+        self.row_offset = row_offset or 0
         self.filter = filters or []
         self.timeseries_limit = timeseries_limit
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
         self.extras = extras
 
-        if app.config["SIP_15_ENABLED"] and "time_range_endpoints" not in self.extras:
+        if config["SIP_15_ENABLED"] and "time_range_endpoints" not in self.extras:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
 
         self.columns = columns or []
