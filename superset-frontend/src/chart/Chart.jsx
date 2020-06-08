@@ -21,7 +21,7 @@ import React from 'react';
 import { Alert } from 'react-bootstrap';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import ErrorMessageWithStackTrace from '../components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -128,7 +128,7 @@ class Chart extends React.PureComponent {
       info ? info.componentStack : null,
     );
 
-    actions.logEvent(LOG_ACTIONS_RENDER_CHART_CONTAINER, {
+    actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
       slice_id: chartId,
       has_err: true,
       error_details: error.toString(),

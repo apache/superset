@@ -53,12 +53,40 @@ export default () =>
     });
 
     it('should apply filter', () => {
-      cy.get('.Select__control')
-        .contains('Select [region]')
-        .click({ force: true });
+      cy.get('.Select__control input[type=text]').first().focus();
+
+      // should open the filter indicator
+      cy.get('.filter-indicator.active')
+        .should('be.visible')
+        .should(nodes => {
+          expect(nodes).to.have.length(9);
+        });
+
+      cy.get('.Select__control input[type=text]').first().blur();
+
+      // should hide the filter indicator
+      cy.get('.filter-indicator')
+        .not('.active')
+        .should(nodes => {
+          expect(nodes).to.have.length(18);
+        });
+
       cy.get('.Select__control input[type=text]')
         .first()
-        .type('South Asia{enter}', { force: true });
+        .focus({ force: true })
+        .type('So', { force: true });
+
+      cy.get('.Select__menu').first().contains('Create "So"');
+
+      // Somehow Input loses focus after typing "So" while in Cypress, so
+      // we refocus the input again here. The is not happening in real life.
+      cy.get('.Select__control input[type=text]')
+        .first()
+        .focus({ force: true })
+        .type('uth Asia{enter}', { force: true });
+
+      // by default, need to click Apply button to apply filter
+      cy.get('.filter_box button').click({ force: true });
 
       // wait again after applied filters
       cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {

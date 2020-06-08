@@ -72,9 +72,9 @@ WHITELIST_CUMULATIVE_FUNCTIONS = (
 )
 
 
-def validate_column_args(*argnames: str) -> Callable:
-    def wrapper(func):
-        def wrapped(df, **options):
+def validate_column_args(*argnames: str) -> Callable[..., Any]:
+    def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapped(df: DataFrame, **options: Any) -> Any:
             columns = df.columns.tolist()
             for name in argnames:
                 if name in options and not all(
@@ -159,7 +159,7 @@ def pivot(  # pylint: disable=too-many-arguments
     metric_fill_value: Optional[Any] = None,
     column_fill_value: Optional[str] = None,
     drop_missing_columns: Optional[bool] = True,
-    combine_value_with_metric=False,
+    combine_value_with_metric: bool = False,
     marginal_distributions: Optional[bool] = None,
     marginal_distribution_name: Optional[str] = None,
 ) -> DataFrame:
@@ -471,7 +471,7 @@ def geodetic_parse(
         Parse a string containing a geodetic point and return latitude, longitude
         and altitude
         """
-        point = Point(location)  # type: ignore
+        point = Point(location)
         return point[0], point[1], point[2]
 
     try:

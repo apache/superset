@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from typing import Any, Dict, Hashable, List, Optional, Type
+from typing import Any, Dict, Hashable, List, Optional, Type, Union
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
@@ -61,18 +61,27 @@ class BaseDatasource(
     # class attributes to define when deriving BaseDatasource
     # ---------------------------------------------------------------
     __tablename__: Optional[str] = None  # {connector_name}_datasource
-    type: Optional[  # datasoure type, str to be defined when deriving this class
-        str
-    ] = None
     baselink: Optional[str] = None  # url portion pointing to ModelView endpoint
-    column_class: Optional[Type] = None  # link to derivative of BaseColumn
-    metric_class: Optional[Type] = None  # link to derivative of BaseMetric
+
+    @property
+    def column_class(self) -> Type["BaseColumn"]:
+        # link to derivative of BaseColumn
+        raise NotImplementedError()
+
+    @property
+    def metric_class(self) -> Type["BaseMetric"]:
+        # link to derivative of BaseMetric
+        raise NotImplementedError()
+
     owner_class: Optional[User] = None
 
     # Used to do code highlighting when displaying the query in the UI
     query_language: Optional[str] = None
 
-    name = None  # can be a Column or a property pointing to one
+    @property
+    def name(self) -> str:
+        # can be a Column or a property pointing to one
+        raise NotImplementedError()
 
     # ---------------------------------------------------------------
 
@@ -106,6 +115,10 @@ class BaseDatasource(
     columns: List[Any] = []
     # placeholder for a relationship to a derivative of BaseMetric
     metrics: List[Any] = []
+
+    @property
+    def type(self) -> str:
+        raise NotImplementedError()
 
     @property
     def uid(self) -> str:
@@ -355,7 +368,7 @@ class BaseDatasource(
         """
         raise NotImplementedError()
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of
@@ -376,7 +389,10 @@ class BaseDatasource(
 
     @staticmethod
     def get_fk_many_from_list(
-        object_list: List[Any], fkmany: List[Column], fkmany_class: Type, key_attr: str,
+        object_list: List[Any],
+        fkmany: List[Column],
+        fkmany_class: Type[Union["BaseColumn", "BaseMetric"]],
+        key_attr: str,
     ) -> List[Column]:  # pylint: disable=too-many-locals
         """Update ORM one-to-many list from object list
 

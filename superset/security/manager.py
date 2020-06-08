@@ -21,11 +21,11 @@ from typing import Any, Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Uni
 
 from flask import current_app, g
 from flask_appbuilder import Model
-from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_role,
+    PermissionView,
 )
 from flask_appbuilder.security.views import (
     PermissionModelView,
@@ -602,11 +602,8 @@ class SupersetSecurityManager(SecurityManager):
 
         logger.info("Cleaning faulty perms")
         sesh = self.get_session
-        pvms = sesh.query(ab_models.PermissionView).filter(
-            or_(
-                ab_models.PermissionView.permission == None,
-                ab_models.PermissionView.view_menu == None,
-            )
+        pvms = sesh.query(PermissionView).filter(
+            or_(PermissionView.permission == None, PermissionView.view_menu == None,)
         )
         deleted_count = pvms.delete()
         sesh.commit()
@@ -640,7 +637,9 @@ class SupersetSecurityManager(SecurityManager):
         self.get_session.commit()
         self.clean_perms()
 
-    def set_role(self, role_name: str, pvm_check: Callable) -> None:
+    def set_role(
+        self, role_name: str, pvm_check: Callable[[PermissionView], bool]
+    ) -> None:
         """
         Set the FAB permission/views for the role.
 
@@ -650,7 +649,7 @@ class SupersetSecurityManager(SecurityManager):
 
         logger.info("Syncing {} perms".format(role_name))
         sesh = self.get_session
-        pvms = sesh.query(ab_models.PermissionView).all()
+        pvms = sesh.query(PermissionView).all()
         pvms = [p for p in pvms if p.permission and p.view_menu]
         role = self.add_role(role_name)
         role_pvms = [p for p in pvms if pvm_check(p)]

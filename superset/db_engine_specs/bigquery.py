@@ -83,7 +83,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
         data = super().fetch_data(cursor, limit)
         # Support type BigQuery Row, introduced here PR #4071
         # google.cloud.bigquery.table.Row
