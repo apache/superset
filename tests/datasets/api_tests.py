@@ -23,6 +23,7 @@ import prison
 import yaml
 from sqlalchemy.sql import func
 
+import tests.test_app
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.exceptions import (
     DAOCreateFailedError,
@@ -96,6 +97,8 @@ class DatasetApiTests(SupersetTestCase):
             "default_endpoint",
             "explore_url",
             "id",
+            "kind",
+            "owners",
             "schema",
             "table_name",
         ]

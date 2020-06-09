@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Type, Union
 
 from flask_appbuilder.security.sqla.models import User
@@ -50,6 +51,10 @@ COLUMN_FORM_DATA_PARAMS = [
     "series",
 ]
 
+
+class DatasourceKind(Enum):
+    virtual = "virtual"
+    physical = "physical"
 
 class BaseDatasource(
     AuditMixinNullable, ImportMixin
@@ -100,6 +105,13 @@ class BaseDatasource(
     sql: Optional[str] = None
     owners: List[User]
     update_from_object_fields: List[str]
+
+    @property
+    def kind(self) -> str:
+        if self.sql:
+            return DatasourceKind.virtual.value
+
+        return DatasourceKind.physical.value
 
     @declared_attr
     def slices(self) -> RelationshipProperty:

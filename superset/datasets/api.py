@@ -78,6 +78,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on",
         "default_endpoint",
         "explore_url",
+        "kind",
+        "owners.id",
+        "owners.username",
+        "owners.first_name",
+        "owners.last_name",
         "schema",
         "table_name",
     ]
