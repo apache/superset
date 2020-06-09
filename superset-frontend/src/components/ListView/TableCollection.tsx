@@ -103,7 +103,7 @@ export default function TableCollection({
               return column.hidden ? null : (
                 <th
                   {...column.getHeaderProps(
-                    column.sortable ? column.getSortByToggleProps() : {},
+                    column.canSort ? column.getSortByToggleProps() : {},
                   )}
                   data-test="sort-header"
                   className={cx({
@@ -112,7 +112,7 @@ export default function TableCollection({
                 >
                   <span>
                     {column.render('Header')}
-                    {column.sortable && sortIcon}
+                    {column.canSort && sortIcon}
                   </span>
                 </th>
               );
