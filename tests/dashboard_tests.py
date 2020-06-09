@@ -235,7 +235,7 @@ class DashboardTests(SupersetTestCase):
         # exclude modified and changed_on attribute
         for index, slc in enumerate(orig_json_data["slices"]):
             for key in slc:
-                if key not in ["modified", "changed_on"]:
+                if key not in ["modified", "changed_on", "changed_on_humanized"]:
                     self.assertEqual(slc[key], resp["slices"][index][key])
 
     def test_set_dash_metadata(self, username="admin"):
