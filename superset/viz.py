@@ -1729,7 +1729,11 @@ class SankeyViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
-        df.columns = ["source", "target", "value"]
+        source, target = self.groupby
+        (value,) = self.metric_labels
+        df.rename(
+            columns={source: "source", target: "target", value: "value",}, inplace=True,
+        )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)
         recs = df.to_dict(orient="records")
