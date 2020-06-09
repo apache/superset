@@ -56,6 +56,7 @@ class DatasourceKind(Enum):
     virtual = "virtual"
     physical = "physical"
 
+
 class BaseDatasource(
     AuditMixinNullable, ImportMixin
 ):  # pylint: disable=too-many-public-methods
