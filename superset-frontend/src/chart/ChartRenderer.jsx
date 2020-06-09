@@ -200,7 +200,10 @@ class ChartRenderer extends React.Component {
       <SuperChart
         disableErrorBoundary
         key={`${chartId}${
-          process.env.WEBPACK_MODE === 'development' ? `-${Date.now()}` : ''
+          process.env.WEBPACK_MODE === 'development'
+            ? // eslint-disable-next-line no-undef
+              `-${__webpack_require__.h()}`
+            : ''
         }`}
         id={`chart-id-${chartId}`}
         className={chartClassName}

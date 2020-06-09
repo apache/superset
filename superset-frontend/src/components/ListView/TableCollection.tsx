@@ -45,13 +45,13 @@ export default function TableCollection({
               column.hidden ? null : (
                 <th
                   {...column.getHeaderProps(
-                    column.sortable ? column.getSortByToggleProps() : {},
+                    column.canSort ? column.getSortByToggleProps() : {},
                   )}
                   data-test="sort-header"
                 >
                   {column.render('Header')}
                   {'  '}
-                  {column.sortable && (
+                  {column.canSort && (
                     <i
                       className={cx('text-primary fa', {
                         'fa-sort': !column.isSorted,
