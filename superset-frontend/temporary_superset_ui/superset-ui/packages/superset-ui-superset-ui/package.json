@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/superset-ui",
-  "version": "0.13.26",
+  "version": "0.13.27",
   "description": "One stop install for all superset-ui packages",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,18 +26,18 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart": "0.13.25",
-    "@superset-ui/chart-composition": "0.13.21",
-    "@superset-ui/color": "0.13.24",
-    "@superset-ui/connection": "0.13.25",
-    "@superset-ui/control-utils": "0.13.21",
-    "@superset-ui/core": "0.13.21",
-    "@superset-ui/dimension": "0.13.21",
-    "@superset-ui/number-format": "0.13.21",
-    "@superset-ui/query": "0.13.26",
-    "@superset-ui/style": "0.13.26",
-    "@superset-ui/time-format": "0.13.22",
-    "@superset-ui/translation": "0.13.21",
-    "@superset-ui/validator": "0.13.21"
+    "@superset-ui/chart": "0.13.27",
+    "@superset-ui/chart-composition": "0.13.27",
+    "@superset-ui/color": "0.13.27",
+    "@superset-ui/connection": "0.13.27",
+    "@superset-ui/control-utils": "0.13.27",
+    "@superset-ui/core": "0.13.27",
+    "@superset-ui/dimension": "0.13.27",
+    "@superset-ui/number-format": "0.13.27",
+    "@superset-ui/query": "0.13.27",
+    "@superset-ui/style": "0.13.27",
+    "@superset-ui/time-format": "0.13.27",
+    "@superset-ui/translation": "0.13.27",
+    "@superset-ui/validator": "0.13.27"
   }
 }

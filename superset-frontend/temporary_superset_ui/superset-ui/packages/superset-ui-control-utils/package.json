@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/control-utils",
-  "version": "0.13.21",
+  "version": "0.13.27",
   "description": "Superset UI control-utils",
   "sideEffects": false,
   "main": "lib/index.js",
