@@ -330,7 +330,7 @@ class SchedulesTestCase(SupersetTestCase):
         self.assertEqual(send_email_smtp.call_count, 2)
         self.assertEqual(send_email_smtp.call_args[1]["bcc"], self.BCC)
 
-    @patch("superset.tasks.schedules.WebClient.files_upload")
+    @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
     @patch("superset.tasks.schedules.time")
@@ -379,12 +379,12 @@ class SchedulesTestCase(SupersetTestCase):
             {
                 "channels": "#test_channel",
                 "file": element.screenshot_as_png,
-                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n    ",
+                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
                 "title": "[Report]  Participants",
             },
         )
 
-    @patch("superset.tasks.schedules.WebClient.files_upload")
+    @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
     @patch("superset.tasks.schedules.time")
@@ -434,12 +434,12 @@ class SchedulesTestCase(SupersetTestCase):
             {
                 "channels": "#test_channel",
                 "file": element.screenshot_as_png,
-                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n    ",
+                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
                 "title": "[Report]  Participants",
             },
         )
 
-    @patch("superset.tasks.schedules.WebClient.files_upload")
+    @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")
     @patch("superset.tasks.schedules.urllib.request.urlopen")
     @patch("superset.tasks.schedules.send_email_smtp")
@@ -481,12 +481,12 @@ class SchedulesTestCase(SupersetTestCase):
             {
                 "channels": "#test_channel",
                 "file": self.CSV,
-                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n    ",
+                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
                 "title": "[Report]  Participants",
             },
         )
 
-    @patch("superset.tasks.schedules.WebClient.files_upload")
+    @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.urllib.request.urlopen")
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")
     @patch("superset.tasks.schedules.send_email_smtp")
@@ -526,7 +526,7 @@ class SchedulesTestCase(SupersetTestCase):
             {
                 "channels": "#test_channel",
                 "file": self.CSV,
-                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n    ",
+                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
                 "title": "[Report]  Participants",
             },
         )

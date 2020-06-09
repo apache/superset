@@ -33,12 +33,9 @@ from dateutil.tz import tzlocal
 from flask import render_template, Response, session, url_for
 from flask_babel import gettext as __
 from flask_login import login_user
-from retry.api import retry, retry_call
+from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
-from slack import WebClient
-from slack.errors import SlackApiError
-from werkzeug.datastructures import TypeConversionDict
 from werkzeug.http import parse_cookie
 
 # Superset framework imports
@@ -52,6 +49,7 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.models.slice import Slice
+from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
 
 if TYPE_CHECKING:
@@ -94,16 +92,7 @@ def _get_email_to_and_bcc(
             yield (to, bcc)
 
 
-@retry(SlackApiError, delay=10, backoff=2, tries=5)
-def _deliver_slack(slack_channel: str, subject: str, body: str, file: bytes,) -> None:
-    client = WebClient(token=config["SLACK_API_TOKEN"], proxy=config["SLACK_PROXY"])
-    response = client.files_upload(
-        channels=slack_channel, file=file, initial_comment=body, title=subject
-    )
-    logger.info(f"Sent the report to the slack {slack_channel}")
-    assert response["file"], str(response)  # the uploaded file
-
-
+# TODO(bkyryliuk): move email functionality into a separate module.
 def _deliver_email(  # pylint: disable=too-many-arguments
     recipients: str,
     deliver_as_group: bool,
@@ -136,7 +125,7 @@ def _generate_report_content(
         """
         *%(name)s*\n
         <%(url)s|Explore in Superset>
-    """,
+        """,
         name=name,
         url=url,
     )
@@ -325,7 +314,7 @@ def deliver_dashboard(
             report_content.images,
         )
     if slack_channel:
-        _deliver_slack(
+        deliver_slack_msg(
             slack_channel,
             subject,
             report_content.slack_message,
@@ -380,10 +369,14 @@ def _get_slice_data(slc: Slice, delivery_type: EmailDeliveryType) -> ReportConte
         )
 
     # how to: https://api.slack.com/reference/surfaces/formatting
-    slack_message = f"""
-        *{slc.slice_name}*\n
-        <{slice_url_user_friendly}|Explore in Superset>
-    """
+    slack_message = __(
+        """
+        *%(slice_name)s*\n
+        <%(slice_url_user_friendly)s|Explore in Superset>
+        """,
+        slice_name=slc.slice_name,
+        slice_url_user_friendly=slice_url_user_friendly,
+    )
 
     return ReportContent(body, data, None, slack_message, content)
 
@@ -464,7 +457,7 @@ def deliver_slice(  # pylint: disable=too-many-arguments
             report_content.images,
         )
     if slack_channel:
-        _deliver_slack(
+        deliver_slack_msg(
             slack_channel,
             subject,
             report_content.slack_message,
