@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/connection",
-  "version": "0.13.25",
+  "version": "0.13.27",
   "description": "Superset UI connection",
   "sideEffects": false,
   "main": "lib/index.js",
