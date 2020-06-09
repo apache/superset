@@ -16,8 +16,9 @@
 # under the License.
 from typing import Any, Dict, Union
 
+from flask_babel import gettext as _
 from marshmallow import fields, post_load, Schema, validate, ValidationError
-from marshmallow.validate import Length
+from marshmallow.validate import Length, Range
 
 from superset.common.query_context import QueryContext
 from superset.exceptions import SupersetException
@@ -663,6 +664,15 @@ class ChartDataQueryObjectSchema(Schema):
     )
     row_limit = fields.Integer(
         description='Maximum row count. Default: `config["ROW_LIMIT"]`',
+        validate=[
+            Range(min=1, error=_("`row_limit` must be greater than or equal to 1"))
+        ],
+    )
+    row_offset = fields.Integer(
+        description="Number of rows to skip. Default: `0`",
+        validate=[
+            Range(min=0, error=_("`row_offset` must be greater than or equal to 0"))
+        ],
     )
     order_desc = fields.Boolean(
         description="Reverse order. Default: `false`", required=False

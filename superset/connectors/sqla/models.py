@@ -741,6 +741,7 @@ class SqlaTable(Model, BaseDatasource):
         timeseries_limit: int = 15,
         timeseries_limit_metric: Optional[Metric] = None,
         row_limit: Optional[int] = None,
+        row_offset: Optional[int] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
         orderby: Optional[List[Tuple[ColumnElement, bool]]] = None,
@@ -753,6 +754,7 @@ class SqlaTable(Model, BaseDatasource):
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
+            "row_offset": row_offset,
             "to_dttm": to_dttm,
             "filter": filter,
             "columns": {col.column_name: col for col in self.columns},
@@ -967,6 +969,8 @@ class SqlaTable(Model, BaseDatasource):
 
         if row_limit:
             qry = qry.limit(row_limit)
+        if row_offset:
+            qry = qry.offset(row_offset)
 
         if (
             is_timeseries
