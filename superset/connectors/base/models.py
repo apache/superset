@@ -52,9 +52,9 @@ COLUMN_FORM_DATA_PARAMS = [
 ]
 
 
-class DatasourceKind(Enum):
-    virtual = "virtual"
-    physical = "physical"
+class DatasourceKind(str, Enum):
+    VIRTUAL = "virtual"
+    PHYSICAL = "physical"
 
 
 class BaseDatasource(
