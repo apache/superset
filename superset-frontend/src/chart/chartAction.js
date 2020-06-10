@@ -149,10 +149,12 @@ const v1ChartDataRequest = async (
   force,
   requestParams,
 ) => {
-  const payload = buildV1ChartDataPayload({ formData, force });
-  // TODO: remove once these are added to superset-ui/query
-  payload.result_type = resultType;
-  payload.result_format = resultFormat;
+  const payload = buildV1ChartDataPayload({
+    formData,
+    resultType,
+    resultFormat,
+    force,
+  });
 
   // The dashboard id is added to query params for tracking purposes
   const qs = requestParams.dashboard_id
