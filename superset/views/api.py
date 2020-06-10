@@ -20,7 +20,7 @@ from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 
-from superset import db, event_logger, security_manager
+from superset import db, event_logger
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
@@ -39,10 +39,11 @@ class Api(BaseSupersetView):
         """
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
-        params: query_context: json_blob
+
+        raises SupersetSecurityException: If the user cannot access the resource
         """
         query_context = QueryContext(**json.loads(request.form["query_context"]))
-        security_manager.assert_query_context_permission(query_context)
+        query_context.raise_for_access()
         payload_json = query_context.get_payload()
         return json.dumps(
             payload_json, default=utils.json_int_dttm_ser, ignore_nan=True

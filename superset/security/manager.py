@@ -273,9 +273,12 @@ class SupersetSecurityManager(SecurityManager):
         :returns: Whether the user can access the Superset datasource
         """
 
-        return self.can_access_schema(datasource) or self.can_access(
-            "datasource_access", datasource.perm or ""
-        )
+        try:
+            self.raise_for_access(datasource=datasource)
+        except SupersetSecurityException:
+            return False
+
+        return True
 
     def get_datasource_access_error_msg(self, datasource: "BaseDatasource") -> str:
         """
@@ -369,23 +372,14 @@ class SupersetSecurityManager(SecurityManager):
         :returns: Whether the user can access the SQL table
         """
 
-        from superset import db
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.sql_parse import Table
 
-        if self.can_access_database(database):
-            return True
+        try:
+            self.raise_for_access(database=database, table=table)
+        except SupersetSecurityException:
+            return False
 
-        schema_perm = self.get_schema_perm(database, schema=table.schema)
-        if schema_perm and self.can_access("schema_access", schema_perm):
-            return True
-
-        datasources = SqlaTable.query_datasources_by_name(
-            db.session, database, table.table, schema=table.schema
-        )
-        for datasource in datasources:
-            if self.can_access("datasource_access", datasource.perm):
-                return True
-        return False
+        return True
 
     def rejected_tables(
         self, sql: str, database: "Database", schema: str
@@ -860,45 +854,73 @@ class SupersetSecurityManager(SecurityManager):
                     )
                 )
 
-    def assert_datasource_permission(self, datasource: "BaseDatasource") -> None:
+    def raise_for_access(
+        self,
+        database: Optional["Database"] = None,
+        datasource: Optional["BaseDatasource"] = None,
+        query_context: Optional["QueryContext"] = None,
+        table: Optional["Table"] = None,
+        viz: Optional["BaseViz"] = None,
+    ) -> None:
         """
-        Assert the the user has permission to access the Superset datasource.
+        Raise an exception if the user cannot access the resource.
 
+        :param database: The Superset database (see table)
         :param datasource: The Superset datasource
-        :raises SupersetSecurityException: If the user does not have permission
+        :param query_context: The query context
+        :param table: The Superset table (see database)
+        :param viz: The visualization
+        :raises SupersetSecurityException: If the user cannot access the resource
         """
 
-        if not self.can_access_datasource(datasource):
+        from superset import db
+        from superset.connectors.sqla.models import SqlaTable
+
+        if database and table:
+            if self.can_access_database(database):
+                return
+
+            schema_perm = self.get_schema_perm(database, schema=table.schema)
+
+            if schema_perm and self.can_access("schema_access", schema_perm):
+                return
+
+            datasources = SqlaTable.query_datasources_by_name(
+                db.session, database, table.table, schema=table.schema
+            )
+
+            for datasource in datasources:
+                if self.can_access("datasource_access", datasource.perm):
+                    return
+
+            raise SupersetSecurityException(
+                self.get_table_access_error_object({table}),
+            )
+
+        if datasource or query_context or viz:
+            if query_context:
+                datasource = query_context.datasource
+            elif viz:
+                datasource = viz.datasource
+
+            assert datasource
+
+            if self.can_access_schema(datasource) or self.can_access(
+                "datasource_access", datasource.perm or ""
+            ):
+                return
+
             raise SupersetSecurityException(
                 self.get_datasource_access_error_object(datasource),
             )
 
-    def assert_query_context_permission(self, query_context: "QueryContext") -> None:
-        """
-        Assert the the user has permission to access the query context.
-
-        :param query_context: The query context
-        :raises SupersetSecurityException: If the user does not have permission
-        """
-
-        self.assert_datasource_permission(query_context.datasource)
-
-    def assert_viz_permission(self, viz: "BaseViz") -> None:
-        """
-        Assert the the user has permission to access the visualization.
-
-        :param viz: The visualization
-        :raises SupersetSecurityException: If the user does not have permission
-        """
-
-        self.assert_datasource_permission(viz.datasource)
-
     def get_rls_filters(self, table: "BaseDatasource") -> List[Query]:
         """
-        Retrieves the appropriate row level security filters for the current user and the passed table.
+        Retrieves the appropriate row level security filters for the current user and
+        the passed table.
 
         :param table: The table to check against
-        :returns: A list of filters.
+        :returns: A list of filters
         """
         if hasattr(g, "user") and hasattr(g.user, "id"):
             from superset import db
@@ -929,10 +951,11 @@ class SupersetSecurityManager(SecurityManager):
 
     def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
         """
-        Retrieves the appropriate row level security filters IDs for the current user and the passed table.
+        Retrieves the appropriate row level security filters IDs for the current user
+        and the passed table.
 
         :param table: The table to check against
-        :returns: A list of IDs.
+        :returns: A list of IDs
         """
         ids = [f.id for f in self.get_rls_filters(table)]
         ids.sort()  # Combinations rather than permutations

@@ -53,7 +53,7 @@ from superset.charts.schemas import (
 )
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import event_logger, security_manager
+from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.core import ChartDataResultFormat, json_int_dttm_ser
@@ -454,7 +454,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except KeyError:
             return self.response_400(message="Request is incorrect")
         try:
-            security_manager.assert_query_context_permission(query_context)
+            query_context.raise_for_access()
         except SupersetSecurityException:
             return self.response_401()
         payload = query_context.get_payload()
