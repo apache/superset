@@ -197,7 +197,7 @@ const ListView: FunctionComponent<Props> = ({
                     {bulkActions.map(action => (
                       // @ts-ignore
                       <MenuItem
-                        key={action.key}
+                        key={action.key || action.name}
                         eventKey={selectedFlatRows}
                         // @ts-ignore
                         onSelect={(selectedRows: typeof selectedFlatRows) => {

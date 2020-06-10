@@ -329,6 +329,7 @@ describe('ListView with new UI filters', () => {
         id: 'age',
         input: 'select',
         fetchSelects: fetchSelectsMock,
+        paginate: true,
         operator: 'eq',
       },
     ],
@@ -345,10 +346,6 @@ describe('ListView with new UI filters', () => {
 
   it('renders UI filters', () => {
     expect(wrapper.find(ListViewFilters)).toHaveLength(1);
-  });
-
-  it('fetched selects if function is provided', () => {
-    expect(fetchSelectsMock).toHaveBeenCalled();
   });
 
   it('calls fetchData on filter', () => {
