@@ -96,6 +96,8 @@ export default class SelectControl extends React.PureComponent {
     }
   }
 
+  // Beware: This is acting like an on-click instead of an on-change
+  // (firing every time user chooses vs firing only if a new option is chosen).
   onChange(opt) {
     let optionValue = null;
     if (opt) {
