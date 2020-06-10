@@ -120,7 +120,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   }, []);
 
   const loadOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({
+      filter: input,
+    });
     return SupersetClient.get({
       endpoint: `/api/v1/chart/related/owners?q=${query}`,
     }).then(

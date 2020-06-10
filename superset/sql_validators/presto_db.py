@@ -143,7 +143,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
 
     @classmethod
     def validate(
-        cls, sql: str, schema: str, database: Any
+        cls, sql: str, schema: Optional[str], database: Database
     ) -> List[SQLValidationAnnotation]:
         """
         Presto supports query-validation queries by running them with a

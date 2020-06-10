@@ -92,7 +92,7 @@ describe('DashboardList', () => {
     const callsD = fetchMock.calls(/dashboard\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"/http//localhost/api/v1/dashboard/?q={%22order_column%22:%22changed_on%22,%22order_direction%22:%22desc%22,%22page%22:0,%22page_size%22:25}"`,
+      `"/http//localhost/api/v1/dashboard/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
     );
   });
   it('edits', () => {

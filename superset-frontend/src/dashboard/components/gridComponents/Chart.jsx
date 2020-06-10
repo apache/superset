@@ -19,7 +19,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { exportChart } from '../../../explore/exploreUtils';
+import { exploreChart, exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
@@ -191,7 +191,7 @@ class Chart extends React.Component {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
-    exportChart(this.props.formData);
+    exploreChart(this.props.formData);
   }
 
   exportCSV() {
@@ -199,7 +199,11 @@ class Chart extends React.Component {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
-    exportChart(this.props.formData, 'csv');
+    exportChart({
+      formData: this.props.formData,
+      resultType: 'results',
+      resultFormat: 'csv',
+    });
   }
 
   forceRefresh() {

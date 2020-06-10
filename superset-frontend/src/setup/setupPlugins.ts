@@ -29,9 +29,7 @@ import DeckPath from '../explore/controlPanels/DeckPath';
 import DeckPolygon from '../explore/controlPanels/DeckPolygon';
 import DeckScatter from '../explore/controlPanels/DeckScatter';
 import DeckScreengrid from '../explore/controlPanels/DeckScreengrid';
-import EventFlow from '../explore/controlPanels/EventFlow';
 import FilterBox from '../explore/controlPanels/FilterBox';
-import PairedTtest from '../explore/controlPanels/PairedTtest';
 import Separator from '../explore/controlPanels/Separator';
 import TimeTable from '../explore/controlPanels/TimeTable';
 
@@ -40,9 +38,7 @@ export default function setupPlugins() {
 
   // TODO: Remove these shims once the control panel configs are moved into the plugin package.
   getChartControlPanelRegistry()
-    .registerValue('event_flow', EventFlow)
     .registerValue('filter_box', FilterBox)
-    .registerValue('paired_ttest', PairedTtest)
     .registerValue('separator', Separator)
     .registerValue('time_table', TimeTable)
     .registerValue('deck_arc', DeckArc)

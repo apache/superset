@@ -89,7 +89,7 @@ const defaultProps = {
   showSqlaTimeColumn: false,
   showDruidTimeGrain: false,
   showDruidTimeOrigin: false,
-  instantFiltering: true,
+  instantFiltering: false,
 };
 
 class FilterBox extends React.Component {
@@ -100,18 +100,22 @@ class FilterBox extends React.Component {
       // this flag is used by non-instant filter, to make the apply button enabled/disabled
       hasChanged: false,
     };
-    this.onFilterMenuClose = () => {
-      this.props.onFilterMenuClose();
-    };
-    this.onFilterMenuOpen = (...args) => {
-      return this.props.onFilterMenuOpen(this.props.chartId, ...args);
-    };
-    this.onOpenDateFilterControl = (...args) => {
-      return this.onFilterMenuOpen(TIME_RANGE, ...args);
-    };
-    this.onFocus = this.onFilterMenuOpen;
-    this.onBlur = this.onFilterMenuClose;
     this.changeFilter = this.changeFilter.bind(this);
+    this.onFilterMenuOpen = this.onFilterMenuOpen.bind(this);
+    this.onOpenDateFilterControl = this.onOpenDateFilterControl.bind(this);
+    this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
+  }
+
+  onFilterMenuOpen(column) {
+    return this.props.onFilterMenuOpen(this.props.chartId, column);
+  }
+
+  onOpenDateFilterControl() {
+    return this.onFilterMenuOpen(TIME_RANGE);
+  }
+
+  onFilterMenuClose() {
+    return this.props.onFilterMenuClose(this.props.chartId);
   }
 
   getControlData(controlName) {
@@ -170,8 +174,8 @@ class FilterBox extends React.Component {
               name={TIME_RANGE}
               label={label}
               description={t('Select start and end date')}
-              onChange={(...args) => {
-                this.changeFilter(TIME_RANGE, ...args);
+              onChange={newValue => {
+                this.changeFilter(TIME_RANGE, newValue);
               }}
               onOpenDateFilterControl={this.onOpenDateFilterControl}
               onCloseDateFilterControl={this.onFilterMenuClose}
@@ -266,12 +270,13 @@ class FilterBox extends React.Component {
         value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
       }
     }
+
     return (
       <OnPasteSelect
         key={key}
         placeholder={t('Select [%s]', label)}
         isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
-        clearable={filterConfig.clearable}
+        isClearable={filterConfig.clearable}
         value={value}
         options={data
           .filter(opt => opt.id !== null)
@@ -282,16 +287,17 @@ class FilterBox extends React.Component {
             const style = { backgroundImage };
             return { value: opt.id, label: opt.id, style };
           })}
-        onChange={(...args) => {
-          this.changeFilter(key, ...args);
+        onChange={newValue => {
+          // avoid excessive re-renders
+          if (newValue !== value) {
+            this.changeFilter(key, newValue);
+          }
         }}
-        onFocus={this.onFocus}
-        onBlur={this.onBlur}
-        onOpen={(...args) => {
-          this.onFilterMenuOpen(key, ...args);
-        }}
-        onClose={this.onFilterMenuClose}
-        selectComponent={CreatableSelect}
+        onFocus={() => this.onFilterMenuOpen(key)}
+        onMenuOpen={() => this.onFilterMenuOpen(key)}
+        onBlur={this.onFilterMenuClose}
+        onMenuClose={this.onFilterMenuClose}
+        selectWrap={CreatableSelect}
         noResultsText={t('No results found')}
       />
     );

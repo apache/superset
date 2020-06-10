@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
@@ -116,7 +116,7 @@ class DatasetDAO(BaseDAO):
 
     @classmethod
     def update(
-        cls, model: SqlaTable, properties: Dict, commit: bool = True
+        cls, model: SqlaTable, properties: Dict[str, Any], commit: bool = True
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
@@ -151,13 +151,13 @@ class DatasetDAO(BaseDAO):
 
     @classmethod
     def update_column(
-        cls, model: TableColumn, properties: Dict, commit: bool = True
+        cls, model: TableColumn, properties: Dict[str, Any], commit: bool = True
     ) -> Optional[TableColumn]:
         return DatasetColumnDAO.update(model, properties, commit=commit)
 
     @classmethod
     def create_column(
-        cls, properties: Dict, commit: bool = True
+        cls, properties: Dict[str, Any], commit: bool = True
     ) -> Optional[TableColumn]:
         """
         Creates a Dataset model on the metadata DB
@@ -166,13 +166,13 @@ class DatasetDAO(BaseDAO):
 
     @classmethod
     def update_metric(
-        cls, model: SqlMetric, properties: Dict, commit: bool = True
+        cls, model: SqlMetric, properties: Dict[str, Any], commit: bool = True
     ) -> Optional[SqlMetric]:
         return DatasetMetricDAO.update(model, properties, commit=commit)
 
     @classmethod
     def create_metric(
-        cls, properties: Dict, commit: bool = True
+        cls, properties: Dict[str, Any], commit: bool = True
     ) -> Optional[SqlMetric]:
         """
         Creates a Dataset model on the metadata DB

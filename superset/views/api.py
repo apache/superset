@@ -24,6 +24,7 @@ from superset import db, event_logger, security_manager
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
+from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import api, BaseSupersetView, handle_api_exception
 
@@ -34,13 +35,13 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/query/", methods=["POST"])
-    def query(self):
+    def query(self) -> FlaskResponse:
         """
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
         params: query_context: json_blob
         """
-        query_context = QueryContext(**json.loads(request.form.get("query_context")))
+        query_context = QueryContext(**json.loads(request.form["query_context"]))
         security_manager.assert_query_context_permission(query_context)
         payload_json = query_context.get_payload()
         return json.dumps(
@@ -52,7 +53,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/form_data/", methods=["GET"])
-    def query_form_data(self):
+    def query_form_data(self) -> FlaskResponse:
         """
         Get the formdata stored in the database for existing slice.
         params: slice_id: integer

@@ -20,7 +20,7 @@
 import datetime
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import numpy as np
 import pandas as pd
@@ -64,7 +64,7 @@ def stringify(obj: Any) -> str:
 
 
 def stringify_values(array: np.ndarray) -> np.ndarray:
-    vstringify: Callable = np.vectorize(stringify)
+    vstringify = np.vectorize(stringify)
     return vstringify(array)
 
 
@@ -172,7 +172,7 @@ class SupersetResultSet:
         return table.to_pandas(integer_object_nulls=True)
 
     @staticmethod
-    def first_nonempty(items: List) -> Any:
+    def first_nonempty(items: List[Any]) -> Any:
         return next((i for i in items if i), None)
 
     def is_temporal(self, db_type_str: Optional[str]) -> bool:

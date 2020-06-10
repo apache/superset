@@ -240,7 +240,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         self.json_metadata = value
 
     @property
-    def position(self) -> Dict:
+    def position(self) -> Dict[str, Any]:
         if self.position_json:
             return json.loads(self.position_json)
         return {}
@@ -315,7 +315,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         old_to_new_slc_id_dict: Dict[int, int] = {}
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
-        new_filter_scopes: Dict[str, Dict] = {}
+        new_filter_scopes = {}
         i_params_dict = dashboard_to_import.params_dict
         remote_id_slice_map = {
             slc.params_dict["remote_id"]: slc
@@ -351,7 +351,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         # are converted to filter_scopes
         # but dashboard create from import may still have old dashboard filter metadata
         # here we convert them to new filter_scopes metadata first
-        filter_scopes: Dict = {}
+        filter_scopes = {}
         if (
             "filter_immune_slices" in i_params_dict
             or "filter_immune_slice_fields" in i_params_dict
@@ -415,7 +415,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
-        cls, dashboard_ids: List
+        cls, dashboard_ids: List[int]
     ) -> str:
         copied_dashboards = []
         datasource_ids = set()

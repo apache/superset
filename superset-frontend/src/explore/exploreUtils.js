@@ -18,9 +18,13 @@
  */
 /* eslint camelcase: 0 */
 import URI from 'urijs';
-import { getChartMetadataRegistry } from '@superset-ui/chart';
-import { availableDomains } from '../utils/hostNamesConfig';
-import { safeStringify } from '../utils/safeStringify';
+import { SupersetClient } from '@superset-ui/connection';
+import { allowCrossDomain, availableDomains } from 'src/utils/hostNamesConfig';
+import { safeStringify } from 'src/utils/safeStringify';
+import {
+  getChartBuildQueryRegistry,
+  getChartMetadataRegistry,
+} from '@superset-ui/chart';
 
 const MAX_URL_LENGTH = 8000;
 
@@ -30,7 +34,7 @@ export function getChartKey(explore) {
 }
 
 let requestCounter = 0;
-function getHostName(allowDomainSharding = false) {
+export function getHostName(allowDomainSharding = false) {
   let currentIndex = 0;
   if (allowDomainSharding) {
     currentIndex = requestCounter % availableDomains.length;
@@ -44,7 +48,6 @@ function getHostName(allowDomainSharding = false) {
       requestCounter += 1;
     }
   }
-
   return availableDomains[currentIndex];
 }
 
@@ -67,7 +70,9 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
 export function getURIDirectory(endpointType = 'base') {
   // Building the directory part of the URI
   if (
-    ['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0
+    ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
+      endpointType,
+    )
   ) {
     return '/superset/explore_json/';
   }
@@ -107,9 +112,20 @@ export function getExploreLongUrl(
   return url;
 }
 
-export function shouldUseLegacyApi(formData) {
-  const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
-  return useLegacyApi || false;
+export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
+  // The search params from the window.location are carried through,
+  // but can be specified with curUrl (used for unit tests to spoof
+  // the window.location).
+  let uri = new URI({
+    protocol: location.protocol.slice(0, -1),
+    hostname: getHostName(allowDomainSharding),
+    port: location.port ? location.port : '',
+    path,
+  });
+  if (qs) {
+    uri = uri.search(qs);
+  }
+  return uri;
 }
 
 export function getExploreUrl({
@@ -124,17 +140,7 @@ export function getExploreUrl({
   if (!formData.datasource) {
     return null;
   }
-
-  // The search params from the window.location are carried through,
-  // but can be specified with curUrl (used for unit tests to spoof
-  // the window.location).
-  let uri = new URI({
-    protocol: location.protocol.slice(0, -1),
-    hostname: getHostName(allowDomainSharding),
-    port: location.port ? location.port : '',
-    path: '/',
-  });
-
+  let uri = getChartDataUri({ path: '/', allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -186,6 +192,23 @@ export function getExploreUrl({
   return uri.search(search).directory(directory).toString();
 }
 
+export const shouldUseLegacyApi = formData => {
+  const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
+  return useLegacyApi || false;
+};
+
+export const buildV1ChartDataPayload = ({ formData, force }) => {
+  const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
+  return buildQuery({
+    ...formData,
+    force,
+  });
+};
+
+export const getLegacyEndpointType = ({ resultType, resultFormat }) => {
+  return resultFormat === 'csv' ? resultFormat : resultType;
+};
+
 export function postForm(url, payload, target = '_blank') {
   if (!url) {
     return;
@@ -211,11 +234,40 @@ export function postForm(url, payload, target = '_blank') {
   document.body.removeChild(hiddenForm);
 }
 
-export function exportChart(formData, endpointType) {
+export const exportChart = ({
+  formData,
+  resultFormat = 'json',
+  resultType = 'full',
+  force = false,
+}) => {
+  let url;
+  let payload;
+  if (shouldUseLegacyApi(formData)) {
+    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+    url = getExploreUrl({
+      formData,
+      endpointType,
+      allowDomainSharding: false,
+    });
+    payload = formData;
+  } else {
+    url = '/api/v1/chart/data';
+    const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
+    payload = buildQuery({
+      ...formData,
+      force,
+    });
+    payload.result_type = resultType;
+    payload.result_format = resultFormat;
+  }
+  postForm(url, payload);
+};
+
+export const exploreChart = formData => {
   const url = getExploreUrl({
     formData,
-    endpointType,
+    endpointType: 'base',
     allowDomainSharding: false,
   });
   postForm(url, formData);
-}
+};
