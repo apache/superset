@@ -774,45 +774,45 @@ class SecurityManagerTests(SupersetTestCase):
     Testing the Security Manager.
     """
 
-    @patch("superset.security.SupersetSecurityManager.datasource_access")
-    def test_assert_datasource_permission(self, mock_datasource_access):
+    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
+    def test_assert_datasource_permission(self, mock_can_access_datasource):
         datasource = self.get_datasource_mock()
 
         # Datasource with the "datasource_access" permission.
-        mock_datasource_access.return_value = True
+        mock_can_access_datasource.return_value = True
         security_manager.assert_datasource_permission(datasource)
 
         # Datasource without the "datasource_access" permission.
-        mock_datasource_access.return_value = False
+        mock_can_access_datasource.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.assert_datasource_permission(datasource)
 
-    @patch("superset.security.SupersetSecurityManager.datasource_access")
-    def test_assert_query_context_permission(self, mock_datasource_access):
+    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
+    def test_assert_query_context_permission(self, mock_can_access_datasource):
         query_context = Mock()
         query_context.datasource = self.get_datasource_mock()
 
         # Query context with the "datasource_access" permission.
-        mock_datasource_access.return_value = True
+        mock_can_access_datasource.return_value = True
         security_manager.assert_query_context_permission(query_context)
 
         # Query context without the "datasource_access" permission.
-        mock_datasource_access.return_value = False
+        mock_can_access_datasource.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.assert_query_context_permission(query_context)
 
-    @patch("superset.security.SupersetSecurityManager.datasource_access")
-    def test_assert_viz_permission(self, mock_datasource_access):
+    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
+    def test_assert_viz_permission(self, mock_can_access_datasource):
         test_viz = viz.TableViz(self.get_datasource_mock(), form_data={})
 
         # Visualization with the "datasource_access" permission.
-        mock_datasource_access.return_value = True
+        mock_can_access_datasource.return_value = True
         security_manager.assert_viz_permission(test_viz)
 
         # Visualization without the "datasource_access" permission.
-        mock_datasource_access.return_value = False
+        mock_can_access_datasource.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.assert_viz_permission(test_viz)

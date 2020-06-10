@@ -32,7 +32,7 @@ class DatabaseFilter(BaseFilter):
         }
 
     def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.all_database_access():
+        if security_manager.can_access_all_databases():
             return query
         database_perms = security_manager.user_view_menu_names("database_access")
         # TODO(bogdan): consider adding datasource access here as well.

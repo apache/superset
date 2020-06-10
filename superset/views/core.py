@@ -488,7 +488,7 @@ class Superset(BaseSupersetView):
 
         has_access = all(
             (
-                datasource and security_manager.datasource_access(datasource)
+                datasource and security_manager.can_access_datasource(datasource)
                 for datasource in datasources
             )
         )
@@ -520,7 +520,7 @@ class Superset(BaseSupersetView):
                 datasource = ConnectorRegistry.get_datasource(
                     r.datasource_type, r.datasource_id, session
                 )
-                if not datasource or security_manager.datasource_access(datasource):
+                if not datasource or security_manager.can_access_datasource(datasource):
                     # datasource does not exist anymore
                     session.delete(r)
             session.commit()
@@ -560,7 +560,7 @@ class Superset(BaseSupersetView):
             return json_error_response(ACCESS_REQUEST_MISSING_ERR)
 
         # check if you can approve
-        if security_manager.all_datasource_access() or check_ownership(
+        if security_manager.can_access_all_datasources() or check_ownership(
             datasource, raise_if_false=False
         ):
             # can by done by admin only
@@ -868,7 +868,7 @@ class Superset(BaseSupersetView):
             return redirect(error_redirect)
 
         if config["ENABLE_ACCESS_REQUEST"] and (
-            not security_manager.datasource_access(datasource)
+            not security_manager.can_access_datasource(datasource)
         ):
             flash(
                 __(security_manager.get_datasource_access_error_msg(datasource)),
@@ -1874,7 +1874,9 @@ class Superset(BaseSupersetView):
 
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in datasources:
-                if datasource and not security_manager.datasource_access(datasource):
+                if datasource and not security_manager.can_access_datasource(
+                    datasource
+                ):
                     flash(
                         __(
                             security_manager.get_datasource_access_error_msg(datasource)
@@ -2137,10 +2139,7 @@ class Superset(BaseSupersetView):
             return json_error_response("Not found", 404)
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
-        # Check that the user can access the datasource
-        if not self.appbuilder.sm.can_access_datasource(
-            database, Table(table_name, schema), schema
-        ):
+        if not self.appbuilder.sm.can_access_table(database, Table(table_name, schema)):
             stats_logger.incr(
                 f"deprecated.{self.__class__.__name__}.select_star.permission_denied"
             )
@@ -2895,10 +2894,7 @@ class Superset(BaseSupersetView):
         database = db.session.query(models.Database).filter_by(id=db_id).one()
         try:
             schemas_allowed = database.get_schema_access_for_csv_upload()
-            if (
-                security_manager.database_access(database)
-                or security_manager.all_datasource_access()
-            ):
+            if security_manager.can_access_database(database):
                 return self.json_response(schemas_allowed)
             # the list schemas_allowed should not be empty here
             # and the list schemas_allowed_processed returned from security_manager

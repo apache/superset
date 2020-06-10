@@ -966,15 +966,18 @@ class CoreTests(SupersetTestCase):
     @mock.patch(
         "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"
     )
-    @mock.patch("superset.security.SupersetSecurityManager.database_access")
-    @mock.patch("superset.security.SupersetSecurityManager.all_datasource_access")
+    @mock.patch("superset.security.SupersetSecurityManager.can_access_database")
+    @mock.patch("superset.security.SupersetSecurityManager.can_access_all_datasources")
     def test_schemas_access_for_csv_upload_endpoint(
-        self, mock_all_datasource_access, mock_database_access, mock_schemas_accessible
+        self,
+        mock_can_access_all_datasources,
+        mock_can_access_database,
+        mock_schemas_accessible,
     ):
         self.login(username="admin")
         dbobj = self.create_fake_db()
-        mock_all_datasource_access.return_value = False
-        mock_database_access.return_value = False
+        mock_can_access_all_datasources.return_value = False
+        mock_can_access_database.return_value = False
         mock_schemas_accessible.return_value = ["this_schema_is_allowed_too"]
         data = self.get_json_resp(
             url="/superset/schemas_access_for_csv_upload?db_id={db_id}".format(
