@@ -208,7 +208,13 @@ class ParsedQuery:
         self, token: Token
     ) -> None:
         """
-        Populate self._tables from token
+        <Identifier> store a list of subtokens and <IdentifierList> store lists of
+        subtoken list.
+
+        It extracts <IdentifierList> and <Identifier> from :param token: and loops
+        through all subtokens recursively. It finds table_name_preceding_token and
+        passes <IdentifierList> and <Identifier> to self._process_tokenlist to populate
+        self._tables.
 
         :param token: instance of Token or child class, e.g. TokenList, to be processed
         """
@@ -240,9 +246,8 @@ class ParsedQuery:
                         if isinstance(token2, TokenList):
                             self._process_tokenlist(token2)
             elif isinstance(item, IdentifierList):
-                for token2 in item.tokens:
-                    if not self._is_identifier(token2):
-                        self._extract_from_token(item)
+                if any(not self._is_identifier(token2) for token2 in item.tokens):
+                    self._extract_from_token(item)
 
     def set_or_update_query_limit(self, new_limit: int) -> str:
         """Returns the query with the specified limit.
