@@ -24,9 +24,9 @@ import React from 'react';
 import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
-import Link from 'src/components/Link';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
+import SubMenu from 'src/components/Menu/SubMenu';
 import {
   FetchDataConfig,
   FilterOperatorMap,
@@ -241,6 +241,28 @@ class DatasetList extends React.PureComponent<Props, State> {
     },
   ];
 
+  menu = {
+    label: 'Data',
+    name: 'Data',
+    createButton: {
+      name: t('Dataset'),
+      url: '/tablemodelview/add',
+    },
+    childs: [
+      {
+        name: 'Datasets',
+        label: t('Datasets'),
+        url: '/tablemodelview/list/?_flt_1_is_sqllab_view=y',
+      },
+      { name: 'Databases', label: t('Databases'), url: '/databaseview/list/' },
+      {
+        name: 'Saved Queries',
+        label: t('Saved Queries'),
+        url: '/sqllab/my_queries/',
+      },
+    ],
+  };
+
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
@@ -388,42 +410,32 @@ class DatasetList extends React.PureComponent<Props, State> {
     const { datasets, datasetCount, loading, filters } = this.state;
 
     return (
-      <div className="container welcome">
-        <Panel>
-          <Panel.Body>
-            <ConfirmStatusChange
-              title={t('Please confirm')}
-              description={t(
-                'Are you sure you want to delete the selected datasets?',
-              )}
-              onConfirm={this.handleBulkDatasetDelete}
-            >
-              {confirmDelete => {
-                const bulkActions = [];
-                if (this.canDelete) {
-                  bulkActions.push({
-                    key: 'delete',
-                    name: (
-                      <>
-                        <i className="fa fa-trash" /> Delete
-                      </>
-                    ),
-                    onSelect: confirmDelete,
-                  });
-                }
-                return (
-                  <>
-                    {this.canCreate && (
-                      <span className="list-add-action">
-                        <Link
-                          className="btn btn-sm btn-primary pull-right"
-                          href="/tablemodelview/add"
-                          tooltip="Add a new record"
-                        >
-                          <i className="fa fa-plus" />
-                        </Link>
-                      </span>
-                    )}
+      <>
+        <SubMenu {...this.menu} canCreate={this.canCreate} />
+        <div className="container welcome">
+          <Panel>
+            <Panel.Body>
+              <ConfirmStatusChange
+                title={t('Please confirm')}
+                description={t(
+                  'Are you sure you want to delete the selected datasets?',
+                )}
+                onConfirm={this.handleBulkDatasetDelete}
+              >
+                {confirmDelete => {
+                  const bulkActions = [];
+                  if (this.canDelete) {
+                    bulkActions.push({
+                      key: 'delete',
+                      name: (
+                        <>
+                          <i className="fa fa-trash" /> Delete
+                        </>
+                      ),
+                      onSelect: confirmDelete,
+                    });
+                  }
+                  return (
                     <ListView
                       className="dataset-list-view"
                       title={'Datasets'}
@@ -437,13 +449,13 @@ class DatasetList extends React.PureComponent<Props, State> {
                       filters={filters}
                       bulkActions={bulkActions}
                     />
-                  </>
-                );
-              }}
-            </ConfirmStatusChange>
-          </Panel.Body>
-        </Panel>
-      </div>
+                  );
+                }}
+              </ConfirmStatusChange>
+            </Panel.Body>
+          </Panel>
+        </div>
+      </>
     );
   }
 }
