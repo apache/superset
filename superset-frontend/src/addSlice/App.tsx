@@ -21,6 +21,7 @@ import { hot } from 'react-hot-loader/root';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
+import DynamicPluginProvider from '../components/DynamicPlugins/DynamicPluginProvider';
 import AddSliceContainer from './AddSliceContainer';
 
 setupApp();
@@ -33,7 +34,9 @@ const bootstrapData = JSON.parse(
 
 const App = () => (
   <ThemeProvider theme={supersetTheme}>
-    <AddSliceContainer datasources={bootstrapData.datasources} />
+    <DynamicPluginProvider>
+      <AddSliceContainer datasources={bootstrapData.datasources} />
+    </DynamicPluginProvider>
   </ThemeProvider>
 );
 
