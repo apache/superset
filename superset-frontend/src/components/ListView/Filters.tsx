@@ -46,7 +46,7 @@ interface SelectFilterProps extends BaseFilter {
   selects: Filter['selects'];
   emptyLabel?: string;
   fetchSelects?: Filter['fetchSelects'];
-  paginate?: boolean
+  paginate?: boolean;
 }
 
 const FilterContainer = styled.div`
@@ -109,7 +109,11 @@ function SelectFilter({
     );
     setSelectedOption(selected);
   };
-  const fetchAndFormatSelects = async (inputValue: string, loadedOptions: SelectOption[], { page }) => {
+  const fetchAndFormatSelects = async (
+    inputValue: string,
+    loadedOptions: SelectOption[],
+    { page }: { page: number },
+  ) => {
     // only include clear filter when filter value does not exist
     let result = inputValue || page > 0 ? [] : [clearFilterSelect];
     let hasMore = paginate;
@@ -121,7 +125,7 @@ function SelectFilter({
         setSelectedOption(matchingOption);
       }
       if (!selectValues.length) {
-        hasMore = false
+        hasMore = false;
       }
       result = [...result, ...selectValues];
     }
@@ -129,9 +133,9 @@ function SelectFilter({
       options: result,
       hasMore,
       additional: {
-        page: page + 1
-      }
-    }
+        page: page + 1,
+      },
+    };
   };
 
   return (
@@ -153,16 +157,16 @@ function SelectFilter({
           }}
         />
       ) : (
-          <Select
-            data-test="filters-select"
-            themeConfig={filterSelectTheme}
-            stylesConfig={filterSelectStyles}
-            value={selectedOption}
-            options={options}
-            onChange={onChange}
-            clearable={false}
-          />
-        )}
+        <Select
+          data-test="filters-select"
+          themeConfig={filterSelectTheme}
+          stylesConfig={filterSelectStyles}
+          value={selectedOption}
+          options={options}
+          onChange={onChange}
+          clearable={false}
+        />
+      )}
     </FilterContainer>
   );
 }
@@ -215,7 +219,15 @@ function UIFilters({
     <FilterWrapper>
       {filters.map(
         (
-          { Header, id, input, selects, unfilteredLabel, fetchSelects, paginate },
+          {
+            Header,
+            id,
+            input,
+            selects,
+            unfilteredLabel,
+            fetchSelects,
+            paginate,
+          },
           index,
         ) => {
           const initialValue =

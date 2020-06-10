@@ -434,7 +434,7 @@ class ChartList extends React.PureComponent<Props, State> {
             operator: 'rel_m_m',
             unfilteredLabel: 'All',
             fetchSelects: this.fetchOwners,
-            paginate: true
+            paginate: true,
           },
           {
             Header: 'Viz Type',
@@ -453,7 +453,7 @@ class ChartList extends React.PureComponent<Props, State> {
             operator: 'eq',
             unfilteredLabel: 'All',
             fetchSelects: this.fetchDatasets,
-            paginate: false
+            paginate: false,
           },
           {
             Header: 'Search',

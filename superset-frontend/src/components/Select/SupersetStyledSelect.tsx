@@ -30,6 +30,7 @@ import BasicSelect, {
 import Async from 'react-select/async';
 import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
+import { withAsyncPaginate } from 'react-select-async-paginate';
 
 import { SelectComponents } from 'react-select/src/components';
 import {
@@ -46,7 +47,6 @@ import {
   WindowedCreatableSelect,
   WindowedAsyncCreatableSelect,
 } from './WindowedSelect';
-import { withAsyncPaginate } from 'react-select-async-paginate';
 import {
   DEFAULT_CLASS_NAME,
   DEFAULT_CLASS_NAME_PREFIX,
@@ -68,28 +68,28 @@ type AnyReactSelect<OptionType extends OptionTypeBase> =
 export type SupersetStyledSelectProps<
   OptionType extends OptionTypeBase,
   T extends WindowedSelectProps<OptionType> = WindowedSelectProps<OptionType>
-  > = T & {
-    // additional props for easier usage or backward compatibility
-    labelKey?: string;
-    valueKey?: string;
-    multi?: boolean;
-    clearable?: boolean;
-    sortable?: boolean;
-    ignoreAccents?: boolean;
-    creatable?: boolean;
-    selectRef?:
+> = T & {
+  // additional props for easier usage or backward compatibility
+  labelKey?: string;
+  valueKey?: string;
+  multi?: boolean;
+  clearable?: boolean;
+  sortable?: boolean;
+  ignoreAccents?: boolean;
+  creatable?: boolean;
+  selectRef?:
     | React.RefCallback<AnyReactSelect<OptionType>>
     | MutableRefObject<AnyReactSelect<OptionType>>;
-    getInputValue?: (selectBalue: ValueType<OptionType>) => string | undefined;
-    optionRenderer?: (option: OptionType) => React.ReactNode;
-    valueRenderer?: (option: OptionType) => React.ReactNode;
-    valueRenderedAsLabel?: boolean;
-    // callback for paste event
-    onPaste?: (e: SyntheticEvent) => void;
-    // for simplier theme overrides
-    themeConfig?: PartialThemeConfig;
-    stylesConfig?: PartialStylesConfig;
-  };
+  getInputValue?: (selectBalue: ValueType<OptionType>) => string | undefined;
+  optionRenderer?: (option: OptionType) => React.ReactNode;
+  valueRenderer?: (option: OptionType) => React.ReactNode;
+  valueRenderedAsLabel?: boolean;
+  // callback for paste event
+  onPaste?: (e: SyntheticEvent) => void;
+  // for simplier theme overrides
+  themeConfig?: PartialThemeConfig;
+  stylesConfig?: PartialStylesConfig;
+};
 
 function styled<
   OptionType extends OptionTypeBase,
@@ -287,7 +287,7 @@ export const Select = styled(WindowedSelect);
 export const AsyncSelect = styled(WindowedAsyncSelect);
 export const CreatableSelect = styled(WindowedCreatableSelect);
 export const AsyncCreatableSelect = styled(WindowedAsyncCreatableSelect);
-
-//@ts-ignore using BasicSelect since new options are appended which causes jumping
+// Wrap with async pagination (infinite scroll). Cannot use windowed since options are appended dynamically which causes focus jumping
+// @ts-ignore
 export const PaginatedSelect = withAsyncPaginate(styled(BasicSelect));
 export default Select;
