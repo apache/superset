@@ -27,13 +27,15 @@ RUN mkdir /app \
             build-essential \
             default-libmysqlclient-dev \
             libpq-dev \
+            unixodbc \
+            unixodbc-dev \
         && rm -rf /var/lib/apt/lists/*
 
 # First, we just wanna install requirements, which will allow us to utilize the cache
 # in order to only build if and only if requirements change
 COPY ./requirements.txt /app/
 RUN cd /app \
-    && pip install --upgrade pip \
+    && pip install --upgrade setuptools pip \
     && pip install --no-cache -r requirements.txt
 
 
