@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
-from typing import List  # pylint: disable=unused-import
+from typing import Any, List, Optional
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from wtforms import Field
@@ -25,24 +25,24 @@ class CommaSeparatedListField(Field):
     widget = BS3TextFieldWidget()
     data: List[str] = []
 
-    def _value(self):
+    def _value(self) -> str:
         if self.data:
-            return u", ".join(self.data)
+            return ", ".join(self.data)
 
-        return u""
+        return ""
 
-    def process_formdata(self, valuelist):
+    def process_formdata(self, valuelist: List[str]) -> None:
         if valuelist:
             self.data = [x.strip() for x in valuelist[0].split(",")]
         else:
             self.data = []
 
 
-def filter_not_empty_values(value):
+def filter_not_empty_values(values: Optional[List[Any]]) -> Optional[List[Any]]:
     """Returns a list of non empty values or None"""
-    if not value:
+    if not values:
         return None
-    data = [x for x in value if x]
+    data = [value for value in values if value]
     if not data:
         return None
     return data

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Dict
 
@@ -55,13 +56,14 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
-from superset.utils.core import json_int_dttm_ser
+from superset.utils.core import ChartDataResultFormat, json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     statsd_metrics,
 )
+from superset.views.core import CsvResponse, generate_download_headers
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -431,10 +433,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
             """
-        if not request.is_json:
+
+        if request.is_json:
+            json_body = request.json
+        elif request.form.get("form_data"):
+            # CSV export submits regular form data
+            json_body = json.loads(request.form["form_data"])
+        else:
             return self.response_400(message="Request is not JSON")
         try:
-            query_context, errors = ChartDataQueryContextSchema().load(request.json)
+            query_context, errors = ChartDataQueryContextSchema().load(json_body)
             if errors:
                 return self.response_400(
                     message=_("Request is incorrect: %(error)s", error=errors)
@@ -445,13 +453,25 @@ class ChartRestApi(BaseSupersetModelRestApi):
             security_manager.assert_query_context_permission(query_context)
         except SupersetSecurityException:
             return self.response_401()
-        payload_json = query_context.get_payload()
-        response_data = simplejson.dumps(
-            {"result": payload_json}, default=json_int_dttm_ser, ignore_nan=True
-        )
-        resp = make_response(response_data, 200)
-        resp.headers["Content-Type"] = "application/json; charset=utf-8"
-        return resp
+        payload = query_context.get_payload()
+        result_format = query_context.result_format
+        if result_format == ChartDataResultFormat.CSV:
+            # return the first result
+            result = payload[0]["data"]
+            return CsvResponse(
+                result,
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv",
+            )
+        elif result_format == ChartDataResultFormat.JSON:
+            response_data = simplejson.dumps(
+                {"result": payload}, default=json_int_dttm_ser, ignore_nan=True
+            )
+            resp = make_response(response_data, 200)
+            resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            return resp
+        raise self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
     @protect()

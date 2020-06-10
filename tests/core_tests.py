@@ -25,6 +25,7 @@ import json
 import logging
 import os
 from typing import Dict, List, Optional
+from urllib.parse import quote
 
 import pytz
 import random
@@ -50,6 +51,7 @@ from superset.datasets.dao import DatasetDAO
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.models import core as models
+from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
@@ -159,43 +161,28 @@ class CoreTests(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    def test_old_slice_json_endpoint(self):
-        self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+    def test_annotation_json_endpoint(self):
+        # Set up an annotation layer and annotation
+        layer = AnnotationLayer(name="foo", descr="bar")
+        db.session.add(layer)
+        db.session.commit()
 
-        json_endpoint = "/superset/explore_json/{}/{}/".format(
-            slc.datasource_type, slc.datasource_id
+        annotation = Annotation(
+            layer_id=layer.id,
+            short_descr="my_annotation",
+            start_dttm=datetime.datetime(2020, 5, 20, 18, 21, 51),
+            end_dttm=datetime.datetime(2020, 5, 20, 18, 31, 51),
         )
+
+        db.session.add(annotation)
+        db.session.commit()
+
         resp = self.get_resp(
-            json_endpoint, {"form_data": json.dumps(slc.viz.form_data)}
+            f"/superset/annotation_json/{layer.id}?form_data="
+            + quote(json.dumps({"time_range": "100 years ago : now"}))
         )
-        assert '"Jennifer"' in resp
 
-    def test_slice_json_endpoint(self):
-        self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
-        resp = self.get_resp(slc.explore_json_url)
-        assert '"Jennifer"' in resp
-
-    def test_old_slice_csv_endpoint(self):
-        self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
-
-        csv_endpoint = "/superset/explore_json/{}/{}/?csv=true".format(
-            slc.datasource_type, slc.datasource_id
-        )
-        resp = self.get_resp(csv_endpoint, {"form_data": json.dumps(slc.viz.form_data)})
-        assert "Jennifer," in resp
-
-    def test_slice_csv_endpoint(self):
-        self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
-
-        csv_endpoint = "/superset/explore_json/?csv=true"
-        resp = self.get_resp(
-            csv_endpoint, {"form_data": json.dumps({"slice_id": slc.id})}
-        )
-        assert "Jennifer," in resp
+        assert "my_annotation" in resp
 
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
@@ -323,7 +310,6 @@ class CoreTests(SupersetTestCase):
         for slc in db.session.query(Slc).all():
             urls += [
                 (slc.slice_name, "explore", slc.slice_url),
-                (slc.slice_name, "explore_json", slc.explore_json_url),
             ]
         for name, method, url in urls:
             logger.info(f"[{name}]/[{method}]: {url}")
@@ -763,15 +749,6 @@ class CoreTests(SupersetTestCase):
         self.get_resp(slc.slice_url, {"form_data": json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
 
-    def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
-        # superset/explore_json case
-        self.login(username="admin")
-        slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
-        qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
-        slc_url = slc.slice_url.replace("explore", "explore_json")
-        self.get_json_resp(slc_url, {"form_data": json.dumps(slc.form_data)})
-        self.assertEqual(1, qry.count())
-
     def create_sample_csvfile(self, filename: str, content: List[str]) -> None:
         with open(filename, "w+") as test_file:
             for l in content:
@@ -976,39 +953,6 @@ class CoreTests(SupersetTestCase):
         )
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
-
-    def test_slice_payload_no_results(self):
-        self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
-        json_endpoint = "/superset/explore_json/"
-        form_data = slc.form_data
-        form_data.update(
-            {
-                "adhoc_filters": [
-                    {
-                        "clause": "WHERE",
-                        "comparator": "NA",
-                        "expressionType": "SIMPLE",
-                        "operator": "==",
-                        "subject": "gender",
-                    }
-                ]
-            }
-        )
-        data = self.get_json_resp(json_endpoint, {"form_data": json.dumps(form_data)})
-        self.assertEqual(data["status"], utils.QueryStatus.SUCCESS)
-        self.assertEqual(data["errors"], [])
-
-    def test_slice_payload_invalid_query(self):
-        self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
-        form_data = slc.form_data
-        form_data.update({"groupby": ["N/A"]})
-
-        data = self.get_json_resp(
-            "/superset/explore_json/", {"form_data": json.dumps(form_data)}
-        )
-        self.assertEqual(data["status"], utils.QueryStatus.FAILED)
 
     def test_slice_payload_no_datasource(self):
         self.login(username="admin")

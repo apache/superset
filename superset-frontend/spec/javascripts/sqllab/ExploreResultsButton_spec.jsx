@@ -179,12 +179,14 @@ describe('ExploreResultsButton', () => {
     beforeEach(() => {
       sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => 'mockURL');
       sinon.spy(exploreUtils, 'exportChart');
+      sinon.spy(exploreUtils, 'exploreChart');
       sinon
         .stub(wrapper.instance(), 'buildVizOptions')
         .callsFake(() => mockOptions);
     });
     afterEach(() => {
       exploreUtils.getExploreUrl.restore();
+      exploreUtils.exploreChart.restore();
       exploreUtils.exportChart.restore();
       wrapper.instance().buildVizOptions.restore();
       fetchMock.reset();
@@ -224,8 +226,8 @@ describe('ExploreResultsButton', () => {
 
       setTimeout(() => {
         expect(datasourceSpy.callCount).toBe(1);
-        expect(exploreUtils.exportChart.callCount).toBe(1);
-        expect(exploreUtils.exportChart.getCall(0).args[0].datasource).toBe(
+        expect(exploreUtils.exploreChart.callCount).toBe(1);
+        expect(exploreUtils.exploreChart.getCall(0).args[0].datasource).toBe(
           '107__table',
         );
         expect(infoToastSpy.callCount).toBe(1);

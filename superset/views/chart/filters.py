@@ -14,14 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from sqlalchemy import or_
+from sqlalchemy.orm.query import Query
 
 from superset import security_manager
 from superset.views.base import BaseFilter
 
 
 class SliceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query, value):
+    def apply(self, query: Query, value: Any) -> Query:
         if security_manager.all_datasource_access():
             return query
         perms = security_manager.user_view_menu_names("datasource_access")

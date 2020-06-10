@@ -19,7 +19,7 @@
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 export default () =>
-  describe('dashboard url params', () => {
+  describe('dashboard form data', () => {
     const urlParams = { param1: '123', param2: 'abc' };
     let sliceIds = [];
     let dashboardId;
@@ -38,7 +38,7 @@ export default () =>
       });
     });
 
-    it('should apply url params to slice requests', () => {
+    it('should apply url params and queryFields to slice requests', () => {
       const aliases = [];
       sliceIds.forEach(id => {
         const alias = `getJson_${id}`;
@@ -53,6 +53,7 @@ export default () =>
         requests.forEach(xhr => {
           const requestFormData = xhr.request.body;
           const requestParams = JSON.parse(requestFormData.get('form_data'));
+          expect(requestParams).to.have.property('queryFields');
           expect(requestParams.url_params).deep.eq(urlParams);
         });
       });

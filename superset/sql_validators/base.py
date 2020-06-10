@@ -19,6 +19,8 @@
 
 from typing import Any, Dict, List, Optional
 
+from superset.models.core import Database
+
 
 class SQLValidationAnnotation:
     """Represents a single annotation (error/warning) in an SQL querytext"""
@@ -35,7 +37,7 @@ class SQLValidationAnnotation:
         self.start_column = start_column
         self.end_column = end_column
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Return a dictionary representation of this annotation"""
         return {
             "line_number": self.line_number,
@@ -53,7 +55,7 @@ class BaseSQLValidator:
 
     @classmethod
     def validate(
-        cls, sql: str, schema: str, database: Any
+        cls, sql: str, schema: Optional[str], database: Database
     ) -> List[SQLValidationAnnotation]:
         """Check that the given SQL querystring is valid for the given engine"""
         raise NotImplementedError

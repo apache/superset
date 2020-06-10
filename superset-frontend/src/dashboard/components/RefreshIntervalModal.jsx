@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
+import { Alert, Button } from 'react-bootstrap';
 
 import ModalTrigger from '../../components/ModalTrigger';
 
@@ -28,9 +29,16 @@ const propTypes = {
   refreshFrequency: PropTypes.number.isRequired,
   onChange: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
+  refreshLimit: PropTypes.number,
+  refreshWarning: PropTypes.string,
 };
 
-const options = [
+const defaultProps = {
+  refreshLimit: 0,
+  refreshWarning: null,
+};
+
+export const options = [
   [0, t("Don't refresh")],
   [10, t('10 seconds')],
   [30, t('30 seconds')],
@@ -46,10 +54,25 @@ const options = [
 class RefreshIntervalModal extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.modalRef = React.createRef();
     this.state = {
       refreshFrequency: props.refreshFrequency,
     };
     this.handleFrequencyChange = this.handleFrequencyChange.bind(this);
+    this.onSave = this.onSave.bind(this);
+    this.onCancel = this.onCancel.bind(this);
+  }
+
+  onSave() {
+    this.props.onChange(this.state.refreshFrequency, this.props.editMode);
+    this.modalRef.current.close();
+  }
+
+  onCancel() {
+    this.setState({
+      refreshFrequency: this.props.refreshFrequency,
+    });
+    this.modalRef.current.close();
   }
 
   handleFrequencyChange(opt) {
@@ -57,12 +80,17 @@ class RefreshIntervalModal extends React.PureComponent {
     this.setState({
       refreshFrequency: value,
     });
-    this.props.onChange(value, this.props.editMode);
   }
 
   render() {
+    const { refreshLimit = 0, refreshWarning, editMode } = this.props;
+    const { refreshFrequency = 0 } = this.state;
+    const showRefreshWarning =
+      !!refreshFrequency && !!refreshWarning && refreshFrequency < refreshLimit;
+
     return (
       <ModalTrigger
+        ref={this.modalRef}
         triggerNode={this.props.triggerNode}
         isMenuItem
         modalTitle={t('Refresh Interval')}
@@ -74,12 +102,30 @@ class RefreshIntervalModal extends React.PureComponent {
               value={this.state.refreshFrequency}
               onChange={this.handleFrequencyChange}
             />
+            {showRefreshWarning && (
+              <div className="refresh-warning-container">
+                <Alert bsStyle="warning">
+                  <div>{refreshWarning}</div>
+                  <br />
+                  <strong>{t('Are you sure you want to proceed?')}</strong>
+                </Alert>
+              </div>
+            )}
           </div>
+        }
+        modalFooter={
+          <>
+            <Button bsStyle="primary" onClick={this.onSave}>
+              {editMode ? t('Save') : t('Save for this session')}
+            </Button>
+            <Button onClick={this.onCancel}>{t('Cancel')}</Button>
+          </>
         }
       />
     );
   }
 }
 RefreshIntervalModal.propTypes = propTypes;
+RefreshIntervalModal.defaultProps = defaultProps;
 
 export default RefreshIntervalModal;

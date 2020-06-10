@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -75,7 +75,7 @@ class BaseDAO:
         return query.all()
 
     @classmethod
-    def create(cls, properties: Dict, commit: bool = True) -> Model:
+    def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
         """
         Generic for creating models
         :raises: DAOCreateFailedError
@@ -95,7 +95,9 @@ class BaseDAO:
         return model
 
     @classmethod
-    def update(cls, model: Model, properties: Dict, commit: bool = True) -> Model:
+    def update(
+        cls, model: Model, properties: Dict[str, Any], commit: bool = True
+    ) -> Model:
         """
         Generic update a model
         :raises: DAOCreateFailedError
