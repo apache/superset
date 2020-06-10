@@ -917,9 +917,6 @@ class Superset(BaseSupersetView):
             )
 
         if action in ("saveas", "overwrite"):
-            if not slc:
-                return json_error_response("The slice does not exist")
-
             return self.save_or_overwrite_slice(
                 slc,
                 slice_add_perm,
@@ -1003,7 +1000,7 @@ class Superset(BaseSupersetView):
 
     def save_or_overwrite_slice(
         self,
-        slc: Slice,
+        slc: Optional[Slice],
         slice_add_perm: bool,
         slice_overwrite_perm: bool,
         slice_download_perm: bool,
@@ -1025,6 +1022,7 @@ class Superset(BaseSupersetView):
             form_data.get("adhoc_filters", [])
         )
 
+        assert slc
         slc.params = json.dumps(form_data, indent=2, sort_keys=True)
         slc.datasource_name = datasource_name
         slc.viz_type = form_data["viz_type"]
