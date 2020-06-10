@@ -448,11 +448,11 @@ class SupersetSecurityManager(SecurityManager):
             return set([s.name for s in view_menu_names])
         return set()
 
-    def schemas_accessible_by_user(
+    def get_schemas_accessible_by_user(
         self, database: "Database", schemas: List[str], hierarchical: bool = True
     ) -> List[str]:
         """
-        Return the sorted list of SQL schemas accessible by the user.
+        Return the list of SQL schemas accessible by the user.
 
         :param database: The SQL database
         :param schemas: The list of eligible SQL schemas

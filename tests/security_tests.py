@@ -412,7 +412,7 @@ class RolePermissionTests(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
             database = get_example_database()
-            schemas = security_manager.schemas_accessible_by_user(
+            schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["1", "2", "3"]
             )
             self.assertEquals(schemas, ["1", "2", "3"])  # no changes
@@ -424,7 +424,7 @@ class RolePermissionTests(SupersetTestCase):
         mock_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
             database = get_example_database()
-            schemas = security_manager.schemas_accessible_by_user(
+            schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["1", "2", "3"]
             )
             # temp_schema is not passed in the params
@@ -437,7 +437,7 @@ class RolePermissionTests(SupersetTestCase):
         mock_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
             database = get_example_database()
-            schemas = security_manager.schemas_accessible_by_user(
+            schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["temp_schema", "2", "3"]
             )
             self.assertEquals(schemas, ["temp_schema"])
@@ -449,7 +449,7 @@ class RolePermissionTests(SupersetTestCase):
         mock_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
             database = get_example_database()
-            schemas = security_manager.schemas_accessible_by_user(
+            schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["temp_schema", "2", "3"]
             )
             self.assertEquals(schemas, ["temp_schema", "2"])
