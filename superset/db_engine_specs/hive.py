@@ -34,6 +34,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import app, cache, conf
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
+from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -116,6 +117,10 @@ class HiveEngineSpec(PrestoEngineSpec):
     ) -> None:
         """Uploads a csv file and creates a superset datasource in Hive."""
 
+        if_exists = df_to_sql_kwargs["if_exists"]
+        if if_exists == "append":
+            raise SupersetException("Append operation not currently supported")
+
         def convert_to_hive_type(col_type: str) -> str:
             """maps tableschema's types to hive types"""
             tableschema_to_hive_types = {
@@ -153,6 +158,20 @@ class HiveEngineSpec(PrestoEngineSpec):
             )
         schema_definition = ", ".join(column_name_and_type)
 
+        # ensure table doesn't already exist
+        if (
+            if_exists == "fail"
+            and not database.get_df(
+                f"SHOW TABLES IN {table.schema} LIKE '{table.table}'"
+            ).empty
+        ):
+            raise SupersetException("Table already exists")
+
+        engine = cls.get_engine(database)
+
+        if if_exists == "replace":
+            engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+
         # Optional dependency
         import boto3  # pylint: disable=import-error
 
@@ -163,12 +182,12 @@ class HiveEngineSpec(PrestoEngineSpec):
             bucket_path,
             os.path.join(upload_prefix, table.table, os.path.basename(filename)),
         )
+
         # TODO(bkyryliuk): support other delimiters
         sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')"""
-        engine = cls.get_engine(database)
         engine.execute(sql)
 
     @classmethod
