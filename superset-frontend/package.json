@@ -159,6 +159,7 @@
     "react-router-dom": "^5.1.2",
     "react-search-input": "^0.11.3",
     "react-select": "^3.1.0",
+    "react-select-async-paginate": "^0.4.0-alpha.1",
     "react-select-fast-filter-options": "^0.2.1",
     "react-sortable-hoc": "^1.11.0",
     "react-split": "^2.0.4",
