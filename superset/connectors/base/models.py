@@ -110,9 +110,9 @@ class BaseDatasource(
     @property
     def kind(self) -> str:
         if self.sql:
-            return DatasourceKind.virtual.value
+            return DatasourceKind.VIRTUAL.value
 
-        return DatasourceKind.physical.value
+        return DatasourceKind.PHYSICAL.value
 
     @declared_attr
     def slices(self) -> RelationshipProperty:
