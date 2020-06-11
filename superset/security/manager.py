@@ -254,11 +254,11 @@ class SupersetSecurityManager(SecurityManager):
         :param datasource: The Superset datasource
         :returns: Whether the user can access the datasource's schema
         """
-
+        schema_perm = datasource.schema_perm or ""
         return (
             self.all_datasource_access()
             or self.database_access(datasource.database)
-            or self.can_access("schema_access", datasource.schema_perm)
+            or self.can_access("schema_access", schema_perm)
         )
 
     def datasource_access(self, datasource: "BaseDatasource") -> bool:
@@ -268,9 +268,9 @@ class SupersetSecurityManager(SecurityManager):
         :param datasource: The Superset datasource
         :returns: Whether the use can access the Superset datasource
         """
-
+        perm = datasource.perm or ""
         return self.schema_access(datasource) or self.can_access(
-            "datasource_access", datasource.perm
+            "datasource_access", perm
         )
 
     def get_datasource_access_error_msg(self, datasource: "BaseDatasource") -> str:
