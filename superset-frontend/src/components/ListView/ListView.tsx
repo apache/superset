@@ -41,8 +41,8 @@ interface Props {
   initialSort?: SortColumn[];
   filters?: Filters;
   bulkActions?: Array<{
-    key?: string;
-    name: React.ReactNode;
+    key: string;
+    name: React.ReactNode | string;
     onSelect: (rows: any[]) => any;
   }>;
   useNewUIFilters?: boolean;
@@ -197,7 +197,7 @@ const ListView: FunctionComponent<Props> = ({
                     {bulkActions.map(action => (
                       // @ts-ignore
                       <MenuItem
-                        key={action.key || action.name}
+                        key={action.key}
                         eventKey={selectedFlatRows}
                         // @ts-ignore
                         onSelect={(selectedRows: typeof selectedFlatRows) => {
