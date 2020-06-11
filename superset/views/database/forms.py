@@ -76,7 +76,7 @@ class CsvToDatabaseForm(DynamicForm):
         ):
             return True
         schemas = database.get_schema_access_for_csv_upload()
-        if schemas and security_manager.schemas_accessible_by_user(
+        if schemas and security_manager.get_schemas_accessible_by_user(
             database, schemas, False
         ):
             return True
