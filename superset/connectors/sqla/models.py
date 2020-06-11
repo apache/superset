@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=C,R,W
 import logging
-import re
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
