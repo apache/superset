@@ -24,7 +24,7 @@ from urllib import parse
 
 import pandas as pd
 from flask import g
-from sqlalchemy import Column
+from sqlalchemy import Column, text
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
@@ -182,13 +182,18 @@ class HiveEngineSpec(PrestoEngineSpec):
             bucket_path,
             os.path.join(upload_prefix, table.table, os.path.basename(filename)),
         )
-
-        # TODO(bkyryliuk): support other delimiters
-        sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
-            TEXTFILE LOCATION '{location}'
+        sql = text(
+            f"""CREATE TABLE {str(table)} ( {schema_definition} )
+            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+            STORED AS TEXTFILE LOCATION :location
             tblproperties ('skip.header.line.count'='1')"""
-        engine.execute(sql)
+        )
+        engine = cls.get_engine(database)
+        engine.execute(
+            sql,
+            delim=csv_to_df_kwargs["sep"].encode().decode("unicode_escape"),
+            location=location,
+        )
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
