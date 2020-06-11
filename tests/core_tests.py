@@ -963,7 +963,9 @@ class CoreTests(SupersetTestCase):
             "The datasource associated with this chart no longer exists",
         )
 
-    @mock.patch("superset.security.SupersetSecurityManager.schemas_accessible_by_user")
+    @mock.patch(
+        "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"
+    )
     @mock.patch("superset.security.SupersetSecurityManager.database_access")
     @mock.patch("superset.security.SupersetSecurityManager.all_datasource_access")
     def test_schemas_access_for_csv_upload_endpoint(

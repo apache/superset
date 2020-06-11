@@ -1128,7 +1128,7 @@ class Superset(BaseSupersetView):
                 cache_timeout=database.schema_cache_timeout,
                 force=force_refresh.lower() == "true",
             )
-            schemas = security_manager.schemas_accessible_by_user(database, schemas)
+            schemas = security_manager.get_schemas_accessible_by_user(database, schemas)
         else:
             schemas = []
 
@@ -2905,7 +2905,7 @@ class Superset(BaseSupersetView):
             # should not be empty either,
             # otherwise the database should have been filtered out
             # in CsvToDatabaseForm
-            schemas_allowed_processed = security_manager.schemas_accessible_by_user(
+            schemas_allowed_processed = security_manager.get_schemas_accessible_by_user(
                 database, schemas_allowed, False
             )
             return self.json_response(schemas_allowed_processed)
