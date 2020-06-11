@@ -19,6 +19,9 @@
 import React from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
+import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
+import { ReactComponent as SortDescIcon } from 'images/icons/sorted-desc.svg';
+import { ReactComponent as SortAscIcon } from 'images/icons/sorted-asc.svg';
 
 interface Props {
   getTableProps: (userProps?: any) => any;
@@ -41,28 +44,30 @@ export default function TableCollection({
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map(column =>
-              column.hidden ? null : (
+            {headerGroup.headers.map(column => {
+              let sortIcon;
+              if (!column.isSorted) {
+                sortIcon = <SortIcon />;
+              } else if (column.isSorted && column.isSortedDesc) {
+                sortIcon = <SortDescIcon />;
+              } else if (column.isSorted && !column.isSortedDesc) {
+                sortIcon = <SortAscIcon />;
+              }
+
+              return column.hidden ? null : (
                 <th
                   {...column.getHeaderProps(
                     column.sortable ? column.getSortByToggleProps() : {},
                   )}
                   data-test="sort-header"
                 >
-                  {column.render('Header')}
-                  {'  '}
+                  <span>{column.render('Header')}</span>
                   {column.sortable && (
-                    <i
-                      className={cx('text-primary fa', {
-                        'fa-sort': !column.isSorted,
-                        'fa-sort-down': column.isSorted && column.isSortedDesc,
-                        'fa-sort-up': column.isSorted && !column.isSortedDesc,
-                      })}
-                    />
+                    <span className="sort-icon">{sortIcon}</span>
                   )}
                 </th>
-              ),
-            )}
+              );
+            })}
           </tr>
         ))}
       </thead>

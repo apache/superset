@@ -51,12 +51,15 @@ interface Props {
 const bulkSelectColumnConfig = {
   Cell: ({ row }: any) => (
     <div>
-      <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} />
+      <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} id={row.id} />
     </div>
   ),
   Header: ({ getToggleAllRowsSelectedProps }: any) => (
     <div>
-      <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
+      <IndeterminateCheckbox
+        {...getToggleAllRowsSelectedProps()}
+        id={'header-toggle-all'}
+      />
     </div>
   ),
   id: 'selection',

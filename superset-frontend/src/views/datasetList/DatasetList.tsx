@@ -34,6 +34,11 @@ import {
   Filters,
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
+import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
+import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
+import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
+import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
 
 const PAGE_SIZE = 25;
 
@@ -150,15 +155,47 @@ class DatasetList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: { explore_url: exploreUrl, table_name: datasetTitle },
+          original: { kind },
         },
-      }: any) => <a href={exploreUrl}>{datasetTitle}</a>,
-      Header: t('Table'),
+      }: any) =>
+        kind === 'physical' ? <DatasetPhysicalIcon /> : <DatasetVirtualIcon />,
+      accessor: 'kind_icon',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { table_name: datasetTitle },
+        },
+      }: any) => datasetTitle,
+      Header: t('Name'),
       accessor: 'table_name',
     },
     {
-      Header: t('Database'),
+      Cell: ({
+        row: {
+          original: { kind },
+        },
+      }: any) => kind[0]?.toUpperCase() + kind.slice(1),
+      Header: t('Type'),
+      accessor: 'kind',
+    },
+    {
+      Header: t('Source'),
       accessor: 'database_name',
+    },
+    {
+      Header: t('Schema'),
+      accessor: 'schema',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { changed_on: changedOn },
+        },
+      }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
+      Header: t('Last Modified'),
+      accessor: 'changed_on',
+      sortable: true,
     },
     {
       Cell: ({
@@ -169,25 +206,11 @@ class DatasetList extends React.PureComponent<Props, State> {
           },
         },
       }: any) => <a href={changedByUrl}>{changedByName}</a>,
-      Header: t('Changed By'),
+      Header: t('Modified By'),
       accessor: 'changed_by_fk',
     },
     {
-      Cell: ({
-        row: {
-          original: { changed_on: changedOn },
-        },
-      }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
-      Header: t('Modified'),
-      accessor: 'changed_on',
-      sortable: true,
-    },
-    {
       accessor: 'database',
-      hidden: true,
-    },
-    {
-      accessor: 'schema',
       hidden: true,
     },
     {
@@ -229,6 +252,14 @@ class DatasetList extends React.PureComponent<Props, State> {
           <span
             className={`actions ${state && state.hover ? '' : 'invisible'}`}
           >
+            <a
+              role="button"
+              tabIndex={0}
+              className="action-button"
+              href={original.explore_url}
+            >
+              <CompassIcon />
+            </a>
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
@@ -247,7 +278,7 @@ class DatasetList extends React.PureComponent<Props, State> {
                     className="action-button"
                     onClick={confirmDelete}
                   >
-                    <i className="fa fa-trash" />
+                    <TrashIcon />
                   </span>
                 )}
               </ConfirmStatusChange>
@@ -259,7 +290,7 @@ class DatasetList extends React.PureComponent<Props, State> {
                 className="action-button"
                 onClick={handleEdit}
               >
-                <i className="fa fa-pencil" />
+                <PencilIcon />
               </span>
             )}
           </span>

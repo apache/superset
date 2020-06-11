@@ -212,6 +212,7 @@ const config = {
       src: path.resolve(APP_DIR, './src'),
       'react-dom': '@hot-loader/react-dom',
       stylesheets: path.resolve(APP_DIR, './stylesheets'),
+      images: path.resolve(APP_DIR, './images'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     symlinks: false,
@@ -298,6 +299,13 @@ const config = {
           limit: 10000,
           name: '[name].[hash:8].[ext]',
         },
+      },
+      {
+        test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
+        issuer: {
+          test: /\.(j|t)sx?$/,
+        },
+        use: ['@svgr/webpack'],
       },
       {
         test: /\.(jpg|gif)$/,
