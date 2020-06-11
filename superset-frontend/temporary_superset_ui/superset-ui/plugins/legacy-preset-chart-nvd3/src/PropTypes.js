@@ -74,6 +74,6 @@ export const annotationLayerType = PropTypes.shape({
   showMarkers: PropTypes.bool,
   sourceType: PropTypes.string,
   style: PropTypes.string,
-  value: PropTypes.number,
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   width: PropTypes.number,
 });
