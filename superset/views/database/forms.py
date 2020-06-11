@@ -70,10 +70,7 @@ class CsvToDatabaseForm(DynamicForm):
                 b) if database supports schema
                     user is able to upload to schema in schemas_allowed_for_csv_upload
         """
-        if (
-            security_manager.database_access(database)
-            or security_manager.all_datasource_access()
-        ):
+        if security_manager.can_access_database(database):
             return True
         schemas = database.get_schema_access_for_csv_upload()
         if schemas and security_manager.get_schemas_accessible_by_user(
