@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/superset-ui",
-  "version": "0.13.27",
+  "version": "0.13.28",
   "description": "One stop install for all superset-ui packages",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -30,7 +30,7 @@
     "@superset-ui/chart-composition": "0.13.27",
     "@superset-ui/color": "0.13.27",
     "@superset-ui/connection": "0.13.27",
-    "@superset-ui/control-utils": "0.13.27",
+    "@superset-ui/control-utils": "0.13.28",
     "@superset-ui/core": "0.13.27",
     "@superset-ui/dimension": "0.13.27",
     "@superset-ui/number-format": "0.13.27",
