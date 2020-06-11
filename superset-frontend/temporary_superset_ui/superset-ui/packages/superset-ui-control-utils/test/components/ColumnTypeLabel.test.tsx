@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { ColumnTypeLabel, ColumnTypeLabelProps } from '../src/ColumnTypeLabel';
+import { ColumnTypeLabel, ColumnTypeLabelProps } from '../../src/ColumnTypeLabel';
 
 describe('ColumnOption', () => {
   const defaultProps = {

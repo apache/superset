@@ -12,3 +12,4 @@ export * from './InfoTooltipWithTrigger';
 export * from './ColumnOption';
 export * from './ColumnTypeLabel';
 export * from './mainMetric';
+export * from './MetricOption';
