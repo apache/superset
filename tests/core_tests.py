@@ -180,9 +180,9 @@ class CoreTests(SupersetTestCase):
         resp_annotations = json.loads(
             self.get_resp("annotationlayermodelview/api/read")
         )
+        # the UI needs id and name to function
         self.assertIn("id", resp_annotations["result"][0])
         self.assertIn("name", resp_annotations["result"][0])
-        self.assertIn("descr", resp_annotations["result"][0])
 
         layer = self.get_resp(
             f"/superset/annotation_json/{layer.id}?form_data="
