@@ -43,10 +43,9 @@ from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
 from geopy.point import Point
-from markdown import markdown
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, cache, get_manifest_files, security_manager
+from superset import app, cache, security_manager
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -405,7 +404,7 @@ class BaseViz:
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         cache_dict["rls"] = (
             security_manager.get_rls_ids(self.datasource)
-            if config["ENABLE_ROW_LEVEL_SECURITY"]
+            if config["ENABLE_ROW_LEVEL_SECURITY"] and self.datasource.is_rls_supported
             else []
         )
         cache_dict["changed_on"] = self.datasource.changed_on

@@ -394,6 +394,7 @@ class SqlaTable(Model, BaseDatasource):
 
     type = "table"
     query_language = "sql"
+    is_rls_supported = True
     metric_class = SqlMetric
     column_class = TableColumn
     owner_class = security_manager.user_model
