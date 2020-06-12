@@ -96,6 +96,7 @@ class Dashboard extends React.PureComponent {
       is_edit_mode: dashboardState.editMode,
       mount_duration: Logger.getTimestamp(),
       is_empty: isDashboardEmpty(layout),
+      is_published: dashboardState.isPublished,
     };
     const directLinkComponentId = getLocationHash();
     if (directLinkComponentId) {
