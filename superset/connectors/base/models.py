@@ -84,6 +84,9 @@ class BaseDatasource(
     # Used to do code highlighting when displaying the query in the UI
     query_language: Optional[str] = None
 
+    # Only some datasources support Row Level Security
+    is_rls_supported: bool = False
+
     @property
     def name(self) -> str:
         # can be a Column or a property pointing to one
