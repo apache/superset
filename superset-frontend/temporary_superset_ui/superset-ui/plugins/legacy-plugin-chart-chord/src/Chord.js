@@ -21,7 +21,6 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { getNumberFormatter } from '@superset-ui/number-format';
-import './Chord.css';
 
 const propTypes = {
   data: PropTypes.shape({

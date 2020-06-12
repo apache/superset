@@ -16,7 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { reactify } from '@superset-ui/chart';
+import styled from '@superset-ui/style';
+import PropTypes from 'prop-types';
 import Component from './Chord';
 
-export default reactify(Component);
+const ReactComponent = reactify(Component);
+
+const Chord = ({ className, ...otherProps }) => {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+};
+
+Chord.defaultProps = {
+  otherProps: {},
+};
+
+Chord.propTypes = {
+  className: PropTypes.string.isRequired,
+  otherProps: PropTypes.objectOf(PropTypes.any),
+};
+
+export default styled(Chord)`
+  .superset-legacy-chart-chord svg #circle circle {
+    fill: none;
+    pointer-events: all;
+  }
+  .superset-legacy-chart-chord svg .group path {
+    fill-opacity: 0.6;
+  }
+  .superset-legacy-chart-chord svg path.chord {
+    stroke: #000;
+    stroke-width: 0.25px;
+  }
+  .superset-legacy-chart-chord svg #circle:hover path.fade {
+    opacity: 0.2;
+  }
+`;
