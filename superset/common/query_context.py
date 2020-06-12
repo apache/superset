@@ -196,6 +196,7 @@ class QueryContext:
                 extra_cache_keys=extra_cache_keys,
                 rls=security_manager.get_rls_ids(self.datasource)
                 if config["ENABLE_ROW_LEVEL_SECURITY"]
+                and self.datasource.is_rls_supported
                 else [],
                 changed_on=self.datasource.changed_on,
                 **kwargs
