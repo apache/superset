@@ -16,7 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import PropTypes from 'prop-types';
 import { reactify } from '@superset-ui/chart';
+import styled from '@superset-ui/style';
 import Component from './Calendar';
 
-export default reactify(Component);
+const ReactComponent = reactify(Component);
+
+const Calender = ({ className, ...otherProps }) => {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+};
+
+Calender.defaultProps = {
+  otherProps: {},
+};
+
+Calender.propTypes = {
+  className: PropTypes.string.isRequired,
+  otherProps: PropTypes.objectOf(PropTypes.any),
+};
+
+export default styled(Calender)`
+  .superset-legacy-chart-calendar {
+    padding: 10px;
+    position: static !important;
+    overflow: auto !important;
+  }
+
+  .superset-legacy-chart-calendar .ch-tooltip {
+    margin-left: 20px;
+    margin-top: 5px;
+  }
+`;
