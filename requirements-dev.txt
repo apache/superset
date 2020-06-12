@@ -26,7 +26,7 @@ pip-tools==5.1.2
 pre-commit==1.17.0
 psycopg2-binary==2.8.5
 pycodestyle==2.5.0
-pydruid==0.6.0
+pydruid==0.6.1
 pyhive==0.6.2
 pylint==1.9.2
 redis==3.5.1
