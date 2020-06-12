@@ -77,7 +77,7 @@ describe('chart actions', () => {
 
   describe('v1 API', () => {
     beforeEach(() => {
-      fakeMetadata = { useLegacyApi: false };
+      fakeMetadata = { viz_type: 'my_viz', useLegacyApi: false };
     });
 
     it('should query with the built query', async () => {
