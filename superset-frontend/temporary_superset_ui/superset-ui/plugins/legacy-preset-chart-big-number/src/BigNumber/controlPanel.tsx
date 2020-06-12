@@ -17,16 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { formatSelectOptions } from '@superset-ui/control-utils';
+import { formatSelectOptions, ControlPanelConfig } from '@superset-ui/control-utils';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
-type VisibilityProps = {
-  // eslint-disable-next-line camelcase
-  form_data: { time_range: string };
-};
-
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     {
       label: t('Query'),
@@ -92,10 +87,10 @@ export default {
                 'Fix the trend line to the full time range specified in case filtered results do not include the start or end dates',
               ),
               renderTrigger: true,
-              visibility(props: VisibilityProps) {
+              visibility(props) {
                 const { time_range: timeRange } = props.form_data;
                 // only display this option when a time range is selected
-                return timeRange && timeRange !== 'No filter';
+                return !!timeRange && timeRange !== 'No filter';
               },
             },
           },
@@ -172,3 +167,5 @@ export default {
     },
   },
 };
+
+export default config;

@@ -16,25 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable camelcase */
 import React from 'react';
 
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
-
-export type ColumnOptionColumn = {
-  column_name: string;
-  groupby?: string;
-  verbose_name?: string;
-  description?: string;
-  expression?: string;
-  is_dttm?: boolean;
-  type?: string;
-  filterable?: boolean;
-};
+import { ColumnMeta } from './types';
 
 export type ColumnOptionProps = {
-  column: ColumnOptionColumn;
+  column: ColumnMeta;
   showType?: boolean;
 };
 

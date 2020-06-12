@@ -27,6 +27,7 @@
   },
   "peerDependencies": {
     "@superset-ui/color": "^0.13.3",
+    "@superset-ui/query": "^0.13.27",
     "@superset-ui/translation": "^0.13",
     "@superset-ui/validator": "^0.13",
     "react": "^16.13.1"
