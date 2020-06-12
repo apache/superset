@@ -19,7 +19,8 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import { SupersetClient } from '@superset-ui/connection';
-import { allowCrossDomain, availableDomains } from 'src/utils/hostNamesConfig';
+import { buildQueryContext } from '@superset-ui/query';
+import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import {
   getChartBuildQueryRegistry,
@@ -198,7 +199,14 @@ export const shouldUseLegacyApi = formData => {
 };
 
 export const buildV1ChartDataPayload = ({ formData, force }) => {
-  const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
+  const buildQuery =
+    getChartBuildQueryRegistry().get(formData.viz_type) ??
+    (buildQueryformData =>
+      buildQueryContext(buildQueryformData, baseQueryObject => [
+        {
+          ...baseQueryObject,
+        },
+      ]));
   return buildQuery({
     ...formData,
     force,
