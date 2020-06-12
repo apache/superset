@@ -24,7 +24,7 @@ import Avatar, { ConfigProvider } from 'react-avatar';
 
 interface Props {
   firstName: string;
-  iconSize: number;
+  iconSize: string;
   lastName: string;
   tableName: string;
   userName: string;
@@ -52,12 +52,7 @@ export default function AvatarIcon({
         placement="right"
         overlay={<Tooltip id={`${uniqueKey}-tooltip`}>{fullName}</Tooltip>}
       >
-        <StyledAvatar
-          key={`${uniqueKey}`}
-          name={fullName}
-          size={`${iconSize}`}
-          round
-        />
+        <StyledAvatar key={uniqueKey} name={fullName} size={iconSize} round />
       </OverlayTrigger>
     </ConfigProvider>
   );

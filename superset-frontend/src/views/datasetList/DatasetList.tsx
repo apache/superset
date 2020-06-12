@@ -207,7 +207,7 @@ class DatasetList extends React.PureComponent<Props, State> {
               firstName={owner.first_name}
               lastName={owner.last_name}
               userName={owner.username}
-              iconSize={20}
+              iconSize="20"
             />
           ));
       },
