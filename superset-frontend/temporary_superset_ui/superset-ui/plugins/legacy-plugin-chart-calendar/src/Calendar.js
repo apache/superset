@@ -24,7 +24,6 @@ import { getNumberFormatter } from '@superset-ui/number-format';
 import { getTimeFormatter } from '@superset-ui/time-format';
 import CalHeatMap from './vendor/cal-heatmap';
 import './vendor/cal-heatmap.css';
-import './Calendar.css';
 
 function convertUTC(dttm) {
   return new Date(
@@ -124,7 +123,6 @@ function Calendar(element, props) {
     const legendColors = legend.map(x => colorScale(x));
 
     const cal = new CalHeatMap();
-
     cal.init({
       start: convertUTCTS(data.start),
       data: timestamps,
