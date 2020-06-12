@@ -177,12 +177,18 @@ class CoreTests(SupersetTestCase):
         db.session.add(annotation)
         db.session.commit()
 
-        resp = self.get_resp(
+        resp_annotations = json.loads(
+            self.get_resp("annotationlayermodelview/api/read")
+        )
+        # the UI needs id and name to function
+        self.assertIn("id", resp_annotations["result"][0])
+        self.assertIn("name", resp_annotations["result"][0])
+
+        layer = self.get_resp(
             f"/superset/annotation_json/{layer.id}?form_data="
             + quote(json.dumps({"time_range": "100 years ago : now"}))
         )
-
-        assert "my_annotation" in resp
+        self.assertIn("my_annotation", layer)
 
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):

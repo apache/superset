@@ -103,7 +103,7 @@ class AnnotationLayerModelView(SupersetModelView):  # pylint: disable=too-many-a
     add_title = _("Add Annotation Layer")
     edit_title = _("Edit Annotation Layer")
 
-    list_columns = ["name", "descr"]
+    list_columns = ["id", "name", "descr"]
     edit_columns = ["name", "descr"]
     add_columns = edit_columns
 
