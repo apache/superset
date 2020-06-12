@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import styled from '@superset-ui/style';
+import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 import Avatar, { ConfigProvider } from 'react-avatar';
 
@@ -29,14 +30,7 @@ interface Props {
   userName: string;
 }
 
-const colorList = [
-  '#20A7C9',
-  '#59C189',
-  '#A868B6',
-  '#E04355',
-  '#FBC700',
-  '#FF7F43',
-];
+const colorList = getCategoricalSchemeRegistry().get();
 
 const StyledAvatar = styled(Avatar)`
   margin: 0px 5px;
@@ -53,7 +47,7 @@ export default function AvatarIcon({
   const fullName = `${firstName} ${lastName}`;
 
   return (
-    <ConfigProvider colors={colorList}>
+    <ConfigProvider colors={colorList && colorList.colors}>
       <OverlayTrigger
         placement="right"
         overlay={<Tooltip id={`${uniqueKey}-tooltip`}>{fullName}</Tooltip>}
