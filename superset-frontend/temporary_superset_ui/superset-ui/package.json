@@ -75,7 +75,8 @@
     "lint-staged": "^10.0.3",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-test-renderer": "^16.13.1"
+    "react-test-renderer": "^16.13.1",
+    "rimraf": "^3.0.2"
   },
   "engines": {
     "node": ">=10.10.0",
@@ -94,7 +95,10 @@
   ],
   "nimbus": {
     "drivers": [
-      { "driver": "babel", "strategy": "none" },
+      {
+        "driver": "babel",
+        "strategy": "none"
+      },
       "eslint",
       "jest",
       "prettier",
@@ -197,6 +201,8 @@
     },
     "typescript": {
       "compilerOptions": {
+        "rootDir": "./src",
+        "declaration": true,
         "emitDeclarationOnly": true,
         "composite": true,
         "resolveJsonModule": true
