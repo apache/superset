@@ -2,6 +2,7 @@
 /**
  * Build plugins specified by globs
  */
+const rimraf = require('rimraf');
 const { spawnSync } = require('child_process');
 
 const glob = process.argv[2];
@@ -27,6 +28,7 @@ if (glob) {
   if (extraArgs.includes('--lint')) {
     run(`nimbus eslint {packages,plugins}/${glob}/{src,test}`);
   }
+  rimraf.sync(`./{packages,plugins}/${glob}/{lib,esm,tsconfig.tsbuildinfo}`);
   run(`nimbus babel --clean --workspaces="@superset-ui/${glob}" ${BABEL_CONFIG}`);
   run(`nimbus babel --clean --workspaces="@superset-ui/${glob}" --esm ${BABEL_CONFIG}`);
   run(`nimbus typescript --build --workspaces="@superset-ui/${glob}"`);
