@@ -1,4 +1,6 @@
 import categoricalAirbnb from '../src/colorSchemes/categorical/airbnb';
+import categoricalSuperset from '../src/colorSchemes/categorical/superset';
+import categoricalPreset from '../src/colorSchemes/categorical/preset';
 import categoricalD3 from '../src/colorSchemes/categorical/d3';
 import categoricalGoogle from '../src/colorSchemes/categorical/google';
 import categoricalLyft from '../src/colorSchemes/categorical/lyft';
@@ -10,7 +12,14 @@ import SequentialScheme from '../src/SequentialScheme';
 describe('Color Schemes', () => {
   describe('categorical', () => {
     it('returns an array of CategoricalScheme', () => {
-      [categoricalAirbnb, categoricalD3, categoricalGoogle, categoricalLyft].forEach(group => {
+      [
+        categoricalAirbnb,
+        categoricalD3,
+        categoricalGoogle,
+        categoricalLyft,
+        categoricalSuperset,
+        categoricalPreset,
+      ].forEach(group => {
         expect(group).toBeInstanceOf(Array);
         group.forEach(scheme => expect(scheme).toBeInstanceOf(CategoricalScheme));
       });
