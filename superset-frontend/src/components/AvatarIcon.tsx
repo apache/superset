@@ -16,46 +16,55 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
+import React from 'react';
+import styled from '@superset-ui/style';
 import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 import Avatar, { ConfigProvider } from 'react-avatar';
 
 interface Props {
   firstName: string;
-  iconSize: string;
+  iconSize: number;
   lastName: string;
   tableName: string;
   userName: string;
 }
 
-export default class AvatarIcon extends PureComponent<Props> {
-  render() {
-    const { tableName, firstName, lastName, userName, iconSize } = this.props;
-    const uniqueKey = tableName.concat('_', userName);
-    const fullName = firstName.concat(' ', lastName);
-    const colors = [
-      '#20A7C9',
-      '#59C189',
-      '#A868B6',
-      '#E04355',
-      '#FBC700',
-      '#FF7F43',
-    ];
-    return (
-      <ConfigProvider colors={colors}>
-        <OverlayTrigger
-          placement="right"
-          overlay={<Tooltip id={`${uniqueKey}-tooltip`}>{fullName}</Tooltip>}
-        >
-          <Avatar
-            key={`${uniqueKey}`}
-            name={fullName}
-            size={iconSize}
-            round
-            style={{ margin: '0px 5px' }}
-          />
-        </OverlayTrigger>
-      </ConfigProvider>
-    );
-  }
+const colorList = [
+  '#20A7C9',
+  '#59C189',
+  '#A868B6',
+  '#E04355',
+  '#FBC700',
+  '#FF7F43',
+];
+
+const StyledAvatar = styled(Avatar)`
+  margin: 0px 5px;
+`;
+
+export default function AvatarIcon({
+  tableName,
+  firstName,
+  lastName,
+  userName,
+  iconSize,
+}: Props) {
+  const uniqueKey = `${tableName}-${userName}`;
+  const fullName = `${firstName} ${lastName}`;
+
+  return (
+    <ConfigProvider colors={colorList}>
+      <OverlayTrigger
+        placement="right"
+        overlay={<Tooltip id={`${uniqueKey}-tooltip`}>{fullName}</Tooltip>}
+      >
+        <StyledAvatar
+          key={`${uniqueKey}`}
+          name={fullName}
+          size={`${iconSize}`}
+          round
+        />
+      </OverlayTrigger>
+    </ConfigProvider>
+  );
 }
