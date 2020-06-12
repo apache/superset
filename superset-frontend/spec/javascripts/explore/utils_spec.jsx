@@ -19,7 +19,11 @@
 import sinon from 'sinon';
 
 import URI from 'urijs';
-import { getExploreUrl, getExploreLongUrl } from 'src/explore/exploreUtils';
+import {
+  buildV1ChartDataPayload,
+  getExploreUrl,
+  getExploreLongUrl,
+} from 'src/explore/exploreUtils';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 
 describe('exploreUtils', () => {
@@ -187,6 +191,15 @@ describe('exploreUtils', () => {
         URI(getExploreLongUrl(formData, 'base')),
         URI('/superset/explore/').search({ form_data: sFormData }),
       );
+    });
+  });
+
+  describe('buildV1ChartDataPayload', () => {
+    it('generate valid request payload despite no registered buildQuery', () => {
+      const v1RequestPayload = buildV1ChartDataPayload({
+        formData: { ...formData, viz_type: 'my_custom_viz' },
+      });
+      expect(v1RequestPayload).hasOwnProperty('queries');
     });
   });
 });
