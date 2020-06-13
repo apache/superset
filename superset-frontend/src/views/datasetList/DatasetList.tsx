@@ -34,6 +34,7 @@ import {
   Filters,
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import TooltipWrapper from 'src/components/TooltipWrapper';
 import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
 import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
@@ -157,8 +158,19 @@ class DatasetList extends React.PureComponent<Props, State> {
         row: {
           original: { kind },
         },
-      }: any) =>
-        kind === 'physical' ? <DatasetPhysicalIcon /> : <DatasetVirtualIcon />,
+      }: any) => {
+        if (kind === 'physical') return (
+          <TooltipWrapper label="physical-dataset" tooltip={t("Physical Dataset")}>
+            <DatasetPhysicalIcon />
+          </TooltipWrapper>
+        );
+
+        return (
+          <TooltipWrapper label="virtual-dataset" tooltip={t("Virtual Dataset")}>
+            <DatasetVirtualIcon />
+          </TooltipWrapper>
+        );
+      },
       accessor: 'kind_icon',
     },
     {

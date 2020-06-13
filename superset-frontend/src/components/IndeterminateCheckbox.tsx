@@ -22,7 +22,7 @@ import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
 import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
 import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.svg';
 
-interface Props {
+interface IndeterminateCheckboxProps {
   indeterminate: boolean;
   id: string;
   checked: boolean;
@@ -35,9 +35,13 @@ const CheckboxLabel = styled.label`
   margin-bottom: 0;
 `;
 
+const HiddenInput = styled.input`
+  visibility: none;
+`;
+
 const IndeterminateCheckbox = React.forwardRef(
   (
-    { indeterminate, id, checked, onChange, title = '' }: Props,
+    { indeterminate, id, checked, onChange, title = '' }: IndeterminateCheckboxProps,
     ref: React.MutableRefObject<any>,
   ) => {
     const defaultRef = React.useRef<HTMLInputElement>();
@@ -49,20 +53,20 @@ const IndeterminateCheckbox = React.forwardRef(
 
     return (
       <>
-        <CheckboxLabel htmlFor={id} title={title}>
+        <CheckboxLabel title={title}>
           {indeterminate && <CheckboxHalfIcon />}
           {!indeterminate && checked && <CheckboxOnIcon />}
           {!indeterminate && !checked && <CheckboxOffIcon />}
+          <HiddenInput
+            className="hidden"
+            name={id}
+            id={id}
+            type="checkbox"
+            ref={resolvedRef}
+            checked={checked}
+            onChange={onChange}
+          />
         </CheckboxLabel>
-        <input
-          className="hidden"
-          name={id}
-          id={id}
-          type="checkbox"
-          ref={resolvedRef}
-          checked={checked}
-          onChange={onChange}
-        />
       </>
     );
   },
