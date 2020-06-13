@@ -45,7 +45,6 @@ export default function TableCollection({
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => {
-
               let sortIcon = <SortIcon />;
               if (column.isSortedDesc) {
                 sortIcon = <SortDescIcon />;

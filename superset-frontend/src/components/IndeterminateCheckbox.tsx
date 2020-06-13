@@ -41,7 +41,13 @@ const HiddenInput = styled.input`
 
 const IndeterminateCheckbox = React.forwardRef(
   (
-    { indeterminate, id, checked, onChange, title = '' }: IndeterminateCheckboxProps,
+    {
+      indeterminate,
+      id,
+      checked,
+      onChange,
+      title = '',
+    }: IndeterminateCheckboxProps,
     ref: React.MutableRefObject<any>,
   ) => {
     const defaultRef = React.useRef<HTMLInputElement>();
@@ -52,22 +58,20 @@ const IndeterminateCheckbox = React.forwardRef(
     }, [resolvedRef, indeterminate]);
 
     return (
-      <>
-        <CheckboxLabel title={title}>
-          {indeterminate && <CheckboxHalfIcon />}
-          {!indeterminate && checked && <CheckboxOnIcon />}
-          {!indeterminate && !checked && <CheckboxOffIcon />}
-          <HiddenInput
-            className="hidden"
-            name={id}
-            id={id}
-            type="checkbox"
-            ref={resolvedRef}
-            checked={checked}
-            onChange={onChange}
-          />
-        </CheckboxLabel>
-      </>
+      <CheckboxLabel title={title}>
+        {indeterminate && <CheckboxHalfIcon />}
+        {!indeterminate && checked && <CheckboxOnIcon />}
+        {!indeterminate && !checked && <CheckboxOffIcon />}
+        <HiddenInput
+          className="hidden"
+          name={id}
+          id={id}
+          type="checkbox"
+          ref={resolvedRef}
+          checked={checked}
+          onChange={onChange}
+        />
+      </CheckboxLabel>
     );
   },
 );

@@ -159,14 +159,21 @@ class DatasetList extends React.PureComponent<Props, State> {
           original: { kind },
         },
       }: any) => {
-        if (kind === 'physical') return (
-          <TooltipWrapper label="physical-dataset" tooltip={t("Physical Dataset")}>
-            <DatasetPhysicalIcon />
-          </TooltipWrapper>
-        );
+        if (kind === 'physical')
+          return (
+            <TooltipWrapper
+              label="physical-dataset"
+              tooltip={t('Physical Dataset')}
+            >
+              <DatasetPhysicalIcon />
+            </TooltipWrapper>
+          );
 
         return (
-          <TooltipWrapper label="virtual-dataset" tooltip={t("Virtual Dataset")}>
+          <TooltipWrapper
+            label="virtual-dataset"
+            tooltip={t('Virtual Dataset')}
+          >
             <DatasetVirtualIcon />
           </TooltipWrapper>
         );
