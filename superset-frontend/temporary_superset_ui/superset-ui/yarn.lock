@@ -4455,6 +4455,16 @@
     classnames "^2.2.5"
     prop-types "^15.6.2"
 
+"@vx/group@0.0.197":
+  version "0.0.197"
+  resolved "https://registry.yarnpkg.com/@vx/group/-/group-0.0.197.tgz#5dc06d21ccf1d519981545536f277b1c99faba46"
+  integrity sha512-7gzM0+WjwrGN5HzRzECm3xAKl5570ez30kx/jVYHX/M/ikHb6ytwkR2edZmQnmYNoZ0/6bdpSPi5ReGTP5jYPg==
+  dependencies:
+    "@types/classnames" "^2.2.9"
+    "@types/react" "*"
+    classnames "^2.2.5"
+    prop-types "^15.6.2"
+
 "@vx/legend@0.0.140":
   version "0.0.140"
   resolved "https://registry.yarnpkg.com/@vx/legend/-/legend-0.0.140.tgz#4062c27d6bc9c4d607309d77eff12b844727ae99"
@@ -4464,15 +4474,15 @@
     classnames "^2.2.5"
     prop-types "^15.5.10"
 
-"@vx/legend@^0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/legend/-/legend-0.0.196.tgz#ff709fb283b8569f96015f3c52c9f8846779d5c7"
-  integrity sha512-VTXluzTIFqZEFSM46OSV8DcOWLmGhfe9ILt6ghkMg7Z1yG34qE8S0KjGByqn6isQgHdlrg3VbF7NGd3NJA6HkA==
+"@vx/legend@^0.0.197":
+  version "0.0.197"
+  resolved "https://registry.yarnpkg.com/@vx/legend/-/legend-0.0.197.tgz#613bb7c53216051d19db1aac9c891bddd53ebf11"
+  integrity sha512-nTlxrX2LpXV+r5o46Sd/PsAJZHjR+FcK5sU+/ojfzWfOC7bpUazwk/eKoMw5OU+wVHfMLbHgRGapc/xCOAO5Yg==
   dependencies:
     "@types/classnames" "^2.2.9"
     "@types/d3-scale" "^2.1.1"
     "@types/react" "*"
-    "@vx/group" "0.0.196"
+    "@vx/group" "0.0.197"
     classnames "^2.2.5"
     prop-types "^15.5.10"
 
