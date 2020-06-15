@@ -140,6 +140,7 @@
     "re-resizable": "^4.3.1",
     "react": "^16.13.0",
     "react-ace": "^5.10.0",
+    "react-avatar": "^3.9.7",
     "react-bootstrap": "^0.33.1",
     "react-bootstrap-dialog": "^0.10.0",
     "react-bootstrap-slider": "2.1.5",
