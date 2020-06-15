@@ -1,4 +1,5 @@
 const path = require('path');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const { lstatSync, readdirSync } = require('fs');
 
 // find @superset-ui packages
@@ -15,16 +16,13 @@ const PLUGIN_PACKAGES_PATH_REGEXP = new RegExp(
 module.exports = {
   addons: [
     '@storybook/preset-typescript',
-    '@storybook/addon-actions/register',
     '@storybook/addon-knobs/register',
     'storybook-addon-jsx/register',
+    '@storybook/addon-actions/register',
     '@storybook/addon-links/register',
   ],
-  stories: [
-    '../storybook/stories/**/*Stories.[tj]sx',
-  ],
+  stories: ['../storybook/stories/**/*Stories.[tj]sx'],
   webpackFinal: config => {
-
     // Make sure babel is applied to the package src
     // These are excluded by the default rule
     // because they reside in node_modules
@@ -40,9 +38,14 @@ module.exports = {
       use: [
         {
           loader: require.resolve('ts-loader'),
+          options: {
+            transpileOnly: true,
+          },
         },
       ],
     });
+
+    config.plugins.unshift(new ForkTsCheckerWebpackPlugin());
 
     config.resolve.extensions.push('.ts', '.tsx');
 
@@ -57,7 +60,11 @@ module.exports = {
       ),
     });
 
-    config.stats = 'errors-warnings';
+    config.devtool = 'eval-cheap-module-source-map';
+    config.devServer = {
+      ...config.devServer,
+      stats: 'minimal',
+    };
 
     return config;
   },
