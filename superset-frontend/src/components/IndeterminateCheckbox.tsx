@@ -18,9 +18,7 @@
  */
 import React from 'react';
 import styled from '@superset-ui/style';
-import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
-import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
-import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.svg';
+import Icon from 'src/components/Icon';
 
 interface IndeterminateCheckboxProps {
   indeterminate: boolean;
@@ -59,9 +57,9 @@ const IndeterminateCheckbox = React.forwardRef(
 
     return (
       <CheckboxLabel title={title}>
-        {indeterminate && <CheckboxHalfIcon />}
-        {!indeterminate && checked && <CheckboxOnIcon />}
-        {!indeterminate && !checked && <CheckboxOffIcon />}
+        {indeterminate && <Icon name="checkbox-half" />}
+        {!indeterminate && checked && <Icon name="checkbox-on" />}
+        {!indeterminate && !checked && <Icon name="checkbox-off" />}
         <HiddenInput
           className="hidden"
           name={id}

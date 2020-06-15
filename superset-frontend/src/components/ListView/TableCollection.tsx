@@ -19,9 +19,7 @@
 import React from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
-import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
-import { ReactComponent as SortDescIcon } from 'images/icons/sort-desc.svg';
-import { ReactComponent as SortAscIcon } from 'images/icons/sort-asc.svg';
+import Icon from 'src/components/Icon';
 
 interface Props {
   getTableProps: (userProps?: any) => any;
@@ -45,11 +43,11 @@ export default function TableCollection({
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => {
-              let sortIcon = <SortIcon />;
+              let sortIcon = <Icon name="sort" />;
               if (column.isSortedDesc) {
-                sortIcon = <SortDescIcon />;
+                sortIcon = <Icon name="sort-desc" />;
               } else if (!column.isSortedDesc) {
-                sortIcon = <SortAscIcon />;
+                sortIcon = <Icon name="sort-asc" />;
               }
 
               return column.hidden ? null : (

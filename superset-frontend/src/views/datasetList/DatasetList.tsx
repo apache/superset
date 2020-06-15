@@ -35,11 +35,7 @@ import {
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
-import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
-import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
-import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
-import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
+import Icon from 'src/components/Icon';
 
 const PAGE_SIZE = 25;
 
@@ -165,7 +161,7 @@ class DatasetList extends React.PureComponent<Props, State> {
               label="physical-dataset"
               tooltip={t('Physical Dataset')}
             >
-              <DatasetPhysicalIcon />
+              <Icon name="dataset-physical" />
             </TooltipWrapper>
           );
 
@@ -174,7 +170,7 @@ class DatasetList extends React.PureComponent<Props, State> {
             label="virtual-dataset"
             tooltip={t('Virtual Dataset')}
           >
-            <DatasetVirtualIcon />
+            <Icon name="dataset-virtual" />
           </TooltipWrapper>
         );
       },
@@ -277,7 +273,7 @@ class DatasetList extends React.PureComponent<Props, State> {
               className="action-button"
               href={original.explore_url}
             >
-              <CompassIcon />
+              <Icon name="compass" />
             </a>
             {this.canDelete && (
               <ConfirmStatusChange
@@ -297,7 +293,7 @@ class DatasetList extends React.PureComponent<Props, State> {
                     className="action-button"
                     onClick={confirmDelete}
                   >
-                    <TrashIcon />
+                    <Icon name="trash" />
                   </span>
                 )}
               </ConfirmStatusChange>
@@ -309,7 +305,7 @@ class DatasetList extends React.PureComponent<Props, State> {
                 className="action-button"
                 onClick={handleEdit}
               >
-                <PencilIcon />
+                <Icon name="pencil" />
               </span>
             )}
           </span>
