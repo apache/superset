@@ -24,8 +24,8 @@
 /* component styles. This will allow us to more easily adjust theming   */
 /************************************************************************/
 
-@primary-color: #00a699;
-@indicator-color: #44c0ff;
+@primary-color: #20A7C9;
+@indicator-color: @primary-color;
 
 @almost-black: #263238;
 @gray-dark: #484848;
@@ -42,14 +42,10 @@
 @link-hover: darken(@link, @colorstop-one);
 
 /***************************** status colors ****************************/
-@success: #4ac15f;
-@info: lighten(#2ab7ca, 15%);
-@warning: mix(
-  #fed766,
-  #ffab00,
-  50%
-); // mix of old superset warning color and cosmo warning color. Compromise!
-@danger: #fe4a49;
+@success: #5AC189;
+@info: #66BCFE;
+@warning: #FF7F44;
+@danger: #E04355;
 
 /* general component effects */
 @shadow-highlight: @primary-color;
