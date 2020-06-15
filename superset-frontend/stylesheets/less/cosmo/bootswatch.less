@@ -71,8 +71,9 @@
 }
 
 .btn-default:hover {
-  color: @gray-dark;
-  background-color: @gray-bg;
+  color: @brand-primary;
+  background-color: @brand-primary-light4;
+  border-color: @brand-primary-light1;
 }
 
 .nav-tabs {
@@ -281,10 +282,13 @@ table,
 
 .label {
   border-radius: @border-radius-normal;
+  padding: 0.3em 0.6em 0.2em;
+  font-weight: @font-weight-normal;
 }
 
 label {
   font-weight: @font-weight-normal;
+  font-size: @font-size-s;
 }
 
 // Progress bars ==============================================================
@@ -296,7 +300,7 @@ label {
   .progress-bar {
     font-size: @font-size-s;
     line-height: @line-height-tight;
-    padding-top: 1px;
+    padding-top: 2px;
   }
 }
 
