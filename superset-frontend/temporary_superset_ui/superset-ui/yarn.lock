@@ -4273,10 +4273,10 @@
   dependencies:
     prop-types "^15.5.10"
 
-"@vx/bounds@0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/bounds/-/bounds-0.0.196.tgz#1aa77d0ad71b35e4cea0f06d12eb880633eb0f1a"
-  integrity sha512-Az28AdWRheQJj1EefLUTSY3yzr3xPh+1IDgPxJMha1N2ZEa8YG+RA90icq2dtsaZ2PIDyvZx8hkPJkbN+SWgdQ==
+"@vx/bounds@0.0.197":
+  version "0.0.197"
+  resolved "https://registry.yarnpkg.com/@vx/bounds/-/bounds-0.0.197.tgz#bf7ba8572900b2249c138d9b4d5ef70e2d6857af"
+  integrity sha512-9e8YB0tX5AcxxnhqS1H/x9GmYdXEZiHTK3y/HZFEYL1d5IWpuyhFzFW6XHnHvC4+3gjlmD9diWBfE8PYlKs4xw==
   dependencies:
     "@types/react" "*"
     "@types/react-dom" "*"
@@ -4770,14 +4770,14 @@
     classnames "^2.2.5"
     prop-types "^15.5.10"
 
-"@vx/tooltip@^0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/tooltip/-/tooltip-0.0.196.tgz#1f35105b42064f593025594c0d8393ab3111bc1f"
-  integrity sha512-Lt45OA2dyIB+Fs+We++wL3bnsJurqugSwirmt+6xh4HtAcwnXUQXOqCdlFYfPKCqNukqw0yAPiaIuLxRRvhEvA==
+"@vx/tooltip@^0.0.197":
+  version "0.0.197"
+  resolved "https://registry.yarnpkg.com/@vx/tooltip/-/tooltip-0.0.197.tgz#66800a5528b55d5f4a0f64e6bf020b41794c51e1"
+  integrity sha512-BYCHC7uuPwltOFdasEResjJXdLoVEZXmpq6p1rIKuVZ2T5u0f7WIyXduOok/brInWZk9LbuESGdEemls5012sw==
   dependencies:
     "@types/classnames" "^2.2.9"
     "@types/react" "*"
-    "@vx/bounds" "0.0.196"
+    "@vx/bounds" "0.0.197"
     classnames "^2.2.5"
     prop-types "^15.5.10"
 
