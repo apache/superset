@@ -27,6 +27,7 @@ import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
+import AvatarIcon from 'src/components/AvatarIcon';
 import {
   FetchDataConfig,
   FilterOperatorMap,
@@ -35,6 +36,13 @@ import {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const PAGE_SIZE = 25;
+
+type Owner = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+};
 
 interface Props {
   addDangerToast: (msg: string) => void;
@@ -54,13 +62,14 @@ interface State {
 }
 
 interface Dataset {
+  changed_by: string;
   changed_by_name: string;
   changed_by_url: string;
-  changed_by: string;
   changed_on: string;
   databse_name: string;
   explore_url: string;
   id: number;
+  owners: Array<Owner>;
   schema: string;
   table_name: string;
 }
@@ -182,8 +191,28 @@ class DatasetList extends React.PureComponent<Props, State> {
       hidden: true,
     },
     {
-      accessor: 'owners',
-      hidden: true,
+      Cell: ({
+        row: {
+          original: { owners, table_name: tableName },
+        },
+      }: any) => {
+        if (!owners) {
+          return null;
+        }
+        return owners
+          .slice(0, 5)
+          .map((owner: Owner) => (
+            <AvatarIcon
+              tableName={tableName}
+              firstName={owner.first_name}
+              lastName={owner.last_name}
+              userName={owner.username}
+              iconSize="20"
+            />
+          ));
+      },
+      Header: t('Owners'),
+      id: 'owners',
     },
     {
       accessor: 'is_sqllab_view',
