@@ -487,49 +487,49 @@ class DatasetList extends React.PureComponent<Props, State> {
     return (
       <>
         <SubMenu {...this.menu} canCreate={this.canCreate} />
-        <div className="container welcome">
+        {/* <div className="container welcome">
           <Panel>
-            <Panel.Body>
-              <ConfirmStatusChange
-                title={t('Please confirm')}
-                description={t(
-                  'Are you sure you want to delete the selected datasets?',
-                )}
-                onConfirm={this.handleBulkDatasetDelete}
-              >
-                {confirmDelete => {
-                  const bulkActions = [];
-                  if (this.canDelete) {
-                    bulkActions.push({
-                      key: 'delete',
-                      name: (
-                        <>
-                          <i className="fa fa-trash" /> Delete
+            <Panel.Body> */}
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={t(
+            'Are you sure you want to delete the selected datasets?',
+          )}
+          onConfirm={this.handleBulkDatasetDelete}
+        >
+          {confirmDelete => {
+            const bulkActions = [];
+            if (this.canDelete) {
+              bulkActions.push({
+                key: 'delete',
+                name: (
+                  <>
+                    <i className="fa fa-trash" /> Delete
                         </>
-                      ),
-                      onSelect: confirmDelete,
-                    });
-                  }
-                  return (
-                    <ListView
-                      className="dataset-list-view"
-                      title={'Datasets'}
-                      columns={this.columns}
-                      data={datasets}
-                      count={datasetCount}
-                      pageSize={PAGE_SIZE}
-                      fetchData={this.fetchData}
-                      loading={loading}
-                      initialSort={this.initialSort}
-                      filters={filters}
-                      bulkActions={bulkActions}
-                    />
-                  );
-                }}
-              </ConfirmStatusChange>
-            </Panel.Body>
+                ),
+                onSelect: confirmDelete,
+              });
+            }
+            return (
+              <ListView
+                className="dataset-list-view"
+                title={'Datasets'}
+                columns={this.columns}
+                data={datasets}
+                count={datasetCount}
+                pageSize={PAGE_SIZE}
+                fetchData={this.fetchData}
+                loading={loading}
+                initialSort={this.initialSort}
+                filters={filters}
+                bulkActions={bulkActions}
+              />
+            );
+          }}
+        </ConfirmStatusChange>
+        {/* </Panel.Body>
           </Panel>
-        </div>
+        </div> */}
       </>
     );
   }
