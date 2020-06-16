@@ -32,54 +32,43 @@ import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtu
 import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
 import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
 
+type Icon =
+  | 'cancel-x'
+  | 'checkbox-half'
+  | 'checkbox-off'
+  | 'checkbox-on'
+  | 'compass'
+  | 'dataset-physical'
+  | 'dataset-virtual'
+  | 'pencil'
+  | 'search'
+  | 'sort-asc'
+  | 'sort-desc'
+  | 'sort'
+  | 'trash';
+
+const iconsRegistry: { [key in Icon]: React.ComponentType } = {
+  'cancel-x': CancelXIcon,
+  'checkbox-half': CheckboxHalfIcon,
+  'checkbox-off': CheckboxOffIcon,
+  'checkbox-on': CheckboxOnIcon,
+  compass: CompassIcon,
+  'dataset-physical': DatasetPhysicalIcon,
+  'dataset-virtual': DatasetVirtualIcon,
+  pencil: PencilIcon,
+  search: SearchIcon,
+  'sort-asc': SortAscIcon,
+  'sort-desc': SortDescIcon,
+  sort: SortIcon,
+  trash: TrashIcon,
+};
 interface IconProps extends SVGProps<SVGSVGElement> {
-  name:
-    | 'checkbox-on'
-    | 'checkbox-off'
-    | 'checkbox-half'
-    | 'sort'
-    | 'sort-desc'
-    | 'sort-asc'
-    | 'trash'
-    | 'pencil'
-    | 'compass'
-    | 'dataset-physical'
-    | 'dataset-virtual'
-    | 'search'
-    | 'cancel-x';
+  name: Icon;
 }
 
 const Icon = ({ name, ...rest }: IconProps) => {
-  switch (name) {
-    case 'checkbox-on':
-      return <CheckboxOnIcon {...rest} />;
-    case 'checkbox-off':
-      return <CheckboxOffIcon {...rest} />;
-    case 'checkbox-half':
-      return <CheckboxHalfIcon {...rest} />;
-    case 'sort':
-      return <SortIcon {...rest} />;
-    case 'sort-desc':
-      return <SortDescIcon {...rest} />;
-    case 'sort-asc':
-      return <SortAscIcon {...rest} />;
-    case 'trash':
-      return <TrashIcon {...rest} />;
-    case 'pencil':
-      return <PencilIcon {...rest} />;
-    case 'compass':
-      return <CompassIcon {...rest} />;
-    case 'dataset-physical':
-      return <DatasetPhysicalIcon {...rest} />;
-    case 'dataset-virtual':
-      return <DatasetVirtualIcon {...rest} />;
-    case 'cancel-x':
-      return <CancelXIcon {...rest} />;
-    case 'search':
-      return <SearchIcon {...rest} />;
-    default:
-      return null;
-  }
+  const Component = iconsRegistry[name];
+  return <Component {...rest} />;
 };
 
 export default styled(Icon)<{}>`
