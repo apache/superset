@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument
+import dataclasses
 import hashlib
 import json
 import logging
@@ -33,7 +34,6 @@ from typing import (
     Union,
 )
 
-import dataclasses
 import pandas as pd
 import sqlparse
 from flask import g
