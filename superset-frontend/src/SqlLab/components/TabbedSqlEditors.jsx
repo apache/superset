@@ -289,7 +289,7 @@ class TabbedSqlEditors extends React.PureComponent {
       );
       const tabTitle = (
         <>
-          {title}
+          <span className="ddbtn-tab">{title}</span>
           {isSelected && (
             <SplitButton
               bsSize="small"
@@ -297,7 +297,11 @@ class TabbedSqlEditors extends React.PureComponent {
               className="ddbtn-tab"
               title="&nbsp;"
             >
-              <MenuItem eventKey="1" onClick={() => this.removeQueryEditor(qe)}>
+              <MenuItem
+                className="close-btn"
+                eventKey="1"
+                onClick={() => this.removeQueryEditor(qe)}
+              >
                 <div className="icon-container">
                   <i className="fa fa-close" />
                 </div>

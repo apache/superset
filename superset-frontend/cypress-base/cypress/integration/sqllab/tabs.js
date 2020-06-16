@@ -43,12 +43,12 @@ export default () => {
         const initialTabCount = tabListA.length;
 
         // open the tab dropdown to remove
-        cy.get(
-          '#a11y-query-editor-tabs > ul > li:first button:nth-child(2)',
-        ).click();
+        cy.get('#a11y-query-editor-tabs > ul > li.dropdown').click();
 
         // first item is close
-        cy.get('#a11y-query-editor-tabs > ul > li:first ul li a').eq(0).click();
+        cy.get('#a11y-query-editor-tabs > ul > li.dropdown ul li a')
+          .eq(0)
+          .click();
 
         cy.get('#a11y-query-editor-tabs > ul > li').should(
           'have.length',
