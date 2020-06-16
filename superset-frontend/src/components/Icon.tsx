@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { SVGProps } from 'react';
 import styled from '@superset-ui/style';
 import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
 import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
@@ -29,44 +29,59 @@ import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
+import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
+import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
 
-
-interface IconProps {
-  name: 'checkbox-on' | 'checkbox-off' | 'checkbox-half' | 'sort' | 'sort-desc' | 'sort-asc' | 'trash' | 'pencil' | 'compass' | 'dataset-physical' | 'dataset-virtual';
+interface IconProps extends SVGProps<SVGSVGElement> {
+  name:
+    | 'checkbox-on'
+    | 'checkbox-off'
+    | 'checkbox-half'
+    | 'sort'
+    | 'sort-desc'
+    | 'sort-asc'
+    | 'trash'
+    | 'pencil'
+    | 'compass'
+    | 'dataset-physical'
+    | 'dataset-virtual'
+    | 'search'
+    | 'cancel-x';
 }
 
-const Icon = ({ name }: IconProps) => {
+const Icon = ({ name, ...rest }: IconProps) => {
   switch (name) {
     case 'checkbox-on':
-      return <CheckboxOnIcon />;
+      return <CheckboxOnIcon {...rest} />;
     case 'checkbox-off':
-      return <CheckboxOffIcon />;
+      return <CheckboxOffIcon {...rest} />;
     case 'checkbox-half':
-      return <CheckboxHalfIcon />;
+      return <CheckboxHalfIcon {...rest} />;
     case 'sort':
-      return <SortIcon />;
+      return <SortIcon {...rest} />;
     case 'sort-desc':
-      return <SortDescIcon />;
+      return <SortDescIcon {...rest} />;
     case 'sort-asc':
-      return <SortAscIcon />;
+      return <SortAscIcon {...rest} />;
     case 'trash':
-      return <TrashIcon />;
+      return <TrashIcon {...rest} />;
     case 'pencil':
-      return <PencilIcon />;
+      return <PencilIcon {...rest} />;
     case 'compass':
-      return <CompassIcon />;
+      return <CompassIcon {...rest} />;
     case 'dataset-physical':
-      return <div>
-        <DatasetPhysicalIcon />
-      </div>;
+      return <DatasetPhysicalIcon {...rest} />;
     case 'dataset-virtual':
-      return <div>
-        <DatasetVirtualIcon />
-      </div>
+      return <DatasetVirtualIcon {...rest} />;
+    case 'cancel-x':
+      return <CancelXIcon {...rest} />;
+    case 'search':
+      return <SearchIcon {...rest} />;
     default:
       return null;
   }
-}
+};
 
-export default styled(Icon)`
+export default styled(Icon)<{}>`
+  color: #666666;
 `;
