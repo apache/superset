@@ -210,7 +210,7 @@ class SqlLabTests(SupersetTestCase):
         db.session.commit()
 
         data = self.get_json_resp(
-            "/superset/queries/{}".format(int(datetime_to_epoch(now)) - 1000)
+            "/superset/queries/{}".format(float(datetime_to_epoch(now)) - 1000)
         )
         self.assertEqual(1, len(data))
 
