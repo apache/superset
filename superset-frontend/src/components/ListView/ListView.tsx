@@ -125,11 +125,11 @@ const ListView: FunctionComponent<Props> = ({
             {title && filterable && (
               <>
                 <Row>
-                  <Col md={10}>
+                  <Col md={11}>
                     <h2>{t(title)}</h2>
                   </Col>
                   {filterable && (
-                    <Col md={2}>
+                    <Col md={1}>
                       <FilterMenu
                         filters={filters}
                         internalFilters={internalFilters}

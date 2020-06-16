@@ -172,7 +172,7 @@ class SaveQuery extends React.PureComponent {
               className="toggleSave"
               onClick={this.toggleSave}
             >
-              <i className="fa fa-save" /> {t('Save Query')}
+              <i className="fa fa-save" /> {t('Save')}
             </Button>
           }
           bsSize="small"

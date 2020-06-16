@@ -112,7 +112,7 @@ class ShareSqlLabQuery extends React.Component {
         overlay={this.renderPopover()}
       >
         <Button bsSize="small" className="toggleSave">
-          <i className="fa fa-clipboard" /> {t('Share Query')}
+          <i className="fa fa-share" /> {t('Share')}
         </Button>
       </OverlayTrigger>
     );

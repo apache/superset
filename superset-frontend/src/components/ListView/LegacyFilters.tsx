@@ -49,7 +49,7 @@ export const FilterMenu = ({
         <>
           <i className="fa fa-filter text-primary" />
           {'  '}
-          {t('Filter List')}
+          {t('Filter')}
         </>
       }
     >
