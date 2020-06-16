@@ -2659,7 +2659,7 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/queries/<last_updated_ms>")
-    def queries(self, last_updated_ms) -> FlaskResponse:
+    def queries(self, last_updated_ms: str) -> FlaskResponse:
         """
         Get the updated queries.
 
