@@ -2658,14 +2658,15 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(datasource.data))
 
     @has_access_api
-    @expose("/queries/<int:last_updated_ms>")
-    def queries(self, last_updated_ms: int) -> FlaskResponse:
+    @expose("/queries/<last_updated_ms>")
+    def queries(self, last_updated_ms: str) -> FlaskResponse:
         """
         Get the updated queries.
 
         :param last_updated_ms: unix time, milliseconds
         """
-        return self.queries_exec(last_updated_ms)
+        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
+        return self.queries_exec(last_updated_ms_int)
 
     def queries_exec(self, last_updated_ms: int) -> FlaskResponse:
         stats_logger.incr("queries")
