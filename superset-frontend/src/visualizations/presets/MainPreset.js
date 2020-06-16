@@ -59,8 +59,8 @@ import {
 import { LegacyBoxPlotChartPlugin } from '@superset-ui/preset-chart-xy';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 
+import TimeTableChartPlugin from '@superset-ui/legacy-plugin-chart-time-table';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
-import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 
 export default class MainPreset extends Preset {
   constructor() {
