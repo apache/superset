@@ -390,14 +390,15 @@ class BaseViz:
         "5 days ago" or "now").
 
         The `extra` arguments are currently used by time shift queries, since
-        different time shifts wil differ only in the `from_dttm` and `to_dttm`
-        values which are stripped.
+        different time shifts wil differ only in the `from_dttm`, `to_dttm`,
+        `inner_from_dttm`, and `inner_to_dttm` values which are stripped.
         """
         cache_dict = copy.copy(query_obj)
         cache_dict.update(extra)
 
-        for k in ["from_dttm", "to_dttm"]:
-            del cache_dict[k]
+        for k in ["from_dttm", "to_dttm", "inner_from_dttm", "inner_to_dttm"]:
+            if k in cache_dict:
+                del cache_dict[k]
 
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
