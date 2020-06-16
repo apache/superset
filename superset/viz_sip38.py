@@ -22,6 +22,7 @@ Superset can render.
 """
 # mypy: ignore-errors
 import copy
+import dataclasses
 import hashlib
 import inspect
 import logging
@@ -34,7 +35,6 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
-import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
