@@ -150,6 +150,7 @@ Join our growing community!
  1. [Dial Once](https://www.dial-once.com/en/) 
  1. [Digit Game Studios](https://www.digitgaming.com/)
  1. [Douban](https://www.douban.com/) [@luchuan]
+ 1. [DouroECI](http://douroeci.com/en/) [@nunohelibeires]
  1. [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
  1. [Dremio](https://dremio.com) [@narendrans]
  1. [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
