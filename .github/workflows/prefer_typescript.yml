@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Get changed files
         id: changed
-        uses: trilom/file-changes-action@v1.2.3
+        uses: trilom/file-changes-action@master
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
       - name: Determine if a .js or .jsx file was added
