@@ -290,7 +290,7 @@ class TabbedSqlEditors extends React.PureComponent {
       const tabTitle = (
         <>
           {title}
-          {isSelected &&
+          {isSelected && (
             <SplitButton
               bsSize="small"
               id={'ddbtn-tab-' + i}
@@ -313,7 +313,9 @@ class TabbedSqlEditors extends React.PureComponent {
                 <div className="icon-container">
                   <i className="fa fa-cogs" />
                 </div>
-                {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
+                {this.state.hideLeftBar
+                  ? t('Expand tool bar')
+                  : t('Hide tool bar')}
               </MenuItem>
               <MenuItem
                 eventKey="4"
@@ -324,14 +326,17 @@ class TabbedSqlEditors extends React.PureComponent {
                 </div>
                 {t('Close all other tabs')}
               </MenuItem>
-              <MenuItem eventKey="5" onClick={() => this.duplicateQueryEditor(qe)}>
+              <MenuItem
+                eventKey="5"
+                onClick={() => this.duplicateQueryEditor(qe)}
+              >
                 <div className="icon-container">
                   <i className="fa fa-files-o" />
                 </div>
                 {t('Duplicate tab')}
               </MenuItem>
             </SplitButton>
-          }
+          )}
         </>
       );
       return (
