@@ -63,7 +63,7 @@
     "@superset-ui/chart-composition": "^0.13.27",
     "@superset-ui/color": "^0.13.27",
     "@superset-ui/connection": "^0.13.27",
-    "@superset-ui/control-utils": "^0.13.27",
+    "@superset-ui/control-utils": "^0.13.28",
     "@superset-ui/core": "^0.13.27",
     "@superset-ui/dimension": "^0.13.27",
     "@superset-ui/legacy-plugin-chart-calendar": "^0.13.27",
