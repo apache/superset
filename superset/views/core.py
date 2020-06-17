@@ -56,7 +56,6 @@ from superset import (
     results_backend_use_msgpack,
     security_manager,
     sql_lab,
-    talisman,
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -149,24 +148,6 @@ DATABASE_KEYS = [
 
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
-
-
-@talisman(force_https=False)
-@app.route("/health")
-def health() -> FlaskResponse:
-    return "OK"
-
-
-@talisman(force_https=False)
-@app.route("/healthcheck")
-def healthcheck() -> FlaskResponse:
-    return "OK"
-
-
-@talisman(force_https=False)
-@app.route("/ping")
-def ping() -> FlaskResponse:
-    return "OK"
 
 
 class KV(BaseSupersetView):
