@@ -41,8 +41,8 @@ interface Props {
   initialSort?: SortColumn[];
   filters?: Filters;
   bulkActions?: Array<{
-    key?: string;
-    name: React.ReactNode;
+    key: string;
+    name: React.ReactNode | string;
     onSelect: (rows: any[]) => any;
   }>;
   useNewUIFilters?: boolean;
