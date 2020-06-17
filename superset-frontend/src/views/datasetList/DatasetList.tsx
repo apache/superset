@@ -505,7 +505,7 @@ class DatasetList extends React.PureComponent<Props, State> {
                 name: (
                   <>
                     <i className="fa fa-trash" /> Delete
-                        </>
+                  </>
                 ),
                 onSelect: confirmDelete,
               });
