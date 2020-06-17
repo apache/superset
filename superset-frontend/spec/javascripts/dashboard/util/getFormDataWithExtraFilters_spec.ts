@@ -19,7 +19,7 @@
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 
 describe('getFormDataWithExtraFilters', () => {
-  const chartId = 'chartId';
+  const chartId = 8675309;
   const mockArgs = {
     chart: {
       id: chartId,

@@ -18,6 +18,8 @@
  */
 import { isEqual } from 'lodash';
 import { CategoricalColorNamespace } from '@superset-ui/color';
+import { DataRecordFilters } from '@superset-ui/chart';
+import { ChartQueryPayload } from 'src/dashboard/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
@@ -25,16 +27,24 @@ import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 const cachedFiltersByChart = {};
 const cachedFormdataByChart = {};
 
+interface GetFormDataWithExtraFiltersArguments {
+  chart: ChartQueryPayload;
+  filters: DataRecordFilters;
+  colorScheme?: string;
+  colorNamespace?: string;
+  sliceId: number;
+}
+
 // this function merge chart's formData with dashboard filters value,
 // and generate a new formData which will be used in the new query.
 // filters param only contains those applicable to this chart.
 export default function getFormDataWithExtraFilters({
-  chart = {},
+  chart,
   filters,
   colorScheme,
   colorNamespace,
   sliceId,
-}) {
+}: GetFormDataWithExtraFiltersArguments) {
   // Propagate color mapping to chart
   const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
   const labelColors = scale.getColorMap();
