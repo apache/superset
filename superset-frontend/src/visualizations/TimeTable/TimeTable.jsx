@@ -24,7 +24,10 @@ import { Table, Thead, Th, Tr, Td } from 'reactable-arc';
 import { formatNumber } from '@superset-ui/number-format';
 import { formatTime } from '@superset-ui/time-format';
 import moment from 'moment';
-import { InfoTooltipWithTrigger, MetricOption } from '@superset-ui/control-utils';
+import {
+  InfoTooltipWithTrigger,
+  MetricOption,
+} from '@superset-ui/control-utils';
 
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
