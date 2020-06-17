@@ -1209,6 +1209,9 @@ class SqlaTable(Model, BaseDatasource):
             self.main_dttm_col = any_date_col
         self.add_missing_metrics(metrics)
 
+        # Apply config supplied mutations.
+        config["SQLA_TABLE_MUTATOR"](self)
+
         db.session.merge(self)
         if commit:
             db.session.commit()
