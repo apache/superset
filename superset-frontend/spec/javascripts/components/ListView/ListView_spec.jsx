@@ -72,7 +72,9 @@ const mockedProps = {
   pageSize: 1,
   fetchData: jest.fn(() => []),
   loading: false,
-  bulkActions: [{ name: 'do something', onSelect: jest.fn() }],
+  bulkActions: [
+    { key: 'something', name: 'do something', onSelect: jest.fn() },
+  ],
 };
 
 const factory = (props = mockedProps) =>
@@ -222,10 +224,9 @@ Array [
 
   it('handles bulk actions on 1 row', () => {
     act(() => {
-      wrapper
-        .find('input[title="Toggle Row Selected"]')
-        .at(0)
-        .prop('onChange')({ target: { value: 'on' } });
+      wrapper.find('input[id="0"]').at(0).prop('onChange')({
+        target: { value: 'on' },
+      });
 
       wrapper
         .find('.dropdown-toggle')
@@ -253,10 +254,9 @@ Array [
 
   it('handles bulk actions on all rows', () => {
     act(() => {
-      wrapper
-        .find('input[title="Toggle All Rows Selected"]')
-        .at(0)
-        .prop('onChange')({ target: { value: 'on' } });
+      wrapper.find('input[id="header-toggle-all"]').at(0).prop('onChange')({
+        target: { value: 'on' },
+      });
 
       wrapper
         .find('.dropdown-toggle')
