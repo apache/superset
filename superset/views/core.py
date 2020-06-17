@@ -165,14 +165,6 @@ if not config["ENABLE_JAVASCRIPT_CONTROLS"]:
     FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
-def get_database_access_error_msg(database_name: str) -> str:
-    return __(
-        "This view requires the database %(name)s or "
-        "`all_datasource_access` permission",
-        name=database_name,
-    )
-
-
 def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
     """ Check if user is owner of the slice """
     return obj and user in obj.owners
@@ -2113,7 +2105,9 @@ class Superset(BaseSupersetView):
     def extra_table_metadata(
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
-        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)  # type: ignore
+        schema = utils.parse_js_uri_path_item(
+            schema, eval_undefined=True
+        )  # type: ignore
         table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(mydb, table_name, schema)
