@@ -315,3 +315,25 @@ and should be able to things that are typical in basic SQL:
 - apply HAVING-type filters
 - be schema-aware, expose columns and types
 
+
+Does Superset offer a public API?
+---------------------------------
+
+Yes, a public REST API, and the surface of that API formal
+is expanding steadily. Some of the original vision for the collection
+of endpoints under `/api/v1` was originally specified in
+[SIP-17](https://github.com/apache/incubator-superset/issues/7259) and
+constant progress has been made to cover more and more use cases.
+
+The API available is documented using [Swagger](https://swagger.io/)
+and the documentation
+can be made available under `/swaggerview/v1` by enabling
+the `FAB_API_SWAGGER_UI = True` configuration flag.
+
+There are other undocumented [private] ways to interact with Superset
+programmatically that offer no guarantees and are not recommended but
+may fit your use case temporarily:
+
+- using the ORM (SQLAlchemy) directly
+- using the internal FAB ModelView API (to be deprecated in Superset)
+- altering the source code in your fork
