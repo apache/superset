@@ -162,6 +162,7 @@ Join our growing community!
  1. [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
  1. [GfK Data Lab](http://datalab.gfk.com) [@mherr]
  1. [Grassroot](https://www.grassrootinstitute.org/) 
+ 1. [GrowthSimple](https://growthsimple.ai/)
  1. [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
  1. [HuiShouBao](http://www.huishoubao.com/) [@Yukinoshita-Yukino]
  1. [Intercom](https://www.intercom.com/) [@kate-gallo]
