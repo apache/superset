@@ -102,6 +102,7 @@ setup(
         "retry>=0.9.2",
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
+        "slackclient>=2.6.2",
         "sqlalchemy>=1.3.16, <2.0",
         # Breaking change in sqlalchemy-utils==0.36.6, upgrading will probably
         # require a migration on EncryptedType columns. For more information, see

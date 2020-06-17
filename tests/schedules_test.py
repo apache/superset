@@ -72,6 +72,7 @@ class SchedulesTestCase(SupersetTestCase):
             slice_schedule.slice_id = slce.id
             slice_schedule.user_id = 1
             slice_schedule.email_format = SliceEmailReportFormat.data
+            slice_schedule.slack_channel = "#test_channel"
 
             db.session.add(slice_schedule)
             db.session.commit()
@@ -190,7 +191,14 @@ class SchedulesTestCase(SupersetTestCase):
             .all()[0]
         )
 
-        deliver_dashboard(schedule)
+        deliver_dashboard(
+            schedule.dashboard_id,
+            schedule.recipients,
+            schedule.slack_channel,
+            schedule.delivery_type,
+            schedule.deliver_as_group,
+        )
+
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
@@ -220,7 +228,14 @@ class SchedulesTestCase(SupersetTestCase):
         )
 
         schedule.delivery_type = EmailDeliveryType.attachment
-        deliver_dashboard(schedule)
+
+        deliver_dashboard(
+            schedule.dashboard_id,
+            schedule.recipients,
+            schedule.slack_channel,
+            schedule.delivery_type,
+            schedule.deliver_as_group,
+        )
 
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_not_called()
@@ -256,7 +271,14 @@ class SchedulesTestCase(SupersetTestCase):
             .all()[0]
         )
 
-        deliver_dashboard(schedule)
+        deliver_dashboard(
+            schedule.dashboard_id,
+            schedule.recipients,
+            schedule.slack_channel,
+            schedule.delivery_type,
+            schedule.deliver_as_group,
+        )
+
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_called_once()
         send_email_smtp.assert_called_once()
@@ -294,17 +316,27 @@ class SchedulesTestCase(SupersetTestCase):
         # Set a bcc email address
         app.config["EMAIL_REPORT_BCC_ADDRESS"] = self.BCC
 
-        deliver_dashboard(schedule)
+        deliver_dashboard(
+            schedule.dashboard_id,
+            schedule.recipients,
+            schedule.slack_channel,
+            schedule.delivery_type,
+            schedule.deliver_as_group,
+        )
+
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_not_called()
 
         self.assertEqual(send_email_smtp.call_count, 2)
         self.assertEqual(send_email_smtp.call_args[1]["bcc"], self.BCC)
 
+    @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
     @patch("superset.tasks.schedules.time")
-    def test_deliver_slice_inline_image(self, mtime, send_email_smtp, driver_class):
+    def test_deliver_slice_inline_image(
+        self, mtime, send_email_smtp, driver_class, files_upload
+    ):
         element = Mock()
         driver = Mock()
         mtime.sleep.return_value = None
@@ -325,7 +357,14 @@ class SchedulesTestCase(SupersetTestCase):
         schedule.email_format = SliceEmailReportFormat.visualization
         schedule.delivery_format = EmailDeliveryType.inline
 
-        deliver_slice(schedule)
+        deliver_slice(
+            schedule.slice_id,
+            schedule.recipients,
+            schedule.slack_channel,
+            schedule.delivery_type,
+            schedule.email_format,
+            schedule.deliver_as_group,
+        )
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
@@ -335,10 +374,23 @@ class SchedulesTestCase(SupersetTestCase):
             element.screenshot_as_png,
         )
 
+        self.assertEqual(
+            files_upload.call_args[1],
+            {
+                "channels": "#test_channel",
+                "file": element.screenshot_as_png,
+                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
+                "title": "[Report]  Participants",
+            },
+        )
+
+    @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
     @patch("superset.tasks.schedules.time")
-    def test_deliver_slice_attachment(self, mtime, send_email_smtp, driver_class):
+    def test_deliver_slice_attachment(
+        self, mtime, send_email_smtp, driver_class, files_upload
+    ):
         element = Mock()
         driver = Mock()
         mtime.sleep.return_value = None
@@ -359,7 +411,15 @@ class SchedulesTestCase(SupersetTestCase):
         schedule.email_format = SliceEmailReportFormat.visualization
         schedule.delivery_type = EmailDeliveryType.attachment
 
-        deliver_slice(schedule)
+        deliver_slice(
+            schedule.slice_id,
+            schedule.recipients,
+            schedule.slack_channel,
+            schedule.delivery_type,
+            schedule.email_format,
+            schedule.deliver_as_group,
+        )
+
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
@@ -369,11 +429,22 @@ class SchedulesTestCase(SupersetTestCase):
             element.screenshot_as_png,
         )
 
+        self.assertEqual(
+            files_upload.call_args[1],
+            {
+                "channels": "#test_channel",
+                "file": element.screenshot_as_png,
+                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
+                "title": "[Report]  Participants",
+            },
+        )
+
+    @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")
     @patch("superset.tasks.schedules.urllib.request.urlopen")
     @patch("superset.tasks.schedules.send_email_smtp")
     def test_deliver_slice_csv_attachment(
-        self, send_email_smtp, mock_open, mock_urlopen
+        self, send_email_smtp, mock_open, mock_urlopen, files_upload
     ):
         response = Mock()
         mock_open.return_value = response
@@ -390,17 +461,38 @@ class SchedulesTestCase(SupersetTestCase):
         schedule.email_format = SliceEmailReportFormat.data
         schedule.delivery_type = EmailDeliveryType.attachment
 
-        deliver_slice(schedule)
+        deliver_slice(
+            schedule.slice_id,
+            schedule.recipients,
+            schedule.slack_channel,
+            schedule.delivery_type,
+            schedule.email_format,
+            schedule.deliver_as_group,
+        )
+
         send_email_smtp.assert_called_once()
 
         file_name = __("%(name)s.csv", name=schedule.slice.slice_name)
 
         self.assertEqual(send_email_smtp.call_args[1]["data"][file_name], self.CSV)
 
+        self.assertEqual(
+            files_upload.call_args[1],
+            {
+                "channels": "#test_channel",
+                "file": self.CSV,
+                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
+                "title": "[Report]  Participants",
+            },
+        )
+
+    @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.urllib.request.urlopen")
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")
     @patch("superset.tasks.schedules.send_email_smtp")
-    def test_deliver_slice_csv_inline(self, send_email_smtp, mock_open, mock_urlopen):
+    def test_deliver_slice_csv_inline(
+        self, send_email_smtp, mock_open, mock_urlopen, files_upload
+    ):
         response = Mock()
         mock_open.return_value = response
         mock_urlopen.return_value = response
@@ -415,8 +507,26 @@ class SchedulesTestCase(SupersetTestCase):
         schedule.email_format = SliceEmailReportFormat.data
         schedule.delivery_type = EmailDeliveryType.inline
 
-        deliver_slice(schedule)
+        deliver_slice(
+            schedule.slice_id,
+            schedule.recipients,
+            schedule.slack_channel,
+            schedule.delivery_type,
+            schedule.email_format,
+            schedule.deliver_as_group,
+        )
+
         send_email_smtp.assert_called_once()
 
         self.assertIsNone(send_email_smtp.call_args[1]["data"])
         self.assertTrue("<table " in send_email_smtp.call_args[0][2])
+
+        self.assertEqual(
+            files_upload.call_args[1],
+            {
+                "channels": "#test_channel",
+                "file": self.CSV,
+                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
+                "title": "[Report]  Participants",
+            },
+        )
