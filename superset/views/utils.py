@@ -16,22 +16,31 @@
 # under the License.
 from collections import defaultdict
 from datetime import date
-from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Union, Callable
 from urllib import parse
+
+import msgpack
+import pyarrow as pa
 
 import simplejson as json
 from flask import g, request
+from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 
 import superset.models.core as models
-from superset import app, db, is_feature_enabled
+from superset import app, db, is_feature_enabled, security_manager, result_set, dataframe
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import SupersetException
+from superset.errors import SupersetError, SupersetErrorType, ErrorLevel
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.legacy import update_time_range
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.models.sql_lab import Query
 from superset.typing import FormData
 from superset.utils.core import QueryStatus, TimeRangeEndpoint
+from superset.utils.decorators import stats_timing
+from superset.views.core import logger, stats_logger, config
 from superset.viz import BaseViz
 
 if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
@@ -361,3 +370,122 @@ def is_slice_in_container(
         )
 
     return False
+
+
+def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
+    """ Check if user is owner of the slice """
+    return obj and user in obj.owners
+
+
+def check_datasource_perms(
+    self: "Superset",
+    datasource_type: Optional[str] = None,
+    datasource_id: Optional[int] = None,
+) -> None:
+    """
+    Check if user can access a cached response from explore_json.
+
+    This function takes `self` since it must have the same signature as the
+    the decorated method.
+
+    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
+    :param datasource_id: The datasource ID
+    :raises SupersetSecurityException: If the user cannot access the resource
+    """
+
+    form_data = get_form_data()[0]
+
+    try:
+        datasource_id, datasource_type = get_datasource_info(
+            datasource_id, datasource_type, form_data
+        )
+    except SupersetException as ex:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
+                level=ErrorLevel.ERROR,
+                message=str(ex),
+            )
+        )
+
+    if datasource_type is None:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+                level=ErrorLevel.ERROR,
+                message="Could not determine datasource type",
+            )
+        )
+
+    viz_obj = get_viz(
+        datasource_type=datasource_type,
+        datasource_id=datasource_id,
+        form_data=form_data,
+        force=False,
+    )
+
+    security_manager.assert_viz_permission(viz_obj)
+
+
+def check_slice_perms(self: "Superset", slice_id: int) -> None:
+    """
+    Check if user can access a cached response from slice_json.
+
+    This function takes `self` since it must have the same signature as the
+    the decorated method.
+    """
+
+    form_data, slc = get_form_data(slice_id, use_slice_data=True)
+
+    if slc:
+        viz_obj = get_viz(
+            datasource_type=slc.datasource.type,
+            datasource_id=slc.datasource.id,
+            form_data=form_data,
+            force=False,
+        )
+
+        security_manager.assert_viz_permission(viz_obj)
+
+
+def _deserialize_results_payload(
+    payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
+) -> Dict[str, Any]:
+    logger.debug(f"Deserializing from msgpack: {use_msgpack}")
+    if use_msgpack:
+        with stats_timing(
+            "sqllab.query.results_backend_msgpack_deserialize", stats_logger
+        ):
+            ds_payload = msgpack.loads(payload, raw=False)
+
+        with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
+            pa_table = pa.deserialize(ds_payload["data"])
+
+        df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
+        ds_payload["data"] = dataframe.df_to_records(df) or []
+
+        db_engine_spec = query.database.db_engine_spec
+        all_columns, data, expanded_columns = db_engine_spec.expand_data(
+            ds_payload["selected_columns"], ds_payload["data"]
+        )
+        ds_payload.update(
+            {"data": data, "columns": all_columns, "expanded_columns": expanded_columns}
+        )
+
+        return ds_payload
+    else:
+        with stats_timing(
+            "sqllab.query.results_backend_json_deserialize", stats_logger
+        ):
+            return json.loads(payload)
+
+
+def get_cta_schema_name(
+    database: Database, user: ab_models.User, schema: str, sql: str
+) -> Optional[str]:
+    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = config[
+        "SQLLAB_CTAS_SCHEMA_NAME_FUNC"
+    ]
+    if not func:
+        return None
+    return func(database, user, schema, sql)
