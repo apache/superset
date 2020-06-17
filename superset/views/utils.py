@@ -14,25 +14,43 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from collections import defaultdict
 from datetime import date
-from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
 from urllib import parse
 
+import msgpack
+import pyarrow as pa
 import simplejson as json
 from flask import g, request
+from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 
 import superset.models.core as models
-from superset import app, db, is_feature_enabled
+from superset import (
+    app,
+    dataframe,
+    db,
+    is_feature_enabled,
+    result_set,
+    security_manager,
+)
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import SupersetException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.legacy import update_time_range
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.models.sql_lab import Query
 from superset.typing import FormData
 from superset.utils.core import QueryStatus, TimeRangeEndpoint
+from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
+
+logger = logging.getLogger(__name__)
+stats_logger = app.config["STATS_LOGGER"]
 
 if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
     from superset import viz_sip38 as viz
@@ -40,9 +58,9 @@ else:
     from superset import viz  # type: ignore
 
 
-FORM_DATA_KEY_BLACKLIST: List[str] = []
+REJECTED_FORM_DATA_KEYS: List[str] = []
 if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
-    FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+    REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
@@ -91,7 +109,7 @@ def get_permissions(
 
 
 def get_viz(
-    form_data: FormData, datasource_type: str, datasource_id: int, force: bool = False,
+    form_data: FormData, datasource_type: str, datasource_id: int, force: bool = False
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = ConnectorRegistry.get_datasource(
@@ -129,7 +147,7 @@ def get_form_data(
             url_form_data.update(form_data)
             form_data = url_form_data
 
-    form_data = {k: v for k, v in form_data.items() if k not in FORM_DATA_KEY_BLACKLIST}
+    form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
     # When a slice_id is present, load from DB and override
     # the form_data from the DB with the other form_data provided
@@ -160,7 +178,7 @@ def get_form_data(
 
 
 def get_datasource_info(
-    datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData,
+    datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData
 ) -> Tuple[int, Optional[str]]:
     """
     Compatibility layer for handling of datasource info
@@ -222,7 +240,7 @@ def apply_display_max_row_limit(
 
 
 def get_time_range_endpoints(
-    form_data: FormData, slc: Optional[Slice] = None, slice_id: Optional[int] = None,
+    form_data: FormData, slc: Optional[Slice] = None, slice_id: Optional[int] = None
 ) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
     """
     Get the slice aware time range endpoints from the form-data falling back to the SQL
@@ -361,3 +379,122 @@ def is_slice_in_container(
         )
 
     return False
+
+
+def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
+    """ Check if user is owner of the slice """
+    return obj and user in obj.owners
+
+
+def check_datasource_perms(
+    _self: Any,
+    datasource_type: Optional[str] = None,
+    datasource_id: Optional[int] = None,
+) -> None:
+    """
+    Check if user can access a cached response from explore_json.
+
+    This function takes `self` since it must have the same signature as the
+    the decorated method.
+
+    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
+    :param datasource_id: The datasource ID
+    :raises SupersetSecurityException: If the user cannot access the resource
+    """
+
+    form_data = get_form_data()[0]
+
+    try:
+        datasource_id, datasource_type = get_datasource_info(
+            datasource_id, datasource_type, form_data
+        )
+    except SupersetException as ex:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
+                level=ErrorLevel.ERROR,
+                message=str(ex),
+            )
+        )
+
+    if datasource_type is None:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+                level=ErrorLevel.ERROR,
+                message="Could not determine datasource type",
+            )
+        )
+
+    viz_obj = get_viz(
+        datasource_type=datasource_type,
+        datasource_id=datasource_id,
+        form_data=form_data,
+        force=False,
+    )
+
+    security_manager.assert_viz_permission(viz_obj)
+
+
+def check_slice_perms(_self: Any, slice_id: int) -> None:
+    """
+    Check if user can access a cached response from slice_json.
+
+    This function takes `self` since it must have the same signature as the
+    the decorated method.
+    """
+
+    form_data, slc = get_form_data(slice_id, use_slice_data=True)
+
+    if slc:
+        viz_obj = get_viz(
+            datasource_type=slc.datasource.type,
+            datasource_id=slc.datasource.id,
+            form_data=form_data,
+            force=False,
+        )
+
+        security_manager.assert_viz_permission(viz_obj)
+
+
+def _deserialize_results_payload(
+    payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
+) -> Dict[str, Any]:
+    logger.debug(f"Deserializing from msgpack: {use_msgpack}")
+    if use_msgpack:
+        with stats_timing(
+            "sqllab.query.results_backend_msgpack_deserialize", stats_logger
+        ):
+            ds_payload = msgpack.loads(payload, raw=False)
+
+        with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
+            pa_table = pa.deserialize(ds_payload["data"])
+
+        df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
+        ds_payload["data"] = dataframe.df_to_records(df) or []
+
+        db_engine_spec = query.database.db_engine_spec
+        all_columns, data, expanded_columns = db_engine_spec.expand_data(
+            ds_payload["selected_columns"], ds_payload["data"]
+        )
+        ds_payload.update(
+            {"data": data, "columns": all_columns, "expanded_columns": expanded_columns}
+        )
+
+        return ds_payload
+    else:
+        with stats_timing(
+            "sqllab.query.results_backend_json_deserialize", stats_logger
+        ):
+            return json.loads(payload)
+
+
+def get_cta_schema_name(
+    database: Database, user: ab_models.User, schema: str, sql: str
+) -> Optional[str]:
+    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = app.config[
+        "SQLLAB_CTAS_SCHEMA_NAME_FUNC"
+    ]
+    if not func:
+        return None
+    return func(database, user, schema, sql)

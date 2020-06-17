@@ -20,22 +20,19 @@ import re
 from collections import defaultdict
 from contextlib import closing
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
-import msgpack
 import pandas as pd
-import pyarrow as pa
 import simplejson as json
 from flask import abort, flash, g, Markup, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy import and_, Integer, or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import (
     ArgumentError,
@@ -51,17 +48,14 @@ from superset import (
     app,
     appbuilder,
     conf,
-    dataframe,
     db,
     event_logger,
     get_feature_flags,
     is_feature_enabled,
-    result_set,
     results_backend,
     results_backend_use_msgpack,
     security_manager,
     sql_lab,
-    talisman,
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -71,18 +65,13 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.constants import RouteMethod
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
-    QueryObjectValidationError,
     SupersetException,
-    SupersetSecurityException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
-from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
@@ -98,12 +87,8 @@ from superset.typing import FlaskResponse
 from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import etag_cache, stats_timing
-from superset.views.database.filters import DatabaseFilter
-from superset.views.utils import get_dashboard_extra_filters
-from superset.viz import BaseViz
-
-from .base import (
+from superset.utils.decorators import etag_cache
+from superset.views.base import (
     api,
     BaseSupersetView,
     check_ownership,
@@ -111,7 +96,6 @@ from .base import (
     create_table_permissions,
     CsvResponse,
     data_payload_response,
-    DeleteMixin,
     generate_download_headers,
     get_error_msg,
     get_user_roles,
@@ -119,16 +103,23 @@ from .base import (
     json_error_response,
     json_errors_response,
     json_success,
-    SupersetModelView,
     validate_sqlatable,
 )
-from .utils import (
+from superset.views.database.filters import DatabaseFilter
+from superset.views.utils import (
+    _deserialize_results_payload,
     apply_display_max_row_limit,
     bootstrap_user_data,
+    check_datasource_perms,
+    check_slice_perms,
+    get_cta_schema_name,
+    get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
     get_viz,
+    is_owner,
 )
+from superset.viz import BaseViz
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]
@@ -153,248 +144,8 @@ DATABASE_KEYS = [
 ]
 
 
-ALL_DATASOURCE_ACCESS_ERR = __(
-    "This endpoint requires the `all_datasource_access` permission"
-)
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
-ACCESS_REQUEST_MISSING_ERR = __("The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
-
-FORM_DATA_KEY_BLACKLIST: List[str] = []
-if not config["ENABLE_JAVASCRIPT_CONTROLS"]:
-    FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
-
-
-def get_database_access_error_msg(database_name: str) -> str:
-    return __(
-        "This view requires the database %(name)s or "
-        "`all_datasource_access` permission",
-        name=database_name,
-    )
-
-
-def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
-    """ Check if user is owner of the slice """
-    return obj and user in obj.owners
-
-
-def check_datasource_perms(
-    self: "Superset",
-    datasource_type: Optional[str] = None,
-    datasource_id: Optional[int] = None,
-) -> None:
-    """
-    Check if user can access a cached response from explore_json.
-
-    This function takes `self` since it must have the same signature as the
-    the decorated method.
-
-    :param datasource_type: The datasource type, i.e., 'druid' or 'table'
-    :param datasource_id: The datasource ID
-    :raises SupersetSecurityException: If the user cannot access the resource
-    """
-
-    form_data = get_form_data()[0]
-
-    try:
-        datasource_id, datasource_type = get_datasource_info(
-            datasource_id, datasource_type, form_data
-        )
-    except SupersetException as ex:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
-                level=ErrorLevel.ERROR,
-                message=str(ex),
-            )
-        )
-
-    if datasource_type is None:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
-                level=ErrorLevel.ERROR,
-                message="Could not determine datasource type",
-            )
-        )
-
-    viz_obj = get_viz(
-        datasource_type=datasource_type,
-        datasource_id=datasource_id,
-        form_data=form_data,
-        force=False,
-    )
-
-    security_manager.assert_viz_permission(viz_obj)
-
-
-def check_slice_perms(self: "Superset", slice_id: int) -> None:
-    """
-    Check if user can access a cached response from slice_json.
-
-    This function takes `self` since it must have the same signature as the
-    the decorated method.
-    """
-
-    form_data, slc = get_form_data(slice_id, use_slice_data=True)
-
-    if slc:
-        viz_obj = get_viz(
-            datasource_type=slc.datasource.type,
-            datasource_id=slc.datasource.id,
-            form_data=form_data,
-            force=False,
-        )
-
-        security_manager.assert_viz_permission(viz_obj)
-
-
-def _deserialize_results_payload(
-    payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
-) -> Dict[str, Any]:
-    logger.debug(f"Deserializing from msgpack: {use_msgpack}")
-    if use_msgpack:
-        with stats_timing(
-            "sqllab.query.results_backend_msgpack_deserialize", stats_logger
-        ):
-            ds_payload = msgpack.loads(payload, raw=False)
-
-        with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
-            pa_table = pa.deserialize(ds_payload["data"])
-
-        df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
-        ds_payload["data"] = dataframe.df_to_records(df) or []
-
-        db_engine_spec = query.database.db_engine_spec
-        all_columns, data, expanded_columns = db_engine_spec.expand_data(
-            ds_payload["selected_columns"], ds_payload["data"]
-        )
-        ds_payload.update(
-            {"data": data, "columns": all_columns, "expanded_columns": expanded_columns}
-        )
-
-        return ds_payload
-    else:
-        with stats_timing(
-            "sqllab.query.results_backend_json_deserialize", stats_logger
-        ):
-            return json.loads(payload)
-
-
-def get_cta_schema_name(
-    database: Database, user: ab_models.User, schema: str, sql: str
-) -> Optional[str]:
-    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = config[
-        "SQLLAB_CTAS_SCHEMA_NAME_FUNC"
-    ]
-    if not func:
-        return None
-    return func(database, user, schema, sql)
-
-
-class AccessRequestsModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(DAR)
-    include_route_methods = RouteMethod.CRUD_SET
-    list_columns = [
-        "username",
-        "user_roles",
-        "datasource_link",
-        "roles_with_datasource",
-        "created_on",
-    ]
-    order_columns = ["created_on"]
-    base_order = ("changed_on", "desc")
-    label_columns = {
-        "username": _("User"),
-        "user_roles": _("User Roles"),
-        "database": _("Database URL"),
-        "datasource_link": _("Datasource"),
-        "roles_with_datasource": _("Roles to grant"),
-        "created_on": _("Created On"),
-    }
-
-
-@talisman(force_https=False)
-@app.route("/health")
-def health() -> FlaskResponse:
-    return "OK"
-
-
-@talisman(force_https=False)
-@app.route("/healthcheck")
-def healthcheck() -> FlaskResponse:
-    return "OK"
-
-
-@talisman(force_https=False)
-@app.route("/ping")
-def ping() -> FlaskResponse:
-    return "OK"
-
-
-class KV(BaseSupersetView):
-
-    """Used for storing and retrieving key value pairs"""
-
-    @event_logger.log_this
-    @has_access_api
-    @expose("/store/", methods=["POST"])
-    def store(self) -> FlaskResponse:
-        try:
-            value = request.form.get("data")
-            obj = models.KeyValue(value=value)
-            db.session.add(obj)
-            db.session.commit()
-        except Exception as ex:
-            return json_error_response(utils.error_msg_from_exception(ex))
-        return Response(json.dumps({"id": obj.id}), status=200)
-
-    @event_logger.log_this
-    @has_access_api
-    @expose("/<int:key_id>/", methods=["GET"])
-    def get_value(self, key_id: int) -> FlaskResponse:
-        try:
-            kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
-            if not kv:
-                return Response(status=404, content_type="text/plain")
-        except Exception as ex:
-            return json_error_response(utils.error_msg_from_exception(ex))
-        return Response(kv.value, status=200, content_type="text/plain")
-
-
-class R(BaseSupersetView):
-
-    """used for short urls"""
-
-    @event_logger.log_this
-    @expose("/<int:url_id>")
-    def index(self, url_id: int) -> FlaskResponse:
-        url = db.session.query(models.Url).get(url_id)
-        if url and url.url:
-            explore_url = "//superset/explore/?"
-            if url.url.startswith(explore_url):
-                explore_url += f"r={url_id}"
-                return redirect(explore_url[1:])
-            else:
-                return redirect(url.url[1:])
-        else:
-            flash("URL to nowhere...", "danger")
-            return redirect("/")
-
-    @event_logger.log_this
-    @has_access_api
-    @expose("/shortner/", methods=["POST"])
-    def shortner(self) -> FlaskResponse:
-        url = request.form.get("data")
-        obj = models.Url(url=url)
-        db.session.add(obj)
-        db.session.commit()
-        return Response(
-            "{scheme}://{request.headers[Host]}/r/{obj.id}".format(
-                scheme=request.scheme, request=request, obj=obj
-            ),
-            mimetype="text/plain",
-        )
 
 
 class Superset(BaseSupersetView):
@@ -556,8 +307,9 @@ class Superset(BaseSupersetView):
         )
 
         if not requests:
-            flash(ACCESS_REQUEST_MISSING_ERR, "alert")
-            return json_error_response(ACCESS_REQUEST_MISSING_ERR)
+            err = __("The access requests seem to have been deleted")
+            flash(err, "alert")
+            return json_error_response(err)
 
         # check if you can approve
         if security_manager.can_access_all_datasources() or check_ownership(
@@ -2113,10 +1865,12 @@ class Superset(BaseSupersetView):
     def extra_table_metadata(
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
-        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)  # type: ignore
+        parsed_schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
-        payload = mydb.db_engine_spec.extra_table_metadata(mydb, table_name, schema)
+        payload = mydb.db_engine_spec.extra_table_metadata(
+            mydb, table_name, parsed_schema
+        )
         return json_success(json.dumps(payload))
 
     @has_access
@@ -2913,38 +2667,3 @@ class Superset(BaseSupersetView):
                 "Failed to fetch schemas allowed for csv upload in this database! "
                 "Please contact your Superset Admin!"
             )
-
-
-class CssTemplateModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.CssTemplate)
-    include_route_methods = RouteMethod.CRUD_SET
-
-    list_title = _("CSS Templates")
-    show_title = _("Show CSS Template")
-    add_title = _("Add CSS Template")
-    edit_title = _("Edit CSS Template")
-
-    list_columns = ["template_name"]
-    edit_columns = ["template_name", "css"]
-    add_columns = edit_columns
-    label_columns = {"template_name": _("Template Name")}
-
-
-class CssTemplateAsyncModelView(CssTemplateModelView):
-    include_route_methods = {RouteMethod.API_READ}
-    list_columns = ["template_name", "css"]
-
-
-@app.after_request
-def apply_http_headers(response: Response) -> Response:
-    """Applies the configuration's http headers to all responses"""
-
-    # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(  # type: ignore
-        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
-    )
-
-    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
-        if k not in response.headers:
-            response.headers[k] = v
-    return response
