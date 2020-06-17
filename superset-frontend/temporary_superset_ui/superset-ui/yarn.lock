@@ -4493,10 +4493,10 @@
     classnames "^2.2.5"
     prop-types "^15.5.10"
 
-"@vx/pattern@^0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/pattern/-/pattern-0.0.196.tgz#f7caa7ce8a3445e14f532da593eb73cb8bad8f6c"
-  integrity sha512-doMzynNdIpwgXsTFQky3vv+wW9NcxBt8zjHSlseY/MUxAsmxOyi5YrEPPlzDyxhcFwDaA7+Xh1c5z+5Gokd7WA==
+"@vx/pattern@^0.0.197":
+  version "0.0.197"
+  resolved "https://registry.yarnpkg.com/@vx/pattern/-/pattern-0.0.197.tgz#a9f8ce164ecaad86d2f3a45f2f78fcf78cfe7a96"
+  integrity sha512-1nsFfjSrrnVwZnAHY823Xe6sfStWp7xSs6e9KlSPwz8TvK6U/xLuHgQ2q1hBlUOM5Uyk9Ddr6KvFHLPOecrL8A==
   dependencies:
     "@types/classnames" "^2.2.9"
     "@types/react" "*"
