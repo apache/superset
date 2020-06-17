@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one
   or more contributor license agreements.  See the NOTICE file
@@ -14,7 +15,6 @@
   specific language governing permissions and limitations
   under the License.
 -->
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg width="100%" height="100%" viewBox="0 0 210 202" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <path d="M141.56,37.83C129.1,37.83 117.56,44.83 106.56,57.08C95.62,44.64 83.94,37.83 70.89,37.83C49.29,37.83 33.52,53.19 33.52,74C33.52,94.81 49.29,110 70.89,110C84.13,110 94.45,103.77 105.89,91.33C117,103.74 128.32,110 141.56,110C163.17,110 178.93,94.83 178.93,74C178.93,53.17 163.17,37.83 141.56,37.83ZM71,88.19C61.85,88.19 56.4,82.19 56.4,74.19C56.4,66.19 61.89,60 71,60C78.78,60 85,66.22 91.82,74.58C85.44,82.36 78.63,88.19 71,88.19ZM140.88,88.19C133.29,88.19 126.88,82.19 120.05,74.19C127.05,65.83 133.05,60 140.88,60C150.03,60 155.48,66.22 155.48,74.19C155.48,82.16 150.07,88.19 140.92,88.19L140.88,88.19Z" style="fill:rgb(72,72,72);fill-rule:nonzero;"/>

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one
   or more contributor license agreements.  See the NOTICE file
@@ -14,7 +15,6 @@
   specific language governing permissions and limitations
   under the License.
 -->
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg width="100%" height="100%" viewBox="0 0 266 69" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <path d="M73.79,15.23C67.32,15.23 61.36,18.87 55.6,25.23C49.94,18.77 43.88,15.23 37.11,15.23C25.9,15.23 17.72,23.23 17.72,34C17.72,44.77 25.9,52.67 37.11,52.67C44,52.67 49.34,49.44 55.3,43C61.06,49.46 66.92,52.69 73.79,52.69C85,52.67 93.18,44.8 93.18,34C93.18,23.2 85,15.23 73.79,15.23ZM37.19,41.37C32.44,41.37 29.61,38.24 29.61,34.1C29.61,29.96 32.44,26.74 37.19,26.74C41.19,26.74 44.46,29.96 48,34.3C44.66,38.34 41.13,41.37 37.19,41.37ZM73.45,41.37C69.51,41.37 66.18,38.24 62.64,34.1C66.28,29.76 69.41,26.74 73.45,26.74C78.2,26.74 81,30 81,34.1C81,38.2 78.2,41.37 73.45,41.37Z" style="fill:rgb(72,72,72);fill-rule:nonzero;"/>
