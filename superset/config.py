@@ -737,6 +737,10 @@ ENABLE_FLASK_COMPRESS = True
 # Enable / disable scheduled email reports
 ENABLE_SCHEDULED_EMAIL_REPORTS = False
 
+# Slack API token for the superset reports
+SLACK_API_TOKEN = None
+SLACK_PROXY = None
+
 # If enabled, certail features are run in debug mode
 # Current list:
 # * Emails are sent using dry-run mode (logging only)
