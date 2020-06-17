@@ -30,6 +30,7 @@ import BasicSelect, {
 import Async from 'react-select/async';
 import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
+import { withAsyncPaginate } from 'react-select-async-paginate';
 
 import { SelectComponents } from 'react-select/src/components';
 import {
@@ -286,4 +287,7 @@ export const Select = styled(WindowedSelect);
 export const AsyncSelect = styled(WindowedAsyncSelect);
 export const CreatableSelect = styled(WindowedCreatableSelect);
 export const AsyncCreatableSelect = styled(WindowedAsyncCreatableSelect);
+// Wrap with async pagination (infinite scroll). Cannot use windowed since options are appended dynamically which causes focus jumping
+// @ts-ignore
+export const PaginatedSelect = withAsyncPaginate(styled(BasicSelect));
 export default Select;

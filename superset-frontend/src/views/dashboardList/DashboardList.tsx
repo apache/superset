@@ -437,6 +437,7 @@ class DashboardList extends React.PureComponent<Props, State> {
             operator: 'rel_m_m',
             unfilteredLabel: 'All',
             fetchSelects: this.fetchOwners,
+            paginate: true,
           },
           {
             Header: 'Published',
