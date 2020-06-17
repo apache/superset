@@ -876,6 +876,14 @@ SIP_15_TOAST_MESSAGE = (
     'class="alert-link">here</a>.'
 )
 
+
+# SQLA table mutator, every time we fetch the metadata for a certain table
+# (superset.connectors.sqla.models.SqlaTable), we call this hook
+# to allow mutating the object with this callback.
+# This can be used to set any properties of the object based on naming
+# conventions and such. You can find examples in the tests.
+SQLA_TABLE_MUTATOR = lambda table: table
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
