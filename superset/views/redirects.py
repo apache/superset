@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import flash, redirect, request, Response
+from flask import flash, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 from werkzeug.utils import redirect
@@ -25,29 +25,29 @@ from superset.typing import FlaskResponse
 from superset.views.base import BaseSupersetView
 
 
-class R(BaseSupersetView):
+class R(BaseSupersetView):  # pylint: disable=invalid-name
 
     """used for short urls"""
 
     @event_logger.log_this
     @expose("/<int:url_id>")
-    def index(self, url_id: int) -> FlaskResponse:
+    def index(self, url_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
         url = db.session.query(models.Url).get(url_id)
         if url and url.url:
             explore_url = "//superset/explore/?"
             if url.url.startswith(explore_url):
                 explore_url += f"r={url_id}"
                 return redirect(explore_url[1:])
-            else:
-                return redirect(url.url[1:])
-        else:
-            flash("URL to nowhere...", "danger")
-            return redirect("/")
+
+            return redirect(url.url[1:])
+
+        flash("URL to nowhere...", "danger")
+        return redirect("/")
 
     @event_logger.log_this
     @has_access_api
     @expose("/shortner/", methods=["POST"])
-    def shortner(self) -> FlaskResponse:
+    def shortner(self) -> FlaskResponse:  # pylint: disable=no-self-use
         url = request.form.get("data")
         obj = models.Url(url=url)
         db.session.add(obj)

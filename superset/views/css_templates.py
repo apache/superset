@@ -22,7 +22,9 @@ from superset.models import core as models
 from superset.views.base import DeleteMixin, SupersetModelView
 
 
-class CssTemplateModelView(SupersetModelView, DeleteMixin):
+class CssTemplateModelView(  # pylint: disable=too-many-ancestors
+    SupersetModelView, DeleteMixin
+):
     datamodel = SQLAInterface(models.CssTemplate)
     include_route_methods = RouteMethod.CRUD_SET
 
@@ -37,6 +39,8 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
     label_columns = {"template_name": _("Template Name")}
 
 
-class CssTemplateAsyncModelView(CssTemplateModelView):
+class CssTemplateAsyncModelView(  # pylint: disable=too-many-ancestors
+    CssTemplateModelView
+):
     include_route_methods = {RouteMethod.API_READ}
     list_columns = ["template_name", "css"]

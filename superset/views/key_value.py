@@ -33,24 +33,24 @@ class KV(BaseSupersetView):
     @event_logger.log_this
     @has_access_api
     @expose("/store/", methods=["POST"])
-    def store(self) -> FlaskResponse:
+    def store(self) -> FlaskResponse:  # pylint: disable=no-self-use
         try:
             value = request.form.get("data")
             obj = models.KeyValue(value=value)
             db.session.add(obj)
             db.session.commit()
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             return json_error_response(utils.error_msg_from_exception(ex))
         return Response(json.dumps({"id": obj.id}), status=200)
 
     @event_logger.log_this
     @has_access_api
     @expose("/<int:key_id>/", methods=["GET"])
-    def get_value(self, key_id: int) -> FlaskResponse:
+    def get_value(self, key_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
         try:
             kv = db.session.query(models.KeyValue).filter_by(id=key_id).scalar()
             if not kv:
                 return Response(status=404, content_type="text/plain")
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             return json_error_response(utils.error_msg_from_exception(ex))
         return Response(kv.value, status=200, content_type="text/plain")
