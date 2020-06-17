@@ -2668,18 +2668,3 @@ class Superset(BaseSupersetView):
                 "Failed to fetch schemas allowed for csv upload in this database! "
                 "Please contact your Superset Admin!"
             )
-
-
-@app.after_request
-def apply_http_headers(response: Response) -> Response:
-    """Applies the configuration's http headers to all responses"""
-
-    # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(  # type: ignore
-        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
-    )
-
-    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
-        if k not in response.headers:
-            response.headers[k] = v
-    return response

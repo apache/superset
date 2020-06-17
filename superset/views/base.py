@@ -44,7 +44,7 @@ from superset import (
     conf,
     db,
     get_feature_flags,
-    security_manager,
+    security_manager, app,
 )
 from superset.connectors.sqla import models
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -53,6 +53,7 @@ from superset.models.helpers import ImportMixin
 from superset.translations.utils import get_language_pack
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
+from .core import config
 
 from .utils import bootstrap_user_data
 
@@ -520,3 +521,18 @@ def bind_field(
 
 
 FlaskForm.Meta.bind_field = bind_field
+
+
+@app.after_request
+def apply_http_headers(response: Response) -> Response:
+    """Applies the configuration's http headers to all responses"""
+
+    # HTTP_HEADERS is deprecated, this provides backwards compatibility
+    response.headers.extend(  # type: ignore
+        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
+    )
+
+    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
+        if k not in response.headers:
+            response.headers[k] = v
+    return response
