@@ -155,10 +155,6 @@ DATABASE_KEYS = [
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 
-FORM_DATA_KEY_BLACKLIST: List[str] = []
-if not config["ENABLE_JAVASCRIPT_CONTROLS"]:
-    FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
-
 
 def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
     """ Check if user is owner of the slice """

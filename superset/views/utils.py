@@ -40,9 +40,9 @@ else:
     from superset import viz  # type: ignore
 
 
-FORM_DATA_KEY_BLACKLIST: List[str] = []
+REJECTED_FORM_DATA_KEYS: List[str] = []
 if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
-    FORM_DATA_KEY_BLACKLIST = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+    REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
@@ -91,7 +91,7 @@ def get_permissions(
 
 
 def get_viz(
-    form_data: FormData, datasource_type: str, datasource_id: int, force: bool = False,
+    form_data: FormData, datasource_type: str, datasource_id: int, force: bool = False
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = ConnectorRegistry.get_datasource(
@@ -129,7 +129,7 @@ def get_form_data(
             url_form_data.update(form_data)
             form_data = url_form_data
 
-    form_data = {k: v for k, v in form_data.items() if k not in FORM_DATA_KEY_BLACKLIST}
+    form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
     # When a slice_id is present, load from DB and override
     # the form_data from the DB with the other form_data provided
@@ -160,7 +160,7 @@ def get_form_data(
 
 
 def get_datasource_info(
-    datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData,
+    datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData
 ) -> Tuple[int, Optional[str]]:
     """
     Compatibility layer for handling of datasource info
@@ -222,7 +222,7 @@ def apply_display_max_row_limit(
 
 
 def get_time_range_endpoints(
-    form_data: FormData, slc: Optional[Slice] = None, slice_id: Optional[int] = None,
+    form_data: FormData, slc: Optional[Slice] = None, slice_id: Optional[int] = None
 ) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
     """
     Get the slice aware time range endpoints from the form-data falling back to the SQL
