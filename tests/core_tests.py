@@ -37,6 +37,7 @@ from unittest import mock, skipUnless
 import pandas as pd
 import sqlalchemy as sqla
 
+import superset.views.utils
 from tests.test_app import app
 from superset import (
     dataframe,
@@ -1106,7 +1107,7 @@ class CoreTests(SupersetTestCase):
         self.assertIsInstance(serialized_payload, str)
 
         query_mock = mock.Mock()
-        deserialized_payload = views._deserialize_results_payload(
+        deserialized_payload = superset.views.utils._deserialize_results_payload(
             serialized_payload, query_mock, use_new_deserialization
         )
 
@@ -1159,7 +1160,7 @@ class CoreTests(SupersetTestCase):
             query_mock = mock.Mock()
             query_mock.database.db_engine_spec.expand_data = expand_data
 
-            deserialized_payload = views._deserialize_results_payload(
+            deserialized_payload = superset.views.utils._deserialize_results_payload(
                 serialized_payload, query_mock, use_new_deserialization
             )
             df = results.to_pandas_df()

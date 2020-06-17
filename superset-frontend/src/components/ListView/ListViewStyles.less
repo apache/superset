@@ -58,18 +58,44 @@
   .actions {
     font-size: 20px;
     white-space: nowrap;
+
+    width: 100px;
+
+    svg {
+      &:hover {
+        path {
+          fill: @primary-color;
+        }
+      }
+    }
   }
 
   .action-button {
     margin: 0 8px;
   }
 
+  .table-row {
+    &:hover {
+      background-color: @table-hover;
+    }
+  }
+
   .table-row-selected {
-    background-color: @gray-bg;
+    background-color: @table-selected;
+
+    &:hover {
+      background-color: @table-selected;
+    }
   }
 
   .table-cell {
-    word-break: break-all;
+    max-width: 200px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .sort-icon {
+    position: absolute;
   }
 }
 

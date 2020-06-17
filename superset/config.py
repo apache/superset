@@ -737,6 +737,10 @@ ENABLE_FLASK_COMPRESS = True
 # Enable / disable scheduled email reports
 ENABLE_SCHEDULED_EMAIL_REPORTS = False
 
+# Slack API token for the superset reports
+SLACK_API_TOKEN = None
+SLACK_PROXY = None
+
 # If enabled, certail features are run in debug mode
 # Current list:
 # * Emails are sent using dry-run mode (logging only)
@@ -871,6 +875,14 @@ SIP_15_TOAST_MESSAGE = (
     'new time range endpoints <a target="_blank" href="{url}" '
     'class="alert-link">here</a>.'
 )
+
+
+# SQLA table mutator, every time we fetch the metadata for a certain table
+# (superset.connectors.sqla.models.SqlaTable), we call this hook
+# to allow mutating the object with this callback.
+# This can be used to set any properties of the object based on naming
+# conventions and such. You can find examples in the tests.
+SQLA_TABLE_MUTATOR = lambda table: table
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful

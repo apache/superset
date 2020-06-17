@@ -14,19 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (
-    access_requests,
-    annotations,
-    api,
-    base,
-    core,
-    css_templates,
-    dashboard,
-    datasource,
-    health,
-    redirects,
-    schedules,
-    sql_lab,
-    tags,
-)
-from .log import api as log_api, views
+from superset import app, talisman
+from superset.typing import FlaskResponse
+
+
+@talisman(force_https=False)
+@app.route("/ping")
+def ping() -> FlaskResponse:
+    return "OK"
+
+
+@talisman(force_https=False)
+@app.route("/healthcheck")
+def healthcheck() -> FlaskResponse:
+    return "OK"
+
+
+@talisman(force_https=False)
+@app.route("/health")
+def health() -> FlaskResponse:
+    return "OK"

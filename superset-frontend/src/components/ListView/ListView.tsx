@@ -41,8 +41,8 @@ interface Props {
   initialSort?: SortColumn[];
   filters?: Filters;
   bulkActions?: Array<{
-    key?: string;
-    name: React.ReactNode;
+    key: string;
+    name: React.ReactNode | string;
     onSelect: (rows: any[]) => any;
   }>;
   useNewUIFilters?: boolean;
@@ -50,14 +50,13 @@ interface Props {
 
 const bulkSelectColumnConfig = {
   Cell: ({ row }: any) => (
-    <div>
-      <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} />
-    </div>
+    <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} id={row.id} />
   ),
   Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <div>
-      <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
-    </div>
+    <IndeterminateCheckbox
+      {...getToggleAllRowsSelectedProps()}
+      id={'header-toggle-all'}
+    />
   ),
   id: 'selection',
 };

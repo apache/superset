@@ -63,6 +63,7 @@
   #0b7285, #5f3dc4, #c92a2a, #5c940d, #087f5b;
 
 @iterations: length(@badge-colors);
+
 .badge-loop (@i) when (@i > 0) {
   .filter-badge.badge-@{i},
   .active .color-bar.badge-@{i},
@@ -71,8 +72,10 @@
     @value: extract(@badge-colors, @i);
     background-color: @value;
   }
+
   .badge-loop(@i - 1);
 }
+
 .badge-loop(@iterations);
 
 /************************************************************************/
@@ -157,9 +160,11 @@
 
 // setting up OTF settings based on @use-ligatures:
 .set-otf-options(@use-ligatures);
+
 .set-otf-options(true) {
   @font-feature-settings: 'liga' on, 'calt' on;
 }
+
 .set-otf-options(false) {
   @font-feature-settings: 'liga' off, 'calt' off;
 }
@@ -189,5 +194,9 @@
 /* overrides to Bootstrap. We should consolidate/deprecate these        */
 /* in favor of custom/reusable CSS wherever possible                    */
 /************************************************************************/
+
+// ***************************** SIP 34 UI *******************************
+@table-hover: rgba(236, 238, 242, 0.5);
+@table-selected: #eceef2;
 
 @import '../less/cosmo/variables.less';
