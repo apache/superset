@@ -90,12 +90,12 @@ from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache
 from superset.views.database.filters import DatabaseFilter
 from superset.views.utils import (
-    get_dashboard_extra_filters,
-    is_owner,
+    _deserialize_results_payload,
     check_datasource_perms,
     check_slice_perms,
-    _deserialize_results_payload,
     get_cta_schema_name,
+    get_dashboard_extra_filters,
+    is_owner,
 )
 from superset.viz import BaseViz
 

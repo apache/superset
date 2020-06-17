@@ -19,7 +19,7 @@ from flask_babel import lazy_gettext as _
 
 from superset.constants import RouteMethod
 from superset.models import core as models
-from superset.views.base import SupersetModelView, DeleteMixin
+from superset.views.base import DeleteMixin, SupersetModelView
 
 
 class CssTemplateModelView(SupersetModelView, DeleteMixin):

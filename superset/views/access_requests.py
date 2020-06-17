@@ -18,7 +18,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
 from superset.constants import RouteMethod
-from superset.views.base import SupersetModelView, DeleteMixin
+from superset.views.base import DeleteMixin, SupersetModelView
 from superset.views.core import DAR
 
 

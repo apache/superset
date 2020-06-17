@@ -19,7 +19,7 @@ from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 
-from superset import event_logger, db
+from superset import db, event_logger
 from superset.models import core as models
 from superset.typing import FlaskResponse
 from superset.utils import core as utils

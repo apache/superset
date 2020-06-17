@@ -16,12 +16,11 @@
 # under the License.
 from collections import defaultdict
 from datetime import date
-from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Union, Callable
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
 from urllib import parse
 
 import msgpack
 import pyarrow as pa
-
 import simplejson as json
 from flask import g, request
 from flask_appbuilder.security.sqla import models as ab_models
@@ -30,14 +29,14 @@ from flask_appbuilder.security.sqla.models import User
 import superset.models.core as models
 from superset import (
     app,
+    dataframe,
     db,
     is_feature_enabled,
-    security_manager,
     result_set,
-    dataframe,
+    security_manager,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.errors import SupersetError, SupersetErrorType, ErrorLevel
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.legacy import update_time_range
 from superset.models.core import Database
@@ -47,7 +46,7 @@ from superset.models.sql_lab import Query
 from superset.typing import FormData
 from superset.utils.core import QueryStatus, TimeRangeEndpoint
 from superset.utils.decorators import stats_timing
-from superset.views.core import logger, stats_logger, config
+from superset.views.core import config, logger, stats_logger
 from superset.viz import BaseViz
 
 if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):

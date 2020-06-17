@@ -45,7 +45,6 @@ from superset import (
     db,
     get_feature_flags,
     security_manager,
-    app,
 )
 from superset.connectors.sqla import models
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -54,8 +53,8 @@ from superset.models.helpers import ImportMixin
 from superset.translations.utils import get_language_pack
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
-from .core import config
 
+from .core import config
 from .utils import bootstrap_user_data
 
 if TYPE_CHECKING:
