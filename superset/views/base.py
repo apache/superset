@@ -376,7 +376,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 
 
 class DeleteMixin:  # pylint: disable=too-few-public-methods
-    def _delete(self: BaseView, primary_key: int,) -> None:
+    def _delete(self: BaseView, primary_key: int) -> None:
         """
             Delete function logic, override to implement diferent logic
             deletes the record with primary_key = primary_key
@@ -523,7 +523,7 @@ def bind_field(
 FlaskForm.Meta.bind_field = bind_field
 
 
-@app.after_request
+@superset_app.after_request
 def apply_http_headers(response: Response) -> Response:
     """Applies the configuration's http headers to all responses"""
 
