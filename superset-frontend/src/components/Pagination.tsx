@@ -33,7 +33,7 @@ interface PaginationItemButton extends PaginationButton {
 function Prev({ disabled, onClick }: PaginationButton) {
   return (
     <li className={cx({ disabled })}>
-      <span role="button" tabIndex={0} onClick={onClick}>
+      <span role="button" tabIndex={disabled ? -1 : 0} onClick={onClick}>
         «
       </span>
     </li>
@@ -43,7 +43,7 @@ function Prev({ disabled, onClick }: PaginationButton) {
 function Next({ disabled, onClick }: PaginationButton) {
   return (
     <li className={cx({ disabled })}>
-      <span role="button" tabIndex={0} onClick={onClick}>
+      <span role="button" tabIndex={disabled ? -1 : 0} onClick={onClick}>
         »
       </span>
     </li>
@@ -53,7 +53,7 @@ function Next({ disabled, onClick }: PaginationButton) {
 function Item({ active, children, onClick }: PaginationItemButton) {
   return (
     <li className={cx({ active })}>
-      <span role="button" tabIndex={0} onClick={onClick}>
+      <span role="button" tabIndex={active ? -1 : 0} onClick={onClick}>
         {children}
       </span>
     </li>
@@ -63,7 +63,7 @@ function Item({ active, children, onClick }: PaginationItemButton) {
 function Ellipsis({ disabled, onClick }: PaginationButton) {
   return (
     <li className={cx({ disabled })}>
-      <span role="button" tabIndex={0} onClick={onClick}>
+      <span role="button" tabIndex={disabled ? -1 : 0} onClick={onClick}>
         ...
       </span>
     </li>
@@ -101,6 +101,10 @@ const PaginationList = styled.ul`
       span {
         background-color: transparent;
         cursor: default;
+
+        &:focus {
+          outline: none;
+        }
       }
     }
     &.active {
@@ -109,6 +113,10 @@ const PaginationList = styled.ul`
         color: #fff;
         cursor: default;
         background-color: ${({ theme }) => theme.colors.primary.base};
+
+        &:focus {
+          outline: none;
+        }
       }
     }
   }
