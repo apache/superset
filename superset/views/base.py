@@ -44,7 +44,8 @@ from superset import (
     conf,
     db,
     get_feature_flags,
-    security_manager, app,
+    security_manager,
+    app,
 )
 from superset.connectors.sqla import models
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType

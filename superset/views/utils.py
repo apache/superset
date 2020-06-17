@@ -28,7 +28,14 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 
 import superset.models.core as models
-from superset import app, db, is_feature_enabled, security_manager, result_set, dataframe
+from superset import (
+    app,
+    db,
+    is_feature_enabled,
+    security_manager,
+    result_set,
+    dataframe,
+)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import SupersetError, SupersetErrorType, ErrorLevel
 from superset.exceptions import SupersetException, SupersetSecurityException
