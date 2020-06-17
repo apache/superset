@@ -54,7 +54,6 @@ from superset.translations.utils import get_language_pack
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
-from .core import config
 from .utils import bootstrap_user_data
 
 if TYPE_CHECKING:

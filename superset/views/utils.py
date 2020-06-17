@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from collections import defaultdict
 from datetime import date
 from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
@@ -44,10 +45,12 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.typing import FormData
-from superset.utils.core import QueryStatus, TimeRangeEndpoint
+from superset.utils.core import TimeRangeEndpoint
 from superset.utils.decorators import stats_timing
-from superset.views.core import config, logger, stats_logger
 from superset.viz import BaseViz
+
+logger = logging.getLogger(__name__)
+stats_logger = app.config["STATS_LOGGER"]
 
 if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
     from superset import viz_sip38 as viz
@@ -489,7 +492,7 @@ def _deserialize_results_payload(
 def get_cta_schema_name(
     database: Database, user: ab_models.User, schema: str, sql: str
 ) -> Optional[str]:
-    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = config[
+    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = app.config[
         "SQLLAB_CTAS_SCHEMA_NAME_FUNC"
     ]
     if not func:

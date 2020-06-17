@@ -88,18 +88,7 @@ from superset.utils import core as utils, dashboard_import_export
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache
-from superset.views.database.filters import DatabaseFilter
-from superset.views.utils import (
-    _deserialize_results_payload,
-    check_datasource_perms,
-    check_slice_perms,
-    get_cta_schema_name,
-    get_dashboard_extra_filters,
-    is_owner,
-)
-from superset.viz import BaseViz
-
-from .base import (
+from superset.views.base import (
     api,
     BaseSupersetView,
     check_ownership,
@@ -116,13 +105,21 @@ from .base import (
     json_success,
     validate_sqlatable,
 )
-from .utils import (
+from superset.views.database.filters import DatabaseFilter
+from superset.views.utils import (
+    _deserialize_results_payload,
     apply_display_max_row_limit,
     bootstrap_user_data,
+    check_datasource_perms,
+    check_slice_perms,
+    get_cta_schema_name,
+    get_dashboard_extra_filters,
     get_datasource_info,
     get_form_data,
     get_viz,
+    is_owner,
 )
+from superset.viz import BaseViz
 
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config["CACHE_DEFAULT_TIMEOUT"]
