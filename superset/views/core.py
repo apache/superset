@@ -66,7 +66,6 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.constants import RouteMethod
 from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
@@ -109,7 +108,6 @@ from .base import (
     create_table_permissions,
     CsvResponse,
     data_payload_response,
-    DeleteMixin,
     generate_download_headers,
     get_error_msg,
     get_user_roles,
@@ -117,7 +115,6 @@ from .base import (
     json_error_response,
     json_errors_response,
     json_success,
-    SupersetModelView,
     validate_sqlatable,
 )
 from .utils import (
@@ -152,28 +149,6 @@ DATABASE_KEYS = [
 
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
-
-
-class AccessRequestsModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(DAR)
-    include_route_methods = RouteMethod.CRUD_SET
-    list_columns = [
-        "username",
-        "user_roles",
-        "datasource_link",
-        "roles_with_datasource",
-        "created_on",
-    ]
-    order_columns = ["created_on"]
-    base_order = ("changed_on", "desc")
-    label_columns = {
-        "username": _("User"),
-        "user_roles": _("User Roles"),
-        "database": _("Database URL"),
-        "datasource_link": _("Datasource"),
-        "roles_with_datasource": _("Roles to grant"),
-        "created_on": _("Created On"),
-    }
 
 
 @talisman(force_https=False)
