@@ -385,7 +385,7 @@ def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
 
 
 def check_datasource_perms(
-    self: "Superset",
+    self: Any,
     datasource_type: Optional[str] = None,
     datasource_id: Optional[int] = None,
 ) -> None:
@@ -434,7 +434,7 @@ def check_datasource_perms(
     security_manager.assert_viz_permission(viz_obj)
 
 
-def check_slice_perms(self: "Superset", slice_id: int) -> None:
+def check_slice_perms(self: Any, slice_id: int) -> None:
     """
     Check if user can access a cached response from slice_json.
 

@@ -148,6 +148,7 @@ DATABASE_KEYS = [
 
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
+USER_MISSING_ERR = __("The user seems to have been deleted")
 
 
 class Superset(BaseSupersetView):
@@ -1867,12 +1868,12 @@ class Superset(BaseSupersetView):
     def extra_table_metadata(
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
-        schema = utils.parse_js_uri_path_item(
-            schema, eval_undefined=True
-        )  # type: ignore
+        parsed_schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
-        payload = mydb.db_engine_spec.extra_table_metadata(mydb, table_name, schema)
+        payload = mydb.db_engine_spec.extra_table_metadata(
+            mydb, table_name, parsed_schema
+        )
         return json_success(json.dumps(payload))
 
     @has_access
