@@ -142,7 +142,15 @@ class ExploreViewContainer extends React.Component {
 
   /* eslint no-unused-vars: 0 */
   componentDidUpdate(prevProps, prevState) {
-    this.addHistory({isReplace: true});
+    const changedControlKeys = this.findChangedControlKeys(
+      prevProps.controls,
+      this.props.controls,
+    );
+    if (
+      this.hasDisplayControlChanged(changedControlKeys, this.props.controls)
+    ) {
+      this.addHistory({});
+    }
   }
 
   componentWillUnmount() {
@@ -224,7 +232,6 @@ class ExploreViewContainer extends React.Component {
   }
 
   addHistory({ isReplace = false, title }) {
-    console.log('UPDATE HISTORY: ', this.props.form_data)
     const payload = { ...this.props.form_data };
     const longUrl = getExploreLongUrl(this.props.form_data, null, false);
     try {
