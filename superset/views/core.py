@@ -35,7 +35,7 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
-from sqlalchemy import and_, Integer, or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import (
     ArgumentError,
@@ -76,7 +76,6 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
-    QueryObjectValidationError,
     SupersetException,
     SupersetSecurityException,
     SupersetTimeoutException,
@@ -2903,26 +2902,6 @@ class Superset(BaseSupersetView):
                 "Failed to fetch schemas allowed for csv upload in this database! "
                 "Please contact your Superset Admin!"
             )
-
-
-class CssTemplateModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.CssTemplate)
-    include_route_methods = RouteMethod.CRUD_SET
-
-    list_title = _("CSS Templates")
-    show_title = _("Show CSS Template")
-    add_title = _("Add CSS Template")
-    edit_title = _("Edit CSS Template")
-
-    list_columns = ["template_name"]
-    edit_columns = ["template_name", "css"]
-    add_columns = edit_columns
-    label_columns = {"template_name": _("Template Name")}
-
-
-class CssTemplateAsyncModelView(CssTemplateModelView):
-    include_route_methods = {RouteMethod.API_READ}
-    list_columns = ["template_name", "css"]
 
 
 @app.after_request

@@ -150,9 +150,9 @@ class SupersetAppInitializer:
             KV,
             R,
             Superset,
-            CssTemplateModelView,
-            CssTemplateAsyncModelView,
         )
+        from superset.views.css_templates import CssTemplateAsyncModelView
+        from superset.views.css_templates import CssTemplateModelView
         from superset.charts.api import ChartRestApi
         from superset.views.chart.views import SliceModelView, SliceAsync
         from superset.dashboards.api import DashboardRestApi
