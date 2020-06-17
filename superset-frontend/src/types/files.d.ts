@@ -16,29 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module.exports = {
-  testRegex: '\\/spec\\/.*(_spec|\\.test)\\.(j|t)sx?$',
-  moduleNameMapper: {
-    '\\.(css|less)$': '<rootDir>/spec/__mocks__/styleMock.js',
-    '\\.(gif|ttf|eot)$': '<rootDir>/spec/__mocks__/fileMock.js',
-    '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.js',
-    '^src/(.*)$': '<rootDir>/src/$1',
-  },
-  setupFilesAfterEnv: ['<rootDir>/spec/helpers/shim.js'],
-  testURL: 'http://localhost',
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
-  coverageDirectory: '<rootDir>/coverage/',
-  transform: {
-    '^.+\\.jsx?$': 'babel-jest',
-    '^.+\\.tsx?$': 'ts-jest',
-  },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  globals: {
-    'ts-jest': {
-      babelConfig: true,
-      diagnostics: {
-        warnOnly: true,
-      },
-    },
-  },
-};
+
+declare module '*.svg';
