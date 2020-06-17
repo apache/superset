@@ -2658,17 +2658,18 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(datasource.data))
 
     @has_access_api
-    @expose("/queries/<last_updated_ms>")
-    def queries(self, last_updated_ms: str) -> FlaskResponse:
+    @expose("/queries/<float:last_updated_ms>")
+    @expose("/queries/<int:last_updated_ms>")
+    def queries(self, last_updated_ms: Union[float, int]) -> FlaskResponse:
         """
         Get the updated queries.
 
-        :param last_updated_ms: unix time, milliseconds
+        :param last_updated_ms: Unix time (milliseconds)
         """
-        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
-        return self.queries_exec(last_updated_ms_int)
 
-    def queries_exec(self, last_updated_ms: int) -> FlaskResponse:
+        return self.queries_exec(last_updated_ms)
+
+    def queries_exec(self, last_updated_ms: Union[float, int]) -> FlaskResponse:
         stats_logger.incr("queries")
         if not g.user.get_id():
             return json_error_response(
@@ -2676,7 +2677,7 @@ class Superset(BaseSupersetView):
             )
 
         # UTC date time, same that is stored in the DB.
-        last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms / 1000)
+        last_updated_dt = datetime.utcfromtimestamp(last_updated_ms / 1000)
 
         sql_queries = (
             db.session.query(Query)
