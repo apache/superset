@@ -146,10 +146,10 @@ class SupersetAppInitializer:
         )
         from superset.views.api import Api
         from superset.views.core import (
-            KV,
-            R,
             Superset,
         )
+        from superset.views.redirects import R
+        from superset.views.key_value import KV
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.css_templates import CssTemplateAsyncModelView
         from superset.views.css_templates import CssTemplateModelView
