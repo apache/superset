@@ -153,11 +153,7 @@ DATABASE_KEYS = [
 ]
 
 
-ALL_DATASOURCE_ACCESS_ERR = __(
-    "This endpoint requires the `all_datasource_access` permission"
-)
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
-ACCESS_REQUEST_MISSING_ERR = __("The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 
 FORM_DATA_KEY_BLACKLIST: List[str] = []
@@ -548,8 +544,9 @@ class Superset(BaseSupersetView):
         )
 
         if not requests:
-            flash(ACCESS_REQUEST_MISSING_ERR, "alert")
-            return json_error_response(ACCESS_REQUEST_MISSING_ERR)
+            err = __("The access requests seem to have been deleted")
+            flash(err, "alert")
+            return json_error_response(err)
 
         # check if you can approve
         if security_manager.can_access_all_datasources() or check_ownership(
