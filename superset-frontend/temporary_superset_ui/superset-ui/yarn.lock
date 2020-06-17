@@ -4571,10 +4571,10 @@
   dependencies:
     d3-scale "^2.0.0"
 
-"@vx/scale@^0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/scale/-/scale-0.0.196.tgz#c34e08984ac91bd4cc085ee3b782a1cabcaf0dd3"
-  integrity sha512-s3lVbwEni0F9AGACaJG3m071uXVryoOgogiU6+yXv1O1gUoZMMm6AjzCndcz9jq1sCFDNcIrxyf5LomOA2tQaQ==
+"@vx/scale@^0.0.197":
+  version "0.0.197"
+  resolved "https://registry.yarnpkg.com/@vx/scale/-/scale-0.0.197.tgz#7a6acb2ad28b17d640f325d0d3fc47ab0e434db1"
+  integrity sha512-FF0POm9rh66I3Om5DsuxynwWU+Q645aTF47vgP2dVDeOOq3Oet7CZzmXLDh3W6nVcxvzq1UdPwu94dto2PUfhg==
   dependencies:
     "@types/d3-scale" "^2.1.1"
     d3-scale "^2.2.2"
