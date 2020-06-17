@@ -74,6 +74,7 @@ class DatasourceModal extends React.PureComponent {
       },
     })
       .then(({ json }) => {
+        console.log("JSON PAYLOAD: ", json)
         this.props.addSuccessToast(t('The datasource has been saved'));
         this.props.onDatasourceSave(json);
         this.props.onHide();
