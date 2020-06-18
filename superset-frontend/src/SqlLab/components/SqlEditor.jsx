@@ -20,7 +20,6 @@ import React from 'react';
 import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
 import {
-  Checkbox,
   FormGroup,
   InputGroup,
   Form,
@@ -35,6 +34,7 @@ import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 
 import Button from '../../components/Button';
+import Checkbox from '../../components/Checkbox';
 import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
@@ -509,16 +509,13 @@ class SqlEditor extends React.PureComponent {
           </Form>
         </div>
         <div className="rightItems">
-          <span>
-            <Checkbox
-              checked={this.state.autocompleteEnabled}
-              inline
-              title={t('Autocomplete')}
-              onChange={this.handleToggleAutocompleteEnabled}
-            >
-              {t('Autocomplete')}
-            </Checkbox>
-          </span>
+          <Button
+            className="autocomplete"
+            onClick={this.handleToggleAutocompleteEnabled}
+          >
+            <Checkbox checked={this.state.autocompleteEnabled} />{' '}
+            {t('Autocomplete')}
+          </Button>{' '}
           <TemplateParamsEditor
             language="json"
             onChange={params => {
