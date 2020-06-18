@@ -69,7 +69,7 @@ class ChartList extends React.PureComponent<Props, State> {
     filterOperators: {},
     filters: [],
     lastFetchDataConfig: null,
-    loading: false,
+    loading: true,
     permissions: [],
     sliceCurrentlyEditing: null,
   };

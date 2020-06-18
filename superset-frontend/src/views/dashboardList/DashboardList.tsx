@@ -77,7 +77,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     filterOperators: {},
     filters: [],
     lastFetchDataConfig: null,
-    loading: false,
+    loading: true,
     permissions: [],
     dashboardToEdit: null,
   };
