@@ -226,6 +226,7 @@ class ChartList extends React.PureComponent<Props, State> {
       },
       Header: 'Actions',
       id: 'actions',
+      size: 'md',
     },
   ];
 
@@ -519,7 +520,7 @@ class ChartList extends React.PureComponent<Props, State> {
     } = this.state;
     return (
       <>
-        <SubMenu name="Dashboards" />
+        <SubMenu name="Charts" />
         {sliceCurrentlyEditing && (
           <PropertiesModal
             show

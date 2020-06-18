@@ -34,9 +34,9 @@ interface Props {
 const TableCell = styled.td`
   width: ${(props: { size?: Column['size'] }) => {
     if (props.size === 'xs') return '25px';
-    if (props.size === 's') return '50px';
+    if (props.size === 'sm') return '50px';
     if (props.size === 'md') return '75px';
-    if (props.size === 'l') return '100px';
+    if (props.size === 'lg') return '100px';
     if (props.size === 'xl') return '150px';
     if (props.size === 'xxl') return '200px';
     return '';

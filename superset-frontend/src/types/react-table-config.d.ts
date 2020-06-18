@@ -118,7 +118,7 @@ declare module 'react-table' {
     hidden?: boolean;
     sortable?: boolean;
     cellProps?: any;
-    size?: 'xs' | 's' | 'md' | 'l' | 'xl';
+    size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   }
 
   export interface ColumnInstance<D extends object = {}>
@@ -129,7 +129,7 @@ declare module 'react-table' {
     hidden?: boolean;
     sortable?: boolean;
     cellProps?: any;
-    size?: 'xs' | 's' | 'md' | 'l' | 'xl';
+    size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   }
 
   export interface Cell<D extends object = {}>

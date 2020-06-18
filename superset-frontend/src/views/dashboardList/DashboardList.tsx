@@ -254,6 +254,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       },
       Header: t('Actions'),
       id: 'actions',
+      size: 'lg',
     },
   ];
 
