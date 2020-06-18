@@ -348,7 +348,7 @@ class BaseDatasource(
                     value = utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
-                elif value == "<empty string>":
+                if value == "<empty string>":
                     return ""
             return value
 
@@ -516,7 +516,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     export_fields: List[Any] = []
 
     def __repr__(self) -> str:
-        return self.column_name
+        return str(self.column_name)
 
     num_types = (
         "DOUBLE",

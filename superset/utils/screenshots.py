@@ -155,14 +155,14 @@ class AuthWebDriverProxy:
         driver.set_window_size(*self._window)
         driver.get(url)
         img: Optional[bytes] = None
-        logger.debug(f"Sleeping for {SELENIUM_HEADSTART} seconds")
+        logger.debug("Sleeping for %i seconds", SELENIUM_HEADSTART)
         time.sleep(SELENIUM_HEADSTART)
         try:
-            logger.debug(f"Wait for the presence of {element_name}")
+            logger.debug("Wait for the presence of %s", element_name)
             element = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CLASS_NAME, element_name))
             )
-            logger.debug(f"Wait for .loading to be done")
+            logger.debug("Wait for .loading to be done")
             WebDriverWait(driver, 60).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
@@ -226,7 +226,7 @@ class BaseScreenshot:
                 user=user, thumb_size=thumb_size, cache=cache
             )
         else:
-            logger.info(f"Loaded thumbnail from cache: {self.cache_key}")
+            logger.info("Loaded thumbnail from cache: %s", self.cache_key)
         if payload:
             return BytesIO(payload)
         return None
@@ -259,7 +259,7 @@ class BaseScreenshot:
             logger.info("Thumb already cached, skipping...")
             return None
         thumb_size = thumb_size or self.thumb_size
-        logger.info(f"Processing url for thumbnail: {cache_key}")
+        logger.info("Processing url for thumbnail: %s", cache_key)
 
         payload = None
 
@@ -277,7 +277,7 @@ class BaseScreenshot:
                 payload = None
 
         if payload and cache:
-            logger.info(f"Caching thumbnail: {cache_key} {cache}")
+            logger.info("Caching thumbnail: %s %s", cache_key, str(cache))
             cache.set(cache_key, payload)
         return payload
 
@@ -291,13 +291,13 @@ class BaseScreenshot:
     ) -> bytes:
         thumb_size = thumb_size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
-        logger.debug(f"Selenium image size: {img.size}")
+        logger.debug("Selenium image size: %s", str(img.size))
         if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
-            logger.debug(f"Cropping to: {img.size[0]}*{desired_width}")
+            logger.debug("Cropping to: %s*%s", str(img.size[0]), str(desired_width))
             img = img.crop((0, 0, img.size[0], desired_width))
-        logger.debug(f"Resizing to {thumb_size}")
+        logger.debug("Resizing to %s", str(thumb_size))
         img = img.resize(thumb_size, Image.ANTIALIAS)
         new_img = BytesIO()
         if output != "png":
