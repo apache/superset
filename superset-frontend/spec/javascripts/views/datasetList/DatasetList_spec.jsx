@@ -33,10 +33,12 @@ const store = mockStore({});
 
 const datasetsInfoEndpoint = 'glob:*/api/v1/dataset/_info*';
 const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
+const databaseEndpoint = 'glob:*/api/v1/dataset/related/database*';
 const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 
 const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by_name: 'user',
+  kind: ['physical', 'virtual'][Math.floor(Math.random() * 2)],
   changed_by_url: 'changed_by_url',
   changed_by: 'user',
   changed_on: new Date().toISOString(),
@@ -63,6 +65,9 @@ fetchMock.get(datasetsOwnersEndpoint, {
 fetchMock.get(datasetsEndpoint, {
   result: mockdatasets,
   dataset_count: 3,
+});
+fetchMock.get(databaseEndpoint, {
+  result: [],
 });
 
 describe('DatasetList', () => {
@@ -92,7 +97,7 @@ describe('DatasetList', () => {
   });
 
   it('fetches data', () => {
-    wrapper.update();
+    // wrapper.update();
     const callsD = fetchMock.calls(/dataset\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(

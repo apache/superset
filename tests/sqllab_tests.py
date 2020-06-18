@@ -192,6 +192,8 @@ class SqlLabTests(SupersetTestCase):
         self.login("admin")
         data = self.get_json_resp("/superset/queries/0")
         self.assertEqual(2, len(data))
+        data = self.get_json_resp("/superset/queries/0.0")
+        self.assertEqual(2, len(data))
 
         # Run 2 more queries
         self.run_sql("SELECT * FROM birth_names LIMIT 1", client_id="client_id_4")

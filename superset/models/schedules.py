@@ -67,6 +67,7 @@ class EmailSchedule:
         )
 
     recipients = Column(Text)
+    slack_channel = Column(Text)
     deliver_as_group = Column(Boolean, default=False)
     delivery_type = Column(Enum(EmailDeliveryType))
 

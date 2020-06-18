@@ -280,6 +280,9 @@ class DictImportExportTests(SupersetTestCase):
         )
 
     def test_export_datasource_ui_cli(self):
+        # TODO(bkyryliuk): find fake db is leaking from
+        self.delete_fake_db()
+
         cli_export = export_to_dict(
             session=db.session,
             recursive=True,
