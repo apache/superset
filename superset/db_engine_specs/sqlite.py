@@ -64,7 +64,7 @@ class SqliteEngineSpec(BaseEngineSpec):
                 cache=database.table_cache_enabled,
                 cache_timeout=database.table_cache_timeout,
             )
-        elif datasource_type == "view":
+        if datasource_type == "view":
             return database.get_all_view_names_in_schema(
                 schema=schema,
                 force=True,
