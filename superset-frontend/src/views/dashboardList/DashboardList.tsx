@@ -25,6 +25,7 @@ import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView/ListView';
 import ExpandableList from 'src/components/ExpandableList';
 import {
@@ -141,14 +142,14 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { owners },
         },
       }: any) => (
-        <ExpandableList
-          items={owners.map(
-            ({ first_name: firstName, last_name: lastName }: any) =>
-              `${firstName} ${lastName}`,
-          )}
-          display={2}
-        />
-      ),
+          <ExpandableList
+            items={owners.map(
+              ({ first_name: firstName, last_name: lastName }: any) =>
+                `${firstName} ${lastName}`,
+            )}
+            display={2}
+          />
+        ),
       Header: t('Owners'),
       accessor: 'owners',
     },
@@ -171,10 +172,10 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { published },
         },
       }: any) => (
-        <span className="no-wrap">
-          {published ? <i className="fa fa-check" /> : ''}
-        </span>
-      ),
+          <span className="no-wrap">
+            {published ? <i className="fa fa-check" /> : ''}
+          </span>
+        ),
       Header: t('Published'),
       accessor: 'published',
       sortable: true,
@@ -508,71 +509,68 @@ class DashboardList extends React.PureComponent<Props, State> {
       dashboardToEdit,
     } = this.state;
     return (
-      <div className="container welcome">
-        <Panel>
-          <Panel.Body>
-            <ConfirmStatusChange
-              title={t('Please confirm')}
-              description={t(
-                'Are you sure you want to delete the selected dashboards?',
-              )}
-              onConfirm={this.handleBulkDashboardDelete}
-            >
-              {confirmDelete => {
-                const bulkActions = [];
-                if (this.canDelete) {
-                  bulkActions.push({
-                    key: 'delete',
-                    name: (
-                      <>
-                        <i className="fa fa-trash" /> Delete
-                      </>
-                    ),
-                    onSelect: confirmDelete,
-                  });
-                }
-                if (this.canExport) {
-                  bulkActions.push({
-                    key: 'export',
-                    name: (
-                      <>
-                        <i className="fa fa-database" /> Export
-                      </>
-                    ),
-                    onSelect: this.handleBulkDashboardExport,
-                  });
-                }
-                return (
+      <>
+        <SubMenu label="Dashboards" />
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={t(
+            'Are you sure you want to delete the selected dashboards?',
+          )}
+          onConfirm={this.handleBulkDashboardDelete}
+        >
+          {confirmDelete => {
+            const bulkActions = [];
+            if (this.canDelete) {
+              bulkActions.push({
+                key: 'delete',
+                name: (
                   <>
-                    {dashboardToEdit && (
-                      <PropertiesModal
-                        show
-                        dashboardId={dashboardToEdit.id}
-                        onHide={() => this.setState({ dashboardToEdit: null })}
-                        onDashboardSave={this.handleDashboardEdit}
-                      />
-                    )}
-                    <ListView
-                      className="dashboard-list-view"
-                      title={'Dashboards'}
-                      columns={this.columns}
-                      data={dashboards}
-                      count={dashboardCount}
-                      pageSize={PAGE_SIZE}
-                      fetchData={this.fetchData}
-                      loading={loading}
-                      initialSort={this.initialSort}
-                      filters={filters}
-                      bulkActions={bulkActions}
-                      useNewUIFilters={this.isNewUIEnabled}
-                    />
-                  </>
-                );
-              }}
-            </ConfirmStatusChange>
-          </Panel.Body>
-        </Panel>
-      </div>
+                    <i className="fa fa-trash" /> Delete
+                      </>
+                ),
+                onSelect: confirmDelete,
+              });
+            }
+            if (this.canExport) {
+              bulkActions.push({
+                key: 'export',
+                name: (
+                  <>
+                    <i className="fa fa-database" /> Export
+                      </>
+                ),
+                onSelect: this.handleBulkDashboardExport,
+              });
+            }
+            return (
+              <>
+                {dashboardToEdit && (
+                  <PropertiesModal
+                    show
+                    dashboardId={dashboardToEdit.id}
+                    onHide={() => this.setState({ dashboardToEdit: null })}
+                    onDashboardSave={this.handleDashboardEdit}
+                  />
+                )}
+                <ListView
+                  className="dashboard-list-view"
+                  title={'Dashboards'}
+                  columns={this.columns}
+                  data={dashboards}
+                  count={dashboardCount}
+                  pageSize={PAGE_SIZE}
+                  fetchData={this.fetchData}
+                  loading={loading}
+                  initialSort={this.initialSort}
+                  filters={filters}
+                  bulkActions={bulkActions}
+                  useNewUIFilters={this.isNewUIEnabled}
+                />
+              </>
+            );
+          }}
+        </ConfirmStatusChange>
+      </>
     );
   }
 }

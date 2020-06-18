@@ -118,122 +118,116 @@ const ListView: FunctionComponent<Props> = ({
   }
 
   return (
-    <div className={`superset-list-view ${className}`}>
-      <div className="header">
-        {!useNewUIFilters && (
-          <>
-            {title && filterable && (
-              <>
-                <Row>
-                  <Col md={11}>
-                    <h2>{t(title)}</h2>
-                  </Col>
-                  {filterable && (
-                    <Col md={1}>
-                      <FilterMenu
-                        filters={filters}
-                        internalFilters={internalFilters}
-                        setInternalFilters={setInternalFilters}
-                      />
+    <div className="superset-list-view-container">
+      <div className={`superset-list-view ${className}`}>
+        <div className="header">
+          {!useNewUIFilters && (
+            <>
+              {title && filterable && (
+                <>
+                  <Row>
+                    <Col md={10}>
                     </Col>
-                  )}
-                </Row>
-                <hr />
-                <FilterInputs
-                  internalFilters={internalFilters}
-                  filters={filters}
-                  updateInternalFilter={updateInternalFilter}
-                  removeFilterAndApply={removeFilterAndApply}
-                  filtersApplied={filtersApplied}
-                  applyFilters={applyFilters}
-                />
-              </>
-            )}
-          </>
-        )}
-        {useNewUIFilters && (
-          <>
-            <Row>
-              <Col md={10}>
-                <h2>{t(title)}</h2>
-              </Col>
-            </Row>
-            <hr />
-            <FilterControls
-              filters={filters}
-              internalFilters={internalFilters}
-              updateFilterValue={applyFilterValue}
-            />
-          </>
-        )}
-      </div>
-      <div className="body">
-        <TableCollection
-          getTableProps={getTableProps}
-          getTableBodyProps={getTableBodyProps}
-          prepareRow={prepareRow}
-          headerGroups={headerGroups}
-          rows={rows}
-          loading={loading}
-        />
-      </div>
-      <div className="footer">
-        <Row>
-          <Col md={2}>
-            <div className="form-actions-container">
-              <div className="btn-group">
-                {bulkActions.length > 0 && (
-                  <DropdownButton
-                    id="bulk-actions"
-                    bsSize="small"
-                    bsStyle="default"
-                    noCaret
-                    title={
-                      <>
-                        {t('Actions')} <span className="caret" />
-                      </>
-                    }
-                  >
-                    {bulkActions.map(action => (
-                      // @ts-ignore
-                      <MenuItem
-                        key={action.key}
-                        eventKey={selectedFlatRows}
+                    {filterable && (
+                      <Col md={2}>
+                        <FilterMenu
+                          filters={filters}
+                          internalFilters={internalFilters}
+                          setInternalFilters={setInternalFilters}
+                        />
+                      </Col>
+                    )}
+                  </Row>
+                  <hr />
+                  <FilterInputs
+                    internalFilters={internalFilters}
+                    filters={filters}
+                    updateInternalFilter={updateInternalFilter}
+                    removeFilterAndApply={removeFilterAndApply}
+                    filtersApplied={filtersApplied}
+                    applyFilters={applyFilters}
+                  />
+                </>
+              )}
+            </>
+          )}
+          {useNewUIFilters && (
+            <>
+              <FilterControls
+                filters={filters}
+                internalFilters={internalFilters}
+                updateFilterValue={applyFilterValue}
+              />
+            </>
+          )}
+        </div>
+        <div className="body">
+          <TableCollection
+            getTableProps={getTableProps}
+            getTableBodyProps={getTableBodyProps}
+            prepareRow={prepareRow}
+            headerGroups={headerGroups}
+            rows={rows}
+            loading={loading}
+          />
+        </div>
+        <div className="footer">
+          <Row>
+            <Col>
+              <div className="form-actions-container">
+                <div className="btn-group">
+                  {bulkActions.length > 0 && (
+                    <DropdownButton
+                      id="bulk-actions"
+                      bsSize="small"
+                      bsStyle="default"
+                      noCaret
+                      title={
+                        <>
+                          {t('Actions')} <span className="caret" />
+                        </>
+                      }
+                    >
+                      {bulkActions.map(action => (
                         // @ts-ignore
-                        onSelect={(selectedRows: typeof selectedFlatRows) => {
-                          action.onSelect(
-                            selectedRows.map((r: any) => r.original),
-                          );
-                        }}
-                      >
-                        {action.name}
-                      </MenuItem>
-                    ))}
-                  </DropdownButton>
-                )}
+                        <MenuItem
+                          key={action.key}
+                          eventKey={selectedFlatRows}
+                          // @ts-ignore
+                          onSelect={(selectedRows: typeof selectedFlatRows) => {
+                            action.onSelect(
+                              selectedRows.map((r: any) => r.original),
+                            );
+                          }}
+                        >
+                          {action.name}
+                        </MenuItem>
+                      ))}
+                    </DropdownButton>
+                  )}
+                </div>
               </div>
-            </div>
-          </Col>
-          <Col md={8} className="text-center">
-            <Pagination
-              totalPages={pageCount || 0}
-              currentPage={pageCount ? pageIndex + 1 : 0}
-              onChange={(p: number) => gotoPage(p - 1)}
-              hideFirstAndLastPageLinks
-            />
-          </Col>
-          <Col md={2}>
-            <span className="pull-right">
-              {t('showing')}{' '}
-              <strong>
-                {pageSize * pageIndex + (rows.length && 1)}-
-                {pageSize * pageIndex + rows.length}
-              </strong>{' '}
-              {t('of')} <strong>{count}</strong>
-            </span>
-          </Col>
-        </Row>
+            </Col>
+
+            <Col>
+              <span className="row-count-container">
+                {t('showing')}{' '}
+                <strong>
+                  {pageSize * pageIndex + (rows.length && 1)}-
+                  {pageSize * pageIndex + rows.length}
+                </strong>{' '}
+                {t('of')} <strong>{count}</strong>
+              </span>
+            </Col>
+          </Row>
+        </div>
       </div>
+      <Pagination
+        totalPages={pageCount || 0}
+        currentPage={pageCount ? pageIndex + 1 : 0}
+        onChange={(p: number) => gotoPage(p - 1)}
+        hideFirstAndLastPageLinks
+      />
     </div>
   );
 };

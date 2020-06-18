@@ -26,6 +26,7 @@ import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView/ListView';
 import {
   FetchDataConfig,
@@ -517,58 +518,55 @@ class ChartList extends React.PureComponent<Props, State> {
       sliceCurrentlyEditing,
     } = this.state;
     return (
-      <div className="container welcome">
-        <Panel>
-          <Panel.Body>
-            {sliceCurrentlyEditing && (
-              <PropertiesModal
-                show
-                onHide={this.closeChartEditModal}
-                onSave={this.handleChartUpdated}
-                slice={sliceCurrentlyEditing}
-              />
-            )}
-            <ConfirmStatusChange
-              title={t('Please confirm')}
-              description={t(
-                'Are you sure you want to delete the selected charts?',
-              )}
-              onConfirm={this.handleBulkChartDelete}
-            >
-              {confirmDelete => {
-                const bulkActions = [];
-                if (this.canDelete) {
-                  bulkActions.push({
-                    key: 'delete',
-                    name: (
-                      <>
-                        <i className="fa fa-trash" /> Delete
+      <>
+        <SubMenu label="Dashboards" />
+        {sliceCurrentlyEditing && (
+          <PropertiesModal
+            show
+            onHide={this.closeChartEditModal}
+            onSave={this.handleChartUpdated}
+            slice={sliceCurrentlyEditing}
+          />
+        )}
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={t(
+            'Are you sure you want to delete the selected charts?',
+          )}
+          onConfirm={this.handleBulkChartDelete}
+        >
+          {confirmDelete => {
+            const bulkActions = [];
+            if (this.canDelete) {
+              bulkActions.push({
+                key: 'delete',
+                name: (
+                  <>
+                    <i className="fa fa-trash" /> Delete
                       </>
-                    ),
-                    onSelect: confirmDelete,
-                  });
-                }
-                return (
-                  <ListView
-                    className="chart-list-view"
-                    title={'Charts'}
-                    columns={this.columns}
-                    data={charts}
-                    count={chartCount}
-                    pageSize={PAGE_SIZE}
-                    fetchData={this.fetchData}
-                    loading={loading}
-                    initialSort={this.initialSort}
-                    filters={filters}
-                    bulkActions={bulkActions}
-                    useNewUIFilters={this.isNewUIEnabled}
-                  />
-                );
-              }}
-            </ConfirmStatusChange>
-          </Panel.Body>
-        </Panel>
-      </div>
+                ),
+                onSelect: confirmDelete,
+              });
+            }
+            return (
+              <ListView
+                className="chart-list-view"
+                title={'Charts'}
+                columns={this.columns}
+                data={charts}
+                count={chartCount}
+                pageSize={PAGE_SIZE}
+                fetchData={this.fetchData}
+                loading={loading}
+                initialSort={this.initialSort}
+                filters={filters}
+                bulkActions={bulkActions}
+                useNewUIFilters={this.isNewUIEnabled}
+              />
+            );
+          }}
+        </ConfirmStatusChange>
+      </>
     );
   }
 }

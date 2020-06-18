@@ -487,9 +487,6 @@ class DatasetList extends React.PureComponent<Props, State> {
     return (
       <>
         <SubMenu {...this.menu} canCreate={this.canCreate} />
-        {/* <div className="container welcome">
-          <Panel>
-            <Panel.Body> */}
         <ConfirmStatusChange
           title={t('Please confirm')}
           description={t(
@@ -527,9 +524,6 @@ class DatasetList extends React.PureComponent<Props, State> {
             );
           }}
         </ConfirmStatusChange>
-        {/* </Panel.Body>
-          </Panel>
-        </div> */}
       </>
     );
   }

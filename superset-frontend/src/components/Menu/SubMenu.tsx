@@ -64,11 +64,10 @@ const StyledHeader = styled.header`
 `;
 
 interface SubMenuProps {
-  createButton: { name: string; url: string | null };
-  canCreate: boolean;
-  label: string;
+  createButton?: { name: string; url: string | null };
+  canCreate?: boolean;
   name: string;
-  childs: Array<{ label: string; name: string; url: string }>;
+  childs?: Array<{ label: string; name: string; url: string }>;
 }
 
 interface SubMenuState {
@@ -78,7 +77,7 @@ interface SubMenuState {
 
 class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
   state: SubMenuState = {
-    selectedMenu: this.props.childs[0] && this.props.childs[0].label,
+    selectedMenu: this.props.childs && this.props.childs[0] ? this.props.childs[0].label : '',
     isModalOpen: false,
   };
 
@@ -88,7 +87,7 @@ class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
 
   onClose = () => {
     this.setState({ isModalOpen: false });
-  };
+  }
 
   handleClick = (item: string) => () => {
     this.setState({ selectedMenu: item });
@@ -99,7 +98,7 @@ class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
       <StyledHeader>
         <Navbar inverse fluid role="navigation">
           <Navbar.Header>
-            <Navbar.Brand>{this.props.label}</Navbar.Brand>
+            <Navbar.Brand>{this.props.name}</Navbar.Brand>
           </Navbar.Header>
           <DatasetModal show={this.state.isModalOpen} onHide={this.onClose} />
           <Nav>
@@ -116,7 +115,7 @@ class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
                 </MenuItem>
               ))}
           </Nav>
-          {this.props.canCreate && (
+          {this.props.canCreate && this.props.createButton && (
             <Nav className="navbar-right">
               <Button onClick={this.onOpen}>
                 <i className="fa fa-plus" /> {this.props.createButton.name}
@@ -124,7 +123,7 @@ class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
             </Nav>
           )}
         </Navbar>
-      </StyledHeader>
+      </StyledHeader >
     );
   }
 }
