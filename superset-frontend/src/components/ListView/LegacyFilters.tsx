@@ -30,6 +30,8 @@ import { Select } from 'src/components/Select';
 import { Filters, InternalFilter, SelectOption } from './types';
 import { extractInputValue, getDefaultFilterOperator } from './utils';
 
+const styleWidth100p = { width: '100%' };
+
 export const FilterMenu = ({
   filters,
   internalFilters,
@@ -49,7 +51,7 @@ export const FilterMenu = ({
         <>
           <i className="fa fa-filter text-primary" />
           {'  '}
-          {t('Filter List')}
+          {t('Filter')}
         </>
       }
     >
@@ -181,12 +183,13 @@ export const FilterInputs = ({
     {internalFilters.length > 0 && (
       <>
         <Row>
-          <Col md={10} />
-          <Col md={2}>
+          <Col md={11} />
+          <Col md={1}>
             <Button
               data-test="apply-filters"
               disabled={!!filtersApplied}
               bsStyle="primary"
+              style={styleWidth100p}
               onClick={applyFilters}
               bsSize="small"
             >
