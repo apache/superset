@@ -66,6 +66,10 @@
 
 // Buttons ====================================================================
 
+.btn {
+  text-transform: uppercase;
+}
+
 .btn-default:hover {
   color: @gray-dark;
   background-color: @gray-bg;
@@ -277,10 +281,13 @@ table,
 
 .label {
   border-radius: @border-radius-normal;
+  padding: 0.3em 0.6em 0.2em;
+  font-weight: @font-weight-normal;
 }
 
 label {
   font-weight: @font-weight-normal;
+  font-size: @font-size-s;
 }
 
 // Progress bars ==============================================================
@@ -292,7 +299,7 @@ label {
   .progress-bar {
     font-size: @font-size-s;
     line-height: @line-height-tight;
-    padding-top: 1px;
+    padding-top: 2px;
   }
 }
 
@@ -415,6 +422,7 @@ a.list-group-item {
 
 .nav-tabs > li > a {
   border-top: 3px solid transparent;
+  color: @text-color;
 }
 
 .nav-tabs > li.active > a,
