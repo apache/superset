@@ -118,13 +118,19 @@ declare module 'react-table' {
     hidden?: boolean;
     sortable?: boolean;
     cellProps?: any;
+    size?: 'xs' | 's' | 'md' | 'l' | 'xl';
   }
 
   export interface ColumnInstance<D extends object = {}>
     extends UseFiltersColumnProps<D>,
       UseGroupByColumnProps<D>,
       UseResizeColumnsColumnProps<D>,
-      UseSortByColumnProps<D> {}
+      UseSortByColumnProps<D> {
+    hidden?: boolean;
+    sortable?: boolean;
+    cellProps?: any;
+    size?: 'xs' | 's' | 'md' | 'l' | 'xl';
+  }
 
   export interface Cell<D extends object = {}>
     extends UseGroupByCellProps<D>,

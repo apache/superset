@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import cx from 'classnames';
-import { TableInstance } from 'react-table';
+import { TableInstance, Column } from 'react-table';
+import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
 
 interface Props {
@@ -30,6 +31,17 @@ interface Props {
   loading: boolean;
 }
 
+const TableCell = styled.td`
+  width: ${(props: { size?: Column['size'] }) => {
+    if (props.size === 'xs') return '25px';
+    if (props.size === 's') return '50px';
+    if (props.size === 'md') return '75px';
+    if (props.size === 'l') return '100px';
+    if (props.size === 'xl') return '150px';
+    if (props.size === 'xxl') return '200px';
+    return '';
+  }};
+`;
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -86,19 +98,19 @@ export default function TableCollection({
                 if (cell.column.hidden) return null;
 
                 const columnCellProps = cell.column.cellProps || {};
-
                 return (
-                  <td
+                  <TableCell
                     className={cx('table-cell', {
                       'table-cell-loader': loading,
                     })}
                     {...cell.getCellProps()}
                     {...columnCellProps}
+                    size={cell.column.size}
                   >
                     <div className={cx({ 'loading-bar': loading })}>
                       <span>{cell.render('Cell')}</span>
                     </div>
-                  </td>
+                  </TableCell>
                 );
               })}
             </tr>

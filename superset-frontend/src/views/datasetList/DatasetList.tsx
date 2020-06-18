@@ -175,6 +175,7 @@ class DatasetList extends React.PureComponent<Props, State> {
         );
       },
       accessor: 'kind_icon',
+      size: 'xs',
     },
     {
       Cell: ({
@@ -194,14 +195,17 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => kind[0]?.toUpperCase() + kind.slice(1),
       Header: t('Type'),
       accessor: 'kind',
+      size: 'l',
     },
     {
       Header: t('Source'),
       accessor: 'database_name',
+      size: 'l',
     },
     {
       Header: t('Schema'),
       accessor: 'schema',
+      size: 'l',
     },
     {
       Cell: ({
@@ -225,6 +229,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       Header: t('Last Modified'),
       accessor: 'changed_on',
       sortable: true,
+      size: 'l',
     },
     {
       Cell: ({
@@ -234,6 +239,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => changedByName,
       Header: t('Modified By'),
       accessor: 'changed_by_fk',
+      size: 'l',
     },
     {
       accessor: 'database',
@@ -263,6 +269,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       },
       Header: t('Owners'),
       id: 'owners',
+      size: 'l',
     },
     {
       accessor: 'is_sqllab_view',
@@ -343,6 +350,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       },
       Header: t('Actions'),
       id: 'actions',
+      size: 'm',
     },
   ];
 
