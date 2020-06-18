@@ -17,19 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@superset-ui/style';
 
-const propTypes = {
-  size: PropTypes.number,
-  position: PropTypes.oneOf(['floating', 'normal']),
-  className: PropTypes.string,
-};
-const defaultProps = {
-  size: 50,
-  position: 'floating',
-  className: '',
-};
+interface Props {
+  position: string;
+  className: string;
+}
 
 const FLOATING_STYLE = {
   padding: 0,
@@ -46,11 +39,13 @@ const LoaderImg = styled.img`
     margin: 0px;
   }
 `;
-export default function Loading({ size, position, className }) {
+export default function Loading({
+  position = 'floating',
+  className = '',
+}: Props) {
   const style = position === 'floating' ? FLOATING_STYLE : {};
   const styleWithWidth = {
     ...style,
-    size,
   };
   return (
     <LoaderImg
@@ -61,5 +56,3 @@ export default function Loading({ size, position, className }) {
     />
   );
 }
-Loading.propTypes = propTypes;
-Loading.defaultProps = defaultProps;

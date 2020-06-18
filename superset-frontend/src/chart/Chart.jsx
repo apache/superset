@@ -194,7 +194,7 @@ class Chart extends React.PureComponent {
             />
           )}
 
-          {isLoading && <Loading size={50} />}
+          {isLoading && <Loading />}
         </div>
       </ErrorBoundary>
     );
