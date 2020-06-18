@@ -839,8 +839,8 @@ class DruidDatasource(Model, BaseDatasource):
         else:
             granularity["type"] = "duration"
             granularity["duration"] = (
-                utils.parse_human_timedelta(period_name).total_seconds()
-                * 1000  # type: ignore
+                utils.parse_human_timedelta(period_name).total_seconds()  # type: ignore
+                * 1000
             )
         return granularity
 
