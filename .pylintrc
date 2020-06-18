@@ -81,7 +81,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=standarderror-builtin,long-builtin,dict-view-method,intern-builtin,suppressed-message,no-absolute-import,unpacking-in-except,apply-builtin,delslice-method,indexing-exception,old-raise-syntax,print-statement,cmp-builtin,reduce-builtin,useless-suppression,coerce-method,input-builtin,cmp-method,raw_input-builtin,nonzero-method,backtick,basestring-builtin,setslice-method,reload-builtin,oct-method,map-builtin-not-iterating,execfile-builtin,old-octal-literal,zip-builtin-not-iterating,buffer-builtin,getslice-method,metaclass-assignment,xrange-builtin,long-suffix,round-builtin,range-builtin-not-iterating,next-method-called,dict-iter-method,parameter-unpacking,unicode-builtin,unichr-builtin,import-star-module-level,raising-string,filter-builtin-not-iterating,old-ne-operator,using-cmp-argument,coerce-builtin,file-builtin,old-division,hex-method,invalid-unary-operand-type,missing-docstring,too-many-lines,duplicate-code,bad-continuation,ungrouped-imports
+disable=standarderror-builtin,long-builtin,dict-view-method,intern-builtin,suppressed-message,no-absolute-import,unpacking-in-except,apply-builtin,delslice-method,indexing-exception,old-raise-syntax,print-statement,cmp-builtin,reduce-builtin,useless-suppression,coerce-method,input-builtin,cmp-method,raw_input-builtin,nonzero-method,backtick,basestring-builtin,setslice-method,reload-builtin,oct-method,map-builtin-not-iterating,execfile-builtin,old-octal-literal,zip-builtin-not-iterating,buffer-builtin,getslice-method,metaclass-assignment,xrange-builtin,long-suffix,round-builtin,range-builtin-not-iterating,next-method-called,dict-iter-method,parameter-unpacking,unicode-builtin,unichr-builtin,import-star-module-level,raising-string,filter-builtin-not-iterating,old-ne-operator,using-cmp-argument,coerce-builtin,file-builtin,old-division,hex-method,invalid-unary-operand-type,missing-docstring,too-many-lines,duplicate-code,bad-continuation,ungrouped-imports,import-outside-toplevel
 
 
 [REPORTS]
@@ -254,7 +254,7 @@ notes=FIXME,XXX
 [SIMILARITIES]
 
 # Minimum lines number of a similarity.
-min-similarity-lines=4
+min-similarity-lines=5
 
 # Ignore comments when computing similarities.
 ignore-comments=yes
