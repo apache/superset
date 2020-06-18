@@ -85,15 +85,14 @@ const PaginationList = styled.ul`
     span {
       padding: 8px 12px;
       text-decoration: none;
-      background-color: #fff;
-      border-radius: 4px;
+      background-color: ${({ theme }) => theme.colors.grayscale.light5};
+      border-radius: ${({ theme }) => theme.borderRadius}px;
 
       &:hover,
       &:focus {
         z-index: 2;
-        color: #00403b;
-        background-color: #f2f2f2;
-        border-color: #cfd8dc;
+        color: ${({ theme }) => theme.colors.grayscale.dark1};
+        background-color: ${({ theme }) => theme.colors.grayscale.light3};
       }
     }
 
@@ -110,7 +109,7 @@ const PaginationList = styled.ul`
     &.active {
       span {
         z-index: 3;
-        color: #fff;
+        color: ${({ theme }) => theme.colors.grayscale.light5};
         cursor: default;
         background-color: ${({ theme }) => theme.colors.primary.base};
 
