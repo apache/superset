@@ -460,7 +460,7 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
 def _deserialize_results_payload(
     payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
 ) -> Dict[str, Any]:
-    logger.debug(f"Deserializing from msgpack: {use_msgpack}")
+    logger.debug("Deserializing from msgpack: %r", use_msgpack)
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_msgpack_deserialize", stats_logger
@@ -482,11 +482,9 @@ def _deserialize_results_payload(
         )
 
         return ds_payload
-    else:
-        with stats_timing(
-            "sqllab.query.results_backend_json_deserialize", stats_logger
-        ):
-            return json.loads(payload)
+
+    with stats_timing("sqllab.query.results_backend_json_deserialize", stats_logger):
+        return json.loads(payload)
 
 
 def get_cta_schema_name(

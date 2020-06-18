@@ -170,7 +170,9 @@ class Database(
         except Exception as ex:  # pylint: disable=broad-except
             # function_names property is used in bulk APIs and should not hard crash
             # more info in: https://github.com/apache/incubator-superset/issues/9678
-            logger.error(f"Failed to fetch database function names with error: {ex}")
+            logger.error(
+                "Failed to fetch database function names with error: %s", str(ex)
+            )
         return []
 
     @property
@@ -207,7 +209,7 @@ class Database(
     @property
     def backend(self) -> str:
         sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
-        return sqlalchemy_url.get_backend_name()
+        return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
 
     @property
     def metadata_cache_timeout(self) -> Dict[str, Any]:
@@ -452,8 +454,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "table")
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: "db:{}:schema:None:view_list",
-        attribute_in_key="id",
+        key=lambda *args, **kwargs: "db:{}:schema:None:view_list", attribute_in_key="id"
     )
     def get_all_view_names_in_database(
         self,
@@ -652,7 +653,7 @@ class Database(
     @utils.memoized
     def get_dialect(self) -> Dialect:
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
-        return sqla_url.get_dialect()()
+        return sqla_url.get_dialect()()  # pylint: disable=no-member
 
 
 sqla.event.listen(Database, "after_insert", security_manager.set_perm)

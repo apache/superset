@@ -141,8 +141,8 @@ class QueryObject:
         if is_sip_38 and groupby:
             self.columns += groupby
             logger.warning(
-                f"The field `groupby` is deprecated. Viz plugins should "
-                f"pass all selectables via the `columns` field"
+                "The field `groupby` is deprecated. Viz plugins should "
+                "pass all selectables via the `columns` field"
             )
 
         self.orderby = orderby or []
@@ -151,15 +151,18 @@ class QueryObject:
         for field in DEPRECATED_FIELDS:
             if field.old_name in kwargs:
                 logger.warning(
-                    f"The field `{field.old_name}` is deprecated, please use "
-                    f"`{field.new_name}` instead."
+                    "The field `%s` is deprecated, please use `%s` instead.",
+                    field.old_name,
+                    field.new_name,
                 )
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self, field.new_name):
                         logger.warning(
-                            f"The field `{field.new_name}` is already populated, "
-                            f"replacing value with contents from `{field.old_name}`."
+                            "The field `%s` is already populated, "
+                            "replacing value with contents from `%s`.",
+                            field.new_name,
+                            field.old_name,
                         )
                     setattr(self, field.new_name, value)
 
@@ -167,16 +170,20 @@ class QueryObject:
         for field in DEPRECATED_EXTRAS_FIELDS:
             if field.old_name in kwargs:
                 logger.warning(
-                    f"The field `{field.old_name}` is deprecated and should be "
-                    f"passed to `extras` via the `{field.new_name}` property."
+                    "The field `%s` is deprecated and should "
+                    "be passed to `extras` via the `%s` property.",
+                    field.old_name,
+                    field.new_name,
                 )
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self.extras, field.new_name):
                         logger.warning(
-                            f"The field `{field.new_name}` is already populated in "
-                            f"`extras`, replacing value with contents "
-                            f"from `{field.old_name}`."
+                            "The field `%s` is already populated in "
+                            "`extras`, replacing value with contents "
+                            "from `%s`.",
+                            field.new_name,
+                            field.old_name,
                         )
                     self.extras[field.new_name] = value
 

@@ -23,8 +23,7 @@ from wtforms.validators import StopValidation
 
 from superset.constants import RouteMethod
 from superset.models.annotations import Annotation, AnnotationLayer
-
-from .base import SupersetModelView
+from superset.views.base import SupersetModelView
 
 
 class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
@@ -35,7 +34,7 @@ class StartEndDttmValidator:  # pylint: disable=too-few-public-methods
     def __call__(self, form: Dict[str, Any], field: Any) -> None:
         if not form["start_dttm"].data and not form["end_dttm"].data:
             raise StopValidation(_("annotation start time or end time is required."))
-        elif (
+        if (
             form["end_dttm"].data
             and form["start_dttm"].data
             and form["end_dttm"].data < form["start_dttm"].data

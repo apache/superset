@@ -47,7 +47,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         tt = target_type.upper()
         if tt == "DATE":
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        elif tt == "TIMESTAMP":
+        if tt == "TIMESTAMP":
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
         return None
 

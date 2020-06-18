@@ -42,5 +42,5 @@ def deliver_slack_msg(
             channels=slack_channel, file=file, initial_comment=body, title=subject
         ),
     )
-    logger.info(f"Sent the report to the slack {slack_channel}")
+    logger.info("Sent the report to the slack %s", slack_channel)
     assert response["file"], str(response)  # the uploaded file

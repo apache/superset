@@ -219,7 +219,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
-            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            logger.error(
+                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+            )
             return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
@@ -287,7 +289,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartUpdateFailedError as ex:
-            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            logger.error(
+                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+            )
             return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
@@ -334,7 +338,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartForbiddenError:
             return self.response_403()
         except ChartDeleteFailedError as ex:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            logger.error(
+                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+            )
             return self.response_422(message=str(ex))
 
     @expose("/", methods=["DELETE"])
@@ -386,9 +392,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200,
                 message=ngettext(
-                    f"Deleted %(num)d chart",
-                    f"Deleted %(num)d charts",
-                    num=len(item_ids),
+                    "Deleted %(num)d chart", "Deleted %(num)d charts", num=len(item_ids)
                 ),
             )
         except ChartNotFoundError:
@@ -464,13 +468,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv",
             )
-        elif result_format == ChartDataResultFormat.JSON:
+
+        if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
                 {"result": payload}, default=json_int_dttm_ser, ignore_nan=True
             )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
             return resp
+
         raise self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])

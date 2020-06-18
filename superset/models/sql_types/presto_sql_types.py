@@ -29,6 +29,7 @@ class TinyInteger(Integer):
     A type for tiny ``int`` integers.
     """
 
+    @property
     def python_type(self) -> Type[int]:
         return int
 
@@ -42,6 +43,7 @@ class Interval(TypeEngine):
     A type for intervals.
     """
 
+    @property
     def python_type(self) -> Optional[Type[Any]]:
         return None
 
@@ -55,6 +57,7 @@ class Array(TypeEngine):
     A type for arrays.
     """
 
+    @property
     def python_type(self) -> Optional[Type[List[Any]]]:
         return list
 
@@ -68,6 +71,7 @@ class Map(TypeEngine):
     A type for maps.
     """
 
+    @property
     def python_type(self) -> Optional[Type[Dict[Any, Any]]]:
         return dict
 
@@ -81,6 +85,7 @@ class Row(TypeEngine):
     A type for rows.
     """
 
+    @property
     def python_type(self) -> Optional[Type[Any]]:
         return None
 

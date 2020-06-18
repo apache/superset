@@ -363,6 +363,7 @@ class AuditMixinNullable(AuditMixin):
             nullable=True,
         )
 
+    @property
     def changed_by_name(self) -> str:
         if self.created_by:
             return escape("{}".format(self.created_by))
