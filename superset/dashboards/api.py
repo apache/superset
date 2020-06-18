@@ -379,8 +379,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200,
                 message=ngettext(
-                    f"Deleted %(num)d dashboard",
-                    f"Deleted %(num)d dashboards",
+                    "Deleted %(num)d dashboard",
+                    "Deleted %(num)d dashboards",
                     num=len(item_ids),
                 ),
             )
