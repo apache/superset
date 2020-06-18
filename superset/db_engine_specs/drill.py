@@ -56,7 +56,7 @@ class DrillEngineSpec(BaseEngineSpec):
         tt = target_type.upper()
         if tt == "DATE":
             return f"TO_DATE('{dttm.date().isoformat()}', 'yyyy-MM-dd')"
-        elif tt == "TIMESTAMP":
+        if tt == "TIMESTAMP":
             return f"""TO_TIMESTAMP('{dttm.isoformat(sep=" ", timespec="seconds")}', 'yyyy-MM-dd HH:mm:ss')"""  # pylint: disable=line-too-long
         return None
 

@@ -95,7 +95,6 @@ class SupersetAppInitializer:
         """
         Called after any other init tasks
         """
-        pass
 
     def configure_celery(self) -> None:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
@@ -593,7 +592,7 @@ class SupersetAppInitializer:
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:
             try:
-                logger.info(f"Registering blueprint: '{bp.name}'")
+                logger.info("Registering blueprint: %s", bp.name)
                 self.flask_app.register_blueprint(bp)
             except Exception:  # pylint: disable=broad-except
                 logger.exception("blueprint registration failed")

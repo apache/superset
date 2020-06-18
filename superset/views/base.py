@@ -212,7 +212,7 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
     try:
         table.get_sqla_table_object()
     except Exception as ex:
-        logger.exception(f"Got an error in pre_add for {table.name}")
+        logger.exception("Got an error in pre_add for %s", table.name)
         raise Exception(
             _(
                 "Table [%{table}s] could not be found, "
@@ -498,8 +498,7 @@ def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
         return True
     if raise_if_false:
         raise security_exception
-    else:
-        return False
+    return False
 
 
 def bind_field(

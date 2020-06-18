@@ -275,7 +275,7 @@ def cache_warmup(
         logger.error(message)
         return message
 
-    logger.info(f"Loading {class_.__name__}")
+    logger.info("Loading %s", class_.__name__)
     try:
         strategy = class_(*args, **kwargs)
         logger.info("Success!")
@@ -287,7 +287,7 @@ def cache_warmup(
     results: Dict[str, List[str]] = {"success": [], "errors": []}
     for url in strategy.get_urls():
         try:
-            logger.info(f"Fetching {url}")
+            logger.info("Fetching %s", url)
             request.urlopen(url)
             results["success"].append(url)
         except URLError:

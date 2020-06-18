@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
-# pylint: disable=invalid-unary-operand-type
+# pylint: skip-file
 import json
 import logging
 import re
@@ -81,12 +80,7 @@ except ImportError:
     pass
 
 try:
-    from superset.utils.core import (
-        DimSelector,
-        DTTM_ALIAS,
-        FilterOperator,
-        flasher,
-    )
+    from superset.utils.core import DimSelector, DTTM_ALIAS, FilterOperator, flasher
 except ImportError:
     pass
 
@@ -845,7 +839,8 @@ class DruidDatasource(Model, BaseDatasource):
         else:
             granularity["type"] = "duration"
             granularity["duration"] = (
-                utils.parse_human_timedelta(period_name).total_seconds() * 1000  # type: ignore
+                utils.parse_human_timedelta(period_name).total_seconds()  # type: ignore
+                * 1000
             )
         return granularity
 
@@ -950,7 +945,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     @staticmethod
     def metrics_and_post_aggs(
-        metrics: List[Metric], metrics_dict: Dict[str, DruidMetric],
+        metrics: List[Metric], metrics_dict: Dict[str, DruidMetric]
     ) -> Tuple["OrderedDict[str, Any]", "OrderedDict[str, Any]"]:
         # Separate metrics into those that are aggregations
         # and those that are post aggregations

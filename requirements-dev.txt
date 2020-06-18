@@ -28,7 +28,7 @@ psycopg2-binary==2.8.5
 pycodestyle==2.5.0
 pydruid==0.6.1
 pyhive==0.6.2
-pylint==1.9.2
+pylint==2.5.3
 redis==3.5.1
 requests==2.23.0
 statsd==3.3.0

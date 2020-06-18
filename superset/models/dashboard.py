@@ -42,7 +42,7 @@ from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportMixin
-from superset.models.slice import Slice as Slice
+from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail

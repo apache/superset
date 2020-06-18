@@ -29,15 +29,14 @@ from superset import app, db, event_logger
 from superset.constants import RouteMethod
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
-
-from ..base import (
+from superset.views.base import (
     BaseSupersetView,
     check_ownership,
     DeleteMixin,
     generate_download_headers,
     SupersetModelView,
 )
-from .mixin import DashboardMixin
+from superset.views.dashboard.mixin import DashboardMixin
 
 
 class DashboardModelView(
@@ -95,7 +94,7 @@ class DashboardModelView(
             item.owners.append(g.user)
         utils.validate_json(item.json_metadata)
         utils.validate_json(item.position_json)
-        owners = [o for o in item.owners]
+        owners = list(item.owners)
         for slc in item.slices:
             slc.owners = list(set(owners) | set(slc.owners))
 

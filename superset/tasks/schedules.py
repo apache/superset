@@ -488,7 +488,7 @@ def schedule_email_report(  # pylint: disable=unused-argument
     recipients = recipients or schedule.recipients
     slack_channel = slack_channel or schedule.slack_channel
     logger.info(
-        f"Starting report for slack: {slack_channel} and recipients: {recipients}."
+        "Starting report for slack: %s and recipients: %s.", slack_channel, recipients
     )
 
     if report_type == ScheduleType.dashboard:

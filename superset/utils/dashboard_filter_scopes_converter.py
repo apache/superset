@@ -49,7 +49,7 @@ def convert_filter_scopes(
                 "immune": current_filter_immune,
             }
         else:
-            logging.info(f"slice [{filter_id}] has invalid field: {filter_field}")
+            logging.info("slice [%i] has invalid field: %s", filter_id, filter_field)
 
     for filter_slice in filters:
         filter_fields: Dict[str, Dict[str, Any]] = {}

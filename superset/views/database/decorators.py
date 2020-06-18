@@ -51,14 +51,16 @@ def check_datasource_access(f: Callable[..., Any]) -> Callable[..., Any]:
             )
             return self.response_404()
         if not self.appbuilder.sm.can_access_table(
-            database, Table(table_name_parsed, schema_name_parsed),
+            database, Table(table_name_parsed, schema_name_parsed)
         ):
             self.stats_logger.incr(
                 f"permisssion_denied_{self.__class__.__name__}.select_star"
             )
             logger.warning(
-                f"Permission denied for user {g.user} on table: {table_name_parsed} "
-                f"schema: {schema_name_parsed}"
+                "Permission denied for user %s on table: %s schema: %s",
+                g.user,
+                table_name_parsed,
+                schema_name_parsed,
             )
             return self.response_404()
         return f(self, database, table_name_parsed, schema_name_parsed)

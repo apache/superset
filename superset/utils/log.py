@@ -134,7 +134,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
             "of superset.utils.log.AbstractEventLogger."
         )
 
-    logging.info(f"Configured event logger of type {type(result)}")
+    logging.info("Configured event logger of type %s", type(result))
     return cast(AbstractEventLogger, result)
 
 

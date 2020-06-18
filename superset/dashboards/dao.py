@@ -49,7 +49,7 @@ class DashboardDAO(BaseDAO):
 
     @staticmethod
     def update_charts_owners(model: Dashboard, commit: bool = True) -> Dashboard:
-        owners = [owner for owner in model.owners]
+        owners = list(model.owners)
         for slc in model.slices:
             slc.owners = list(set(owners) | set(slc.owners))
         if commit:

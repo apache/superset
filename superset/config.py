@@ -898,7 +898,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         print(f"Loaded your LOCAL configuration at [{cfg_path}]")
     except Exception:
         logger.exception(
-            f"Failed to import config for {CONFIG_PATH_ENV_VAR}={cfg_path}"
+            "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
         )
         raise
 elif importlib.util.find_spec("superset_config"):
