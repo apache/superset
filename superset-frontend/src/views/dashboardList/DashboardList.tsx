@@ -510,7 +510,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     } = this.state;
     return (
       <>
-        <SubMenu label="Dashboards" />
+        <SubMenu name="Dashboards" />
         <ConfirmStatusChange
           title={t('Please confirm')}
           description={t(

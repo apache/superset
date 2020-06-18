@@ -519,7 +519,7 @@ class ChartList extends React.PureComponent<Props, State> {
     } = this.state;
     return (
       <>
-        <SubMenu label="Dashboards" />
+        <SubMenu name="Dashboards" />
         {sliceCurrentlyEditing && (
           <PropertiesModal
             show

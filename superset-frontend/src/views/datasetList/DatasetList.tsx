@@ -318,7 +318,6 @@ class DatasetList extends React.PureComponent<Props, State> {
   ];
 
   menu = {
-    label: 'Data',
     name: 'Data',
     createButton: {
       name: t('Dataset'),
