@@ -44,7 +44,7 @@ const StyledModalHeader = styled(BaseModal.Header)`
   border-radius: ${({ theme }) => theme.borderRadius}px
     ${({ theme }) => theme.borderRadius}px 0 0;
   .close {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colors.secondary.dark1};
     font-size: 32px;
     font-weight: ${({ theme }) => theme.typography.weights.light};
     margin-top: -3px;

@@ -21,8 +21,8 @@ import styled from '@superset-ui/style';
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
-import Modal from './Modal';
 import Select from 'src/components/Select';
+import Modal from './Modal';
 
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
@@ -123,6 +123,33 @@ class DatasetModal extends React.PureComponent<Props, State> {
     this.setState({ table, disableSave });
   }
 
+  onSave() {
+    const { datasource, schema, table } = this.state;
+    const { onHide, addSuccessToast, addDangerToast } = this.props;
+    const data = {
+      database: datasource.value,
+      schema: schema.value,
+      table_name: table.label,
+    };
+
+    SupersetClient.post({
+      endpoint: '/api/v1/dataset/',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' },
+      parseMethod: 'text',
+    })
+      .then(() => {
+        addSuccessToast(t('The dataset has been saved'));
+        onHide();
+      })
+      .catch(e => {
+        addDangerToast(t('Error while saving dataset'));
+        if (e) {
+          console.error(e);
+        }
+      });
+  }
+
   fetchDatabase() {
     SupersetClient.get({
       endpoint: `/api/v1/dataset/related/database`,
@@ -203,33 +230,6 @@ class DatasetModal extends React.PureComponent<Props, State> {
     }
   }
 
-  onSave() {
-    const { datasource, schema, table } = this.state;
-    const { onHide, addSuccessToast, addDangerToast } = this.props;
-    const data = {
-      database: datasource.value,
-      schema: schema.value,
-      table_name: table.label,
-    };
-
-    SupersetClient.post({
-      endpoint: '/api/v1/dataset/',
-      body: JSON.stringify(data),
-      headers: { 'Content-Type': 'application/json' },
-      parseMethod: 'text',
-    })
-      .then(() => {
-        addSuccessToast(t('The dataset has been saved'));
-        onHide();
-      })
-      .catch(e => {
-        addDangerToast(t('Error while saving dataset'));
-        if (e) {
-          console.error(e);
-        }
-      });
-  }
-
   renderFields() {
     const {
       datasource,
@@ -303,13 +303,14 @@ class DatasetModal extends React.PureComponent<Props, State> {
     const { onSave, renderFields, renderTitle } = this;
     return (
       <Modal
-        children={renderFields()}
         disableSave={disableSave}
         onHide={onHide}
         onSave={onSave}
         show={show}
         title={renderTitle()}
-      />
+      >
+        {renderFields()}
+      </Modal>
     );
   }
 }
