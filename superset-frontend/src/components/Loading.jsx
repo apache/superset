@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
-import './Loading.less';
+import styled from '@superset-ui/style';
 
 const propTypes = {
   size: PropTypes.number,
@@ -41,6 +40,12 @@ const FLOATING_STYLE = {
   transform: 'translate(-50%, -50%)',
 };
 
+const LoaderImg = styled.img`
+  z-index: 1000;
+  &.margin-zero {
+    margin: 0px;
+  }
+`;
 export default function Loading({ size, position, className }) {
   const style = position === 'floating' ? FLOATING_STYLE : {};
   const styleWithWidth = {
@@ -48,7 +53,7 @@ export default function Loading({ size, position, className }) {
     size,
   };
   return (
-    <img
+    <LoaderImg
       className={`loading ${className}`}
       alt="Loading..."
       src="/static/assets/images/loading.gif"
@@ -56,6 +61,5 @@ export default function Loading({ size, position, className }) {
     />
   );
 }
-
 Loading.propTypes = propTypes;
 Loading.defaultProps = defaultProps;

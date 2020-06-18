@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
+import styled from '@superset-ui/style';
 import Button from '../components/Button';
 
 const propTypes = {
@@ -27,13 +28,27 @@ const propTypes = {
   onQuery: PropTypes.func,
 };
 
+const RefreshOverlayWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  .refresh-overlay-btn {
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    margin-right: 10px;
+  }
+`;
+
 class RefreshChartOverlay extends React.PureComponent {
   render() {
     return (
-      <div
-        style={{ height: this.props.height, width: this.props.width }}
-        className="explore-chart-overlay"
-      >
+      <RefreshOverlayWrapper className="refresh-chart-overlay">
         <div>
           <Button
             className="refresh-overlay-btn"
@@ -43,7 +58,7 @@ class RefreshChartOverlay extends React.PureComponent {
             {t('Run Query')}
           </Button>
         </div>
-      </div>
+      </RefreshOverlayWrapper>
     );
   }
 }
