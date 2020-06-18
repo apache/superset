@@ -138,7 +138,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                 end_column=end_column,
             )
         except Exception as ex:
-            logger.exception(f"Unexpected error running validation query: {ex}")
+            logger.exception("Unexpected error running validation query: %s", str(ex))
             raise ex
 
     @classmethod
@@ -156,7 +156,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         parsed_query = ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
-        logger.info(f"Validating {len(statements)} statement(s)")
+        logger.info("Validating %i statement(s)", len(statements))
         engine = database.get_sqla_engine(
             schema=schema,
             nullpool=True,
@@ -174,6 +174,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     )
                     if annotation:
                         annotations.append(annotation)
-        logger.debug(f"Validation found {len(annotations)} error(s)")
+        logger.debug("Validation found %i error(s)", len(annotations))
 
         return annotations

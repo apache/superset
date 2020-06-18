@@ -79,7 +79,8 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     children_type = group["children"]
     if type_ == "ARRAY":
         return [{"name": column["name"], "type": children_type}]
-    elif type_ == "ROW":
+
+    if type_ == "ROW":
         nameless_columns = 0
         columns = []
         for child in utils.split(children_type, ","):
@@ -93,8 +94,8 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
                 nameless_columns += 1
             columns.append({"name": f"{column['name']}.{name.lower()}", "type": type_})
         return columns
-    else:
-        raise Exception(f"Unknown type {type_}!")
+
+    raise Exception(f"Unknown type {type_}!")
 
 
 class PrestoEngineSpec(BaseEngineSpec):
@@ -278,7 +279,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                     if not (inner_type.endswith("array") or inner_type.endswith("row")):
                         stack.pop()
                 # We have an array of row objects (i.e. array(row(...)))
-                elif inner_type == "array" or inner_type == "row":
+                elif inner_type in ("array", "row"):
                     # Push a dummy object to represent the structural data type
                     stack.append(("", inner_type))
                 # We have an array of a basic data types(i.e. array(varchar)).
@@ -339,8 +340,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                     )
                     result[structural_column_index]["default"] = None
                     continue
-                else:  # otherwise column is a basic data type
-                    column_type = presto_type_map[column.Type]()
+
+                # otherwise column is a basic data type
+                column_type = presto_type_map[column.Type]()
             except KeyError:
                 logger.info(
                     "Did not recognize type {} of column {}".format(  # pylint: disable=logging-format-interpolation
@@ -727,7 +729,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
         """Updates progress information"""
         query_id = query.id
-        logger.info(f"Query {query_id}: Polling the cursor for progress")
+        logger.info("Query %i: Polling the cursor for progress", query_id)
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -761,7 +763,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                         query.progress = progress
                     session.commit()
             time.sleep(1)
-            logger.info(f"Query {query_id}: Polling the cursor for progress")
+            logger.info("Query %i: Polling the cursor for progress", query_id)
             polled = cursor.poll()
 
     @classmethod
@@ -903,12 +905,14 @@ class PrestoEngineSpec(BaseEngineSpec):
             raise SupersetTemplateException(
                 "The table should have one partitioned field"
             )
-        elif not show_first and len(indexes[0]["column_names"]) > 1:
+
+        if not show_first and len(indexes[0]["column_names"]) > 1:
             raise SupersetTemplateException(
                 "The table should have a single partitioned field "
                 "to use this function. You may want to use "
                 "`presto.latest_sub_partition`"
             )
+
         column_names = indexes[0]["column_names"]
         part_fields = [(column_name, True) for column_name in column_names]
         sql = cls._partition_query(table_name, database, 1, part_fields)
@@ -947,7 +951,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         indexes = database.get_indexes(table_name, schema)
         part_fields = indexes[0]["column_names"]
         for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
-            if k not in k in part_fields:
+            if k not in k in part_fields:  # pylint: disable=comparison-with-itself
                 msg = "Field [{k}] is not part of the portioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
