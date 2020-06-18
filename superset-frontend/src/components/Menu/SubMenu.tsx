@@ -77,9 +77,12 @@ interface SubMenuState {
 
 class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
   state: SubMenuState = {
-    selectedMenu: this.props.childs && this.props.childs[0] ? this.props.childs[0].label : '',
+    selectedMenu:
+      this.props.childs && this.props.childs[0]
+        ? this.props.childs[0].label
+        : '',
     isModalOpen: false,
-  };
+  }
 
   onOpen = () => {
     this.setState({ isModalOpen: true });

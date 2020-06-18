@@ -29,6 +29,7 @@ interface Props {
   rows: TableInstance['rows'];
   loading: boolean;
 }
+
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -74,7 +75,6 @@ export default function TableCollection({
             <tr
               {...row.getRowProps()}
               className={cx({
-                'table-row-loader': loading,
                 'table-row-selected': row.isSelected,
               })}
               onMouseEnter={() => row.setState && row.setState({ hover: true })}
@@ -89,11 +89,15 @@ export default function TableCollection({
 
                 return (
                   <td
-                    className="table-cell"
+                    className={cx('table-cell', {
+                      'table-cell-loader': loading,
+                    })}
                     {...cell.getCellProps()}
                     {...columnCellProps}
                   >
-                    <span>{cell.render('Cell')}</span>
+                    <div className={cx({ 'loading-bar': loading })}>
+                      <span>{cell.render('Cell')}</span>
+                    </div>
                   </td>
                 );
               })}

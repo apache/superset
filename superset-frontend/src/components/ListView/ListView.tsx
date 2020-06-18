@@ -19,7 +19,8 @@
 import { t } from '@superset-ui/translation';
 import React, { FunctionComponent } from 'react';
 import { Col, DropdownButton, MenuItem, Row } from 'react-bootstrap';
-import IndeterminateCheckbox from '../IndeterminateCheckbox';
+import Loading from 'src/components/Loading';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import TableCollection from './TableCollection';
 import Pagination from './Pagination';
 import { FilterMenu, FilterInputs } from './LegacyFilters';
@@ -116,7 +117,9 @@ const ListView: FunctionComponent<Props> = ({
       }
     });
   }
-
+  if (loading && !data.length) {
+    return <Loading />;
+  }
   return (
     <div className="superset-list-view-container">
       <div className={`superset-list-view ${className}`}>
@@ -126,8 +129,7 @@ const ListView: FunctionComponent<Props> = ({
               {title && filterable && (
                 <>
                   <Row>
-                    <Col md={10}>
-                    </Col>
+                    <Col md={10} />
                     {filterable && (
                       <Col md={2}>
                         <FilterMenu
@@ -152,13 +154,11 @@ const ListView: FunctionComponent<Props> = ({
             </>
           )}
           {useNewUIFilters && (
-            <>
-              <FilterControls
-                filters={filters}
-                internalFilters={internalFilters}
-                updateFilterValue={applyFilterValue}
-              />
-            </>
+            <FilterControls
+              filters={filters}
+              internalFilters={internalFilters}
+              updateFilterValue={applyFilterValue}
+            />
           )}
         </div>
         <div className="body">

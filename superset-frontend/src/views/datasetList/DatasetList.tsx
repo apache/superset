@@ -87,7 +87,7 @@ class DatasetList extends React.PureComponent<Props, State> {
     filterOperators: {},
     filters: [],
     lastFetchDataConfig: null,
-    loading: false,
+    loading: true,
     owners: [],
     databases: [],
     permissions: [],
@@ -241,6 +241,7 @@ class DatasetList extends React.PureComponent<Props, State> {
           .slice(0, 5)
           .map((owner: Owner) => (
             <AvatarIcon
+              key={owner.id}
               tableName={tableName}
               firstName={owner.first_name}
               lastName={owner.last_name}
