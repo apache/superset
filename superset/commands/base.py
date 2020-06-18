@@ -29,7 +29,6 @@ class BaseCommand(ABC):
         Run executes the command. Can raise command exceptions
         :raises: CommandException
         """
-        pass
 
     @abstractmethod
     def validate(self) -> None:
@@ -38,4 +37,3 @@ class BaseCommand(ABC):
         Will raise exception if validation fails
         :raises: CommandException
         """
-        pass

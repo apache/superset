@@ -46,7 +46,7 @@ class DatasetDAO(BaseDAO):
         try:
             return db.session.query(Database).filter_by(id=database_id).one_or_none()
         except SQLAlchemyError as ex:  # pragma: no cover
-            logger.error(f"Could not get database by id: {ex}")
+            logger.error("Could not get database by id: %s", str(ex))
             return None
 
     @staticmethod
@@ -55,7 +55,7 @@ class DatasetDAO(BaseDAO):
             database.get_table(table_name, schema=schema)
             return True
         except SQLAlchemyError as ex:  # pragma: no cover
-            logger.error(f"Got an error {ex} validating table: {table_name}")
+            logger.error("Got an error %s validating table: %s", str(ex), table_name)
             return False
 
     @staticmethod
