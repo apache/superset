@@ -17,16 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import styled from '@superset-ui/style';
-import Button from '../components/Button';
+import Button from 'src/components/Button';
 
-const propTypes = {
-  height: PropTypes.number.isRequired,
-  width: PropTypes.number.isRequired,
-  onQuery: PropTypes.func,
-};
+type Callback = (...args: any[]) => void;
+
+interface Props {
+  height: number;
+  width: number;
+  onQuery: Callback;
+}
 
 const RefreshOverlayWrapper = styled.div`
   position: absolute;
@@ -44,7 +45,7 @@ const RefreshOverlayWrapper = styled.div`
   }
 `;
 
-class RefreshChartOverlay extends React.PureComponent {
+class RefreshChartOverlay extends React.PureComponent<Props> {
   render() {
     return (
       <RefreshOverlayWrapper>
@@ -61,7 +62,5 @@ class RefreshChartOverlay extends React.PureComponent {
     );
   }
 }
-
-RefreshChartOverlay.propTypes = propTypes;
 
 export default RefreshChartOverlay;
