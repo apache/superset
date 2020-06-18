@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { mainMetric } from '../src/mainMetric';
+import { mainMetric } from '../../src';
 
 describe('mainMetric', () => {
   it('is null when no options', () => {

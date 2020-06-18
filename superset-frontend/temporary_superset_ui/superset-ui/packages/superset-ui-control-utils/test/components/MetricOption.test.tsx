@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { shallow, ShallowWrapper } from 'enzyme';
-import { MetricOption, MetricOptionProps } from '../../src/MetricOption';
+import { MetricOption, MetricOptionProps } from '../../src';
 
 describe('MetricOption', () => {
   const defaultProps = {

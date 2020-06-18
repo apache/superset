@@ -20,7 +20,7 @@ import React from 'react';
 
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
-import { ColumnMeta } from './types';
+import { ColumnMeta } from '../types';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
