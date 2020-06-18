@@ -19,7 +19,7 @@
  */
 import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
-import nv from 'nvd3';
+import nv from 'nvd3-fork';
 import mathjs from 'mathjs';
 import moment from 'moment';
 import PropTypes from 'prop-types';
@@ -28,7 +28,7 @@ import { t } from '@superset-ui/translation';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
-import 'nvd3/build/nv.d3.min.css';
+import 'nvd3-fork/build/nv.d3.min.css';
 /* eslint-disable-next-line */
 import ANNOTATION_TYPES, { applyNativeColumns } from './vendor/superset/AnnotationTypes';
 import isTruthy from './utils/isTruthy';
@@ -366,6 +366,7 @@ function nvd3Vis(element, props) {
       case 'line_multi':
         chart = nv.models.multiChart();
         chart.interpolate(lineInterpolation);
+        chart.xScale(d3.time.scale.utc());
         break;
 
       case 'bar':
