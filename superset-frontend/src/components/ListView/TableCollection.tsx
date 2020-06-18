@@ -45,9 +45,9 @@ export default function TableCollection({
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => {
               let sortIcon = <Icon name="sort" />;
-              if (column.isSortedDesc) {
+              if (column.isSorted && column.isSortedDesc) {
                 sortIcon = <Icon name="sort-desc" />;
-              } else if (!column.isSortedDesc) {
+              } else if (column.isSorted && !column.isSortedDesc) {
                 sortIcon = <Icon name="sort-asc" />;
               }
 

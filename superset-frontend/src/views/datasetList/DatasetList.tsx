@@ -184,6 +184,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => datasetTitle,
       Header: t('Name'),
       accessor: 'table_name',
+      sortable: true,
     },
     {
       Cell: ({
@@ -207,7 +208,20 @@ class DatasetList extends React.PureComponent<Props, State> {
         row: {
           original: { changed_on: changedOn },
         },
-      }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
+      }: any) => {
+        const momentTime = moment(changedOn);
+        const time = momentTime.format('h:m a');
+        const date = momentTime.format('MMM D, YYYY');
+        return (
+          <TooltipWrapper
+            label="last-modified"
+            tooltip={time}
+            placement="right"
+          >
+            <span>{date}</span>
+          </TooltipWrapper>
+        );
+      },
       Header: t('Last Modified'),
       accessor: 'changed_on',
       sortable: true,
@@ -215,12 +229,9 @@ class DatasetList extends React.PureComponent<Props, State> {
     {
       Cell: ({
         row: {
-          original: {
-            changed_by_name: changedByName,
-            changed_by_url: changedByUrl,
-          },
+          original: { changed_by_name: changedByName },
         },
-      }: any) => <a href={changedByUrl}>{changedByName}</a>,
+      }: any) => changedByName,
       Header: t('Modified By'),
       accessor: 'changed_by_fk',
     },
@@ -268,14 +279,20 @@ class DatasetList extends React.PureComponent<Props, State> {
           <span
             className={`actions ${state && state.hover ? '' : 'invisible'}`}
           >
-            <a
-              role="button"
-              tabIndex={0}
-              className="action-button"
-              href={original.explore_url}
+            <TooltipWrapper
+              label="explore-action"
+              tooltip={t('Explore')}
+              placement="bottom"
             >
-              <Icon name="compass" />
-            </a>
+              <a
+                role="button"
+                tabIndex={0}
+                className="action-button"
+                href={original.explore_url}
+              >
+                <Icon name="compass" />
+              </a>
+            </TooltipWrapper>
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
@@ -288,26 +305,38 @@ class DatasetList extends React.PureComponent<Props, State> {
                 onConfirm={handleDelete}
               >
                 {confirmDelete => (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={confirmDelete}
+                  <TooltipWrapper
+                    label="delete-action"
+                    tooltip={t('Delete')}
+                    placement="bottom"
                   >
-                    <Icon name="trash" />
-                  </span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={confirmDelete}
+                    >
+                      <Icon name="trash" />
+                    </span>
+                  </TooltipWrapper>
                 )}
               </ConfirmStatusChange>
             )}
             {this.canEdit && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={handleEdit}
+              <TooltipWrapper
+                label="edit-action"
+                tooltip={t('Edit')}
+                placement="bottom"
               >
-                <Icon name="pencil" />
-              </span>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handleEdit}
+                >
+                  <Icon name="pencil" />
+                </span>
+              </TooltipWrapper>
             )}
           </span>
         );
