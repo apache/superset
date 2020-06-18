@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import styled from '@superset-ui/style';
+import DatasetModal from 'src/views/datasetList/DatasetModal';
 import { Button, Nav, Navbar, MenuItem } from 'react-bootstrap';
 
 const StyledHeader = styled.header`
@@ -72,19 +73,31 @@ interface Props {
 
 interface State {
   selectedMenu: string;
+  isModalOpen: boolean;
 }
 
 class SubMenu extends React.PureComponent<Props, State> {
   state: State = {
     selectedMenu: this.props.childs[0] && this.props.childs[0].label,
+    isModalOpen: false,
   };
 
   handleClick = (item: string) => () => {
     this.setState({ selectedMenu: item });
   };
 
+  openModal = () => {
+    this.setState({ isModalOpen: true });
+  };
+
+  closeModal = () => {
+    this.setState({ isModalOpen: false });
+  };
+
   render() {
     const { canCreate, childs, label, createButton } = this.props;
+    const { isModalOpen, selectedMenu } = this.state;
+    const { closeModal, handleClick, openModal } = this;
 
     return (
       <StyledHeader>
@@ -92,15 +105,16 @@ class SubMenu extends React.PureComponent<Props, State> {
           <Navbar.Header>
             <Navbar.Brand>{label}</Navbar.Brand>
           </Navbar.Header>
+          <DatasetModal show={isModalOpen} onHide={closeModal} />
           <Nav>
             {childs &&
               childs.map(child => (
                 <MenuItem
-                  active={child.label === this.state.selectedMenu}
+                  active={child.label === selectedMenu}
                   key={`${child.label}`}
                   eventKey={`${child.name}`}
                   href={child.url}
-                  onClick={this.handleClick(child.label)}
+                  onClick={handleClick(child.label)}
                 >
                   {child.label}
                 </MenuItem>
@@ -108,7 +122,7 @@ class SubMenu extends React.PureComponent<Props, State> {
           </Nav>
           {canCreate && (
             <Nav className="navbar-right">
-              <Button href={`${createButton.url}`}>
+              <Button onClick={openModal}>
                 <i className="fa fa-plus" /> {createButton.name}
               </Button>
             </Nav>
