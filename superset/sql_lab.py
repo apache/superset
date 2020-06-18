@@ -96,9 +96,9 @@ def handle_query_error(
 
 def get_query_backoff_handler(details: Dict[Any, Any]) -> None:
     query_id = details["kwargs"]["query_id"]
-    logger.error(f"Query with id `{query_id}` could not be retrieved")
+    logger.error("Query with id `%s` could not be retrieved", str(query_id))
     stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
-    logger.error(f"Query {query_id}: Sleeping for a sec before retrying...")
+    logger.error("Query %s: Sleeping for a sec before retrying...", str(query_id))
 
 
 def get_query_giveup_handler(_: Any) -> None:
@@ -287,7 +287,7 @@ def execute_sql_statement(
 def _serialize_payload(
     payload: Dict[Any, Any], use_msgpack: Optional[bool] = False
 ) -> Union[bytes, str]:
-    logger.debug(f"Serializing to msgpack: {use_msgpack}")
+    logger.debug("Serializing to msgpack: %r", use_msgpack)
     if use_msgpack:
         return msgpack.dumps(payload, default=json_iso_dttm_ser, use_bin_type=True)
 
@@ -360,9 +360,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     # Breaking down into multiple statements
     parsed_query = ParsedQuery(rendered_query)
     statements = parsed_query.get_statements()
-    logger.info(f"Query {query_id}: Executing {len(statements)} statement(s)")
+    logger.info("Query %s: Executing %i statement(s)", str(query_id), len(statements))
 
-    logger.info(f"Query {query_id}: Set query to 'running'")
+    logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
     session.commit()
@@ -386,7 +386,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
                 # Run statement
                 msg = f"Running statement {i+1} out of {statement_count}"
-                logger.info(f"Query {query_id}: {msg}")
+                logger.info("Query %s: %s", str(query_id), msg)
                 query.set_extra_json_key("progress", msg)
                 session.commit()
                 try:
@@ -437,7 +437,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
     if store_results and results_backend:
         key = str(uuid.uuid4())
-        logger.info(f"Query {query_id}: Storing results in results backend, key: {key}")
+        logger.info(
+            "Query %s: Storing results in results backend, key: %s", str(query_id), key
+        )
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
             with stats_timing(
                 "sqllab.query.results_backend_write_serialization", stats_logger
@@ -451,9 +453,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
             compressed = zlib_compress(serialized_payload)
             logger.debug(
-                f"*** serialized payload size: {getsizeof(serialized_payload)}"
+                "*** serialized payload size: %i", getsizeof(serialized_payload)
             )
-            logger.debug(f"*** compressed payload size: {getsizeof(compressed)}")
+            logger.debug("*** compressed payload size: %i", getsizeof(compressed))
             results_backend.set(key, compressed, cache_timeout)
         query.results_key = key
 

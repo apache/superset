@@ -332,7 +332,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         set to is_dttm=True. Note that this only gets called when new
         columns are detected/created"""
         # TODO: Fix circular import caused by importing TableColumn
-        pass
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -401,9 +400,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 .limit(limit)
             )
             return database.compile_sqla_query(qry)
-        elif LimitMethod.FORCE_LIMIT:
+
+        if LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.set_or_update_query_limit(limit)
+
         return sql
 
     @classmethod
@@ -465,7 +466,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Create table from contents of a csv. Note: this method does not create
         metadata for the table.
         """
-        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs,)
+        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs)
         engine = cls.get_engine(database)
         if table.schema:
             # only add schema when it is preset and non empty
@@ -529,7 +530,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         for handling the cursor and updating progress information in the
         query object"""
         # TODO: Fix circular import error caused by importing sql_lab.Query
-        pass
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
@@ -573,14 +573,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Some database drivers like presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
-        pass
 
     @classmethod
     def patch(cls) -> None:
         """
         TODO: Improve docstring and refactor implementation in Hive
         """
-        pass
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> List[str]:

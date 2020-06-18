@@ -200,7 +200,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         tt = target_type.upper()
         if tt == "DATE":
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        elif tt == "TIMESTAMP":
+        if tt == "TIMESTAMP":
             return f"""CAST('{dttm.isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
         return None
 
@@ -284,7 +284,9 @@ class HiveEngineSpec(PrestoEngineSpec):
             if log:
                 log_lines = log.splitlines()
                 progress = cls.progress(log_lines)
-                logger.info(f"Query {query_id}: Progress total: {progress}")
+                logger.info(
+                    "Query %s: Progress total: %s", str(query_id), str(progress)
+                )
                 needs_commit = False
                 if progress > query.progress:
                     query.progress = progress
@@ -294,21 +296,25 @@ class HiveEngineSpec(PrestoEngineSpec):
                     if tracking_url:
                         job_id = tracking_url.split("/")[-2]
                         logger.info(
-                            f"Query {query_id}: Found the tracking url: {tracking_url}"
+                            "Query %s: Found the tracking url: %s",
+                            str(query_id),
+                            tracking_url,
                         )
                         tracking_url = tracking_url_trans(tracking_url)
                         logger.info(
-                            f"Query {query_id}: Transformation applied: {tracking_url}"
+                            "Query %s: Transformation applied: %s",
+                            str(query_id),
+                            tracking_url,
                         )
                         query.tracking_url = tracking_url
-                        logger.info(f"Query {query_id}: Job id: {job_id}")
+                        logger.info("Query %s: Job id: %s", str(query_id), str(job_id))
                         needs_commit = True
                 if job_id and len(log_lines) > last_log_line:
                     # Wait for job id before logging things out
                     # this allows for prefixing all log lines and becoming
                     # searchable in something like Kibana
                     for l in log_lines[last_log_line:]:
-                        logger.info(f"Query {query_id}: [{job_id}] {l}")
+                        logger.info("Query %s: [%s] %s", str(query_id), str(job_id), l)
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
@@ -414,7 +420,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         """
         # Do nothing in the URL object since instead this should modify
         # the configuraiton dictionary. See get_configuration_for_impersonation
-        pass
 
     @classmethod
     def get_configuration_for_impersonation(
