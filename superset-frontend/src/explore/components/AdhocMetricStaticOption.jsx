@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { ColumnTypeLabel } from '@superset-ui/control-utils';
 
-import ColumnTypeLabel from '../../components/ColumnTypeLabel';
 import adhocMetricType from '../propTypes/adhocMetricType';
 
 const propTypes = {
