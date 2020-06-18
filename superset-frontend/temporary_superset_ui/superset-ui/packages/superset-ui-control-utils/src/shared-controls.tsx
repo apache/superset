@@ -42,17 +42,17 @@ import {
 } from '@superset-ui/color';
 import { legacyValidateInteger, validateNonEmpty } from '@superset-ui/validator';
 
-import { formatSelectOptions } from './selectOptions';
-import { mainMetric, Metric } from './mainMetric';
-import { ColumnOption } from './ColumnOption';
+import { formatSelectOptions } from './utils/selectOptions';
+import { mainMetric, Metric } from './utils/mainMetric';
 import { TIME_FILTER_LABELS } from './constants';
 import {
-  ControlConfig,
+  SharedControlConfig,
   ColumnMeta,
   DatasourceMeta,
   ExtraControlProps,
   SelectControlConfig,
 } from './types';
+import { ColumnOption } from './components/ColumnOption';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -102,22 +102,24 @@ type Control = {
   default?: unknown;
 };
 
-const groupByControl: ControlConfig = {
+const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
+  label: t('Group by'),
   queryField: 'groupby',
   multi: true,
   freeForm: true,
-  label: t('Group by'),
+  clearable: true,
   default: [],
   includeTime: false,
   description: t('One or many controls to group by'),
-  optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
-  valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
+  optionRenderer: c => <ColumnOption showType column={c} />,
+  valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   allowAll: true,
-  filterOption: (opt: ColumnMeta, text: string) =>
+  filterOption: ({ data: opt }, text: string) =>
     (opt.column_name && opt.column_name.toLowerCase().includes(text.toLowerCase())) ||
-    (opt.verbose_name && opt.verbose_name.toLowerCase().includes(text.toLowerCase())),
+    (opt.verbose_name && opt.verbose_name.toLowerCase().includes(text.toLowerCase())) ||
+    false,
   promptTextCreator: (label: unknown) => label,
   mapStateToProps(state, { includeTime }) {
     const newState: ExtraControlProps = {};
@@ -133,7 +135,7 @@ const groupByControl: ControlConfig = {
   commaChoosesOption: false,
 };
 
-const metrics: ControlConfig = {
+const metrics: SharedControlConfig<'MetricsControl'> = {
   type: 'MetricsControl',
   queryField: 'metrics',
   multi: true,
@@ -152,7 +154,8 @@ const metrics: ControlConfig = {
   },
   description: t('One or many metrics to display'),
 };
-const metric: ControlConfig = {
+
+const metric: SharedControlConfig<'MetricsControl'> = {
   ...metrics,
   multi: false,
   label: t('Metric'),
@@ -169,40 +172,40 @@ export function columnChoices(datasource: DatasourceMeta) {
   return [];
 }
 
-const datasourceControl: ControlConfig = {
+const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
   type: 'DatasourceControl',
   label: t('Datasource'),
   default: null,
   description: null,
-  mapStateToProps: (state, control, { setDatasource }) => ({
+  mapStateToProps: (state, control, actions) => ({
     datasource: state.datasource,
-    onDatasourceSave: setDatasource,
+    onDatasourceSave: actions?.setDatasource,
   }),
 };
 
-const viz_type: ControlConfig = {
+const viz_type: SharedControlConfig<'VizTypeControl'> = {
   type: 'VizTypeControl',
   label: t('Visualization Type'),
   default: 'table',
   description: t('The type of visualization to display'),
 };
 
-const color_picker: ControlConfig = {
+const color_picker: SharedControlConfig<'ColorPickerControl'> = {
+  type: 'ColorPickerControl',
   label: t('Fixed Color'),
   description: t('Use this to define a static color for all circles'),
-  type: 'ColorPickerControl',
   default: PRIMARY_COLOR,
   renderTrigger: true,
 };
 
-const metric_2: ControlConfig = {
+const metric_2: SharedControlConfig<'MetricsControl'> = {
   ...metric,
   label: t('Right Axis Metric'),
   clearable: true,
   description: t('Choose a metric for right axis'),
 };
 
-const linear_color_scheme: ControlConfig = {
+const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   type: 'ColorSchemeControl',
   label: t('Linear Color Scheme'),
   choices: () =>
@@ -215,7 +218,7 @@ const linear_color_scheme: ControlConfig = {
   isLinear: true,
 };
 
-const secondary_metric: ControlConfig = {
+const secondary_metric: SharedControlConfig<'MetricsControl'> = {
   ...metric,
   label: t('Color Metric'),
   default: null,
@@ -223,13 +226,13 @@ const secondary_metric: ControlConfig = {
   description: t('A metric to use for color'),
 };
 
-const columnsControl: ControlConfig = {
+const columnsControl: typeof groupByControl = {
   ...groupByControl,
   label: t('Columns'),
   description: t('One or many controls to pivot as columns'),
 };
 
-const druid_time_origin: ControlConfig = {
+const druid_time_origin: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: TIME_FILTER_LABELS.druid_time_origin,
@@ -244,7 +247,7 @@ const druid_time_origin: ControlConfig = {
   ),
 };
 
-const granularity: ControlConfig = {
+const granularity: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: TIME_FILTER_LABELS.granularity,
@@ -274,7 +277,7 @@ const granularity: ControlConfig = {
   ),
 };
 
-const granularity_sqla: ControlConfig = {
+const granularity_sqla: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
   label: TIME_FILTER_LABELS.granularity_sqla,
   description: t(
@@ -286,8 +289,8 @@ const granularity_sqla: ControlConfig = {
   ),
   default: (c: Control) => c.default,
   clearable: false,
-  optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
-  valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
+  optionRenderer: c => <ColumnOption showType column={c} />,
+  valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   mapStateToProps: state => {
     const props: Partial<SelectControlConfig<ColumnMeta>> = {};
@@ -304,7 +307,7 @@ const granularity_sqla: ControlConfig = {
   },
 };
 
-const time_grain_sqla: ControlConfig = {
+const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   label: TIME_FILTER_LABELS.time_grain_sqla,
   default: 'P1D',
@@ -320,7 +323,7 @@ const time_grain_sqla: ControlConfig = {
   }),
 };
 
-const time_range: ControlConfig = {
+const time_range: SharedControlConfig<'DateFilterControl'> = {
   type: 'DateFilterControl',
   freeForm: true,
   label: TIME_FILTER_LABELS.time_range,
@@ -338,7 +341,7 @@ const time_range: ControlConfig = {
   }),
 };
 
-const row_limit: ControlConfig = {
+const row_limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Row limit'),
@@ -347,7 +350,7 @@ const row_limit: ControlConfig = {
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
 };
 
-const limit: ControlConfig = {
+const limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Series limit'),
@@ -361,7 +364,7 @@ const limit: ControlConfig = {
   ),
 };
 
-const timeseries_limit_metric: ControlConfig = {
+const timeseries_limit_metric: SharedControlConfig<'MetricsControl'> = {
   type: 'MetricsControl',
   label: t('Sort By'),
   default: null,
@@ -373,7 +376,7 @@ const timeseries_limit_metric: ControlConfig = {
   }),
 };
 
-const series: ControlConfig = {
+const series: typeof groupByControl = {
   ...groupByControl,
   label: t('Series'),
   multi: false,
@@ -385,7 +388,7 @@ const series: ControlConfig = {
   ),
 };
 
-const entity: ControlConfig = {
+const entity: typeof groupByControl = {
   ...groupByControl,
   label: t('Entity'),
   default: null,
@@ -394,27 +397,27 @@ const entity: ControlConfig = {
   description: t('This defines the element to be plotted on the chart'),
 };
 
-const x: ControlConfig = {
+const x: SharedControlConfig<'MetricsControl'> = {
   ...metric,
   label: t('X Axis'),
   description: t('Metric assigned to the [X] axis'),
   default: null,
 };
 
-const y: ControlConfig = {
+const y: SharedControlConfig<'MetricsControl'> = {
   ...metric,
   label: t('Y Axis'),
   default: null,
   description: t('Metric assigned to the [Y] axis'),
 };
 
-const size: ControlConfig = {
+const size: SharedControlConfig<'MetricsControl'> = {
   ...metric,
   label: t('Bubble Size'),
   default: null,
 };
 
-const y_axis_format: ControlConfig = {
+const y_axis_format: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Y Axis Format'),
@@ -436,7 +439,7 @@ const y_axis_format: ControlConfig = {
   },
 };
 
-const adhoc_filters: ControlConfig = {
+const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   type: 'AdhocFilterControl',
   label: t('Filters'),
   default: null,
@@ -449,7 +452,7 @@ const adhoc_filters: ControlConfig = {
   provideFormDataToProps: true,
 };
 
-const color_scheme: ControlConfig = {
+const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   type: 'ColorSchemeControl',
   label: t('Color Scheme'),
   default: categoricalSchemeRegistry.getDefaultKey(),
@@ -459,7 +462,7 @@ const color_scheme: ControlConfig = {
   schemes: () => categoricalSchemeRegistry.getMap(),
 };
 
-const label_colors: ControlConfig = {
+const label_colors: SharedControlConfig<'ColorMapControl'> = {
   type: 'ColorMapControl',
   label: t('Color Map'),
   default: {},

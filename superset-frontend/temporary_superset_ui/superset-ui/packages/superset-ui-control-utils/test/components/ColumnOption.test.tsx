@@ -19,9 +19,12 @@
 import React from 'react';
 import { shallow, ShallowWrapper } from 'enzyme';
 
-import { ColumnOption, ColumnOptionProps } from '../../src/ColumnOption';
-import { ColumnTypeLabel } from '../../src/ColumnTypeLabel';
-import InfoTooltipWithTrigger from '../../src/InfoTooltipWithTrigger';
+import {
+  ColumnOption,
+  ColumnOptionProps,
+  ColumnTypeLabel,
+  InfoTooltipWithTrigger,
+} from '../../src';
 
 describe('ColumnOption', () => {
   const defaultProps = {
