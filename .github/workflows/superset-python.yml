@@ -24,7 +24,7 @@ jobs:
     - name: mypy
       run: mypy $(echo $PYTHON_LINT_TARGET)
     - name: isort
-      run: isort --check-only --recursive $(echo $PYTHON_LINT_TARGET)
+      run: isort --version; isort --check-only --recursive $(echo $PYTHON_LINT_TARGET)
     - name: pylint
       # `-j 0` run Pylint in parallel
       run: pylint -j 0 superset
