@@ -136,9 +136,6 @@ class TableColumn(Model, BaseColumn):
     is_dttm = Column(Boolean, default=False)
     expression = Column(Text)
     python_date_format = Column(String(255))
-    sum = is_numeric
-    avg = is_numeric
-    dttm = is_dttm
 
     export_fields = [
         "table_id",
@@ -1210,9 +1207,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name, type=datatype, table=self)
-                # dbcol.sum = dbcol.is_numeric
-                # dbcol.avg = dbcol.is_numeric
-                # dbcol.is_dttm = dbcol.is_temporal
+                dbcol.sum = (
+                    dbcol.is_numeric
+                )  # pylint: disable=attribute-defined-outside-init
+                dbcol.avg = (
+                    dbcol.is_numeric
+                )  # pylint: disable=attribute-defined-outside-init
+                dbcol.is_dttm = dbcol.is_temporal
                 db_engine_spec.alter_new_orm_column(dbcol)
             else:
                 dbcol.type = datatype
