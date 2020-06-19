@@ -47,14 +47,14 @@ def dedup(l: List[str], suffix: str = "__", case_sensitive: bool = True) -> List
     """
     new_l: List[str] = []
     seen: Dict[str, int] = {}
-    for string in l:
-        s_fixed_case = string if case_sensitive else string.lower()
+    for item in l:
+        s_fixed_case = item if case_sensitive else item.lower()
         if s_fixed_case in seen:
             seen[s_fixed_case] += 1
-            string += suffix + str(seen[s_fixed_case])
+            item += suffix + str(seen[s_fixed_case])
         else:
             seen[s_fixed_case] = 0
-        new_l.append(string)
+        new_l.append(item)
     return new_l
 
 

@@ -384,16 +384,14 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         )
     }
 
-    def pre_add(  # pylint: disable=arguments-differ
-        self, table: "TableModelView"
-    ) -> None:
-        validate_sqlatable(table)
+    def pre_add(self, item: "TableModelView") -> None:
+        validate_sqlatable(item)
 
     def post_add(  # pylint: disable=arguments-differ
-        self, table: "TableModelView", flash_message: bool = True
+        self, item: "TableModelView", flash_message: bool = True
     ) -> None:
-        table.fetch_metadata()
-        create_table_permissions(table)
+        item.fetch_metadata()
+        create_table_permissions(item)
         if flash_message:
             flash(
                 _(
@@ -405,10 +403,8 @@ class TableModelView(  # pylint: disable=too-many-ancestors
                 "info",
             )
 
-    def post_update(  # pylint: disable=arguments-differ
-        self, table: "TableModelView"
-    ) -> None:
-        self.post_add(table, flash_message=False)
+    def post_update(self, item: "TableModelView") -> None:
+        self.post_add(item, flash_message=False)
 
     def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
@@ -432,12 +428,12 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             tables = [tables]
         successes = []
         failures = []
-        for my_table in tables:
+        for table_ in tables:
             try:
-                my_table.fetch_metadata()
-                successes.append(my_table)
+                table_.fetch_metadata()
+                successes.append(table_)
             except Exception:  # pylint: disable=broad-except
-                failures.append(my_table)
+                failures.append(table_)
 
         if len(successes) > 0:
             success_msg = _(

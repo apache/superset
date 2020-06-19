@@ -227,7 +227,7 @@ class TableColumn(Model, BaseColumn):
         """
         label = utils.DTTM_ALIAS
 
-        my_db = self.table.database
+        db_ = self.table.database
         pdf = self.python_date_format
         is_epoch = pdf in ("epoch_s", "epoch_ms")
         if not self.expression and not time_grain and not is_epoch:
@@ -237,7 +237,7 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression)
         else:
             col = column(self.column_name)
-        time_expr = my_db.db_engine_spec.get_timestamp_expr(
+        time_expr = db_.db_engine_spec.get_timestamp_expr(
             col, pdf, time_grain, self.type
         )
         return self.table.make_sqla_column_compatible(time_expr, label)
@@ -559,8 +559,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @property
     def html(self) -> str:
-        data_for_frame = ((c.column_name, c.type) for c in self.columns)
-        df = pd.DataFrame(data_for_frame)
+        df = pd.DataFrame((c.column_name, c.type) for c in self.columns)
         df.columns = ["field", "type"]
         return df.to_html(
             index=False,
@@ -597,18 +596,18 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @property
     def data(self) -> Dict[str, Any]:
-        my_data = super().data
+        data_ = super().data
         if self.type == "table":
             grains = self.database.grains() or []
             if grains:
                 grains = [(g.duration, g.name) for g in grains]
-            my_data["granularity_sqla"] = utils.choicify(self.dttm_cols)
-            my_data["time_grain_sqla"] = grains
-            my_data["main_dttm_col"] = self.main_dttm_col
-            my_data["fetch_values_predicate"] = self.fetch_values_predicate
-            my_data["template_params"] = self.template_params
-            my_data["is_sqllab_view"] = self.is_sqllab_view
-        return my_data
+            data_["granularity_sqla"] = utils.choicify(self.dttm_cols)
+            data_["time_grain_sqla"] = grains
+            data_["main_dttm_col"] = self.main_dttm_col
+            data_["fetch_values_predicate"] = self.fetch_values_predicate
+            data_["template_params"] = self.template_params
+            data_["is_sqllab_view"] = self.is_sqllab_view
+        return data_
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
@@ -1172,7 +1171,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def fetch_metadata(self, commit: bool = True) -> None:
         """Fetches the metadata for the table and merges it in"""
         try:
-            my_table = self.get_sqla_table_object()
+            table_ = self.get_sqla_table_object()
         except Exception as ex:
             logger.exception(ex)
             raise Exception(
@@ -1189,30 +1188,22 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         dbcols = (
             db.session.query(TableColumn)
             .filter(TableColumn.table == self)
-            .filter(
-                or_(TableColumn.column_name == col.name for col in my_table.columns)
-            )
+            .filter(or_(TableColumn.column_name == col.name for col in table_.columns))
         )
         dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
 
-        for col in my_table.columns:
+        for col in table_.columns:
             try:
                 datatype = db_engine_spec.column_datatype_to_string(
                     col.type, db_dialect
                 )
             except Exception as ex:  # pylint: disable=broad-except
                 datatype = "UNKNOWN"
-                logger.error("Unrecognized data type in %s.%s", my_table, col.name)
+                logger.error("Unrecognized data type in %s.%s", table_, col.name)
                 logger.exception(ex)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name, type=datatype, table=self)
-                dbcol.sum = (
-                    dbcol.is_numeric
-                )  # pylint: disable=attribute-defined-outside-init
-                dbcol.avg = (
-                    dbcol.is_numeric
-                )  # pylint: disable=attribute-defined-outside-init
                 dbcol.is_dttm = dbcol.is_temporal
                 db_engine_spec.alter_new_orm_column(dbcol)
             else:
@@ -1253,30 +1244,30 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
          superset instances. Audit metadata isn't copies over.
         """
 
-        def lookup_sqlatable(by_table: "SqlaTable") -> "SqlaTable":
+        def lookup_sqlatable(table_: "SqlaTable") -> "SqlaTable":
             return (
                 db.session.query(SqlaTable)
                 .join(Database)
                 .filter(
-                    SqlaTable.table_name == by_table.table_name,
-                    SqlaTable.schema == by_table.schema,
-                    Database.id == by_table.database_id,
+                    SqlaTable.table_name == table_.table_name,
+                    SqlaTable.schema == table_.schema,
+                    Database.id == table_.database_id,
                 )
                 .first()
             )
 
-        def lookup_database(by_table: SqlaTable) -> Database:
+        def lookup_database(table_: SqlaTable) -> Database:
             try:
                 return (
                     db.session.query(Database)
-                    .filter_by(database_name=by_table.params_dict["database_name"])
+                    .filter_by(database_name=table_.params_dict["database_name"])
                     .one()
                 )
             except NoResultFound:
                 raise DatabaseNotFound(
                     _(
                         "Database '%(name)s' is not found",
-                        name=by_table.params_dict["database_name"],
+                        name=table_.params_dict["database_name"],
                     )
                 )
 
