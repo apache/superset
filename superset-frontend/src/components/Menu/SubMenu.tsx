@@ -63,7 +63,7 @@ const StyledHeader = styled.header`
   }
 `;
 
-interface Props {
+interface SubMenuProps {
   createButton: { name: string; url: string | null };
   canCreate: boolean;
   label: string;
@@ -71,13 +71,13 @@ interface Props {
   childs: Array<{ label: string; name: string; url: string }>;
 }
 
-interface State {
+interface SubMenuState {
   selectedMenu: string;
   isModalOpen: boolean;
 }
 
-class SubMenu extends React.PureComponent<Props, State> {
-  state: State = {
+class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
+  state: SubMenuState = {
     selectedMenu: this.props.childs[0] && this.props.childs[0].label,
     isModalOpen: false,
   };

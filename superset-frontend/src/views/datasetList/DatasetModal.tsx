@@ -21,7 +21,7 @@ import styled from '@superset-ui/style';
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
-import Select from 'src/components/Select';
+import Select, { SupersetStyledSelectProps } from 'src/components/Select';
 import Modal from './Modal';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
@@ -30,16 +30,8 @@ type Option = {
   value: string;
 };
 
-type SelectOptions = {
-  isDisabled?: boolean;
-  isLoading?: boolean;
-  name: string;
-  onChange: (arg0: Option) => void;
-  options: Array<Option>;
-  placeholder: string;
-  title: string;
-  value: Option;
-};
+type SelectOptionProps = SupersetStyledSelectProps<Option> & { title: string };
+
 interface DatasetModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -80,7 +72,7 @@ const SelectOptions = ({
   title,
   value,
   isDisabled,
-}: SelectOptions) => (
+}: SelectOptionProps) => (
   <>
     <FieldTitle>{title}</FieldTitle>
     <Select
