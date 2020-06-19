@@ -1360,6 +1360,17 @@ def get_iterable(x: Any) -> List[Any]:
     return x if isinstance(x, list) else [x]
 
 
+class LenientEnum(Enum):
+    """Enums that do not raise ValueError when value is invalid"""
+
+    @classmethod
+    def get(cls, value: Any) -> Any:
+        try:
+            return super().__new__(cls, value)
+        except ValueError:
+            return None
+
+
 class TimeRangeEndpoint(str, Enum):
     """
     The time range endpoint types which represent inclusive, exclusive, or unknown.
@@ -1404,6 +1415,15 @@ class DbColumnType(Enum):
     NUMERIC = 0
     STRING = 1
     TEMPORAL = 2
+
+
+class QueryMode(str, LenientEnum):
+    """
+    Whether the query runs on aggregate or returns raw records
+    """
+
+    RAW = "raw"
+    AGGREGATE = "aggregate"
 
 
 class FilterOperator(str, Enum):

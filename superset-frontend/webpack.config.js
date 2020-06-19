@@ -194,6 +194,7 @@ const config = {
     },
   },
   optimization: {
+    sideEffects: true,
     splitChunks: {
       chunks: 'all',
       automaticNameDelimiter: '-',
