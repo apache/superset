@@ -291,7 +291,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def get_datasource_access_link(  # pylint: disable=unused-argument
-        datasource: "BaseDatasource"
+        datasource: "BaseDatasource",
     ) -> Optional[str]:
         """
         Return the link for the denied Superset datasource.
