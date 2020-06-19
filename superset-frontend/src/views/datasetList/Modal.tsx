@@ -50,6 +50,7 @@ const StyledButton = styled(Button)`
   &.btn-primary,
   &.btn-primary:hover {
     background-color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colors.grayscale.light5};
   }
 `;
 

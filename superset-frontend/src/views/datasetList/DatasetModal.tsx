@@ -233,7 +233,7 @@ class DatasetModal extends React.PureComponent<
     }
   }
 
-  fetchTables(schema: string, substr: string = 'undefined') {
+  fetchTables(schema: string, substr = 'undefined') {
     const { datasource } = this.state;
 
     if (datasource && schema) {
