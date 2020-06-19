@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-histogram",
-  "version": "0.13.31",
+  "version": "0.14.0",
   "description": "Superset Legacy Chart - Histogram",
   "sideEffects": [
     "*.css"
@@ -37,8 +37,8 @@
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.13.0",
-    "@superset-ui/color": "^0.13.0",
     "@superset-ui/chart-controls": "^0.13.12",
+    "@superset-ui/color": "^0.13.0",
     "@superset-ui/style": "^0.13.26",
     "@superset-ui/translation": "^0.13.0",
     "@superset-ui/validator": "^0.13.3",
