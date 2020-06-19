@@ -94,12 +94,8 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_FIELD_VALUE]() {
-      let new_form_data = state.form_data;
-      if (action.controlName === 'viz_type') {
-        new_form_data = JSON.parse(JSON.stringify(new_form_data));
-        // Update state's vizType if we are switching to a new visualization
-        new_form_data.viz_type = action.value;
-      }
+      const new_form_data = state.form_data;
+      new_form_data[action.controlName] = action.value;
 
       // These errors are reported from the Control components
       let errors = action.validationErrors || [];

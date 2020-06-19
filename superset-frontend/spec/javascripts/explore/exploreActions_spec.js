@@ -28,6 +28,7 @@ describe('reducers', () => {
       actions.setControlValue('x_axis_label', 'x', []),
     );
     expect(newState.controls.x_axis_label.value).toBe('x');
+    expect(newState.form_data.x_axis_label).toBe('x');
   });
   it('setControlValue works as expected with a checkbox', () => {
     const newState = exploreReducer(
@@ -35,5 +36,6 @@ describe('reducers', () => {
       actions.setControlValue('show_legend', true, []),
     );
     expect(newState.controls.show_legend.value).toBe(true);
+    expect(newState.form_data.show_legend).toBe(true);
   });
 });
