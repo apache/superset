@@ -39,7 +39,7 @@ def cleanup_permissions():
     sm.get_session.commit()
 
     pvms = sm.get_session.query(sm.permissionview_model).all()
-    print("STage 1: # of permission view menues is: {}".format(len(pvms)))
+    print("Stage 1: # of permission view menues is: {}".format(len(pvms)))
 
     # 2. Clean up None permissions or view menues
     pvms = sm.get_session.query(sm.permissionview_model).all()
