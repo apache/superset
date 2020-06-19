@@ -82,16 +82,16 @@ class SubMenu extends React.PureComponent<Props, State> {
     isModalOpen: false,
   };
 
-  handleClick = (item: string) => () => {
-    this.setState({ selectedMenu: item });
-  };
-
   onOpen = () => {
     this.setState({ isModalOpen: true });
   };
 
   onClose = () => {
     this.setState({ isModalOpen: false });
+  };
+
+  handleClick = (item: string) => () => {
+    this.setState({ selectedMenu: item });
   };
 
   render() {
