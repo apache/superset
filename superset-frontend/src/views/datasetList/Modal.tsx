@@ -32,11 +32,16 @@ interface ModalProps {
 }
 
 const StyledButton = styled(Button)`
-  border: none;
   border-radius: ${({ theme }) => theme.borderRadius}px;
+  border: none;
   padding: 8px;
   text-transform: uppercase;
   width: 160px;
+  &.btn,
+  &.btn:hover {
+    background-color: ${({ theme }) => theme.colors.primary.light4};
+    color: ${({ theme }) => theme.colors.primary.base};
+  }
   &.btn[disabled],
   &.btn[disabled]:hover {
     background-color: ${({ theme }) => theme.colors.grayscale.light2};
@@ -45,10 +50,6 @@ const StyledButton = styled(Button)`
   &.btn-primary,
   &.btn-primary:hover {
     background-color: ${({ theme }) => theme.colors.primary.base};
-  }
-  &.btn-secondary {
-    background-color: ${({ theme }) => theme.colors.primary.light4};
-    color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
 
@@ -107,9 +108,7 @@ export default function Modal({
       <StyledModalBody>{children}</StyledModalBody>
       <StyledModalFooter>
         <span className="float-right">
-          <StyledButton bsStyle="secondary" onClick={onHide}>
-            {t('Cancel')}
-          </StyledButton>
+          <StyledButton onClick={onHide}>{t('Cancel')}</StyledButton>
           <StyledButton
             bsStyle="primary"
             disabled={disableSave}
