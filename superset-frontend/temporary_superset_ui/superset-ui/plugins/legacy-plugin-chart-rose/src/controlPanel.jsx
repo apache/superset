@@ -23,7 +23,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   formatSelectOptions,
-} from '@superset-ui/control-utils';
+} from '@superset-ui/chart-controls';
 
 export default {
   requiresTime: true,
