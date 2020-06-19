@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { formatSelectOptions, internalSharedControls } from '@superset-ui/control-utils';
+import { formatSelectOptions, internalSharedControls } from '@superset-ui/chart-controls';
 
 const { columnChoices } = internalSharedControls;
 

@@ -1,5 +1,5 @@
 {
-  "name": "@superset-ui/control-utils",
+  "name": "@superset-ui/chart-controls",
   "version": "0.13.31",
   "description": "Superset UI control-utils",
   "sideEffects": false,

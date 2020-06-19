@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { D3_FORMAT_OPTIONS } from '@superset-ui/control-utils';
+import { D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
   showLegend,
