@@ -41,10 +41,10 @@
     "node-fetch": "^2.2.0"
   },
   "peerDependencies": {
-    "@superset-ui/connection": "^0.13.0",
-    "@superset-ui/core": "^0.13.0",
-    "@superset-ui/dimension": "^0.13.0",
-    "@superset-ui/query": "^0.13.0",
+    "@superset-ui/connection": "^0.14.0",
+    "@superset-ui/core": "^0.14.0",
+    "@superset-ui/dimension": "^0.14.0",
+    "@superset-ui/query": "^0.14.0",
     "react": "^16.13.1"
   }
 }
