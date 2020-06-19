@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-iframe",
-  "version": "0.13.27",
+  "version": "0.14.0",
   "description": "Superset Legacy Chart - Iframe",
   "sideEffects": [
     "*.css"
