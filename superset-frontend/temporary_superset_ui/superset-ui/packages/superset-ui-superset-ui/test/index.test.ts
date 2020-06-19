@@ -27,7 +27,7 @@ describe('@superset-ui/superset-ui', () => {
   it('should export @superset-ui/connection', () => {
     expect(SupersetClient).toBeDefined();
   });
-  it('should export @superset-ui/control-utils', () => {
+  it('should export @superset-ui/chart-controls', () => {
     expect(D3_FORMAT_DOCS).toBeDefined();
   });
   it('should export @superset-ui/core', () => {

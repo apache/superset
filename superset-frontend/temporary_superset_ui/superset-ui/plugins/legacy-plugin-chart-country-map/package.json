@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/control-utils": "0.13.31",
+    "@superset-ui/chart-controls": "0.13.31",
     "d3": "^3.5.17",
     "d3-array": "^2.0.3",
     "prop-types": "^15.6.2"

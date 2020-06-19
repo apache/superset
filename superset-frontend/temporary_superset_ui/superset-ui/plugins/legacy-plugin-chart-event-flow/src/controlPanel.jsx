@@ -23,7 +23,7 @@ import {
   ColumnOption,
   internalSharedControls,
   formatSelectOptionsForRange,
-} from '@superset-ui/control-utils';
+} from '@superset-ui/chart-controls';
 
 const { columnChoices } = internalSharedControls;
 

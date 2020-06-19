@@ -24,7 +24,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   ColumnOption,
   ControlPanelConfig,
-} from '@superset-ui/control-utils';
+} from '@superset-ui/chart-controls';
 import { validateNonEmpty } from '@superset-ui/validator';
 
 const config: ControlPanelConfig = {
