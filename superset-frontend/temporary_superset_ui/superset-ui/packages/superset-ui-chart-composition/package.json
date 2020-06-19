@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@types/react": "^16.9.35",
+    "@types/react": "^16.9.38",
     "@vx/responsive": "^0.0.197",
     "csstype": "^2.6.4"
   },
