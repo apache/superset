@@ -31,7 +31,7 @@ import { ReactComponent as SortAscIcon } from 'images/icons/sort-asc.svg';
 import { ReactComponent as SortDescIcon } from 'images/icons/sort-desc.svg';
 import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
 import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
-import { ReactComponent as warningIcon } from 'images/icons/warning.svg';
+import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 
 type Icon =
   | 'cancel-x'
@@ -63,7 +63,7 @@ const iconsRegistry: { [key in Icon]: React.ComponentType } = {
   search: SearchIcon,
   sort: SortIcon,
   trash: TrashIcon,
-  warning: warningIcon,
+  warning: WarningIcon,
 };
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: Icon;

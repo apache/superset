@@ -20,18 +20,37 @@ import React from 'react';
 import styled from '@superset-ui/style';
 import { Modal as BaseModal } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import Button from './Button';
+import Button from 'src/components/Button';
 
-type Callback = (...args: any[]) => void;
-
-interface Props {
+interface ModalProps {
   children: React.ReactNode;
   disableSave: boolean;
-  onHide: Callback;
-  onSave: Callback;
+  onHide: () => void;
+  onSave: () => void;
   show: boolean;
-  title: string | React.ReactNode;
+  title: React.ReactNode;
 }
+
+const StyledButton = styled(Button)`
+  border: none;
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  padding: 8px;
+  text-transform: uppercase;
+  width: 160px;
+  &.btn[disabled],
+  &.btn[disabled]:hover {
+    background-color: ${({ theme }) => theme.colors.grayscale.light2};
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
+  &.btn-primary,
+  &.btn-primary:hover {
+    background-color: ${({ theme }) => theme.colors.primary.base};
+  }
+  &.btn-secondary {
+    background-color: ${({ theme }) => theme.colors.primary.light4};
+    color: ${({ theme }) => theme.colors.primary.base};
+  }
+`;
 
 const StyledModal = styled(BaseModal)`
   .modal-content {
@@ -77,7 +96,7 @@ export default function Modal({
   onSave,
   show,
   title,
-}: Props) {
+}: ModalProps) {
   return (
     <StyledModal show={show} onHide={onHide} bsSize="lg">
       <StyledModalHeader closeButton>
@@ -88,13 +107,16 @@ export default function Modal({
       <StyledModalBody>{children}</StyledModalBody>
       <StyledModalFooter>
         <span className="float-right">
-          <Button title={t('Cancel')} bsStyle="secondary" onClick={onHide} />
-          <Button
+          <StyledButton bsStyle="secondary" onClick={onHide}>
+            {t('Cancel')}
+          </StyledButton>
+          <StyledButton
             bsStyle="primary"
             disabled={disableSave}
             onClick={onSave}
-            title={t('Add')}
-          />
+          >
+            {t('Add')}
+          </StyledButton>
         </span>
       </StyledModalFooter>
     </StyledModal>

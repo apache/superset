@@ -86,44 +86,40 @@ class SubMenu extends React.PureComponent<Props, State> {
     this.setState({ selectedMenu: item });
   };
 
-  openModal = () => {
+  onOpen = () => {
     this.setState({ isModalOpen: true });
   };
 
-  closeModal = () => {
+  onClose = () => {
     this.setState({ isModalOpen: false });
   };
 
   render() {
-    const { canCreate, childs, label, createButton } = this.props;
-    const { isModalOpen, selectedMenu } = this.state;
-    const { closeModal, handleClick, openModal } = this;
-
     return (
       <StyledHeader>
         <Navbar inverse fluid role="navigation">
           <Navbar.Header>
-            <Navbar.Brand>{label}</Navbar.Brand>
+            <Navbar.Brand>{this.props.label}</Navbar.Brand>
           </Navbar.Header>
-          <DatasetModal show={isModalOpen} onHide={closeModal} />
+          <DatasetModal show={this.state.isModalOpen} onHide={this.onClose} />
           <Nav>
-            {childs &&
-              childs.map(child => (
+            {this.props.childs &&
+              this.props.childs.map(child => (
                 <MenuItem
-                  active={child.label === selectedMenu}
+                  active={child.label === this.state.selectedMenu}
                   key={`${child.label}`}
                   eventKey={`${child.name}`}
                   href={child.url}
-                  onClick={handleClick(child.label)}
+                  onClick={this.handleClick(child.label)}
                 >
                   {child.label}
                 </MenuItem>
               ))}
           </Nav>
-          {canCreate && (
+          {this.props.canCreate && (
             <Nav className="navbar-right">
-              <Button onClick={openModal}>
-                <i className="fa fa-plus" /> {createButton.name}
+              <Button onClick={this.onOpen}>
+                <i className="fa fa-plus" /> {this.props.createButton.name}
               </Button>
             </Nav>
           )}

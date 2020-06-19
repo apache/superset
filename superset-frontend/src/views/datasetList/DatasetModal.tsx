@@ -23,35 +23,42 @@ import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
 import Select from 'src/components/Select';
 import Modal from './Modal';
-
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
-type option = {
+type Option = {
   label: string;
   value: string;
 };
 
-interface Props {
+type SelectOptions = {
+  isDisabled?: boolean;
+  isLoading?: boolean;
+  name: string;
+  onChange: (arg0: Option) => void;
+  options: Array<Option>;
+  placeholder: string;
+  title: string;
+  value: Option;
+};
+interface DatasetModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  onChange: any;
-  onDatasourceSave: any;
-  onHide: any;
+  onHide: () => void;
   show: boolean;
 }
 
-interface State {
-  datasource: option;
-  datasources: Array<option>;
+interface DatasetModalState {
+  datasource: Option;
+  datasourceOptions: Array<Option>;
   disableSave: boolean;
   disableSelectSchema: boolean;
   disableSelectTable: boolean;
-  schema: option;
-  schemaLoading: boolean;
-  schemas: Array<option>;
-  table: option;
-  tableLoading: boolean;
-  tables: Array<option>;
+  isSchemaLoading: boolean;
+  isTableLoading: boolean;
+  schema: Option;
+  schemaOptions: Array<Option>;
+  table: Option;
+  tableOptions: Array<Option>;
 }
 
 const FieldTitle = styled.p`
@@ -65,59 +72,94 @@ const StyledIcon = styled(Icon)`
   margin: auto 10px auto 0;
 `;
 
-class DatasetModal extends React.PureComponent<Props, State> {
-  constructor(props: Props) {
-    super(props);
+const SelectOptions = ({
+  name,
+  onChange,
+  options,
+  placeholder,
+  title,
+  value,
+  isDisabled,
+}: SelectOptions) => (
+  <>
+    <FieldTitle>{title}</FieldTitle>
+    <Select
+      clearable={false}
+      ignoreAccents={false}
+      name={name}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+      value={value}
+      width={500}
+      isDisabled={isDisabled}
+    />
+  </>
+);
 
+const defaultSchema = { label: t('Select Schema'), value: t('Select Schema') };
+const defaultTable = { label: t('Select Table'), value: t('Select Table') };
+
+class DatasetModal extends React.PureComponent<
+  DatasetModalProps,
+  DatasetModalState
+> {
+  constructor(props: DatasetModalProps) {
+    super(props);
     this.onDatabaseChange = this.onDatabaseChange.bind(this);
     this.onSave = this.onSave.bind(this);
     this.onSchemaChange = this.onSchemaChange.bind(this);
     this.onTableChange = this.onTableChange.bind(this);
-    this.renderFields = this.renderFields.bind(this);
-    this.renderTitle = this.renderTitle.bind(this);
   }
 
-  state: State = {
-    datasource: { label: 'Select Datasource', value: 'Select Datasource' },
-    datasources: [],
+  state: DatasetModalState = {
+    datasource: {
+      label: t('Select Datasource'),
+      value: t('Select Datasource'),
+    },
+    datasourceOptions: [],
     disableSave: true,
     disableSelectSchema: true,
     disableSelectTable: true,
-    schema: { label: 'Select Schema', value: 'Select Schema' },
-    schemaLoading: false,
-    schemas: [],
-    table: { label: 'Select Table', value: 'Select Table' },
-    tableLoading: false,
-    tables: [],
+    isSchemaLoading: false,
+    isTableLoading: false,
+    schema: defaultSchema,
+    schemaOptions: [],
+    table: defaultTable,
+    tableOptions: [],
   };
 
   componentDidMount() {
     this.fetchDatabase();
   }
 
-  onDatabaseChange(datasource: option) {
+  onDatabaseChange(datasource: Option) {
     this.setState({
       disableSave: true,
       disableSelectSchema: true,
       disableSelectTable: true,
-      schemas: [],
-      tables: [],
+      schemaOptions: [],
+      tableOptions: [],
     });
-    this.fetchSchemas(`${datasource.value}`);
+    this.fetchSchemaOptions(`${datasource.value}`);
     this.setState({
       datasource,
-      schema: { label: 'Select Schema', value: 'Select Schema' },
-      table: { label: 'Select Table', value: 'Select Table' },
+      schema: defaultSchema,
+      table: defaultTable,
     });
   }
 
-  onSchemaChange(schema: option) {
-    this.setState({ tables: [], disableSelectTable: true, disableSave: true });
+  onSchemaChange(schema: Option) {
+    this.setState({
+      tableOptions: [],
+      disableSelectTable: true,
+      disableSave: true,
+    });
     this.fetchTables(`${schema.value}`);
     this.setState({ schema });
   }
 
-  onTableChange(table: option) {
+  onTableChange(table: Option) {
     const { disableSelectSchema, disableSelectTable } = this.state;
     const disableSave = disableSelectSchema || disableSelectTable;
     this.setState({ table, disableSave });
@@ -125,7 +167,6 @@ class DatasetModal extends React.PureComponent<Props, State> {
 
   onSave() {
     const { datasource, schema, table } = this.state;
-    const { onHide, addSuccessToast, addDangerToast } = this.props;
     const data = {
       database: datasource.value,
       schema: schema.value,
@@ -136,17 +177,14 @@ class DatasetModal extends React.PureComponent<Props, State> {
       endpoint: '/api/v1/dataset/',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' },
-      parseMethod: 'text',
     })
       .then(() => {
-        addSuccessToast(t('The dataset has been saved'));
-        onHide();
+        this.props.addSuccessToast(t('The dataset has been saved'));
+        this.props.onHide();
       })
       .catch(e => {
-        addDangerToast(t('Error while saving dataset'));
-        if (e) {
-          console.error(e);
-        }
+        this.props.addDangerToast(t('Error while saving dataset'));
+        console.error(e);
       });
   }
 
@@ -154,47 +192,43 @@ class DatasetModal extends React.PureComponent<Props, State> {
     SupersetClient.get({
       endpoint: `/api/v1/dataset/related/database`,
     })
-      .then(({ json: datasourcesJson = {} }) => {
-        const datasources = datasourcesJson.result.map(
+      .then(({ json: datasourceJson = {} }) => {
+        const datasourceOptions = datasourceJson.result.map(
           ({ text, value }: { text: string; value: number }) => ({
             label: text,
-            value: `${value}`,
+            value,
           }),
         );
-        this.setState({ datasources });
+        this.setState({ datasourceOptions });
       })
       .catch(e => {
         this.props.addDangerToast(
           t('An error occurred while fetching datasources'),
         );
-        if (e) {
-          console.error(e);
-        }
+        console.error(e);
       });
   }
 
-  fetchSchemas(datasourceId: string) {
+  fetchSchemaOptions(datasourceId: string) {
     if (datasourceId) {
-      this.setState({ schemaLoading: true });
-      const endpoint = `/superset/schemas/${datasourceId}/false/`;
+      this.setState({ isSchemaLoading: true });
+      const endpoint = `/superset/schemas/${datasourceId}/false`;
       SupersetClient.get({ endpoint })
         .then(({ json: schemaJson = {} }) => {
-          const schemas = schemaJson.schemas.map((s: string) => ({
-            value: s,
-            label: s,
+          const schemaOptions = schemaJson.schemas.map((schema: string) => ({
+            value: schema,
+            label: schema,
           }));
           this.setState({
             disableSelectSchema: false,
-            schemaLoading: false,
-            schemas,
+            isSchemaLoading: false,
+            schemaOptions,
           });
         })
         .catch(e => {
-          this.setState({ schemaLoading: false, schemas: [] });
+          this.setState({ isSchemaLoading: false, schemaOptions: [] });
           this.props.addDangerToast(t('Error while fetching schema list'));
-          if (e) {
-            console.error(e);
-          }
+          console.error(e);
         });
     }
   }
@@ -203,113 +237,77 @@ class DatasetModal extends React.PureComponent<Props, State> {
     const { datasource } = this.state;
 
     if (datasource && schema) {
-      this.setState(() => ({ tableLoading: true, tables: [] }));
+      this.setState({ isTableLoading: true, tableOptions: [] });
       const endpoint = encodeURI(
         `/superset/tables/${datasource.value}/` +
           `${encodeURIComponent(schema)}/undefined/false/`,
       );
       SupersetClient.get({ endpoint })
         .then(({ json: tableJson = {} }) => {
-          const options = tableJson.options.map((o: option) => ({
-            value: o.value,
-            label: o.label,
+          const options = tableJson.options.map((option: Option) => ({
+            value: option.value,
+            label: option.label,
           }));
           this.setState(() => ({
             disableSelectTable: false,
-            tableLoading: false,
-            tables: options,
+            isTableLoading: false,
+            tableOptions: options,
           }));
         })
         .catch(e => {
-          this.setState(() => ({ tableLoading: false, tables: [] }));
+          this.setState({ isTableLoading: false, tableOptions: [] });
           this.props.addDangerToast(t('Error while fetching table list'));
-          if (e) {
-            console.error(e);
-          }
+          console.error(e);
         });
     }
   }
 
-  renderFields() {
-    const {
-      datasource,
-      datasources,
-      disableSelectSchema,
-      disableSelectTable,
-      schema,
-      schemaLoading,
-      schemas,
-      table,
-      tableLoading,
-      tables,
-    } = this.state;
-    const { onDatabaseChange, onSchemaChange, onTableChange } = this;
-
-    return (
-      <>
-        <FieldTitle>{t('datasource')}</FieldTitle>
-        <Select
-          clearable={false}
-          ignoreAccents={false}
-          name="select-datasource"
-          onChange={onDatabaseChange}
-          options={datasources}
-          placeholder={t('Select Datasource')}
-          value={datasource}
-          width={500}
-        />
-        <FieldTitle>{t('schema')}</FieldTitle>
-        <Select
-          clearable={false}
-          ignoreAccents={false}
-          isDisabled={disableSelectSchema}
-          isLoading={schemaLoading}
-          name="select-schema"
-          onChange={onSchemaChange}
-          options={schemas}
-          placeholder={t('Select Schema')}
-          value={schema}
-          width={500}
-        />
-        <FieldTitle>{t('table')}</FieldTitle>
-        <Select
-          clearable={false}
-          ignoreAccents={false}
-          isDisabled={disableSelectTable}
-          isLoading={tableLoading}
-          name="select-table"
-          onChange={onTableChange}
-          options={tables}
-          placeholder={t('Select Table')}
-          value={table}
-          width={500}
-        />
-      </>
-    );
-  }
-
-  renderTitle() {
-    return (
-      <>
-        <StyledIcon name="warning" />
-        {t('Add Dataset')}
-      </>
-    );
-  }
-
   render() {
-    const { disableSave } = this.state;
-    const { show, onHide } = this.props;
-    const { onSave, renderFields, renderTitle } = this;
     return (
       <Modal
-        disableSave={disableSave}
-        onHide={onHide}
-        onSave={onSave}
-        show={show}
-        title={renderTitle()}
+        disableSave={this.state.disableSave}
+        onHide={this.props.onHide}
+        onSave={this.onSave}
+        show={this.props.show}
+        title={
+          <>
+            <StyledIcon name="warning" />
+            {t('Add Dataset')}
+          </>
+        }
       >
-        {renderFields()}
+        {
+          <>
+            <SelectOptions
+              name="select-datasource"
+              onChange={this.onDatabaseChange}
+              options={this.state.datasourceOptions}
+              placeholder={t('Select Datasource')}
+              title={t('datasource')}
+              value={this.state.datasource}
+            />
+            <SelectOptions
+              isDisabled={this.state.disableSelectSchema}
+              isLoading={this.state.isSchemaLoading}
+              name="select-schema"
+              onChange={this.onSchemaChange}
+              options={this.state.schemaOptions}
+              placeholder={t('Select Schema')}
+              title={t('schema')}
+              value={this.state.schema}
+            />
+            <SelectOptions
+              isDisabled={this.state.disableSelectTable}
+              isLoading={this.state.isTableLoading}
+              name="select-table"
+              onChange={this.onTableChange}
+              options={this.state.tableOptions}
+              placeholder={t('Select Table')}
+              title={t('table')}
+              value={this.state.table}
+            />
+          </>
+        }
       </Modal>
     );
   }
