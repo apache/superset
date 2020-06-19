@@ -1096,10 +1096,10 @@
     "@babel/helper-plugin-utils" "^7.8.3"
     "@babel/plugin-transform-typescript" "^7.9.0"
 
-"@babel/runtime-corejs2@^7.0.0", "@babel/runtime-corejs2@^7.1.5":
-  version "7.9.6"
-  resolved "https://registry.yarnpkg.com/@babel/runtime-corejs2/-/runtime-corejs2-7.9.6.tgz#acd5d6351384cc2828dc211aa5426a90476bf4a8"
-  integrity sha512-TcdM3xc7weMrwTawuG3BTjtVE3mQLXUPQ9CxTbSKOrhn3QAcqCJ2fz+IIv25wztzUnhNZat7hr655YJa61F3zg==
+"@babel/runtime-corejs2@^7.1.5", "@babel/runtime-corejs2@^7.0.0":
+  version "7.10.2"
+  resolved "https://registry.yarnpkg.com/@babel/runtime-corejs2/-/runtime-corejs2-7.10.2.tgz#532f20b839684615f97e9f700f630e995efed426"
+  integrity sha512-ZLwsFnNm3WpIARU1aLFtufjMHsmEnc8TjtrfAjmbgMbeoyR+LuQoyESoNdTfeDhL6IdY12SpeycXMgSgl8XGXA==
   dependencies:
     core-js "^2.6.5"
     regenerator-runtime "^0.13.4"
@@ -4055,10 +4055,10 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react@*", "@types/react@^16.9.11", "@types/react@^16.9.35":
-  version "16.9.35"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-16.9.35.tgz#a0830d172e8aadd9bd41709ba2281a3124bbd368"
-  integrity sha512-q0n0SsWcGc8nDqH2GJfWQWUOmZSJhXV64CjVN5SvcNti3TdEaA3AH0D8DwNmMdzjMAC/78tB8nAZIlV8yTz+zQ==
+"@types/react@*", "@types/react@^16.9.11", "@types/react@^16.9.38":
+  version "16.9.38"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-16.9.38.tgz#868405dace93a4095d3e054f4c4a1de7a1ac0680"
+  integrity sha512-pHAeZbjjNRa/hxyNuLrvbxhhnKyKNiLC6I5fRF2Zr/t/S6zS41MiyzH4+c+1I9vVfvuRt1VS2Lodjr4ZWnxrdA==
   dependencies:
     "@types/prop-types" "*"
     csstype "^2.2.0"
@@ -8632,7 +8632,7 @@ enzyme-to-json@^3.4.3:
     lodash "^4.17.15"
     react-is "^16.12.0"
 
-enzyme@^3.10.0, enzyme@^3.11.0:
+enzyme@^3.11.0:
   version "3.11.0"
   resolved "https://registry.yarnpkg.com/enzyme/-/enzyme-3.11.0.tgz#71d680c580fe9349f6f5ac6c775bc3e6b7a79c28"
   integrity sha512-Dw8/Gs4vRjxY6/6i9wU0V+utmQO9kvh9XLnz3LIudviOnVYDEe2ec+0k+NQoMamn1VrjKgCUOWj5jG/5M5M0Qw==
@@ -13382,9 +13382,9 @@ natural-compare@^1.4.0:
   integrity sha1-Sr6/7tdUHywnrPspvbvRXI1bpPc=
 
 nearley@^2.7.10:
-  version "2.19.1"
-  resolved "https://registry.yarnpkg.com/nearley/-/nearley-2.19.1.tgz#4af4006e16645ff800e9f993c3af039857d9dbdc"
-  integrity sha512-xq47GIUGXxU9vQg7g/y1o1xuKnkO7ev4nRWqftmQrLkfnE/FjRqDaGOUakM8XHPn/6pW3bGjU2wgoJyId90rqg==
+  version "2.19.4"
+  resolved "https://registry.yarnpkg.com/nearley/-/nearley-2.19.4.tgz#7518cbdd7d0e8e08b5f82841b9edb0126239c8b1"
+  integrity sha512-oqj3m4oqwKsN77pETa9IPvxHHHLW68KrDc2KYoWMUOhDlrNUo7finubwffQMBRnwNCOXc4kRxCZO0Rvx4L6Zrw==
   dependencies:
     commander "^2.19.0"
     moo "^0.5.0"
@@ -13695,6 +13695,11 @@ number-is-nan@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/number-is-nan/-/number-is-nan-1.0.1.tgz#097b602b53422a522c1afb8790318336941a011d"
   integrity sha1-CXtgK1NCKlIsGvuHkDGDNpQaAR0=
+
+nvd3-fork@2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/nvd3-fork/-/nvd3-fork-2.0.1.tgz#fa41824eabc6b1e2bb2ea6fda33659e308825b87"
+  integrity sha512-Z20PvqPvVEEyNr1Sk87tbER8RTM6L1PxIkz/FnS51CWEEKu8QwKQBuABVUq8acE5mJKnKj7upi/ezuKNG/cIAA==
 
 nvd3@1.8.6:
   version "1.8.6"
