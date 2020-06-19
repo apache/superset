@@ -10,7 +10,7 @@ This plugin provides Word Cloud for Superset.
 Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
 
 ```js
-import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
+import WordCloudChartPlugin from '@superset-ui/plugin-chart-word-cloud';
 
 new WordCloudChartPlugin()
   .configure({ key: 'word-cloud' })
