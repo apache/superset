@@ -22,7 +22,7 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { ColumnOption } from '@superset-ui/control-utils';
+import { ColumnOption } from '@superset-ui/chart-controls';
 import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
 import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
 

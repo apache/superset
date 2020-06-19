@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ColumnOption, ColumnTypeLabel } from '@superset-ui/control-utils';
+import { ColumnOption, ColumnTypeLabel } from '@superset-ui/chart-controls';
 
 import AdhocMetricStaticOption from './AdhocMetricStaticOption';
 import columnType from '../propTypes/columnType';
