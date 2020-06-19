@@ -86,13 +86,13 @@ const SelectOptions = ({
     <Select
       clearable={false}
       ignoreAccents={false}
+      isDisabled={isDisabled}
       name={name}
       onChange={onChange}
       options={options}
       placeholder={placeholder}
       value={value}
       width={500}
-      isDisabled={isDisabled}
     />
   </>
 );
@@ -190,7 +190,7 @@ class DatasetModal extends React.PureComponent<
 
   fetchDatabase() {
     SupersetClient.get({
-      endpoint: `/api/v1/dataset/related/database`,
+      endpoint: '/api/v1/dataset/related/database',
     })
       .then(({ json: datasourceJson = {} }) => {
         const datasourceOptions = datasourceJson.result.map(
@@ -212,12 +212,12 @@ class DatasetModal extends React.PureComponent<
   fetchSchemaOptions(datasourceId: string) {
     if (datasourceId) {
       this.setState({ isSchemaLoading: true });
-      const endpoint = `/superset/schemas/${datasourceId}/false`;
+      const endpoint = `/superset/schemas/${datasourceId}`;
       SupersetClient.get({ endpoint })
         .then(({ json: schemaJson = {} }) => {
           const schemaOptions = schemaJson.schemas.map((schema: string) => ({
-            value: schema,
             label: schema,
+            value: schema,
           }));
           this.setState({
             disableSelectSchema: false,
@@ -233,14 +233,16 @@ class DatasetModal extends React.PureComponent<
     }
   }
 
-  fetchTables(schema: string) {
+  fetchTables(schema: string, substr: string = 'undefined') {
     const { datasource } = this.state;
 
     if (datasource && schema) {
       this.setState({ isTableLoading: true, tableOptions: [] });
+      const encodedSchema = encodeURIComponent(schema);
+      const encodedSubstr = encodeURIComponent(substr);
+
       const endpoint = encodeURI(
-        `/superset/tables/${datasource.value}/` +
-          `${encodeURIComponent(schema)}/undefined/false/`,
+        `/superset/tables/${datasource.value}/${encodedSchema}/${encodedSubstr}`,
       );
       SupersetClient.get({ endpoint })
         .then(({ json: tableJson = {} }) => {
