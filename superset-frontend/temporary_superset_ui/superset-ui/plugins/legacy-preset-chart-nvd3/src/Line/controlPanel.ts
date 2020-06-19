@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { sections } from '@superset-ui/control-utils';
+import { sections } from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
   showBrush,

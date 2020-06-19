@@ -19,7 +19,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { D3_TIME_FORMAT_OPTIONS, sections } from '@superset-ui/control-utils';
+import { D3_TIME_FORMAT_OPTIONS, sections } from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
   showLegend,

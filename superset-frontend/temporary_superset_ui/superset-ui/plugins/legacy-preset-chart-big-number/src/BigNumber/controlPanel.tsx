@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { formatSelectOptions, ControlPanelConfig } from '@superset-ui/control-utils';
+import { formatSelectOptions, ControlPanelConfig } from '@superset-ui/chart-controls';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 

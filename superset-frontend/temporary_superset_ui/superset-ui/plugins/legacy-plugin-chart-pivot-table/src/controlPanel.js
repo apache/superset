@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { D3_FORMAT_OPTIONS, D3_FORMAT_DOCS, formatSelectOptions } from '@superset-ui/control-utils';
+import {
+  D3_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  formatSelectOptions,
+} from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [

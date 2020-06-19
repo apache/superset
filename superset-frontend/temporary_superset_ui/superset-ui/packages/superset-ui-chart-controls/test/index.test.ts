@@ -18,7 +18,7 @@
  */
 import { sections } from '../src';
 
-describe('@superset-ui/control-utils', () => {
+describe('@superset-ui/chart-controls', () => {
   it('exports sections', () => {
     expect(sections).toBeDefined();
     expect(sections.datasourceAndVizType).toBeDefined();
