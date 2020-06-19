@@ -31,6 +31,6 @@
     "node-fetch": "^2.2.0"
   },
   "peerDependencies": {
-    "@superset-ui/connection": "^0.13.25"
+    "@superset-ui/connection": "^0.14.0"
   }
 }
