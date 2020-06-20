@@ -45,7 +45,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship, Session
-from sqlalchemy_utils import EncryptedType
+from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
 
 from superset import conf, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -136,7 +136,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
     broker_user = Column(String(255))
-    broker_pass = Column(EncryptedType(String(255), conf.get("SECRET_KEY")))
+    broker_pass = Column(StringEncryptedType(String(255), conf.get("SECRET_KEY")))
 
     export_fields = [
         "cluster_name",
