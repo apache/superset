@@ -500,7 +500,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return [s for s in schemas if s in accessible_schemas]
 
-    def datasources_accessible_by_user(
+    def get_datasources_accessible_by_user(  # pylint: disable=invalid-name
         self,
         database: "Database",
         datasource_names: List[DatasourceName],
@@ -912,8 +912,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self, table: "BaseDatasource"
     ) -> List[Query]:
         """
-        Retrieves the appropriate row level security
-        filters for the current user and the passed table.
+        Retrieves the appropriate row level security filters for the current user and
+        the passed table.
 
         :param table: The table to check against
         :returns: A list of filters.
