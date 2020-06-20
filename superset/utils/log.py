@@ -169,6 +169,10 @@ class DBEventLogger(AbstractEventLogger):
             )
             logs.append(log)
 
-        sesh = current_app.appbuilder.get_session
-        sesh.bulk_save_objects(logs)
-        sesh.commit()
+        try:
+            sesh = current_app.appbuilder.get_session
+            sesh.bulk_save_objects(logs)
+            sesh.commit()
+        except Exception as e:
+            logging.error("DBEventLogger failed to log event(s)")
+            logging.exception(e)

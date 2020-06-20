@@ -34,6 +34,7 @@ from superset.connectors.druid.models import (
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
 
@@ -556,8 +557,9 @@ class TestImportExport(SupersetTestCase):
         return dash_with_1_slice
 
     def test_import_table_no_metadata(self):
+        db_id = get_example_database().id
         table = self.create_table("pure_table", id=10001)
-        imported_id = SqlaTable.import_obj(table, import_time=1989)
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1989)
         imported = self.get_table_by_id(imported_id)
         self.assert_table_equals(table, imported)
 
@@ -565,7 +567,8 @@ class TestImportExport(SupersetTestCase):
         table = self.create_table(
             "table_1_col_1_met", id=10002, cols_names=["col1"], metric_names=["metric1"]
         )
-        imported_id = SqlaTable.import_obj(table, import_time=1990)
+        db_id = get_example_database().id
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1990)
         imported = self.get_table_by_id(imported_id)
         self.assert_table_equals(table, imported)
         self.assertEqual(
@@ -580,7 +583,8 @@ class TestImportExport(SupersetTestCase):
             cols_names=["c1", "c2"],
             metric_names=["m1", "m2"],
         )
-        imported_id = SqlaTable.import_obj(table, import_time=1991)
+        db_id = get_example_database().id
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1991)
 
         imported = self.get_table_by_id(imported_id)
         self.assert_table_equals(table, imported)
@@ -589,7 +593,8 @@ class TestImportExport(SupersetTestCase):
         table = self.create_table(
             "table_override", id=10003, cols_names=["col1"], metric_names=["m1"]
         )
-        imported_id = SqlaTable.import_obj(table, import_time=1991)
+        db_id = get_example_database().id
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1991)
 
         table_over = self.create_table(
             "table_override",
@@ -597,7 +602,7 @@ class TestImportExport(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_over_id = SqlaTable.import_obj(table_over, import_time=1992)
+        imported_over_id = SqlaTable.import_obj(table_over, db_id, import_time=1992)
 
         imported_over = self.get_table_by_id(imported_over_id)
         self.assertEqual(imported_id, imported_over.id)
@@ -616,7 +621,8 @@ class TestImportExport(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_id = SqlaTable.import_obj(table, import_time=1993)
+        db_id = get_example_database().id
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1993)
 
         copy_table = self.create_table(
             "copy_cat",
@@ -624,7 +630,7 @@ class TestImportExport(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_id_copy = SqlaTable.import_obj(copy_table, import_time=1994)
+        imported_id_copy = SqlaTable.import_obj(copy_table, db_id, import_time=1994)
 
         self.assertEqual(imported_id, imported_id_copy)
         self.assert_table_equals(copy_table, self.get_table_by_id(imported_id))
