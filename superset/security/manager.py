@@ -17,7 +17,7 @@
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
 import logging
-from typing import Any, Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from flask import current_app, g
 from flask_appbuilder import Model
@@ -38,7 +38,7 @@ from flask_appbuilder.widgets import ListWidget
 from sqlalchemy import or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.mapper import Mapper
-from sqlalchemy.orm.query import Query
+from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
     from superset.connectors.druid.models import DruidCluster
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
 
@@ -215,30 +216,32 @@ class SupersetSecurityManager(SecurityManager):
 
     def can_access_all_datasources(self) -> bool:
         """
-        Return True if the user can access all Superset datasources, False otherwise.
+        Return True if the user can fully access all the Superset datasources, False
+        otherwise.
 
-        :returns: Whether the user can access all Superset datasources
+        :returns: Whether the user can fully access all Superset datasources
         """
 
         return self.can_access("all_datasource_access", "all_datasource_access")
 
     def can_access_all_databases(self) -> bool:
         """
-        Return True if the user can access all Superset databases, False otherwise.
+        Return True if the user can fully access all the Superset databases, False
+        otherwise.
 
-        :returns: Whether the user can access all Superset databases
+        :returns: Whether the user can fully access all Superset databases
         """
 
         return self.can_access("all_database_access", "all_database_access")
 
     def can_access_database(self, database: Union["Database", "DruidCluster"]) -> bool:
         """
-        Return True if the user can access the Superset database, False otherwise.
+        Return True if the user can fully access the Superset database, False otherwise.
 
         Note for Druid the database is akin to the Druid cluster.
 
         :param database: The Superset database
-        :returns: Whether the user can access the Superset database
+        :returns: Whether the user can fully access the Superset database
         """
 
         return (
@@ -249,14 +252,14 @@ class SupersetSecurityManager(SecurityManager):
 
     def can_access_schema(self, datasource: "BaseDatasource") -> bool:
         """
-        Return True if the user can access the schema associated with the Superset
+        Return True if the user can fully access the schema associated with the Superset
         datasource, False otherwise.
 
         Note for Druid datasources the database and schema are akin to the Druid cluster
         and datasource name prefix respectively, i.e., [schema.]datasource.
 
         :param datasource: The Superset datasource
-        :returns: Whether the user can access the datasource's schema
+        :returns: Whether the user can fully access the datasource's schema
         """
 
         return (
@@ -267,10 +270,11 @@ class SupersetSecurityManager(SecurityManager):
 
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
-        Return True if the user can access the Superset datasource, False otherwise.
+        Return True if the user can fully access of the Superset datasource, False
+        otherwise.
 
         :param datasource: The Superset datasource
-        :returns: Whether the user can access the Superset datasource
+        :returns: Whether the user can fully access the Superset datasource
         """
 
         try:
@@ -372,36 +376,12 @@ class SupersetSecurityManager(SecurityManager):
         :returns: Whether the user can access the SQL table
         """
 
-        from superset.sql_parse import Table
-
         try:
             self.raise_for_access(database=database, table=table)
         except SupersetSecurityException:
             return False
 
         return True
-
-    def rejected_tables(
-        self, sql: str, database: "Database", schema: str
-    ) -> Set["Table"]:
-        """
-        Return the list of rejected SQL tables.
-
-        :param sql: The SQL statement
-        :param database: The SQL database
-        :param schema: The SQL database schema
-        :returns: The rejected tables
-        """
-
-        from superset.sql_parse import Table
-
-        return {
-            table
-            for table in sql_parse.ParsedQuery(sql).tables
-            if not self.can_access_table(
-                database, Table(table.table, table.schema or schema)
-            )
-        }
 
     def get_public_role(self) -> Optional[Any]:  # Optional[self.role_model]
         from superset import conf
@@ -858,6 +838,7 @@ class SupersetSecurityManager(SecurityManager):
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
+        query: Optional["Query"] = None,
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
@@ -865,37 +846,56 @@ class SupersetSecurityManager(SecurityManager):
         """
         Raise an exception if the user cannot access the resource.
 
-        :param database: The Superset database (see table)
+        :param database: The Superset database
         :param datasource: The Superset datasource
+        :param query: The SQL Lab query
         :param query_context: The query context
-        :param table: The Superset table (see database)
+        :param table: The Superset table (requires database)
         :param viz: The visualization
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
-        from superset import db
         from superset.connectors.sqla.models import SqlaTable
+        from superset.sql_parse import Table
 
-        if database and table:
+        if database and table or query:
+            if query:
+                database = query.database
+
+            database = cast("Database", database)
+
             if self.can_access_database(database):
                 return
 
-            schema_perm = self.get_schema_perm(database, schema=table.schema)
+            if query:
+                tables = {
+                    Table(table_.table, table_.schema or query.schema)
+                    for table_ in sql_parse.ParsedQuery(query.sql).tables
+                }
+            elif table:
+                tables = {table}
 
-            if schema_perm and self.can_access("schema_access", schema_perm):
-                return
+            denied = set()
 
-            datasources = SqlaTable.query_datasources_by_name(
-                db.session, database, table.table, schema=table.schema
-            )
+            for table_ in tables:
+                schema_perm = self.get_schema_perm(database, schema=table_.schema)
 
-            for datasource in datasources:
-                if self.can_access("datasource_access", datasource.perm):
-                    return
+                if not (schema_perm and self.can_access("schema_access", schema_perm)):
+                    datasources = SqlaTable.query_datasources_by_name(
+                        self.get_session, database, table_.table, schema=table_.schema
+                    )
 
-            raise SupersetSecurityException(
-                self.get_table_access_error_object({table}),
-            )
+                    # Access to any datasource is suffice.
+                    for datasource in datasources:
+                        if self.can_access("datasource_access", datasource.perm):
+                            break
+                    else:
+                        denied.add(table_)
+
+            if denied:
+                raise SupersetSecurityException(
+                    self.get_table_access_error_object(denied),
+                )
 
         if datasource or query_context or viz:
             if query_context:
@@ -905,16 +905,15 @@ class SupersetSecurityManager(SecurityManager):
 
             assert datasource
 
-            if self.can_access_schema(datasource) or self.can_access(
-                "datasource_access", datasource.perm or ""
+            if not (
+                self.can_access_schema(datasource)
+                or self.can_access("datasource_access", datasource.perm or "")
             ):
-                return
+                raise SupersetSecurityException(
+                    self.get_datasource_access_error_object(datasource),
+                )
 
-            raise SupersetSecurityException(
-                self.get_datasource_access_error_object(datasource),
-            )
-
-    def get_rls_filters(self, table: "BaseDatasource") -> List[Query]:
+    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.

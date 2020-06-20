@@ -777,6 +777,23 @@ class SecurityManagerTests(SupersetTestCase):
     """
 
     @patch("superset.security.SupersetSecurityManager.raise_for_access")
+    def test_can_access_datasource(self, mock_raise_for_access):
+        datasource = self.get_datasource_mock()
+
+        mock_raise_for_access.return_value = None
+        self.assertTrue(security_manager.can_access_datasource(datasource=datasource))
+
+        mock_raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                "dummy",
+                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                ErrorLevel.ERROR,
+            )
+        )
+
+        self.assertFalse(security_manager.can_access_datasource(datasource=datasource))
+
+    @patch("superset.security.SupersetSecurityManager.raise_for_access")
     def test_can_access_table(self, mock_raise_for_access):
         database = get_example_database()
         table = Table("bar", "foo")
@@ -794,23 +811,6 @@ class SecurityManagerTests(SupersetTestCase):
 
         self.assertFalse(security_manager.can_access_table(database, table))
 
-    @patch("superset.security.SupersetSecurityManager.raise_for_access")
-    def test_can_access_datasource(self, mock_raise_for_access):
-        datasource = self.get_datasource_mock()
-
-        mock_raise_for_access.return_value = None
-        self.assertTrue(security_manager.can_access_datasource(datasource=datasource))
-
-        mock_raise_for_access.side_effect = SupersetSecurityException(
-            SupersetError(
-                "dummy",
-                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                ErrorLevel.ERROR,
-            )
-        )
-
-        self.assertFalse(security_manager.can_access_datasource(datasource=datasource))
-
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_datasource(self, mock_can_access_schema, mock_can_access):
@@ -826,6 +826,36 @@ class SecurityManagerTests(SupersetTestCase):
             security_manager.raise_for_access(datasource=datasource)
 
     @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_query(self, mock_can_access):
+        query = Mock(
+            database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+        )
+
+        mock_can_access.return_value = True
+        security_manager.raise_for_access(query=query)
+
+        mock_can_access.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(query=query)
+
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_query_context(
+        self, mock_can_access_schema, mock_can_access
+    ):
+        query_context = Mock(datasource=self.get_datasource_mock())
+
+        mock_can_access_schema.return_value = True
+        security_manager.raise_for_access(query_context=query_context)
+
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(query_context=query_context)
+
+    @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_table(self, mock_can_access):
         database = get_example_database()
         table = Table("bar", "foo")
@@ -837,23 +867,6 @@ class SecurityManagerTests(SupersetTestCase):
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(database=database, table=table)
-
-    @patch("superset.security.SupersetSecurityManager.can_access")
-    @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access
-    ):
-        query_context = Mock()
-        query_context.datasource = self.get_datasource_mock()
-
-        mock_can_access_schema.return_value = True
-        security_manager.raise_for_access(query_context=query_context)
-
-        mock_can_access.return_value = False
-        mock_can_access_schema.return_value = False
-
-        with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_access(query_context=query_context)
 
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")

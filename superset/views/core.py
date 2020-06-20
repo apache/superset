@@ -69,6 +69,7 @@ from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
     SupersetException,
+    SupersetSecurityException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -1988,14 +1989,10 @@ class Superset(BaseSupersetView):
                 status=404,
             )
 
-        rejected_tables = security_manager.rejected_tables(
-            query.sql, query.database, query.schema
-        )
-        if rejected_tables:
-            return json_errors_response(
-                [security_manager.get_table_access_error_object(rejected_tables)],
-                status=403,
-            )
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
+            return json_errors_response([ex.error], status=403)
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         obj = _deserialize_results_payload(
@@ -2293,14 +2290,12 @@ class Superset(BaseSupersetView):
 
         logger.info(f"Triggering query_id: {query_id}")
 
-        rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
-        if rejected_tables:
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
             query.status = QueryStatus.FAILED
             session.commit()
-            return json_errors_response(
-                [security_manager.get_table_access_error_object(rejected_tables)],
-                status=403,
-            )
+            return json_errors_response([ex.error], status=403)
 
         try:
             template_processor = get_template_processor(
@@ -2347,12 +2342,12 @@ class Superset(BaseSupersetView):
         logger.info("Exporting CSV file [{}]".format(client_id))
         query = db.session.query(Query).filter_by(client_id=client_id).one()
 
-        rejected_tables = security_manager.rejected_tables(
-            query.sql, query.database, query.schema
-        )
-        if rejected_tables:
-            flash(security_manager.get_table_access_error_msg(rejected_tables))
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
+            flash(ex.error.message)
             return redirect("/")
+
         blob = None
         if results_backend and query.results_key:
             logger.info(
