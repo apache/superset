@@ -24,7 +24,7 @@ from sqlalchemy.orm.session import make_transient
 logger = logging.getLogger(__name__)
 
 
-def import_datasource(
+def import_datasource(  # pylint: disable=too-many-arguments
     session: Session,
     i_datasource: Model,
     lookup_database: Callable[[Model], Model],

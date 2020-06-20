@@ -158,8 +158,11 @@ class TestImportExport(SupersetTestCase):
     def get_table_by_name(self, name):
         return db.session.query(SqlaTable).filter_by(table_name=name).first()
 
-    def assert_dash_equals(self, expected_dash, actual_dash, check_position=True):
-        self.assertEqual(expected_dash.slug, actual_dash.slug)
+    def assert_dash_equals(
+        self, expected_dash, actual_dash, check_position=True, check_slugs=True
+    ):
+        if check_slugs:
+            self.assertEqual(expected_dash.slug, actual_dash.slug)
         self.assertEqual(expected_dash.dashboard_title, actual_dash.dashboard_title)
         self.assertEqual(len(expected_dash.slices), len(actual_dash.slices))
         expected_slices = sorted(expected_dash.slices, key=lambda s: s.slice_name or "")
@@ -379,7 +382,9 @@ class TestImportExport(SupersetTestCase):
 
         expected_dash = self.create_dashboard("dash_with_1_slice", slcs=[slc], id=10002)
         make_transient(expected_dash)
-        self.assert_dash_equals(expected_dash, imported_dash, check_position=False)
+        self.assert_dash_equals(
+            expected_dash, imported_dash, check_position=False, check_slugs=False
+        )
         self.assertEqual(
             {"remote_id": 10002, "import_time": 1990},
             json.loads(imported_dash.json_metadata),
@@ -421,7 +426,9 @@ class TestImportExport(SupersetTestCase):
             "dash_with_2_slices", slcs=[e_slc, b_slc], id=10003
         )
         make_transient(expected_dash)
-        self.assert_dash_equals(imported_dash, expected_dash, check_position=False)
+        self.assert_dash_equals(
+            imported_dash, expected_dash, check_position=False, check_slugs=False
+        )
         i_e_slc = self.get_slice_by_name("e_slc")
         i_b_slc = self.get_slice_by_name("b_slc")
         expected_json_metadata = {
@@ -467,7 +474,9 @@ class TestImportExport(SupersetTestCase):
         )
         make_transient(expected_dash)
         imported_dash = self.get_dash(imported_dash_id_2)
-        self.assert_dash_equals(expected_dash, imported_dash, check_position=False)
+        self.assert_dash_equals(
+            expected_dash, imported_dash, check_position=False, check_slugs=False
+        )
         self.assertEqual(
             {"remote_id": 10004, "import_time": 1992},
             json.loads(imported_dash.json_metadata),

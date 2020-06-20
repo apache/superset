@@ -173,6 +173,6 @@ class DBEventLogger(AbstractEventLogger):
             sesh = current_app.appbuilder.get_session
             sesh.bulk_save_objects(logs)
             sesh.commit()
-        except Exception as e:
+        except Exception as ex:  # pylint: disable=broad-except
             logging.error("DBEventLogger failed to log event(s)")
-            logging.exception(e)
+            logging.exception(ex)
