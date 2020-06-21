@@ -1200,6 +1200,23 @@ export function popSavedQuery(saveQueryId) {
       .catch(() => dispatch(addDangerToast(t("The query couldn't be loaded"))));
   };
 }
+export function popQuery(queryId) {
+  return function (dispatch) {
+    return SupersetClient.get({
+      endpoint: `/queryview/api/read?_flt_0_id=${queryId}`,
+    })
+      .then(({ json }) => {
+        const queryData = json.result[0].data;
+        const queryEditorProps = {
+          ...queryData,
+          title: `Copy of ${queryData.tab}`,
+          autorun: false,
+        };
+        return dispatch(addQueryEditor(queryEditorProps));
+      })
+      .catch(() => dispatch(addDangerToast(t("The query couldn't be loaded"))));
+  };
+}
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
     return SupersetClient.get({

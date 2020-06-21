@@ -61,7 +61,14 @@ class QueryView(SupersetModelView):
     add_title = _("Add Query")
     edit_title = _("Edit Query")
 
-    list_columns = ["username", "database_name", "status", "start_time", "end_time"]
+    list_columns = [
+        "username",
+        "database_name",
+        "status",
+        "start_time",
+        "end_time",
+        "data",
+    ]
     order_columns = ["status", "start_time", "end_time"]
     base_filters = [["id", QueryFilter, lambda: []]]
     label_columns = {

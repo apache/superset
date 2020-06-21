@@ -112,6 +112,7 @@ class Query(Model, ExtraJSONMixin):
             "errorMessage": self.error_message,
             "executedSql": self.executed_sql,
             "id": self.client_id,
+            "queryId": self.id,
             "limit": self.limit,
             "progress": self.progress,
             "rows": self.rows,
@@ -157,6 +158,10 @@ class Query(Model, ExtraJSONMixin):
         """
 
         security_manager.raise_for_access(query=self)
+
+    @property
+    def data(self) -> dict:
+        return self.to_dict()
 
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
