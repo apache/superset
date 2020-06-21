@@ -1157,7 +1157,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(  # pylint: disable=too-many-return-statements,no-self-use
-        self
+        self,
     ) -> FlaskResponse:
         """Tests a sqla connection"""
         db_name = request.json.get("name")
@@ -1483,7 +1483,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @expose("/warm_up_cache/", methods=["GET"])
     def warm_up_cache(  # pylint: disable=too-many-locals,no-self-use
-        self
+        self,
     ) -> FlaskResponse:
         """Warms up the cache for the slice or table.
 
@@ -2085,7 +2085,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     @event_logger.log_this
     def validate_sql_json(  # pylint: disable=too-many-locals,too-many-return-statements,no-self-use
-        self
+        self,
     ) -> FlaskResponse:
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
