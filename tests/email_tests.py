@@ -124,7 +124,7 @@ class EmailSmtpTest(SupersetTestCase):
         mock_smtp.return_value = mock.Mock()
         mock_smtp_ssl.return_value = mock.Mock()
         msg = MIMEMultipart()
-        utils.send_MIME_email("from", "to", msg, app.config, dryrun=False)
+        utils.send_mime_email("from", "to", msg, app.config, dryrun=False)
         mock_smtp.assert_called_with(app.config["SMTP_HOST"], app.config["SMTP_PORT"])
         assert mock_smtp.return_value.starttls.called
         mock_smtp.return_value.login.assert_called_with(
@@ -141,7 +141,7 @@ class EmailSmtpTest(SupersetTestCase):
         app.config["SMTP_SSL"] = True
         mock_smtp.return_value = mock.Mock()
         mock_smtp_ssl.return_value = mock.Mock()
-        utils.send_MIME_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
+        utils.send_mime_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp.called
         mock_smtp_ssl.assert_called_with(
             app.config["SMTP_HOST"], app.config["SMTP_PORT"]
@@ -154,7 +154,7 @@ class EmailSmtpTest(SupersetTestCase):
         app.config["SMTP_PASSWORD"] = None
         mock_smtp.return_value = mock.Mock()
         mock_smtp_ssl.return_value = mock.Mock()
-        utils.send_MIME_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
+        utils.send_mime_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp_ssl.called
         mock_smtp.assert_called_with(app.config["SMTP_HOST"], app.config["SMTP_PORT"])
         assert not mock_smtp.login.called
@@ -162,7 +162,7 @@ class EmailSmtpTest(SupersetTestCase):
     @mock.patch("smtplib.SMTP_SSL")
     @mock.patch("smtplib.SMTP")
     def test_send_mime_dryrun(self, mock_smtp, mock_smtp_ssl):
-        utils.send_MIME_email("from", "to", MIMEMultipart(), app.config, dryrun=True)
+        utils.send_mime_email("from", "to", MIMEMultipart(), app.config, dryrun=True)
         assert not mock_smtp.called
         assert not mock_smtp_ssl.called
 
