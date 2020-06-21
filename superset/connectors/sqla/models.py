@@ -981,9 +981,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             elif col in cols:
                 col = cols[col].get_sqla_col()
 
-            label = col._label  # pylint: disable=protected-access
-            if isinstance(col, Label) and label in metrics_exprs_by_label:
-                col = metrics_exprs_by_label[label]
+            if isinstance(col, Label):
+                label = col._label  # pylint: disable=protected-access
+                if label in metrics_exprs_by_label:
+                    col = metrics_exprs_by_label[label]
 
             qry = qry.order_by(direction(col))
 
