@@ -361,8 +361,9 @@ class Druid(BaseSupersetView):
 
     @has_access
     @expose("/refresh_datasources/")
-    @staticmethod
-    def refresh_datasources(refresh_all: bool = True) -> FlaskResponse:
+    def refresh_datasources(  # pylint: disable=no-self-use
+        self, refresh_all: bool = True
+    ) -> FlaskResponse:
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         DruidCluster = ConnectorRegistry.sources[  # pylint: disable=invalid-name
