@@ -176,6 +176,7 @@ Join our growing community!
  1. [Lyft](https://www.lyft.com/) 
  1. [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
  1. [Myra Labs](http://www.myralabs.com/) [@viksit]
+ 1. [Nielsen](http://www.nielsen.com/) [@amitNielsen]
  1. [Now](https://www.now.vn/) [@davidkohcw]
  1. [Ona](https://ona.io) [@pld]
  1. [Peak AI](https://www.peak.ai/) [@azhar22k]
