@@ -112,7 +112,9 @@ export default class AdhocFilterOption extends React.PureComponent {
           <Label className="option-label adhoc-option adhoc-filter-option">
             {adhocFilter.getDefaultLabel()}
             <i
-              className={`glyphicon glyphicon-triangle-right adhoc-label-arrow`}
+              className={`fa fa-caret-${
+                this.state.overlayShown ? 'left' : 'right'
+              } adhoc-label-arrow`}
             />
           </Label>
         </OverlayTrigger>
