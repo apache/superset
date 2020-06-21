@@ -534,11 +534,11 @@ def generic_find_constraint_name(
     table: str, columns: Set[str], referenced: str, database: SQLA
 ) -> Optional[str]:
     """Utility to find a constraint name in alembic migrations"""
-    table = sa.Table(
+    tbl = sa.Table(
         table, database.metadata, autoload=True, autoload_with=database.engine
     )
 
-    for fk in table.foreign_key_constraints:
+    for fk in tbl.foreign_key_constraints:
         if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
             return fk.name
 
@@ -1076,12 +1076,12 @@ def get_since_until(  # pylint: disable=too-many-arguments
 
     """
     separator = " : "
-    relative_start = parse_human_datetime(
+    relative_start = parse_human_datetime(  # type: ignore
         relative_start if relative_start else "today"
-    )  # type: ignore
-    relative_end = parse_human_datetime(
+    )
+    relative_end = parse_human_datetime(  # type: ignore
         relative_end if relative_end else "today"
-    )  # type: ignore
+    )
     common_time_frames = {
         "Last day": (
             relative_start - relativedelta(days=1),  # type: ignore
