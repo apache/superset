@@ -384,7 +384,7 @@ def format_timedelta(time_delta: timedelta) -> str:
 
 
 def base_json_conv(  # pylint: disable=inconsistent-return-statements,too-many-return-statements
-    obj: Any
+    obj: Any,
 ) -> Any:
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
@@ -1163,7 +1163,7 @@ def add_ago_to_since(since: str) -> str:
 
 
 def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
-    form_data: FormData
+    form_data: FormData,
 ) -> None:
     mapping = {"having": "having_filters", "where": "filters"}
 
@@ -1184,7 +1184,7 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 
 
 def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
-    form_data: FormData
+    form_data: FormData,
 ) -> None:
     """
     Mutates form data to restructure the adhoc filters in the form of the four base
