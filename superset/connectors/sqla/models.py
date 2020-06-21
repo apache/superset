@@ -386,7 +386,9 @@ sqlatable_user = Table(
 )
 
 
-class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-methods
+class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-attributes
+    Model, BaseDatasource
+):
 
     """An ORM object for SqlAlchemy table references"""
 
