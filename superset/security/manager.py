@@ -50,6 +50,7 @@ from superset.utils.core import DatasourceName
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.druid.models import DruidCluster
     from superset.models.core import Database
     from superset.sql_parse import Table
     from superset.viz import BaseViz
@@ -230,13 +231,16 @@ class SupersetSecurityManager(SecurityManager):
 
         return self.can_access("all_database_access", "all_database_access")
 
-    def can_access_database(self, database: "Database") -> bool:
+    def can_access_database(self, database: Union["Database", "DruidCluster"]) -> bool:
         """
         Return True if the user can access the Superset database, False otherwise.
+
+        Note for Druid the database is akin to the Druid cluster.
 
         :param database: The Superset database
         :returns: Whether the user can access the Superset database
         """
+
         return (
             self.can_access_all_datasources()
             or self.can_access_all_databases()
