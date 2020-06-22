@@ -29,7 +29,7 @@ setupPlugins();
 
 const addSliceContainer = document.getElementById('js-add-slice-container');
 const bootstrapData = JSON.parse(
-  addSliceContainer.getAttribute('data-bootstrap'),
+  addSliceContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
 const App = () => (
