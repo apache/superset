@@ -177,7 +177,7 @@ const config = {
   entry: {
     theme: path.join(APP_DIR, '/src/theme.ts'),
     preamble: PREAMBLE,
-    addSlice: addPreamble('/src/addSlice/index.jsx'),
+    addSlice: addPreamble('/src/addSlice/index.tsx'),
     explore: addPreamble('/src/explore/index.jsx'),
     dashboard: addPreamble('/src/dashboard/index.jsx'),
     sqllab: addPreamble('/src/SqlLab/index.jsx'),
