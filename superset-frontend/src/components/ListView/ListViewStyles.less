@@ -55,10 +55,7 @@
       .loading-bar {
         background-color: #e7e7e7;
         border-radius: 7px;
-
-        span {
-          visibility: hidden;
-        }
+        visibility: hidden;
       }
 
       &:after {
@@ -84,12 +81,11 @@
     }
 
     .actions {
-      display: flex;
-      justify-content: space-between;
-      font-size: 20px;
       white-space: nowrap;
 
       svg {
+        margin-right: 8px;
+
         &:hover {
           path {
             fill: @primary-color;
@@ -116,6 +112,7 @@
       text-overflow: ellipsis;
       overflow: hidden;
       white-space: nowrap;
+      max-width: 300px;
     }
 
     .sort-icon {
@@ -132,14 +129,14 @@
       right: 28px;
     }
   }
-}
 
-@keyframes loading-shimmer {
-  40% {
-    background-position: 100% 0;
-  }
+  @keyframes loading-shimmer {
+    40% {
+      background-position: 100% 0;
+    }
 
-  100% {
-    background-position: 100% 0;
+    100% {
+      background-position: 100% 0;
+    }
   }
 }

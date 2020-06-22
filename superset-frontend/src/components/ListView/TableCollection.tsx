@@ -107,9 +107,9 @@ export default function TableCollection({
                     {...columnCellProps}
                     size={cell.column.size}
                   >
-                    <div className={cx({ 'loading-bar': loading })}>
-                      <span>{cell.render('Cell')}</span>
-                    </div>
+                    <span className={cx({ 'loading-bar': loading })}>
+                      {cell.render('Cell')}
+                    </span>
                   </TableCell>
                 );
               })}
