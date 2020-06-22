@@ -904,6 +904,7 @@ class SupersetSecurityManager(SecurityManager):
             from superset import db
             from superset.connectors.sqla.models import (
                 RLSFilterRoles,
+                RLSFilterTables,
                 RowLevelSecurityFilter,
             )
 
@@ -917,11 +918,16 @@ class SupersetSecurityManager(SecurityManager):
                 .filter(RLSFilterRoles.c.role_id.in_(user_roles))
                 .subquery()
             )
+            filter_tables = (
+                db.session.query(RLSFilterTables.c.rls_filter_id)
+                .filter(RLSFilterTables.c.table_id == table.id)
+                .subquery()
+            )
             query = (
                 db.session.query(
                     RowLevelSecurityFilter.id, RowLevelSecurityFilter.clause
                 )
-                .filter(RowLevelSecurityFilter.table_id == table.id)
+                .filter(RowLevelSecurityFilter.id.in_(filter_tables))
                 .filter(RowLevelSecurityFilter.id.in_(filter_roles))
             )
             return query.all()
