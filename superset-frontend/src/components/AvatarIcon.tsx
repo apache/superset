@@ -24,10 +24,11 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 
 interface Props {
   firstName: string;
-  iconSize: string;
   lastName: string;
   tableName: string;
   userName: string;
+  iconSize: number;
+  textSize: number;
 }
 
 const colorList = getCategoricalSchemeRegistry().get();
@@ -42,6 +43,7 @@ export default function AvatarIcon({
   lastName,
   userName,
   iconSize,
+  textSize,
 }: Props) {
   const uniqueKey = `${tableName}-${userName}`;
   const fullName = `${firstName} ${lastName}`;
@@ -53,7 +55,7 @@ export default function AvatarIcon({
       tooltip={fullName}
     >
       <ConfigProvider colors={colorList && colorList.colors}>
-        <StyledAvatar key={uniqueKey} name={fullName} size={iconSize} round />
+        <StyledAvatar key={uniqueKey} name={fullName} size={String(iconSize)} textSizeRatio={Number(iconSize) / textSize} round />
       </ConfigProvider>
     </TooltipWrapper>
   );
