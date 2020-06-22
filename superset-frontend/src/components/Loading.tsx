@@ -44,15 +44,12 @@ export default function Loading({
   className = '',
 }: Props) {
   const style = position === 'floating' ? FLOATING_STYLE : {};
-  const styleWithWidth = {
-    ...style,
-  };
   return (
     <LoaderImg
       className={`loading ${className}`}
       alt="Loading..."
       src="/static/assets/images/loading.gif"
-      style={styleWithWidth}
+      style={style}
     />
   );
 }
