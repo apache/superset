@@ -49,7 +49,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import Select
-from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
+from sqlalchemy_utils import EncryptedType
 
 from superset import app, db_engine_specs, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import TimeGrain
@@ -111,7 +111,7 @@ class Database(
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
     sqlalchemy_uri = Column(String(1024), nullable=False)
-    password = Column(StringEncryptedType(String(1024), config["SECRET_KEY"]))
+    password = Column(EncryptedType(String(1024), config["SECRET_KEY"]))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
@@ -136,12 +136,10 @@ class Database(
     """
         ),
     )
-    encrypted_extra = Column(
-        StringEncryptedType(Text, config["SECRET_KEY"]), nullable=True
-    )
+    encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
-    server_cert = Column(StringEncryptedType(Text, config["SECRET_KEY"]), nullable=True)
+    server_cert = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     export_fields = [
         "database_name",
         "sqlalchemy_uri",

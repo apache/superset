@@ -25,7 +25,7 @@ Create Date: 2019-11-01 09:18:36.953603
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
+from sqlalchemy_utils import EncryptedType
 
 # revision identifiers, used by Alembic.
 revision = "c2acd2cf3df2"
@@ -39,7 +39,7 @@ def upgrade():
             batch_op.alter_column(
                 "encrypted_extra",
                 existing_type=sa.Text(),
-                type_=StringEncryptedType(sa.Text()),
+                type_=EncryptedType(sa.Text()),
                 postgresql_using="encrypted_extra::bytea",
                 existing_nullable=True,
             )
@@ -49,7 +49,7 @@ def upgrade():
                 "dbs",
                 "encrypted_extra",
                 existing_type=sa.Text(),
-                type_=StringEncryptedType(sa.Text()),
+                type_=EncryptedType(sa.Text()),
                 existing_nullable=True,
             )
 
@@ -58,7 +58,7 @@ def downgrade():
     with op.batch_alter_table("dbs") as batch_op:
         batch_op.alter_column(
             "encrypted_extra",
-            existing_type=StringEncryptedType(sa.Text()),
+            existing_type=EncryptedType(sa.Text()),
             type_=sa.Text(),
             existing_nullable=True,
         )
