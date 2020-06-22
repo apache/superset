@@ -109,8 +109,11 @@ class TabbedSqlEditors extends React.PureComponent {
 
     // Popping a new tab based on the querystring
     if (
-        query.id || query.sql || query.savedQueryId ||
-        query.datasourceKey || query.queryId
+      query.id ||
+      query.sql ||
+      query.savedQueryId ||
+      query.datasourceKey ||
+      query.queryId
     ) {
       if (query.id) {
         this.props.actions.popStoredQuery(query.id);

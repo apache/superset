@@ -160,7 +160,7 @@ class Query(Model, ExtraJSONMixin):
         security_manager.raise_for_access(query=self)
 
     @property
-    def data(self) -> dict:
+    def data(self) -> Dict[str, Any]:
         return self.to_dict()
 
 
