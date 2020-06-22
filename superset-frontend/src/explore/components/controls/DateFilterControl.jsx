@@ -340,7 +340,7 @@ export default class DateFilterControl extends React.Component {
   renderInput(props, key) {
     return (
       <FormGroup>
-        <InputGroup>
+        <InputGroup bsSize="small">
           <FormControl
             {...props}
             type="text"
@@ -350,7 +350,7 @@ export default class DateFilterControl extends React.Component {
           />
           <InputGroup.Button onClick={() => this.toggleCalendar(key)}>
             <Button>
-              <Glyphicon glyph="calendar" style={{ padding: 3 }} />
+              <i className="fa fa-calendar" />
             </Button>
           </InputGroup.Button>
         </InputGroup>
@@ -454,7 +454,7 @@ export default class DateFilterControl extends React.Component {
                     </div>
                     <div
                       style={{ width: '60px', marginTop: '-4px' }}
-                      className="input-inline"
+                      className="input-inline m-l-5 m-r-3"
                     >
                       <FormControl
                         bsSize="small"
