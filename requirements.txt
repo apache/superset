@@ -4,18 +4,21 @@
 #
 #    pip-compile --output-file=requirements.txt setup.py
 #
+aiohttp==3.6.2            # via slackclient
 alembic==1.4.2            # via flask-migrate
 amqp==2.5.2               # via kombu
 apispec[yaml]==1.3.3      # via flask-appbuilder
-attrs==19.3.0             # via jsonschema
+async-timeout==3.0.1      # via aiohttp
+attrs==19.3.0             # via aiohttp, jsonschema
 babel==2.8.0              # via flask-babel
 backoff==1.10.0           # via apache-superset (setup.py)
 billiard==3.6.3.0         # via celery
 bleach==3.1.5             # via apache-superset (setup.py)
 brotli==1.0.7             # via flask-compress
-cachelib==0.1             # via apache-superset (setup.py)
+cachelib==0.1.1           # via apache-superset (setup.py)
 celery==4.4.2             # via apache-superset (setup.py)
 cffi==1.14.0              # via cryptography
+chardet==3.0.4            # via aiohttp
 click==7.1.2              # via apache-superset (setup.py), flask, flask-appbuilder
 colorama==0.4.3           # via apache-superset (setup.py), flask-appbuilder
 contextlib2==0.6.0.post1  # via apache-superset (setup.py)
@@ -42,7 +45,8 @@ geographiclib==1.50       # via geopy
 geopy==1.22.0             # via apache-superset (setup.py)
 gunicorn==20.0.4          # via apache-superset (setup.py)
 humanize==2.4.0           # via apache-superset (setup.py)
-idna==2.9                 # via email-validator
+idna-ssl==1.1.0           # via aiohttp
+idna==2.9                 # via email-validator, idna-ssl, yarl
 importlib-metadata==1.6.0  # via jsonschema, kombu, markdown
 isodate==0.6.0            # via apache-superset (setup.py)
 itsdangerous==1.1.0       # via flask, flask-wtf
@@ -56,6 +60,7 @@ marshmallow-enum==1.5.1   # via flask-appbuilder
 marshmallow-sqlalchemy==0.23.0  # via flask-appbuilder
 marshmallow==2.21.0       # via flask-appbuilder, marshmallow-enum, marshmallow-sqlalchemy
 msgpack==1.0.0            # via apache-superset (setup.py)
+multidict==4.7.6          # via aiohttp, yarl
 numpy==1.18.4             # via pandas, pyarrow
 packaging==20.3           # via bleach
 pandas==1.0.3             # via apache-superset (setup.py)
@@ -81,15 +86,17 @@ selenium==3.141.0         # via apache-superset (setup.py)
 simplejson==3.17.0        # via apache-superset (setup.py)
 six==1.14.0               # via bleach, cryptography, flask-jwt-extended, flask-talisman, isodate, jsonschema, packaging, pathlib2, polyline, prison, pyrsistent, python-dateutil, sqlalchemy-utils, wtforms-json
 slackclient==2.6.2        # via apache-superset (setup.py)
-sqlalchemy-utils==0.36.4  # via apache-superset (setup.py), flask-appbuilder
+sqlalchemy-utils==0.36.6  # via apache-superset (setup.py), flask-appbuilder
 sqlalchemy==1.3.16        # via alembic, apache-superset (setup.py), flask-sqlalchemy, marshmallow-sqlalchemy, sqlalchemy-utils
 sqlparse==0.3.1           # via apache-superset (setup.py)
+typing-extensions==3.7.4.2  # via aiohttp
 urllib3==1.25.9           # via selenium
 vine==1.3.0               # via amqp, celery
 webencodings==0.5.1       # via bleach
 werkzeug==1.0.1           # via flask, flask-jwt-extended
 wtforms-json==0.3.3       # via apache-superset (setup.py)
 wtforms==2.3.1            # via flask-wtf, wtforms-json
+yarl==1.4.2               # via aiohttp
 zipp==3.1.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
