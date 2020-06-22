@@ -87,29 +87,33 @@ export default class AddSliceContainer extends React.PureComponent {
           <Panel.Body>
             <div>
               <p>{t('Choose a datasource')}</p>
-              <div style={styleSelectWidth}>
-                <Select
-                  clearable={false}
-                  ignoreAccents={false}
-                  name="select-datasource"
-                  onChange={this.changeDatasource}
-                  options={this.props.datasources}
-                  placeholder={t('Choose a datasource')}
-                  style={styleSelectWidth}
-                  value={this.state.datasourceValue}
-                  width={600}
-                />
-              </div>
-              <p className="text-muted">
-                {t(
-                  'If the datasource you are looking for is not ' +
-                    'available in the list, ' +
-                    'follow the instructions on the how to add it on the ',
-                )}
-                <a href="https://superset.apache.org/tutorial.html">
-                  {t('Superset tutorial')}
-                </a>
+              <p>
+                <div style={styleSelectWidth}>
+                  <Select
+                    clearable={false}
+                    ignoreAccents={false}
+                    name="select-datasource"
+                    onChange={this.changeDatasource}
+                    options={this.props.datasources}
+                    placeholder={t('Choose a datasource')}
+                    style={styleSelectWidth}
+                    value={this.state.datasourceValue}
+                    width={600}
+                  />
+                </div>
               </p>
+              <span className="text-muted">
+                {t(
+                  'If the datasource you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
+                )}{' '}
+                <a
+                  href="https://superset.apache.org/tutorial.html#adding-a-new-table"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <i className="fa fa-external-link" />
+                </a>
+              </span>
             </div>
             <br />
             <div>
