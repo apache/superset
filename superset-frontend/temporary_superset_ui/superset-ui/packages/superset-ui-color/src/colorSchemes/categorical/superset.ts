@@ -17,7 +17,7 @@ const schemes = [
       '#3CCCCB',
       '#A38F79',
       // Pastels
-      '#A38F79',
+      '#8FD3E4',
       '#A1A6BD',
       '#ACE1C4',
       '#FEC0A1',
