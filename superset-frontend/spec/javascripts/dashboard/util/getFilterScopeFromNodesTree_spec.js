@@ -72,7 +72,18 @@ describe('getFilterScopeFromNodesTree', () => {
 
   describe('should return scope for tabbed dashboard', () => {
     // this is a commonly used layout for dashboard:
-    // root -> ["Tab 1", "Tab 2"], and each Tab has its own chart or tab children
+    // - Tab 1
+    //   - filter_107
+    //   - chart_106
+    // - Tab 2
+    //   - filter_108
+    //   - chart_104
+    //   - Row Tab
+    //     - chart_105
+    //     - chart_103
+    //   - New Tab
+    //     - chart_101
+    //     - chart_102
     const nodes = [
       {
         label: 'All dashboard',
@@ -159,8 +170,21 @@ describe('getFilterScopeFromNodesTree', () => {
       },
     ];
 
-    // this is an other commonly used layout for dashboard:
-    // root -> ["Time Filter chart", "Tab 1", "Tab 2"]
+    // this is another commonly used layout for dashboard:
+    // - filter_109
+    // - Tab 1
+    //   - Row Tab 1
+    //     - filter_107
+    //     - chart_106
+    // - Tab 2
+    //   - filter_108
+    //   - chart_104
+    //   - Row Tab
+    //     - chart_105
+    //     - chart_103
+    //   - New Tab
+    //     - chart_101
+    //     - chart_102
     const nodes2 = [
       {
         label: 'All dashboard',
