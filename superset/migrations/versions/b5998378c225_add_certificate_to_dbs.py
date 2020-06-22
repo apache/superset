@@ -30,7 +30,6 @@ from typing import Dict
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy_utils import EncryptedType
 
 
