@@ -195,7 +195,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => kind[0]?.toUpperCase() + kind.slice(1),
       Header: t('Type'),
       accessor: 'kind',
-      size: 'lg',
+      size: 'md',
     },
     {
       Header: t('Source'),
@@ -229,7 +229,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       Header: t('Last Modified'),
       accessor: 'changed_on',
       sortable: true,
-      size: 'lg',
+      size: 'xl',
     },
     {
       Cell: ({
@@ -239,7 +239,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => changedByName,
       Header: t('Modified By'),
       accessor: 'changed_by_fk',
-      size: 'lg',
+      size: 'xl',
     },
     {
       accessor: 'database',
@@ -263,7 +263,7 @@ class DatasetList extends React.PureComponent<Props, State> {
               firstName={owner.first_name}
               lastName={owner.last_name}
               userName={owner.username}
-              iconSize="20"
+              iconSize="24"
             />
           ));
       },
@@ -350,7 +350,6 @@ class DatasetList extends React.PureComponent<Props, State> {
       },
       Header: t('Actions'),
       id: 'actions',
-      size: 'lg',
     },
   ];
 

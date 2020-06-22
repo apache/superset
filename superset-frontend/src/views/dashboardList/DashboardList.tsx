@@ -142,14 +142,14 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { owners },
         },
       }: any) => (
-        <ExpandableList
-          items={owners.map(
-            ({ first_name: firstName, last_name: lastName }: any) =>
-              `${firstName} ${lastName}`,
-          )}
-          display={2}
-        />
-      ),
+          <ExpandableList
+            items={owners.map(
+              ({ first_name: firstName, last_name: lastName }: any) =>
+                `${firstName} ${lastName}`,
+            )}
+            display={2}
+          />
+        ),
       Header: t('Owners'),
       accessor: 'owners',
     },
@@ -172,10 +172,10 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { published },
         },
       }: any) => (
-        <span className="no-wrap">
-          {published ? <i className="fa fa-check" /> : ''}
-        </span>
-      ),
+          <span className="no-wrap">
+            {published ? <i className="fa fa-check" /> : ''}
+          </span>
+        ),
       Header: t('Published'),
       accessor: 'published',
       sortable: true,
@@ -254,7 +254,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       },
       Header: t('Actions'),
       id: 'actions',
-      size: 'lg',
     },
   ];
 

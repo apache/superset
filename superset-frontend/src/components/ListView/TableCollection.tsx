@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import cx from 'classnames';
-import { TableInstance, Column } from 'react-table';
+import { TableInstance } from 'react-table';
 import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
 
@@ -31,17 +31,31 @@ interface Props {
   loading: boolean;
 }
 
-const TableCell = styled.td`
-  width: ${(props: { size?: Column['size'] }) => {
-    if (props.size === 'xs') return '25px';
-    if (props.size === 'sm') return '50px';
-    if (props.size === 'md') return '75px';
-    if (props.size === 'lg') return '100px';
-    if (props.size === 'xl') return '150px';
-    if (props.size === 'xxl') return '200px';
-    return '';
-  }};
+const Table = styled.table`
+  th {
+    &.xs { min-width: 25px; }
+    &.sm { min-width: 50px; }
+    &.md { min-width: 75px; }
+    &.lg { min-width: 100px; }
+    &.xl { min-width: 150px; }
+    &.xxl { min-width: 200px; }
+
+    svg {
+      display: inline-block;
+      top: 6px;
+      position: relative;
+    }
+  }
+  td {
+    &.xs { width: 25px; }
+    &.sm { width: 50px; }
+    &.md { width: 75px; }
+    &.lg { width: 100px; }
+    &.xl { width: 150px; }
+    &.xxl { width: 200px; }
+  }
 `;
+
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -51,7 +65,7 @@ export default function TableCollection({
   loading,
 }: Props) {
   return (
-    <table {...getTableProps()} className="table table-hover">
+    <Table {...getTableProps()} className="table table-hover">
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
@@ -62,18 +76,23 @@ export default function TableCollection({
               } else if (column.isSorted && !column.isSortedDesc) {
                 sortIcon = <Icon name="sort-asc" />;
               }
-
               return column.hidden ? null : (
                 <th
                   {...column.getHeaderProps(
-                    column.sortable ? column.getSortByToggleProps() : {},
+                    column.sortable ? column.getSortByToggleProps() : {}
                   )}
                   data-test="sort-header"
+                  className={
+                    cx({
+                      [column.size || '']: column.size,
+                    })
+                  }
                 >
-                  <span>{column.render('Header')}</span>
-                  {column.sortable && (
-                    <span className="sort-icon">{sortIcon}</span>
-                  )}
+                  <span>{column.render('Header')}
+                    {column.sortable && (
+                      sortIcon
+                    )}
+                  </span>
                 </th>
               );
             })}
@@ -99,24 +118,24 @@ export default function TableCollection({
 
                 const columnCellProps = cell.column.cellProps || {};
                 return (
-                  <TableCell
+                  <td
                     className={cx('table-cell', {
                       'table-cell-loader': loading,
+                      [cell.column.size || '']: cell.column.size
                     })}
                     {...cell.getCellProps()}
                     {...columnCellProps}
-                    size={cell.column.size}
                   >
                     <span className={cx({ 'loading-bar': loading })}>
                       {cell.render('Cell')}
                     </span>
-                  </TableCell>
+                  </td>
                 );
               })}
             </tr>
           );
         })}
       </tbody>
-    </table>
+    </Table >
   );
 }

@@ -224,9 +224,8 @@ class ChartList extends React.PureComponent<Props, State> {
           </span>
         );
       },
-      Header: 'Actions',
+      Header: t('Actions'),
       id: 'actions',
-      size: 'md',
     },
   ];
 

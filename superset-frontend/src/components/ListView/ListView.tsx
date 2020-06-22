@@ -60,7 +60,7 @@ const bulkSelectColumnConfig = {
     />
   ),
   id: 'selection',
-  size: 's',
+  size: 'sm',
 };
 
 const ListView: FunctionComponent<Props> = ({
