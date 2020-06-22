@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { MetricOption } from '@superset-ui/control-utils';
+import { MetricOption } from '@superset-ui/chart-controls';
 
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from '../AdhocMetric';

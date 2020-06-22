@@ -27,7 +27,7 @@ import moment from 'moment';
 import {
   InfoTooltipWithTrigger,
   MetricOption,
-} from '@superset-ui/control-utils';
+} from '@superset-ui/chart-controls';
 
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
