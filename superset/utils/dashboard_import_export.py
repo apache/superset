@@ -37,6 +37,13 @@ def decode_dashboards(  # pylint: disable=too-many-return-statements
     Function to be passed into json.loads obj_hook parameter
     Recreates the dashboard object from a json representation.
     """
+    from superset.connectors.druid.models import (
+        DruidCluster,
+        DruidColumn,
+        DruidDatasource,
+        DruidMetric,
+    )
+
     if "__Dashboard__" in o:
         return Dashboard(**o["__Dashboard__"])
     if "__Slice__" in o:
@@ -47,6 +54,14 @@ def decode_dashboards(  # pylint: disable=too-many-return-statements
         return SqlaTable(**o["__SqlaTable__"])
     if "__SqlMetric__" in o:
         return SqlMetric(**o["__SqlMetric__"])
+    if "__DruidCluster__" in o:
+        return DruidCluster(**o["__DruidCluster__"])
+    if "__DruidColumn__" in o:
+        return DruidColumn(**o["__DruidColumn__"])
+    if "__DruidDatasource__" in o:
+        return DruidDatasource(**o["__DruidDatasource__"])
+    if "__DruidMetric__" in o:
+        return DruidMetric(**o["__DruidMetric__"])
     if "__datetime__" in o:
         return datetime.strptime(o["__datetime__"], "%Y-%m-%dT%H:%M:%S")
 
@@ -60,7 +75,6 @@ def import_dashboards(
     current_tt = int(time.time())
     import_time = current_tt if import_time is None else import_time
     data = json.loads(data_stream.read(), object_hook=decode_dashboards)
-    # TODO: import DRUID datasources
     for table in data["datasources"]:
         type(table).import_obj(table, import_time=import_time)
     session.commit()
