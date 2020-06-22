@@ -16,6 +16,7 @@
 # under the License.
 import json
 import textwrap
+from typing import Dict, Union
 
 import pandas as pd
 from sqlalchemy import DateTime, String
@@ -23,33 +24,35 @@ from sqlalchemy.sql import column
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.models.core import Database
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
 from .helpers import (
     config,
-    Dash,
     get_example_data,
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
     update_slice_ids,
 )
 
 
-def gen_filter(subject, comparator, operator="=="):
+def gen_filter(
+    subject: str, comparator: str, operator: str = "=="
+) -> Dict[str, Union[bool, str]]:
     return {
         "clause": "WHERE",
         "comparator": comparator,
         "expressionType": "SIMPLE",
         "operator": operator,
         "subject": subject,
-        "fromFormData": True,
     }
 
 
-def load_data(tbl_name, database):
+def load_data(tbl_name: str, database: Database) -> None:
     pdf = pd.read_json(get_example_data("birth_names.json.gz"))
     pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
     pdf.to_sql(
@@ -69,7 +72,7 @@ def load_data(tbl_name, database):
     print("-" * 80)
 
 
-def load_birth_names(only_metadata=False, force=False):
+def load_birth_names(only_metadata: bool = False, force: bool = False) -> None:
     """Loading birth name dataset from a zip file in the repo"""
     # pylint: disable=too-many-locals
     tbl_name = "birth_names"
@@ -106,22 +109,23 @@ def load_birth_names(only_metadata=False, force=False):
     obj.fetch_metadata()
     tbl = obj
 
+    metrics = [
+        {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "num", "type": "BIGINT"},
+            "aggregate": "SUM",
+            "label": "Births",
+            "optionName": "metric_11",
+        }
+    ]
+    metric = "sum__num"
+
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
         "granularity_sqla": "ds",
         "groupby": [],
-        "metric": "sum__num",
-        "metrics": [
-            {
-                "expressionType": "SIMPLE",
-                "column": {"column_name": "num", "type": "BIGINT"},
-                "aggregate": "SUM",
-                "label": "Births",
-                "optionName": "metric_11",
-            }
-        ],
         "row_limit": config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
@@ -144,6 +148,7 @@ def load_birth_names(only_metadata=False, force=False):
                 granularity_sqla="ds",
                 compare_lag="5",
                 compare_suffix="over 5Y",
+                metric=metric,
             ),
         ),
         Slice(
@@ -151,7 +156,9 @@ def load_birth_names(only_metadata=False, force=False):
             viz_type="pie",
             datasource_type="table",
             datasource_id=tbl.id,
-            params=get_slice_json(defaults, viz_type="pie", groupby=["gender"]),
+            params=get_slice_json(
+                defaults, viz_type="pie", groupby=["gender"], metric=metric
+            ),
         ),
         Slice(
             slice_name="Trends",
@@ -165,6 +172,7 @@ def load_birth_names(only_metadata=False, force=False):
                 granularity_sqla="ds",
                 rich_tooltip=True,
                 show_legend=True,
+                metrics=metrics,
             ),
         ),
         Slice(
@@ -180,7 +188,7 @@ def load_birth_names(only_metadata=False, force=False):
                         "expressionType": "SIMPLE",
                         "filterOptionName": "2745eae5",
                         "comparator": ["other"],
-                        "operator": "not in",
+                        "operator": "NOT IN",
                         "subject": "state",
                     }
                 ],
@@ -215,6 +223,7 @@ def load_birth_names(only_metadata=False, force=False):
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
                 timeseries_limit_metric="sum__num",
+                metrics=metrics,
             ),
         ),
         Slice(
@@ -231,6 +240,7 @@ def load_birth_names(only_metadata=False, force=False):
                 rotation="square",
                 limit="100",
                 adhoc_filters=[gen_filter("gender", "girl")],
+                metric=metric,
             ),
         ),
         Slice(
@@ -243,6 +253,7 @@ def load_birth_names(only_metadata=False, force=False):
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
+                metrics=metrics,
             ),
         ),
         Slice(
@@ -259,6 +270,7 @@ def load_birth_names(only_metadata=False, force=False):
                 rotation="square",
                 limit="100",
                 adhoc_filters=[gen_filter("gender", "boy")],
+                metric=metric,
             ),
         ),
         Slice(
@@ -276,6 +288,7 @@ def load_birth_names(only_metadata=False, force=False):
                 time_grain_sqla="P1D",
                 viz_type="area",
                 x_axis_forma="smart_date",
+                metrics=metrics,
             ),
         ),
         Slice(
@@ -293,6 +306,7 @@ def load_birth_names(only_metadata=False, force=False):
                 time_grain_sqla="P1D",
                 viz_type="area",
                 x_axis_forma="smart_date",
+                metrics=metrics,
             ),
         ),
     ]
@@ -314,6 +328,7 @@ def load_birth_names(only_metadata=False, force=False):
                 },
                 metric_2="sum__num",
                 granularity_sqla="ds",
+                metrics=metrics,
             ),
         ),
         Slice(
@@ -321,7 +336,7 @@ def load_birth_names(only_metadata=False, force=False):
             viz_type="line",
             datasource_type="table",
             datasource_id=tbl.id,
-            params=get_slice_json(defaults, viz_type="line"),
+            params=get_slice_json(defaults, viz_type="line", metrics=metrics),
         ),
         Slice(
             slice_name="Daily Totals",
@@ -335,6 +350,7 @@ def load_birth_names(only_metadata=False, force=False):
                 since="40 years ago",
                 until="now",
                 viz_type="table",
+                metrics=metrics,
             ),
         ),
         Slice(
@@ -397,6 +413,7 @@ def load_birth_names(only_metadata=False, force=False):
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
+                metrics=metrics,
                 groupby=["name"],
                 row_limit=50,
                 timeseries_limit_metric={
@@ -417,6 +434,7 @@ def load_birth_names(only_metadata=False, force=False):
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
+                metric=metric,
                 viz_type="big_number_total",
                 granularity_sqla="ds",
                 adhoc_filters=[gen_filter("gender", "girl")],
@@ -429,7 +447,11 @@ def load_birth_names(only_metadata=False, force=False):
             datasource_type="table",
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults, viz_type="pivot_table", groupby=["name"], columns=["state"]
+                defaults,
+                viz_type="pivot_table",
+                groupby=["name"],
+                columns=["state"],
+                metrics=metrics,
             ),
         ),
     ]
@@ -441,10 +463,10 @@ def load_birth_names(only_metadata=False, force=False):
         misc_dash_slices.add(slc.slice_name)
 
     print("Creating a dashboard")
-    dash = db.session.query(Dash).filter_by(slug="births").first()
+    dash = db.session.query(Dashboard).filter_by(slug="births").first()
 
     if not dash:
-        dash = Dash()
+        dash = Dashboard()
         db.session.add(dash)
     dash.published = True
     dash.json_metadata = textwrap.dedent(

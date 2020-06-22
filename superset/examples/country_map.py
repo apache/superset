@@ -22,6 +22,7 @@ from sqlalchemy.sql import column
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
+from superset.models.slice import Slice
 from superset.utils import core as utils
 
 from .helpers import (
@@ -29,12 +30,11 @@ from .helpers import (
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
 )
 
 
-def load_country_map_data(only_metadata=False, force=False):
+def load_country_map_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading data for map with country map"""
     tbl_name = "birth_france_by_region"
     database = utils.get_example_database()

@@ -23,7 +23,7 @@ SQL Lab is a modern, feature-rich SQL IDE written in
 
 ------
 
-.. image:: images/screenshots/sqllab.png
+.. image:: _static/images/screenshots/sqllab.png
 
 ------
 
@@ -79,15 +79,10 @@ Superset's Jinja context:
 
 `Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/>`_ can be also be applied where needed.
 
-.. autofunction:: superset.jinja_context.current_user_id
-
-.. autofunction:: superset.jinja_context.current_username
-
-.. autofunction:: superset.jinja_context.url_param
+.. autoclass:: superset.jinja_context.ExtraCache
+    :members:
 
 .. autofunction:: superset.jinja_context.filter_values
-
-.. autofunction:: superset.jinja_context.CacheKeyWrapper.cache_key_wrapper
 
 .. autoclass:: superset.jinja_context.PrestoTemplateProcessor
     :members:
@@ -104,6 +99,15 @@ environment using the configuration variable ``JINJA_CONTEXT_ADDONS``.
 All objects referenced in this dictionary will become available for users
 to integrate in their queries in **SQL Lab**.
 
+Customize templating
+''''''''''''''''''''
+
+As mentioned in the `Installation & Configuration <https://superset.incubator.apache.org/installation.html#sql-lab>`__ documentation,
+it's possible for administrators to overwrite Jinja templating with your customized
+template processor using the configuration variable ``CUSTOM_TEMPLATE_PROCESSORS``.
+The template processors referenced in the dictionary will overwrite default Jinja template processors
+of the specified database engines.
+
 Query cost estimation
 '''''''''''''''''''''
 
@@ -112,11 +116,11 @@ of queries before executing this. Currently, Presto is supported in SQL Lab. To
 enable query cost estimation, add the following keys to the "Extra" field in the
 database configuration:
 
-.. code-block:: json
+.. code-block:: text
 
     {
         "version": "0.319",
-        "cost_estimate_enabled": true,
+        "cost_estimate_enabled": true
         ...
     }
 
@@ -164,7 +168,7 @@ and off at the database configuration level.
 Note that since ``CREATE TABLE..`` belongs to a SQL DDL category. Specifically on PostgreSQL, DDL is transactional,
 this means that to properly use this feature you have to set ``autocommit`` to true on your engine parameters:
 
-.. code-block:: json
+.. code-block:: text
 
     {
         ...

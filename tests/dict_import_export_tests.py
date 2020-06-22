@@ -14,14 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 import unittest
 
 import yaml
 
+from tests.test_app import app
 from superset import db
-from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
+from superset.connectors.druid.models import (
+    DruidColumn,
+    DruidDatasource,
+    DruidMetric,
+    DruidCluster,
+)
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.utils.core import get_example_database
 from superset.utils.dict_import_export import export_to_dict
@@ -41,15 +48,16 @@ class DictImportExportTests(SupersetTestCase):
 
     @classmethod
     def delete_imports(cls):
-        # Imported data clean up
-        session = db.session
-        for table in session.query(SqlaTable):
-            if DBREF in table.params_dict:
-                session.delete(table)
-        for datasource in session.query(DruidDatasource):
-            if DBREF in datasource.params_dict:
-                session.delete(datasource)
-        session.commit()
+        with app.app_context():
+            # Imported data clean up
+            session = db.session
+            for table in session.query(SqlaTable):
+                if DBREF in table.params_dict:
+                    session.delete(table)
+            for datasource in session.query(DruidDatasource):
+                if DBREF in datasource.params_dict:
+                    session.delete(datasource)
+            session.commit()
 
     @classmethod
     def setUpClass(cls):
@@ -84,11 +92,15 @@ class DictImportExportTests(SupersetTestCase):
         return table, dict_rep
 
     def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
-        name = "{0}{1}".format(NAME_PREFIX, name)
         cluster_name = "druid_test"
+        cluster = self.get_or_create(
+            DruidCluster, {"cluster_name": cluster_name}, db.session
+        )
+
+        name = "{0}{1}".format(NAME_PREFIX, name)
         params = {DBREF: id, "database_name": cluster_name}
         dict_rep = {
-            "cluster_name": cluster_name,
+            "cluster_id": cluster.id,
             "datasource_name": name,
             "id": id,
             "params": json.dumps(params),
@@ -99,7 +111,7 @@ class DictImportExportTests(SupersetTestCase):
         datasource = DruidDatasource(
             id=id,
             datasource_name=name,
-            cluster_name=cluster_name,
+            cluster_id=cluster.id,
             params=json.dumps(params),
         )
         for col_name in cols_names:
@@ -153,7 +165,7 @@ class DictImportExportTests(SupersetTestCase):
         new_table = SqlaTable.import_from_dict(db.session, dict_table)
         db.session.commit()
         imported_id = new_table.id
-        imported = self.get_table(imported_id)
+        imported = self.get_table_by_id(imported_id)
         self.assert_table_equals(table, imported)
         self.yaml_compare(table.export_to_dict(), imported.export_to_dict())
 
@@ -166,7 +178,7 @@ class DictImportExportTests(SupersetTestCase):
         )
         imported_table = SqlaTable.import_from_dict(db.session, dict_table)
         db.session.commit()
-        imported = self.get_table(imported_table.id)
+        imported = self.get_table_by_id(imported_table.id)
         self.assert_table_equals(table, imported)
         self.assertEqual(
             {DBREF: ID_PREFIX + 2, "database_name": "main"}, json.loads(imported.params)
@@ -182,7 +194,7 @@ class DictImportExportTests(SupersetTestCase):
         )
         imported_table = SqlaTable.import_from_dict(db.session, dict_table)
         db.session.commit()
-        imported = self.get_table(imported_table.id)
+        imported = self.get_table_by_id(imported_table.id)
         self.assert_table_equals(table, imported)
         self.yaml_compare(table.export_to_dict(), imported.export_to_dict())
 
@@ -201,7 +213,7 @@ class DictImportExportTests(SupersetTestCase):
         imported_over_table = SqlaTable.import_from_dict(db.session, dict_table_over)
         db.session.commit()
 
-        imported_over = self.get_table(imported_over_table.id)
+        imported_over = self.get_table_by_id(imported_over_table.id)
         self.assertEqual(imported_table.id, imported_over.id)
         expected_table, _ = self.create_table(
             "table_override",
@@ -231,7 +243,7 @@ class DictImportExportTests(SupersetTestCase):
         )
         db.session.commit()
 
-        imported_over = self.get_table(imported_over_table.id)
+        imported_over = self.get_table_by_id(imported_over_table.id)
         self.assertEqual(imported_table.id, imported_over.id)
         expected_table, _ = self.create_table(
             "table_override",
@@ -262,12 +274,15 @@ class DictImportExportTests(SupersetTestCase):
         imported_copy_table = SqlaTable.import_from_dict(db.session, dict_copy_table)
         db.session.commit()
         self.assertEqual(imported_table.id, imported_copy_table.id)
-        self.assert_table_equals(copy_table, self.get_table(imported_table.id))
+        self.assert_table_equals(copy_table, self.get_table_by_id(imported_table.id))
         self.yaml_compare(
             imported_copy_table.export_to_dict(), imported_table.export_to_dict()
         )
 
     def test_export_datasource_ui_cli(self):
+        # TODO(bkyryliuk): find fake db is leaking from
+        self.delete_fake_db()
+
         cli_export = export_to_dict(
             session=db.session,
             recursive=True,

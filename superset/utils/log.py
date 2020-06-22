@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import functools
 import inspect
 import json
@@ -22,35 +21,44 @@ import logging
 import textwrap
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, cast, Type
+from typing import Any, Callable, cast, Optional, Type
 
 from flask import current_app, g, request
+
+from superset.stats_logger import BaseStatsLogger
 
 
 class AbstractEventLogger(ABC):
     @abstractmethod
-    def log(self, user_id, action, *args, **kwargs):
+    def log(
+        self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
+    ) -> None:
         pass
 
-    def log_this(self, f):
+    def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
-            d = request.form.to_dict() or {}
+            form_data = request.form.to_dict() or {}
 
             # request parameters can overwrite post body
             request_params = request.args.to_dict()
-            d.update(request_params)
-            d.update(kwargs)
+            form_data.update(request_params)
+            form_data.update(kwargs)
 
-            slice_id = d.get("slice_id")
-            dashboard_id = d.get("dashboard_id")
+            slice_id = form_data.get("slice_id")
+            dashboard_id = form_data.get("dashboard_id")
 
             try:
                 slice_id = int(
-                    slice_id or json.loads(d.get("form_data")).get("slice_id")
+                    slice_id
+                    or json.loads(
+                        form_data.get("form_data")  # type: ignore
+                    ).get(
+                        "slice_id"
+                    )
                 )
             except (ValueError, TypeError):
                 slice_id = 0
@@ -62,10 +70,10 @@ class AbstractEventLogger(ABC):
 
             # bulk insert
             try:
-                explode_by = d.get("explode")
-                records = json.loads(d.get(explode_by))
-            except Exception:
-                records = [d]
+                explode_by = form_data.get("explode")
+                records = json.loads(form_data.get(explode_by))  # type: ignore
+            except Exception:  # pylint: disable=broad-except
+                records = [form_data]
 
             referrer = request.referrer[:1000] if request.referrer else None
 
@@ -83,14 +91,15 @@ class AbstractEventLogger(ABC):
         return wrapper
 
     @property
-    def stats_logger(self):
+    def stats_logger(self) -> BaseStatsLogger:
         return current_app.config["STATS_LOGGER"]
 
 
-def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
+def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
     """
-    This function implements the deprecation of assignment of class objects to EVENT_LOGGER
-    configuration, and validates type of configured loggers.
+    This function implements the deprecation of assignment
+    of class objects to EVENT_LOGGER configuration, and validates
+    type of configured loggers.
 
     The motivation for this method is to gracefully deprecate the ability to configure
     EVENT_LOGGER with a class type, in favor of preconfigured instances which may have
@@ -105,29 +114,34 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
         logging.warning(
             textwrap.dedent(
                 """
-                In superset private config, EVENT_LOGGER has been assigned a class object. In order to
-                accomodate pre-configured instances without a default constructor, assignment of a class
-                is deprecated and may no longer work at some point in the future. Please assign an object
-                instance of a type that implements superset.utils.log.AbstractEventLogger.
+                In superset private config, EVENT_LOGGER has been assigned a class
+                object. In order to accomodate pre-configured instances without a
+                default constructor, assignment of a class is deprecated and may no
+                longer work at some point in the future. Please assign an object
+                instance of a type that implements
+                superset.utils.log.AbstractEventLogger.
                 """
             )
         )
 
-        event_logger_type = cast(Type, cfg_value)
+        event_logger_type = cast(Type[Any], cfg_value)
         result = event_logger_type()
 
     # Verify that we have a valid logger impl
     if not isinstance(result, AbstractEventLogger):
         raise TypeError(
-            "EVENT_LOGGER must be configured with a concrete instance of superset.utils.log.AbstractEventLogger."
+            "EVENT_LOGGER must be configured with a concrete instance"
+            "of superset.utils.log.AbstractEventLogger."
         )
 
-    logging.info(f"Configured event logger of type {type(result)}")
+    logging.info("Configured event logger of type %s", type(result))
     return cast(AbstractEventLogger, result)
 
 
 class DBEventLogger(AbstractEventLogger):
-    def log(self, user_id, action, *args, **kwargs):
+    def log(  # pylint: disable=too-many-locals
+        self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
+    ) -> None:
         from superset.models.core import Log
 
         records = kwargs.get("records", list())
@@ -138,9 +152,10 @@ class DBEventLogger(AbstractEventLogger):
 
         logs = list()
         for record in records:
+            json_string: Optional[str]
             try:
                 json_string = json.dumps(record)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 json_string = None
             log = Log(
                 action=action,

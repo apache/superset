@@ -208,9 +208,9 @@ limitations under the License.
    subcomponents is subject to the terms and conditions of the following
    licenses.
 
-
 ========================================================================
-Third party Apache 2.0 licenses
+Third party SIL Open Font License v1.1 (OFL-1.1)
 ========================================================================
 
-(Apache 2.0 License) The Roboto family of fonts (https://github.com/google/roboto)
+(SIL OPEN FONT LICENSE Version 1.1) The Inter font family (https://github.com/rsms/inter)
+(SIL OPEN FONT LICENSE Version 1.1) The Fira Code font family (https://github.com/tonsky/FiraCode)

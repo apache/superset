@@ -14,24 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
-from collections import OrderedDict
 from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
 
 if TYPE_CHECKING:
+    # pylint: disable=unused-import
+    from collections import OrderedDict
+
     from superset.models.core import Database
     from superset.connectors.base.models import BaseDatasource
 
 
-class ConnectorRegistry(object):
+class ConnectorRegistry:
     """ Central Registry for all available datasource engines"""
 
     sources: Dict[str, Type["BaseDatasource"]] = {}
 
     @classmethod
-    def register_sources(cls, datasource_config: OrderedDict) -> None:
+    def register_sources(cls, datasource_config: "OrderedDict[str, List[str]]") -> None:
         for module_name, class_names in datasource_config.items():
             class_names = [str(s) for s in class_names]
             module_obj = __import__(module_name, fromlist=class_names)
@@ -42,11 +44,11 @@ class ConnectorRegistry(object):
     @classmethod
     def get_datasource(
         cls, datasource_type: str, datasource_id: int, session: Session
-    ) -> Optional["BaseDatasource"]:
+    ) -> "BaseDatasource":
         return (
             session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
-            .first()
+            .one()
         )
 
     @classmethod
@@ -60,7 +62,7 @@ class ConnectorRegistry(object):
         return datasources
 
     @classmethod
-    def get_datasource_by_name(
+    def get_datasource_by_name(  # pylint: disable=too-many-arguments
         cls,
         session: Session,
         datasource_type: str,
@@ -74,14 +76,24 @@ class ConnectorRegistry(object):
         )
 
     @classmethod
-    def query_datasources_by_permissions(
-        cls, session: Session, database: "Database", permissions: Set[str]
+    def query_datasources_by_permissions(  # pylint: disable=invalid-name
+        cls,
+        session: Session,
+        database: "Database",
+        permissions: Set[str],
+        schema_perms: Set[str],
     ) -> List["BaseDatasource"]:
+        # TODO(bogdan): add unit test
         datasource_class = ConnectorRegistry.sources[database.type]
         return (
             session.query(datasource_class)
             .filter_by(database_id=database.id)
-            .filter(datasource_class.perm.in_(permissions))
+            .filter(
+                or_(
+                    datasource_class.perm.in_(permissions),
+                    datasource_class.schema_perm.in_(schema_perms),
+                )
+            )
             .all()
         )
 
@@ -111,5 +123,5 @@ class ConnectorRegistry(object):
     ) -> List["BaseDatasource"]:
         datasource_class = ConnectorRegistry.sources[database.type]
         return datasource_class.query_datasources_by_name(
-            session, database, datasource_name, schema=None
+            session, database, datasource_name, schema=schema
         )

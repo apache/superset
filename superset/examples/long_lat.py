@@ -22,6 +22,7 @@ import pandas as pd
 from sqlalchemy import DateTime, Float, String
 
 from superset import db
+from superset.models.slice import Slice
 from superset.utils import core as utils
 
 from .helpers import (
@@ -29,12 +30,11 @@ from .helpers import (
     get_slice_json,
     merge_slice,
     misc_dash_slices,
-    Slice,
     TBL,
 )
 
 
-def load_long_lat_data(only_metadata=False, force=False):
+def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading lat/long data from a csv file in the repo"""
     tbl_name = "long_lat"
     database = utils.get_example_database()

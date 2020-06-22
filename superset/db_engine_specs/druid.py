@@ -14,7 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
+import logging
+from typing import Any, Dict, TYPE_CHECKING
+
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
+        TableColumn,
+    )
+    from superset.models.core import Database  # pylint: disable=unused-import
+
+logger = logging.getLogger()
 
 
 class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -24,7 +37,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = False
     allows_subqueries = True
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "FLOOR({col} TO SECOND)",
         "PT1M": "FLOOR({col} TO MINUTE)",
@@ -37,6 +50,30 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
-    def alter_new_orm_column(cls, orm_col):
+    def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
         if orm_col.column_name == "__time":
             orm_col.is_dttm = True
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        For Druid, the path to a SSL certificate is placed in `connect_args`.
+
+        :param database: database instance from which to extract extras
+        :raises CertificateException: If certificate is not valid/unparseable
+        """
+        try:
+            extra = json.loads(database.extra or "{}")
+        except json.JSONDecodeError as ex:
+            logger.error(ex)
+            raise ex
+
+        if database.server_cert:
+            engine_params = extra.get("engine_params", {})
+            connect_args = engine_params.get("connect_args", {})
+            connect_args["scheme"] = "https"
+            path = utils.create_ssl_cert_file(database.server_cert)
+            connect_args["ssl_verify_cert"] = path
+            engine_params["connect_args"] = connect_args
+            extra["engine_params"] = engine_params
+        return extra

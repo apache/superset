@@ -1,0 +1,19 @@
+{
+  "name": "superset-cypress",
+  "version": "1.0.0",
+  "description": "run cypress against superset",
+  "scripts": {
+    "cypress": "cypress",
+    "cypress-debug": "cypress open --config watchForFileChanges=true"
+  },
+  "author": "Apcahe",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "shortid": "^2.2.15",
+    "@cypress/code-coverage": "^3.7.6"
+  },
+  "devDependencies": {
+    "cypress": "4.7.0",
+    "eslint-plugin-cypress": "^2.11.1"
+  }
+}

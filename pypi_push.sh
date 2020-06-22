@@ -18,9 +18,16 @@
 # and are on the correct branch
 cd ${SUPERSET_REPO_DIR}
 git branch
-rm superset/assets/dist/*
-cd superset/assets/
+rm superset/static/assets/*
+cd superset-frontend/
 npm ci && npm run build
-cd ../..
+cd ../
+echo "----------------------"
+echo "Compiling translations"
+echo "----------------------"
+flask fab babel-compile --target superset/translations
+echo "----------------------"
+echo "Creating distribution "
+echo "----------------------"
 python setup.py sdist
 echo "RUN: twine upload dist/apache-superset-{SUPERSET_VERSION}.tar.gz"

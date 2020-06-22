@@ -24,37 +24,74 @@ little bit helps, and credit will always be given.
 
 ## Table of Contents
 
-- [Orientation](#orientation)
-- [Types of Contributions](#types-of-contributions)
-  - [Report Bugs](#report-bugs)
-  - [Submit Ideas or Feature Requests](#submit-ideas-or-feature-requests)
-  - [Ask Questions](#ask-questions)
-  - [Fix Bugs](#fix-bugs)
-  - [Implement Features](#implement-features)
-  - [Improve Documentation](#improve-documentation)
-  - [Add Translations](#add-translations)
-- [Pull Request Guidelines](#pull-request-guidelines)
-  - [Protocol](#protocol)
-- [Managing Issues and PRs](#managing-issues-and-prs)
-- [Setup Local Environment for Development](#setup-local-environment-for-development)
-  - [Documentation](#documentation)
-  - [Flask server](#flask-server)
-  - [Frontend assets](#frontend-assets)
-- [Testing](#testing)
-  - [JavaScript testing](#javascript-testing)
-  - [Integration testing](#integration-testing)
+- [Contributing](#contributing)
+  - [Table of Contents](#table-of-contents)
+  - [Orientation](#orientation)
+  - [Types of Contributions](#types-of-contributions)
+    - [Report Bug](#report-bug)
+    - [Submit Ideas or Feature Requests](#submit-ideas-or-feature-requests)
+    - [Fix Bugs](#fix-bugs)
+    - [Implement Features](#implement-features)
+    - [Improve Documentation](#improve-documentation)
+    - [Add Translations](#add-translations)
+    - [Ask Questions](#ask-questions)
+  - [Pull Request Guidelines](#pull-request-guidelines)
+    - [Protocol](#protocol)
+      - [Authoring](#authoring)
+      - [Reviewing](#reviewing)
+      - [Merging](#merging)
+      - [Post-merge Responsibility](#post-merge-responsibility)
+  - [Managing Issues and PRs](#managing-issues-and-prs)
+  - [Revert Guidelines](#revert-guidelines)
+  - [Setup Local Environment for Development](#setup-local-environment-for-development)
+    - [Documentation](#documentation)
+      - [Images](#images)
+      - [API documentation](#api-documentation)
+    - [Flask server](#flask-server)
+      - [OS Dependencies](#os-dependencies)
+      - [Logging to the browser console](#logging-to-the-browser-console)
+    - [Frontend Assets](#frontend-assets)
+      - [nvm and node](#nvm-and-node)
+      - [Prerequisite](#prerequisite)
+      - [Installing Dependencies](#installing-dependencies)
+      - [Building](#building)
+      - [Docker (docker-compose)](#docker-docker-compose)
+      - [Updating NPM packages](#updating-npm-packages)
+      - [Feature flags](#feature-flags)
+  - [Git Hooks](#git-hooks)
   - [Linting](#linting)
-- [Translating](#translating)
-  - [Enabling language selection](#enabling-language-selection)
-  - [Extracting new strings for translation](#extracting-new-strings-for-translation)
-  - [Creating a new language dictionary](#creating-a-new-language-dictionary)
-- [Tips](#tips)
-  - [Adding a new datasource](#adding-a-new-datasource)
-  - [Creating a new visualization type](#creating-a-new-visualization-type)
-  - [Adding a DB migration](#adding-a-db-migration)
-  - [Merging DB migrations](#merging-db-migrations)
-  - [SQL Lab Async](#sql-lab-async)
-
+  - [Conventions](#conventions)
+    - [Python](#python)
+  - [Typing](#typing)
+    - [Python](#python-1)
+    - [TypeScript](#typescript)
+  - [Testing](#testing)
+    - [Python Testing](#python-testing)
+    - [Frontend Testing](#frontend-testing)
+    - [Integration Testing](#integration-testing)
+  - [Translating](#translating)
+    - [Enabling language selection](#enabling-language-selection)
+    - [Extracting new strings for translation](#extracting-new-strings-for-translation)
+    - [Creating a new language dictionary](#creating-a-new-language-dictionary)
+  - [Tips](#tips)
+    - [Adding a new datasource](#adding-a-new-datasource)
+    - [Improving visualizations](#improving-visualizations)
+    - [Adding a DB migration](#adding-a-db-migration)
+    - [Merging DB migrations](#merging-db-migrations)
+    - [SQL Lab Async](#sql-lab-async)
+  - [Chart Parameters](#chart-parameters)
+    - [Datasource & Chart Type](#datasource--chart-type)
+    - [Time](#time)
+    - [GROUP BY](#group-by)
+    - [NOT GROUPED BY](#not-grouped-by)
+    - [Y Axis 1](#y-axis-1)
+    - [Y Axis 2](#y-axis-2)
+    - [Query](#query)
+    - [Filters Configuration](#filters-configuration)
+    - [Chart Options](#chart-options)
+    - [Y Axis](#y-axis)
+    - [Other](#other)
+    - [Unclassified](#unclassified)
 
 ## Orientation
 
@@ -64,8 +101,8 @@ Here's a list of repositories that contain Superset-related packages:
   is the main repository containing the `apache-superset` Python package
   distributed on
   [pypi](https://pypi.org/project/apache-superset/). This repository
-  also includes Superset's main Javascript bundles and react apps under
-  the [superset/assets](https://github.com/apache/incubator-superset/tree/master/superset/assets)
+  also includes Superset's main TypeScript/JavaScript bundles and react apps under
+  the [superset-frontend](https://github.com/apache/incubator-superset/tree/master/superset-frontend)
   folder.
 - [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
   contains core Superset's
@@ -81,7 +118,6 @@ Here's a list of repositories that contain Superset-related packages:
 - [github.com/apache-superset](https://github.com/apache-superset) is the
   Github organization under which we manage Superset-related
   small tools, forks and Superset-related experimental ideas.
-
 
 ## Types of Contributions
 
@@ -166,7 +202,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
   - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
 - **Dependencies:** Be careful about adding new dependency and avoid unnecessary dependencies.
   - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
-  - For Javascript, include new libraries in `package.json`
+  - For TypeScript/JavaScript, include new libraries in `package.json`
 - **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
 - **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
 - **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists. After the CI fix has been deployed to `master`, please rebase your PR.
@@ -203,16 +239,16 @@ Triaging goals
 
 First, add **Category labels (a.k.a. hash labels)**. Every issue/PR must have one hash label (except spam entry). Labels that begin with `#` defines issue/PR type:
 
-| Label             | for Issue | for PR |
-|-------------------|-----------|--------|
-| `#bug` | Bug report | Bug fix |
-| `#code-quality` | Describe problem with code, architecture or productivity | Refactor, tests, tooling |
-| `#feature` | New feature request | New feature implementation |
-| `#refine` | Propose improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. | Implementation of improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. |
-| `#doc` | Documentation | Documentation |
-| `#question` | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later. |  N/A |
-| `#SIP` | Superset Improvement Proposal | N/A |
-| `#ASF` | Tasks related to Apache Software Foundation policy | Tasks related to Apache Software Foundation policy |
+| Label           | for Issue                                                                                                                               | for PR                                                                                                                                            |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#bug`          | Bug report                                                                                                                              | Bug fix                                                                                                                                           |
+| `#code-quality` | Describe problem with code, architecture or productivity                                                                                | Refactor, tests, tooling                                                                                                                          |
+| `#feature`      | New feature request                                                                                                                     | New feature implementation                                                                                                                        |
+| `#refine`       | Propose improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. | Implementation of improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. |
+| `#doc`          | Documentation                                                                                                                           | Documentation                                                                                                                                     |
+| `#question`     | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later.                                | N/A                                                                                                                                               |
+| `#SIP`          | Superset Improvement Proposal                                                                                                           | N/A                                                                                                                                               |
+| `#ASF`          | Tasks related to Apache Software Foundation policy                                                                                      | Tasks related to Apache Software Foundation policy                                                                                                |
 
 Then add other types of labels as appropriate.
 
@@ -227,6 +263,23 @@ Committers may also update title to reflect the issue/PR content if the author-p
 If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review` and/or `design-review`.
 
 If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
+
+## Revert Guidelines
+
+Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
+
+- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable timeframe, this would counter-indicate reverting.
+- **Severity of the issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
+- **Size of the change being reverted:** Reverting a single small PR is a much lower-risk proposition than reverting a massive, multi-PR change.
+- **Age of the change being reverted:** Reverting a recently-merged PR will be more acceptable than reverting an older PR. A bug discovered in an older PR is unlikely to be causing widespread serious issues.
+- **Risk inherent in reverting:** Will the reversion break critical functionality? Is the medicine more dangerous than the disease?
+- **Difficulty of crafting a fix:** In the case of issues with a clear solution, it may be preferable to implement and merge a fix rather than a revert.
+
+Should you decide that reverting is desirable, it is the responsibility of the Contributor performing the revert to:
+
+- **Contact the interested parties:** The PR's author and the engineer who merged the work should both be contacted and informed of the revert.
+- **Provide concise reproduction steps:** Ensure that the issue can be clearly understood and duplicated by the original author of the PR.
+- **Put the revert through code review:** The revert must be approved by another committer.
 
 ## Setup Local Environment for Development
 
@@ -307,15 +360,15 @@ Then, [open a pull request](https://help.github.com/articles/about-pull-requests
 If you're adding new images to the documentation, you'll notice that the images
 referenced in the rst, e.g.
 
-    .. image:: _static/img/tutorial/tutorial_01_sources_database.png
+    .. image:: _static/images/tutorial/tutorial_01_sources_database.png
 
 aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset/assets/images` directory.
+images (and any other static assets) to the `superset-frontend/images` directory.
 When the docs are deployed to https://superset.incubator.apache.org/, images
-are copied from there to the `_static/img` directory, just like they're referenced
+are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in `superset/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/img/tutorial` instead.
+For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
 
 #### API documentation
 
@@ -334,7 +387,7 @@ Make sure your machine meets the [OS dependencies](https://superset.incubator.ap
 
 Developers should use a virtualenv.
 
-```
+```bash
 pip install virtualenv
 ```
 
@@ -353,7 +406,7 @@ pip install -r requirements-dev.txt
 pip install -e .
 
 # Create an admin user in your metadata database
-flask fab create-admin
+superset fab create-admin
 
 # Initialize the database
 superset db upgrade
@@ -369,6 +422,9 @@ superset load_examples
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
+
+**Note: the FLASK_APP env var should not need to be set, as it's currently controlled
+via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
 `FLASK_ENV=development superset run -p 8088 --reload --debugger`
@@ -387,7 +443,7 @@ def FLASK_APP_MUTATOR(app):
 Then make sure you run your WSGI server using the right worker type:
 
 ```bash
-FLASK_ENV=development gunicorn superset:app -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
+FLASK_ENV=development gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
 You can log anything to the browser console, including objects:
@@ -400,7 +456,7 @@ app.logger.info(form_data)
 
 ### Frontend Assets
 
-Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset/assets` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
+Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset-frontend` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
 
 #### nvm and node
 
@@ -419,7 +475,7 @@ Install third-party dependencies listed in `package.json`:
 
 ```bash
 # From the root of the repository
-cd superset/assets
+cd superset-frontend
 
 # Install dependencies from `package-lock.json`
 npm ci
@@ -434,10 +490,14 @@ You can run the Webpack dev server (in a separate terminal from Flask), which ru
 npm run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --port=9001
+npm run dev-server -- --devserverPort=9001
 
 # Run the dev server proxying to a Flask server on a non-default port
 npm run dev-server -- --supersetPort=8081
+
+# Or proxy it to a remote backend so you can test frontend changes without
+# starting the backend locally
+npm run dev-server -- --superset=https://superset-dev.example.com
 ```
 
 Alternatively you can use one of the following commands.
@@ -446,7 +506,7 @@ Alternatively you can use one of the following commands.
 # Start a watcher that recompiles your assets as you modify them (but have to manually reload your browser to see changes.)
 npm run dev
 
-# Compile the Javascript and CSS in production/optimized mode for official releases
+# Compile the TypeScript/JavaScript and CSS in production/optimized mode for official releases
 npm run prod
 ```
 
@@ -456,22 +516,29 @@ If you run this service from somewhere other than your local machine, you may ne
 npm install --global webpack webpack-cli webpack-dev-server
 ```
 
+#### Docker (docker-compose)
+
+See docs [here](docker/README.md)
+
 #### Updating NPM packages
 
 Use npm in the prescribed way, making sure that
-`superset/assets/package-lock.json` is updated according to `npm`-prescribed
+`superset-frontend/package-lock.json` is updated according to `npm`-prescribed
 best practices.
 
 #### Feature flags
 
 Superset supports a server-wide feature flag system, which eases the incremental development of features. To add a new feature flag, simply modify `superset_config.py` with something like the following:
-```
+
+```python
 FEATURE_FLAGS = {
     'SCOPED_FILTER': True,
 }
 ```
-If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset/assets/src/featureFlags.ts`. For example,
-```
+
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset-frontend/src/featureFlags.ts`. For example,
+
+```typescript
 export enum FeatureFlag {
   SCOPED_FILTER = 'SCOPED_FILTER',
 }
@@ -498,15 +565,14 @@ Lint the project with:
 # for python
 tox -e flake8
 
-# for javascript
-cd superset/assets
+# for frontend
+cd superset-frontend
 npm ci
 npm run lint
 ```
 
 The Python code is auto-formatted using [Black](https://github.com/python/black) which
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
-
 
 ## Conventions
 
@@ -525,6 +591,39 @@ blueprints = app.config.get("BLUEPRINTS")
 ```
 
 or similar as the later will cause typing issues. The former is of type `List[Callable]` whereas the later is of type `Optional[List[Callable]]`.
+
+## Typing
+
+### Python
+
+To ensure clarity, consistency, all readability, _all_ new functions should use
+[type hints](https://docs.python.org/3/library/typing.html) and include a
+docstring using Sphinx documentation.
+
+Note per [PEP-484](https://www.python.org/dev/peps/pep-0484/#exceptions) no
+syntax for listing explicitly raised exceptions is proposed and thus the
+recommendation is to put this information in a docstring, i.e.,
+
+```python
+import math
+from typing import Union
+
+
+def sqrt(x: Union[float, int]) -> Union[float, int]:
+    """
+    Return the square root of x.
+
+    :param x: A number
+    :returns: The square root of the given number
+    :raises ValueError: If the number is negative
+    """
+
+    return math.sqrt(x)
+```
+
+### TypeScript
+
+TypeScript is fully supported and is the recommended language for writing all new frontend components. When modifying existing functions/components, migrating to TypeScript is appreciated, but not required. Examples of migrating functions/components to TypeScript can be found in [#9162](https://github.com/apache/incubator-superset/pull/9162) and [#9180](https://github.com/apache/incubator-superset/pull/9180).
 
 ## Testing
 
@@ -560,41 +659,12 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
-#### Typing
+### Frontend Testing
 
-To ensure clarity, consistency, all readability, _all_ new functions should use
-[type hints](https://docs.python.org/3/library/typing.html) and include a
-docstring using Sphinx documentation.
-
-Note per [PEP-484](https://www.python.org/dev/peps/pep-0484/#exceptions) no
-syntax for listing explicitly raised exceptions is proposed and thus the
-recommendation is to put this information in a docstring, i.e.,
-
-
-```python
-import math
-from typing import Union
-
-
-def sqrt(x: Union[float, int]) -> Union[float, int]:
-    """
-    Return the square root of x.
-
-    :param x: A number
-    :returns: The square root of the given number
-    :raises ValueError: If the number is negative
-    """
-
-    return math.sqrt(x)
-```
-
-
-### JavaScript Testing
-
-We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
 
 ```bash
-cd superset/assets
+cd superset-frontend
 npm run test
 ```
 
@@ -614,9 +684,11 @@ superset run --port 8081
 Run Cypress tests:
 
 ```bash
-cd superset/assets
+cd superset-frontend
 npm run build
-npm run install-cypress
+
+cd cypress-base
+npm install
 npm run cypress run
 
 # run tests from a specific file
@@ -624,9 +696,12 @@ npm run cypress run -- --spec cypress/integration/explore/link.test.js
 
 # run specific file with video capture
 npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --config video=true
+
+# to open the cypress ui
+npm run cypress open
 ```
 
-See [`superset/assets/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset/assets/cypress_build.sh).
+See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset-frontend/cypress_build.sh).
 
 ## Translating
 
@@ -645,7 +720,7 @@ At runtime, the `_` function will return the translation of the given
 string for the current language, or the given string itself
 if no translation is available.
 
-In JavaScript, the technique is similar:
+In TypeScript/JavaScript, the technique is similar:
 we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
@@ -711,76 +786,98 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 ### Adding a new datasource
 
 1. Create Models and Views for the datasource, add them under superset folder, like a new my_models.py
-    with models for cluster, datasources, columns and metrics and my_views.py with clustermodelview
-    and datasourcemodelview.
+   with models for cluster, datasources, columns and metrics and my_views.py with clustermodelview
+   and datasourcemodelview.
 
 1. Create DB migration files for the new models
 
 1. Specify this variable to add the datasource model and from which module it is from in config.py:
 
-    For example:
+   For example:
 
-    ```python
-    ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}
-    ```
+   ```python
+   ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}
+   ```
 
-    This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
+   This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
 
-### Creating a new visualization type
+### Improving visualizations
 
-Here's an example as a Github PR with comments that describe what the
-different sections of the code do:
-https://github.com/apache/incubator-superset/pull/3013
+Superset is working towards a plugin system where new visualizations can be installed as optional npm packages. To achieve this goal, we are not accepting pull requests for new community-contributed visualization types at the moment. However, bugfixes for current visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
+
+```bash
+git clone https://github.com/apache-superset/superset-ui.git
+cd superset-ui
+yarn
+yarn build
+```
+
+Then use `npm link` to create symlinks of the plugins/superset-ui packages you want to edit in `superset-frontend/node_modules`:
+
+```bash
+cd incubator-superset/superset-frontend
+npm link ../../superset-ui/plugins/[PLUGIN NAME]
+
+# Or to link all core superset-ui and plugin packages:
+# npm link ../../superset-ui/{packages,plugins}/*
+
+# Start developing
+npm run dev-server
+```
+
+When `superset-ui` packages are linked with `npm link`, the dev server will automatically load a package's source code from its `/src` directory, instead of the built modules in `lib/` or `esm/`.
+
+Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
 
 ### Adding a DB migration
 
 1. Alter the model you want to change. This example will add a `Column` Annotations model.
 
-    [Example commit](https://github.com/apache/incubator-superset/commit/6c25f549384d7c2fc288451222e50493a7b14104)
+   [Example commit](https://github.com/apache/incubator-superset/commit/6c25f549384d7c2fc288451222e50493a7b14104)
 
 1. Generate the migration file
 
-    ```bash
-    superset db migrate -m 'add_metadata_column_to_annotation_model.py'
-    ```
+   ```bash
+   superset db migrate -m 'add_metadata_column_to_annotation_model.py'
+   ```
 
-    This will generate a file in `migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`.
+   This will generate a file in `migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`.
 
-    [Example commit](https://github.com/apache/incubator-superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262)
+   [Example commit](https://github.com/apache/incubator-superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262)
 
 1. Upgrade the DB
 
-    ```bash
-    superset db upgrade
-    ```
+   ```bash
+   superset db upgrade
+   ```
 
-    The output should look like this:
+   The output should look like this:
 
-    ```
-    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
-    INFO  [alembic.runtime.migration] Will assume transactional DDL.
-    INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
-    ```
+   ```
+   INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+   INFO  [alembic.runtime.migration] Will assume transactional DDL.
+   INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
+   ```
 
 1. Add column to view
 
-    Since there is a new column, we need to add it to the AppBuilder Model view.
+   Since there is a new column, we need to add it to the AppBuilder Model view.
 
-    [Example commit](https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458)
+   [Example commit](https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458)
 
 1. Test the migration's `down` method
 
-    ```bash
-    superset db downgrade
-    ```
+   ```bash
+   superset db downgrade
+   ```
 
-    The output should look like this:
+   The output should look like this:
 
-    ```
-    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
-    INFO  [alembic.runtime.migration] Will assume transactional DDL.
-    INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py
-    ```
+   ```
+   INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+   INFO  [alembic.runtime.migration] Will assume transactional DDL.
+   INFO  [alembic.runtime.migration] Running downgrade 40a0a483dd12 -> 1a1d627ebd8e, add_metadata_column_to_annotation_model.py
+   ```
 
 ### Merging DB migrations
 
@@ -797,23 +894,23 @@ To fix it:
 
 1. Get the migration heads
 
-    ```bash
-    superset db heads
-    ```
+   ```bash
+   superset db heads
+   ```
 
-    This should list two or more migration hashes.
+   This should list two or more migration hashes.
 
 1. Create a new merge migration
 
-    ```bash
-    superset db merge {HASH1} {HASH2}
-    ```
+   ```bash
+   superset db merge {HASH1} {HASH2}
+   ```
 
 1. Upgrade the DB to the new checkpoint
 
-    ```bash
-    superset db upgrade
-    ```
+   ```bash
+   superset db upgrade
+   ```
 
 ### SQL Lab Async
 
@@ -821,26 +918,35 @@ It's possible to configure a local database to operate in `async` mode,
 to work on `async` related features.
 
 To do this, you'll need to:
-* Add an additional database entry. We recommend you copy the connection
+
+- Add an additional database entry. We recommend you copy the connection
   string from the database labeled `main`, and then enable `SQL Lab` and the
   features you want to use. Don't forget to check the `Async` box
-* Configure a results backend, here's a local `FileSystemCache` example,
+- Configure a results backend, here's a local `FileSystemCache` example,
   not recommended for production,
   but perfect for testing (stores cache in `/tmp`)
-    ```python
-    from werkzeug.contrib.cache import FileSystemCache
-    RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
-    ```
+
+  ```python
+  from cachelib.file import FileSystemCache
+  RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
+  ```
+
+- Start up a celery worker
+
+  ```shell script
+  celery worker --app=superset.tasks.celery_app:app -Ofair
+  ```
 
 Note that:
-* for changes that affect the worker logic, you'll have to
+
+- for changes that affect the worker logic, you'll have to
   restart the `celery worker` process for the changes to be reflected.
-* The message queue used is a `sqlite` database using the `SQLAlchemy`
+- The message queue used is a `sqlite` database using the `SQLAlchemy`
   experimental broker. Ok for testing, but not recommended in production
-* In some cases, you may want to create a context that is more aligned
+- In some cases, you may want to create a context that is more aligned
   to your production environment, and use the similar broker as well as
   results backend configuration
-  
+
 ## Chart Parameters
 
 Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
@@ -852,307 +958,132 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 ### Datasource & Chart Type
 
 | Field             | Type     | Notes                               |
-|-------------------|----------|-------------------------------------|
-| `database_name`   | *string* | *Deprecated?*                       |
-| `datasource`      | *string* | `<datasouce_id>__<datasource_type>` |
-| `datasource_id`   | *string* | *Deprecated?* See `datasource`      |
-| `datasource_name` | *string* | *Deprecated?*                       |
-| `datasource_type` | *string* | *Deprecated?* See `datasource`      |
-| `viz_type`        | *string* | The **Visualization Type** widget   |
+| ----------------- | -------- | ----------------------------------- |
+| `database_name`   | _string_ | _Deprecated?_                       |
+| `datasource`      | _string_ | `<datasouce_id>__<datasource_type>` |
+| `datasource_id`   | _string_ | _Deprecated?_ See `datasource`      |
+| `datasource_name` | _string_ | _Deprecated?_                       |
+| `datasource_type` | _string_ | _Deprecated?_ See `datasource`      |
+| `viz_type`        | _string_ | The **Visualization Type** widget   |
 
 ### Time
 
 | Field                  | Type            | Notes                                 |
-|------------------------|-----------------|---------------------------------------|
-| `date_filter`          | *N/A*           | *Deprecated?*                         |
-| `date_time_format`     | *N/A*           | *Deprecated?*                         |
-| `druid_time_origin`    | *string*        | The Druid **Origin** widget           |
-| `granularity`          | *string*        | The Druid **Time Granularity** widget |
-| `granularity_sqla`     | *string*        | The SQLA **Time Column** widget       |
-| `time_grain_sqla`      | *string*        | The SQLA **Time Grain** widget        |
-| `time_range`           | *string*        | The **Time range** widget             |
-| `time_range_endpoints` | *array(string)* | Used by SIP-15 [HIDDEN]               |
+| ---------------------- | --------------- | ------------------------------------- |
+| `druid_time_origin`    | _string_        | The Druid **Origin** widget           |
+| `granularity`          | _string_        | The Druid **Time Granularity** widget |
+| `granularity_sqla`     | _string_        | The SQLA **Time Column** widget       |
+| `time_grain_sqla`      | _string_        | The SQLA **Time Grain** widget        |
+| `time_range`           | _string_        | The **Time range** widget             |
 
 ### GROUP BY
 
 | Field                     | Type            | Notes                       |
-|---------------------------|-----------------|-----------------------------|
-| `include_time`            | *boolean*       | The **Include Time** widget |
-| `metrics`                 | *array(string)* | See Query section           |
+| ------------------------- | --------------- | --------------------------- |
+| `metrics`                 | _array(string)_ | See Query section           |
 | `order_asc`               | -               | See Query section           |
-| `percent_metrics`         | -               | See Query section           |
 | `row_limit`               | -               | See Query section           |
 | `timeseries_limit_metric` | -               | See Query section           |
-
 
 ### NOT GROUPED BY
 
 | Field           | Type            | Notes                   |
-|-----------------|-----------------|-------------------------|
-| `all_columns`   | *array(string)* | The **Columns** widget  |
-| `order_by_cols` | *array(string)* | The **Ordering** widget |
+| --------------- | --------------- | ----------------------- |
+| `order_by_cols` | _array(string)_ | The **Ordering** widget |
 | `row_limit`     | -               | See Query section       |
 
 ### Y Axis 1
 
 | Field           | Type | Notes                                              |
-|-----------------|------|----------------------------------------------------|
+| --------------- | ---- | -------------------------------------------------- |
 | `metric`        | -    | The **Left Axis Metric** widget. See Query section |
 | `y_axis_format` | -    | See Y Axis section                                 |
 
 ### Y Axis 2
 
-| Field             | Type            | Notes                                               |
-|-------------------|-----------------|-----------------------------------------------------|
-| `metric_2`        | -               | The **Right Axis Metric** widget. See Query section |
-| `y_axis_2_format` | *string*        | The **Right Axis Format** widget                    |
+| Field             | Type     | Notes                                               |
+| ----------------- | -------- | --------------------------------------------------- |
+| `metric_2`        | -        | The **Right Axis Metric** widget. See Query section |
 
 ### Query
 
-| Field                     | Type                                              | Notes                                             |
-|---------------------------|---------------------------------------------------|---------------------------------------------------|
-| `adhoc_filters`           | *array(object)*                                   | The **Filters** widget                            |
-| `all_columns_x`           | *array(string)*                                   | The **Numeric Columns** widget                    |
-| `columns`                 | *array(string)*                                   | The **Breakdowns** widget                         |
-| `contribution`            | *boolean*                                         | The **Contribution** widget                       |
-| `groupby`                 | *array(string)*                                   | The **Group by** or **Series** widget             |
-| `limit`                   | *number*                                          | The **Series Limit** widget                       |
-| `max_bubble_size`         | *number*                                          | The **Max Bubble Size** widget                    |
-| `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y`                       | *string*,*object*,*array(string)*,*array(object)* | The metric(s) depending on the visualization type |
-| `order_asc`               | *boolean*                                         | The **Sort Descending** widget                    |
-| `row_limit`               | *number*                                          | The **Row limit** widget                          |
-| `timeseries_limit_metric` | *object*                                          | The **Sort By** widget                            |
+| Field                                                                                                  | Type                                              | Notes                                             |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
+| `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
+| `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
+| `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
+| `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
+| `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
+| `order_asc`                                                                                            | _boolean_                                         | The **Sort Descending** widget                    |
+| `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                          |
+| `timeseries_limit_metric`                                                                              | _object_                                          | The **Sort By** widget                            |
 
-The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` JavaScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` JavaScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names. 
-
-### Options
-
-| Field                  | Type      | Notes                                |
-|------------------------|-----------|--------------------------------------|
-| `compare_lag`          | *number*  | The **Comparison Period Lag** widget |
-| `compare_suffix`       | *string*  | The **Comparison suffix** widget     |
-| `show_trend_line`      | *boolean* | The **Show Trend Line** widget       |
-| `start_y_axis_at_zero` | *boolean* | The **Start y-axis at 0** widget     |
+The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` TypeScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` TypeScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names.
 
 ### Chart Options
 
 | Field                 | Type      | Notes                                            |
-|-----------------------|-----------|--------------------------------------------------|
-| `color_picker`        | *object*  | The **Fixed Color** widget                       |
-| `donut`               | *boolean* | The **Donut** widget                             |
-| `global_opacity`      | *number*  | The **Opacity** widget                           |
-| `header_font_size`    | *number*  | The **Big Number Font Size** widget (or similar) |
-| `label_colors`        | *object*  | The **Color Scheme** widget                      |
-| `labels_outside`      | *boolean* | The **Put labels outside** widget                |
-| `line_interpolation`  | *string*  | The **Line Style** widget                        |
-| `link_length`         | *number*  | The **No of Bins** widget                        |
-| `normalized`          | *boolean* | The **Normalized** widget                        |
-| `number_format`       | *string*  | The **Number format** widget                     |
-| `pie_label_type`      | *string*  | [HIDDEN]                                         |
-| `rich_tooltip`        | *boolean* | The **Rich Tooltip** widget                      |
-| `send_time_range`     | *boolean* | The **Show Markers** widget                      |
-| `show_brush`          | *string*  | The **Show Range Filter** widget                 |
-| `show_legend`         | *boolean* | The **Legend** widget                            |
-| `show_markers`        | *string*  | The **Show Markers** widget                      |
-| `subheader_font_size` | *number*  | The **Subheader Font Size** widget               |
-
-### X Axis
-
-| Field                | Type      | Notes                        |
-|----------------------|-----------|------------------------------|
-| `bottom_margin`      | *string*  | The **Bottom Margin** widget |
-| `x_axis_format`      | *string*  | The **X Axis Format** widget |
-| `x_axis_label`       | *string*  | The **X Axis Label** widget  |
-| `x_axis_showminmax`  | *boolean* | The **X bounds** widget      |
-| `x_axis_time_format` | *N/A*     | *Deprecated?*                |
-| `x_log_scale`        | *N/A*     | *Deprecated?*                |
-| `x_ticks_layout`     | *string*  | The **X Tick Layout** widget |
+| --------------------- | --------- | ------------------------------------------------ |
+| `color_picker`        | _object_  | The **Fixed Color** widget                       |
+| `label_colors`        | _object_  | The **Color Scheme** widget                      |
+| `normalized`          | _boolean_ | The **Normalized** widget                        |
 
 ### Y Axis
 
 | Field               | Type            | Notes                        |
-|---------------------|-----------------|------------------------------|
-| `left_margin`       | *number*        | The **Left Margin** widget   |
-| `y_axis_2_label`    | *N/A*           | *Deprecated?*                |
-| `y_axis_bounds`     | *array(string)* | The **Y Axis Bounds** widget |
-| `y_axis_format`     | *string*        | The **Y Axis Format** widget |
-| `y_axis_label`      | *string*        | The **Y Axis Label** widget  |
-| `y_axis_showminmax` | *boolean*       | The **Y bounds** widget      |
-| `y_axis_zero`       | *N/A*           | *Deprecated?*                |
-| `y_log_scale`       | *boolean*       | The **Y Log Scale** widget   |
-| `yscale_interval`   | *N/A*           | *Deprecated?*                |
-
+| ------------------- | --------------- | ---------------------------- |
+| `y_axis_2_label`    | _N/A_           | _Deprecated?_                |
+| `y_axis_format`     | _string_        | The **Y Axis Format** widget |
+| `y_axis_zero`       | _N/A_           | _Deprecated?_                |
 
 Note the `y_axis_format` is defined under various section for some charts.
 
 ### Other
 
 | Field          | Type     | Notes        |
-|----------------|----------|--------------|
-| `color_scheme` | *string* |              |
-| `slice_id`     | *number* | The slice ID |
-| `url_params`   | *object* |              |
+| -------------- | -------- | ------------ |
+| `color_scheme` | _string_ |              |
 
 ### Unclassified
 
 | Field                           | Type  | Notes |
-|---------------------------------|-------|-------|
-| `add_to_dash`                   | *N/A* |       |
-| `align_pn`                      | *N/A* |       |
-| `all_columns_y`                 | *N/A* |       |
-| `annotation_layers`             | *N/A* |       |
-| `autozoom`                      | *N/A* |       |
-| `bar_stacked`                   | *N/A* |       |
-| `cache_timeout`                 | *N/A* |       |
-| `canvas_image_rendering`        | *N/A* |       |
-| `cell_padding`                  | *N/A* |       |
-| `cell_radius`                   | *N/A* |       |
-| `cell_size`                     | *N/A* |       |
-| `charge`                        | *N/A* |       |
-| `clustering_radius`             | *N/A* |       |
-| `code`                          | *N/A* |       |
-| `collapsed_fieldsets`           | *N/A* |       |
-| `color_pn`                      | *N/A* |       |
-| `column_collection`             | *N/A* |       |
-| `combine_metric`                | *N/A* |       |
-| `comparison type`               | *N/A* |       |
-| `contribution`                  | *N/A* |       |
-| `country_fieldtype`             | *N/A* |       |
-| `date_filter`                   | *N/A* |       |
-| `deck_slices`                   | *N/A* |       |
-| `default_filters`               | *N/A* |       |
-| `dimension`                     | *N/A* |       |
-| `domain_granularity`            | *N/A* |       |
-| `end_spatial`                   | *N/A* |       |
-| `entity`                        | *N/A* |       |
-| `equal_date_size`               | *N/A* |       |
-| `expanded_slices`               | *N/A* |       |
-| `extra_filters`                 | *N/A* |       |
-| `extruded`                      | *N/A* |       |
-| `fill_color_picker`             | *N/A* |       |
-| `filled`                        | *N/A* |       |
-| `filter_configs`                | *N/A* |       |
-| `filter_immune_slice_fields`    | *N/A* |       |
-| `filter_immune_slices`          | *N/A* |       |
-| `filter_nulls`                  | *N/A* |       |
-| `flt_col_0`                     | *N/A* |       |
-| `flt_col_1`                     | *N/A* |       |
-| `flt_eq_0`                      | *N/A* |       |
-| `flt_eq_1`                      | *N/A* |       |
-| `flt_op_0`                      | *N/A* |       |
-| `flt_op_1`                      | *N/A* |       |
-| `goto_dash`                     | *N/A* |       |
-| `grid_size`                     | *N/A* |       |
-| `horizon_color_scale`           | *N/A* |       |
-| `import_time`                   | *N/A* |       |
-| `include_search`                | *N/A* |       |
-| `include_series`                | *N/A* |       |
-| `instant_filtering`             | *N/A* |       |
-| `js_agg_function`               | *N/A* |       |
-| `js_columns`                    | *N/A* |       |
-| `label`                         | *N/A* |       |
-| `labels_outside`                | *N/A* |       |
-| `legend_position`               | *N/A* |       |
-| `line_charts`                   | *N/A* |       |
-| `line_charts_2`                 | *N/A* |       |
-| `line_column`                   | *N/A* |       |
-| `line_type`                     | *N/A* |       |
-| `line_width`                    | *N/A* |       |
-| `linear_color_scheme`           | *N/A* |       |
-| `log_scale`                     | *N/A* |       |
-| `mapbox_color`                  | *N/A* |       |
-| `mapbox_label`                  | *N/A* |       |
-| `mapbox_style`                  | *N/A* |       |
-| `marker_labels`                 | *N/A* |       |
-| `marker_line_labels`            | *N/A* |       |
-| `marker_lines`                  | *N/A* |       |
-| `markers`                       | *N/A* |       |
-| `markup_type`                   | *N/A* |       |
-| `max_radius`                    | *N/A* |       |
-| `min_leaf_node_event_count`     | *N/A* |       |
-| `min_periods`                   | *N/A* |       |
-| `min_radius`                    | *N/A* |       |
-| `multiplier`                    | *N/A* |       |
-| `new_dashboard_name`            | *N/A* |       |
-| `new_slice_name`                | *N/A* |       |
-| `normalize_across`              | *N/A* |       |
-| `num_buckets`                   | *N/A* |       |
-| `num_period_compare`            | *N/A* |       |
-| `order_bars`                    | *N/A* |       |
-| `order_by_entity`               | *N/A* |       |
-| `order_desc`                    | *N/A* |       |
-| `page_length`                   | *N/A* |       |
-| `pandas_aggfunc`                | *N/A* |       |
-| `partition_limit`               | *N/A* |       |
-| `partition_threshold`           | *N/A* |       |
-| `period_ratio_type`             | *N/A* |       |
-| `perm`                          | *N/A* |       |
-| `pivot_margins`                 | *N/A* |       |
-| `point_radius`                  | *N/A* |       |
-| `point_radius_fixed`            | *N/A* |       |
-| `point_radius_unit`             | *N/A* |       |
-| `point_unit`                    | *N/A* |       |
-| `prefix_metric_with_slice_name` | *N/A* |       |
-| `range_labels`                  | *N/A* |       |
-| `ranges`                        | *N/A* |       |
-| `rdo_save`                      | *N/A* |       |
-| `reduce_x_ticks`                | *N/A* |       |
-| `refresh_frequency`             | *N/A* |       |
-| `remote_id`                     | *N/A* |       |
-| `render_while_dragging`         | *N/A* |       |
-| `resample_fillmethod`           | *N/A* |       |
-| `resample_how`                  | *N/A* |       |
-| `resample_method`               | *N/A* |       |
-| `resample_rule`                 | *N/A* |       |
-| `reverse_long_lat`              | *N/A* |       |
-| `rolling_periods`               | *N/A* |       |
-| `rolling_type`                  | *N/A* |       |
-| `rose_area_proportion`          | *N/A* |       |
-| `rotation`                      | *N/A* |       |
-| `save_to_dashboard_id`          | *N/A* |       |
-| `schema`                        | *N/A* |       |
-| `select_country`                | *N/A* |       |
-| `series`                        | *N/A* |       |
-| `series_height`                 | *N/A* |       |
-| `show_bar_value`                | *N/A* |       |
-| `show_brush`                    | *N/A* |       |
-| `show_bubbles`                  | *N/A* |       |
-| `show_controls`                 | *N/A* |       |
-| `show_datatable`                | *N/A* |       |
-| `show_druid_time_granularity`   | *N/A* |       |
-| `show_druid_time_origin`        | *N/A* |       |
-| `show_labels`                   | *N/A* |       |
-| `show_metric_name`              | *N/A* |       |
-| `show_perc`                     | *N/A* |       |
-| `show_sqla_time_column`         | *N/A* |       |
-| `show_sqla_time_granularity`    | *N/A* |       |
-| `show_values`                   | *N/A* |       |
-| `size_from`                     | *N/A* |       |
-| `size_to`                       | *N/A* |       |
-| `slice_name`                    | *N/A* |       |
-| `sort_x_axis`                   | *N/A* |       |
-| `sort_y_axis`                   | *N/A* |       |
-| `spatial`                       | *N/A* |       |
-| `stacked_style`                 | *N/A* |       |
-| `start_spatial`                 | *N/A* |       |
-| `steps`                         | *N/A* |       |
-| `stroke_color_picker`           | *N/A* |       |
-| `stroke_width`                  | *N/A* |       |
-| `stroked`                       | *N/A* |       |
-| `subdomain_granularity`         | *N/A* |       |
-| `subheader`                     | *N/A* |       |
-| `table_filter`                  | *N/A* |       |
-| `table_timestamp_format`        | *N/A* |       |
-| `time_compare`                  | *N/A* |       |
-| `time_series_option`            | *N/A* |       |
-| `timed_refresh_immune_slices`   | *N/A* |       |
-| `toggle_polygons`               | *N/A* |       |
-| `transpose_pivot`               | *N/A* |       |
-| `treemap_ratio`                 | *N/A* |       |
-| `url`                           | *N/A* |       |
-| `userid`                        | *N/A* |       |
-| `viewport`                      | *N/A* |       |
-| `viewport_latitude`             | *N/A* |       |
-| `viewport_longitude`            | *N/A* |       |
-| `viewport_zoom`                 | *N/A* |       |
-| `whisker_options`               | *N/A* |       |
+| ------------------------------- | ----- | ----- |
+| `add_to_dash`                   | _N/A_ |       |
+| `code`                          | _N/A_ |       |
+| `collapsed_fieldsets`           | _N/A_ |       |
+| `comparison type`               | _N/A_ |       |
+| `country_fieldtype`             | _N/A_ |       |
+| `default_filters`               | _N/A_ |       |
+| `entity`                        | _N/A_ |       |
+| `expanded_slices`               | _N/A_ |       |
+| `extra_filters`                 | _N/A_ |       |
+| `filter_immune_slice_fields`    | _N/A_ |       |
+| `filter_immune_slices`          | _N/A_ |       |
+| `flt_col_0`                     | _N/A_ |       |
+| `flt_col_1`                     | _N/A_ |       |
+| `flt_eq_0`                      | _N/A_ |       |
+| `flt_eq_1`                      | _N/A_ |       |
+| `flt_op_0`                      | _N/A_ |       |
+| `flt_op_1`                      | _N/A_ |       |
+| `goto_dash`                     | _N/A_ |       |
+| `import_time`                   | _N/A_ |       |
+| `label`                         | _N/A_ |       |
+| `linear_color_scheme`           | _N/A_ |       |
+| `new_dashboard_name`            | _N/A_ |       |
+| `new_slice_name`                | _N/A_ |       |
+| `num_period_compare`            | _N/A_ |       |
+| `period_ratio_type`             | _N/A_ |       |
+| `perm`                          | _N/A_ |       |
+| `rdo_save`                      | _N/A_ |       |
+| `refresh_frequency`             | _N/A_ |       |
+| `remote_id`                     | _N/A_ |       |
+| `resample_fillmethod`           | _N/A_ |       |
+| `resample_how`                  | _N/A_ |       |
+| `rose_area_proportion`          | _N/A_ |       |
+| `save_to_dashboard_id`          | _N/A_ |       |
+| `schema`                        | _N/A_ |       |
+| `series`                        | _N/A_ |       |
+| `show_bubbles`                  | _N/A_ |       |
+| `slice_name`                    | _N/A_ |       |
+| `timed_refresh_immune_slices`   | _N/A_ |       |
+| `userid`                        | _N/A_ |       |

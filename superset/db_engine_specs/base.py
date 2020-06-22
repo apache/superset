@@ -15,34 +15,54 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument
+import dataclasses
 import hashlib
-import os
+import json
+import logging
 import re
 from contextlib import closing
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 import pandas as pd
 import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import column, DateTime, select
-from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
 from sqlalchemy.types import TypeEngine
-from werkzeug.utils import secure_filename
 
 from superset import app, sql_parse
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.models.sql_lab import Query
+from superset.sql_parse import Table
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
+    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
+        TableColumn,
+    )
     from superset.models.core import Database  # pylint: disable=unused-import
+
+logger = logging.getLogger()
 
 
 class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
@@ -50,9 +70,6 @@ class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
     label: str
     function: str
     duration: Optional[str]
-
-
-config = app.config
 
 
 QueryStatus = utils.QueryStatus
@@ -82,7 +99,7 @@ builtin_time_grains: Dict[Optional[str], str] = {
 class TimestampExpression(
     ColumnClause
 ):  # pylint: disable=abstract-method,too-many-ancestors,too-few-public-methods
-    def __init__(self, expr: str, col: ColumnClause, **kwargs):
+    def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
         respeting engine-specific quoting rules as part of a string-based expression.
 
@@ -94,7 +111,7 @@ class TimestampExpression(
         self.col = col
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> ColumnClause:
         # Needed to ensure that the column label is rendered correctly when
         # proxied to the outer query.
         # See https://github.com/sqlalchemy/sqlalchemy/issues/4730
@@ -103,12 +120,12 @@ class TimestampExpression(
 
 @compiles(TimestampExpression)
 def compile_timegrain_expression(
-    element: TimestampExpression, compiler: Compiled, **kw
+    element: TimestampExpression, compiler: Compiled, **kwargs: Any
 ) -> str:
-    return element.name.replace("{col}", compiler.process(element.col, **kw))
+    return element.name.replace("{col}", compiler.process(element.col, **kwargs))
 
 
-class LimitMethod(object):  # pylint: disable=too-few-public-methods
+class LimitMethod:  # pylint: disable=too-few-public-methods
     """Enum the ways that limits can be applied"""
 
     FETCH_MANY = "fetch_many"
@@ -120,7 +137,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations"""
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
-    _time_grain_functions: Dict[Optional[str], str] = {}
+    _date_trunc_functions: Dict[str, str] = {}
+    _time_grain_expressions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -132,12 +150,60 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
 
+    # default matching patterns for identifying column types
+    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern[Any], ...]] = {
+        utils.DbColumnType.NUMERIC: (
+            re.compile(r".*DOUBLE.*", re.IGNORECASE),
+            re.compile(r".*FLOAT.*", re.IGNORECASE),
+            re.compile(r".*INT.*", re.IGNORECASE),
+            re.compile(r".*NUMBER.*", re.IGNORECASE),
+            re.compile(r".*LONG.*", re.IGNORECASE),
+            re.compile(r".*REAL.*", re.IGNORECASE),
+            re.compile(r".*NUMERIC.*", re.IGNORECASE),
+            re.compile(r".*DECIMAL.*", re.IGNORECASE),
+            re.compile(r".*MONEY.*", re.IGNORECASE),
+        ),
+        utils.DbColumnType.STRING: (
+            re.compile(r".*CHAR.*", re.IGNORECASE),
+            re.compile(r".*STRING.*", re.IGNORECASE),
+            re.compile(r".*TEXT.*", re.IGNORECASE),
+        ),
+        utils.DbColumnType.TEMPORAL: (
+            re.compile(r".*DATE.*", re.IGNORECASE),
+            re.compile(r".*TIME.*", re.IGNORECASE),
+        ),
+    }
+
     @classmethod
-    def get_allow_cost_estimate(cls, version: str = None) -> bool:
+    def is_db_column_type_match(
+        cls, db_column_type: Optional[str], target_column_type: utils.DbColumnType
+    ) -> bool:
+        """
+        Check if a column type satisfies a pattern in a collection of regexes found in
+        `db_column_types`. For example, if `db_column_type == "NVARCHAR"`,
+        it would be a match for "STRING" due to being a match for the regex ".*CHAR.*".
+
+        :param db_column_type: Column type to evaluate
+        :param target_column_type: The target type to evaluate for
+        :return: `True` if a `db_column_type` matches any pattern corresponding to
+        `target_column_type`
+        """
+        if not db_column_type:
+            return False
+        patterns = cls.db_column_types[target_column_type]
+        return any(pattern.match(db_column_type) for pattern in patterns)
+
+    @classmethod
+    def get_allow_cost_estimate(cls, version: Optional[str] = None) -> bool:
         return False
 
     @classmethod
-    def get_engine(cls, database, schema=None, source=None):
+    def get_engine(
+        cls,
+        database: "Database",
+        schema: Optional[str] = None,
+        source: Optional[str] = None,
+    ) -> Engine:
         user_name = utils.get_username()
         return database.get_sqla_engine(
             schema=schema, nullpool=True, user_name=user_name, source=source
@@ -145,7 +211,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_timestamp_expr(
-        cls, col: ColumnClause, pdf: Optional[str], time_grain: Optional[str]
+        cls,
+        col: ColumnClause,
+        pdf: Optional[str],
+        time_grain: Optional[str],
+        type_: Optional[str] = None,
     ) -> TimestampExpression:
         """
         Construct a TimestampExpression to be used in a SQLAlchemy query.
@@ -153,14 +223,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
+        :param type_: the source column type
         :return: TimestampExpression object
         """
         if time_grain:
-            time_expr = cls.get_time_grain_functions().get(time_grain)
+            time_expr = cls.get_time_grain_expressions().get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
                     f"No grain spec for {time_grain} for database {cls.engine}"
                 )
+            if type_ and "{func}" in time_expr:
+                date_trunc_function = cls._date_trunc_functions.get(type_)
+                if date_trunc_function:
+                    time_expr = time_expr.replace("{func}", date_trunc_function)
         else:
             time_expr = "{col}"
 
@@ -181,31 +256,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         ret_list = []
-        time_grain_functions = cls.get_time_grain_functions()
         time_grains = builtin_time_grains.copy()
         time_grains.update(config["TIME_GRAIN_ADDONS"])
-        for duration, func in time_grain_functions.items():
+        for duration, func in cls.get_time_grain_expressions().items():
             if duration in time_grains:
                 name = time_grains[duration]
                 ret_list.append(TimeGrain(name, _(name), func, duration))
         return tuple(ret_list)
 
     @classmethod
-    def get_time_grain_functions(cls) -> Dict[Optional[str], str]:
+    def get_time_grain_expressions(cls) -> Dict[Optional[str], str]:
         """
         Return a dict of all supported time grains including any potential added grains
         but excluding any potentially blacklisted grains in the config file.
 
-        :return: All time grain functions supported by the engine
+        :return: All time grain expressions supported by the engine
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
-        time_grain_functions = cls._time_grain_functions.copy()
-        grain_addon_functions = config["TIME_GRAIN_ADDON_FUNCTIONS"]
-        time_grain_functions.update(grain_addon_functions.get(cls.engine, {}))
+        time_grain_expressions = cls._time_grain_expressions.copy()
+        grain_addon_expressions = config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
         blacklist: List[str] = config["TIME_GRAIN_BLACKLIST"]
         for key in blacklist:
-            time_grain_functions.pop(key)
-        return time_grain_functions
+            time_grain_expressions.pop(key)
+        return time_grain_expressions
 
     @classmethod
     def make_select_compatible(
@@ -222,7 +296,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return select_exprs
 
     @classmethod
-    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
         """
 
         :param cursor: Cursor instance
@@ -237,8 +311,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def expand_data(
-        cls, columns: List[dict], data: List[dict]
-    ) -> Tuple[List[dict], List[dict], List[dict]]:
+        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
+    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
         Some engines support expanding nested fields. See implementation in Presto
         spec for details.
@@ -251,14 +325,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return columns, data, []
 
     @classmethod
-    def alter_new_orm_column(cls, orm_col):
+    def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
         """Allow altering default column attributes when first detected/added
 
         For instance special column like `__time` for Druid can be
         set to is_dttm=True. Note that this only gets called when new
         columns are detected/created"""
         # TODO: Fix circular import caused by importing TableColumn
-        pass
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -294,14 +367,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def get_pandas_dtype(
-        cls, cursor_description: List[tuple]
-    ) -> Optional[Dict[str, str]]:
-        return None
-
-    @classmethod
     def extra_table_metadata(
-        cls, database, table_name: str, schema_name: str
+        cls, database: "Database", table_name: str, schema_name: str
     ) -> Dict[str, Any]:
         """
         Returns engine-specific table metadata
@@ -315,7 +382,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
-    def apply_limit_to_sql(cls, sql: str, limit: int, database) -> str:
+    def apply_limit_to_sql(cls, sql: str, limit: int, database: "Database") -> str:
         """
         Alters the SQL statement to apply a LIMIT clause
 
@@ -333,9 +400,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 .limit(limit)
             )
             return database.compile_sqla_query(qry)
-        elif LimitMethod.FORCE_LIMIT:
+
+        if LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
-            sql = parsed_query.get_query_with_new_limit(limit)
+            sql = parsed_query.set_or_update_query_limit(limit)
+
         return sql
 
     @classmethod
@@ -350,7 +419,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.limit
 
     @classmethod
-    def get_query_with_new_limit(cls, sql: str, limit: int) -> str:
+    def set_or_update_query_limit(cls, sql: str, limit: int) -> str:
         """
         Create a query based on original query but with new limit clause
 
@@ -359,17 +428,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: Query with new limit
         """
         parsed_query = sql_parse.ParsedQuery(sql)
-        return parsed_query.get_query_with_new_limit(limit)
+        return parsed_query.set_or_update_query_limit(limit)
 
     @staticmethod
-    def csv_to_df(**kwargs) -> pd.DataFrame:
+    def csv_to_df(**kwargs: Any) -> pd.DataFrame:
         """ Read csv into Pandas DataFrame
         :param kwargs: params to be passed to DataFrame.read_csv
         :return: Pandas DataFrame containing data from csv
         """
-        kwargs["filepath_or_buffer"] = (
-            config["UPLOAD_FOLDER"] + kwargs["filepath_or_buffer"]
-        )
         kwargs["encoding"] = "utf-8"
         kwargs["iterator"] = True
         chunks = pd.read_csv(**kwargs)
@@ -377,7 +443,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return df
 
     @classmethod
-    def df_to_sql(cls, df: pd.DataFrame, **kwargs):  # pylint: disable=invalid-name
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs: Any) -> None:
         """ Upload data from a Pandas DataFrame to a database. For
         regular engines this calls the DataFrame.to_sql() method. Can be
         overridden for engines that don't work well with to_sql(), e.g.
@@ -388,51 +454,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(**kwargs)
 
     @classmethod
-    def create_table_from_csv(cls, form) -> None:
+    def create_table_from_csv(  # pylint: disable=too-many-arguments
+        cls,
+        filename: str,
+        table: Table,
+        database: "Database",
+        csv_to_df_kwargs: Dict[str, Any],
+        df_to_sql_kwargs: Dict[str, Any],
+    ) -> None:
         """
         Create table from contents of a csv. Note: this method does not create
         metadata for the table.
-
-        :param form: Parameters defining how to process data
         """
-
-        def _allowed_file(filename: str) -> bool:
-            # Only allow specific file extensions as specified in the config
-            extension = os.path.splitext(filename)[1].lower()
-            return (
-                extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
-            )
-
-        filename = secure_filename(form.csv_file.data.filename)
-        if not _allowed_file(filename):
-            raise Exception("Invalid file type selected")
-        csv_to_df_kwargs = {
-            "filepath_or_buffer": filename,
-            "sep": form.sep.data,
-            "header": form.header.data if form.header.data else 0,
-            "index_col": form.index_col.data,
-            "mangle_dupe_cols": form.mangle_dupe_cols.data,
-            "skipinitialspace": form.skipinitialspace.data,
-            "skiprows": form.skiprows.data,
-            "nrows": form.nrows.data,
-            "skip_blank_lines": form.skip_blank_lines.data,
-            "parse_dates": form.parse_dates.data,
-            "infer_datetime_format": form.infer_datetime_format.data,
-            "chunksize": 10000,
-        }
-        df = cls.csv_to_df(**csv_to_df_kwargs)
-
-        df_to_sql_kwargs = {
-            "df": df,
-            "name": form.name.data,
-            "con": create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
-            "schema": form.schema.data,
-            "if_exists": form.if_exists.data,
-            "index": form.index.data,
-            "index_label": form.index_label.data,
-            "chunksize": 10000,
-        }
-        cls.df_to_sql(**df_to_sql_kwargs)
+        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs)
+        engine = cls.get_engine(database)
+        if table.schema:
+            # only add schema when it is preset and non empty
+            df_to_sql_kwargs["schema"] = table.schema
+        if engine.dialect.supports_multivalues_insert:
+            df_to_sql_kwargs["method"] = "multi"
+        cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
@@ -447,7 +488,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_all_datasource_names(
-        cls, database, datasource_type: str
+        cls, database: "Database", datasource_type: str
     ) -> List[utils.DatasourceName]:
         """Returns a list of all tables or views in database.
 
@@ -482,27 +523,40 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return all_datasources
 
     @classmethod
-    def handle_cursor(cls, cursor, query, session):
+    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
         """Handle a live cursor between the execute and fetchall calls
 
         The flow works without this method doing anything, but it allows
         for handling the cursor and updating progress information in the
         query object"""
         # TODO: Fix circular import error caused by importing sql_lab.Query
-        pass
 
     @classmethod
-    def extract_error_message(cls, e: Exception) -> str:
-        return f"{cls.engine} error: {cls._extract_error_message(e)}"
+    def extract_error_message(cls, ex: Exception) -> str:
+        return f"{cls.engine} error: {cls._extract_error_message(ex)}"
 
     @classmethod
-    def _extract_error_message(cls, e: Exception) -> str:
+    def _extract_error_message(cls, ex: Exception) -> Optional[str]:
         """Extract error message for queries"""
-        return utils.error_msg_from_exception(e)
+        return utils.error_msg_from_exception(ex)
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema: Optional[str]):
-        """Based on a URI and selected schema, return a new URI
+    def extract_errors(cls, ex: Exception) -> List[Dict[str, Any]]:
+        return [
+            dataclasses.asdict(
+                SupersetError(
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    message=cls.extract_error_message(ex),
+                    level=ErrorLevel.ERROR,
+                    extra={"engine": cls.engine},
+                )
+            )
+        ]
+
+    @classmethod
+    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
+        """
+        Mutate the database component of the SQLAlchemy URI.
 
         The URI here represents the URI as entered when saving the database,
         ``selected_schema`` is the schema currently active presumably in
@@ -519,15 +573,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Some database drivers like presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
-        # TODO: All overrides mutate input uri; should be renamed or refactored
-        return uri
 
     @classmethod
-    def patch(cls):
+    def patch(cls) -> None:
         """
         TODO: Improve docstring and refactor implementation in Hive
         """
-        pass
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> List[str]:
@@ -590,9 +641,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         table_name: str,
         schema: Optional[str],
-        database,
+        database: "Database",
         query: Select,
-        columns: Optional[List] = None,
+        columns: Optional[List[Dict[str, str]]] = None,
     ) -> Optional[Select]:
         """
         Add a where clause to a query to reference only the most recent partition
@@ -609,13 +660,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def _get_fields(cls, cols):
-        return [column(c.get("name")) for c in cols]
+    def _get_fields(cls, cols: List[Dict[str, Any]]) -> List[Any]:
+        return [column(c["name"]) for c in cols]
 
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments,too-many-locals
         cls,
-        database,
+        database: "Database",
         table_name: str,
         engine: Engine,
         schema: Optional[str] = None,
@@ -628,10 +679,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
 
+        WARNING: expects only unquoted table and schema names.
+
         :param database: Database instance
-        :param table_name: Table name
+        :param table_name: Table name, unquoted
         :param engine: SqlALchemy Engine instance
-        :param schema: Schema
+        :param schema: Schema, unquoted
         :param limit: limit to impose on query
         :param show_cols: Show columns in query; otherwise use "*"
         :param indent: Add indentation to query
@@ -639,7 +692,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
-        fields = "*"
+        fields: Union[str, List[Any]] = "*"
         cols = cols or []
         if (show_cols or latest_partition) and not cols:
             cols = database.get_columns(table_name, schema)
@@ -669,7 +722,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def estimate_statement_cost(
-        cls, statement: str, database, cursor, user_name: str
+        cls, statement: str, database: "Database", cursor: Any, user_name: str
     ) -> Dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
@@ -696,7 +749,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def estimate_query_cost(
-        cls, database, schema: str, sql: str, source: str = None
+        cls, database: "Database", schema: str, sql: str, source: Optional[str] = None
     ) -> List[Dict[str, str]]:
         """
         Estimate the cost of a multiple statement SQL query.
@@ -728,8 +781,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def modify_url_for_impersonation(
-        cls, url, impersonate_user: bool, username: Optional[str]
-    ):
+        cls, url: URL, impersonate_user: bool, username: Optional[str]
+    ) -> None:
         """
         Modify the SQL Alchemy URL object with the user to impersonate if applicable.
         :param url: SQLAlchemy URL object
@@ -755,7 +808,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
-    def execute(cls, cursor, query: str, **kwargs):
+    def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:
         """
         Execute a SQL query
 
@@ -844,11 +897,68 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str:
         """
         Convert sqlalchemy column type to string representation.
-        Can be overridden to remove unnecessary details, especially
-        collation info (see mysql, mssql).
+        By default removes collation and character encoding info to avoid unnecessarily
+        long datatypes.
 
         :param sqla_column_type: SqlAlchemy column type
         :param dialect: Sqlalchemy dialect
         :return: Compiled column type
         """
+        sqla_column_type = sqla_column_type.copy()
+        if hasattr(sqla_column_type, "collation"):
+            sqla_column_type.collation = None
+        if hasattr(sqla_column_type, "charset"):
+            sqla_column_type.charset = None
         return sqla_column_type.compile(dialect=dialect).upper()
+
+    @classmethod
+    def get_function_names(cls, database: "Database") -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return []
+
+    @staticmethod
+    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple[Any, ...]]:
+        """
+        Convert pyodbc.Row objects from `fetch_data` to tuples.
+
+        :param data: List of tuples or pyodbc.Row objects
+        :return: List of tuples
+        """
+        if data and type(data[0]).__name__ == "Row":
+            data = [tuple(row) for row in data]
+        return data
+
+    @staticmethod
+    def mutate_db_for_connection_test(database: "Database") -> None:
+        """
+        Some databases require passing additional parameters for validating database
+        connections. This method makes it possible to mutate the database instance prior
+        to testing if a connection is ok.
+
+        :param database: instance to be mutated
+        """
+        return None
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        Some databases require adding elements to connection parameters,
+        like passing certificates to `extra`. This can be done here.
+
+        :param database: database instance from which to extract extras
+        :raises CertificateException: If certificate is not valid/unparseable
+        """
+        extra: Dict[str, Any] = {}
+        if database.extra:
+            try:
+                extra = json.loads(database.extra)
+            except json.JSONDecodeError as ex:
+                logger.error(ex)
+                raise ex
+        return extra

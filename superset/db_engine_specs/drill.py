@@ -18,6 +18,8 @@ from datetime import datetime
 from typing import Optional
 from urllib import parse
 
+from sqlalchemy.engine.url import URL
+
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
@@ -26,7 +28,7 @@ class DrillEngineSpec(BaseEngineSpec):
 
     engine = "drill"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "NEARESTDATE({col}, 'SECOND')",
         "PT1M": "NEARESTDATE({col}, 'MINUTE')",
@@ -54,12 +56,11 @@ class DrillEngineSpec(BaseEngineSpec):
         tt = target_type.upper()
         if tt == "DATE":
             return f"TO_DATE('{dttm.date().isoformat()}', 'yyyy-MM-dd')"
-        elif tt == "TIMESTAMP":
+        if tt == "TIMESTAMP":
             return f"""TO_TIMESTAMP('{dttm.isoformat(sep=" ", timespec="seconds")}', 'yyyy-MM-dd HH:mm:ss')"""  # pylint: disable=line-too-long
         return None
 
     @classmethod
-    def adjust_database_uri(cls, uri, selected_schema):
+    def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
         if selected_schema:
             uri.database = parse.quote(selected_schema, safe="")
-        return uri

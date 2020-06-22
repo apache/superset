@@ -28,7 +28,7 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     time_secondary_columns = True
     time_groupby_inline = True
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1M": "toStartOfMinute(toDateTime({col}))",
         "PT5M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)",

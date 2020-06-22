@@ -1,0 +1,14 @@
+{
+  "baseUrl": "http://localhost:8081",
+  "chromeWebSecurity": false,
+  "defaultCommandTimeout": 5000,
+  "requestTimeout": 10000,
+  "ignoreTestFiles": [
+    "**/!(*.test.js)"
+  ],
+  "video": false,
+  "videoUploadOnPasses": false,
+  "viewportWidth": 1280,
+  "viewportHeight": 1024,
+  "projectId": "ukwxzo"
+}

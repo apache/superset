@@ -14,15 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
+from typing import Callable, Optional
 
+from flask_appbuilder import Model
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import make_transient
+
+logger = logging.getLogger(__name__)
 
 
 def import_datasource(
-    session, i_datasource, lookup_database, lookup_datasource, import_time
-):
+    session: Session,
+    i_datasource: Model,
+    lookup_database: Callable[[Model], Model],
+    lookup_datasource: Callable[[Model], Model],
+    import_time: Optional[int] = None,
+) -> int:
     """Imports the datasource from the object to the database.
 
      Metrics and columns and datasource will be overrided if exists.
@@ -30,7 +38,7 @@ def import_datasource(
      superset instances. Audit metadata isn't copies over.
     """
     make_transient(i_datasource)
-    logging.info("Started import of the datasource: {}".format(i_datasource.to_json()))
+    logger.info("Started import of the datasource: %s", i_datasource.to_json())
 
     i_datasource.id = None
     i_datasource.database_id = lookup_database(i_datasource).id
@@ -47,25 +55,25 @@ def import_datasource(
         session.add(datasource)
         session.flush()
 
-    for m in i_datasource.metrics:
-        new_m = m.copy()
+    for metric in i_datasource.metrics:
+        new_m = metric.copy()
         new_m.table_id = datasource.id
-        logging.info(
-            "Importing metric {} from the datasource: {}".format(
-                new_m.to_json(), i_datasource.full_name
-            )
+        logger.info(
+            "Importing metric %s from the datasource: %s",
+            new_m.to_json(),
+            i_datasource.full_name,
         )
         imported_m = i_datasource.metric_class.import_obj(new_m)
         if imported_m.metric_name not in [m.metric_name for m in datasource.metrics]:
             datasource.metrics.append(imported_m)
 
-    for c in i_datasource.columns:
-        new_c = c.copy()
+    for column in i_datasource.columns:
+        new_c = column.copy()
         new_c.table_id = datasource.id
-        logging.info(
-            "Importing column {} from the datasource: {}".format(
-                new_c.to_json(), i_datasource.full_name
-            )
+        logger.info(
+            "Importing column %s from the datasource: %s",
+            new_c.to_json(),
+            i_datasource.full_name,
         )
         imported_c = i_datasource.column_class.import_obj(new_c)
         if imported_c.column_name not in [c.column_name for c in datasource.columns]:
@@ -74,7 +82,9 @@ def import_datasource(
     return datasource.id
 
 
-def import_simple_obj(session, i_obj, lookup_obj):
+def import_simple_obj(
+    session: Session, i_obj: Model, lookup_obj: Callable[[Model], Model]
+) -> Model:
     make_transient(i_obj)
     i_obj.id = None
     i_obj.table = None

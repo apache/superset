@@ -39,6 +39,6 @@ def upgrade():
 def downgrade():
     try:
         op.drop_column("dbs", "allow_dml")
-    except Exception as e:
-        logging.exception(e)
+    except Exception as ex:
+        logging.exception(ex)
         pass

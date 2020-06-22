@@ -17,12 +17,12 @@
 
 |apache_img| |superset_img|
 
-.. |apache_img| image:: images/apache_feather.png
+.. |apache_img| image:: _static/images/apache_feather.png
    :width: 7%
    :target: http://www.apache.org/
    :alt: The Apache Software Foundation
 
-.. |superset_img| image:: images/s.png
+.. |superset_img| image:: _static/images/s.png
    :width: 25%
 
 Apache Superset (incubating)
@@ -53,6 +53,7 @@ intelligence web application
 
 Superset Resources
 ==================
+- Versioned versions of this documentation: https://readthedocs.org/projects/apache-superset/
 - `Superset's Github <https://github.com/apache/incubator-superset>`_, note
   that `we use Github for issue tracking <https://github.com/apache/incubator-superset/issues>`_
 - Superset's
@@ -108,8 +109,10 @@ The following RDBMS are currently supported:
 - `Apache Pinot <https://pinot.incubator.apache.org/>`_
 - `Apache Spark SQL <https://spark.apache.org/sql/>`_
 - `BigQuery <https://cloud.google.com/bigquery/>`_
-- `ClickHouse <https://clickhouse.yandex/>`_
-- `Elasticsearch <https://www.elastic.co/products/elasticsearch/>`_
+- `ClickHouse <https://clickhouse.tech/>`_
+- `CockroachDB <https://www.cockroachlabs.com/>`_
+- `Dremio <https://dremio.com/>`_
+- `Elasticsearch <https://www.elastic.co/elasticsearch/>`_
 - `Exasol <https://www.exasol.com/>`_
 - `Google Sheets <https://www.google.com/sheets/about/>`_
 - `Greenplum <https://greenplum.org/>`_
@@ -131,19 +134,19 @@ be supported as well.
 Screenshots
 -----------
 
-.. image:: images/screenshots/bank_dash.png
+.. image:: _static/images/screenshots/bank_dash.png
 
 ------
 
-.. image:: images/screenshots/explore.png
+.. image:: _static/images/screenshots/explore.png
 
 ------
 
-.. image:: images/screenshots/sqllab.png
+.. image:: _static/images/screenshots/sqllab.png
 
 ------
 
-.. image:: images/screenshots/deckgl_dash.png
+.. image:: _static/images/screenshots/deckgl_dash.png
 
 ------
 

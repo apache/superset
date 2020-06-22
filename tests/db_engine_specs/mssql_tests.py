@@ -14,11 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import unittest.mock as mock
+
 from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
+from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
 from sqlalchemy.sql import select
 from sqlalchemy.types import String, UnicodeText
 
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
@@ -72,18 +76,71 @@ class MssqlEngineSpecTest(DbEngineSpecTestCase):
 
     def test_convert_dttm(self):
         dttm = self.get_dttm()
-
-        self.assertEqual(
-            MssqlEngineSpec.convert_dttm("DATE", dttm),
-            "CONVERT(DATE, '2019-01-02', 23)",
+        test_cases = (
+            (
+                MssqlEngineSpec.convert_dttm("DATE", dttm),
+                "CONVERT(DATE, '2019-01-02', 23)",
+            ),
+            (
+                MssqlEngineSpec.convert_dttm("DATETIME", dttm),
+                "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",
+            ),
+            (
+                MssqlEngineSpec.convert_dttm("SMALLDATETIME", dttm),
+                "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
+            ),
         )
 
-        self.assertEqual(
-            MssqlEngineSpec.convert_dttm("DATETIME", dttm),
-            "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",
+        for actual, expected in test_cases:
+            self.assertEqual(actual, expected)
+
+    def test_extract_error_message(self):
+        test_mssql_exception = Exception(
+            "(8155, b\"No column name was specified for column 1 of 'inner_qry'."
+            "DB-Lib error message 20018, severity 16:\\nGeneral SQL Server error: "
+            'Check messages from the SQL Server\\n")'
+        )
+        error_message = MssqlEngineSpec.extract_error_message(test_mssql_exception)
+        expected_message = (
+            "mssql error: All your SQL functions need to "
+            "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
+        )
+        self.assertEqual(expected_message, error_message)
+
+        test_mssql_exception = Exception(
+            '(8200, b"A correlated expression is invalid because it is not in a '
+            "GROUP BY clause.\\n\")'"
+        )
+        error_message = MssqlEngineSpec.extract_error_message(test_mssql_exception)
+        expected_message = "mssql error: " + MssqlEngineSpec._extract_error_message(
+            test_mssql_exception
+        )
+        self.assertEqual(expected_message, error_message)
+
+    @mock.patch.object(
+        MssqlEngineSpec, "pyodbc_rows_to_tuples", return_value="converted"
+    )
+    def test_fetch_data(self, mock_pyodbc_rows_to_tuples):
+        data = [(1, "foo")]
+        with mock.patch.object(
+            BaseEngineSpec, "fetch_data", return_value=data
+        ) as mock_fetch:
+            result = MssqlEngineSpec.fetch_data(None, 0)
+            mock_pyodbc_rows_to_tuples.assert_called_once_with(data)
+            self.assertEqual(result, "converted")
+
+    def test_column_datatype_to_string(self):
+        test_cases = (
+            (DATE(), "DATE"),
+            (VARCHAR(length=255), "VARCHAR(255)"),
+            (VARCHAR(length=255, collation="utf8_general_ci"), "VARCHAR(255)"),
+            (NVARCHAR(length=128), "NVARCHAR(128)"),
+            (TEXT(), "TEXT"),
+            (NTEXT(collation="utf8_general_ci"), "NTEXT"),
         )
 
-        self.assertEqual(
-            MssqlEngineSpec.convert_dttm("SMALLDATETIME", dttm),
-            "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
-        )
+        for original, expected in test_cases:
+            actual = MssqlEngineSpec.column_datatype_to_string(
+                original, mssql.dialect()
+            )
+            self.assertEqual(actual, expected)

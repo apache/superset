@@ -27,7 +27,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1M": "TRUNC({col}, 'MI')",
         "PT1H": "TRUNC({col}, 'HH')",
@@ -47,7 +47,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         tt = target_type.upper()
         if tt == "DATE":
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        elif tt == "TIMESTAMP":
+        if tt == "TIMESTAMP":
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
         return None
 

@@ -17,32 +17,36 @@
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
+from typing import Any, Callable, Iterator
 
 from contextlib2 import contextmanager
 from flask import request
+from werkzeug.wrappers.etag import ETagResponseMixin
 
 from superset import app, cache
+from superset.stats_logger import BaseStatsLogger
 from superset.utils.dates import now_as_float
 
 # If a user sets `max_age` to 0, for long the browser should cache the
 # resource? Flask-Caching will cache forever, but for the HTTP header we need
 # to specify a "far future" date.
 FAR_FUTURE = 365 * 24 * 60 * 60  # 1 year in seconds
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def stats_timing(stats_key, stats_logger):
+def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[float]:
     """Provide a transactional scope around a series of operations."""
     start_ts = now_as_float()
     try:
         yield start_ts
-    except Exception as e:
-        raise e
+    except Exception as ex:
+        raise ex
     finally:
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def etag_cache(max_age, check_perms=bool):
+def etag_cache(max_age: int, check_perms: Callable[..., Any]) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
 
@@ -56,9 +60,9 @@ def etag_cache(max_age, check_perms=bool):
 
     """
 
-    def decorator(f):
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> ETagResponseMixin:
             # check if the user can access the resource
             check_perms(*args, **kwargs)
 
@@ -76,12 +80,14 @@ def etag_cache(max_age, check_perms=bool):
                     key_args = list(args)
                     key_kwargs = kwargs.copy()
                     key_kwargs.update(request.args)
-                    cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
+                    cache_key = wrapper.make_cache_key(  # type: ignore
+                        f, *key_args, **key_kwargs
+                    )
                     response = cache.get(cache_key)
                 except Exception:  # pylint: disable=broad-except
                     if app.debug:
                         raise
-                    logging.exception("Exception possibly due to cache backend.")
+                    logger.exception("Exception possibly due to cache backend.")
 
             # if no response was cached, compute it using the wrapped function
             if response is None:
@@ -103,14 +109,14 @@ def etag_cache(max_age, check_perms=bool):
                     except Exception:  # pylint: disable=broad-except
                         if app.debug:
                             raise
-                    logging.exception("Exception possibly due to cache backend.")
+                    logger.exception("Exception possibly due to cache backend.")
 
             return response.make_conditional(request)
 
         if cache:
-            wrapper.uncached = f
-            wrapper.cache_timeout = max_age
-            wrapper.make_cache_key = cache._memoize_make_cache_key(  # pylint: disable=protected-access
+            wrapper.uncached = f  # type: ignore
+            wrapper.cache_timeout = max_age  # type: ignore
+            wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
                 make_name=None, timeout=max_age
             )
 

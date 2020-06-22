@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset cache warmup"""
 import json
 from unittest.mock import MagicMock
 
+import tests.test_app
 from superset import db
 from superset.models.core import Log
 from superset.models.tags import get_tag, ObjectTypes, TaggedObject, TagTypes
@@ -29,7 +31,23 @@ from superset.tasks.cache import (
 
 from .base_tests import SupersetTestCase
 
-URL_PREFIX = "0.0.0.0:8081"
+URL_PREFIX = "http://0.0.0.0:8081"
+
+mock_positions = {
+    "DASHBOARD_VERSION_KEY": "v2",
+    "DASHBOARD_CHART_TYPE-1": {
+        "type": "CHART",
+        "id": "DASHBOARD_CHART_TYPE-1",
+        "children": [],
+        "meta": {"width": 4, "height": 50, "chartId": 1},
+    },
+    "DASHBOARD_CHART_TYPE-2": {
+        "type": "CHART",
+        "id": "DASHBOARD_CHART_TYPE-2",
+        "children": [],
+        "meta": {"width": 4, "height": 50, "chartId": 2},
+    },
+}
 
 
 class CacheWarmUpTests(SupersetTestCase):
@@ -46,6 +64,7 @@ class CacheWarmUpTests(SupersetTestCase):
         chart_id = 1
         dashboard = MagicMock()
         dashboard.json_metadata = None
+        dashboard.position_json = json.dumps(mock_positions)
         result = get_form_data(chart_id, dashboard)
         expected = {"slice_id": chart_id}
         self.assertEqual(result, expected)
@@ -54,9 +73,14 @@ class CacheWarmUpTests(SupersetTestCase):
         chart_id = 1
         filter_box_id = 2
         dashboard = MagicMock()
+        dashboard.position_json = json.dumps(mock_positions)
         dashboard.json_metadata = json.dumps(
             {
-                "filter_immune_slices": [chart_id],
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "name": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
+                },
                 "default_filters": json.dumps(
                     {str(filter_box_id): {"name": ["Alice", "Bob"]}}
                 ),
@@ -70,6 +94,7 @@ class CacheWarmUpTests(SupersetTestCase):
         chart_id = 1
         dashboard = MagicMock()
         dashboard.json_metadata = json.dumps({})
+        dashboard.position_json = json.dumps(mock_positions)
         result = get_form_data(chart_id, dashboard)
         expected = {"slice_id": chart_id}
         self.assertEqual(result, expected)
@@ -78,6 +103,7 @@ class CacheWarmUpTests(SupersetTestCase):
         chart_id = 1
         filter_box_id = 2
         dashboard = MagicMock()
+        dashboard.position_json = json.dumps(mock_positions)
         dashboard.json_metadata = json.dumps(
             {
                 "default_filters": json.dumps(
@@ -88,7 +114,11 @@ class CacheWarmUpTests(SupersetTestCase):
                         }
                     }
                 ),
-                "filter_immune_slice_fields": {chart_id: ["__time_range"]},
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "__time_range": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
+                },
             }
         )
         result = get_form_data(chart_id, dashboard)
@@ -102,12 +132,17 @@ class CacheWarmUpTests(SupersetTestCase):
         chart_id = 1
         filter_box_id = 2
         dashboard = MagicMock()
+        dashboard.position_json = json.dumps(mock_positions)
         dashboard.json_metadata = json.dumps(
             {
                 "default_filters": json.dumps(
                     {str(filter_box_id): {"__time_range": "100 years ago : today"}}
                 ),
-                "filter_immune_slice_fields": {chart_id: ["__time_range"]},
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "__time_range": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
+                },
             }
         )
         result = get_form_data(chart_id, dashboard)
@@ -118,6 +153,7 @@ class CacheWarmUpTests(SupersetTestCase):
         chart_id = 1
         filter_box_id = 2
         dashboard = MagicMock()
+        dashboard.position_json = json.dumps(mock_positions)
         dashboard.json_metadata = json.dumps(
             {
                 "default_filters": json.dumps(

@@ -14,14 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+from typing import Any, Dict, Optional
+
+from flask_babel import gettext as _
+
+from superset.errors import SupersetError
 
 
 class SupersetException(Exception):
     status = 500
+    message = ""
 
-    def __init__(self, msg):
-        super(SupersetException, self).__init__(msg)
+    def __init__(self, message: str = "", exception: Optional[Exception] = None):
+        if message:
+            self.message = message
+        self._exception = exception
+        super().__init__(self.message)
+
+    @property
+    def exception(self) -> Optional[Exception]:
+        return self._exception
 
 
 class SupersetTimeoutException(SupersetException):
@@ -31,9 +43,12 @@ class SupersetTimeoutException(SupersetException):
 class SupersetSecurityException(SupersetException):
     status = 401
 
-    def __init__(self, msg, link=None):
-        super(SupersetSecurityException, self).__init__(msg)
-        self.link = link
+    def __init__(
+        self, error: SupersetError, payload: Optional[Dict[str, Any]] = None
+    ) -> None:
+        super(SupersetSecurityException, self).__init__(error.message)
+        self.error = error
+        self.payload = payload
 
 
 class NoDataException(SupersetException):
@@ -52,5 +67,13 @@ class SpatialException(SupersetException):
     pass
 
 
+class CertificateException(SupersetException):
+    message = _("Invalid certificate")
+
+
 class DatabaseNotFound(SupersetException):
+    status = 400
+
+
+class QueryObjectValidationError(SupersetException):
     status = 400

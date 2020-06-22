@@ -32,7 +32,7 @@ class PrestoTests(DbEngineSpecTestCase):
         self.assertEqual("STRING", PrestoEngineSpec.get_datatype("string"))
 
     def test_presto_get_view_names_return_empty_list(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         self.assertEqual(
             [], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
@@ -60,7 +60,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_simple_row_column(self):
         presto_column = ("column_name", "row(nested_obj double)", "")
@@ -68,7 +70,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_simple_row_column_with_name_containing_whitespace(self):
         presto_column = ("column name", "row(nested_obj double)", "")
@@ -76,7 +80,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_simple_row_column_with_tricky_nested_field_name(self):
         presto_column = ("column_name", 'row("Field Name(Tricky, Name)" double)', "")
@@ -87,7 +93,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_simple_array_column(self):
         presto_column = ("column_name", "array(double)", "")
@@ -95,7 +103,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_row_within_array_within_row_column(self):
         presto_column = (
@@ -112,7 +122,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.verify_presto_column(presto_column, expected_results)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_get_array_within_row_within_array_column(self):
         presto_column = (
@@ -147,7 +159,9 @@ class PrestoTests(DbEngineSpecTestCase):
             self.assertEqual(actual_result.name, expected_result["label"])
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_expand_data_with_simple_structural_columns(self):
         cols = [
@@ -182,7 +196,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_expand_data_with_complex_row_columns(self):
         cols = [
@@ -229,7 +245,9 @@ class PrestoTests(DbEngineSpecTestCase):
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     @mock.patch.dict(
-        "superset._feature_flags", {"PRESTO_EXPAND_DATA": True}, clear=True
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"PRESTO_EXPAND_DATA": True},
+        clear=True,
     )
     def test_presto_expand_data_with_complex_array_columns(self):
         cols = [
@@ -354,3 +372,66 @@ class PrestoTests(DbEngineSpecTestCase):
             PrestoEngineSpec.convert_dttm("TIMESTAMP", dttm),
             "from_iso8601_timestamp('2019-01-02T03:04:05.678900')",
         )
+
+    def test_query_cost_formatter(self):
+        raw_cost = [
+            {
+                "inputTableColumnInfos": [
+                    {
+                        "table": {
+                            "catalog": "hive",
+                            "schemaTable": {
+                                "schema": "default",
+                                "table": "fact_passenger_state",
+                            },
+                        },
+                        "columnConstraints": [
+                            {
+                                "columnName": "ds",
+                                "typeSignature": "varchar",
+                                "domain": {
+                                    "nullsAllowed": False,
+                                    "ranges": [
+                                        {
+                                            "low": {
+                                                "value": "2019-07-10",
+                                                "bound": "EXACTLY",
+                                            },
+                                            "high": {
+                                                "value": "2019-07-10",
+                                                "bound": "EXACTLY",
+                                            },
+                                        }
+                                    ],
+                                },
+                            }
+                        ],
+                        "estimate": {
+                            "outputRowCount": 9.04969899e8,
+                            "outputSizeInBytes": 3.54143678301e11,
+                            "cpuCost": 3.54143678301e11,
+                            "maxMemory": 0.0,
+                            "networkCost": 0.0,
+                        },
+                    }
+                ],
+                "estimate": {
+                    "outputRowCount": 9.04969899e8,
+                    "outputSizeInBytes": 3.54143678301e11,
+                    "cpuCost": 3.54143678301e11,
+                    "maxMemory": 0.0,
+                    "networkCost": 3.54143678301e11,
+                },
+            }
+        ]
+        formatted_cost = PrestoEngineSpec.query_cost_formatter(raw_cost)
+        expected = [
+            {
+                "Output count": "904 M rows",
+                "Output size": "354 GB",
+                "CPU cost": "354 G",
+                "Max memory": "0 B",
+                "Network cost": "354 G",
+            }
+        ]
+        self.assertEqual(formatted_cost, expected)

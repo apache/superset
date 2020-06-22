@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """Code related with dealing with legacy / change management"""
+from typing import Any, Dict
 
 
-def update_time_range(form_data):
+def update_time_range(form_data: Dict[str, Any]) -> None:
     """Move since and until to time_range."""
     if "since" in form_data or "until" in form_data:
         form_data["time_range"] = "{} : {}".format(

@@ -16,7 +16,7 @@
 #
 repos:
 -   repo: https://github.com/ambv/black
-    rev: 19.3b0
+    rev: 19.10b0
     hooks:
     -   id: black
         language_version: python3

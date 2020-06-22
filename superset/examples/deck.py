@@ -18,8 +18,10 @@
 import json
 
 from superset import db
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 
-from .helpers import Dash, get_slice_json, merge_slice, Slice, TBL, update_slice_ids
+from .helpers import get_slice_json, merge_slice, TBL, update_slice_ids
 
 COLOR_RED = {"r": 205, "g": 0, "b": 3, "a": 0.82}
 POSITION_JSON = """\
@@ -165,7 +167,7 @@ POSITION_JSON = """\
 }"""
 
 
-def load_deck_dash():
+def load_deck_dash() -> None:
     print("Loading deck.gl dashboard")
     slices = []
     tbl = db.session.query(TBL).filter_by(table_name="long_lat").first()
@@ -340,7 +342,6 @@ def load_deck_dash():
                 "verbose_name": None,
             },
             "expressionType": "SIMPLE",
-            "fromFormData": True,
             "hasCustomLabel": True,
             "label": "Population",
             "optionName": "metric_t2v4qbfiz1_w6qgpx4h2p",
@@ -378,7 +379,6 @@ def load_deck_dash():
                 "aggregate": None,
                 "column": None,
                 "expressionType": "SQL",
-                "fromFormData": None,
                 "hasCustomLabel": None,
                 "label": "Density",
                 "optionName": "metric_c5rvwrzoo86_293h6yrv2ic",
@@ -509,10 +509,10 @@ def load_deck_dash():
 
     print("Creating a dashboard")
     title = "deck.gl Demo"
-    dash = db.session.query(Dash).filter_by(slug=slug).first()
+    dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
     if not dash:
-        dash = Dash()
+        dash = Dashboard()
     dash.published = True
     js = POSITION_JSON
     pos = json.loads(js)

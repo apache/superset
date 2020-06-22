@@ -14,17 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset Celery worker"""
 import datetime
+import io
 import json
+import logging
 import subprocess
 import time
 import unittest
 import unittest.mock as mock
 
-from superset import app, db, sql_lab
-from superset.dataframe import SupersetDataFrame
+import flask
+import sqlalchemy
+from contextlib2 import contextmanager
+from flask import current_app
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+
+from tests.test_app import app
+from superset import db, sql_lab
+from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.extensions import celery_app
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery
@@ -32,22 +44,12 @@ from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
 
-BASE_DIR = app.config["BASE_DIR"]
-CELERY_SLEEP_TIME = 5
-
-
-class CeleryConfig(object):
-    BROKER_URL = app.config["CELERY_CONFIG"].BROKER_URL
-    CELERY_IMPORTS = ("superset.sql_lab",)
-    CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
-    CONCURRENCY = 1
-
-
-app.config["CELERY_CONFIG"] = CeleryConfig
+CELERY_SHORT_SLEEP_TIME = 2
+CELERY_SLEEP_TIME = 10
+DROP_TABLE_SLEEP_TIME = 10
 
 
 class UtilityFunctionTests(SupersetTestCase):
-
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
         q = ParsedQuery("SELECT * FROM outer_space;")
@@ -78,11 +80,27 @@ class UtilityFunctionTests(SupersetTestCase):
         )
 
 
-class CeleryTestCase(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(CeleryTestCase, self).__init__(*args, **kwargs)
-        self.client = app.test_client()
+class AppContextTests(SupersetTestCase):
+    def test_in_app_context(self):
+        @celery_app.task()
+        def my_task():
+            self.assertTrue(current_app)
 
+        # Make sure we can call tasks with an app already setup
+        my_task()
+
+        # Make sure the app gets pushed onto the stack properly
+        try:
+            popped_app = flask._app_ctx_stack.pop()
+            my_task()
+        finally:
+            flask._app_ctx_stack.push(popped_app)
+
+
+CTAS_SCHEMA_NAME = "sqllab_test_db"
+
+
+class CeleryTestCase(SupersetTestCase):
     def get_query_by_name(self, sql):
         session = db.session
         query = session.query(Query).filter_by(sql=sql).first()
@@ -97,21 +115,9 @@ class CeleryTestCase(SupersetTestCase):
 
     @classmethod
     def setUpClass(cls):
-        db.session.query(Query).delete()
-        db.session.commit()
-
-        worker_command = BASE_DIR + "/bin/superset worker -w 2"
-        subprocess.Popen(worker_command, shell=True, stdout=subprocess.PIPE)
-
-    @classmethod
-    def tearDownClass(cls):
-        subprocess.call(
-            "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9", shell=True
-        )
-        subprocess.call(
-            "ps auxww | grep 'superset worker' | awk '{print $2}' | xargs kill -9",
-            shell=True,
-        )
+        with app.app_context():
+            db.session.query(Query).delete()
+            db.session.commit()
 
     def run_sql(
         self, db_id, sql, client_id=None, cta=False, tmp_table="tmp", async_=False
@@ -140,7 +146,6 @@ class CeleryTestCase(SupersetTestCase):
 
     def test_run_sync_query_cta(self):
         main_db = get_example_database()
-        backend = main_db.backend
         db_id = main_db.id
         tmp_table_name = "tmp_async_22"
         self.drop_table_if_exists(tmp_table_name, main_db)
@@ -153,11 +158,12 @@ class CeleryTestCase(SupersetTestCase):
         query2 = self.get_query_by_id(result["query"]["serverId"])
 
         # Check the data in the tmp table.
-        if backend != "postgresql":
-            # TODO This test won't work in Postgres
-            results = self.run_sql(db_id, query2.select_sql, "sdf2134")
-            self.assertEqual(results["status"], "success")
-            self.assertGreater(len(results["data"]), 0)
+        results = self.run_sql(db_id, query2.select_sql, "sdf2134")
+        self.assertEqual(results["status"], "success")
+        self.assertGreater(len(results["data"]), 0)
+
+        # cleanup tmp table
+        self.drop_table_if_exists(tmp_table_name, get_example_database())
 
     def test_run_sync_query_cta_no_data(self):
         main_db = get_example_database()
@@ -180,16 +186,91 @@ class CeleryTestCase(SupersetTestCase):
             db.session.flush()
         return self.run_sql(db_id, sql)
 
-    def test_run_async_query(self):
+    @mock.patch(
+        "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
+    )
+    def test_run_sync_query_cta_config(self):
+        main_db = get_example_database()
+        db_id = main_db.id
+        if main_db.backend == "sqlite":
+            # sqlite doesn't support schemas
+            return
+        tmp_table_name = "tmp_async_22"
+        expected_full_table_name = f"{CTAS_SCHEMA_NAME}.{tmp_table_name}"
+        self.drop_table_if_exists(expected_full_table_name, main_db)
+        name = "James"
+        sql_where = f"SELECT name FROM birth_names WHERE name='{name}'"
+        result = self.run_sql(
+            db_id, sql_where, "cid2", tmp_table=tmp_table_name, cta=True
+        )
+
+        self.assertEqual(QueryStatus.SUCCESS, result["query"]["state"])
+        self.assertEqual([], result["data"])
+        self.assertEqual([], result["columns"])
+        query = self.get_query_by_id(result["query"]["serverId"])
+        self.assertEqual(
+            f"CREATE TABLE {expected_full_table_name} AS \n"
+            "SELECT name FROM birth_names "
+            "WHERE name='James'",
+            query.executed_sql,
+        )
+        self.assertEqual(
+            "SELECT *\n" f"FROM {expected_full_table_name}", query.select_sql
+        )
+        time.sleep(CELERY_SHORT_SLEEP_TIME)
+        results = self.run_sql(db_id, query.select_sql)
+        self.assertEqual(results["status"], "success")
+        self.drop_table_if_exists(expected_full_table_name, get_example_database())
+
+    @mock.patch(
+        "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
+    )
+    def test_run_async_query_cta_config(self):
+        main_db = get_example_database()
+        db_id = main_db.id
+        if main_db.backend == "sqlite":
+            # sqlite doesn't support schemas
+            return
+        tmp_table_name = "sqllab_test_table_async_1"
+        expected_full_table_name = f"{CTAS_SCHEMA_NAME}.{tmp_table_name}"
+        self.drop_table_if_exists(expected_full_table_name, main_db)
+        sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
+        result = self.run_sql(
+            db_id,
+            sql_where,
+            "cid3",
+            async_=True,
+            tmp_table="sqllab_test_table_async_1",
+            cta=True,
+        )
+        db.session.close()
+        time.sleep(CELERY_SLEEP_TIME)
+
+        query = self.get_query_by_id(result["query"]["serverId"])
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertTrue(f"FROM {expected_full_table_name}" in query.select_sql)
+        self.assertEqual(
+            f"CREATE TABLE {expected_full_table_name} AS \n"
+            "SELECT name FROM birth_names "
+            "WHERE name='James' "
+            "LIMIT 10",
+            query.executed_sql,
+        )
+        self.drop_table_if_exists(expected_full_table_name, get_example_database())
+
+    def test_run_async_cta_query(self):
         main_db = get_example_database()
         db_id = main_db.id
 
-        self.drop_table_if_exists("tmp_async_1", main_db)
+        table_name = "tmp_async_4"
+        self.drop_table_if_exists(table_name, main_db)
+        time.sleep(DROP_TABLE_SLEEP_TIME)
 
         sql_where = "SELECT name FROM birth_names WHERE name='James' LIMIT 10"
         result = self.run_sql(
-            db_id, sql_where, "4", async_=True, tmp_table="tmp_async_1", cta=True
+            db_id, sql_where, "cid4", async_=True, tmp_table="tmp_async_4", cta=True
         )
+        db.session.close()
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
             QueryStatus.RUNNING,
@@ -201,9 +282,10 @@ class CeleryTestCase(SupersetTestCase):
         query = self.get_query_by_id(result["query"]["serverId"])
         self.assertEqual(QueryStatus.SUCCESS, query.status)
 
-        self.assertTrue("FROM tmp_async_1" in query.select_sql)
+        self.assertTrue(f"FROM {table_name}" in query.select_sql)
+
         self.assertEqual(
-            "CREATE TABLE tmp_async_1 AS \n"
+            f"CREATE TABLE {table_name} AS \n"
             "SELECT name FROM birth_names "
             "WHERE name='James' "
             "LIMIT 10",
@@ -214,7 +296,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
 
-    def test_run_async_query_with_lower_limit(self):
+    def test_run_async_cta_query_with_lower_limit(self):
         main_db = get_example_database()
         db_id = main_db.id
         tmp_table = "tmp_async_2"
@@ -222,8 +304,9 @@ class CeleryTestCase(SupersetTestCase):
 
         sql_where = "SELECT name FROM birth_names LIMIT 1"
         result = self.run_sql(
-            db_id, sql_where, "5", async_=True, tmp_table=tmp_table, cta=True
+            db_id, sql_where, "id1", async_=True, tmp_table=tmp_table, cta=True
         )
+        db.session.close()
         assert result["query"]["state"] in (
             QueryStatus.PENDING,
             QueryStatus.RUNNING,
@@ -234,14 +317,15 @@ class CeleryTestCase(SupersetTestCase):
 
         query = self.get_query_by_id(result["query"]["serverId"])
         self.assertEqual(QueryStatus.SUCCESS, query.status)
-        self.assertTrue(f"FROM {tmp_table}" in query.select_sql)
+
+        self.assertIn(f"FROM {tmp_table}", query.select_sql)
         self.assertEqual(
             f"CREATE TABLE {tmp_table} AS \n" "SELECT name FROM birth_names LIMIT 1",
             query.executed_sql,
         )
         self.assertEqual(sql_where, query.sql)
         self.assertEqual(0, query.rows)
-        self.assertEqual(1, query.limit)
+        self.assertEqual(None, query.limit)
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
 
@@ -254,14 +338,17 @@ class CeleryTestCase(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        results = SupersetResultSet(data, cursor_descr, db_engine_spec)
 
         with mock.patch.object(
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
-            data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                cdf, db_engine_spec, False, True
-            )
+            (
+                data,
+                selected_columns,
+                all_columns,
+                expanded_columns,
+            ) = sql_lab._serialize_and_expand_data(results, db_engine_spec, False, True)
             expand_data.assert_called_once()
 
         self.assertIsInstance(data, list)
@@ -275,14 +362,17 @@ class CeleryTestCase(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        results = SupersetResultSet(data, cursor_descr, db_engine_spec)
 
         with mock.patch.object(
             db_engine_spec, "expand_data", wraps=db_engine_spec.expand_data
         ) as expand_data:
-            data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-                cdf, db_engine_spec, True
-            )
+            (
+                data,
+                selected_columns,
+                all_columns,
+                expanded_columns,
+            ) = sql_lab._serialize_and_expand_data(results, db_engine_spec, True)
             expand_data.assert_not_called()
 
         self.assertIsInstance(data, bytes)
@@ -297,14 +387,19 @@ class CeleryTestCase(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        results = SupersetResultSet(data, cursor_descr, db_engine_spec)
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": QueryStatus.PENDING,
         }
-        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-            cdf, db_engine_spec, use_new_deserialization
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(
+            results, db_engine_spec, use_new_deserialization
         )
         payload = {
             "query_id": 1,
@@ -330,14 +425,19 @@ class CeleryTestCase(SupersetTestCase):
             ("d", "datetime"),
         )
         db_engine_spec = BaseEngineSpec()
-        cdf = SupersetDataFrame(data, cursor_descr, db_engine_spec)
+        results = SupersetResultSet(data, cursor_descr, db_engine_spec)
         query = {
             "database_id": 1,
             "sql": "SELECT * FROM birth_names LIMIT 100",
             "status": QueryStatus.PENDING,
         }
-        serialized_data, selected_columns, all_columns, expanded_columns = sql_lab._serialize_and_expand_data(
-            cdf, db_engine_spec, use_new_deserialization
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(
+            results, db_engine_spec, use_new_deserialization
         )
         payload = {
             "query_id": 1,

@@ -1,0 +1,44 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+from flask import Flask
+from flask_caching import Cache
+from werkzeug.wrappers import Response
+
+CacheConfig = Union[Callable[[Flask], Cache], Dict[str, Any]]
+DbapiDescriptionRow = Tuple[
+    str, str, Optional[str], Optional[str], Optional[int], Optional[int], bool
+]
+DbapiDescription = Union[List[DbapiDescriptionRow], Tuple[DbapiDescriptionRow, ...]]
+DbapiResult = List[Union[List[Any], Tuple[Any, ...]]]
+FilterValue = Union[float, int, str]
+FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
+FormData = Dict[str, Any]
+Granularity = Union[str, Dict[str, Union[str, float]]]
+Metric = Union[Dict[str, str], str]
+QueryObjectDict = Dict[str, Any]
+VizData = Optional[Union[List[Any], Dict[Any, Any]]]
+VizPayload = Dict[str, Any]
+
+# Flask response.
+Base = Union[bytes, str]
+Status = Union[int, str]
+Headers = Dict[str, Any]
+FlaskResponse = Union[
+    Response, Base, Tuple[Base, Status], Tuple[Base, Status, Headers],
+]

@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "esModuleInterop": false,
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": false,
+    "jsx": "preserve",
+    "lib": ["dom", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "outDir": "./dist",
+    "pretty": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "target": "esnext"
+  },
+  "include": [
+    "./src/**/*",
+    "./spec/**/*",
+    // include the source code of each plugin
+    "./node_modules/*superset-ui*/**/src/**/*",
+    "./node_modules/*superset-ui*/**/types/**/*",
+    // and the type defs of their dependencies
+    "./node_modules/*superset-ui*/**/node_modules/**/*.d.ts"
+  ]
+}

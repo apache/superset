@@ -17,6 +17,8 @@
 from unittest import mock
 
 from superset.db_engine_specs.hive import HiveEngineSpec
+from superset.exceptions import SupersetException
+from superset.sql_parse import Table
 from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
 
 
@@ -58,7 +60,7 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(0, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_1_map_40_progress(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         log = """
             17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
@@ -71,7 +73,7 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(10, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_1_map_80_reduce_40_progress(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         log = """
             17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
@@ -85,7 +87,7 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(30, HiveEngineSpec.progress(log))
 
     def test_job_1_launched_stage_2_stages_progress(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         log = """
             17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
@@ -101,7 +103,7 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(12, HiveEngineSpec.progress(log))
 
     def test_job_2_launched_stage_2_stages_progress(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         log = """
             17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
@@ -145,7 +147,7 @@ class HiveTests(DbEngineSpecTestCase):
         )
 
     def test_hive_get_view_names_return_empty_list(
-        self
+        self,
     ):  # pylint: disable=invalid-name
         self.assertEqual(
             [], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
@@ -161,4 +163,15 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(
             HiveEngineSpec.convert_dttm("TIMESTAMP", dttm),
             "CAST('2019-01-02 03:04:05.678900' AS TIMESTAMP)",
+        )
+
+    def test_create_table_from_csv_append(self) -> None:
+        self.assertRaises(
+            SupersetException,
+            HiveEngineSpec.create_table_from_csv,
+            "foo.csv",
+            Table("foobar"),
+            None,
+            {},
+            {"if_exists": "append"},
         )

@@ -27,7 +27,7 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 30
 
-    _time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,20))",
         "PT1M": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,17) || '00')",
