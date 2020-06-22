@@ -67,7 +67,7 @@ import {
   validateNonEmpty,
 } from '@superset-ui/validator';
 
-import { ColumnOption } from '@superset-ui/control-utils';
+import { ColumnOption } from '@superset-ui/chart-controls';
 import {
   formatSelectOptionsForRange,
   formatSelectOptions,
