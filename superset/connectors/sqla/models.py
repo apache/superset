@@ -1332,6 +1332,14 @@ RLSFilterRoles = Table(
     Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
+RLSFilterTables = Table(
+    "rls_filter_tables",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("table_id", Integer, ForeignKey("tables.id")),
+    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+)
+
 
 class RowLevelSecurityFilter(Model, AuditMixinNullable):
     """
@@ -1345,7 +1353,8 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         secondary=RLSFilterRoles,
         backref="row_level_security_filters",
     )
+    tables = relationship(
+        SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
+    )
 
-    table_id = Column(Integer, ForeignKey("tables.id"), nullable=False)
-    table = relationship(SqlaTable, backref="row_level_security_filters")
     clause = Column(Text, nullable=False)
