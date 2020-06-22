@@ -100,6 +100,7 @@ class DatasetApiTests(SupersetTestCase):
             "kind",
             "owners",
             "schema",
+            "sql",
             "table_name",
         ]
         self.assertEqual(sorted(list(response["result"][0].keys())), expected_columns)
