@@ -39,7 +39,9 @@ def upgrade():
     bind = op.get_bind()
     op.add_column(
         "dbs",
-        sa.Column("server_cert", StringEncryptedType(sa.Text()), nullable=True, **kwargs),
+        sa.Column(
+            "server_cert", StringEncryptedType(sa.Text()), nullable=True, **kwargs
+        ),
     )
 
 

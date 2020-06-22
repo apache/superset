@@ -136,7 +136,9 @@ class Database(
     """
         ),
     )
-    encrypted_extra = Column(StringEncryptedType(Text, config["SECRET_KEY"]), nullable=True)
+    encrypted_extra = Column(
+        StringEncryptedType(Text, config["SECRET_KEY"]), nullable=True
+    )
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
     server_cert = Column(StringEncryptedType(Text, config["SECRET_KEY"]), nullable=True)
