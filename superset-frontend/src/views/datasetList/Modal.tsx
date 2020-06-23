@@ -32,33 +32,29 @@ interface ModalProps {
 }
 
 const StyledModal = styled(BaseModal)`
-  .modal-content {
-    border-radius: ${({ theme }) => theme.borderRadius}px;
+  .modal-header {
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    border-radius: ${({ theme }) => theme.borderRadius}px
+      ${({ theme }) => theme.borderRadius}px 0 0;
+    .close {
+      color: ${({ theme }) => theme.colors.secondary.dark1};
+      font-size: 32px;
+      font-weight: ${({ theme }) => theme.typography.weights.light};
+      margin-top: -3px;
+    }
   }
-`;
 
-const StyledModalHeader = styled(BaseModal.Header)`
-  background-color: ${({ theme }) => theme.colors.grayscale.light4};
-  border-radius: ${({ theme }) => theme.borderRadius}px
-    ${({ theme }) => theme.borderRadius}px 0 0;
-  .close {
-    color: ${({ theme }) => theme.colors.secondary.dark1};
-    font-size: 32px;
-    font-weight: ${({ theme }) => theme.typography.weights.light};
-    margin-top: -3px;
+  .modal-body {
+    padding: 18px 0 340px 18px;
+    width: 65%;
   }
-`;
 
-const StyledModalBody = styled(BaseModal.Body)`
-  padding: 18px 0 340px 18px;
-  width: 65%;
-`;
-
-const StyledModalFooter = styled(BaseModal.Footer)`
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: 16px;
-  .btn + .btn {
-    margin-left: 8px;
+  .modal-footer {
+    border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    padding: 16px;
+    .btn + .btn {
+      margin-left: 8px;
+    }
   }
 `;
 
@@ -78,20 +74,20 @@ export default function Modal({
 }: ModalProps) {
   return (
     <StyledModal show={show} onHide={onHide} bsSize="lg">
-      <StyledModalHeader closeButton>
+      <BaseModal.Header closeButton>
         <BaseModal.Title>
           <Title>{title}</Title>
         </BaseModal.Title>
-      </StyledModalHeader>
-      <StyledModalBody>{children}</StyledModalBody>
-      <StyledModalFooter>
+      </BaseModal.Header>
+      <BaseModal.Body>{children}</BaseModal.Body>
+      <BaseModal.Footer>
         <span className="float-right">
           <Button onClick={onHide}>{t('Cancel')}</Button>
           <Button bsStyle="primary" disabled={disableSave} onClick={onSave}>
             {t('Add')}
           </Button>
         </span>
-      </StyledModalFooter>
+      </BaseModal.Footer>
     </StyledModal>
   );
 }
