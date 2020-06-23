@@ -21,6 +21,8 @@ import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { ThemeProvider } from 'emotion-theming';
+import { supersetTheme } from '@superset-ui/style';
 
 import ListView from 'src/components/ListView/ListView';
 import DashboardTable from 'src/welcome/DashboardTable';
@@ -36,7 +38,11 @@ fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
 
 function setup() {
   // use mount because data fetching is triggered on mount
-  return mount(<DashboardTable />, { context: { store } });
+  return mount(<DashboardTable />, {
+    context: { store },
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
 }
 
 describe('DashboardTable', () => {
