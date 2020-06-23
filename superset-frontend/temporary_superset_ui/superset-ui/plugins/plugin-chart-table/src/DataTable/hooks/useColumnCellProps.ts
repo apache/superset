@@ -16,29 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { HTMLProps } from 'react';
+import { Hooks, Cell, TableCellProps, ColumnInstance } from 'react-table';
 
-// helper functions for select controls
-
-export type Formattable = string | number;
-
-export type Formatted = [Formattable, string];
-
-/** Turns an array of string/number options into options for a select input */
-export function formatSelectOptions<T extends Formattable>(
-  options: (T | [T, string])[],
-): [T, string][] {
-  return options.map(opt => (Array.isArray(opt) ? opt : [opt, opt.toString()]));
+export interface UseColumnCellPropsColumnOption<D extends object, V = unknown> {
+  cellProps?: (
+    cell: Cell<D, V>,
+    props: Partial<TableCellProps>,
+  ) => Partial<HTMLProps<HTMLTableDataCellElement>> | undefined;
 }
 
 /**
- * outputs array of arrays
- * formatSelectOptionsForRange(1, 5)
- * returns [[1,'1'], [2,'2'], [3,'3'], [4,'4'], [5,'5']]
+ * Configure cell props in column options.
  */
-export function formatSelectOptionsForRange(start: number, end: number) {
-  const options: Formatted[] = [];
-  for (let i = start; i <= end; i += 1) {
-    options.push([i, i.toString()]);
-  }
-  return options;
+export default function useColumnCellProps<D extends object>(hooks: Hooks<D>) {
+  hooks.getCellProps.push((props, { cell }) => {
+    const column = cell.column as ColumnInstance<D>;
+    return (column.cellProps && column.cellProps(cell, props)) || [];
+  });
 }
+useColumnCellProps.pluginName = 'useColumnCellProps';

@@ -16,29 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-// helper functions for select controls
-
-export type Formattable = string | number;
-
-export type Formatted = [Formattable, string];
-
-/** Turns an array of string/number options into options for a select input */
-export function formatSelectOptions<T extends Formattable>(
-  options: (T | [T, string])[],
-): [T, string][] {
-  return options.map(opt => (Array.isArray(opt) ? opt : [opt, opt.toString()]));
-}
+import { useLayoutEffect, useRef, useMemo } from 'react';
 
 /**
- * outputs array of arrays
- * formatSelectOptionsForRange(1, 5)
- * returns [[1,'1'], [2,'2'], [3,'3'], [4,'4'], [5,'5']]
+ * Execute a memoized callback only when mounted. Execute again when factory updated.
+ * Returns undefined if not mounted yet.
  */
-export function formatSelectOptionsForRange(start: number, end: number) {
-  const options: Formatted[] = [];
-  for (let i = start; i <= end; i += 1) {
-    options.push([i, i.toString()]);
-  }
-  return options;
+export default function useMountedMemo<T>(factory: () => T, deps?: unknown[]): T | undefined {
+  const mounted = useRef<typeof factory>();
+  useLayoutEffect(() => {
+    mounted.current = factory;
+  });
+  return useMemo(() => {
+    if (mounted.current) {
+      return factory();
+    }
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted.current, mounted.current === factory, ...(deps || [])]);
 }

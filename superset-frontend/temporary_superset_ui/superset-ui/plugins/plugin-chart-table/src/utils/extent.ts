@@ -16,29 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-// helper functions for select controls
-
-export type Formattable = string | number;
-
-export type Formatted = [Formattable, string];
-
-/** Turns an array of string/number options into options for a select input */
-export function formatSelectOptions<T extends Formattable>(
-  options: (T | [T, string])[],
-): [T, string][] {
-  return options.map(opt => (Array.isArray(opt) ? opt : [opt, opt.toString()]));
-}
-
-/**
- * outputs array of arrays
- * formatSelectOptionsForRange(1, 5)
- * returns [[1,'1'], [2,'2'], [3,'3'], [4,'4'], [5,'5']]
- */
-export function formatSelectOptionsForRange(start: number, end: number) {
-  const options: Formatted[] = [];
-  for (let i = start; i <= end; i += 1) {
-    options.push([i, i.toString()]);
+export default function extent<T = number | string | Date | undefined | null>(values: T[]) {
+  let min: T | undefined;
+  let max: T | undefined;
+  // eslint-disable-next-line no-restricted-syntax
+  for (const value of values) {
+    if (value !== null) {
+      if (min === undefined) {
+        if (value !== undefined) {
+          min = value;
+          max = value;
+        }
+      } else {
+        if (min > value) {
+          min = value;
+        }
+        if (max !== undefined) {
+          if (max < value) {
+            max = value;
+          }
+        }
+      }
+    }
   }
-  return options;
+  return [min, max];
 }
