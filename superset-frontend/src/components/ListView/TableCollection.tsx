@@ -141,14 +141,14 @@ export default function TableCollection({
                 return (
                   <td
                     className={cx('table-cell', {
-                      'table-cell-loader': true || loading,
+                      'table-cell-loader': loading,
                       [cell.column.size || '']: cell.column.size,
                     })}
                     {...cell.getCellProps()}
                     {...columnCellProps}
                   >
-                    <span className={cx({ 'loading-bar': true || loading })}>
-                      {cell.render('Cell')}
+                    <span className={cx({ 'loading-bar': loading })}>
+                      <span>{cell.render('Cell')}</span>
                     </span>
                   </td>
                 );
