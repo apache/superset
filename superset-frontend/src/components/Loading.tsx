@@ -26,11 +26,12 @@ interface Props {
 
 const LoaderImg = styled.img`
   z-index: 1000;
-  &.margin-zero {
+  width: 50px;
+  position: relative;
+  margin: 10px;
+  &.inline {
     margin: 0px;
-  }
-  &.normal {
-    // position prop styles
+    width: 30px;
   }
   &.floating {
     padding: 0;

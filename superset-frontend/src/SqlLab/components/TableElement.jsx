@@ -207,7 +207,7 @@ class TableElement extends React.PureComponent {
         </div>
         <div className="pull-right">
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
-            <Loading position="normal" className="margin-zero" />
+            <Loading position="inline" />
           ) : (
             <Fade in={this.state.hovered}>{this.renderControls()}</Fade>
           )}
@@ -270,6 +270,7 @@ class TableElement extends React.PureComponent {
           onMouseLeave={() => this.setHover(false)}
         >
           {this.renderHeader()}
+          HEY THERE
           <div>{this.renderBody()}</div>
         </div>
       </Collapse>
