@@ -24,4 +24,4 @@ echo "Superset config module: $SUPERSET_CONFIG"
 superset db upgrade
 superset init
 nosetests --stop tests/load_examples_test.py
-nosetests --stop --exclude=load_examples_test tests
+nosetests --stop --exclude=load_examples_test --with-coverage tests
