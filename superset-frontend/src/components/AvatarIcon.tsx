@@ -55,7 +55,13 @@ export default function AvatarIcon({
       tooltip={fullName}
     >
       <ConfigProvider colors={colorList && colorList.colors}>
-        <StyledAvatar key={uniqueKey} name={fullName} size={String(iconSize)} textSizeRatio={Number(iconSize) / textSize} round />
+        <StyledAvatar
+          key={uniqueKey}
+          name={fullName}
+          size={String(iconSize)}
+          textSizeRatio={Number(iconSize) / textSize}
+          round
+        />
       </ConfigProvider>
     </TooltipWrapper>
   );

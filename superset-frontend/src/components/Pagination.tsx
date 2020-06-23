@@ -64,7 +64,7 @@ function Ellipsis({ disabled, onClick }: PaginationButton) {
   return (
     <li className={cx({ disabled })}>
       <span role="button" tabIndex={disabled ? -1 : 0} onClick={onClick}>
-        ...
+        …
       </span>
     </li>
   );

@@ -519,7 +519,7 @@ class ChartList extends React.PureComponent<Props, State> {
     } = this.state;
     return (
       <>
-        <SubMenu name="Charts" />
+        <SubMenu name={t('Charts')} />
         {sliceCurrentlyEditing && (
           <PropertiesModal
             show
@@ -542,7 +542,7 @@ class ChartList extends React.PureComponent<Props, State> {
                 key: 'delete',
                 name: (
                   <>
-                    <i className="fa fa-trash" /> Delete
+                    <i className="fa fa-trash" /> {t('Delete')}
                   </>
                 ),
                 onSelect: confirmDelete,
@@ -551,7 +551,6 @@ class ChartList extends React.PureComponent<Props, State> {
             return (
               <ListView
                 className="chart-list-view"
-                title={'Charts'}
                 columns={this.columns}
                 data={charts}
                 count={chartCount}

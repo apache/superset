@@ -38,7 +38,6 @@ interface Props {
   fetchData: (conf: FetchDataConfig) => any;
   loading: boolean;
   className?: string;
-  title?: string;
   initialSort?: SortColumn[];
   filters?: Filters;
   bulkActions?: Array<{
@@ -72,7 +71,6 @@ const ListView: FunctionComponent<Props> = ({
   loading,
   initialSort = [],
   className = '',
-  title = '',
   filters = [],
   bulkActions = [],
   useNewUIFilters = false,
@@ -125,33 +123,27 @@ const ListView: FunctionComponent<Props> = ({
     <div className="superset-list-view-container">
       <div className={`superset-list-view ${className}`}>
         <div className="header">
-          {!useNewUIFilters && (
+          {!useNewUIFilters && filterable && (
             <>
-              {title && filterable && (
-                <>
-                  <Row>
-                    <Col md={10} />
-                    {filterable && (
-                      <Col md={2}>
-                        <FilterMenu
-                          filters={filters}
-                          internalFilters={internalFilters}
-                          setInternalFilters={setInternalFilters}
-                        />
-                      </Col>
-                    )}
-                  </Row>
-                  <hr />
-                  <FilterInputs
-                    internalFilters={internalFilters}
+              <Row>
+                <Col md={10} />
+                <Col md={2}>
+                  <FilterMenu
                     filters={filters}
-                    updateInternalFilter={updateInternalFilter}
-                    removeFilterAndApply={removeFilterAndApply}
-                    filtersApplied={filtersApplied}
-                    applyFilters={applyFilters}
+                    internalFilters={internalFilters}
+                    setInternalFilters={setInternalFilters}
                   />
-                </>
-              )}
+                </Col>
+              </Row>
+              <hr />
+              <FilterInputs
+                internalFilters={internalFilters}
+                filters={filters}
+                updateInternalFilter={updateInternalFilter}
+                removeFilterAndApply={removeFilterAndApply}
+                filtersApplied={filtersApplied}
+                applyFilters={applyFilters}
+              />
             </>
           )}
           {useNewUIFilters && (

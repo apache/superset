@@ -142,14 +142,14 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { owners },
         },
       }: any) => (
-          <ExpandableList
-            items={owners.map(
-              ({ first_name: firstName, last_name: lastName }: any) =>
-                `${firstName} ${lastName}`,
-            )}
-            display={2}
-          />
-        ),
+        <ExpandableList
+          items={owners.map(
+            ({ first_name: firstName, last_name: lastName }: any) =>
+              `${firstName} ${lastName}`,
+          )}
+          display={2}
+        />
+      ),
       Header: t('Owners'),
       accessor: 'owners',
     },
@@ -172,10 +172,10 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { published },
         },
       }: any) => (
-          <span className="no-wrap">
-            {published ? <i className="fa fa-check" /> : ''}
-          </span>
-        ),
+        <span className="no-wrap">
+          {published ? <i className="fa fa-check" /> : ''}
+        </span>
+      ),
       Header: t('Published'),
       accessor: 'published',
       sortable: true,
@@ -510,7 +510,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     } = this.state;
     return (
       <>
-        <SubMenu name="Dashboards" />
+        <SubMenu name={t('Dashboards')} />
         <ConfirmStatusChange
           title={t('Please confirm')}
           description={t(
@@ -525,7 +525,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                 key: 'delete',
                 name: (
                   <>
-                    <i className="fa fa-trash" /> Delete
+                    <i className="fa fa-trash" /> {t('Delete')}
                   </>
                 ),
                 onSelect: confirmDelete,
@@ -536,7 +536,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                 key: 'export',
                 name: (
                   <>
-                    <i className="fa fa-database" /> Export
+                    <i className="fa fa-database" /> {t('Export')}
                   </>
                 ),
                 onSelect: this.handleBulkDashboardExport,
@@ -554,7 +554,6 @@ class DashboardList extends React.PureComponent<Props, State> {
                 )}
                 <ListView
                   className="dashboard-list-view"
-                  title={'Dashboards'}
                   columns={this.columns}
                   data={dashboards}
                   count={dashboardCount}

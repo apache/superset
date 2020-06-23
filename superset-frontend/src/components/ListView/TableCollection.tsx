@@ -33,12 +33,24 @@ interface Props {
 
 const Table = styled.table`
   th {
-    &.xs { min-width: 25px; }
-    &.sm { min-width: 50px; }
-    &.md { min-width: 75px; }
-    &.lg { min-width: 100px; }
-    &.xl { min-width: 150px; }
-    &.xxl { min-width: 200px; }
+    &.xs {
+      min-width: 25px;
+    }
+    &.sm {
+      min-width: 50px;
+    }
+    &.md {
+      min-width: 75px;
+    }
+    &.lg {
+      min-width: 100px;
+    }
+    &.xl {
+      min-width: 150px;
+    }
+    &.xxl {
+      min-width: 200px;
+    }
 
     svg {
       display: inline-block;
@@ -47,12 +59,24 @@ const Table = styled.table`
     }
   }
   td {
-    &.xs { width: 25px; }
-    &.sm { width: 50px; }
-    &.md { width: 75px; }
-    &.lg { width: 100px; }
-    &.xl { width: 150px; }
-    &.xxl { width: 200px; }
+    &.xs {
+      width: 25px;
+    }
+    &.sm {
+      width: 50px;
+    }
+    &.md {
+      width: 75px;
+    }
+    &.lg {
+      width: 100px;
+    }
+    &.xl {
+      width: 150px;
+    }
+    &.xxl {
+      width: 200px;
+    }
   }
 `;
 
@@ -79,19 +103,16 @@ export default function TableCollection({
               return column.hidden ? null : (
                 <th
                   {...column.getHeaderProps(
-                    column.sortable ? column.getSortByToggleProps() : {}
+                    column.sortable ? column.getSortByToggleProps() : {},
                   )}
                   data-test="sort-header"
-                  className={
-                    cx({
-                      [column.size || '']: column.size,
-                    })
-                  }
+                  className={cx({
+                    [column.size || '']: column.size,
+                  })}
                 >
-                  <span>{column.render('Header')}
-                    {column.sortable && (
-                      sortIcon
-                    )}
+                  <span>
+                    {column.render('Header')}
+                    {column.sortable && sortIcon}
                   </span>
                 </th>
               );
@@ -120,13 +141,13 @@ export default function TableCollection({
                 return (
                   <td
                     className={cx('table-cell', {
-                      'table-cell-loader': loading,
-                      [cell.column.size || '']: cell.column.size
+                      'table-cell-loader': true || loading,
+                      [cell.column.size || '']: cell.column.size,
                     })}
                     {...cell.getCellProps()}
                     {...columnCellProps}
                   >
-                    <span className={cx({ 'loading-bar': loading })}>
+                    <span className={cx({ 'loading-bar': true || loading })}>
                       {cell.render('Cell')}
                     </span>
                   </td>
@@ -136,6 +157,6 @@ export default function TableCollection({
           );
         })}
       </tbody>
-    </Table >
+    </Table>
   );
 }

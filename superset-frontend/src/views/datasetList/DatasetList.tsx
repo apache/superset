@@ -24,6 +24,7 @@ import React from 'react';
 import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
+import { SHORT_DATE, SHORT_TIME } from 'src/utils/common';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -214,8 +215,8 @@ class DatasetList extends React.PureComponent<Props, State> {
         },
       }: any) => {
         const momentTime = moment(changedOn);
-        const time = momentTime.format('h:m a');
-        const date = momentTime.format('MMM D, YYYY');
+        const time = momentTime.format(SHORT_DATE);
+        const date = momentTime.format(SHORT_TIME);
         return (
           <TooltipWrapper
             label="last-modified"
@@ -355,7 +356,7 @@ class DatasetList extends React.PureComponent<Props, State> {
   ];
 
   menu = {
-    name: 'Data',
+    name: t('Data'),
     createButton: {
       name: t('Dataset'),
       url: '/tablemodelview/add',
@@ -538,7 +539,7 @@ class DatasetList extends React.PureComponent<Props, State> {
                 key: 'delete',
                 name: (
                   <>
-                    <i className="fa fa-trash" /> Delete
+                    <i className="fa fa-trash" /> {t('Delete')}
                   </>
                 ),
                 onSelect: confirmDelete,
@@ -547,7 +548,6 @@ class DatasetList extends React.PureComponent<Props, State> {
             return (
               <ListView
                 className="dataset-list-view"
-                title={'Datasets'}
                 columns={this.columns}
                 data={datasets}
                 count={datasetCount}
