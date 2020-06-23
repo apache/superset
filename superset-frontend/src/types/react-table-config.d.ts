@@ -67,7 +67,7 @@ import {
 import { ColumnSizer } from 'react-virtualized';
 
 declare module 'react-table' {
-  type columnSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  type ColumnSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   export interface TableOptions<D extends object>
     extends UseExpandedOptions<D>,
       UseFiltersOptions<D>,
@@ -120,7 +120,7 @@ declare module 'react-table' {
     hidden?: boolean;
     sortable?: boolean;
     cellProps?: any;
-    size?: columnSize;
+    size?: ColumnSize;
   }
 
   export interface ColumnInstance<D extends object = {}>

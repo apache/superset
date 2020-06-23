@@ -59,7 +59,7 @@ export default function AvatarIcon({
           key={uniqueKey}
           name={fullName}
           size={String(iconSize)}
-          textSizeRatio={Number(iconSize) / textSize}
+          textSizeRatio={iconSize / textSize}
           round
         />
       </ConfigProvider>
