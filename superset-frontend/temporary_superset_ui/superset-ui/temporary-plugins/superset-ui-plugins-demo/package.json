@@ -41,7 +41,7 @@
     "@types/storybook__react": "4.0.2",
     "bootstrap": "^3.4.1",
     "jquery": "^3.4.1",
-    "react": "^16.6.0",
+    "react": "^16.13.1",
     "storybook-addon-jsx": "^7.1.0"
   },
   "devDependencies": {

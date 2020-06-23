@@ -59,7 +59,7 @@
     "@superset-ui/legacy-plugin-chart-sankey": "0.14.1",
     "@superset-ui/legacy-plugin-chart-sankey-loop": "0.14.1",
     "@superset-ui/legacy-plugin-chart-sunburst": "0.14.1",
-    "@superset-ui/legacy-plugin-chart-table": "0.14.1",
+    "@superset-ui/plugin-chart-table": "0.14.0",
     "@superset-ui/legacy-plugin-chart-treemap": "0.14.1",
     "@superset-ui/legacy-plugin-chart-word-cloud": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-world-map": "0.14.1",
@@ -76,6 +76,7 @@
     "core-js": "3.6.5",
     "gh-pages": "^3.0.0",
     "jquery": "^3.4.1",
+    "memoize-one": "^5.1.1",
     "react": "^16.13.1",
     "react-resizable": "^1.10.1",
     "storybook-addon-jsx": "^7.2.3"

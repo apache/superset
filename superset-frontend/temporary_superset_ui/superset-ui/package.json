@@ -11,6 +11,7 @@
     "babel:esm": "nimbus babel --clean --workspaces=\"@superset-ui/!(demo|generator-superset)\" --esm --config-file=../../babel.config.js",
     "demo": "cd packages/superset-ui-demo && yarn demo:build",
     "demo:clean": "cd packages/superset-ui-demo && yarn demo:clean",
+    "demo:build": "cd packages/superset-ui-demo && yarn demo:build",
     "storybook": "cd packages/superset-ui-demo && yarn storybook",
     "sb": "yarn storybook",
     "clean": "rm -rf ./{packages,plugins}/**/{lib,esm,tsconfig.tsbuildinfo} build/",

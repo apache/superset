@@ -16,29 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
-// helper functions for select controls
+export * from './types';
 
-export type Formattable = string | number;
+const metadata = new ChartMetadata({
+  canBeAnnotationTypes: ['EVENT', 'INTERVAL'],
+  description: '',
+  name: t('Table'),
+  thumbnail,
+  useLegacyApi: true,
+});
 
-export type Formatted = [Formattable, string];
-
-/** Turns an array of string/number options into options for a select input */
-export function formatSelectOptions<T extends Formattable>(
-  options: (T | [T, string])[],
-): [T, string][] {
-  return options.map(opt => (Array.isArray(opt) ? opt : [opt, opt.toString()]));
-}
-
-/**
- * outputs array of arrays
- * formatSelectOptionsForRange(1, 5)
- * returns [[1,'1'], [2,'2'], [3,'3'], [4,'4'], [5,'5']]
- */
-export function formatSelectOptionsForRange(start: number, end: number) {
-  const options: Formatted[] = [];
-  for (let i = start; i <= end; i += 1) {
-    options.push([i, i.toString()]);
+export default class TableChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      loadChart: () => import('./TableChart'),
+      metadata,
+      transformProps,
+      controlPanel,
+    });
   }
-  return options;
 }

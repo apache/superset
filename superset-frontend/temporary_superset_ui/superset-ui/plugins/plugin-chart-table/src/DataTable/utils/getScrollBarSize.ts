@@ -16,29 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+let cached: number | undefined;
 
-// helper functions for select controls
+const css = (x: TemplateStringsArray) => x.join('\n');
 
-export type Formattable = string | number;
-
-export type Formatted = [Formattable, string];
-
-/** Turns an array of string/number options into options for a select input */
-export function formatSelectOptions<T extends Formattable>(
-  options: (T | [T, string])[],
-): [T, string][] {
-  return options.map(opt => (Array.isArray(opt) ? opt : [opt, opt.toString()]));
-}
-
-/**
- * outputs array of arrays
- * formatSelectOptionsForRange(1, 5)
- * returns [[1,'1'], [2,'2'], [3,'3'], [4,'4'], [5,'5']]
- */
-export function formatSelectOptionsForRange(start: number, end: number) {
-  const options: Formatted[] = [];
-  for (let i = start; i <= end; i += 1) {
-    options.push([i, i.toString()]);
+export default function getScrollBarSize(forceRefresh = false) {
+  if (typeof document === 'undefined') {
+    return 0;
   }
-  return options;
+  if (cached === undefined || forceRefresh) {
+    const inner = document.createElement('div');
+    const outer = document.createElement('div');
+    inner.style.cssText = css`
+      width: auto;
+      height: 100%;
+      overflow: scroll;
+    `;
+    outer.style.cssText = css`
+      position: absolute;
+      visibility: hidden;
+      overflow: hidden;
+      width: 100px;
+      height: 50px;
+    `;
+    outer.append(inner);
+    document.body.append(outer);
+    cached = outer.clientWidth - inner.clientWidth;
+    outer.remove();
+  }
+  return cached;
 }
