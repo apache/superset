@@ -21,6 +21,8 @@ import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { ThemeProvider } from 'emotion-theming';
+import { supersetTheme } from '@superset-ui/style';
 
 import DashboardList from 'src/views/dashboardList/DashboardList';
 import ListView from 'src/components/ListView/ListView';
@@ -67,6 +69,8 @@ describe('DashboardList', () => {
   const mockedProps = {};
   const wrapper = mount(<DashboardList {...mockedProps} />, {
     context: { store },
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
   });
 
   it('renders', () => {

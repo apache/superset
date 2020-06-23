@@ -19,13 +19,14 @@
 import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { act } from 'react-dom/test-utils';
-import { MenuItem, Pagination } from 'react-bootstrap';
+import { MenuItem } from 'react-bootstrap';
 import Select from 'src/components/Select';
 import { QueryParamProvider } from 'use-query-params';
 
 import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
+import Pagination from 'src/components/Pagination';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import { ThemeProvider } from 'emotion-theming';
 import { supersetTheme } from '@superset-ui/style';
