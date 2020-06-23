@@ -49,6 +49,7 @@ class DatabaseApiTests(SupersetTestCase):
             "allow_run_async",
             "allows_cost_estimate",
             "allows_subquery",
+            "allows_virtual_table_explore",
             "backend",
             "database_name",
             "expose_in_sqllab",

@@ -1248,6 +1248,29 @@ class CoreTests(SupersetTestCase):
         payload = views.Superset._get_sqllab_tabs(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
+    def test_virtual_table_explore_visibility(self):
+        # test that default visibility it set to True
+        database = utils.get_example_database()
+        self.assertEqual(database.allows_virtual_table_explore, True)
+
+        # test that visibility is disabled when extra is set to False
+        extra = database.get_extra()
+        extra["virtual_table_explore_enabled"] = False
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.allows_virtual_table_explore, False)
+
+        # test that visibility is enabled when extra is set to True
+        extra = database.get_extra()
+        extra["virtual_table_explore_enabled"] = True
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.allows_virtual_table_explore, True)
+
+        # test that visibility is not broken with bad values
+        extra = database.get_extra()
+        extra["virtual_table_explore_enabled"] = "trash value"
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.allows_virtual_table_explore, True)
+
 
 if __name__ == "__main__":
     unittest.main()
