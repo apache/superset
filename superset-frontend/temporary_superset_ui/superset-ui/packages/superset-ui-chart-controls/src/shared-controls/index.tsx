@@ -42,17 +42,17 @@ import {
 } from '@superset-ui/color';
 import { legacyValidateInteger, validateNonEmpty } from '@superset-ui/validator';
 
-import { formatSelectOptions } from './utils/selectOptions';
-import { mainMetric, Metric } from './utils/mainMetric';
-import { TIME_FILTER_LABELS } from './constants';
+import { formatSelectOptions } from '../utils/selectOptions';
+import { mainMetric, Metric } from '../utils/mainMetric';
+import { TIME_FILTER_LABELS } from '../constants';
 import {
   SharedControlConfig,
   ColumnMeta,
   DatasourceMeta,
   ExtraControlProps,
   SelectControlConfig,
-} from './types';
-import { ColumnOption } from './components/ColumnOption';
+} from '../types';
+import { ColumnOption } from '../components/ColumnOption';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
