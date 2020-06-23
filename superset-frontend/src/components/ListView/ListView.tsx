@@ -146,7 +146,7 @@ const ListView: FunctionComponent<Props> = ({
               />
             </>
           )}
-          {useNewUIFilters && (
+          {useNewUIFilters && filterable && (
             <FilterControls
               filters={filters}
               internalFilters={internalFilters}
@@ -204,12 +204,12 @@ const ListView: FunctionComponent<Props> = ({
 
             <Col>
               <span className="row-count-container">
-                {t('showing')}{' '}
+                showing {' '}
                 <strong>
                   {pageSize * pageIndex + (rows.length && 1)}-
                   {pageSize * pageIndex + rows.length}
                 </strong>{' '}
-                {t('of')} <strong>{count}</strong>
+                of <strong>{count}</strong>
               </span>
             </Col>
           </Row>
