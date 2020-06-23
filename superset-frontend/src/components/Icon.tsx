@@ -18,19 +18,20 @@
  */
 import React, { SVGProps } from 'react';
 import styled from '@superset-ui/style';
-import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
-import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
+import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
 import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.svg';
-import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
-import { ReactComponent as SortDescIcon } from 'images/icons/sort-desc.svg';
-import { ReactComponent as SortAscIcon } from 'images/icons/sort-asc.svg';
-import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
-import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
+import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
+import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
-import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
+import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
 import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
+import { ReactComponent as SortAscIcon } from 'images/icons/sort-asc.svg';
+import { ReactComponent as SortDescIcon } from 'images/icons/sort-desc.svg';
+import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
+import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
+import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 
 type Icon =
   | 'cancel-x'
@@ -42,25 +43,27 @@ type Icon =
   | 'dataset-virtual'
   | 'pencil'
   | 'search'
+  | 'sort'
   | 'sort-asc'
   | 'sort-desc'
-  | 'sort'
-  | 'trash';
+  | 'trash'
+  | 'warning';
 
 const iconsRegistry: { [key in Icon]: React.ComponentType } = {
   'cancel-x': CancelXIcon,
   'checkbox-half': CheckboxHalfIcon,
   'checkbox-off': CheckboxOffIcon,
   'checkbox-on': CheckboxOnIcon,
-  compass: CompassIcon,
   'dataset-physical': DatasetPhysicalIcon,
   'dataset-virtual': DatasetVirtualIcon,
-  pencil: PencilIcon,
-  search: SearchIcon,
   'sort-asc': SortAscIcon,
   'sort-desc': SortDescIcon,
+  compass: CompassIcon,
+  pencil: PencilIcon,
+  search: SearchIcon,
   sort: SortIcon,
   trash: TrashIcon,
+  warning: WarningIcon,
 };
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: Icon;
