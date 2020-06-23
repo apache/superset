@@ -144,7 +144,10 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
   ] as [typeof metrics, typeof percentMetrics, typeof columns];
 }, isEqualColumns);
 
-const getDefaultPageSize = (
+/**
+ * Automatically set page size based on number of cells.
+ */
+const getPageSize = (
   pageSize: number | string | null | undefined,
   numRecords: number,
   numColumns: number,
@@ -194,7 +197,7 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     showCellBars,
     sortDesc,
     includeSearch,
-    pageSize: getDefaultPageSize(pageSize, data.length, columns.length),
+    pageSize: getPageSize(pageSize, data.length, columns.length),
     filters,
     emitFilter: tableFilter === true,
     onChangeFilter,

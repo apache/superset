@@ -22,41 +22,168 @@ import { t } from '@superset-ui/translation';
 import {
   formatSelectOptions,
   D3_TIME_FORMAT_OPTIONS,
+  ControlConfig,
   ColumnOption,
+  ControlStateMapping,
   ControlPanelConfig,
+  ControlPanelsContainerProps,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { validateNonEmpty } from '@superset-ui/validator';
+import { smartDateFormatter } from '@superset-ui/time-format';
+
+export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([[0, t('All')], 10, 20, 50, 100, 200]);
+
+export enum QueryMode {
+  aggregate = 'aggregate',
+  raw = 'raw',
+}
+
+const QueryModeLabel = {
+  [QueryMode.aggregate]: t('Aggregate'),
+  [QueryMode.raw]: t('Raw Records'),
+};
+
+function getQueryMode(controls: ControlStateMapping): QueryMode {
+  const mode = controls?.query_mode?.value;
+  if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
+    return mode as QueryMode;
+  }
+  const groupby = controls?.groupby?.value;
+  const hasGroupBy = groupby && (groupby as string[])?.length > 0;
+  return hasGroupBy ? QueryMode.aggregate : QueryMode.raw;
+}
+
+/**
+ * Visibility check
+ */
+function isQueryMode(mode: QueryMode) {
+  return ({ controls }: ControlPanelsContainerProps) => {
+    return getQueryMode(controls) === mode;
+  };
+}
+
+const isAggMode = isQueryMode(QueryMode.aggregate);
+const isRawMode = isQueryMode(QueryMode.raw);
+
+const queryMode: ControlConfig<'RadioButtonControl'> = {
+  type: 'RadioButtonControl',
+  label: t('Query Mode'),
+  default: QueryMode.aggregate,
+  options: [
+    {
+      label: QueryModeLabel[QueryMode.aggregate],
+      value: QueryMode.aggregate,
+    },
+    {
+      label: QueryModeLabel[QueryMode.raw],
+      value: QueryMode.raw,
+    },
+  ],
+  mapStateToProps: ({ controls }) => {
+    return { value: getQueryMode(controls) };
+  },
+};
+
+const all_columns: typeof sharedControls.groupby = {
+  type: 'SelectControl',
+  label: t('Columns'),
+  description: t('Columns to display'),
+  multi: true,
+  freeForm: true,
+  allowAll: true,
+  commaChoosesOption: false,
+  default: [],
+  optionRenderer: c => <ColumnOption showType column={c} />,
+  valueRenderer: c => <ColumnOption column={c} />,
+  valueKey: 'column_name',
+  mapStateToProps: ({ datasource, controls }) => ({
+    options: datasource?.columns || [],
+    queryMode: getQueryMode(controls),
+  }),
+  visibility: isRawMode,
+};
+
+const percent_metrics: typeof sharedControls.metrics = {
+  type: 'MetricsControl',
+  label: t('Percentage Metrics'),
+  description: t('Metrics for which percentage of total are to be displayed'),
+  multi: true,
+  visibility: isAggMode,
+  mapStateToProps: ({ datasource, controls }) => {
+    return {
+      columns: datasource?.columns || [],
+      savedMetrics: datasource?.metrics || [],
+      datasourceType: datasource?.type,
+      queryMode: getQueryMode(controls),
+    };
+  },
+  default: [],
+  validators: [],
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
-      label: t('GROUP BY'),
-      description: t('Use this section if you want a query that aggregates'),
+      label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['groupby'],
-        ['metrics'],
         [
           {
-            name: 'percent_metrics',
-            config: {
-              type: 'MetricsControl',
-              multi: true,
-              mapStateToProps: ({ datasource }) => {
-                return {
-                  columns: datasource?.columns || [],
-                  savedMetrics: datasource?.metrics || [],
-                  datasourceType: datasource?.type,
-                };
-              },
-              default: [],
-              label: t('Percentage Metrics'),
-              validators: [],
-              description: t('Metrics for which percentage of total are to be displayed'),
+            name: 'query_mode',
+            config: queryMode,
+          },
+        ],
+        [
+          {
+            name: 'groupby',
+            override: {
+              visibility: isAggMode,
             },
           },
         ],
-        ['timeseries_limit_metric', 'row_limit'],
+        [
+          {
+            name: 'metrics',
+            override: {
+              validators: [],
+              visibility: isAggMode,
+            },
+          },
+          {
+            name: 'all_columns',
+            config: all_columns,
+          },
+        ],
+        [
+          {
+            name: 'percent_metrics',
+            config: percent_metrics,
+          },
+        ],
+        [
+          {
+            name: 'timeseries_limit_metric',
+            override: {
+              visibility: isAggMode,
+            },
+          },
+          {
+            name: 'order_by_cols',
+            config: {
+              type: 'SelectControl',
+              label: t('Ordering'),
+              description: t('One or many metrics to display'),
+              multi: true,
+              default: [],
+              mapStateToProps: ({ datasource }) => ({
+                choices: datasource?.order_by_choices || [],
+              }),
+              visibility: isRawMode,
+            },
+          },
+        ],
+        ['row_limit'],
         [
           {
             name: 'include_time',
@@ -67,6 +194,7 @@ const config: ControlPanelConfig = {
                 'Whether to include the time granularity as defined in the time section',
               ),
               default: false,
+              visibility: isAggMode,
             },
           },
           {
@@ -76,59 +204,12 @@ const config: ControlPanelConfig = {
               label: t('Sort Descending'),
               default: true,
               description: t('Whether to sort descending or ascending'),
+              visibility: isAggMode,
             },
           },
         ],
+        ['adhoc_filters'],
       ],
-    },
-    {
-      label: t('NOT GROUPED BY'),
-      description: t('Use this section if you want to query atomic rows'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'all_columns',
-            config: {
-              type: 'SelectControl',
-              multi: true,
-              label: t('Columns'),
-              default: [],
-              description: t('Columns to display'),
-              optionRenderer: (c: never) => <ColumnOption showType column={c} />,
-              valueRenderer: (c: never) => <ColumnOption column={c} />,
-              valueKey: 'column_name',
-              allowAll: true,
-              mapStateToProps: ({ datasource }) => ({
-                options: datasource?.columns || [],
-              }),
-              commaChoosesOption: false,
-              freeForm: true,
-            },
-          },
-        ],
-        [
-          {
-            name: 'order_by_cols',
-            config: {
-              type: 'SelectControl',
-              multi: true,
-              label: t('Ordering'),
-              default: [],
-              description: t('One or many metrics to display'),
-              mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.order_by_choices || [],
-              }),
-            },
-          },
-        ],
-        ['row_limit', null],
-      ],
-    },
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [['adhoc_filters']],
     },
     {
       label: t('Options'),
@@ -141,7 +222,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               label: t('Table Timestamp Format'),
-              default: '%Y-%m-%d %H:%M:%S',
+              default: smartDateFormatter.id,
               renderTrigger: true,
               validators: [validateNonEmpty],
               clearable: false,
@@ -158,8 +239,8 @@ const config: ControlPanelConfig = {
               freeForm: true,
               renderTrigger: true,
               label: t('Page Length'),
-              default: 0,
-              choices: formatSelectOptions([0, 10, 25, 40, 50, 75, 100, 150, 200]),
+              default: null,
+              choices: PAGE_SIZE_OPTIONS,
               description: t('Rows per page, 0 means no pagination'),
             },
           },
@@ -225,11 +306,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  controlOverrides: {
-    metrics: {
-      validators: [],
-    },
-  },
   sectionOverrides: {
     druidTimeSeries: {
       controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
