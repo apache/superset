@@ -19,15 +19,16 @@
 import React from 'react';
 import styled from '@superset-ui/style';
 import { getCategoricalSchemeRegistry } from '@superset-ui/color';
-import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 import Avatar, { ConfigProvider } from 'react-avatar';
+import TooltipWrapper from 'src/components/TooltipWrapper';
 
 interface Props {
   firstName: string;
-  iconSize: string;
   lastName: string;
   tableName: string;
   userName: string;
+  iconSize: number;
+  textSize: number;
 }
 
 const colorList = getCategoricalSchemeRegistry().get();
@@ -42,18 +43,26 @@ export default function AvatarIcon({
   lastName,
   userName,
   iconSize,
+  textSize,
 }: Props) {
   const uniqueKey = `${tableName}-${userName}`;
   const fullName = `${firstName} ${lastName}`;
 
   return (
-    <ConfigProvider colors={colorList && colorList.colors}>
-      <OverlayTrigger
-        placement="right"
-        overlay={<Tooltip id={`${uniqueKey}-tooltip`}>{fullName}</Tooltip>}
-      >
-        <StyledAvatar key={uniqueKey} name={fullName} size={iconSize} round />
-      </OverlayTrigger>
-    </ConfigProvider>
+    <TooltipWrapper
+      placement="bottom"
+      label={`${uniqueKey}-tooltip`}
+      tooltip={fullName}
+    >
+      <ConfigProvider colors={colorList && colorList.colors}>
+        <StyledAvatar
+          key={uniqueKey}
+          name={fullName}
+          size={String(iconSize)}
+          textSizeRatio={iconSize / textSize}
+          round
+        />
+      </ConfigProvider>
+    </TooltipWrapper>
   );
 }
