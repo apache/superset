@@ -20,7 +20,7 @@ import React from 'react';
 import styled from '@superset-ui/style';
 import { Modal as BaseModal } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import Button from 'src/components/Button';
+import Button from './Button';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -30,29 +30,6 @@ interface ModalProps {
   show: boolean;
   title: React.ReactNode;
 }
-
-const StyledButton = styled(Button)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: none;
-  padding: 8px;
-  text-transform: uppercase;
-  width: 160px;
-  &.btn,
-  &.btn:hover {
-    background-color: ${({ theme }) => theme.colors.primary.light4};
-    color: ${({ theme }) => theme.colors.primary.base};
-  }
-  &.btn[disabled],
-  &.btn[disabled]:hover {
-    background-color: ${({ theme }) => theme.colors.grayscale.light2};
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-  }
-  &.btn-primary,
-  &.btn-primary:hover {
-    background-color: ${({ theme }) => theme.colors.primary.base};
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-  }
-`;
 
 const StyledModal = styled(BaseModal)`
   .modal-content {
@@ -109,14 +86,10 @@ export default function Modal({
       <StyledModalBody>{children}</StyledModalBody>
       <StyledModalFooter>
         <span className="float-right">
-          <StyledButton onClick={onHide}>{t('Cancel')}</StyledButton>
-          <StyledButton
-            bsStyle="primary"
-            disabled={disableSave}
-            onClick={onSave}
-          >
+          <Button onClick={onHide}>{t('Cancel')}</Button>
+          <Button bsStyle="primary" disabled={disableSave} onClick={onSave}>
             {t('Add')}
-          </StyledButton>
+          </Button>
         </span>
       </StyledModalFooter>
     </StyledModal>
