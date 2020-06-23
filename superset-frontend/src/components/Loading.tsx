@@ -24,32 +24,32 @@ interface Props {
   className: string;
 }
 
-const FLOATING_STYLE = {
-  padding: 0,
-  margin: 0,
-  position: 'absolute',
-  left: '50%',
-  top: '50%',
-  transform: 'translate(-50%, -50%)',
-};
-
 const LoaderImg = styled.img`
   z-index: 1000;
   &.margin-zero {
     margin: 0px;
+  }
+  &.normal {
+    // position prop styles
+  }
+  &.floating {
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
 `;
 export default function Loading({
   position = 'floating',
   className = '',
 }: Props) {
-  const style = position === 'floating' ? FLOATING_STYLE : {};
   return (
     <LoaderImg
-      className={`loading ${className}`}
+      className={`loading ${className} ${position}`}
       alt="Loading..."
       src="/static/assets/images/loading.gif"
-      style={style}
     />
   );
 }
