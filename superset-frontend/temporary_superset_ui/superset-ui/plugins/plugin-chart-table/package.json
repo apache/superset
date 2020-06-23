@@ -2,7 +2,6 @@
   "name": "@superset-ui/plugin-chart-table",
   "version": "0.14.2",
   "description": "Superset Chart - Table",
-  "private": true,
   "main": "lib/index.js",
   "module": "esm/index.js",
   "sideEffects": false,
