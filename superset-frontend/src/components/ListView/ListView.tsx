@@ -204,7 +204,7 @@ const ListView: FunctionComponent<Props> = ({
 
             <Col>
               <span className="row-count-container">
-                showing {' '}
+                showing{' '}
                 <strong>
                   {pageSize * pageIndex + (rows.length && 1)}-
                   {pageSize * pageIndex + rows.length}

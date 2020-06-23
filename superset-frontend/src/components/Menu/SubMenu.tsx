@@ -82,7 +82,7 @@ class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
         ? this.props.childs[0].label
         : '',
     isModalOpen: false,
-  }
+  };
 
   onOpen = () => {
     this.setState({ isModalOpen: true });
@@ -90,7 +90,7 @@ class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
 
   onClose = () => {
     this.setState({ isModalOpen: false });
-  }
+  };
 
   handleClick = (item: string) => () => {
     this.setState({ selectedMenu: item });
@@ -126,7 +126,7 @@ class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
             </Nav>
           )}
         </Navbar>
-      </StyledHeader >
+      </StyledHeader>
     );
   }
 }
