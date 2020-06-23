@@ -21,7 +21,6 @@ import styled from '@superset-ui/style';
 
 interface Props {
   position: string;
-  className: string;
 }
 
 const LoaderImg = styled.img`
@@ -42,13 +41,10 @@ const LoaderImg = styled.img`
     transform: translate(-50%, -50%);
   }
 `;
-export default function Loading({
-  position = 'floating',
-  className = '',
-}: Props) {
+export default function Loading({ position = 'floating' }: Props) {
   return (
     <LoaderImg
-      className={`loading ${className} ${position}`}
+      className={`loading ${position}`}
       alt="Loading..."
       src="/static/assets/images/loading.gif"
     />
