@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-table",
-  "version": "0.14.0",
+  "version": "0.14.2",
   "description": "Superset Chart - Table",
   "private": true,
   "main": "lib/index.js",
@@ -27,19 +27,19 @@
     "access": "public"
   },
   "dependencies": {
+    "@emotion/core": "^10.0.28",
     "@types/d3-array": "^2.0.0",
     "@types/match-sorter": "^4.0.0",
     "@types/react": "^16.9.35",
-    "@types/react-table": "^7.0.19",
     "@types/react-dom": "^16.9.8",
-    "@emotion/core": "^10.0.28",
+    "@types/react-table": "^7.0.19",
     "d3-array": "^2.4.0",
     "match-sorter": "^4.1.0",
     "memoize-one": "^5.1.1",
-    "xss": "^1.0.6",
-    "regenerator-runtime": "^0.13.5",
+    "react-icons": "^3.10.0",
     "react-table": "^7.2.0",
-    "react-icons": "^3.10.0"
+    "regenerator-runtime": "^0.13.5",
+    "xss": "^1.0.6"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.14.0",
