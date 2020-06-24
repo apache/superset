@@ -216,7 +216,7 @@ describe('exploreUtils', () => {
       getChartMetadataRegistry().remove('my_legacy_viz').remove('my_v1_viz');
     });
 
-    it('return true for legacy viz', () => {
+    it('returns true for legacy viz', () => {
       const useLegacyApi = shouldUseLegacyApi({
         ...formData,
         viz_type: 'my_legacy_viz',
@@ -224,7 +224,7 @@ describe('exploreUtils', () => {
       expect(useLegacyApi).toBe(true);
     });
 
-    it('return false for v1 viz', () => {
+    it('returns false for v1 viz', () => {
       const useLegacyApi = shouldUseLegacyApi({
         ...formData,
         viz_type: 'my_v1_viz',
@@ -232,7 +232,7 @@ describe('exploreUtils', () => {
       expect(useLegacyApi).toBe(false);
     });
 
-    it('return false for formData with unregistered viz_type', () => {
+    it('returns false for formData with unregistered viz_type', () => {
       const useLegacyApi = shouldUseLegacyApi({
         ...formData,
         viz_type: 'undefined_viz',
@@ -240,7 +240,7 @@ describe('exploreUtils', () => {
       expect(useLegacyApi).toBe(false);
     });
 
-    it('return false for formData without viz_type', () => {
+    it('returns false for formData without viz_type', () => {
       const useLegacyApi = shouldUseLegacyApi(formData);
       expect(useLegacyApi).toBe(false);
     });
