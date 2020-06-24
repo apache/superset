@@ -542,13 +542,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/import_dashboards", methods=["GET", "POST"])
     def import_dashboards(self) -> FlaskResponse:
         """Overrides the dashboards using json instances from the file."""
-        f = request.files.get("file")
-        if request.method == "POST" and f:
+        import_file = request.files.get("file")
+        if request.method == "POST" and import_file:
             success = False
             database_id = request.form.get("db_id")
             try:
                 dashboard_import_export.import_dashboards(
-                    db.session, f.stream, database_id
+                    db.session, import_file.stream, database_id
                 )
                 success = True
             except DatabaseNotFound as ex:

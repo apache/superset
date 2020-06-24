@@ -24,6 +24,7 @@ from datetime import datetime
 from typing import Any, Callable, cast, Optional, Type
 
 from flask import current_app, g, request
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.stats_logger import BaseStatsLogger
 
@@ -173,6 +174,6 @@ class DBEventLogger(AbstractEventLogger):
             sesh = current_app.appbuilder.get_session
             sesh.bulk_save_objects(logs)
             sesh.commit()
-        except Exception as ex:  # pylint: disable=broad-except
+        except SQLAlchemyError as ex:
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)
