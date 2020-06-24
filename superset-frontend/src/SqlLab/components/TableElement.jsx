@@ -270,7 +270,6 @@ class TableElement extends React.PureComponent {
           onMouseLeave={() => this.setHover(false)}
         >
           {this.renderHeader()}
-          HEY THERE
           <div>{this.renderBody()}</div>
         </div>
       </Collapse>
