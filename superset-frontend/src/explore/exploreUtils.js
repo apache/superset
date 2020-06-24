@@ -194,8 +194,8 @@ export function getExploreUrl({
 }
 
 export const shouldUseLegacyApi = formData => {
-  const { useLegacyApi } = getChartMetadataRegistry().get(formData.viz_type);
-  return useLegacyApi || false;
+  const vizMetadata = getChartMetadataRegistry().get(formData.viz_type);
+  return vizMetadata ? vizMetadata.useLegacyApi : false;
 };
 
 export const buildV1ChartDataPayload = ({
