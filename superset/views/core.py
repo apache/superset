@@ -69,6 +69,7 @@ from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
     SupersetException,
+    SupersetSecurityException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -728,7 +729,8 @@ class Superset(BaseSupersetView):
         :param datasource_type: Type of datasource e.g. table
         :param datasource_id: Datasource id
         :param column: Column name to retrieve values for
-        :return:
+        :returns: The Flask response
+        :raises SupersetSecurityException: If the user cannot access the resource
         """
         # TODO: Cache endpoint by user, datasource and column
         datasource = ConnectorRegistry.get_datasource(
@@ -736,7 +738,8 @@ class Superset(BaseSupersetView):
         )
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
-        security_manager.assert_datasource_permission(datasource)
+
+        datasource.raise_for_access()
         payload = json.dumps(
             datasource.values_for_column(column, config["FILTER_SELECT_ROW_LIMIT"]),
             default=utils.json_int_dttm_ser,
@@ -1986,14 +1989,10 @@ class Superset(BaseSupersetView):
                 status=404,
             )
 
-        rejected_tables = security_manager.rejected_tables(
-            query.sql, query.database, query.schema
-        )
-        if rejected_tables:
-            return json_errors_response(
-                [security_manager.get_table_access_error_object(rejected_tables)],
-                status=403,
-            )
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
+            return json_errors_response([ex.error], status=403)
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         obj = _deserialize_results_payload(
@@ -2291,14 +2290,12 @@ class Superset(BaseSupersetView):
 
         logger.info(f"Triggering query_id: {query_id}")
 
-        rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
-        if rejected_tables:
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
             query.status = QueryStatus.FAILED
             session.commit()
-            return json_errors_response(
-                [security_manager.get_table_access_error_object(rejected_tables)],
-                status=403,
-            )
+            return json_errors_response([ex.error], status=403)
 
         try:
             template_processor = get_template_processor(
@@ -2345,12 +2342,12 @@ class Superset(BaseSupersetView):
         logger.info("Exporting CSV file [{}]".format(client_id))
         query = db.session.query(Query).filter_by(client_id=client_id).one()
 
-        rejected_tables = security_manager.rejected_tables(
-            query.sql, query.database, query.schema
-        )
-        if rejected_tables:
-            flash(security_manager.get_table_access_error_msg(rejected_tables))
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
+            flash(ex.error.message)
             return redirect("/")
+
         blob = None
         if results_backend and query.results_key:
             logger.info(
@@ -2399,6 +2396,13 @@ class Superset(BaseSupersetView):
     @expose("/fetch_datasource_metadata")
     @event_logger.log_this
     def fetch_datasource_metadata(self) -> FlaskResponse:
+        """
+        Fetch the datasource metadata.
+
+        :returns: The Flask response
+        :raises SupersetSecurityException: If the user cannot access the resource
+        """
+
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
         datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
@@ -2407,8 +2411,7 @@ class Superset(BaseSupersetView):
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
 
-        # Check permission for datasource
-        security_manager.assert_datasource_permission(datasource)
+        datasource.raise_for_access()
         return json_success(json.dumps(datasource.data))
 
     @has_access_api
