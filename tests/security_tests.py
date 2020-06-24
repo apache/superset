@@ -352,6 +352,53 @@ class RolePermissionTests(SupersetTestCase):
         session.delete(stored_db)
         session.commit()
 
+    def test_hybrid_perm_druid_cluster(self):
+        cluster = DruidCluster(cluster_name="tmp_druid_cluster3")
+        db.session.add(cluster)
+
+        id_ = (
+            db.session.query(DruidCluster.id)
+            .filter_by(cluster_name="tmp_druid_cluster3")
+            .scalar()
+        )
+
+        record = (
+            db.session.query(DruidCluster)
+            .filter_by(perm=f"[tmp_druid_cluster3].(id:{id_})")
+            .one()
+        )
+
+        self.assertEquals(record.get_perm(), record.perm)
+        self.assertEquals(record.id, id_)
+        self.assertEquals(record.cluster_name, "tmp_druid_cluster3")
+        db.session.delete(cluster)
+        db.session.commit()
+
+    def test_hybrid_perm_database(self):
+        database = Database(
+            database_name="tmp_database3", sqlalchemy_uri="sqlite://test"
+        )
+
+        db.session.add(database)
+
+        id_ = (
+            db.session.query(Database.id)
+            .filter_by(database_name="tmp_database3")
+            .scalar()
+        )
+
+        record = (
+            db.session.query(Database)
+            .filter_by(perm=f"[tmp_database3].(id:{id_})")
+            .one()
+        )
+
+        self.assertEquals(record.get_perm(), record.perm)
+        self.assertEquals(record.id, id_)
+        self.assertEquals(record.database_name, "tmp_database3")
+        db.session.delete(database)
+        db.session.commit()
+
     def test_set_perm_slice(self):
         session = db.session
         database = Database(
