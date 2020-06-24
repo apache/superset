@@ -45,10 +45,11 @@ from sqlalchemy import (
 from sqlalchemy.engine import Dialect, Engine, url
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import Select
+from sqlalchemy.sql import expression, Select
 from sqlalchemy_utils import EncryptedType
 
 from superset import app, db_engine_specs, is_feature_enabled, security_manager
@@ -138,7 +139,6 @@ class Database(
         ),
     )
     encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
-    perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
     server_cert = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     export_fields = [
@@ -641,8 +641,18 @@ class Database(
     def sql_url(self) -> str:
         return f"/superset/sql/{self.id}/"
 
-    def get_perm(self) -> str:
+    @hybrid_property
+    def perm(self) -> str:
         return f"[{self.database_name}].(id:{self.id})"
+
+    @perm.expression  # type: ignore
+    def perm(cls) -> str:  # pylint: disable=no-self-argument
+        return (
+            "[" + cls.database_name + "].(id:" + expression.cast(cls.id, String) + ")"
+        )
+
+    def get_perm(self) -> str:
+        return self.perm  # type: ignore
 
     def has_table(self, table: Table) -> bool:
         engine = self.get_sqla_engine()
