@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import json
 import logging
 import time
@@ -31,27 +30,27 @@ from superset.models.slice import Slice
 logger = logging.getLogger(__name__)
 
 
-def decode_dashboards(o: Dict[str, Any]) -> Any:
+def decode_dashboards(  # pylint: disable=too-many-return-statements
+    o: Dict[str, Any]
+) -> Any:
     """
     Function to be passed into json.loads obj_hook parameter
     Recreates the dashboard object from a json representation.
     """
-    import superset.models.core as models
-
     if "__Dashboard__" in o:
         return Dashboard(**o["__Dashboard__"])
-    elif "__Slice__" in o:
+    if "__Slice__" in o:
         return Slice(**o["__Slice__"])
-    elif "__TableColumn__" in o:
+    if "__TableColumn__" in o:
         return TableColumn(**o["__TableColumn__"])
-    elif "__SqlaTable__" in o:
+    if "__SqlaTable__" in o:
         return SqlaTable(**o["__SqlaTable__"])
-    elif "__SqlMetric__" in o:
+    if "__SqlMetric__" in o:
         return SqlMetric(**o["__SqlMetric__"])
-    elif "__datetime__" in o:
+    if "__datetime__" in o:
         return datetime.strptime(o["__datetime__"], "%Y-%m-%dT%H:%M:%S")
-    else:
-        return o
+
+    return o
 
 
 def import_dashboards(
