@@ -143,7 +143,7 @@ class FilterBox extends React.Component {
     let vals = null;
     if (options !== null) {
       if (Array.isArray(options)) {
-        vals = options.map(opt => opt.value);
+        vals = options.map(opt => (typeof opt === 'string' ? opt : opt.value));
       } else if (options.value) {
         vals = options.value;
       } else {
@@ -254,7 +254,7 @@ class FilterBox extends React.Component {
           });
       });
     const { key, label } = filterConfig;
-    const data = this.props.filtersChoices[key];
+    const data = filtersChoices[key] || [];
     const max = Math.max(...data.map(d => d.metric));
     let value = selectedValues[key] || null;
 

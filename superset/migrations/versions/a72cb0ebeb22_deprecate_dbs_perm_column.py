@@ -14,33 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add certificate to dbs
+"""deprecate dbs.perm column
 
-Revision ID: b5998378c225
-Revises: 72428d1ea401
-Create Date: 2020-03-25 10:49:10.883065
-
+Revision ID: a72cb0ebeb22
+Revises: 743a117f0d98
+Create Date: 2020-06-21 19:50:51.630917
 """
-
-# revision identifiers, used by Alembic.
-revision = "b5998378c225"
-down_revision = "72428d1ea401"
-
-from typing import Dict
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import EncryptedType
+
+# revision identifiers, used by Alembic.
+revision = "a72cb0ebeb22"
+down_revision = "743a117f0d98"
 
 
 def upgrade():
-    kwargs: Dict[str, str] = {}
-    bind = op.get_bind()
-    op.add_column(
-        "dbs",
-        sa.Column("server_cert", EncryptedType(sa.Text()), nullable=True, **kwargs),
-    )
+    with op.batch_alter_table("dbs") as batch_op:
+        batch_op.drop_column("perm")
 
 
 def downgrade():
-    op.drop_column("dbs", "server_cert")
+    with op.batch_alter_table("dbs") as batch_op:
+        batch_op.add_column(sa.Column("perm", sa.String(1000), nullable=True))

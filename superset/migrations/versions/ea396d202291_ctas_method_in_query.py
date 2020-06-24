@@ -14,33 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add certificate to dbs
+"""Add ctas_method to the Query object
 
-Revision ID: b5998378c225
-Revises: 72428d1ea401
-Create Date: 2020-03-25 10:49:10.883065
+Revision ID: ea396d202291
+Revises: e557699a813e
+Create Date: 2020-05-12 12:59:26.583276
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "b5998378c225"
-down_revision = "72428d1ea401"
-
-from typing import Dict
+revision = "ea396d202291"
+down_revision = "e557699a813e"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import EncryptedType
 
 
 def upgrade():
-    kwargs: Dict[str, str] = {}
-    bind = op.get_bind()
     op.add_column(
-        "dbs",
-        sa.Column("server_cert", EncryptedType(sa.Text()), nullable=True, **kwargs),
+        "query", sa.Column("ctas_method", sa.String(length=16), nullable=True)
     )
+    op.add_column("dbs", sa.Column("allow_cvas", sa.Boolean(), nullable=True))
 
 
 def downgrade():
-    op.drop_column("dbs", "server_cert")
+    op.drop_column("query", "ctas_method")
+    op.drop_column("dbs", "allow_cvas")

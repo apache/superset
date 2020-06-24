@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import styled from '@superset-ui/style';
+import DatasetModal from 'src/views/datasetList/DatasetModal';
 import { Button, Nav, Navbar, MenuItem } from 'react-bootstrap';
 
 const StyledHeader = styled.header`
@@ -62,21 +63,33 @@ const StyledHeader = styled.header`
   }
 `;
 
-interface Props {
-  createButton: { name: string; url: string | null };
-  canCreate: boolean;
-  label: string;
+interface SubMenuProps {
+  createButton?: { name: string; url: string | null };
+  canCreate?: boolean;
   name: string;
-  childs: Array<{ label: string; name: string; url: string }>;
+  childs?: Array<{ label: string; name: string; url: string }>;
 }
 
-interface State {
+interface SubMenuState {
   selectedMenu: string;
+  isModalOpen: boolean;
 }
 
-class SubMenu extends React.PureComponent<Props, State> {
-  state: State = {
-    selectedMenu: this.props.childs[0] && this.props.childs[0].label,
+class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
+  state: SubMenuState = {
+    selectedMenu:
+      this.props.childs && this.props.childs[0]
+        ? this.props.childs[0].label
+        : '',
+    isModalOpen: false,
+  };
+
+  onOpen = () => {
+    this.setState({ isModalOpen: true });
+  };
+
+  onClose = () => {
+    this.setState({ isModalOpen: false });
   };
 
   handleClick = (item: string) => () => {
@@ -84,17 +97,16 @@ class SubMenu extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const { canCreate, childs, label, createButton } = this.props;
-
     return (
       <StyledHeader>
         <Navbar inverse fluid role="navigation">
           <Navbar.Header>
-            <Navbar.Brand>{label}</Navbar.Brand>
+            <Navbar.Brand>{this.props.name}</Navbar.Brand>
           </Navbar.Header>
+          <DatasetModal show={this.state.isModalOpen} onHide={this.onClose} />
           <Nav>
-            {childs &&
-              childs.map(child => (
+            {this.props.childs &&
+              this.props.childs.map(child => (
                 <MenuItem
                   active={child.label === this.state.selectedMenu}
                   key={`${child.label}`}
@@ -106,10 +118,10 @@ class SubMenu extends React.PureComponent<Props, State> {
                 </MenuItem>
               ))}
           </Nav>
-          {canCreate && (
+          {this.props.canCreate && this.props.createButton && (
             <Nav className="navbar-right">
-              <Button href={`${createButton.url}`}>
-                <i className="fa fa-plus" /> {createButton.name}
+              <Button onClick={this.onOpen}>
+                <i className="fa fa-plus" /> {this.props.createButton.name}
               </Button>
             </Nav>
           )}

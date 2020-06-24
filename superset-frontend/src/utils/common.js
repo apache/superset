@@ -23,6 +23,10 @@ import getClientErrorObject from './getClientErrorObject';
 
 export const NULL_STRING = '<NULL>';
 
+// moment time format strings
+export const SHORT_DATE = 'MMM D, YYYY';
+export const SHORT_TIME = 'h:m a';
+
 export function getParamFromQuery(query, param) {
   const vars = query.split('&');
   for (let i = 0; i < vars.length; i += 1) {

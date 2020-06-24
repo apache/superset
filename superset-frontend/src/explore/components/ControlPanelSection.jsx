@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
-import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 const propTypes = {
   label: PropTypes.string,

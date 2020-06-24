@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Label, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
@@ -112,7 +112,9 @@ export default class AdhocFilterOption extends React.PureComponent {
           <Label className="option-label adhoc-option adhoc-filter-option">
             {adhocFilter.getDefaultLabel()}
             <i
-              className={`glyphicon glyphicon-triangle-right adhoc-label-arrow`}
+              className={`fa fa-caret-${
+                this.state.overlayShown ? 'left' : 'right'
+              } adhoc-label-arrow`}
             />
           </Label>
         </OverlayTrigger>

@@ -84,6 +84,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.last_name",
         "schema",
+        "sql",
         "table_name",
     ]
     show_columns = [
