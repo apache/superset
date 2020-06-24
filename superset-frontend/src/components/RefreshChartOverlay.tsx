@@ -17,37 +17,50 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
-import Button from '../components/Button';
+import styled from '@superset-ui/style';
+import Button from 'src/components/Button';
 
-const propTypes = {
-  height: PropTypes.number.isRequired,
-  width: PropTypes.number.isRequired,
-  onQuery: PropTypes.func,
-};
+type Callback = (...args: any[]) => void;
 
-class RefreshChartOverlay extends React.PureComponent {
+interface Props {
+  height: number;
+  width: number;
+  onQuery: Callback;
+}
+
+const RefreshOverlayWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  .refresh-btn {
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+`;
+
+class RefreshChartOverlay extends React.PureComponent<Props> {
   render() {
     return (
-      <div
-        style={{ height: this.props.height, width: this.props.width }}
-        className="explore-chart-overlay"
-      >
+      <RefreshOverlayWrapper>
         <div>
           <Button
-            className="refresh-overlay-btn"
+            className="refresh-btn"
             onClick={this.props.onQuery}
             bsStyle="primary"
           >
             {t('Run Query')}
           </Button>
         </div>
-      </div>
+      </RefreshOverlayWrapper>
     );
   }
 }
-
-RefreshChartOverlay.propTypes = propTypes;
 
 export default RefreshChartOverlay;
