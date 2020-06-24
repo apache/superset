@@ -182,7 +182,9 @@ class Chart extends React.PureComponent {
           className={`chart-container ${isLoading ? 'is-loading' : ''}`}
           style={containerStyles}
         >
-          {isLoading && <Loading size={50} />}
+          <div className={`slice_container ${isFaded ? ' faded' : ''}`}>
+            <ChartRenderer {...this.props} />
+          </div>
 
           {!isLoading && !chartAlert && isFaded && (
             <RefreshChartOverlay
@@ -191,9 +193,8 @@ class Chart extends React.PureComponent {
               onQuery={onQuery}
             />
           )}
-          <div className={`slice_container ${isFaded ? ' faded' : ''}`}>
-            <ChartRenderer {...this.props} />
-          </div>
+
+          {isLoading && <Loading />}
         </div>
       </ErrorBoundary>
     );
