@@ -247,7 +247,7 @@ class SupersetSecurityManager(SecurityManager):
         return (
             self.can_access_all_datasources()
             or self.can_access_all_databases()
-            or self.can_access("database_access", database.perm)
+            or self.can_access("database_access", database.perm)  # type: ignore
         )
 
     def can_access_schema(self, datasource: "BaseDatasource") -> bool:

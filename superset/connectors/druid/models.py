@@ -44,7 +44,9 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship, Session
+from sqlalchemy.sql import expression
 from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, is_feature_enabled, security_manager
@@ -280,12 +282,16 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                 datasource.refresh_metrics()
         session.commit()
 
-    @property
+    @hybrid_property
     def perm(self) -> str:
-        return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
+        return f"[{self.cluster_name}].(id:{self.id})"
+
+    @perm.expression  # type: ignore
+    def perm(cls) -> str:  # pylint: disable=no-self-argument
+        return "[" + cls.cluster_name + "].(id:" + expression.cast(cls.id, String) + ")"
 
     def get_perm(self) -> str:
-        return self.perm
+        return self.perm  # type: ignore
 
     @property
     def name(self) -> str:
