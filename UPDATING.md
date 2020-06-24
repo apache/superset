@@ -23,12 +23,14 @@ assists people when migrating to a new version.
 
 ## Next
 
-* [10034](https://github.com/apache/incubator-superset/pull/10034): Deprecates the public security manager  `assert_datasource_permission`, `assert_query_context_permission`, `assert_viz_permission`, and `rejected_tables` methods with the `raise_for_access` method which also handles assertion logic for SQL tables.
+* [10130](https://github.com/apache/incubator-superset/pull/10130): a change which deprecates the `dbs.perm` column in favor of SQLAlchemy [hybird attributes](https://docs.sqlalchemy.org/en/13/orm/extensions/hybrid.html).
 
-* [10031](https://github.com/apache/incubator-superset/pull/10030): Renames the following public security manager methods: `can_access_datasource` to `can_access_table`, `all_datasource_access` to `can_access_all_datasources`, `all_database_access` to `can_access_all_databases`, `database_access` to `can_access_database`, `schema_access` to `can_access_schema`, and
+* [10034](https://github.com/apache/incubator-superset/pull/10034): a change which deprecates the public security manager  `assert_datasource_permission`, `assert_query_context_permission`, `assert_viz_permission`, and `rejected_tables` methods with the `raise_for_access` method which also handles assertion logic for SQL tables.
+
+* [10031](https://github.com/apache/incubator-superset/pull/10030): a change which renames the following public security manager methods: `can_access_datasource` to `can_access_table`, `all_datasource_access` to `can_access_all_datasources`, `all_database_access` to `can_access_all_databases`, `database_access` to `can_access_database`, `schema_access` to `can_access_schema`, and
 `datasource_access` to `can_access_datasource`. Regrettably it is not viable to provide aliases for the deprecated methods as this would result in a name clash. Finally the `can_access_table` (previously `can_access_database`) method signature has changed, i.e., the optional `schema` argument no longer exists.
 
-* [10030](https://github.com/apache/incubator-superset/pull/10030): Renames the public security manager `schemas_accessible_by_user` method to `get_schemas_accessible_by_user`.
+* [10030](https://github.com/apache/incubator-superset/pull/10030): a change which renames the public security manager `schemas_accessible_by_user` method to `get_schemas_accessible_by_user`.
 
 * [9786](https://github.com/apache/incubator-superset/pull/9786): with the upgrade of `werkzeug` from version `0.16.0` to `1.0.1`, the `werkzeug.contrib.cache` module has been moved to a standalone package [cachelib](https://pypi.org/project/cachelib/). For example, to import the `RedisCache` class, please use the following import: `from cachelib.redis import RedisCache`.
 
