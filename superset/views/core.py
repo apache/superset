@@ -82,7 +82,7 @@ from superset.security.analytics_db_safety import (
     check_sqlalchemy_uri,
     DBSecurityException,
 )
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
 from superset.utils import core as utils, dashboard_import_export
@@ -133,6 +133,7 @@ logger = logging.getLogger(__name__)
 DATABASE_KEYS = [
     "allow_csv_upload",
     "allow_ctas",
+    "allow_cvas",
     "allow_dml",
     "allow_multi_schema_metadata_fetch",
     "allow_run_async",
@@ -2239,6 +2240,9 @@ class Superset(BaseSupersetView):
             )
             limit = 0
         select_as_cta: bool = cast(bool, query_params.get("select_as_cta"))
+        ctas_method: CtasMethod = cast(
+            CtasMethod, query_params.get("ctas_method", CtasMethod.TABLE)
+        )
         tmp_table_name: str = cast(str, query_params.get("tmp_table_name"))
         client_id: str = cast(
             str, query_params.get("client_id") or utils.shortid()[:10]
@@ -2267,6 +2271,7 @@ class Superset(BaseSupersetView):
             sql=sql,
             schema=schema,
             select_as_cta=select_as_cta,
+            ctas_method=ctas_method,
             start_time=now_as_float(),
             tab_name=tab_name,
             status=status,

@@ -60,6 +60,7 @@ class DatabaseMixin:
         "allow_run_async",
         "allow_csv_upload",
         "allow_ctas",
+        "allow_cvas",
         "allow_dml",
         "force_ctas_schema",
         "impersonate_user",
@@ -111,6 +112,7 @@ class DatabaseMixin:
             "for more information."
         ),
         "allow_ctas": _("Allow CREATE TABLE AS option in SQL Lab"),
+        "allow_cvas": _("Allow CREATE VIEW AS option in SQL Lab"),
         "allow_dml": _(
             "Allow users to run non-SELECT statements "
             "(UPDATE, DELETE, CREATE, ...) "
@@ -182,6 +184,7 @@ class DatabaseMixin:
     label_columns = {
         "expose_in_sqllab": _("Expose in SQL Lab"),
         "allow_ctas": _("Allow CREATE TABLE AS"),
+        "allow_cvas": _("Allow CREATE VIEW AS"),
         "allow_dml": _("Allow DML"),
         "force_ctas_schema": _("CTAS Schema"),
         "database_name": _("Database"),
