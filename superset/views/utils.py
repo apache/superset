@@ -28,14 +28,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 
 import superset.models.core as models
-from superset import (
-    app,
-    dataframe,
-    db,
-    is_feature_enabled,
-    result_set,
-    security_manager,
-)
+from superset import app, dataframe, db, is_feature_enabled, result_set
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -433,7 +426,7 @@ def check_datasource_perms(
         force=False,
     )
 
-    security_manager.assert_viz_permission(viz_obj)
+    viz_obj.raise_for_access()
 
 
 def check_slice_perms(_self: Any, slice_id: int) -> None:
@@ -442,6 +435,9 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
 
     This function takes `self` since it must have the same signature as the
     the decorated method.
+
+    :param slice_id: The slice ID
+    :raises SupersetSecurityException: If the user cannot access the resource
     """
 
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
@@ -454,7 +450,7 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
             force=False,
         )
 
-        security_manager.assert_viz_permission(viz_obj)
+        viz_obj.raise_for_access()
 
 
 def _deserialize_results_payload(
