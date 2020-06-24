@@ -592,6 +592,15 @@ class BaseViz:
     def json_data(self):
         return json.dumps(self.data)
 
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the resource.
+
+        :raises SupersetSecurityException: If the user cannot access the resource
+        """
+
+        security_manager.raise_for_access(viz=self)
+
 
 class TableViz(BaseViz):
 

@@ -26,9 +26,11 @@ import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -774,48 +776,111 @@ class SecurityManagerTests(SupersetTestCase):
     Testing the Security Manager.
     """
 
-    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-    def test_assert_datasource_permission(self, mock_can_access_datasource):
+    @patch("superset.security.SupersetSecurityManager.raise_for_access")
+    def test_can_access_datasource(self, mock_raise_for_access):
         datasource = self.get_datasource_mock()
 
-        # Datasource with the "datasource_access" permission.
-        mock_can_access_datasource.return_value = True
-        security_manager.assert_datasource_permission(datasource)
+        mock_raise_for_access.return_value = None
+        self.assertTrue(security_manager.can_access_datasource(datasource=datasource))
 
-        # Datasource without the "datasource_access" permission.
-        mock_can_access_datasource.return_value = False
+        mock_raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                "dummy",
+                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                ErrorLevel.ERROR,
+            )
+        )
+
+        self.assertFalse(security_manager.can_access_datasource(datasource=datasource))
+
+    @patch("superset.security.SupersetSecurityManager.raise_for_access")
+    def test_can_access_table(self, mock_raise_for_access):
+        database = get_example_database()
+        table = Table("bar", "foo")
+
+        mock_raise_for_access.return_value = None
+        self.assertTrue(security_manager.can_access_table(database, table))
+
+        mock_raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                "dummy",
+                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                ErrorLevel.ERROR,
+            )
+        )
+
+        self.assertFalse(security_manager.can_access_table(database, table))
+
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_datasource(self, mock_can_access_schema, mock_can_access):
+        datasource = self.get_datasource_mock()
+
+        mock_can_access_schema.return_value = True
+        security_manager.raise_for_access(datasource=datasource)
+
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
-            security_manager.assert_datasource_permission(datasource)
+            security_manager.raise_for_access(datasource=datasource)
 
-    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-    def test_assert_query_context_permission(self, mock_can_access_datasource):
-        query_context = Mock()
-        query_context.datasource = self.get_datasource_mock()
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_query(self, mock_can_access):
+        query = Mock(
+            database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+        )
 
-        # Query context with the "datasource_access" permission.
-        mock_can_access_datasource.return_value = True
-        security_manager.assert_query_context_permission(query_context)
+        mock_can_access.return_value = True
+        security_manager.raise_for_access(query=query)
 
-        # Query context without the "datasource_access" permission.
-        mock_can_access_datasource.return_value = False
+        mock_can_access.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
-            security_manager.assert_query_context_permission(query_context)
+            security_manager.raise_for_access(query=query)
 
-    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-    def test_assert_viz_permission(self, mock_can_access_datasource):
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_query_context(
+        self, mock_can_access_schema, mock_can_access
+    ):
+        query_context = Mock(datasource=self.get_datasource_mock())
+
+        mock_can_access_schema.return_value = True
+        security_manager.raise_for_access(query_context=query_context)
+
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(query_context=query_context)
+
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_table(self, mock_can_access):
+        database = get_example_database()
+        table = Table("bar", "foo")
+
+        mock_can_access.return_value = True
+        security_manager.raise_for_access(database=database, table=table)
+
+        mock_can_access.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(database=database, table=table)
+
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_viz(self, mock_can_access_schema, mock_can_access):
         test_viz = viz.TableViz(self.get_datasource_mock(), form_data={})
 
-        # Visualization with the "datasource_access" permission.
-        mock_can_access_datasource.return_value = True
-        security_manager.assert_viz_permission(test_viz)
+        mock_can_access_schema.return_value = True
+        security_manager.raise_for_access(viz=test_viz)
 
-        # Visualization without the "datasource_access" permission.
-        mock_can_access_datasource.return_value = False
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
-            security_manager.assert_viz_permission(test_viz)
+            security_manager.raise_for_access(viz=test_viz)
 
 
 class RowLevelSecurityTests(SupersetTestCase):
