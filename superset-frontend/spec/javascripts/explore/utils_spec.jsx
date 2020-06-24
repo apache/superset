@@ -23,8 +23,10 @@ import {
   buildV1ChartDataPayload,
   getExploreUrl,
   getExploreLongUrl,
+  shouldUseLegacyApi,
 } from 'src/explore/exploreUtils';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
+import { getChartMetadataRegistry } from '@superset-ui/chart';
 
 describe('exploreUtils', () => {
   const location = window.location;
@@ -200,6 +202,47 @@ describe('exploreUtils', () => {
         formData: { ...formData, viz_type: 'my_custom_viz' },
       });
       expect(v1RequestPayload).hasOwnProperty('queries');
+    });
+  });
+
+  describe('shouldUseLegacyApi', () => {
+    beforeAll(() => {
+      getChartMetadataRegistry()
+        .registerValue('my_legacy_viz', { useLegacyApi: true })
+        .registerValue('my_v1_viz', { useLegacyApi: false });
+    });
+
+    afterAll(() => {
+      getChartMetadataRegistry().remove('my_legacy_viz').remove('my_v1_viz');
+    });
+
+    it('returns true for legacy viz', () => {
+      const useLegacyApi = shouldUseLegacyApi({
+        ...formData,
+        viz_type: 'my_legacy_viz',
+      });
+      expect(useLegacyApi).toBe(true);
+    });
+
+    it('returns false for v1 viz', () => {
+      const useLegacyApi = shouldUseLegacyApi({
+        ...formData,
+        viz_type: 'my_v1_viz',
+      });
+      expect(useLegacyApi).toBe(false);
+    });
+
+    it('returns false for formData with unregistered viz_type', () => {
+      const useLegacyApi = shouldUseLegacyApi({
+        ...formData,
+        viz_type: 'undefined_viz',
+      });
+      expect(useLegacyApi).toBe(false);
+    });
+
+    it('returns false for formData without viz_type', () => {
+      const useLegacyApi = shouldUseLegacyApi(formData);
+      expect(useLegacyApi).toBe(false);
     });
   });
 });
