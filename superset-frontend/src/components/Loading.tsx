@@ -20,7 +20,7 @@ import React from 'react';
 import styled from '@superset-ui/style';
 
 interface Props {
-  position: string;
+  position?: string;
 }
 
 const LoaderImg = styled.img`
