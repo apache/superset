@@ -37,8 +37,6 @@ def decode_dashboards(  # pylint: disable=too-many-return-statements
     Function to be passed into json.loads obj_hook parameter
     Recreates the dashboard object from a json representation.
     """
-    import superset.models.core as models  # pylint: disable=unused-import
-
     if "__Dashboard__" in o:
         return Dashboard(**o["__Dashboard__"])
     if "__Slice__" in o:
