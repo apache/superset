@@ -27,6 +27,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.orm import Session
 
+from superset.sql_parse import CtasMethod
 from tests.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
@@ -259,6 +260,7 @@ class SupersetTestCase(TestCase):
         select_as_cta=False,
         tmp_table_name=None,
         schema=None,
+        ctas_method=CtasMethod.TABLE,
     ):
         if user_name:
             self.logout()
@@ -270,6 +272,7 @@ class SupersetTestCase(TestCase):
             "client_id": client_id,
             "queryLimit": query_limit,
             "sql_editor_id": sql_editor_id,
+            "ctas_method": ctas_method,
         }
         if tmp_table_name:
             json_payload["tmp_table_name"] = tmp_table_name

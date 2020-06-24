@@ -118,6 +118,7 @@ class Database(
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
+    allow_cvas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
     allow_multi_schema_metadata_fetch = Column(  # pylint: disable=invalid-name
@@ -147,6 +148,7 @@ class Database(
         "expose_in_sqllab",
         "allow_run_async",
         "allow_ctas",
+        "allow_cvas",
         "allow_csv_upload",
         "extra",
     ]

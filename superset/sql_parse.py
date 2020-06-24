@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from typing import List, Optional, Set
 from urllib import parse
 
@@ -29,6 +30,11 @@ ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
 logger = logging.getLogger(__name__)
+
+
+class CtasMethod(str, Enum):
+    TABLE = "TABLE"
+    VIEW = "VIEW"
 
 
 def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
@@ -185,6 +191,7 @@ class ParsedQuery:
         table_name: str,
         schema_name: Optional[str] = None,
         overwrite: bool = False,
+        method: CtasMethod = CtasMethod.TABLE,
     ) -> str:
         """Reformats the query into the create table as query.
 
@@ -193,6 +200,7 @@ class ParsedQuery:
         :param table_name: table that will contain the results of the query execution
         :param schema_name: schema name for the target table
         :param overwrite: table_name will be dropped if true
+        :param method: method for the CTA query, currently view or table creation
         :return: Create table as query
         """
         exec_sql = ""
@@ -200,8 +208,8 @@ class ParsedQuery:
         # TODO(bkyryliuk): quote full_table_name
         full_table_name = f"{schema_name}.{table_name}" if schema_name else table_name
         if overwrite:
-            exec_sql = f"DROP TABLE IF EXISTS {full_table_name};\n"
-        exec_sql += f"CREATE TABLE {full_table_name} AS \n{sql}"
+            exec_sql = f"DROP {method} IF EXISTS {full_table_name};\n"
+        exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
 
     def _extract_from_token(  # pylint: disable=too-many-branches

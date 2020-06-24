@@ -97,6 +97,11 @@ export const addSuccessToast = addSuccessToastAction;
 export const addDangerToast = addDangerToastAction;
 export const addWarningToast = addWarningToastAction;
 
+export const CtasEnum = {
+  TABLE: 'TABLE',
+  VIEW: 'VIEW',
+};
+
 // a map of SavedQuery field names to the different names used client-side,
 // because for now making the names consistent is too complicated
 // so it might as well only happen in one place
@@ -346,6 +351,7 @@ export function runQuery(query) {
       tab: query.tab,
       tmp_table_name: query.tempTableName,
       select_as_cta: query.ctas,
+      ctas_method: query.ctas_method,
       templateParams: query.templateParams,
       queryLimit: query.queryLimit,
       expand_data: true,
