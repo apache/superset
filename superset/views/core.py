@@ -2441,7 +2441,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/fetch_datasource_metadata")
     @event_logger.log_this
-    def fetch_datasource_metadata(self) -> FlaskResponse:
+    def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Fetch the datasource metadata.
 
