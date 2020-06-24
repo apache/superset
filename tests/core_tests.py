@@ -37,8 +37,8 @@ from unittest import mock, skipUnless
 import pandas as pd
 import sqlalchemy as sqla
 
+from tests.test_app import app  # isort:skip
 import superset.views.utils
-from tests.test_app import app
 from superset import (
     dataframe,
     db,
