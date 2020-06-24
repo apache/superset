@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+# pylint: disable=comparison-with-callable
 import logging
 import re
 from collections import defaultdict
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -150,7 +150,7 @@ DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
 
 
-class Superset(BaseSupersetView):
+class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     """The base views for Superset!"""
 
     logger = logging.getLogger(__name__)
@@ -239,13 +239,13 @@ class Superset(BaseSupersetView):
             )
             datasources.add(datasource)
 
-        has_access = all(
+        has_access_ = all(
             (
                 datasource and security_manager.can_access_datasource(datasource)
                 for datasource in datasources
             )
         )
-        if has_access:
+        if has_access_:
             return redirect("/superset/dashboard/{}".format(dashboard_id))
 
         if request.args.get("action") == "go":
@@ -267,15 +267,15 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     @has_access
     @expose("/approve")
-    def approve(self) -> FlaskResponse:
+    def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
-            for r in session.query(DAR).all():
+            for dar in session.query(DAR).all():
                 datasource = ConnectorRegistry.get_datasource(
-                    r.datasource_type, r.datasource_id, session
+                    dar.datasource_type, dar.datasource_id, session
                 )
                 if not datasource or security_manager.can_access_datasource(datasource):
                     # datasource does not exist anymore
-                    session.delete(r)
+                    session.delete(dar)
             session.commit()
 
         datasource_type = request.args["datasource_type"]
@@ -363,15 +363,15 @@ class Superset(BaseSupersetView):
         else:
             flash(__("You have no permission to approve this request"), "danger")
             return redirect("/accessrequestsmodelview/list/")
-        for r in requests:
-            session.delete(r)
+        for request_ in requests:
+            session.delete(request_)
         session.commit()
         return redirect("/accessrequestsmodelview/list/")
 
     @has_access
     @expose("/slice/<int:slice_id>/")
-    def slice(self, slice_id: int) -> FlaskResponse:
-        form_data, slc = get_form_data(slice_id, use_slice_data=True)
+    def slice(self, slice_id: int) -> FlaskResponse:  # pylint: disable=no-self-use
+        _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
         endpoint = "/superset/explore/?form_data={}".format(
@@ -388,7 +388,7 @@ class Superset(BaseSupersetView):
             query_obj = viz_obj.query_obj()
             if query_obj:
                 query = viz_obj.datasource.get_query_str(query_obj)
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             err_msg = utils.error_msg_from_exception(ex)
             logger.exception(err_msg)
             return json_error_response(err_msg)
@@ -455,7 +455,9 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/annotation_json/<int:layer_id>")
-    def annotation_json(self, layer_id: int) -> FlaskResponse:
+    def annotation_json(  # pylint: disable=no-self-use
+        self, layer_id: int
+    ) -> FlaskResponse:
         form_data = get_form_data()[0]
         form_data["layer_id"] = layer_id
         form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
@@ -508,8 +510,8 @@ class Superset(BaseSupersetView):
         response_type = utils.ChartDataResultFormat.JSON.value
         responses: List[
             Union[utils.ChartDataResultFormat, utils.ChartDataResultType]
-        ] = [resp_format for resp_format in utils.ChartDataResultFormat]
-        responses.extend([resp_type for resp_type in utils.ChartDataResultType])
+        ] = list(utils.ChartDataResultFormat)
+        responses.extend(list(utils.ChartDataResultType))
         for response_option in responses:
             if request.args.get(response_option) == "true":
                 response_type = response_option
@@ -553,7 +555,7 @@ class Superset(BaseSupersetView):
                     ),
                     "danger",
                 )
-            except Exception as ex:
+            except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
                 flash(
                     _(
@@ -569,7 +571,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    def explore(
+    def explore(  # pylint: disable=too-many-locals,too-many-return-statements
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
         user_id = g.user.get_id() if g.user else None
@@ -721,7 +723,7 @@ class Superset(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/filter/<datasource_type>/<int:datasource_id>/<column>/")
-    def filter(
+    def filter(  # pylint: disable=no-self-use
         self, datasource_type: str, datasource_id: int, column: str
     ) -> FlaskResponse:
         """
@@ -754,7 +756,7 @@ class Superset(BaseSupersetView):
         Those should not be saved when saving the chart"""
         return [f for f in filters if not f.get("isExtra")]
 
-    def save_or_overwrite_slice(
+    def save_or_overwrite_slice(  # pylint: disable=too-many-arguments
         self,
         slc: Optional[Slice],
         slice_add_perm: bool,
@@ -857,14 +859,16 @@ class Superset(BaseSupersetView):
 
         return json_success(json.dumps(response))
 
-    def save_slice(self, slc: Slice) -> None:
+    @staticmethod
+    def save_slice(slc: Slice) -> None:
         session = db.session()
         msg = _("Chart [{}] has been saved").format(slc.slice_name)
         session.add(slc)
         session.commit()
         flash(msg, "info")
 
-    def overwrite_slice(self, slc: Slice) -> None:
+    @staticmethod
+    def overwrite_slice(slc: Slice) -> None:
         session = db.session()
         session.merge(slc)
         session.commit()
@@ -875,7 +879,9 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/schemas/<int:db_id>/")
     @expose("/schemas/<int:db_id>/<force_refresh>/")
-    def schemas(self, db_id: int, force_refresh: str = "false") -> FlaskResponse:
+    def schemas(  # pylint: disable=no-self-use
+        self, db_id: int, force_refresh: str = "false"
+    ) -> FlaskResponse:
         db_id = int(db_id)
         database = db.session.query(models.Database).get(db_id)
         if database:
@@ -894,7 +900,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    def tables(
+    def tables(  # pylint: disable=too-many-locals,no-self-use
         self, db_id: int, schema: str, substr: str, force_refresh: str = "false"
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
@@ -1052,7 +1058,7 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps({"status": "SUCCESS"}))
 
     @staticmethod
-    def _set_dash_metadata(
+    def _set_dash_metadata(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         dashboard: Dashboard,
         data: Dict[Any, Any],
         old_to_new_slice_ids: Optional[Dict[int, int]] = None,
@@ -1136,7 +1142,9 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/add_slices/<int:dashboard_id>/", methods=["POST"])
-    def add_slices(self, dashboard_id: int) -> FlaskResponse:
+    def add_slices(  # pylint: disable=no-self-use
+        self, dashboard_id: int
+    ) -> FlaskResponse:
         """Add and save slices to a dashboard"""
         data = json.loads(request.form["data"])
         session = db.session()
@@ -1152,17 +1160,20 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/testconn", methods=["POST", "GET"])
-    def testconn(self) -> FlaskResponse:
+    def testconn(  # pylint: disable=too-many-return-statements,no-self-use
+        self,
+    ) -> FlaskResponse:
         """Tests a sqla connection"""
         db_name = request.json.get("name")
         uri = request.json.get("uri")
         try:
             if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
                 check_sqlalchemy_uri(uri)
-            # if the database already exists in the database, only its safe (password-masked) URI
-            # would be shown in the UI and would be passed in the form data.
-            # so if the database already exists and the form was submitted with the safe URI,
-            # we assume we should retrieve the decrypted URI to test the connection.
+            # if the database already exists in the database, only its safe
+            # (password-masked) URI would be shown in the UI and would be passed in the
+            # form data so if the database already exists and the form was submitted
+            # with the safe URI, we assume we should retrieve the decrypted URI to test
+            # the connection.
             if db_name:
                 existing_database = (
                     db.session.query(models.Database)
@@ -1174,7 +1185,8 @@ class Superset(BaseSupersetView):
 
             # this is the database instance that will be tested
             database = models.Database(
-                # extras is sent as json, but required to be a string in the Database model
+                # extras is sent as json, but required to be a string in the Database
+                # model
                 server_cert=request.json.get("server_cert"),
                 extra=json.dumps(request.json.get("extras", {})),
                 impersonate_user=request.json.get("impersonate_user"),
@@ -1218,7 +1230,7 @@ class Superset(BaseSupersetView):
         except DBSecurityException as ex:
             logger.warning("Stopped an unsafe database connection. %s", ex)
             return json_error_response(_(str(ex)), 400)
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             logger.error("Unexpected error %s", ex)
             return json_error_response(
                 _("Unexpected error occurred, please check your logs for details"), 400
@@ -1227,26 +1239,26 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/recent_activity/<int:user_id>/", methods=["GET"])
-    def recent_activity(self, user_id: int) -> FlaskResponse:
+    def recent_activity(  # pylint: disable=no-self-use
+        self, user_id: int
+    ) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
-        M = models
-
         if request.args.get("limit"):
             limit = int(request.args["limit"])
         else:
             limit = 1000
 
         qry = (
-            db.session.query(M.Log, M.Dashboard, Slice)
-            .outerjoin(M.Dashboard, M.Dashboard.id == M.Log.dashboard_id)
-            .outerjoin(Slice, Slice.id == M.Log.slice_id)
+            db.session.query(models.Log, models.Dashboard, Slice)
+            .outerjoin(models.Dashboard, models.Dashboard.id == models.Log.dashboard_id)
+            .outerjoin(Slice, Slice.id == models.Log.slice_id)
             .filter(
                 and_(
-                    ~M.Log.action.in_(("queries", "shortner", "sql_json")),
-                    M.Log.user_id == user_id,
+                    ~models.Log.action.in_(("queries", "shortner", "sql_json")),
+                    models.Log.user_id == user_id,
                 )
             )
-            .order_by(M.Log.dttm.desc())
+            .order_by(models.Log.dttm.desc())
             .limit(limit)
         )
         payload = []
@@ -1281,7 +1293,7 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/available_domains/", methods=["GET"])
-    def available_domains(self) -> FlaskResponse:
+    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Returns the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
@@ -1302,7 +1314,9 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/fave_dashboards/<int:user_id>/", methods=["GET"])
-    def fave_dashboards(self, user_id: int) -> FlaskResponse:
+    def fave_dashboards(  # pylint: disable=no-self-use
+        self, user_id: int
+    ) -> FlaskResponse:
         qry = (
             db.session.query(Dashboard, models.FavStar.dttm)
             .join(
@@ -1317,7 +1331,7 @@ class Superset(BaseSupersetView):
         )
         payload = []
         for o in qry.all():
-            d = {
+            dash = {
                 "id": o.Dashboard.id,
                 "dashboard": o.Dashboard.dashboard_link(),
                 "title": o.Dashboard.dashboard_title,
@@ -1326,19 +1340,25 @@ class Superset(BaseSupersetView):
             }
             if o.Dashboard.created_by:
                 user = o.Dashboard.created_by
-                d["creator"] = str(user)
-                d["creator_url"] = "/superset/profile/{}/".format(user.username)
-            payload.append(d)
+                dash["creator"] = str(user)
+                dash["creator_url"] = "/superset/profile/{}/".format(user.username)
+            payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
     @expose("/created_dashboards/<int:user_id>/", methods=["GET"])
-    def created_dashboards(self, user_id: int) -> FlaskResponse:
+    def created_dashboards(  # pylint: disable=no-self-use
+        self, user_id: int
+    ) -> FlaskResponse:
         Dash = Dashboard
         qry = (
             db.session.query(Dash)
-            .filter(or_(Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id))
+            .filter(
+                or_(  # pylint: disable=comparison-with-callable
+                    Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id
+                )
+            )
             .order_by(Dash.changed_on.desc())
         )
         payload = [
@@ -1357,7 +1377,9 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/user_slices", methods=["GET"])
     @expose("/user_slices/<int:user_id>/", methods=["GET"])
-    def user_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
+    def user_slices(  # pylint: disable=no-self-use
+        self, user_id: Optional[int] = None
+    ) -> FlaskResponse:
         """List of slices a user created, or faved"""
         if not user_id:
             user_id = g.user.id
@@ -1399,7 +1421,9 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/created_slices", methods=["GET"])
     @expose("/created_slices/<int:user_id>/", methods=["GET"])
-    def created_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
+    def created_slices(  # pylint: disable=no-self-use
+        self, user_id: Optional[int] = None
+    ) -> FlaskResponse:
         """List of slices created by this user"""
         if not user_id:
             user_id = g.user.id
@@ -1424,7 +1448,9 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/fave_slices", methods=["GET"])
     @expose("/fave_slices/<int:user_id>/", methods=["GET"])
-    def fave_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
+    def fave_slices(  # pylint: disable=no-self-use
+        self, user_id: Optional[int] = None
+    ) -> FlaskResponse:
         """Favorite slices for a user"""
         if not user_id:
             user_id = g.user.id
@@ -1442,7 +1468,7 @@ class Superset(BaseSupersetView):
         )
         payload = []
         for o in qry.all():
-            d = {
+            dash = {
                 "id": o.Slice.id,
                 "title": o.Slice.slice_name,
                 "url": o.Slice.slice_url,
@@ -1451,16 +1477,18 @@ class Superset(BaseSupersetView):
             }
             if o.Slice.created_by:
                 user = o.Slice.created_by
-                d["creator"] = str(user)
-                d["creator_url"] = "/superset/profile/{}/".format(user.username)
-            payload.append(d)
+                dash["creator"] = str(user)
+                dash["creator_url"] = "/superset/profile/{}/".format(user.username)
+            payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @event_logger.log_this
     @api
     @has_access_api
     @expose("/warm_up_cache/", methods=["GET"])
-    def warm_up_cache(self) -> FlaskResponse:
+    def warm_up_cache(  # pylint: disable=too-many-locals,no-self-use
+        self,
+    ) -> FlaskResponse:
         """Warms up the cache for the slice or table.
 
         Note for slices a force refresh occurs.
@@ -1531,7 +1559,7 @@ class Superset(BaseSupersetView):
                 delattr(g, "form_data")
                 error = payload["errors"] or None
                 status = payload["status"]
-            except Exception as ex:
+            except Exception as ex:  # pylint: disable=broad-except
                 error = utils.error_msg_from_exception(ex)
                 status = None
 
@@ -1543,7 +1571,9 @@ class Superset(BaseSupersetView):
 
     @has_access_api
     @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
-    def favstar(self, class_name: str, obj_id: int, action: str) -> FlaskResponse:
+    def favstar(  # pylint: disable=no-self-use
+        self, class_name: str, obj_id: int, action: str
+    ) -> FlaskResponse:
         """Toggle favorite stars on Slices and Dashboard"""
         session = db.session()
         FavStar = models.FavStar
@@ -1575,7 +1605,9 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose("/dashboard/<int:dashboard_id>/published/", methods=("GET", "POST"))
-    def publish(self, dashboard_id: int) -> FlaskResponse:
+    def publish(  # pylint: disable=no-self-use
+        self, dashboard_id: int
+    ) -> FlaskResponse:
         """Gets and toggles published status on dashboards"""
         logger.warning(
             "This API endpoint is deprecated and will be removed in version 1.0.0"
@@ -1590,26 +1622,28 @@ class Superset(BaseSupersetView):
         if request.method == "GET":
             if dash:
                 return json_success(json.dumps({"published": dash.published}))
-            else:
-                return json_error_response(
-                    f"ERROR: cannot find dashboard {dashboard_id}", status=404
-                )
 
-        else:
-            edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
-            if not edit_perm:
-                return json_error_response(
-                    f'ERROR: "{g.user.username}" cannot alter dashboard "{dash.dashboard_title}"',
-                    status=403,
-                )
+            return json_error_response(
+                f"ERROR: cannot find dashboard {dashboard_id}", status=404
+            )
 
-            dash.published = str(request.form["published"]).lower() == "true"
-            session.commit()
-            return json_success(json.dumps({"published": dash.published}))
+        edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
+        if not edit_perm:
+            return json_error_response(
+                f'ERROR: "{g.user.username}" cannot alter '
+                f'dashboard "{dash.dashboard_title}"',
+                status=403,
+            )
+
+        dash.published = str(request.form["published"]).lower() == "true"
+        session.commit()
+        return json_success(json.dumps({"published": dash.published}))
 
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
-    def dashboard(self, dashboard_id_or_slug: str) -> FlaskResponse:
+    def dashboard(  # pylint: disable=too-many-locals
+        self, dashboard_id_or_slug: str
+    ) -> FlaskResponse:
         """Server side rendering for a dashboard"""
         session = db.session()
         qry = session.query(Dashboard)
@@ -1668,7 +1702,7 @@ class Superset(BaseSupersetView):
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @event_logger.log_this
-        def dashboard(**kwargs: Any) -> None:
+        def dashboard(**_: Any) -> None:
             pass
 
         dashboard(
@@ -1722,13 +1756,13 @@ class Superset(BaseSupersetView):
     @api
     @event_logger.log_this
     @expose("/log/", methods=["POST"])
-    def log(self) -> FlaskResponse:
+    def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
         return Response(status=200)
 
     @has_access
     @expose("/sync_druid/", methods=["POST"])
     @event_logger.log_this
-    def sync_druid_source(self) -> FlaskResponse:
+    def sync_druid_source(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Syncs the druid datasource in main db with the provided config.
 
         The endpoint takes 3 arguments:
@@ -1755,8 +1789,10 @@ class Superset(BaseSupersetView):
         cluster_name = payload["cluster"]
 
         user = security_manager.find_user(username=user_name)
-        DruidDatasource = ConnectorRegistry.sources["druid"]
-        DruidCluster = DruidDatasource.cluster_class
+        DruidDatasource = ConnectorRegistry.sources[  # pylint: disable=invalid-name
+            "druid"
+        ]
+        DruidCluster = DruidDatasource.cluster_class  # pylint: disable=invalid-name
         if not user:
             err_msg = __(
                 "Can't find User '%(name)s', please ask your admin " "to create one.",
@@ -1778,7 +1814,7 @@ class Superset(BaseSupersetView):
             return json_error_response(err_msg)
         try:
             DruidDatasource.sync_to_db_from_config(druid_config, user, cluster)
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             err_msg = utils.error_msg_from_exception(ex)
             logger.exception(err_msg)
             return json_error_response(err_msg)
@@ -1787,7 +1823,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/get_or_create_table/", methods=["POST"])
     @event_logger.log_this
-    def sqllab_table_viz(self) -> FlaskResponse:
+    def sqllab_table_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """ Gets or creates a table object with attributes passed to the API.
 
         It expects the json with params:
@@ -1828,7 +1864,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/sqllab_viz/", methods=["POST"])
     @event_logger.log_this
-    def sqllab_viz(self) -> FlaskResponse:
+    def sqllab_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
         data = json.loads(request.form["data"])
         table_name = data["datasourceName"]
         database_id = data["dbId"]
@@ -1843,18 +1879,17 @@ class Superset(BaseSupersetView):
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
         table.is_sqllab_view = True
-        q = ParsedQuery(data.get("sql"))
-        table.sql = q.stripped()
+        table.sql = ParsedQuery(data.get("sql")).stripped()
         db.session.add(table)
         cols = []
-        for config in data.get("columns"):
-            column_name = config.get("name")
+        for config_ in data.get("columns"):
+            column_name = config_.get("name")
             col = TableColumn(
                 column_name=column_name,
                 filterable=True,
                 groupby=True,
-                is_dttm=config.get("is_date", False),
-                type=config.get("type", False),
+                is_dttm=config_.get("is_date", False),
+                type=config_.get("type", False),
             )
             cols.append(col)
 
@@ -1866,7 +1901,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
     @event_logger.log_this
-    def extra_table_metadata(
+    def extra_table_metadata(  # pylint: disable=no-self-use
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
         parsed_schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
@@ -1885,8 +1920,9 @@ class Superset(BaseSupersetView):
         self, database_id: int, table_name: str, schema: Optional[str] = None
     ) -> FlaskResponse:
         logging.warning(
-            f"{self.__class__.__name__}.select_star "
-            "This API endpoint is deprecated and will be removed in version 1.0.0"
+            "%s.select_star "
+            "This API endpoint is deprecated and will be removed in version 1.0.0",
+            self.__class__.__name__,
         )
         stats_logger.incr(f"{self.__class__.__name__}.select_star.init")
         database = db.session.query(models.Database).get(database_id)
@@ -1902,8 +1938,10 @@ class Superset(BaseSupersetView):
                 f"deprecated.{self.__class__.__name__}.select_star.permission_denied"
             )
             logging.warning(
-                f"Permission denied for user {g.user} on table: {table_name} "
-                f"schema: {schema}"
+                "Permission denied for user %s on table: %s schema: %s",
+                str(g.user),
+                table_name,
+                schema,
             )
             return json_error_response("Not found", 404)
         stats_logger.incr(f"deprecated.{self.__class__.__name__}.select_star.success")
@@ -1917,7 +1955,7 @@ class Superset(BaseSupersetView):
     @expose("/estimate_query_cost/<int:database_id>/", methods=["POST"])
     @expose("/estimate_query_cost/<int:database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
-    def estimate_query_cost(
+    def estimate_query_cost(  # pylint: disable=no-self-use
         self, database_id: int, schema: Optional[str] = None
     ) -> FlaskResponse:
         mydb = db.session.query(models.Database).get(database_id)
@@ -1938,7 +1976,7 @@ class Superset(BaseSupersetView):
         except SupersetTimeoutException as ex:
             logger.exception(ex)
             return json_error_response(timeout_msg)
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             return json_error_response(utils.error_msg_from_exception(ex))
 
         spec = mydb.db_engine_spec
@@ -1962,7 +2000,8 @@ class Superset(BaseSupersetView):
     def results(self, key: str) -> FlaskResponse:
         return self.results_exec(key)
 
-    def results_exec(self, key: str) -> FlaskResponse:
+    @staticmethod
+    def results_exec(key: str) -> FlaskResponse:
         """Serves a key off of the results backend
 
         It is possible to pass the `rows` query argument to limit the number
@@ -2032,7 +2071,9 @@ class Superset(BaseSupersetView):
             QueryStatus.TIMED_OUT,
         ]:
             logger.error(
-                f"Query with client_id {client_id} could not be stopped: query already complete"
+                "Query with client_id %s could not be stopped: "
+                "query already complete",
+                str(client_id),
             )
             return self.json_response("OK")
         query.status = QueryStatus.STOPPED
@@ -2043,7 +2084,9 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     @event_logger.log_this
-    def validate_sql_json(self) -> FlaskResponse:
+    def validate_sql_json(  # pylint: disable=too-many-locals,too-many-return-statements,no-self-use
+        self,
+    ) -> FlaskResponse:
         """Validates that arbitrary sql is acceptable for the given database.
         Returns a list of error/warning annotations as json.
         """
@@ -2094,7 +2137,7 @@ class Superset(BaseSupersetView):
                 encoding=None,
             )
             return json_success(payload)
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             msg = _(
                 "%(validator)s was unable to check your query.\n"
@@ -2106,11 +2149,10 @@ class Superset(BaseSupersetView):
             # Return as a 400 if the database error message says we got a 4xx error
             if re.search(r"([\W]|^)4\d{2}([\W]|$)", str(ex)):
                 return json_error_response(f"{msg}", status=400)
-            else:
-                return json_error_response(f"{msg}")
+            return json_error_response(f"{msg}")
 
-    def _sql_json_async(
-        self,
+    @staticmethod
+    def _sql_json_async(  # pylint: disable=too-many-arguments
         session: Session,
         rendered_query: str,
         query: Query,
@@ -2125,7 +2167,7 @@ class Superset(BaseSupersetView):
         :param query: The query (SQLAlchemy) object
         :return: A Flask Response
         """
-        logger.info(f"Query {query.id}: Running query on a Celery worker")
+        logger.info("Query %i: Running query on a Celery worker", query.id)
         # Ignore the celery future object and the request may time out.
         try:
             sql_lab.get_sql_results.delay(
@@ -2138,8 +2180,8 @@ class Superset(BaseSupersetView):
                 expand_data=expand_data,
                 log_params=log_params,
             )
-        except Exception as ex:
-            logger.exception(f"Query {query.id}: {ex}")
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Query %i: %s", query.id, str(ex))
             msg = _(
                 "Failed to start remote query on a worker. "
                 "Tell your administrator to verify the availability of "
@@ -2160,9 +2202,9 @@ class Superset(BaseSupersetView):
         session.commit()
         return resp
 
+    @staticmethod
     def _sql_json_sync(
-        self,
-        session: Session,
+        _session: Session,
         rendered_query: str,
         query: Query,
         expand_data: bool,
@@ -2200,8 +2242,8 @@ class Superset(BaseSupersetView):
                 ignore_nan=True,
                 encoding=None,
             )
-        except Exception as ex:
-            logger.exception(f"Query {query.id}: {ex}")
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Query %i: %s", query.id, str(ex))
             return json_error_response(utils.error_msg_from_exception(ex))
         if data.get("status") == QueryStatus.FAILED:
             return json_error_response(payload=data)
@@ -2216,7 +2258,7 @@ class Superset(BaseSupersetView):
         }
         return self.sql_json_exec(request.json, log_params)
 
-    def sql_json_exec(
+    def sql_json_exec(  # pylint: disable=too-many-statements,too-many-locals
         self, query_params: Dict[str, Any], log_params: Optional[Dict[str, Any]] = None
     ) -> FlaskResponse:
         """Runs arbitrary sql and returns data as json"""
@@ -2228,15 +2270,15 @@ class Superset(BaseSupersetView):
             template_params = json.loads(query_params.get("templateParams") or "{}")
         except json.JSONDecodeError:
             logger.warning(
-                f"Invalid template parameter {query_params.get('templateParams')}"
-                " specified. Defaulting to empty dict"
+                "Invalid template parameter %s" " specified. Defaulting to empty dict",
+                str(query_params.get("templateParams")),
             )
             template_params = {}
         limit: int = query_params.get("queryLimit") or app.config["SQL_MAX_ROW"]
         async_flag: bool = cast(bool, query_params.get("runAsync"))
         if limit < 0:
             logger.warning(
-                f"Invalid limit of {limit} specified. Defaulting to max limit."
+                "Invalid limit of %i specified. Defaulting to max limit.", limit
             )
             limit = 0
         select_as_cta: bool = cast(bool, query_params.get("select_as_cta"))
@@ -2254,10 +2296,11 @@ class Superset(BaseSupersetView):
         session = db.session()
         mydb = session.query(models.Database).get(database_id)
         if not mydb:
-            return json_error_response(f"Database with id {database_id} is missing.")
+            return json_error_response("Database with id %i is missing.", database_id)
 
         # Set tmp_schema_name for CTA
-        # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from tmp_table_name if user enters
+        # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from
+        #  tmp_table_name if user enters
         # <schema_name>.<table_name>
         tmp_schema_name: Optional[str] = schema
         if select_as_cta and mydb.force_ctas_schema:
@@ -2287,13 +2330,13 @@ class Superset(BaseSupersetView):
             query_id = query.id
             session.commit()  # shouldn't be necessary
         except SQLAlchemyError as ex:
-            logger.error(f"Errors saving query details {ex}")
+            logger.error("Errors saving query details %s", str(ex))
             session.rollback()
             raise Exception(_("Query record was not created as expected."))
         if not query_id:
             raise Exception(_("Query record was not created as expected."))
 
-        logger.info(f"Triggering query_id: {query_id}")
+        logger.info("Triggering query_id: %i", query_id)
 
         try:
             query.raise_for_access()
@@ -2309,13 +2352,14 @@ class Superset(BaseSupersetView):
             rendered_query = template_processor.process_template(
                 query.sql, **template_params
             )
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             error_msg = utils.error_msg_from_exception(ex)
             return json_error_response(
                 f"Query {query_id}: Template rendering failed: {error_msg}"
             )
 
-        # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set to True.
+        # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set
+        # to True.
         if not (config.get("SQLLAB_CTAS_NO_LIMIT") and select_as_cta):
             # set LIMIT after template processing
             limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
@@ -2342,9 +2386,9 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/csv/<client_id>")
     @event_logger.log_this
-    def csv(self, client_id: str) -> FlaskResponse:
+    def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
         """Download the query results as csv."""
-        logger.info("Exporting CSV file [{}]".format(client_id))
+        logger.info("Exporting CSV file [%s]", client_id)
         query = db.session.query(Query).filter_by(client_id=client_id).one()
 
         try:
@@ -2355,9 +2399,7 @@ class Superset(BaseSupersetView):
 
         blob = None
         if results_backend and query.results_key:
-            logger.info(
-                "Fetching CSV from results backend " "[{}]".format(query.results_key)
-            )
+            logger.info("Fetching CSV from results backend [%s]", query.results_key)
             blob = results_backend.get(query.results_key)
         if blob:
             logger.info("Decompressing")
@@ -2390,9 +2432,8 @@ class Superset(BaseSupersetView):
             "sql": query.sql,
             "exported_format": "csv",
         }
-        logger.info(
-            f"CSV exported: {repr(event_info)}", extra={"superset_event": event_info}
-        )
+        event_rep = repr(event_info)
+        logger.info("CSV exported: %s", event_rep, extra={"superset_event": event_info})
         return response
 
     @api
@@ -2400,7 +2441,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/fetch_datasource_metadata")
     @event_logger.log_this
-    def fetch_datasource_metadata(self) -> FlaskResponse:
+    def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Fetch the datasource metadata.
 
@@ -2431,7 +2472,8 @@ class Superset(BaseSupersetView):
 
         return self.queries_exec(last_updated_ms)
 
-    def queries_exec(self, last_updated_ms: Union[float, int]) -> FlaskResponse:
+    @staticmethod
+    def queries_exec(last_updated_ms: Union[float, int]) -> FlaskResponse:
         stats_logger.incr("queries")
         if not g.user.get_id():
             return json_error_response(
@@ -2454,7 +2496,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/search_queries")
     @event_logger.log_this
-    def search_queries(self) -> FlaskResponse:
+    def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Search for previously run sqllab queries. Used for Sqllab Query Search
         page /superset/sqllab#search.
@@ -2515,7 +2557,7 @@ class Superset(BaseSupersetView):
         )
 
     @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:
+    def show_traceback(self) -> FlaskResponse:  # pylint: disable=no-self-use
         return (
             render_template("superset/traceback.html", error_msg=get_error_msg()),
             500,
@@ -2608,8 +2650,7 @@ class Superset(BaseSupersetView):
                 .all()
             )
             queries = {
-                query.client_id: {k: v for k, v in query.to_dict().items()}
-                for query in user_queries
+                query.client_id: dict(query.to_dict().items()) for query in user_queries
             }
 
         return {
@@ -2669,7 +2710,7 @@ class Superset(BaseSupersetView):
                 database, schemas_allowed, False
             )
             return self.json_response(schemas_allowed_processed)
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(
                 "Failed to fetch schemas allowed for csv upload in this database! "
