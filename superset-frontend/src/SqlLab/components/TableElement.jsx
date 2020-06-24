@@ -207,7 +207,7 @@ class TableElement extends React.PureComponent {
         </div>
         <div className="pull-right">
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
-            <Loading size={50} position="normal" className="margin-zero" />
+            <Loading position="inline" />
           ) : (
             <Fade in={this.state.hovered}>{this.renderControls()}</Fade>
           )}
