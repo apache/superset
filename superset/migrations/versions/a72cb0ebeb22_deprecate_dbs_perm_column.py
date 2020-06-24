@@ -17,7 +17,7 @@
 """deprecate dbs.perm column
 
 Revision ID: a72cb0ebeb22
-Revises: 743a117f0d98
+Revises: ea396d202291
 Create Date: 2020-06-21 19:50:51.630917
 """
 
@@ -26,7 +26,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "a72cb0ebeb22"
-down_revision = "743a117f0d98"
+down_revision = "ea396d202291"
 
 
 def upgrade():
