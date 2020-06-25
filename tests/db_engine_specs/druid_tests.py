@@ -35,7 +35,8 @@ class DruidTestCase(DbEngineSpecTestCase):
         )
 
         self.assertEqual(
-            DruidEngineSpec.convert_dttm("DATE", dttm), "TIME_PARSE('2019-01-02)",
+            DruidEngineSpec.convert_dttm("DATE", dttm),
+            "CAST(TIME_PARSE('2019-01-02') AS DATE)",
         )
 
     def test_timegrain_expressions(self):

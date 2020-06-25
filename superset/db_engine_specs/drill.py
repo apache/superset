@@ -21,6 +21,7 @@ from urllib import parse
 from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class DrillEngineSpec(BaseEngineSpec):
@@ -54,9 +55,9 @@ class DrillEngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
+        if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'yyyy-MM-dd')"
-        if tt == "TIMESTAMP":
+        if tt == utils.TemporalType.TIMESTAMP:
             return f"""TO_TIMESTAMP('{dttm.isoformat(sep=" ", timespec="seconds")}', 'yyyy-MM-dd HH:mm:ss')"""  # pylint: disable=line-too-long
         return None
 

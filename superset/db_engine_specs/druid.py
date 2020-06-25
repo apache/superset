@@ -86,8 +86,8 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
-            return f"TIME_PARSE('{dttm.date().isoformat()}', '%Y-%m-%d')"
-        if tt in ("DATETIME", "TIMESTAMP"):
+        if tt == utils.TemporalType.DATE:
+            return f"CAST(TIME_PARSE('{dttm.date().isoformat()}') AS DATE)"
+        if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
         return None

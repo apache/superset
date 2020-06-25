@@ -1405,3 +1405,16 @@ class ChartDataResultFormat(str, Enum):
 
     CSV = "csv"
     JSON = "json"
+
+
+class TemporalType(str, Enum):
+    """
+    Supported temporal types
+    """
+
+    DATE = "DATE"
+    DATETIME = "DATETIME"
+    SMALLDATETIME = "SMALLDATETIME"
+    TEXT = "TEXT"
+    TIME = "TIME"
+    TIMESTAMP = "TIMESTAMP"
