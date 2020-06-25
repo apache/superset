@@ -6,8 +6,7 @@ on:
       - master
 
 jobs:
-  comment:
-    name: Comment about preferring TypeScript
+  check:
     runs-on: ubuntu-latest
     steps:
       - name: Get changed files
@@ -15,17 +14,35 @@ jobs:
         uses: trilom/file-changes-action@master
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Determine if a .js or .jsx file was added
         id: check
         run: |
-          echo ::set-output name=was_js_file_added::$(jq 'map(endswith(".js") or endswith(".jsx"))' ${HOME}/files_added.json | jq 'reduce .[] as $is_js (false; . or $is_js)')
-      - if: steps.check.outputs.was_js_file_added != 'false'
-        name: Comment about preferring TypeScript
+          js_files_added() {
+            jq -r '
+              map(
+                select(
+                  (contains("cypress-base/") | not) and
+                  (endswith(".js") or endswith(".jsx"))
+                )
+              ) | join("\n")
+            ' ${HOME}/files_added.json
+          }
+          echo ::set-output name=js_files_added::$(js_files_added)
+
+      - if: steps.check.outputs.js_files_added
+        name: Add Comment to PR
         uses: unsplash/comment-on-pr@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           msg: |
-            ## WARNING: Prefer TypeScript
+            ### WARNING: Prefer TypeScript
             
-            It looks like your PR contains new `.js` or `.jsx` files. As decided in [SIP-36](https://github.com/apache/incubator-superset/issues/9101), all new files should be written in TypeScript. Please convert new JavaScript files to TypeScript and then re-request review.
+            Looks like your PR contains new `.js` or `.jsx` files:
+
+            ```
+            ${{steps.check.outputs.js_files_added}}
+            ```
+
+            As decided in [SIP-36](https://github.com/apache/incubator-superset/issues/9101), all new frontend code should be written in TypeScript. Please convert above files to TypeScript then re-request review.
