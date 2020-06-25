@@ -28,8 +28,7 @@ import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
 import Pagination from 'src/components/Pagination';
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import { ThemeProvider } from 'emotion-theming';
-import { supersetTheme } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 export function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
