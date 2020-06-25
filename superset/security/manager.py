@@ -315,7 +315,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return conf.get("PERMISSION_INSTRUCTIONS_LINK")
 
-    def datasource_access_error_obj(
+    def get_datasource_access_error_object(  # pylint: disable=invalid-name
         self, datasource: "BaseDatasource"
     ) -> SupersetError:
         """
@@ -853,7 +853,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                 )
 
-    def raise_for_access(
+    def raise_for_access(  # pylint: disable=too-many-arguments,too-many-branches
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
@@ -905,15 +905,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
 
                     # Access to any datasource is suffice.
-                    for datasource in datasources:
-                        if self.can_access("datasource_access", datasource.perm):
+                    for datasource_ in datasources:
+                        if self.can_access("datasource_access", datasource_.perm):
                             break
                     else:
                         denied.add(table_)
 
             if denied:
                 raise SupersetSecurityException(
-                    self.get_table_access_error_object(denied),
+                    self.get_table_access_error_object(denied)
                 )
 
         if datasource or query_context or viz:
@@ -929,10 +929,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or self.can_access("datasource_access", datasource.perm or "")
             ):
                 raise SupersetSecurityException(
-                    self.get_datasource_access_error_object(datasource),
+                    self.get_datasource_access_error_object(datasource)
                 )
 
-    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
+    def get_rls_filters(  # pylint: disable=no-self-use
+        self, table: "BaseDatasource"
+    ) -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
