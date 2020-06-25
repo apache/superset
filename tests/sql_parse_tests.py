@@ -16,6 +16,8 @@
 # under the License.
 import unittest
 
+import sqlparse
+
 from superset.sql_parse import ParsedQuery, Table
 
 
@@ -187,7 +189,11 @@ class TestSupersetSqlParse(unittest.TestCase):
     # SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?
     def test_show_tables(self):
         query = "SHOW TABLES FROM s1 like '%order%'"
-        self.assertEqual(set(), self.extract_tables(query))
+        # TODO: figure out what should code do here
+        self.assertEqual({Table("s1")}, self.extract_tables(query))
+        # Expected behavior is below, it is fixed in sqlparse>=3.1
+        # However sqlparse==3.1 breaks some sql formatting.
+        # self.assertEqual(set(), self.extract_tables(query))
 
     # SHOW COLUMNS (FROM | IN) qualifiedName
     def test_show_columns(self):
@@ -560,3 +566,16 @@ class TestSupersetSqlParse(unittest.TestCase):
         SELECT * FROM match
         """
         self.assertEqual({Table("foo")}, self.extract_tables(query))
+
+    def test_sqlparse_formatting(self):
+        # sqlparse 0.3.1 has a bug and removes space between from and from_unixtime while formatting:
+        # SELECT extract(HOUR\n               fromfrom_unixtime(hour_ts)
+        # AT TIME ZONE 'America/Los_Angeles')\nfrom table
+        self.assertEqual(
+            "SELECT extract(HOUR\n               from from_unixtime(hour_ts) "
+            "AT TIME ZONE 'America/Los_Angeles')\nfrom table",
+            sqlparse.format(
+                "SELECT extract(HOUR from from_unixtime(hour_ts) AT TIME ZONE 'America/Los_Angeles') from table",
+                reindent=True,
+            ),
+        )
