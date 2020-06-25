@@ -210,38 +210,47 @@ describe('SaveModal', () => {
         Object.defineProperty(window, 'location', windowLocation);
       });
 
-      it('Save & go to dashboard', done => {
-        wrapper.instance().saveOrOverwrite(true);
-        defaultProps.actions.saveSlice().then(() => {
-          expect(window.location.assign.callCount).toEqual(1);
-          expect(window.location.assign.getCall(0).args[0]).toEqual(
-            'http://localhost/mock_dashboard/',
-          );
-          done();
+      it('Save & go to dashboard', () => {
+        return new Promise(done => {
+          wrapper.instance().saveOrOverwrite(true);
+          defaultProps.actions.saveSlice().then(() => {
+            expect(window.location.assign.callCount).toEqual(1);
+            expect(window.location.assign.getCall(0).args[0]).toEqual(
+              'http://localhost/mock_dashboard/',
+            );
+            done();
+          });
         });
       });
 
-      it('saveas new slice', done => {
-        wrapper.setState({ action: 'saveas', newSliceName: 'new slice name' });
-        wrapper.instance().saveOrOverwrite(false);
-        defaultProps.actions.saveSlice().then(() => {
-          expect(window.location.assign.callCount).toEqual(1);
-          expect(window.location.assign.getCall(0).args[0]).toEqual(
-            '/mock_slice/',
-          );
-          done();
+      it('saveas new slice', () => {
+        return new Promise(done => {
+          wrapper.setState({
+            action: 'saveas',
+            newSliceName: 'new slice name',
+          });
+          wrapper.instance().saveOrOverwrite(false);
+          defaultProps.actions.saveSlice().then(() => {
+            expect(window.location.assign.callCount).toEqual(1);
+            expect(window.location.assign.getCall(0).args[0]).toEqual(
+              '/mock_slice/',
+            );
+            done();
+          });
         });
       });
 
-      it('overwrite original slice', done => {
-        wrapper.setState({ action: 'overwrite' });
-        wrapper.instance().saveOrOverwrite(false);
-        defaultProps.actions.saveSlice().then(() => {
-          expect(window.location.assign.callCount).toEqual(1);
-          expect(window.location.assign.getCall(0).args[0]).toEqual(
-            '/mock_slice/',
-          );
-          done();
+      it('overwrite original slice', () => {
+        return new Promise(done => {
+          wrapper.setState({ action: 'overwrite' });
+          wrapper.instance().saveOrOverwrite(false);
+          defaultProps.actions.saveSlice().then(() => {
+            expect(window.location.assign.callCount).toEqual(1);
+            expect(window.location.assign.getCall(0).args[0]).toEqual(
+              '/mock_slice/',
+            );
+            done();
+          });
         });
       });
     });

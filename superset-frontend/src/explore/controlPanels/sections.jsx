@@ -243,7 +243,7 @@ export const NVD3TimeSeries = [
         },
       ],
       [<h1 className="section-header">{t('Python Functions')}</h1>],
-      [<h2 className="section-header">pandas.resample</h2>],
+      [<h2 className="section-header">{'pandas.resample'}</h2>],
       [
         {
           name: 'resample_rule',

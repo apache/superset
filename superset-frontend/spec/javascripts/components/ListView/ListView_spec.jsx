@@ -30,7 +30,7 @@ import Pagination from 'src/components/Pagination';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-export function makeMockLocation(query) {
+function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
   return {
     protocol: 'http:',
@@ -292,16 +292,14 @@ Array [
       ...mockedProps,
       filters: [...mockedProps.filters, { id: 'some_column' }],
     };
-    try {
+    expect(() => {
       shallow(<ListView {...props} />, {
         wrappingComponent: ThemeProvider,
         wrappingComponentProps: { theme: supersetTheme },
       });
-    } catch (e) {
-      expect(e).toMatchInlineSnapshot(
-        `[ListViewError: Invalid filter config, some_column is not present in columns]`,
-      );
-    }
+    }).toThrowErrorMatchingInlineSnapshot(
+      '"Invalid filter config, some_column is not present in columns"',
+    );
   });
 });
 
