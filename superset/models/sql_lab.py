@@ -112,6 +112,7 @@ class Query(Model, ExtraJSONMixin):
             "errorMessage": self.error_message,
             "executedSql": self.executed_sql,
             "id": self.client_id,
+            "queryId": self.id,
             "limit": self.limit,
             "progress": self.progress,
             "rows": self.rows,

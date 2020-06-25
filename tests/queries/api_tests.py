@@ -78,8 +78,9 @@ class QueryApiTests(SupersetTestCase):
         """
         admin = self.get_user("admin")
         client_id = self.get_random_string()
+        example_db = get_example_database()
         query = self.insert_query(
-            get_example_database().id,
+            example_db.id,
             admin.id,
             client_id,
             sql="SELECT col1, col2 from table1",
@@ -92,6 +93,7 @@ class QueryApiTests(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
 
         expected_result = {
+            "database": {"id": example_db.id},
             "client_id": client_id,
             "end_result_backend_time": None,
             "error_message": None,

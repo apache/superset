@@ -101,6 +101,7 @@ export const CtasEnum = {
   TABLE: 'TABLE',
   VIEW: 'VIEW',
 };
+const ERR_MSG_CANT_LOAD_QUERY = t("The query couldn't be loaded");
 
 // a map of SavedQuery field names to the different names used client-side,
 // because for now making the names consistent is too complicated
@@ -1182,7 +1183,7 @@ export function popStoredQuery(urlId) {
           }),
         ),
       )
-      .catch(() => dispatch(addDangerToast(t("The query couldn't be loaded"))));
+      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
 export function popSavedQuery(saveQueryId) {
@@ -1197,7 +1198,26 @@ export function popSavedQuery(saveQueryId) {
         };
         return dispatch(addQueryEditor(queryEditorProps));
       })
-      .catch(() => dispatch(addDangerToast(t("The query couldn't be loaded"))));
+      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
+  };
+}
+export function popQuery(queryId) {
+  return function (dispatch) {
+    return SupersetClient.get({
+      endpoint: `/api/v1/query/${queryId}`,
+    })
+      .then(({ json }) => {
+        const queryData = json.result;
+        const queryEditorProps = {
+          dbId: queryData.database.id,
+          schema: queryData.schema,
+          sql: queryData.sql,
+          title: `Copy of ${queryData.tab_name}`,
+          autorun: false,
+        };
+        return dispatch(addQueryEditor(queryEditorProps));
+      })
+      .catch(() => dispatch(addDangerToast(ERR_MSG_CANT_LOAD_QUERY)));
   };
 }
 export function popDatasourceQuery(datasourceKey, sql) {
