@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 
 """Utility functions used across Superset"""
 
@@ -34,20 +33,22 @@ def cache_chart_thumbnail(chart_id: int, force: bool = False) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logger.warning("No cache set, refusing to compute")
-            return None
-        logging.info(f"Caching chart {chart_id}")
+            return
+        logging.info("Caching chart %i", chart_id)
         screenshot = ChartScreenshot(model_id=chart_id)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)
 
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
-def cache_dashboard_thumbnail(dashboard_id: int, force: bool = False) -> None:
+def cache_dashboard_thumbnail(  # pylint: disable=inconsistent-return-statements
+    dashboard_id: int, force: bool = False
+) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logging.warning("No cache set, refusing to compute")
-            return None
-        logger.info(f"Caching dashboard {dashboard_id}")
+            return
+        logger.info("Caching dashboard %i", dashboard_id)
         screenshot = DashboardScreenshot(model_id=dashboard_id)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)

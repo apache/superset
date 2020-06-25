@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+# pylint: disable=too-few-public-methods
 """A set of constants and methods to manage permissions and security"""
 import logging
 from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKING, Union
@@ -102,7 +102,9 @@ RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
 
 
-class SupersetSecurityManager(SecurityManager):
+class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
+    SecurityManager
+):
     userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"DatabaseAsync", "DatabaseView", "DruidClusterModelView"}
 
@@ -166,7 +168,7 @@ class SupersetSecurityManager(SecurityManager):
 
     ACCESSIBLE_PERMS = {"can_userinfo"}
 
-    def get_schema_perm(
+    def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
     ) -> Optional[str]:
         """
@@ -182,7 +184,9 @@ class SupersetSecurityManager(SecurityManager):
 
         return None
 
-    def unpack_schema_perm(self, schema_permission: str) -> Tuple[str, str]:
+    def unpack_schema_perm(  # pylint: disable=no-self-use
+        self, schema_permission: str
+    ) -> Tuple[str, str]:
         # [database_name].[schema_name]
         schema_name = schema_permission.split(".")[1][1:-1]
         database_name = schema_permission.split(".")[0][1:-1]
@@ -284,7 +288,8 @@ class SupersetSecurityManager(SecurityManager):
 
         return True
 
-    def get_datasource_access_error_msg(self, datasource: "BaseDatasource") -> str:
+    @staticmethod
+    def get_datasource_access_error_msg(datasource: "BaseDatasource") -> str:
         """
         Return the error message for the denied Superset datasource.
 
@@ -295,7 +300,10 @@ class SupersetSecurityManager(SecurityManager):
         return f"""This endpoint requires the datasource {datasource.name}, database or
             `all_datasource_access` permission"""
 
-    def get_datasource_access_link(self, datasource: "BaseDatasource") -> Optional[str]:
+    @staticmethod
+    def get_datasource_access_link(  # pylint: disable=unused-argument
+        datasource: "BaseDatasource",
+    ) -> Optional[str]:
         """
         Return the link for the denied Superset datasource.
 
@@ -307,7 +315,7 @@ class SupersetSecurityManager(SecurityManager):
 
         return conf.get("PERMISSION_INSTRUCTIONS_LINK")
 
-    def get_datasource_access_error_object(
+    def get_datasource_access_error_object(  # pylint: disable=invalid-name
         self, datasource: "BaseDatasource"
     ) -> SupersetError:
         """
@@ -326,7 +334,9 @@ class SupersetSecurityManager(SecurityManager):
             },
         )
 
-    def get_table_access_error_msg(self, tables: Set["Table"]) -> str:
+    def get_table_access_error_msg(  # pylint: disable=no-self-use
+        self, tables: Set["Table"]
+    ) -> str:
         """
         Return the error message for the denied SQL tables.
 
@@ -355,7 +365,9 @@ class SupersetSecurityManager(SecurityManager):
             },
         )
 
-    def get_table_access_link(self, tables: Set["Table"]) -> Optional[str]:
+    def get_table_access_link(  # pylint: disable=unused-argument,no-self-use
+        self, tables: Set["Table"]
+    ) -> Optional[str]:
         """
         Return the access link for the denied SQL tables.
 
@@ -412,7 +424,7 @@ class SupersetSecurityManager(SecurityManager):
                 .filter(self.user_model.id == g.user.id)
                 .filter(self.permission_model.name == permission_name)
             ).all()
-            return set([s.name for s in view_menu_names])
+            return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
         public_role = self.get_public_role()
@@ -423,7 +435,7 @@ class SupersetSecurityManager(SecurityManager):
                     self.permission_model.name == permission_name
                 )
             ).all()
-            return set([s.name for s in view_menu_names])
+            return {s.name for s in view_menu_names}
         return set()
 
     def get_schemas_accessible_by_user(
@@ -466,7 +478,7 @@ class SupersetSecurityManager(SecurityManager):
 
         return [s for s in schemas if s in accessible_schemas]
 
-    def get_datasources_accessible_by_user(
+    def get_datasources_accessible_by_user(  # pylint: disable=invalid-name
         self,
         database: "Database",
         datasource_names: List[DatasourceName],
@@ -499,9 +511,9 @@ class SupersetSecurityManager(SecurityManager):
         if schema:
             names = {d.table_name for d in user_datasources if d.schema == schema}
             return [d for d in datasource_names if d in names]
-        else:
-            full_names = {d.full_name for d in user_datasources}
-            return [d for d in datasource_names if f"[{database}].[{d}]" in full_names]
+
+        full_names = {d.full_name for d in user_datasources}
+        return [d for d in datasource_names if f"[{database}].[{d}]" in full_names]
 
     def merge_perm(self, permission_name: str, view_menu_name: str) -> None:
         """
@@ -579,12 +591,17 @@ class SupersetSecurityManager(SecurityManager):
         logger.info("Cleaning faulty perms")
         sesh = self.get_session
         pvms = sesh.query(PermissionView).filter(
-            or_(PermissionView.permission == None, PermissionView.view_menu == None,)
+            or_(
+                PermissionView.permission  # pylint: disable=singleton-comparison
+                == None,
+                PermissionView.view_menu  # pylint: disable=singleton-comparison
+                == None,
+            )
         )
         deleted_count = pvms.delete()
         sesh.commit()
         if deleted_count:
-            logger.info("Deleted {} faulty permissions".format(deleted_count))
+            logger.info("Deleted %i faulty permissions", deleted_count)
 
     def sync_role_definitions(self) -> None:
         """
@@ -623,7 +640,7 @@ class SupersetSecurityManager(SecurityManager):
         :param pvm_check: The FAB permission/view check
         """
 
-        logger.info("Syncing {} perms".format(role_name))
+        logger.info("Syncing %s perms", role_name)
         sesh = self.get_session
         pvms = sesh.query(PermissionView).all()
         pvms = [p for p in pvms if p.permission and p.view_menu]
@@ -750,7 +767,9 @@ class SupersetSecurityManager(SecurityManager):
             )
         )
 
-    def _is_granter_pvm(self, pvm: PermissionModelView) -> bool:
+    def _is_granter_pvm(  # pylint: disable=no-self-use
+        self, pvm: PermissionModelView
+    ) -> bool:
         """
         Return True if the user can grant the FAB permission/view, False
         otherwise.
@@ -761,7 +780,7 @@ class SupersetSecurityManager(SecurityManager):
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
-    def set_perm(
+    def set_perm(  # pylint: disable=no-self-use,unused-argument
         self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
     ) -> None:
         """
@@ -834,7 +853,7 @@ class SupersetSecurityManager(SecurityManager):
                     )
                 )
 
-    def raise_for_access(
+    def raise_for_access(  # pylint: disable=too-many-arguments,too-many-branches
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
@@ -886,15 +905,15 @@ class SupersetSecurityManager(SecurityManager):
                     )
 
                     # Access to any datasource is suffice.
-                    for datasource in datasources:
-                        if self.can_access("datasource_access", datasource.perm):
+                    for datasource_ in datasources:
+                        if self.can_access("datasource_access", datasource_.perm):
                             break
                     else:
                         denied.add(table_)
 
             if denied:
                 raise SupersetSecurityException(
-                    self.get_table_access_error_object(denied),
+                    self.get_table_access_error_object(denied)
                 )
 
         if datasource or query_context or viz:
@@ -910,10 +929,12 @@ class SupersetSecurityManager(SecurityManager):
                 or self.can_access("datasource_access", datasource.perm or "")
             ):
                 raise SupersetSecurityException(
-                    self.get_datasource_access_error_object(datasource),
+                    self.get_datasource_access_error_object(datasource)
                 )
 
-    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
+    def get_rls_filters(  # pylint: disable=no-self-use
+        self, table: "BaseDatasource"
+    ) -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
