@@ -16,22 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import DashboardControlsTest from './controls';
-import DashboardEditModeTest from './edit_mode';
-import DashboardFavStarTest from './fav_star';
-import DashboardFilterTest from './filter';
-import DashboardLoadTest from './load';
-import DashboardSaveTest from './save';
-import DashboardTabsTest from './tabs';
-import DashboardFormDataTest from './url_params';
+import { FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
 
-describe('Dashboard', () => {
-  DashboardControlsTest();
-  DashboardEditModeTest();
-  DashboardFavStarTest();
-  DashboardFilterTest();
-  DashboardLoadTest();
-  DashboardSaveTest();
-  DashboardTabsTest();
-  DashboardFormDataTest();
+describe('Edit FilterBox Chart', () => {
+  const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'filter_box' };
+
+  function verify(formData) {
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+  }
+
+  beforeEach(() => {
+    cy.server();
+    cy.login();
+    cy.route('POST', '/superset/explore_json/**').as('getJson');
+  });
+
+  it('should work with default date filter', () => {
+    verify(VIZ_DEFAULTS);
+    // Filter box should default to having a date filter with no filter selected
+    cy.get('div.filter_box').within(() => {
+      cy.get('span').contains('No filter');
+    });
+  });
 });
