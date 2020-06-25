@@ -39,41 +39,6 @@ from .base import (
 )
 
 
-class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
-        """
-        Filter queries to only those owned by current user. If
-        can_access_all_queries permission is set a user can list all queries
-
-        :returns: query
-        """
-        if not security_manager.can_access_all_queries():
-            query = query.filter(Query.user_id == g.user.get_user_id())
-        return query
-
-
-class QueryView(SupersetModelView):
-    datamodel = SQLAInterface(Query)
-    include_route_methods = {RouteMethod.SHOW, RouteMethod.LIST, RouteMethod.API_READ}
-
-    list_title = _("List Query")
-    show_title = _("Show Query")
-    add_title = _("Add Query")
-    edit_title = _("Edit Query")
-
-    list_columns = ["username", "database_name", "status", "start_time", "end_time"]
-    order_columns = ["status", "start_time", "end_time"]
-    base_filters = [["id", QueryFilter, lambda: []]]
-    label_columns = {
-        "user": _("User"),
-        "username": _("User"),
-        "database_name": _("Database"),
-        "status": _("Status"),
-        "start_time": _("Start Time"),
-        "end_time": _("End Time"),
-    }
-
-
 class SavedQueryView(
     SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
