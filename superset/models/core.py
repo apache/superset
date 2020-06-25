@@ -193,7 +193,7 @@ class Database(
     def allows_virtual_table_explore(self) -> bool:
         extra = self.get_extra()
 
-        return bool(extra.get("virtual_table_explore_enabled", True))
+        return bool(extra.get("allows_virtual_table_explore", True))
 
     @property
     def data(self) -> Dict[str, Any]:
