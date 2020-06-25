@@ -1204,7 +1204,7 @@ export function popSavedQuery(saveQueryId) {
 export function popQuery(queryId) {
   return function (dispatch) {
     return SupersetClient.get({
-      endpoint: `/queryview/api/read?_flt_0_id=${queryId}`,
+      endpoint: `/query/api/read?_flt_0_id=${queryId}`,
     })
       .then(({ json }) => {
         const queryData = json.result[0].data;

@@ -54,7 +54,7 @@ class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
-    include_route_methods = {RouteMethod.SHOW, RouteMethod.LIST, RouteMethod.API_READ}
+    include_route_methods = {RouteMethod.SHOW, RouteMethod.LIST}
 
     list_title = _("List Query")
     show_title = _("Show Query")
@@ -67,7 +67,6 @@ class QueryView(SupersetModelView):
         "status",
         "start_time",
         "end_time",
-        "data",
     ]
     order_columns = ["status", "start_time", "end_time"]
     base_filters = [["id", QueryFilter, lambda: []]]
@@ -79,6 +78,13 @@ class QueryView(SupersetModelView):
         "start_time": _("Start Time"),
         "end_time": _("End Time"),
     }
+
+
+class AsyncQueryView(QueryView):
+    route_base = "query"
+    include_route_methods = {RouteMethod.API_READ}
+    class_permission_name = "QueryView"
+    list_columns = QueryView.list_columns + ["data"]
 
 
 class SavedQueryView(
