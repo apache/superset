@@ -22,6 +22,7 @@ from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pylint: disable=unused-import
@@ -57,11 +58,11 @@ class MssqlEngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
+        if tt == utils.TemporalType.DATE:
             return f"CONVERT(DATE, '{dttm.date().isoformat()}', 23)"
-        if tt == "DATETIME":
+        if tt == utils.TemporalType.DATETIME:
             return f"""CONVERT(DATETIME, '{dttm.isoformat(timespec="milliseconds")}', 126)"""  # pylint: disable=line-too-long
-        if tt == "SMALLDATETIME":
+        if tt == utils.TemporalType.SMALLDATETIME:
             return f"""CONVERT(SMALLDATETIME, '{dttm.isoformat(sep=" ", timespec="seconds")}', 20)"""  # pylint: disable=line-too-long
         return None
 
