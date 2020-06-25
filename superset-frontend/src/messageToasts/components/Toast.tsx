@@ -17,12 +17,11 @@
  * under the License.
  */
 import { Alert } from 'react-bootstrap';
+import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Interweave from 'interweave';
-import PropTypes from 'prop-types';
 import React from 'react';
-
-import { toastShape } from '../propShapes';
+import Icon from 'src/components/Icon';
 
 import {
   INFO_TOAST,
@@ -31,23 +30,42 @@ import {
   DANGER_TOAST,
 } from '../constants';
 
-const propTypes = {
-  toast: toastShape.isRequired,
-  onCloseToast: PropTypes.func.isRequired,
-};
+const ToastContianer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
-const defaultProps = {};
+  span {
+    padding: 0 11px;
+  }
+`;
 
-class Toast extends React.Component {
-  constructor(props) {
+type ToastType =
+  | 'INFO_TOAST'
+  | 'SUCCESS_TOAST'
+  | 'WARNING_TOAST'
+  | 'DANGER_TOAST';
+
+interface ToastPresenterProps {
+  toast: { id: string; toastType: ToastType; text: string; duration: number };
+  onCloseToast: (arg0: string) => void;
+}
+
+interface ToastPresenterState {
+  visible: boolean;
+}
+
+class Toast extends React.Component<ToastPresenterProps, ToastPresenterState> {
+  constructor(props: ToastPresenterProps) {
     super(props);
-    this.state = {
-      visible: false,
-    };
 
     this.showToast = this.showToast.bind(this);
     this.handleClosePress = this.handleClosePress.bind(this);
   }
+
+  state: ToastPresenterState = {
+    visible: false,
+  };
 
   componentDidMount() {
     const { toast } = this.props;
@@ -62,6 +80,8 @@ class Toast extends React.Component {
   componentWillUnmount() {
     clearTimeout(this.hideTimer);
   }
+
+  hideTimer: NodeJS.Timeout;
 
   showToast() {
     this.setState({ visible: true });
@@ -97,13 +117,13 @@ class Toast extends React.Component {
           toastType === DANGER_TOAST && 'toast--danger',
         )}
       >
-        <Interweave content={text} />
+        <ToastContianer>
+          {toastType === SUCCESS_TOAST && <Icon name="check" />}
+          <Interweave content={text} />
+        </ToastContianer>
       </Alert>
     );
   }
 }
-
-Toast.propTypes = propTypes;
-Toast.defaultProps = defaultProps;
 
 export default Toast;

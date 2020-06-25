@@ -19,6 +19,7 @@
 import React, { SVGProps } from 'react';
 import styled from '@superset-ui/style';
 import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
+import { ReactComponent as CheckIcon } from 'images/icons/check.svg';
 import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.svg';
 import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
 import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
@@ -35,6 +36,7 @@ import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 
 type Icon =
   | 'cancel-x'
+  | 'check'
   | 'checkbox-half'
   | 'checkbox-off'
   | 'checkbox-on'
@@ -58,6 +60,7 @@ const iconsRegistry: { [key in Icon]: React.ComponentType } = {
   'dataset-virtual': DatasetVirtualIcon,
   'sort-asc': SortAscIcon,
   'sort-desc': SortDescIcon,
+  check: CheckIcon,
   compass: CompassIcon,
   pencil: PencilIcon,
   search: SearchIcon,
