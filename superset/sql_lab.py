@@ -223,7 +223,9 @@ def execute_sql_statement(
                 query.user_id, start_dttm.strftime("%Y_%m_%d_%H_%M_%S")
             )
         sql = parsed_query.as_create_table(
-            query.tmp_table_name, schema_name=query.tmp_schema_name
+            query.tmp_table_name,
+            schema_name=query.tmp_schema_name,
+            method=query.ctas_method,
         )
         query.select_as_cta_used = True
 

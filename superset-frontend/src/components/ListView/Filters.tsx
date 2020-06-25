@@ -17,8 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import styled from '@superset-ui/style';
-import { withTheme } from 'emotion-theming';
+import { styled, withTheme } from '@superset-ui/style';
 
 import {
   Select,

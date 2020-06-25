@@ -26,9 +26,11 @@ import tests.test_app
 from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -349,6 +351,53 @@ class RolePermissionTests(SupersetTestCase):
 
         session.delete(stored_db)
         session.commit()
+
+    def test_hybrid_perm_druid_cluster(self):
+        cluster = DruidCluster(cluster_name="tmp_druid_cluster3")
+        db.session.add(cluster)
+
+        id_ = (
+            db.session.query(DruidCluster.id)
+            .filter_by(cluster_name="tmp_druid_cluster3")
+            .scalar()
+        )
+
+        record = (
+            db.session.query(DruidCluster)
+            .filter_by(perm=f"[tmp_druid_cluster3].(id:{id_})")
+            .one()
+        )
+
+        self.assertEquals(record.get_perm(), record.perm)
+        self.assertEquals(record.id, id_)
+        self.assertEquals(record.cluster_name, "tmp_druid_cluster3")
+        db.session.delete(cluster)
+        db.session.commit()
+
+    def test_hybrid_perm_database(self):
+        database = Database(
+            database_name="tmp_database3", sqlalchemy_uri="sqlite://test"
+        )
+
+        db.session.add(database)
+
+        id_ = (
+            db.session.query(Database.id)
+            .filter_by(database_name="tmp_database3")
+            .scalar()
+        )
+
+        record = (
+            db.session.query(Database)
+            .filter_by(perm=f"[tmp_database3].(id:{id_})")
+            .one()
+        )
+
+        self.assertEquals(record.get_perm(), record.perm)
+        self.assertEquals(record.id, id_)
+        self.assertEquals(record.database_name, "tmp_database3")
+        db.session.delete(database)
+        db.session.commit()
 
     def test_set_perm_slice(self):
         session = db.session
@@ -774,48 +823,111 @@ class SecurityManagerTests(SupersetTestCase):
     Testing the Security Manager.
     """
 
-    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-    def test_assert_datasource_permission(self, mock_can_access_datasource):
+    @patch("superset.security.SupersetSecurityManager.raise_for_access")
+    def test_can_access_datasource(self, mock_raise_for_access):
         datasource = self.get_datasource_mock()
 
-        # Datasource with the "datasource_access" permission.
-        mock_can_access_datasource.return_value = True
-        security_manager.assert_datasource_permission(datasource)
+        mock_raise_for_access.return_value = None
+        self.assertTrue(security_manager.can_access_datasource(datasource=datasource))
 
-        # Datasource without the "datasource_access" permission.
-        mock_can_access_datasource.return_value = False
+        mock_raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                "dummy",
+                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                ErrorLevel.ERROR,
+            )
+        )
+
+        self.assertFalse(security_manager.can_access_datasource(datasource=datasource))
+
+    @patch("superset.security.SupersetSecurityManager.raise_for_access")
+    def test_can_access_table(self, mock_raise_for_access):
+        database = get_example_database()
+        table = Table("bar", "foo")
+
+        mock_raise_for_access.return_value = None
+        self.assertTrue(security_manager.can_access_table(database, table))
+
+        mock_raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                "dummy",
+                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                ErrorLevel.ERROR,
+            )
+        )
+
+        self.assertFalse(security_manager.can_access_table(database, table))
+
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_datasource(self, mock_can_access_schema, mock_can_access):
+        datasource = self.get_datasource_mock()
+
+        mock_can_access_schema.return_value = True
+        security_manager.raise_for_access(datasource=datasource)
+
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
-            security_manager.assert_datasource_permission(datasource)
+            security_manager.raise_for_access(datasource=datasource)
 
-    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-    def test_assert_query_context_permission(self, mock_can_access_datasource):
-        query_context = Mock()
-        query_context.datasource = self.get_datasource_mock()
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_query(self, mock_can_access):
+        query = Mock(
+            database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+        )
 
-        # Query context with the "datasource_access" permission.
-        mock_can_access_datasource.return_value = True
-        security_manager.assert_query_context_permission(query_context)
+        mock_can_access.return_value = True
+        security_manager.raise_for_access(query=query)
 
-        # Query context without the "datasource_access" permission.
-        mock_can_access_datasource.return_value = False
+        mock_can_access.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
-            security_manager.assert_query_context_permission(query_context)
+            security_manager.raise_for_access(query=query)
 
-    @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-    def test_assert_viz_permission(self, mock_can_access_datasource):
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_query_context(
+        self, mock_can_access_schema, mock_can_access
+    ):
+        query_context = Mock(datasource=self.get_datasource_mock())
+
+        mock_can_access_schema.return_value = True
+        security_manager.raise_for_access(query_context=query_context)
+
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(query_context=query_context)
+
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_table(self, mock_can_access):
+        database = get_example_database()
+        table = Table("bar", "foo")
+
+        mock_can_access.return_value = True
+        security_manager.raise_for_access(database=database, table=table)
+
+        mock_can_access.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(database=database, table=table)
+
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_viz(self, mock_can_access_schema, mock_can_access):
         test_viz = viz.TableViz(self.get_datasource_mock(), form_data={})
 
-        # Visualization with the "datasource_access" permission.
-        mock_can_access_datasource.return_value = True
-        security_manager.assert_viz_permission(test_viz)
+        mock_can_access_schema.return_value = True
+        security_manager.raise_for_access(viz=test_viz)
 
-        # Visualization without the "datasource_access" permission.
-        mock_can_access_datasource.return_value = False
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
-            security_manager.assert_viz_permission(test_viz)
+            security_manager.raise_for_access(viz=test_viz)
 
 
 class RowLevelSecurityTests(SupersetTestCase):
@@ -830,10 +942,12 @@ class RowLevelSecurityTests(SupersetTestCase):
 
         # Create the RowLevelSecurityFilter
         self.rls_entry = RowLevelSecurityFilter()
-        self.rls_entry.table = (
-            session.query(SqlaTable).filter_by(table_name="birth_names").first()
+        self.rls_entry.tables.extend(
+            session.query(SqlaTable)
+            .filter(SqlaTable.table_name.in_(["energy_usage", "unicode_test"]))
+            .all()
         )
-        self.rls_entry.clause = "gender = 'boy'"
+        self.rls_entry.clause = "value > 1"
         self.rls_entry.roles.append(
             security_manager.find_role("Gamma")
         )  # db.session.query(Role).filter_by(name="Gamma").first())
@@ -852,36 +966,55 @@ class RowLevelSecurityTests(SupersetTestCase):
         g.user = self.get_user(
             username="alpha"
         )  # self.login() doesn't actually set the user
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table_by_name("energy_usage")
         query_obj = dict(
             groupby=[],
             metrics=[],
             filter=[],
             is_timeseries=False,
-            columns=["name"],
+            columns=["value"],
             granularity=None,
             from_dttm=None,
             to_dttm=None,
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertIn("gender = 'boy'", sql)
+        self.assertIn("value > 1", sql)
 
     def test_rls_filter_doesnt_alter_query(self):
         g.user = self.get_user(
             username="admin"
         )  # self.login() doesn't actually set the user
-        tbl = self.get_table_by_name("birth_names")
+        tbl = self.get_table_by_name("energy_usage")
         query_obj = dict(
             groupby=[],
             metrics=[],
             filter=[],
             is_timeseries=False,
-            columns=["name"],
+            columns=["value"],
             granularity=None,
             from_dttm=None,
             to_dttm=None,
             extras={},
         )
         sql = tbl.get_query_str(query_obj)
-        self.assertNotIn("gender = 'boy'", sql)
+        self.assertNotIn("value > 1", sql)
+
+    def test_multiple_table_filter_alters_another_tables_query(self):
+        g.user = self.get_user(
+            username="alpha"
+        )  # self.login() doesn't actually set the user
+        tbl = self.get_table_by_name("unicode_test")
+        query_obj = dict(
+            groupby=[],
+            metrics=[],
+            filter=[],
+            is_timeseries=False,
+            columns=["value"],
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+        sql = tbl.get_query_str(query_obj)
+        self.assertIn("value > 1", sql)

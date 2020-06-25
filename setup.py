@@ -69,7 +69,7 @@ setup(
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
-        "cachelib>=0.1,<0.2",
+        "cachelib>=0.1.1,<0.2",
         "celery>=4.3.0, <5.0.0, !=4.4.1",
         "click<8",
         "colorama",
@@ -104,10 +104,7 @@ setup(
         "simplejson>=3.15.0",
         "slackclient>=2.6.2",
         "sqlalchemy>=1.3.16, <2.0",
-        # Breaking change in sqlalchemy-utils==0.36.6, upgrading will probably
-        # require a migration on EncryptedType columns. For more information, see
-        # https://github.com/kvesteri/sqlalchemy-utils/issues/444
-        "sqlalchemy-utils>=0.33.2,<0.36.5",
+        "sqlalchemy-utils>=0.36.6,<0.37",
         "sqlparse>=0.3.0, <0.4",
         "wtforms-json",
     ],

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { mount, ReactWrapper } from 'enzyme';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
 } from 'src/components/FilterableTable/FilterableTable';
@@ -32,7 +32,7 @@ describe('FilterableTable', () => {
     ],
     height: 500,
   };
-  let wrapper;
+  let wrapper: ReactWrapper;
   beforeEach(() => {
     wrapper = mount(<FilterableTable {...mockedProps} />);
   });
@@ -53,11 +53,11 @@ describe('FilterableTable', () => {
         (_, x) => `col_${x}`,
       ),
       data: [
-        Object.assign(
+        {
           ...Array.from(Array(wideTableColumns)).map((val, x) => ({
             [`col_${x}`]: x,
           })),
-        ),
+        },
       ],
       height: 500,
     };

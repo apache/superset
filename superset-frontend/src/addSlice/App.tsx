@@ -16,6 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-img.loading.margin-zero {
-  margin: 0px;
-}
+import React from 'react';
+import { hot } from 'react-hot-loader/root';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import setupApp from '../setup/setupApp';
+import setupPlugins from '../setup/setupPlugins';
+import AddSliceContainer from './AddSliceContainer';
+
+setupApp();
+setupPlugins();
+
+const addSliceContainer = document.getElementById('js-add-slice-container');
+const bootstrapData = JSON.parse(
+  addSliceContainer?.getAttribute('data-bootstrap') || '{}',
+);
+
+const App = () => (
+  <ThemeProvider theme={supersetTheme}>
+    <AddSliceContainer datasources={bootstrapData.datasources} />
+  </ThemeProvider>
+);
+
+export default hot(App);

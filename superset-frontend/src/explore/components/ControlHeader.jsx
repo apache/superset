@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { ControlLabel, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 const propTypes = {
   name: PropTypes.string,

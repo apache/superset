@@ -17,10 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { shallow, ShallowWrapper } from 'enzyme';
 import { Button } from 'react-bootstrap';
 import Select from 'src/components/Select';
-import AddSliceContainer from 'src/addSlice/AddSliceContainer';
+import AddSliceContainer, {
+  AddSliceContainerProps,
+  AddSliceContainerState,
+} from 'src/addSlice/AddSliceContainer';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
 
 const defaultProps = {
@@ -31,7 +34,11 @@ const defaultProps = {
 };
 
 describe('AddSliceContainer', () => {
-  let wrapper;
+  let wrapper: ShallowWrapper<
+    AddSliceContainerProps,
+    AddSliceContainerState,
+    AddSliceContainer
+  >;
 
   beforeEach(() => {
     wrapper = shallow(<AddSliceContainer {...defaultProps} />);

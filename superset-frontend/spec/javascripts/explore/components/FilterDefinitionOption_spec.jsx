@@ -20,7 +20,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { ColumnOption } from '@superset-ui/control-utils';
+import { ColumnOption } from '@superset-ui/chart-controls';
 import FilterDefinitionOption from 'src/explore/components/FilterDefinitionOption';
 import AdhocMetricStaticOption from 'src/explore/components/AdhocMetricStaticOption';
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';

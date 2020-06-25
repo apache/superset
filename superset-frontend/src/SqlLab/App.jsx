@@ -21,8 +21,7 @@ import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader/root';
-import { ThemeProvider } from 'emotion-theming';
-import { supersetTheme } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import {
   initFeatureFlags,
   isFeatureEnabled,

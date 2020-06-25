@@ -17,26 +17,35 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
 
-const propTypes = {
-  datasources: PropTypes.arrayOf(
-    PropTypes.shape({
-      label: PropTypes.string.isRequired,
-      value: PropTypes.string.isRequired,
-    }),
-  ).isRequired,
+interface Datasource {
+  label: string;
+  value: string;
+}
+
+export type AddSliceContainerProps = {
+  datasources: Datasource[];
+};
+
+export type AddSliceContainerState = {
+  datasourceId?: string;
+  datasourceType?: string;
+  datasourceValue?: string;
+  visType: string;
 };
 
 const styleSelectWidth = { width: 600 };
 
-export default class AddSliceContainer extends React.PureComponent {
-  constructor(props) {
+export default class AddSliceContainer extends React.PureComponent<
+  AddSliceContainerProps,
+  AddSliceContainerState
+> {
+  constructor(props: AddSliceContainerProps) {
     super(props);
     this.state = {
       visType: 'table',
@@ -61,15 +70,15 @@ export default class AddSliceContainer extends React.PureComponent {
     window.location.href = this.exploreUrl();
   }
 
-  changeDatasource(e) {
+  changeDatasource(option: { value: string }) {
     this.setState({
-      datasourceValue: e.value,
-      datasourceId: e.value.split('__')[0],
-      datasourceType: e.value.split('__')[1],
+      datasourceValue: option.value,
+      datasourceId: option.value.split('__')[0],
+      datasourceType: option.value.split('__')[1],
     });
   }
 
-  changeVisType(visType) {
+  changeVisType(visType: string) {
     this.setState({ visType });
   }
 
@@ -87,29 +96,39 @@ export default class AddSliceContainer extends React.PureComponent {
           <Panel.Body>
             <div>
               <p>{t('Choose a datasource')}</p>
-              <div style={styleSelectWidth}>
-                <Select
-                  clearable={false}
-                  ignoreAccents={false}
-                  name="select-datasource"
-                  onChange={this.changeDatasource}
-                  options={this.props.datasources}
-                  placeholder={t('Choose a datasource')}
-                  style={styleSelectWidth}
-                  value={this.state.datasourceValue}
-                  width={600}
-                />
-              </div>
-              <p className="text-muted">
-                {t(
-                  'If the datasource you are looking for is not ' +
-                    'available in the list, ' +
-                    'follow the instructions on the how to add it on the ',
-                )}
-                <a href="https://superset.apache.org/tutorial.html">
-                  {t('Superset tutorial')}
-                </a>
+              <p>
+                <div style={styleSelectWidth}>
+                  <Select
+                    clearable={false}
+                    ignoreAccents={false}
+                    name="select-datasource"
+                    onChange={this.changeDatasource}
+                    options={this.props.datasources}
+                    placeholder={t('Choose a datasource')}
+                    style={styleSelectWidth}
+                    value={
+                      this.state.datasourceValue
+                        ? {
+                            value: this.state.datasourceValue,
+                          }
+                        : undefined
+                    }
+                    width={600}
+                  />
+                </div>
               </p>
+              <span className="text-muted">
+                {t(
+                  'If the datasource you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
+                )}{' '}
+                <a
+                  href="https://superset.apache.org/tutorial.html#adding-a-new-table"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <i className="fa fa-external-link" />
+                </a>
+              </span>
             </div>
             <br />
             <div>
@@ -137,5 +156,3 @@ export default class AddSliceContainer extends React.PureComponent {
     );
   }
 }
-
-AddSliceContainer.propTypes = propTypes;

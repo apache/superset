@@ -17,45 +17,36 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
+import styled from '@superset-ui/style';
 
-import './Loading.less';
+interface Props {
+  position?: string;
+}
 
-const propTypes = {
-  size: PropTypes.number,
-  position: PropTypes.oneOf(['floating', 'normal']),
-  className: PropTypes.string,
-};
-const defaultProps = {
-  size: 50,
-  position: 'floating',
-  className: '',
-};
-
-const FLOATING_STYLE = {
-  padding: 0,
-  margin: 0,
-  position: 'absolute',
-  left: '50%',
-  top: '50%',
-  transform: 'translate(-50%, -50%)',
-};
-
-export default function Loading({ size, position, className }) {
-  const style = position === 'floating' ? FLOATING_STYLE : {};
-  const styleWithWidth = {
-    ...style,
-    size,
-  };
+const LoaderImg = styled.img`
+  z-index: 1000;
+  width: 50px;
+  position: relative;
+  margin: 10px;
+  &.inline {
+    margin: 0px;
+    width: 30px;
+  }
+  &.floating {
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+`;
+export default function Loading({ position = 'floating' }: Props) {
   return (
-    <img
-      className={`loading ${className}`}
+    <LoaderImg
+      className={`loading ${position}`}
       alt="Loading..."
       src="/static/assets/images/loading.gif"
-      style={styleWithWidth}
     />
   );
 }
-
-Loading.propTypes = propTypes;
-Loading.defaultProps = defaultProps;

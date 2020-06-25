@@ -221,6 +221,7 @@ export function runAnnotationQuery(
   timeout = 60,
   formData = null,
   key,
+  isDashboardRequest = false,
 ) {
   return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
@@ -251,7 +252,7 @@ export function runAnnotationQuery(
       {},
     );
 
-    if (fd !== null) {
+    if (!isDashboardRequest && fd) {
       const hasExtraFilters = fd.extra_filters && fd.extra_filters.length > 0;
       sliceFormData.extra_filters = hasExtraFilters
         ? fd.extra_filters
@@ -410,13 +411,16 @@ export function exploreJSON(
       });
 
     const annotationLayers = formData.annotation_layers || [];
+    const isDashboardRequest = dashboardId > 0;
 
     return Promise.all([
       chartDataRequestCaught,
       dispatch(triggerQuery(false, key)),
       dispatch(updateQueryFormData(formData, key)),
       ...annotationLayers.map(x =>
-        dispatch(runAnnotationQuery(x, timeout, formData, key)),
+        dispatch(
+          runAnnotationQuery(x, timeout, formData, key, isDashboardRequest),
+        ),
       ),
     ]);
   };

@@ -24,8 +24,7 @@ import fetchMock from 'fetch-mock';
 
 import DatasetList from 'src/views/datasetList/DatasetList';
 import ListView from 'src/components/ListView/ListView';
-import { ThemeProvider } from 'emotion-theming';
-import { supersetTheme } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 // store needed for withToasts(datasetTable)
 const mockStore = configureStore([thunk]);

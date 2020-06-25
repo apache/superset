@@ -24,6 +24,7 @@ import React from 'react';
 import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
+import { SHORT_DATE, SHORT_TIME } from 'src/utils/common';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -87,7 +88,7 @@ class DatasetList extends React.PureComponent<Props, State> {
     filterOperators: {},
     filters: [],
     lastFetchDataConfig: null,
-    loading: false,
+    loading: true,
     owners: [],
     databases: [],
     permissions: [],
@@ -175,6 +176,7 @@ class DatasetList extends React.PureComponent<Props, State> {
         );
       },
       accessor: 'kind_icon',
+      size: 'xs',
     },
     {
       Cell: ({
@@ -184,6 +186,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => datasetTitle,
       Header: t('Name'),
       accessor: 'table_name',
+      sortable: true,
     },
     {
       Cell: ({
@@ -193,36 +196,51 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => kind[0]?.toUpperCase() + kind.slice(1),
       Header: t('Type'),
       accessor: 'kind',
+      size: 'md',
     },
     {
       Header: t('Source'),
       accessor: 'database_name',
+      size: 'lg',
     },
     {
       Header: t('Schema'),
       accessor: 'schema',
+      size: 'lg',
     },
     {
       Cell: ({
         row: {
           original: { changed_on: changedOn },
         },
-      }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
+      }: any) => {
+        const momentTime = moment(changedOn);
+        const time = momentTime.format(SHORT_DATE);
+        const date = momentTime.format(SHORT_TIME);
+        return (
+          <TooltipWrapper
+            label="last-modified"
+            tooltip={time}
+            placement="right"
+          >
+            <span>{date}</span>
+          </TooltipWrapper>
+        );
+      },
       Header: t('Last Modified'),
       accessor: 'changed_on',
       sortable: true,
+      size: 'xl',
     },
     {
       Cell: ({
         row: {
-          original: {
-            changed_by_name: changedByName,
-            changed_by_url: changedByUrl,
-          },
+          original: { changed_by_name: changedByName },
         },
-      }: any) => <a href={changedByUrl}>{changedByName}</a>,
+      }: any) => changedByName,
       Header: t('Modified By'),
       accessor: 'changed_by_fk',
+      size: 'xl',
     },
     {
       accessor: 'database',
@@ -241,16 +259,19 @@ class DatasetList extends React.PureComponent<Props, State> {
           .slice(0, 5)
           .map((owner: Owner) => (
             <AvatarIcon
+              key={owner.id}
               tableName={tableName}
               firstName={owner.first_name}
               lastName={owner.last_name}
               userName={owner.username}
-              iconSize="20"
+              iconSize={24}
+              textSize={9}
             />
           ));
       },
       Header: t('Owners'),
       id: 'owners',
+      size: 'lg',
     },
     {
       accessor: 'is_sqllab_view',
@@ -267,14 +288,20 @@ class DatasetList extends React.PureComponent<Props, State> {
           <span
             className={`actions ${state && state.hover ? '' : 'invisible'}`}
           >
-            <a
-              role="button"
-              tabIndex={0}
-              className="action-button"
-              href={original.explore_url}
+            <TooltipWrapper
+              label="explore-action"
+              tooltip={t('Explore')}
+              placement="bottom"
             >
-              <Icon name="compass" />
-            </a>
+              <a
+                role="button"
+                tabIndex={0}
+                className="action-button"
+                href={original.explore_url}
+              >
+                <Icon name="compass" />
+              </a>
+            </TooltipWrapper>
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
@@ -287,26 +314,38 @@ class DatasetList extends React.PureComponent<Props, State> {
                 onConfirm={handleDelete}
               >
                 {confirmDelete => (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={confirmDelete}
+                  <TooltipWrapper
+                    label="delete-action"
+                    tooltip={t('Delete')}
+                    placement="bottom"
                   >
-                    <Icon name="trash" />
-                  </span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={confirmDelete}
+                    >
+                      <Icon name="trash" />
+                    </span>
+                  </TooltipWrapper>
                 )}
               </ConfirmStatusChange>
             )}
             {this.canEdit && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={handleEdit}
+              <TooltipWrapper
+                label="edit-action"
+                tooltip={t('Edit')}
+                placement="bottom"
               >
-                <Icon name="pencil" />
-              </span>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handleEdit}
+                >
+                  <Icon name="pencil" />
+                </span>
+              </TooltipWrapper>
             )}
           </span>
         );
@@ -317,8 +356,7 @@ class DatasetList extends React.PureComponent<Props, State> {
   ];
 
   menu = {
-    label: 'Data',
-    name: 'Data',
+    name: t('Data'),
     createButton: {
       name: t('Dataset'),
       url: '/tablemodelview/add',
@@ -487,49 +525,42 @@ class DatasetList extends React.PureComponent<Props, State> {
     return (
       <>
         <SubMenu {...this.menu} canCreate={this.canCreate} />
-        <div className="container welcome">
-          <Panel>
-            <Panel.Body>
-              <ConfirmStatusChange
-                title={t('Please confirm')}
-                description={t(
-                  'Are you sure you want to delete the selected datasets?',
-                )}
-                onConfirm={this.handleBulkDatasetDelete}
-              >
-                {confirmDelete => {
-                  const bulkActions = [];
-                  if (this.canDelete) {
-                    bulkActions.push({
-                      key: 'delete',
-                      name: (
-                        <>
-                          <i className="fa fa-trash" /> Delete
-                        </>
-                      ),
-                      onSelect: confirmDelete,
-                    });
-                  }
-                  return (
-                    <ListView
-                      className="dataset-list-view"
-                      title={'Datasets'}
-                      columns={this.columns}
-                      data={datasets}
-                      count={datasetCount}
-                      pageSize={PAGE_SIZE}
-                      fetchData={this.fetchData}
-                      loading={loading}
-                      initialSort={this.initialSort}
-                      filters={filters}
-                      bulkActions={bulkActions}
-                    />
-                  );
-                }}
-              </ConfirmStatusChange>
-            </Panel.Body>
-          </Panel>
-        </div>
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={t(
+            'Are you sure you want to delete the selected datasets?',
+          )}
+          onConfirm={this.handleBulkDatasetDelete}
+        >
+          {confirmDelete => {
+            const bulkActions = [];
+            if (this.canDelete) {
+              bulkActions.push({
+                key: 'delete',
+                name: (
+                  <>
+                    <i className="fa fa-trash" /> {t('Delete')}
+                  </>
+                ),
+                onSelect: confirmDelete,
+              });
+            }
+            return (
+              <ListView
+                className="dataset-list-view"
+                columns={this.columns}
+                data={datasets}
+                count={datasetCount}
+                pageSize={PAGE_SIZE}
+                fetchData={this.fetchData}
+                loading={loading}
+                initialSort={this.initialSort}
+                filters={filters}
+                bulkActions={bulkActions}
+              />
+            );
+          }}
+        </ConfirmStatusChange>
       </>
     );
   }
