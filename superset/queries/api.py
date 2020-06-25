@@ -49,6 +49,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "status",
         "tab_name",
         "sql_editor_id",
+        "database.id",
         "schema",
         "sql",
         "select_sql",

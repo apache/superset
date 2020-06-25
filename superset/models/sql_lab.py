@@ -159,10 +159,6 @@ class Query(Model, ExtraJSONMixin):
 
         security_manager.raise_for_access(query=self)
 
-    @property
-    def data(self) -> Dict[str, Any]:
-        return self.to_dict()
-
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
     """ORM model for SQL query"""

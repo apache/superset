@@ -1204,13 +1204,15 @@ export function popSavedQuery(saveQueryId) {
 export function popQuery(queryId) {
   return function (dispatch) {
     return SupersetClient.get({
-      endpoint: `/query/api/read?_flt_0_id=${queryId}`,
+      endpoint: `/api/v1/query/${queryId}`,
     })
       .then(({ json }) => {
-        const queryData = json.result[0].data;
+        const queryData = json.result;
         const queryEditorProps = {
-          ...queryData,
-          title: `Copy of ${queryData.tab}`,
+          dbId: queryData.database.id,
+          schema: queryData.schema,
+          sql: queryData.sql,
+          title: `Copy of ${queryData.tab_name}`,
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
