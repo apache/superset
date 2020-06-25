@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import { hot } from 'react-hot-loader/root';
-import { ThemeProvider } from 'emotion-theming';
-import { supersetTheme } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import AddSliceContainer from './AddSliceContainer';
