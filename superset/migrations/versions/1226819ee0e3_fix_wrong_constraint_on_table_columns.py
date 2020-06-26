@@ -41,7 +41,7 @@ naming_convention = {
 def find_constraint_name(upgrade=True):
     cols = {"column_name"} if upgrade else {"datasource_name"}
     return generic_find_constraint_name(
-        table="columns", columns=cols, referenced="datasources", db=db
+        table="columns", columns=cols, referenced="datasources", database=db
     )
 
 
