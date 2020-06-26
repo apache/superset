@@ -86,7 +86,7 @@ interface ToastPresenterProps {
 
 const ToastPresenter = ({ toasts, removeToast }: ToastPresenterProps) =>
   toasts.length > 0 && (
-    <StyledToastPresenter>
+    <StyledToastPresenter id="toast-presenter">
       {toasts.map(toast => (
         <Toast key={toast.id} toast={toast} onCloseToast={removeToast} />
       ))}

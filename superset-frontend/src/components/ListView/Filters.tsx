@@ -145,8 +145,11 @@ function SelectFilter({
           data-test="filters-select"
           themeConfig={filterSelectTheme}
           stylesConfig={filterSelectStyles}
+          // @ts-ignore
           value={selectedOption}
+          // @ts-ignore
           onChange={onChange}
+          // @ts-ignore
           loadOptions={fetchAndFormatSelects}
           placeholder={emptyLabel}
           loadingMessage={() => 'Loading...'}
