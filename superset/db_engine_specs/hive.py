@@ -437,11 +437,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         url = make_url(uri)
         backend_name = url.get_backend_name()
 
-        # Must be Hive connection, enable impersonation, and set param
+        # Must be Hive connection, enable impersonation, and set optional param
         # auth=LDAP|KERBEROS
         if (
             backend_name == "hive"
-            and "auth" in url.query.keys()
             and impersonate_user is True
             and username is not None
         ):
