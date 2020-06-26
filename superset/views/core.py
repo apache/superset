@@ -58,6 +58,7 @@ from superset import (
     sql_lab,
     viz,
 )
+from superset.charts.dao import ChartDAO
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
@@ -65,6 +66,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
@@ -86,7 +88,6 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
 from superset.utils import core as utils, dashboard_import_export
-from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import etag_cache
 from superset.views.base import (
@@ -756,7 +757,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         Those should not be saved when saving the chart"""
         return [f for f in filters if not f.get("isExtra")]
 
-    def save_or_overwrite_slice(  # pylint: disable=too-many-arguments
+    def save_or_overwrite_slice(  # pylint: disable=too-many-arguments,too-many-locals,no-self-use
         self,
         slc: Optional[Slice],
         slice_add_perm: bool,
@@ -789,9 +790,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slc.slice_name = slice_name
 
         if action == "saveas" and slice_add_perm:
-            self.save_slice(slc)
+            ChartDAO.save(slc)
+            msg = _("Chart [{}] has been saved").format(slc.slice_name)
+            flash(msg, "info")
         elif action == "overwrite" and slice_overwrite_perm:
-            self.overwrite_slice(slc)
+            ChartDAO.overwrite(slc)
+            msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
+            flash(msg, "info")
 
         # Adding slice to a dashboard if requested
         dash: Optional[Dashboard] = None
@@ -858,22 +863,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             response.update({"dashboard": dash.url})
 
         return json_success(json.dumps(response))
-
-    @staticmethod
-    def save_slice(slc: Slice) -> None:
-        session = db.session()
-        msg = _("Chart [{}] has been saved").format(slc.slice_name)
-        session.add(slc)
-        session.commit()
-        flash(msg, "info")
-
-    @staticmethod
-    def overwrite_slice(slc: Slice) -> None:
-        session = db.session()
-        session.merge(slc)
-        session.commit()
-        msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
-        flash(msg, "info")
 
     @api
     @has_access_api
@@ -1003,7 +992,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/copy_dash/<int:dashboard_id>/", methods=["GET", "POST"])
-    def copy_dash(self, dashboard_id: int) -> FlaskResponse:
+    def copy_dash(  # pylint: disable=no-self-use
+        self, dashboard_id: int
+    ) -> FlaskResponse:
         """Copy dashboard"""
         session = db.session()
         data = json.loads(request.form["data"])
@@ -1035,7 +1026,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         dash.params = original_dash.params
 
-        self._set_dash_metadata(dash, data, old_to_new_slice_ids)
+        DashboardDAO.set_dash_metadata(dash, data, old_to_new_slice_ids)
         session.add(dash)
         session.commit()
         dash_json = json.dumps(dash.data)
@@ -1045,99 +1036,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/save_dash/<int:dashboard_id>/", methods=["GET", "POST"])
-    def save_dash(self, dashboard_id: int) -> FlaskResponse:
+    def save_dash(  # pylint: disable=no-self-use
+        self, dashboard_id: int
+    ) -> FlaskResponse:
         """Save a dashboard's metadata"""
         session = db.session()
         dash = session.query(Dashboard).get(dashboard_id)
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form["data"])
-        self._set_dash_metadata(dash, data)
+        DashboardDAO.set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
         session.close()
         return json_success(json.dumps({"status": "SUCCESS"}))
-
-    @staticmethod
-    def _set_dash_metadata(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-        dashboard: Dashboard,
-        data: Dict[Any, Any],
-        old_to_new_slice_ids: Optional[Dict[int, int]] = None,
-    ) -> None:
-        positions = data["positions"]
-        # find slices in the position data
-        slice_ids = []
-        slice_id_to_name = {}
-        for value in positions.values():
-            if isinstance(value, dict):
-                try:
-                    slice_id = value["meta"]["chartId"]
-                    slice_ids.append(slice_id)
-                    slice_id_to_name[slice_id] = value["meta"]["sliceName"]
-                except KeyError:
-                    pass
-
-        session = db.session()
-        current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
-
-        dashboard.slices = current_slices
-
-        # update slice names. this assumes user has permissions to update the slice
-        # we allow user set slice name be empty string
-        for slc in dashboard.slices:
-            try:
-                new_name = slice_id_to_name[slc.id]
-                if slc.slice_name != new_name:
-                    slc.slice_name = new_name
-                    session.merge(slc)
-                    session.flush()
-            except KeyError:
-                pass
-
-        # remove leading and trailing white spaces in the dumped json
-        dashboard.position_json = json.dumps(
-            positions, indent=None, separators=(",", ":"), sort_keys=True
-        )
-        md = dashboard.params_dict
-        dashboard.css = data.get("css")
-        dashboard.dashboard_title = data["dashboard_title"]
-
-        if "timed_refresh_immune_slices" not in md:
-            md["timed_refresh_immune_slices"] = []
-        new_filter_scopes = {}
-        if "filter_scopes" in data:
-            # replace filter_id and immune ids from old slice id to new slice id:
-            # and remove slice ids that are not in dash anymore
-            slc_id_dict: Dict[int, int] = {}
-            if old_to_new_slice_ids:
-                slc_id_dict = {
-                    old: new
-                    for old, new in old_to_new_slice_ids.items()
-                    if new in slice_ids
-                }
-            else:
-                slc_id_dict = {sid: sid for sid in slice_ids}
-            new_filter_scopes = copy_filter_scopes(
-                old_to_new_slc_id_dict=slc_id_dict,
-                old_filter_scopes=json.loads(data["filter_scopes"] or "{}"),
-            )
-        if new_filter_scopes:
-            md["filter_scopes"] = new_filter_scopes
-        else:
-            md.pop("filter_scopes", None)
-        md["expanded_slices"] = data.get("expanded_slices", {})
-        md["refresh_frequency"] = data.get("refresh_frequency", 0)
-        default_filters_data = json.loads(data.get("default_filters", "{}"))
-        applicable_filters = {
-            key: v for key, v in default_filters_data.items() if int(key) in slice_ids
-        }
-        md["default_filters"] = json.dumps(applicable_filters)
-        if data.get("color_namespace"):
-            md["color_namespace"] = data.get("color_namespace")
-        if data.get("color_scheme"):
-            md["color_scheme"] = data.get("color_scheme")
-        if data.get("label_colors"):
-            md["label_colors"] = data.get("label_colors")
-        dashboard.json_metadata = json.dumps(md)
 
     @api
     @has_access_api
