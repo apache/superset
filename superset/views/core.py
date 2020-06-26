@@ -1380,10 +1380,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def user_slices(  # pylint: disable=no-self-use
         self, user_id: Optional[int] = None
     ) -> FlaskResponse:
-        """List of slices a user created, or faved"""
+        """List of slices a user owns, created, modified or faved"""
         if not user_id:
             user_id = g.user.id
         FavStar = models.FavStar
+
+        owner_ids_query = (
+            db.session.query(Slice.id)
+            .join(Slice.owners)
+            .filter(security_manager.user_model.id == user_id)
+        )
+
         qry = (
             db.session.query(Slice, FavStar.dttm)
             .join(
@@ -1397,6 +1404,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             .filter(
                 or_(
+                    Slice.id.in_(owner_ids_query),
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
                     FavStar.user_id == user_id,

@@ -149,9 +149,12 @@ class SupersetTestCase(TestCase):
         resp = self.get_resp("/login/", data=dict(username=username, password=password))
         self.assertNotIn("User confirmation needed", resp)
 
-    def get_slice(self, slice_name: str, session: Session) -> Slice:
+    def get_slice(
+        self, slice_name: str, session: Session, expunge_from_session: bool = True
+    ) -> Slice:
         slc = session.query(Slice).filter_by(slice_name=slice_name).one()
-        session.expunge_all()
+        if expunge_from_session:
+            session.expunge_all()
         return slc
 
     @staticmethod
