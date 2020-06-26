@@ -107,6 +107,31 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
+    def get_create_table_stmt(
+        cls,
+        table: Table,
+        schema_definition: str,
+        header_line_count: int,
+        null_values: Optional[List[str]],
+    ) -> text:
+        tblproperties = []
+        # available options:
+        # https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
+        if header_line_count > 0:
+            tblproperties.append(f"'skip.header.line.count'='{header_line_count}'")
+        if null_values:
+            # hive only supports 1 value for the null format
+            tblproperties.append(f"'serialization.null.format'='{null_values[0]}'")
+        tblproperties_stmt = ""
+        if tblproperties:
+            tblproperties_stmt = f"tblproperties ({', '.join(tblproperties)})"
+
+        return f"""CREATE TABLE {str(table)} ( {schema_definition} )
+            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+            STORED AS TEXTFILE LOCATION :location
+            {tblproperties_stmt}""".strip()
+
+    @classmethod
     def create_table_from_csv(  # pylint: disable=too-many-arguments, too-many-locals
         cls,
         filename: str,
@@ -182,11 +207,14 @@ class HiveEngineSpec(PrestoEngineSpec):
             bucket_path,
             os.path.join(upload_prefix, table.table, os.path.basename(filename)),
         )
+
         sql = text(
-            f"""CREATE TABLE {str(table)} ( {schema_definition} )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-            STORED AS TEXTFILE LOCATION :location
-            tblproperties ('skip.header.line.count'='1')"""
+            cls.get_create_table_stmt(
+                table,
+                schema_definition,
+                int(csv_to_df_kwargs.get("header", 0)),
+                csv_to_df_kwargs.get("na_values"),
+            )
         )
         engine = cls.get_engine(database)
         engine.execute(

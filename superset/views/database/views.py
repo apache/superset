@@ -149,6 +149,9 @@ class CsvToDatabaseView(SimpleFormView):
             database = (
                 db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
             )
+
+            # More can be found here:
+            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
             csv_to_df_kwargs = {
                 "sep": form.sep.data,
                 "header": form.header.data if form.header.data else 0,
@@ -162,6 +165,12 @@ class CsvToDatabaseView(SimpleFormView):
                 "infer_datetime_format": form.infer_datetime_format.data,
                 "chunksize": 1000,
             }
+            if form.null_values.data:
+                csv_to_df_kwargs["na_values"] = form.null_values.data
+                csv_to_df_kwargs["keep_default_na"] = False
+
+            # More can be found here:
+            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_sql.html
             df_to_sql_kwargs = {
                 "name": csv_table.table,
                 "if_exists": form.if_exists.data,
