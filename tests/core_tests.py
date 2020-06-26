@@ -1255,19 +1255,19 @@ class CoreTests(SupersetTestCase):
 
         # test that visibility is disabled when extra is set to False
         extra = database.get_extra()
-        extra["virtual_table_explore_enabled"] = False
+        extra["allows_virtual_table_explore"] = False
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, False)
 
         # test that visibility is enabled when extra is set to True
         extra = database.get_extra()
-        extra["virtual_table_explore_enabled"] = True
+        extra["allows_virtual_table_explore"] = True
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, True)
 
         # test that visibility is not broken with bad values
         extra = database.get_extra()
-        extra["virtual_table_explore_enabled"] = "trash value"
+        extra["allows_virtual_table_explore"] = "trash value"
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, True)
 
