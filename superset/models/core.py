@@ -196,6 +196,10 @@ class Database(
         return bool(extra.get("allows_virtual_table_explore", True))
 
     @property
+    def explore_database_id(self) -> int:
+        return self.get_extra().get("explore_database_id", self.id)
+
+    @property
     def data(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -205,6 +209,7 @@ class Database(
             "allows_subquery": self.allows_subquery,
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
+            "explore_database_id": self.explore_database_id,
         }
 
     @property

@@ -194,6 +194,10 @@ export default class ResultSet extends React.PureComponent {
       this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
     );
     let sql;
+    let exploreDBId = query.dbId;
+    if (this.props.database && this.props.database.explore_database_id) {
+      exploreDBId = this.props.database.explore_database_id;
+    }
 
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
@@ -245,7 +249,7 @@ export default class ResultSet extends React.PureComponent {
               <ExploreCtasResultsButton
                 table={tmpTable}
                 schema={tmpSchema}
-                dbId={query.dbId}
+                dbId={exploreDBId}
                 database={this.props.database}
                 actions={this.props.actions}
               />
