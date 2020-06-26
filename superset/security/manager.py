@@ -387,6 +387,9 @@ class SupersetSecurityManager(SecurityManager):
                 return True
         return False
 
+    def is_anonymous(self):
+            return g.user.is_anonymous
+            
     def rejected_tables(
         self, sql: str, database: "Database", schema: str
     ) -> Set["Table"]:
