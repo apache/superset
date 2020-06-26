@@ -357,7 +357,7 @@ class RequestAccessTests(SupersetTestCase):
 
         session.commit()
 
-    @mock.patch("superset.utils.core.send_MIME_email")
+    @mock.patch("superset.utils.core.send_mime_email")
     def test_approve(self, mock_send_mime):
         if app.config["ENABLE_ACCESS_REQUEST"]:
             session = db.session
