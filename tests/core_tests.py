@@ -356,6 +356,42 @@ class CoreTests(SupersetTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
+    def test_get_user_slices_for_owners(self):
+        self.login(username="admin")
+        user = security_manager.find_user("admin")
+        slice_name = "Girls"
+
+        # ensure user is not owner of any slices
+        url = f"/superset/user_slices/{user.id}/"
+        resp = self.client.get(url)
+        data = json.loads(resp.data)
+        self.assertEqual(data, [])
+
+        # make user owner of slice and verify that endpoint returns said slice
+        slc = self.get_slice(
+            slice_name=slice_name, session=db.session, expunge_from_session=False
+        )
+        slc.owners = [user]
+        db.session.merge(slc)
+        db.session.commit()
+        url = f"/superset/user_slices/{user.id}/"
+        resp = self.client.get(url)
+        data = json.loads(resp.data)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["title"], slice_name)
+
+        # remove ownership and ensure user no longer gets slice
+        slc = self.get_slice(
+            slice_name=slice_name, session=db.session, expunge_from_session=False
+        )
+        slc.owners = []
+        db.session.merge(slc)
+        db.session.commit()
+        url = f"/superset/user_slices/{user.id}/"
+        resp = self.client.get(url)
+        data = json.loads(resp.data)
+        self.assertEqual(data, [])
+
     def test_get_user_slices(self):
         self.login(username="admin")
         userid = security_manager.find_user("admin").id
@@ -736,31 +772,31 @@ class CoreTests(SupersetTestCase):
         slc = self.get_slice("Girls", db.session)
 
         # Setting some faves
-        url = "/superset/favstar/Slice/{}/select/".format(slc.id)
+        url = f"/superset/favstar/Slice/{slc.id}/select/"
         resp = self.get_json_resp(url)
         self.assertEqual(resp["count"], 1)
 
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        url = "/superset/favstar/Dashboard/{}/select/".format(dash.id)
+        url = f"/superset/favstar/Dashboard/{dash.id}/select/"
         resp = self.get_json_resp(url)
         self.assertEqual(resp["count"], 1)
 
         userid = security_manager.find_user("admin").id
-        resp = self.get_resp("/superset/profile/admin/")
+        resp = self.get_resp(f"/superset/profile/{username}/")
         self.assertIn('"app"', resp)
-        data = self.get_json_resp("/superset/recent_activity/{}/".format(userid))
+        data = self.get_json_resp(f"/superset/recent_activity/{userid}/")
         self.assertNotIn("message", data)
-        data = self.get_json_resp("/superset/created_slices/{}/".format(userid))
+        data = self.get_json_resp(f"/superset/created_slices/{userid}/")
         self.assertNotIn("message", data)
-        data = self.get_json_resp("/superset/created_dashboards/{}/".format(userid))
+        data = self.get_json_resp(f"/superset/created_dashboards/{userid}/")
         self.assertNotIn("message", data)
-        data = self.get_json_resp("/superset/fave_slices/{}/".format(userid))
+        data = self.get_json_resp(f"/superset/fave_slices/{userid}/")
         self.assertNotIn("message", data)
-        data = self.get_json_resp("/superset/fave_dashboards/{}/".format(userid))
+        data = self.get_json_resp(f"/superset/fave_dashboards/{userid}/")
         self.assertNotIn("message", data)
-        data = self.get_json_resp(
-            "/superset/fave_dashboards_by_username/{}/".format(username)
-        )
+        data = self.get_json_resp(f"/superset/user_slices/{userid}/")
+        self.assertNotIn("message", data)
+        data = self.get_json_resp(f"/superset/fave_dashboards_by_username/{username}/")
         self.assertNotIn("message", data)
 
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
