@@ -1380,7 +1380,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def user_slices(  # pylint: disable=no-self-use
         self, user_id: Optional[int] = None
     ) -> FlaskResponse:
-        """List of slices a user owns or faved"""
+        """List of slices a user owns, created, modified or faved"""
         if not user_id:
             user_id = g.user.id
         FavStar = models.FavStar
