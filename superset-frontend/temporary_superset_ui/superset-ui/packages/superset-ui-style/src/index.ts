@@ -90,6 +90,12 @@ const defaultTheme = {
       light2: '#EFF8FE',
     },
   },
+  opacity: {
+    light: '10%',
+    mediumLight: '35%',
+    mediumHeavy: '60%',
+    heavy: '80%',
+  },
   typography: {
     families: {
       sansSerif: `'Inter', Helvetica, Arial`,
@@ -111,6 +117,12 @@ const defaultTheme = {
       xxl: 28,
     },
   },
+  zIndex: {
+    aboveDashboardCharts: 10,
+    dropdown: 11,
+    max: 3000,
+  },
+  transitionTiming: 0.3,
   gridUnit: 4,
 };
 
