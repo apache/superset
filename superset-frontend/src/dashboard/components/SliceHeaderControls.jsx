@@ -78,6 +78,8 @@ class SliceHeaderControls extends React.PureComponent {
       this.props.slice.slice_id,
     );
 
+    this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
+
     this.state = {
       showControls: false,
     };
@@ -106,6 +108,10 @@ class SliceHeaderControls extends React.PureComponent {
     });
   }
 
+  handleToggleFullSize() {
+    this.props.handleToggleFullSize();
+  }
+
   render() {
     const {
       slice,
@@ -114,12 +120,14 @@ class SliceHeaderControls extends React.PureComponent {
       updatedDttm,
       componentId,
       addDangerToast,
+      isFullSize,
     } = this.props;
     const cachedWhen = moment.utc(cachedDttm).fromNow();
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
     const refreshTooltip = isCached
       ? t('Cached %s', cachedWhen)
       : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
+    const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');
 
     return (
       <Dropdown
@@ -165,6 +173,8 @@ class SliceHeaderControls extends React.PureComponent {
               {t('Explore chart')}
             </MenuItem>
           )}
+
+          <MenuItem onClick={this.handleToggleFullSize}>{resizeLabel}</MenuItem>
 
           <URLShortLinkModal
             url={getDashboardUrl(

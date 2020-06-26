@@ -41,6 +41,7 @@ const propTypes = {
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool,
+  handleToggleFullSize: PropTypes.func.isRequired,
 
   // from redux
   chart: chartPropShape.isRequired,
@@ -115,6 +116,12 @@ class Chart extends React.Component {
     if (nextProps.isComponentVisible) {
       if (nextProps.chart.triggerQuery) {
         return true;
+      }
+
+      if (nextProps.isFullSize !== this.props.isFullSize) {
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+        return false;
       }
 
       for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
@@ -238,6 +245,8 @@ class Chart extends React.Component {
       supersetCanCSV,
       sliceCanEdit,
       addDangerToast,
+      handleToggleFullSize,
+      isFullSize,
     } = this.props;
 
     const { width } = this.state;
@@ -283,6 +292,8 @@ class Chart extends React.Component {
           dashboardId={dashboardId}
           filters={filters}
           addDangerToast={addDangerToast}
+          handleToggleFullSize={handleToggleFullSize}
+          isFullSize={isFullSize}
         />
 
         {/*
