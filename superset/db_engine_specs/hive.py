@@ -439,7 +439,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         # Must be Hive connection, enable impersonation, and set optional param
         # auth=LDAP|KERBEROS
-        if backend_name == "hive" and impersonate_user is True and username is not None:
+        if backend_name == "hive" and impersonate_user and username is not None:
             configuration["hive.server2.proxy.user"] = username
         return configuration
 
