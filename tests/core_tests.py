@@ -368,7 +368,9 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data, [])
 
         # make user owner of slice and verify that endpoint returns said slice
-        slc = db.session.query(Slice).filter_by(slice_name=slice_name).one()
+        slc = self.get_slice(
+            slice_name=slice_name, session=db.session, expunge_from_session=False
+        )
         slc.owners = [user]
         db.session.merge(slc)
         db.session.commit()
@@ -379,7 +381,9 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data[0]["title"], slice_name)
 
         # remove ownership and ensure user no longer gets slice
-        slc = db.session.query(Slice).filter_by(slice_name=slice_name).one()
+        slc = self.get_slice(
+            slice_name=slice_name, session=db.session, expunge_from_session=False
+        )
         slc.owners = []
         db.session.merge(slc)
         db.session.commit()

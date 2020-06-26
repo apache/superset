@@ -1402,7 +1402,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ),
                 isouter=True,
             )
-            .filter(or_(Slice.id.in_(owner_ids_query), FavStar.user_id == user_id,))
+            .filter(
+                or_(
+                    Slice.id.in_(owner_ids_query),
+                    Slice.created_by_fk == user_id,
+                    Slice.changed_by_fk == user_id,
+                    FavStar.user_id == user_id,
+                )
+            )
             .order_by(Slice.slice_name.asc())
         )
         payload = [
