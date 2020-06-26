@@ -190,6 +190,12 @@ class Database(
         )
 
     @property
+    def allows_virtual_table_explore(self) -> bool:
+        extra = self.get_extra()
+
+        return bool(extra.get("allows_virtual_table_explore", True))
+
+    @property
     def data(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -198,6 +204,7 @@ class Database(
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
             "allows_cost_estimate": self.allows_cost_estimate,
+            "allows_virtual_table_explore": self.allows_virtual_table_explore,
         }
 
     @property

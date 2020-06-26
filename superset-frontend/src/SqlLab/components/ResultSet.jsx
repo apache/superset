@@ -145,13 +145,15 @@ export default class ResultSet extends React.PureComponent {
       return (
         <div className="ResultSetControls">
           <div className="ResultSetButtons">
-            {this.props.visualize && (
-              <ExploreResultsButton
-                query={this.props.query}
-                database={this.props.database}
-                actions={this.props.actions}
-              />
-            )}
+            {this.props.visualize &&
+              this.props.database &&
+              this.props.database.allows_virtual_table_explore && (
+                <ExploreResultsButton
+                  query={this.props.query}
+                  database={this.props.database}
+                  actions={this.props.actions}
+                />
+              )}
             {this.props.csv && (
               <Button
                 bsSize="small"
