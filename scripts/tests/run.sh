@@ -56,7 +56,7 @@ function test_init() {
   echo --------------------
   echo Load examples
   echo --------------------
-  pytest tests/load_examples_test.py
+  pytest --cov=superset --cov-append tests/load_examples_test.py
 }
 
 
@@ -145,5 +145,5 @@ fi
 
 if [ $RUN_TESTS -eq 1 ]
 then
-  pytest --ignore=load_examples_test "${TEST_MODULE}"
+  pytest --cov=superset --cov-append --ignore=load_examples_test "${TEST_MODULE}"
 fi
