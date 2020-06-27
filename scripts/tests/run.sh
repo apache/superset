@@ -56,7 +56,7 @@ function test_init() {
   echo --------------------
   echo Load examples
   echo --------------------
-  pytest --cov=superset --cov-append tests/load_examples_test.py
+  pytest tests/load_examples_test.py
 }
 
 
