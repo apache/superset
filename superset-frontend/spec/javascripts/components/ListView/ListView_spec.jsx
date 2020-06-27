@@ -309,7 +309,7 @@ describe('ListView with new UI filters', () => {
   const fetchSelectsMock = jest.fn(() => []);
   const newFiltersProps = {
     ...mockedProps,
-    useNewUIFilters: true,
+    isSIP34FilterUIEnabled: true,
     filters: [
       {
         Header: 'ID',

@@ -306,7 +306,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SIP_38_VIZ_REARCHITECTURE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": False,
-    "LIST_VIEWS_NEW_UI": False,
+    "LIST_VIEWS_SIP34_FILTER_UI": False,
 }
 
 # This is merely a default.
@@ -799,7 +799,8 @@ DOCUMENTATION_URL = None
 DOCUMENTATION_TEXT = "Documentation"
 DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
-# Enables the replacement react views for all the FAB views: list, edit, show.
+# Enables the replacement react views for all the FAB views (list, edit, show) with
+# designs introduced in SIP-34: https://github.com/apache/incubator-superset/issues/8976
 # This is a work in progress so not all features available in FAB have been implemented
 ENABLE_REACT_CRUD_VIEWS = False
 
