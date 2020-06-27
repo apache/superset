@@ -14,7 +14,7 @@ from superset.commands.exceptions import (
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import notify_user_about_perm_update
 from superset.views.base import check_ownership
-from superset.views.utils import DATASOURCE_MISSING_ERR, USER_MISSING_ERR
+from superset.views.utils import DATASOURCE_MISSING_ERR
 
 
 @dataclass
@@ -161,7 +161,7 @@ class ApproveCommandSupersetAdapter:  # pylint: disable=too-few-public-methods
             self.flash_level = "alert"
             return
         except UserNotFoundValidationError:
-            self.message = USER_MISSING_ERR
+            self.message = __("The user seems to have been deleted")
             self.flash_level = "alert"
             return
         except DatasourceAccessRequestNotFoundError:

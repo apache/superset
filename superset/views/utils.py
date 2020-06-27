@@ -58,7 +58,6 @@ if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
 
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
-USER_MISSING_ERR = __("The user seems to have been deleted")
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
