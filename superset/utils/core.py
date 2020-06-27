@@ -688,7 +688,7 @@ class QueryStatus:  # pylint: disable=too-few-public-methods
     TIMED_OUT: str = "timed_out"
 
 
-def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
+def notify_user_about_perm_update(  # pylint: disable=too-many-arguments
     granter: User,
     user: User,
     role: Role,

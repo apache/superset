@@ -85,3 +85,17 @@ class DatasourceNotFoundValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__(_("Datasource does not exist"), field_names=["datasource_id"])
+
+
+class DatasourceAccessRequestNotFoundError(ValidationError):
+    status = 404
+
+    def __init__(self) -> None:
+        super().__init__(_("DatasourceAccessRequest does not exist"))
+
+
+class UserNotFoundValidationError(ValidationError):
+    status = 404
+
+    def __init__(self) -> None:
+        super().__init__(_("User does not exist"), field_names=["user_id"])

@@ -26,6 +26,7 @@ import simplejson as json
 from flask import g, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as __
 
 import superset.models.core as models
 from superset import app, dataframe, db, is_feature_enabled, result_set
@@ -54,6 +55,10 @@ else:
 REJECTED_FORM_DATA_KEYS: List[str] = []
 if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+
+
+DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
+USER_MISSING_ERR = __("The user seems to have been deleted")
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:

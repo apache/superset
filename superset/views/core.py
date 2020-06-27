@@ -58,6 +58,14 @@ from superset import (
     sql_lab,
     viz,
 )
+from superset.access_requests.commands.approve import (
+    ApproveCommand,
+    ApproveCommandSupersetAdapter,
+)
+from superset.access_requests.commands.load_datasources import (
+    LoadDatasourcesAndCheckAccess,
+)
+from superset.access_requests.commands.request_access import RequestAccessCommand
 from superset.charts.dao import ChartDAO
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import (
@@ -120,6 +128,7 @@ from superset.views.utils import (
     get_form_data,
     get_viz,
     is_owner,
+    DATASOURCE_MISSING_ERR,
 )
 from superset.viz import BaseViz
 
@@ -145,10 +154,6 @@ DATABASE_KEYS = [
     "force_ctas_schema",
     "id",
 ]
-
-
-DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
-USER_MISSING_ERR = __("The user seems to have been deleted")
 
 
 class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
@@ -226,148 +231,51 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/request_access/")
     def request_access(self) -> FlaskResponse:
-        datasources = set()
-        dashboard_id = request.args.get("dashboard_id")
-        if dashboard_id:
-            dash = db.session.query(Dashboard).filter_by(id=int(dashboard_id)).one()
-            datasources |= dash.datasources
-        datasource_id = request.args.get("datasource_id")
-        datasource_type = request.args.get("datasource_type")
-        if datasource_id and datasource_type:
-            ds_class = ConnectorRegistry.sources.get(datasource_type)
-            datasource = (
-                db.session.query(ds_class).filter_by(id=int(datasource_id)).one()
-            )
-            datasources.add(datasource)
+        result = LoadDatasourcesAndCheckAccess(
+            dashboard_id=request.args.get("dashboard_id"),
+            datasource_id=request.args.get("datasource_id"),
+            datasource_type=request.args.get("datasource_type"),
+        ).run()
 
-        has_access_ = all(
-            (
-                datasource and security_manager.can_access_datasource(datasource)
-                for datasource in datasources
+        if result.access_to_all:
+            return redirect(
+                "/superset/dashboard/{}".format(request.args.get("dashboard_id"))
             )
-        )
-        if has_access_:
-            return redirect("/superset/dashboard/{}".format(dashboard_id))
 
         if request.args.get("action") == "go":
-            for datasource in datasources:
-                access_request = DAR(
-                    datasource_id=datasource.id, datasource_type=datasource.type
-                )
-                db.session.add(access_request)
-                db.session.commit()
+            RequestAccessCommand(datasources=result.datasources).run()
             flash(__("Access was requested"), "info")
             return redirect("/")
 
         return self.render_template(
             "superset/request_access.html",
-            datasources=datasources,
-            datasource_names=", ".join([o.name for o in datasources]),
+            datasources=result.datasources,
+            datasource_names=", ".join([o.name for o in result.datasources]),
         )
 
     @event_logger.log_this
     @has_access
     @expose("/approve")
-    def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
-        def clean_fulfilled_requests(session: Session) -> None:
-            for dar in session.query(DAR).all():
-                datasource = ConnectorRegistry.get_datasource(
-                    dar.datasource_type, dar.datasource_id, session
-                )
-                if not datasource or security_manager.can_access_datasource(datasource):
-                    # datasource does not exist anymore
-                    session.delete(dar)
-            session.commit()
-
-        datasource_type = request.args["datasource_type"]
-        datasource_id = request.args["datasource_id"]
-        created_by_username = request.args.get("created_by")
-        role_to_grant = request.args.get("role_to_grant")
-        role_to_extend = request.args.get("role_to_extend")
-
-        session = db.session
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, session
+    def approve(self) -> FlaskResponse:  # pylint: disable=no-self-use
+        approve_command = ApproveCommand(
+            datasource_type=request.args["datasource_type"],
+            datasource_id=request.args["datasource_id"],
+            created_by_username=request.args.get("created_by"),
+            role_to_grant=request.args.get("role_to_grant"),
+            role_to_extend=request.args.get("role_to_extend"),
+            approving_user=g.user,
         )
 
-        if not datasource:
-            flash(DATASOURCE_MISSING_ERR, "alert")
-            return json_error_response(DATASOURCE_MISSING_ERR)
+        adapter = ApproveCommandSupersetAdapter(approve_command)
+        adapter.adapt()
 
-        requested_by = security_manager.find_user(username=created_by_username)
-        if not requested_by:
-            flash(USER_MISSING_ERR, "alert")
-            return json_error_response(USER_MISSING_ERR)
+        if adapter.message:
+            flash(adapter.message, adapter.flash_level)
 
-        requests = (
-            session.query(DAR)
-            .filter(
-                DAR.datasource_id == datasource_id,
-                DAR.datasource_type == datasource_type,
-                DAR.created_by_fk == requested_by.id,
-            )
-            .all()
-        )
+        if adapter.redirect_path:
+            return redirect(adapter.redirect_path)
 
-        if not requests:
-            err = __("The access requests seem to have been deleted")
-            flash(err, "alert")
-            return json_error_response(err)
-
-        # check if you can approve
-        if security_manager.can_access_all_datasources() or check_ownership(
-            datasource, raise_if_false=False
-        ):
-            # can by done by admin only
-            if role_to_grant:
-                role = security_manager.find_role(role_to_grant)
-                requested_by.roles.append(role)
-                msg = __(
-                    "%(user)s was granted the role %(role)s that gives access "
-                    "to the %(datasource)s",
-                    user=requested_by.username,
-                    role=role_to_grant,
-                    datasource=datasource.full_name,
-                )
-                utils.notify_user_about_perm_udate(
-                    g.user,
-                    requested_by,
-                    role,
-                    datasource,
-                    "email/role_granted.txt",
-                    app.config,
-                )
-                flash(msg, "info")
-
-            if role_to_extend:
-                perm_view = security_manager.find_permission_view_menu(
-                    "email/datasource_access", datasource.perm
-                )
-                role = security_manager.find_role(role_to_extend)
-                security_manager.add_permission_role(role, perm_view)
-                msg = __(
-                    "Role %(r)s was extended to provide the access to "
-                    "the datasource %(ds)s",
-                    r=role_to_extend,
-                    ds=datasource.full_name,
-                )
-                utils.notify_user_about_perm_udate(
-                    g.user,
-                    requested_by,
-                    role,
-                    datasource,
-                    "email/role_extended.txt",
-                    app.config,
-                )
-                flash(msg, "info")
-            clean_fulfilled_requests(session)
-        else:
-            flash(__("You have no permission to approve this request"), "danger")
-            return redirect("/accessrequestsmodelview/list/")
-        for request_ in requests:
-            session.delete(request_)
-        session.commit()
-        return redirect("/accessrequestsmodelview/list/")
+        return json_error_response(adapter.message)
 
     @has_access
     @expose("/slice/<int:slice_id>/")
