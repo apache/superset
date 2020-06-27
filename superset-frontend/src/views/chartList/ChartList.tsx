@@ -104,8 +104,8 @@ class ChartList extends React.PureComponent<Props, State> {
     return this.hasPerm('can_delete');
   }
 
-  get isNewUIEnabled() {
-    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_NEW_UI);
+  get isSIP34FilterUIEnabled() {
+    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
   }
 
   initialSort = [{ id: 'changed_on', desc: true }];
@@ -425,7 +425,7 @@ class ChartList extends React.PureComponent<Props, State> {
   updateFilters = async () => {
     const { filterOperators } = this.state;
 
-    if (this.isNewUIEnabled) {
+    if (this.isSIP34FilterUIEnabled) {
       this.setState({
         filters: [
           {
@@ -560,7 +560,7 @@ class ChartList extends React.PureComponent<Props, State> {
                 initialSort={this.initialSort}
                 filters={filters}
                 bulkActions={bulkActions}
-                useNewUIFilters={this.isNewUIEnabled}
+                isSIP34FilterUIEnabled={this.isSIP34FilterUIEnabled}
               />
             );
           }}

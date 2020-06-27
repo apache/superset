@@ -45,7 +45,7 @@ interface Props {
     name: React.ReactNode | string;
     onSelect: (rows: any[]) => any;
   }>;
-  useNewUIFilters?: boolean;
+  isSIP34FilterUIEnabled?: boolean;
 }
 
 const bulkSelectColumnConfig = {
@@ -73,7 +73,7 @@ const ListView: FunctionComponent<Props> = ({
   className = '',
   filters = [],
   bulkActions = [],
-  useNewUIFilters = false,
+  isSIP34FilterUIEnabled = false,
 }) => {
   const {
     getTableProps,
@@ -100,7 +100,7 @@ const ListView: FunctionComponent<Props> = ({
     fetchData,
     initialPageSize,
     initialSort,
-    initialFilters: useNewUIFilters ? filters : [],
+    initialFilters: isSIP34FilterUIEnabled ? filters : [],
   });
   const filterable = Boolean(filters.length);
   if (filterable) {
@@ -123,7 +123,7 @@ const ListView: FunctionComponent<Props> = ({
     <div className="superset-list-view-container">
       <div className={`superset-list-view ${className}`}>
         <div className="header">
-          {!useNewUIFilters && filterable && (
+          {!isSIP34FilterUIEnabled && filterable && (
             <>
               <Row>
                 <Col md={10} />
@@ -146,7 +146,7 @@ const ListView: FunctionComponent<Props> = ({
               />
             </>
           )}
-          {useNewUIFilters && filterable && (
+          {isSIP34FilterUIEnabled && filterable && (
             <FilterControls
               filters={filters}
               internalFilters={internalFilters}
