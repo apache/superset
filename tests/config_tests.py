@@ -71,10 +71,7 @@ def apply_dttm_defaults(table: SqlaTable, dttm_defaults: Dict[str, Any]):
             dbcol.expression = dttm_column_defaults["expression"]
 
 
-class ConfigTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(ConfigTests, self).__init__(*args, **kwargs)
-
+class TestConfig(SupersetTestCase):
     def setUp(self) -> None:
         self.login(username="admin")
         self._test_db_id = get_or_create_db(

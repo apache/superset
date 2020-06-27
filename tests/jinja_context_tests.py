@@ -22,7 +22,7 @@ from superset.jinja_context import ExtraCache, filter_values
 from tests.base_tests import SupersetTestCase
 
 
-class Jinja2ContextTests(SupersetTestCase):
+class TestJinja2Context(SupersetTestCase):
     def test_filter_values_default(self) -> None:
         with app.test_request_context():
             self.assertEquals(filter_values("name", "foo"), ["foo"])

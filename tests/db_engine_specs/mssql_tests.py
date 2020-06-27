@@ -24,10 +24,10 @@ from sqlalchemy.types import String, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class MssqlEngineSpecTest(DbEngineSpecTestCase):
+class TestMssqlEngineSpec(TestDbEngineSpec):
     def test_mssql_column_types(self):
         def assert_type(type_string, type_expected):
             type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)

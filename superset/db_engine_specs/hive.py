@@ -116,7 +116,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         df_to_sql_kwargs: Dict[str, Any],
     ) -> None:
         """Uploads a csv file and creates a superset datasource in Hive."""
-
         if_exists = df_to_sql_kwargs["if_exists"]
         if if_exists == "append":
             raise SupersetException("Append operation not currently supported")

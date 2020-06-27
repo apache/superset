@@ -28,7 +28,7 @@ from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
 
 
-class QueryContextTests(SupersetTestCase):
+class TestQueryContext(SupersetTestCase):
     def test_schema_deserialization(self):
         """
         Ensure that the deserialized QueryContext contains all required fields.

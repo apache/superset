@@ -33,7 +33,7 @@ from superset.models.sql_lab import Query
 from tests.base_tests import SupersetTestCase
 
 
-class QueryApiTests(SupersetTestCase):
+class TestQueryApi(SupersetTestCase):
     def insert_query(
         self,
         database_id: int,
