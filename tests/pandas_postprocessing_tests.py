@@ -56,7 +56,7 @@ def round_floats(
     return [round(val, precision) if val else None for val in floats]
 
 
-class PostProcessingTestCase(SupersetTestCase):
+class TestPostProcessing(SupersetTestCase):
     def test_pivot(self):
         aggregates = {"idx_nulls": {"operator": "sum"}}
 

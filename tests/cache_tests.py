@@ -23,10 +23,7 @@ from superset.utils.core import QueryStatus
 from .base_tests import SupersetTestCase
 
 
-class CacheTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(CacheTests, self).__init__(*args, **kwargs)
-
+class TestCache(SupersetTestCase):
     def setUp(self):
         cache.clear()
 

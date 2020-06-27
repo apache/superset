@@ -42,7 +42,7 @@ from tests.base_tests import SupersetTestCase
 from .utils import read_fixture
 
 
-class SchedulesTestCase(SupersetTestCase):
+class TestSchedules(SupersetTestCase):
 
     RECIPIENTS = "recipient1@superset.com, recipient2@superset.com"
     BCC = "bcc@superset.com"

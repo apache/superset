@@ -29,7 +29,7 @@ from superset.models.core import Log
 from .base_tests import SupersetTestCase
 
 
-class LogApiTests(SupersetTestCase):
+class TestLogApi(SupersetTestCase):
     def insert_log(
         self,
         action: str,

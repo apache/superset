@@ -17,10 +17,10 @@
 from sqlalchemy import column
 
 from superset.db_engine_specs.druid import DruidEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class DruidTestCase(DbEngineSpecTestCase):
+class TestDruidDbEngineSpec(TestDbEngineSpec):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 

@@ -35,7 +35,7 @@ from superset.views import core as views
 from .base_tests import SupersetTestCase
 
 
-class DashboardTests(SupersetTestCase):
+class TestDashboard(SupersetTestCase):
     def get_mock_positions(self, dash):
         positions = {"DASHBOARD_VERSION_KEY": "v2"}
         for i, slc in enumerate(dash.slices):

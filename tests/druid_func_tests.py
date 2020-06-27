@@ -50,7 +50,7 @@ def emplace(metrics_dict, metric_name, is_postagg=False):
 
 
 # Unit tests that can be run without initializing base tests
-class DruidFuncTestCase(SupersetTestCase):
+class TestDruidFunc(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )

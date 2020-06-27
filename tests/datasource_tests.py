@@ -24,10 +24,7 @@ from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
 
 
-class DatasourceTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(DatasourceTests, self).__init__(*args, **kwargs)
-
+class TestDatasource(SupersetTestCase):
     def test_external_metadata(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")

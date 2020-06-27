@@ -36,11 +36,8 @@ from tests.fixtures.query_context import get_query_context
 CHART_DATA_URI = "api/v1/chart/data"
 
 
-class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
+class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "chart"
-
-    def __init__(self, *args, **kwargs):
-        super(ChartApiTests, self).__init__(*args, **kwargs)
 
     def insert_chart(
         self,

@@ -34,7 +34,7 @@ send_email_test = mock.Mock()
 logger = logging.getLogger(__name__)
 
 
-class EmailSmtpTest(SupersetTestCase):
+class TestEmailSmtp(SupersetTestCase):
     def setUp(self):
         app.config["smtp_ssl"] = False
 
