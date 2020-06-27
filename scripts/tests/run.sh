@@ -145,5 +145,5 @@ fi
 
 if [ $RUN_TESTS -eq 1 ]
 then
-  pytest --cov=superset --cov-append --ignore=load_examples_test "${TEST_MODULE}"
+  pytest --ignore=load_examples_test "${TEST_MODULE}"
 fi
