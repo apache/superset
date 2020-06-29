@@ -18,11 +18,23 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
-describe('Dashboard filter', () => {
-  let filterId;
-  let aliases;
+interface Slice {
+  slice_id: number;
+  form_data: {
+    viz_type: string;
+    [key: string]: JSONValue;
+  };
+}
 
-  const getAlias = id => {
+interface DashboardData {
+  slices: Slice[];
+}
+
+describe('Dashboard filter', () => {
+  let filterId: number;
+  let aliases: string[];
+
+  const getAlias = (id: number) => {
     return `@slice_${id}`;
   };
 
@@ -32,13 +44,14 @@ describe('Dashboard filter', () => {
 
     cy.visit(WORLD_HEALTH_DASHBOARD);
 
-    cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
+    cy.get('#app').then(app => {
+      const bootstrapData = app.data('bootstrap');
+      const dashboard = bootstrapData.dashboard_data as DashboardData;
       const sliceIds = dashboard.slices.map(slice => slice.slice_id);
-      filterId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'filter_box',
-      ).slice_id;
+      filterId =
+        dashboard.slices.find(
+          slice => slice.form_data.viz_type === 'filter_box',
+        )?.slice_id || 0;
       aliases = sliceIds.map(id => {
         const alias = getAlias(id);
         const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
@@ -72,7 +85,7 @@ describe('Dashboard filter', () => {
 
     cy.get('.Select__control input[type=text]')
       .first()
-      .focus({ force: true })
+      .focus()
       .type('So', { force: true });
 
     cy.get('.Select__menu').first().contains('Create "So"');
@@ -81,7 +94,7 @@ describe('Dashboard filter', () => {
     // we refocus the input again here. The is not happening in real life.
     cy.get('.Select__control input[type=text]')
       .first()
-      .focus({ force: true })
+      .focus()
       .type('uth Asia{enter}', { force: true });
 
     // by default, need to click Apply button to apply filter
@@ -90,8 +103,10 @@ describe('Dashboard filter', () => {
     // wait again after applied filters
     cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
       requests.forEach(xhr => {
-        const requestFormData = xhr.request.body;
-        const requestParams = JSON.parse(requestFormData.get('form_data'));
+        const requestFormData = xhr.request.body as FormData;
+        const requestParams = JSON.parse(
+          requestFormData.get('form_data') as string,
+        );
         expect(requestParams.extra_filters[0]).deep.eq({
           col: 'region',
           op: 'in',
