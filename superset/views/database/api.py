@@ -137,6 +137,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         "allows_subquery",
         "allows_cost_estimate",
         "allows_virtual_table_explore",
+        "explore_database_id",
         "backend",
         "function_names",
     ]
