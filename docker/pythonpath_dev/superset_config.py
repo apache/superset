@@ -61,6 +61,13 @@ SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
     DATABASE_DB,
 )
 
+CACHE_CONFIG = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 60 * 40, # 1 day default (in secs)
+    'CACHE_KEY_PREFIX': 'superset_results',
+    'CACHE_REDIS_URL': 'redis://redis:6379/0',
+}
+
 REDIS_HOST = get_env_variable("REDIS_HOST")
 REDIS_PORT = get_env_variable("REDIS_PORT")
 REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", 0)
