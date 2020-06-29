@@ -100,6 +100,24 @@ supersetNode:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+  oauth:
+    enabled: false
+    registration_enabled: true
+    userRegistrationRole: Public
+    config:
+      name: google
+      whitelist: []
+      icon: fa-google
+      token_key: access_token
+      remote_app:
+        base_url: https://www.googleapis.com/oauth2/v2/
+        request_token_params:
+          scope: email profile
+        request_token_url: null
+        access_token_url: https://accounts.google.com/o/oauth2/token
+        authorize_url: https://accounts.google.com/o/oauth2/auth
+        # consumer_key: xx
+        # consumer_secret: xx
 
 ##
 ## Init job configuration

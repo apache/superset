@@ -56,6 +56,24 @@ pip install {{ range .Values.additionalRequirements }}{{ . }} {{ end }}
 
 {{ end -}}
 
+{{- define "superset-common-oauthconfig" }}
+
+from flask_appbuilder.security.manager import AUTH_OAUTH
+AUTH_TYPE = AUTH_OAUTH
+AUTH_USER_REGISTRATION = {{- if .Values.supersetNode.oauth.registration_enabled }} True{{- else }} False{{- end }}
+AUTH_USER_REGISTRATION_ROLE = "{{ .Values.supersetNode.oauth.userRegistrationRole | default "Public" }}"
+
+{{ end -}}
+
+
+{{- define "superset-oauthconfig" }}
+import json
+OAUTH_PROVIDERS = [
+    json.loads('{{ .Values.supersetNode.oauth.config | toJson }}')
+]
+
+{{- end }}
+
 {{- define "superset-config" }}
 import os
 from cachelib.redis import RedisCache
@@ -96,4 +114,10 @@ RESULTS_BACKEND = RedisCache(
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )
+
+{{ if .Values.supersetNode.oauth.enabled }}
+{{ include "superset-common-oauthconfig" .  }}
+{{ include "superset-oauthconfig" .  }}
+{{- end }}
+
 {{- end }}
