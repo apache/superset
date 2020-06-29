@@ -38,7 +38,7 @@ from tests.test_app import app
 from .base_tests import SupersetTestCase
 
 
-class ThumbnailsSeleniumLive(LiveServerTestCase):
+class TestThumbnailsSeleniumLive(LiveServerTestCase):
     def create_app(self):
         return app
 
@@ -66,7 +66,7 @@ class ThumbnailsSeleniumLive(LiveServerTestCase):
             self.assertEqual(response.getcode(), 202)
 
 
-class ThumbnailsTests(SupersetTestCase):
+class TestThumbnails(SupersetTestCase):
 
     mock_image = b"bytes mock image"
 

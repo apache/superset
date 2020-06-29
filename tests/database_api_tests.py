@@ -30,7 +30,7 @@ from superset.utils.core import get_example_database
 from .base_tests import SupersetTestCase
 
 
-class DatabaseApiTests(SupersetTestCase):
+class TestDatabaseApi(SupersetTestCase):
     def test_get_items(self):
         """
             Database API: Test get items

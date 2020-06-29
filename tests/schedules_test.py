@@ -42,7 +42,7 @@ from tests.base_tests import SupersetTestCase
 from .utils import read_fixture
 
 
-class SchedulesTestCase(SupersetTestCase):
+class TestSchedules(SupersetTestCase):
 
     RECIPIENTS = "recipient1@superset.com, recipient2@superset.com"
     BCC = "bcc@superset.com"
@@ -379,7 +379,7 @@ class SchedulesTestCase(SupersetTestCase):
             {
                 "channels": "#test_channel",
                 "file": element.screenshot_as_png,
-                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
+                "initial_comment": f"\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/{schedule.slice_id}/|Explore in Superset>\n        ",
                 "title": "[Report]  Participants",
             },
         )
@@ -434,7 +434,7 @@ class SchedulesTestCase(SupersetTestCase):
             {
                 "channels": "#test_channel",
                 "file": element.screenshot_as_png,
-                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
+                "initial_comment": f"\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/{schedule.slice_id}/|Explore in Superset>\n        ",
                 "title": "[Report]  Participants",
             },
         )
@@ -481,7 +481,7 @@ class SchedulesTestCase(SupersetTestCase):
             {
                 "channels": "#test_channel",
                 "file": self.CSV,
-                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
+                "initial_comment": f"\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/{schedule.slice_id}/|Explore in Superset>\n        ",
                 "title": "[Report]  Participants",
             },
         )
@@ -526,7 +526,7 @@ class SchedulesTestCase(SupersetTestCase):
             {
                 "channels": "#test_channel",
                 "file": self.CSV,
-                "initial_comment": "\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/1/|Explore in Superset>\n        ",
+                "initial_comment": f"\n        *Participants*\n\n        <http://0.0.0.0:8080/superset/slice/{schedule.slice_id}/|Explore in Superset>\n        ",
                 "title": "[Report]  Participants",
             },
         )

@@ -65,7 +65,7 @@ def delete_schema_perm(view_menu_name: str) -> None:
     return None
 
 
-class RolePermissionTests(SupersetTestCase):
+class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
@@ -818,7 +818,7 @@ class RolePermissionTests(SupersetTestCase):
             raise Exception(f"Some views are not secured:\n{view_str}")
 
 
-class SecurityManagerTests(SupersetTestCase):
+class TestSecurityManager(SupersetTestCase):
     """
     Testing the Security Manager.
     """
@@ -930,7 +930,7 @@ class SecurityManagerTests(SupersetTestCase):
             security_manager.raise_for_access(viz=test_viz)
 
 
-class RowLevelSecurityTests(SupersetTestCase):
+class TestRowLevelSecurity(SupersetTestCase):
     """
     Testing Row Level Security
     """

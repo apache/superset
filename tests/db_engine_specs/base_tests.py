@@ -23,7 +23,7 @@ from tests.base_tests import SupersetTestCase
 from tests.test_app import app  # isort:skip
 
 
-class DbEngineSpecTestCase(SupersetTestCase):
+class TestDbEngineSpec(SupersetTestCase):
     def sql_limit_regex(
         self, sql, expected_sql, engine_spec_class=MySQLEngineSpec, limit=1000
     ):

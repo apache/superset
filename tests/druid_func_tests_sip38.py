@@ -55,7 +55,7 @@ def emplace(metrics_dict, metric_name, is_postagg=False):
     {"SIP_38_VIZ_REARCHITECTURE": True},
     clear=True,
 )
-class DruidFuncTestCase(SupersetTestCase):
+class TestDruidFunc(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )

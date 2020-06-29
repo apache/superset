@@ -26,7 +26,7 @@ from superset.result_set import SupersetResultSet
 from .base_tests import SupersetTestCase
 
 
-class SupersetDataFrameTestCase(SupersetTestCase):
+class TestSupersetDataFrame(SupersetTestCase):
     def test_df_to_records(self):
         data = [("a1", "b1", "c1"), ("a2", "b2", "c2")]
         cursor_descr = (("a", "string"), ("b", "string"), ("c", "string"))
