@@ -16,32 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// ***********************************************
-// This example commands.js shows you how to
-// create various custom commands and overwrite
-// existing commands.
-//
-// For more comprehensive examples of custom
-// commands please read more here:
-// https://on.cypress.io/custom-commands
-// ***********************************************
-//
-//
-// -- This is a parent command --
-// Cypress.Commands.add("login", (email, password) => { ... })
-//
-//
-// -- This is a child command --
-// Cypress.Commands.add("drag", { prevSubject: 'element'}, (subject, options) => { ... })
-//
-//
-// -- This is a dual command --
-// Cypress.Commands.add("dismiss", { prevSubject: 'optional'}, (subject, options) => { ... })
-//
-//
-// -- This is will overwrite an existing command --
-// Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
-
+import '@cypress/code-coverage/support';
 import readResponseBlob from '../utils/readResponseBlob';
 
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
@@ -63,47 +38,60 @@ Cypress.Commands.add('visitChartByName', name => {
 });
 
 Cypress.Commands.add('visitChartById', chartId => {
-  cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${chartId}}`);
+  return cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${chartId}}`);
 });
 
 Cypress.Commands.add('visitChartByParams', params => {
-  cy.visit(`${BASE_EXPLORE_URL}${params}`);
+  return cy.visit(`${BASE_EXPLORE_URL}${params}`);
 });
 
-Cypress.Commands.add('verifyResponseCodes', async xhr => {
+Cypress.Commands.add('verifyResponseCodes', (xhr: XMLHttpRequest, callback) => {
   // After a wait response check for valid response
   expect(xhr.status).to.eq(200);
-
-  const responseBody = await readResponseBlob(xhr.response.body);
-
-  if (responseBody.error) {
-    expect(responseBody.error).to.eq(null);
-  }
+  readResponseBlob(xhr.response.body).then(res => {
+    expect(res).to.not.be.instanceOf(Error);
+    if (callback) {
+      callback(res);
+    }
+  });
+  return cy;
 });
 
 Cypress.Commands.add('verifySliceContainer', chartSelector => {
   // After a wait response check for valid slice container
-  cy.get('.slice_container').within(async () => {
+  cy.get('.slice_container').within(() => {
     if (chartSelector) {
-      const chart = await cy.get(chartSelector);
-      expect(chart[0].clientWidth).greaterThan(0);
-      expect(chart[0].clientHeight).greaterThan(0);
+      cy.get(chartSelector).then(chart => {
+        expect(chart[0].clientWidth).greaterThan(0);
+        expect(chart[0].clientHeight).greaterThan(0);
+      });
     }
   });
+  return cy;
 });
 
 Cypress.Commands.add(
   'verifySliceSuccess',
-  ({ waitAlias, querySubstring, chartSelector }) => {
-    cy.wait(waitAlias).then(async xhr => {
-      cy.verifyResponseCodes(xhr);
-
-      const responseBody = await readResponseBlob(xhr.response.body);
-      if (querySubstring) {
-        expect(responseBody.query).contains(querySubstring);
-      }
-
+  ({
+    waitAlias,
+    querySubstring,
+    chartSelector,
+  }: {
+    waitAlias: string;
+    querySubstring: string;
+    chartSelector: JQuery.Selector;
+  }) => {
+    cy.wait(waitAlias).then(xhr => {
       cy.verifySliceContainer(chartSelector);
+      cy.verifyResponseCodes(xhr, responseBody => {
+        if (querySubstring) {
+          type QueryResponse = { query: string };
+          expect(
+            responseBody && (responseBody as QueryResponse).query,
+          ).contains(querySubstring);
+        }
+      });
     });
+    return cy;
   },
 );
