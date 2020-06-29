@@ -36,7 +36,7 @@
     "match-sorter": "^4.1.0",
     "memoize-one": "^5.1.1",
     "react-icons": "^3.10.0",
-    "react-table": "^7.2.0",
+    "react-table": "^7.2.1",
     "regenerator-runtime": "^0.13.5",
     "xss": "^1.0.6"
   },
