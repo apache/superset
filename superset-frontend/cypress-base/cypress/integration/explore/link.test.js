@@ -55,8 +55,6 @@ describe('Test explore links', () => {
     // explicitly wait for the url response
     cy.wait('@getShortUrl');
 
-    cy.wait(100);
-
     cy.get('#shorturl-popover [data-test="short-url"]')
       .invoke('text')
       .then(text => {
