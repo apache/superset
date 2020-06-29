@@ -115,7 +115,7 @@ class TestQueryContext(SupersetTestCase):
         extras = query_object.to_dict()["extras"]
         self.assertTrue("time_range_endpoints" in extras)
 
-        self.assertEquals(
+        self.assertEqual(
             extras["time_range_endpoints"],
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
         )

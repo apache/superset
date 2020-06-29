@@ -134,7 +134,7 @@ class TestCore(SupersetTestCase):
 
         qobj["inner_from_dttm"] = datetime.datetime(1901, 1, 1)
 
-        self.assertEquals(cache_key_with_groupby, viz.cache_key(qobj))
+        self.assertEqual(cache_key_with_groupby, viz.cache_key(qobj))
 
     def test_get_superset_tables_not_allowed(self):
         example_db = utils.get_example_database()

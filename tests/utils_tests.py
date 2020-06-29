@@ -555,7 +555,7 @@ class TestUtils(SupersetTestCase):
         merge_request_params(form_data, url_params)
         self.assertIn("url_params", form_data.keys())
         self.assertIn("abc", form_data["url_params"])
-        self.assertEquals(
+        self.assertEqual(
             url_params["dashboard_ids"], form_data["url_params"]["dashboard_ids"]
         )
 

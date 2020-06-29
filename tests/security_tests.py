@@ -130,7 +130,7 @@ class TestRolePermission(SupersetTestCase):
         stored_table = (
             session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
         )
-        self.assertEquals(
+        self.assertEqual(
             stored_table.perm, f"[examples].[tmp_perm_table](id:{stored_table.id})"
         )
         self.assertIsNotNone(
@@ -138,7 +138,7 @@ class TestRolePermission(SupersetTestCase):
                 "datasource_access", stored_table.perm
             )
         )
-        self.assertEquals(stored_table.schema_perm, "[examples].[tmp_schema]")
+        self.assertEqual(stored_table.schema_perm, "[examples].[tmp_schema]")
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
                 "schema_access", stored_table.schema_perm
@@ -151,7 +151,7 @@ class TestRolePermission(SupersetTestCase):
         stored_table = (
             session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
-        self.assertEquals(
+        self.assertEqual(
             stored_table.perm, f"[examples].[tmp_perm_table_v2](id:{stored_table.id})"
         )
         self.assertIsNotNone(
@@ -160,7 +160,7 @@ class TestRolePermission(SupersetTestCase):
             )
         )
         # no changes in schema
-        self.assertEquals(stored_table.schema_perm, "[examples].[tmp_schema]")
+        self.assertEqual(stored_table.schema_perm, "[examples].[tmp_schema]")
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
                 "schema_access", stored_table.schema_perm
@@ -173,7 +173,7 @@ class TestRolePermission(SupersetTestCase):
         stored_table = (
             session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
-        self.assertEquals(
+        self.assertEqual(
             stored_table.perm, f"[examples].[tmp_perm_table_v2](id:{stored_table.id})"
         )
         self.assertIsNotNone(
@@ -182,7 +182,7 @@ class TestRolePermission(SupersetTestCase):
             )
         )
         # no changes in schema
-        self.assertEquals(stored_table.schema_perm, "[examples].[tmp_schema_v2]")
+        self.assertEqual(stored_table.schema_perm, "[examples].[tmp_schema_v2]")
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
                 "schema_access", stored_table.schema_perm
@@ -199,7 +199,7 @@ class TestRolePermission(SupersetTestCase):
         stored_table = (
             session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
-        self.assertEquals(
+        self.assertEqual(
             stored_table.perm, f"[tmp_db].[tmp_perm_table_v2](id:{stored_table.id})"
         )
         self.assertIsNotNone(
@@ -208,7 +208,7 @@ class TestRolePermission(SupersetTestCase):
             )
         )
         # no changes in schema
-        self.assertEquals(stored_table.schema_perm, "[tmp_db].[tmp_schema_v2]")
+        self.assertEqual(stored_table.schema_perm, "[tmp_db].[tmp_schema_v2]")
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
                 "schema_access", stored_table.schema_perm
@@ -221,7 +221,7 @@ class TestRolePermission(SupersetTestCase):
         stored_table = (
             session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
-        self.assertEquals(
+        self.assertEqual(
             stored_table.perm, f"[tmp_db].[tmp_perm_table_v2](id:{stored_table.id})"
         )
         self.assertIsNotNone(
@@ -254,7 +254,7 @@ class TestRolePermission(SupersetTestCase):
             .filter_by(datasource_name="tmp_datasource")
             .one()
         )
-        self.assertEquals(
+        self.assertEqual(
             stored_datasource.perm,
             f"[druid_test].[tmp_datasource](id:{stored_datasource.id})",
         )
@@ -268,7 +268,7 @@ class TestRolePermission(SupersetTestCase):
         # store with a schema
         stored_datasource.datasource_name = "tmp_schema.tmp_datasource"
         session.commit()
-        self.assertEquals(
+        self.assertEqual(
             stored_datasource.perm,
             f"[druid_test].[tmp_schema.tmp_datasource](id:{stored_datasource.id})",
         )
@@ -297,7 +297,7 @@ class TestRolePermission(SupersetTestCase):
             .filter_by(cluster_name="tmp_druid_cluster")
             .one()
         )
-        self.assertEquals(
+        self.assertEqual(
             stored_cluster.perm, f"[tmp_druid_cluster].(id:{stored_cluster.id})"
         )
         self.assertIsNotNone(
@@ -308,7 +308,7 @@ class TestRolePermission(SupersetTestCase):
 
         stored_cluster.cluster_name = "tmp_druid_cluster2"
         session.commit()
-        self.assertEquals(
+        self.assertEqual(
             stored_cluster.perm, f"[tmp_druid_cluster2].(id:{stored_cluster.id})"
         )
         self.assertIsNotNone(
@@ -330,7 +330,7 @@ class TestRolePermission(SupersetTestCase):
         stored_db = (
             session.query(Database).filter_by(database_name="tmp_database").one()
         )
-        self.assertEquals(stored_db.perm, f"[tmp_database].(id:{stored_db.id})")
+        self.assertEqual(stored_db.perm, f"[tmp_database].(id:{stored_db.id})")
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
                 "database_access", stored_db.perm
@@ -342,7 +342,7 @@ class TestRolePermission(SupersetTestCase):
         stored_db = (
             session.query(Database).filter_by(database_name="tmp_database2").one()
         )
-        self.assertEquals(stored_db.perm, f"[tmp_database2].(id:{stored_db.id})")
+        self.assertEqual(stored_db.perm, f"[tmp_database2].(id:{stored_db.id})")
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
                 "database_access", stored_db.perm
@@ -368,9 +368,9 @@ class TestRolePermission(SupersetTestCase):
             .one()
         )
 
-        self.assertEquals(record.get_perm(), record.perm)
-        self.assertEquals(record.id, id_)
-        self.assertEquals(record.cluster_name, "tmp_druid_cluster3")
+        self.assertEqual(record.get_perm(), record.perm)
+        self.assertEqual(record.id, id_)
+        self.assertEqual(record.cluster_name, "tmp_druid_cluster3")
         db.session.delete(cluster)
         db.session.commit()
 
@@ -393,9 +393,9 @@ class TestRolePermission(SupersetTestCase):
             .one()
         )
 
-        self.assertEquals(record.get_perm(), record.perm)
-        self.assertEquals(record.id, id_)
-        self.assertEquals(record.database_name, "tmp_database3")
+        self.assertEqual(record.get_perm(), record.perm)
+        self.assertEqual(record.id, id_)
+        self.assertEqual(record.database_name, "tmp_database3")
         db.session.delete(database)
         db.session.commit()
 
@@ -420,9 +420,9 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
 
         slice = session.query(Slice).filter_by(slice_name="slice_name").one()
-        self.assertEquals(slice.perm, table.perm)
-        self.assertEquals(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
-        self.assertEquals(slice.schema_perm, table.schema_perm)
+        self.assertEqual(slice.perm, table.perm)
+        self.assertEqual(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
+        self.assertEqual(slice.schema_perm, table.schema_perm)
         self.assertIsNone(slice.schema_perm)
 
         table.schema = "tmp_perm_schema"
@@ -430,8 +430,8 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
         # TODO(bogdan): modify slice permissions on the table update.
         self.assertNotEquals(slice.perm, table.perm)
-        self.assertEquals(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
-        self.assertEquals(
+        self.assertEqual(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
+        self.assertEqual(
             table.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
         )
         # TODO(bogdan): modify slice schema permissions on the table update.
@@ -441,12 +441,12 @@ class TestRolePermission(SupersetTestCase):
         # updating slice refreshes the permissions
         slice.slice_name = "slice_name_v2"
         session.commit()
-        self.assertEquals(slice.perm, table.perm)
-        self.assertEquals(
+        self.assertEqual(slice.perm, table.perm)
+        self.assertEqual(
             slice.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
         )
-        self.assertEquals(slice.schema_perm, table.schema_perm)
-        self.assertEquals(slice.schema_perm, "[tmp_database].[tmp_perm_schema]")
+        self.assertEqual(slice.schema_perm, table.schema_perm)
+        self.assertEqual(slice.schema_perm, "[tmp_database].[tmp_perm_schema]")
 
         session.delete(slice)
         session.delete(table)
@@ -464,7 +464,7 @@ class TestRolePermission(SupersetTestCase):
             schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["1", "2", "3"]
             )
-            self.assertEquals(schemas, ["1", "2", "3"])  # no changes
+            self.assertEqual(schemas, ["1", "2", "3"])  # no changes
 
     @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_schema_access(self, mock_g):
@@ -477,7 +477,7 @@ class TestRolePermission(SupersetTestCase):
                 database, ["1", "2", "3"]
             )
             # temp_schema is not passed in the params
-            self.assertEquals(schemas, ["1"])
+            self.assertEqual(schemas, ["1"])
         delete_schema_perm("[examples].[1]")
 
     @patch("superset.security.manager.g")
@@ -489,7 +489,7 @@ class TestRolePermission(SupersetTestCase):
             schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["temp_schema", "2", "3"]
             )
-            self.assertEquals(schemas, ["temp_schema"])
+            self.assertEqual(schemas, ["temp_schema"])
 
     @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_datasource_and_schema_access(self, mock_g):
@@ -501,7 +501,7 @@ class TestRolePermission(SupersetTestCase):
             schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["temp_schema", "2", "3"]
             )
-            self.assertEquals(schemas, ["temp_schema", "2"])
+            self.assertEqual(schemas, ["temp_schema", "2"])
         vm = security_manager.find_permission_view_menu(
             "schema_access", "[examples].[2]"
         )
@@ -549,7 +549,7 @@ class TestRolePermission(SupersetTestCase):
         NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"
         self.login(username="gamma")
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
-        self.assertEquals(databases_json["count"], 1)
+        self.assertEqual(databases_json["count"], 1)
         self.logout()
 
     def assert_can_read(self, view_menu, permissions_set):
