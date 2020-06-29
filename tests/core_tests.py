@@ -1307,6 +1307,20 @@ class CoreTests(SupersetTestCase):
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, True)
 
+    def test_explore_database_id(self):
+        database = utils.get_example_database()
+        explore_database = utils.get_example_database()
+
+        # test that explore_database_id is the regular database
+        # id if none is set in the extra
+        self.assertEqual(database.explore_database_id, database.id)
+
+        # test that explore_database_id is correct if the extra is set
+        extra = database.get_extra()
+        extra["explore_database_id"] = explore_database.id
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.explore_database_id, explore_database.id)
+
 
 if __name__ == "__main__":
     unittest.main()

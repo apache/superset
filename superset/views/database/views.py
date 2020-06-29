@@ -187,7 +187,7 @@ class CsvToDatabaseView(SimpleFormView):
             # E.g. if hive was used to upload a csv, presto will be a better option
             # to explore the table.
             expore_database = database
-            explore_database_id = database.get_extra().get("explore_database_id", None)
+            explore_database_id = database.explore_database_id
             if explore_database_id:
                 expore_database = (
                     db.session.query(models.Database)
