@@ -109,6 +109,7 @@ setup(
         "wtforms-json",
     ],
     extras_require={
+        "athena": ["pyathena>=1.10.8,<1.11"],
         "bigquery": ["pybigquery>=0.4.10", "pandas_gbq>=0.10.0"],
         "cors": ["flask-cors>=2.0.0"],
         "gsheets": ["gsheetsdb>=0.1.9"],
