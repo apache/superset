@@ -52,9 +52,7 @@ class SupersetTestCase(TestCase):
         "postgresql": "public",
     }
 
-    def __init__(self, *args, **kwargs):
-        super(SupersetTestCase, self).__init__(*args, **kwargs)
-        self.maxDiff = None
+    maxDiff = -1
 
     def create_app(self):
         return app
