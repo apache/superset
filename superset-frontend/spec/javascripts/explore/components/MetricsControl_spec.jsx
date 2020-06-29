@@ -181,36 +181,40 @@ describe('MetricsControl', () => {
       ]);
     });
 
-    it('handles aggregates being selected', done => {
-      const { wrapper, onChange } = setup();
-      const select = wrapper.find(OnPasteSelect);
+    it('handles aggregates being selected', () => {
+      return new Promise(done => {
+        const { wrapper, onChange } = setup();
+        const select = wrapper.find(OnPasteSelect);
 
-      // mock out the Select ref
-      const instance = wrapper.instance();
-      const handleInputChangeSpy = jest.fn();
-      const focusInputSpy = jest.fn();
-      // simulate react-select StateManager
-      instance.selectRef({
-        select: {
-          handleInputChange: handleInputChangeSpy,
-          inputRef: { value: '' },
-          focusInput: focusInputSpy,
-        },
-      });
+        // mock out the Select ref
+        const instance = wrapper.instance();
+        const handleInputChangeSpy = jest.fn();
+        const focusInputSpy = jest.fn();
+        // simulate react-select StateManager
+        instance.selectRef({
+          select: {
+            handleInputChange: handleInputChangeSpy,
+            inputRef: { value: '' },
+            focusInput: focusInputSpy,
+          },
+        });
 
-      select.simulate('change', [{ aggregate_name: 'SUM', optionName: 'SUM' }]);
+        select.simulate('change', [
+          { aggregate_name: 'SUM', optionName: 'SUM' },
+        ]);
 
-      expect(instance.select.inputRef.value).toBe('SUM()');
-      expect(handleInputChangeSpy).toHaveBeenCalledWith({
-        currentTarget: { value: 'SUM()' },
-      });
-      expect(onChange.calledOnceWith([])).toBe(true);
-      expect(focusInputSpy).toHaveBeenCalledTimes(0);
-      setTimeout(() => {
-        expect(focusInputSpy).toHaveBeenCalledTimes(1);
-        expect(instance.select.inputRef.selectionStart).toBe(4);
-        expect(instance.select.inputRef.selectionEnd).toBe(4);
-        done();
+        expect(instance.select.inputRef.value).toBe('SUM()');
+        expect(handleInputChangeSpy).toHaveBeenCalledWith({
+          currentTarget: { value: 'SUM()' },
+        });
+        expect(onChange.calledOnceWith([])).toBe(true);
+        expect(focusInputSpy).toHaveBeenCalledTimes(0);
+        setTimeout(() => {
+          expect(focusInputSpy).toHaveBeenCalledTimes(1);
+          expect(instance.select.inputRef.selectionStart).toBe(4);
+          expect(instance.select.inputRef.selectionEnd).toBe(4);
+          done();
+        });
       });
     });
 

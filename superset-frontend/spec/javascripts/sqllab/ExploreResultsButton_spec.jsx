@@ -193,70 +193,76 @@ describe('ExploreResultsButton', () => {
       fetchMock.reset();
     });
 
-    it('should build request with correct args', done => {
-      wrapper.instance().visualize();
+    it('should build request with correct args', () => {
+      return new Promise(done => {
+        wrapper.instance().visualize();
 
-      setTimeout(() => {
-        const calls = fetchMock.calls(visualizeEndpoint);
-        expect(calls).toHaveLength(1);
-        const formData = calls[0][1].body;
+        setTimeout(() => {
+          const calls = fetchMock.calls(visualizeEndpoint);
+          expect(calls).toHaveLength(1);
+          const formData = calls[0][1].body;
 
-        Object.keys(mockOptions).forEach(key => {
-          // eslint-disable-next-line no-unused-expressions
-          expect(formData.get(key)).toBeDefined();
+          Object.keys(mockOptions).forEach(key => {
+            // eslint-disable-next-line no-unused-expressions
+            expect(formData.get(key)).toBeDefined();
+          });
+
+          done();
+        });
+      });
+    });
+
+    it('should export chart and add an info toast', () => {
+      return new Promise(done => {
+        const infoToastSpy = sinon.spy();
+        const datasourceSpy = sinon.stub();
+
+        datasourceSpy.callsFake(() => Promise.resolve(visualizationPayload));
+
+        wrapper.setProps({
+          actions: {
+            addInfoToast: infoToastSpy,
+            createDatasource: datasourceSpy,
+          },
         });
 
-        done();
+        wrapper.instance().visualize();
+
+        setTimeout(() => {
+          expect(datasourceSpy.callCount).toBe(1);
+          expect(exploreUtils.exploreChart.callCount).toBe(1);
+          expect(exploreUtils.exploreChart.getCall(0).args[0].datasource).toBe(
+            '107__table',
+          );
+          expect(infoToastSpy.callCount).toBe(1);
+          done();
+        });
       });
     });
 
-    it('should export chart and add an info toast', done => {
-      const infoToastSpy = sinon.spy();
-      const datasourceSpy = sinon.stub();
+    it('should add error toast', () => {
+      return new Promise(done => {
+        const dangerToastSpy = sinon.stub(actions, 'addDangerToast');
+        const datasourceSpy = sinon.stub();
 
-      datasourceSpy.callsFake(() => Promise.resolve(visualizationPayload));
+        datasourceSpy.callsFake(() => Promise.reject({ error: 'error' }));
 
-      wrapper.setProps({
-        actions: {
-          addInfoToast: infoToastSpy,
-          createDatasource: datasourceSpy,
-        },
-      });
+        wrapper.setProps({
+          actions: {
+            createDatasource: datasourceSpy,
+            addDangerToast: dangerToastSpy,
+          },
+        });
 
-      wrapper.instance().visualize();
+        wrapper.instance().visualize();
 
-      setTimeout(() => {
-        expect(datasourceSpy.callCount).toBe(1);
-        expect(exploreUtils.exploreChart.callCount).toBe(1);
-        expect(exploreUtils.exploreChart.getCall(0).args[0].datasource).toBe(
-          '107__table',
-        );
-        expect(infoToastSpy.callCount).toBe(1);
-        done();
-      });
-    });
-
-    it('should add error toast', done => {
-      const dangerToastSpy = sinon.stub(actions, 'addDangerToast');
-      const datasourceSpy = sinon.stub();
-
-      datasourceSpy.callsFake(() => Promise.reject({ error: 'error' }));
-
-      wrapper.setProps({
-        actions: {
-          createDatasource: datasourceSpy,
-          addDangerToast: dangerToastSpy,
-        },
-      });
-
-      wrapper.instance().visualize();
-
-      setTimeout(() => {
-        expect(datasourceSpy.callCount).toBe(1);
-        expect(exploreUtils.exportChart.callCount).toBe(0);
-        expect(dangerToastSpy.callCount).toBe(1);
-        dangerToastSpy.restore();
-        done();
+        setTimeout(() => {
+          expect(datasourceSpy.callCount).toBe(1);
+          expect(exploreUtils.exportChart.callCount).toBe(0);
+          expect(dangerToastSpy.callCount).toBe(1);
+          dangerToastSpy.restore();
+          done();
+        });
       });
     });
   });

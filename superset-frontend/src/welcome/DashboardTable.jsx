@@ -54,7 +54,7 @@ class DashboardTable extends React.PureComponent {
     {
       accessor: 'dashboard_title',
       Header: 'Dashboard',
-      sortable: true,
+      canSort: true,
       Cell: ({
         row: {
           original: { url, dashboard_title: dashboardTitle },
@@ -64,7 +64,7 @@ class DashboardTable extends React.PureComponent {
     {
       accessor: 'changed_by_fk',
       Header: 'Creator',
-      sortable: true,
+      canSort: true,
       Cell: ({
         row: {
           original: { changed_by_name: changedByName, changedByUrl },
@@ -74,7 +74,7 @@ class DashboardTable extends React.PureComponent {
     {
       accessor: 'changed_on',
       Header: 'Modified',
-      sortable: true,
+      canSort: true,
       Cell: ({
         row: {
           original: { changed_on: changedOn },
