@@ -105,6 +105,8 @@ describe('controlUtils', () => {
             expanded: true,
             controlSetRows: [
               [
+                'metric',
+                'metrics',
                 {
                   name: 'all_columns',
                   config: {
@@ -213,7 +215,12 @@ describe('controlUtils', () => {
       expect(control.value).toBe('stack');
 
       control = getControlState('stacked_style', 'test-chart', state, 'FOO');
-      expect(control.value).toBe(null);
+      expect(control.value).toBeNull();
+    });
+
+    it('returns null for non-existent field', () => {
+      const control = getControlState('NON_EXISTENT', 'table', state);
+      expect(control).toBeNull();
     });
 
     it('applies the default function for metrics', () => {
@@ -254,7 +261,11 @@ describe('controlUtils', () => {
     it('in formData', () => {
       const controlsState = getAllControlsState('table', 'table', {}, {});
       const formData = getFormDataFromControls(controlsState);
-      expect(formData.queryFields).toEqual({ all_columns: 'columns' });
+      expect(formData.queryFields).toEqual({
+        all_columns: 'columns',
+        metric: 'metrics',
+        metrics: 'metrics',
+      });
     });
   });
 });

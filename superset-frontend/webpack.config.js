@@ -194,6 +194,7 @@ const config = {
     },
   },
   optimization: {
+    sideEffects: true,
     splitChunks: {
       chunks: 'all',
       automaticNameDelimiter: '-',
@@ -223,10 +224,6 @@ const config = {
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
     noParse: /(mapbox-gl)\.js$/,
     rules: [
-      {
-        test: /datatables\.net.*/,
-        loader: 'imports-loader?define=>false',
-      },
       {
         test: /\.tsx?$/,
         use: [

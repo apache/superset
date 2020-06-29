@@ -118,7 +118,6 @@ declare module 'react-table' {
       UseResizeColumnsColumnOptions<D>,
       UseSortByColumnOptions<D> {
     hidden?: boolean;
-    sortable?: boolean;
     cellProps?: any;
     size?: ColumnSize;
   }
@@ -129,7 +128,6 @@ declare module 'react-table' {
       UseResizeColumnsColumnProps<D>,
       UseSortByColumnProps<D> {
     hidden?: boolean;
-    sortable?: boolean;
     cellProps?: any;
     size?: ColumnSize;
   }

@@ -22,13 +22,13 @@ import exploreReducer from 'src/explore/reducers/exploreReducer';
 import * as actions from 'src/explore/actions/exploreActions';
 
 describe('reducers', () => {
-  it('sets correct control value given a key and value', () => {
+  it('sets correct control value given an arbitrary key and value', () => {
     const newState = exploreReducer(
       defaultState,
-      actions.setControlValue('x_axis_label', 'x', []),
+      actions.setControlValue('NEW_FIELD', 'x', []),
     );
-    expect(newState.controls.x_axis_label.value).toBe('x');
-    expect(newState.form_data.x_axis_label).toBe('x');
+    expect(newState.controls.NEW_FIELD.value).toBe('x');
+    expect(newState.form_data.NEW_FIELD).toBe('x');
   });
   it('setControlValue works as expected with a checkbox', () => {
     const newState = exploreReducer(
