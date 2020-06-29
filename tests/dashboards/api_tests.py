@@ -32,7 +32,7 @@ from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
 
 
-class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
+class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "dashboard"
 
     dashboard_data = {
@@ -43,9 +43,6 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         "json_metadata": '{"a": "A"}',
         "published": False,
     }
-
-    def __init__(self, *args, **kwargs):
-        super(DashboardApiTests, self).__init__(*args, **kwargs)
 
     def insert_dashboard(
         self,

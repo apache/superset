@@ -20,7 +20,7 @@ from superset.forms import CommaSeparatedListField, filter_not_empty_values
 from tests.base_tests import SupersetTestCase
 
 
-class FormTestCase(SupersetTestCase):
+class TestForm(SupersetTestCase):
     def test_comma_separated_list_field(self):
         field = CommaSeparatedListField().bind(Form(), "foo")
         field.process_formdata([u""])

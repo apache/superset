@@ -44,7 +44,7 @@ CELERY_SLEEP_TIME = 10
 DROP_TABLE_SLEEP_TIME = 10
 
 
-class UtilityFunctionTests(SupersetTestCase):
+class TestUtilityFunction(SupersetTestCase):
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
         q = ParsedQuery("SELECT * FROM outer_space;")
@@ -75,7 +75,7 @@ class UtilityFunctionTests(SupersetTestCase):
         )
 
 
-class AppContextTests(SupersetTestCase):
+class TestAppContext(SupersetTestCase):
     def test_in_app_context(self):
         @celery_app.task()
         def my_task():
@@ -95,7 +95,7 @@ class AppContextTests(SupersetTestCase):
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 
 
-class CeleryTestCase(SupersetTestCase):
+class TestCelery(SupersetTestCase):
     def get_query_by_name(self, sql):
         session = db.session
         query = session.query(Query).filter_by(sql=sql).first()

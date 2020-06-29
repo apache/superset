@@ -29,7 +29,7 @@ def load_query_context(payload: Dict[str, Any]) -> Tuple[QueryContext, Dict[str,
     return ChartDataQueryContextSchema().load(payload)
 
 
-class SchemaTestCase(SupersetTestCase):
+class TestSchema(SupersetTestCase):
     def test_query_context_limit_and_offset(self):
         self.login(username="admin")
         table_name = "birth_names"

@@ -25,7 +25,7 @@ from superset.models.dashboard import Dashboard
 from tests.base_tests import SupersetTestCase
 
 
-class DashboardDAOTests(SupersetTestCase):
+class TestDashboardDAO(SupersetTestCase):
     def test_set_dash_metadata(self):
         dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
         data = dash.data

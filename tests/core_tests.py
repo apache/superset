@@ -67,10 +67,7 @@ from .base_tests import SupersetTestCase
 logger = logging.getLogger(__name__)
 
 
-class CoreTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(CoreTests, self).__init__(*args, **kwargs)
-
+class TestCore(SupersetTestCase):
     def setUp(self):
         db.session.query(Query).delete()
         db.session.query(DatasourceAccessRequest).delete()

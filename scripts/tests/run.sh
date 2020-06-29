@@ -56,7 +56,7 @@ function test_init() {
   echo --------------------
   echo Load examples
   echo --------------------
-  nosetests tests/load_examples_test.py
+  pytest -s tests/load_examples_test.py
 }
 
 
@@ -145,5 +145,5 @@ fi
 
 if [ $RUN_TESTS -eq 1 ]
 then
-  nosetests --exclude=load_examples_test "${TEST_MODULE}"
+  pytest -s --ignore=load_examples_test "${TEST_MODULE}"
 fi

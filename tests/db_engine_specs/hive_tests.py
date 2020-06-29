@@ -19,10 +19,10 @@ from unittest import mock
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class HiveTests(DbEngineSpecTestCase):
+class TestHiveDbEngineSpec(TestDbEngineSpec):
     def test_0_progress(self):
         log = """
             17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=compile from=org.apache.hadoop.hive.ql.Driver>
