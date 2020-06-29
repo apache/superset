@@ -329,6 +329,6 @@ class TestSqlaTableModel(SupersetTestCase):
         )
 
         data_for_slices = tbl.data_for_slices([slc])
-        self.assertEquals(len(data_for_slices["columns"]), 0)
-        self.assertEquals(len(data_for_slices["metrics"]), 1)
-        self.assertEquals(len(data_for_slices["verbose_map"].keys()), 2)
+        self.assertEqual(len(data_for_slices["columns"]), 0)
+        self.assertEqual(len(data_for_slices["metrics"]), 1)
+        self.assertEqual(len(data_for_slices["verbose_map"].keys()), 2)
