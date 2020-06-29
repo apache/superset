@@ -596,10 +596,12 @@ class ChartDataExtrasSchema(Schema):
             ),
         ),
         example="P1D",
+        allow_none=True,
     )
     druid_time_origin = fields.String(
         description="Starting point for time grain counting on legacy Druid "
         "datasources. Used to change e.g. Monday/Sunday first-day-of-week.",
+        allow_none=True,
     )
 
 
