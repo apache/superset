@@ -14,14 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 from typing import Any, Dict, Tuple
 
+from tests.test_app import app
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
-from tests.test_app import app
 
 
 def load_query_context(payload: Dict[str, Any]) -> Tuple[QueryContext, Dict[str, Any]]:
@@ -59,3 +60,13 @@ class SchemaTestCase(SupersetTestCase):
         query_context, errors = ChartDataQueryContextSchema().load(payload)
         self.assertIn("row_limit", errors["queries"][0])
         self.assertIn("row_offset", errors["queries"][0])
+
+    def test_query_context_null_timegrain(self):
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
+
+        payload["queries"][0]["extras"]["time_grain_sqla"] = None
+        _, errors = ChartDataQueryContextSchema().load(payload)
+        self.assertEqual(errors, {})
