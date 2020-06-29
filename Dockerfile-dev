@@ -20,4 +20,13 @@
 ######################################################################
 FROM facilittecnologia/superset:v1.no-ui
 
+COPY ./requirements* ./docker/requirements* /app/
+
+USER root
+RUN cd /app \
+    && pip install -e . \
+    && pip install --no-cache -r requirements.txt -r requirements-dev.txt \
+    && pip install --no-cache -r requirements-extra.txt \
+    && pip install --no-cache -r requirements-local.txt || true
+
 USER superset
