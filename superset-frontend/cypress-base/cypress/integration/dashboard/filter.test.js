@@ -61,7 +61,7 @@ describe('Dashboard filter', () => {
         expect(nodes).to.have.length(9);
       });
 
-    cy.get('.Select__control input[type=text]').first().blur();
+    cy.get('.Select__control input[type=text]').first().focus().blur();
 
     // should hide the filter indicator
     cy.get('.filter-indicator')

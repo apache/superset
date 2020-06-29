@@ -344,33 +344,28 @@ class TableVizTestCase(SupersetTestCase):
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("", query_obj["extras"]["having"])
 
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_merges_percent_metrics(self, super_query_obj):
+    def test_query_obj_merges_percent_metrics(self):
         datasource = self.get_datasource_mock()
         form_data = {
-            "percent_metrics": ["sum__A", "avg__B", "max__Y"],
             "metrics": ["sum__A", "count", "avg__C"],
+            "percent_metrics": ["sum__A", "avg__B", "max__Y"],
         }
         test_viz = viz.TableViz(datasource, form_data)
-        f_query_obj = {"metrics": form_data["metrics"]}
-        super_query_obj.return_value = f_query_obj
         query_obj = test_viz.query_obj()
         self.assertEqual(
             ["sum__A", "count", "avg__C", "avg__B", "max__Y"], query_obj["metrics"]
         )
 
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_throws_columns_and_metrics(self, super_query_obj):
+    def test_query_obj_throws_columns_and_metrics(self):
         datasource = self.get_datasource_mock()
         form_data = {"all_columns": ["A", "B"], "metrics": ["x", "y"]}
-        super_query_obj.return_value = {}
-        test_viz = viz.TableViz(datasource, form_data)
         with self.assertRaises(Exception):
+            test_viz = viz.TableViz(datasource, form_data)
             test_viz.query_obj()
         del form_data["metrics"]
         form_data["groupby"] = ["B", "C"]
-        test_viz = viz.TableViz(datasource, form_data)
         with self.assertRaises(Exception):
+            test_viz = viz.TableViz(datasource, form_data)
             test_viz.query_obj()
 
     @patch("superset.viz.BaseViz.query_obj")
@@ -390,21 +385,35 @@ class TableVizTestCase(SupersetTestCase):
         self.assertEqual([], query_obj["groupby"])
         self.assertEqual([["colA", "colB"], ["colC"]], query_obj["orderby"])
 
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_uses_sortby(self, super_query_obj):
+    def test_query_obj_uses_sortby(self):
         datasource = self.get_datasource_mock()
-        form_data = {"timeseries_limit_metric": "__time__", "order_desc": False}
-        super_query_obj.return_value = {"metrics": ["colA", "colB"]}
-        test_viz = viz.TableViz(datasource, form_data)
-        query_obj = test_viz.query_obj()
-        self.assertEqual(["colA", "colB", "__time__"], query_obj["metrics"])
-        self.assertEqual([("__time__", True)], query_obj["orderby"])
+        form_data = {
+            "metrics": ["colA", "colB"],
+            "order_desc": False,
+        }
+
+        def run_test(metric):
+            form_data["timeseries_limit_metric"] = metric
+            test_viz = viz.TableViz(datasource, form_data)
+            query_obj = test_viz.query_obj()
+            self.assertEqual(["colA", "colB", metric], query_obj["metrics"])
+            self.assertEqual([(metric, True)], query_obj["orderby"])
+
+        run_test("simple_metric")
+        run_test(
+            {
+                "label": "adhoc_metric",
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "sort_column",},
+            }
+        )
 
     def test_should_be_timeseries_raises_when_no_granularity(self):
         datasource = self.get_datasource_mock()
         form_data = {"include_time": True}
-        test_viz = viz.TableViz(datasource, form_data)
         with self.assertRaises(Exception):
+            test_viz = viz.TableViz(datasource, form_data)
             test_viz.should_be_timeseries()
 
     def test_adhoc_metric_with_sortby(self):

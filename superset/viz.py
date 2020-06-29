@@ -60,6 +60,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     JS_MAX_INTEGER,
     merge_extra_filters,
+    QueryMode,
     to_adhoc,
 )
 
@@ -112,7 +113,7 @@ class BaseViz:
         self.query = ""
         self.token = self.form_data.get("token", "token_" + uuid.uuid4().hex[:8])
 
-        self.groupby = self.form_data.get("groupby") or []
+        self.groupby: List[str] = self.form_data.get("groupby") or []
         self.time_shift = timedelta()
 
         self.status: Optional[str] = None
@@ -297,8 +298,10 @@ class BaseViz:
     def query_obj(self) -> QueryObjectDict:
         """Building a query object"""
         form_data = self.form_data
+
         self.process_query_filters()
-        gb = form_data.get("groupby") or []
+
+        gb = self.groupby
         metrics = self.all_metrics or []
         columns = form_data.get("columns") or []
         groupby = list(set(gb + columns))
@@ -346,7 +349,7 @@ class BaseViz:
             "where": form_data.get("where", ""),
         }
 
-        d = {
+        return {
             "granularity": granularity,
             "from_dttm": from_dttm,
             "to_dttm": to_dttm,
@@ -360,7 +363,6 @@ class BaseViz:
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
         }
-        return d
 
     @property
     def cache_timeout(self) -> int:
@@ -572,6 +574,52 @@ class TableViz(BaseViz):
     is_timeseries = False
     enforce_numerical_metrics = False
 
+    def process_metrics(self) -> None:
+        """Process form data and store parsed column configs.
+           1. Determine query mode based on form_data params.
+                - Use `query_mode` if it has a valid value
+                - Set as RAW mode if `all_columns` is set
+                - Otherwise defaults to AGG mode
+           2. Determine output columns based on query mode.
+        """
+        # Verify form data first: if not specifying query mode, then cannot have both
+        # GROUP BY and RAW COLUMNS.
+        fd = self.form_data
+        if (
+            not fd.get("query_mode")
+            and fd.get("all_columns")
+            and (fd.get("groupby") or fd.get("metrics") or fd.get("percent_metrics"))
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "You cannot use [Columns] in combination with "
+                    "[Group By]/[Metrics]/[Percentage Metrics]. "
+                    "Please choose one or the other."
+                )
+            )
+
+        super().process_metrics()
+
+        self.query_mode: QueryMode = QueryMode.get(fd.get("query_mode")) or (
+            # infer query mode from the presence of other fields
+            QueryMode.RAW
+            if len(fd.get("all_columns") or []) > 0
+            else QueryMode.AGGREGATE
+        )
+
+        columns: List[str] = []  # output columns sans time and percent_metric column
+        percent_columns: List[str] = []  # percent columns that needs extra computation
+
+        if self.query_mode == QueryMode.RAW:
+            columns = utils.get_metric_names(fd.get("all_columns") or [])
+        else:
+            columns = utils.get_metric_names(self.groupby + (fd.get("metrics") or []))
+            percent_columns = utils.get_metric_names(fd.get("percent_metrics") or [])
+
+        self.columns = columns
+        self.percent_columns = percent_columns
+        self.is_timeseries = self.should_be_timeseries()
+
     def should_be_timeseries(self) -> bool:
         fd = self.form_data
         # TODO handle datasource-type-specific code in datasource
@@ -587,36 +635,24 @@ class TableViz(BaseViz):
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
         fd = self.form_data
-
-        if fd.get("all_columns") and (
-            fd.get("groupby") or fd.get("metrics") or fd.get("percent_metrics")
-        ):
-            raise QueryObjectValidationError(
-                _(
-                    "Choose either fields to [Group By] and [Metrics] and/or "
-                    "[Percentage Metrics], or [Columns], not both"
-                )
-            )
-
-        sort_by = fd.get("timeseries_limit_metric")
-        if fd.get("all_columns"):
+        if self.query_mode == QueryMode.RAW:
             d["columns"] = fd.get("all_columns")
-            d["groupby"] = []
             order_by_cols = fd.get("order_by_cols") or []
             d["orderby"] = [json.loads(t) for t in order_by_cols]
-        elif sort_by:
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(d["metrics"]):
-                d["metrics"] += [sort_by]
-            d["orderby"] = [(sort_by, not fd.get("order_desc", True))]
-
-        # Add all percent metrics that are not already in the list
-        if "percent_metrics" in fd:
-            d["metrics"].extend(
-                m for m in fd["percent_metrics"] or [] if m not in d["metrics"]
-            )
-
-        d["is_timeseries"] = self.should_be_timeseries()
+            # must disable groupby and metrics in raw mode
+            d["groupby"] = []
+            d["metrics"] = []
+            # raw mode does not support timeseries queries
+            d["timeseries_limit_metric"] = None
+            d["timeseries_limit"] = None
+            d["is_timeseries"] = None
+        else:
+            sort_by = fd.get("timeseries_limit_metric")
+            if sort_by:
+                sort_by_label = utils.get_metric_name(sort_by)
+                if sort_by_label not in d["metrics"]:
+                    d["metrics"].append(sort_by)
+                d["orderby"] = [(sort_by, not fd.get("order_desc", True))]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -630,48 +666,27 @@ class TableViz(BaseViz):
         the union of the metrics representing the non-percent and percent metrics. Note
         the percent metrics have yet to be transformed.
         """
-
-        non_percent_metric_columns = []
         # Transform the data frame to adhere to the UI ordering of the columns and
         # metrics whilst simultaneously computing the percentages (via normalization)
         # for the percent metrics.
-
-        if DTTM_ALIAS in df:
-            if self.should_be_timeseries():
-                non_percent_metric_columns.append(DTTM_ALIAS)
-            else:
-                del df[DTTM_ALIAS]
-
-        non_percent_metric_columns.extend(
-            self.form_data.get("all_columns") or self.form_data.get("groupby") or []
-        )
-
-        non_percent_metric_columns.extend(
-            utils.get_metric_names(self.form_data.get("metrics") or [])
-        )
-
-        percent_metric_columns = utils.get_metric_names(
-            self.form_data.get("percent_metrics") or []
-        )
-
         if not df.empty:
+            columns, percent_columns = self.columns, self.percent_columns
+            if DTTM_ALIAS in df and self.is_timeseries:
+                columns = [DTTM_ALIAS] + columns
             df = pd.concat(
                 [
-                    df[non_percent_metric_columns],
+                    df[columns],
                     (
-                        df[percent_metric_columns]
-                        .div(df[percent_metric_columns].sum())
+                        df[percent_columns]
+                        .div(df[percent_columns].sum())
                         .add_prefix("%")
                     ),
                 ],
                 axis=1,
             )
-
-        data = self.handle_js_int_overflow(
+        return self.handle_js_int_overflow(
             dict(records=df.to_dict(orient="records"), columns=list(df.columns))
         )
-
-        return data
 
     def json_dumps(self, obj: Any, sort_keys: bool = False) -> str:
         return json.dumps(

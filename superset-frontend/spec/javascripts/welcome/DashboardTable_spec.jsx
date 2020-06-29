@@ -47,16 +47,18 @@ function setup() {
 describe('DashboardTable', () => {
   beforeEach(fetchMock.resetHistory);
 
-  it('fetches dashboards and renders a ListView', done => {
-    const wrapper = setup();
+  it('fetches dashboards and renders a ListView', () => {
+    return new Promise(done => {
+      const wrapper = setup();
 
-    setTimeout(() => {
-      expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(1);
-      // there's a delay between response and updating state, so manually set it
-      // rather than adding a timeout which could introduce flakiness
-      wrapper.setState({ dashaboards: mockDashboards });
-      expect(wrapper.find(ListView)).toHaveLength(1);
-      done();
+      setTimeout(() => {
+        expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(1);
+        // there's a delay between response and updating state, so manually set it
+        // rather than adding a timeout which could introduce flakiness
+        wrapper.setState({ dashaboards: mockDashboards });
+        expect(wrapper.find(ListView)).toHaveLength(1);
+        done();
+      });
     });
   });
 });

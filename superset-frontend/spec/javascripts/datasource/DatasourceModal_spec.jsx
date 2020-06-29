@@ -68,13 +68,15 @@ describe('DatasourceModal', () => {
     expect(wrapper.find(DatasourceEditor)).toHaveLength(1);
   });
 
-  it('saves on confirm', done => {
-    inst.onConfirmSave();
-    setTimeout(() => {
-      expect(fetchMock.calls(SAVE_ENDPOINT)).toHaveLength(1);
-      expect(props.onDatasourceSave.getCall(0).args[0]).toEqual(SAVE_PAYLOAD);
-      fetchMock.reset();
-      done();
-    }, 0);
+  it('saves on confirm', () => {
+    return new Promise(done => {
+      inst.onConfirmSave();
+      setTimeout(() => {
+        expect(fetchMock.calls(SAVE_ENDPOINT)).toHaveLength(1);
+        expect(props.onDatasourceSave.getCall(0).args[0]).toEqual(SAVE_PAYLOAD);
+        fetchMock.reset();
+        done();
+      }, 0);
+    });
   });
 });

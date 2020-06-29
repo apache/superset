@@ -76,12 +76,15 @@ describe('EditableTitle', () => {
   describe('should handle blur', () => {
     beforeEach(() => {
       editableWrapper.find('input').simulate('click');
-      expect(editableWrapper.find('input').props().type).toBe('text');
     });
     afterEach(() => {
       callback.resetHistory();
       editableWrapper.setState({ title: 'my title' });
       editableWrapper.setState({ lastTitle: 'my title' });
+    });
+
+    it('default input type should be text', () => {
+      expect(editableWrapper.find('input').props().type).toBe('text');
     });
 
     it('should trigger callback', () => {
