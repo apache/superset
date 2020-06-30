@@ -225,6 +225,10 @@ const config = {
     noParse: /(mapbox-gl)\.js$/,
     rules: [
       {
+        test: /datatables\.net.*/,
+        loader: 'imports-loader?define=>false',
+      },
+      {
         test: /\.tsx?$/,
         use: [
           'thread-loader',
