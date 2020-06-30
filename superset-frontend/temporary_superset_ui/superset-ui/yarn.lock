@@ -11784,9 +11784,9 @@ jest-message-util@^25.5.0:
     stack-utils "^1.0.1"
 
 jest-mock-console@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/jest-mock-console/-/jest-mock-console-1.0.0.tgz#0ca2cbea3aa0af4893c8c5f3c2de45c3d4d15629"
-  integrity sha512-bN9UjH+Jd/5Gs+p9Xt9Mai4SoUQRFd3f+ZOSCjlcbuVRUhNvl1y9jvys6L7BUx+1Uz+3jOoaq1O+C6j3sSu7SQ==
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/jest-mock-console/-/jest-mock-console-1.0.1.tgz#07978047735a782d0d4172d1afcabd82f6de9b08"
+  integrity sha512-Bn+Of/cvz9LOEEeEg5IX5Lsf8D2BscXa3Zl5+vSVJl37yiT8gMAPPKfE09jJOwwu1zbagL11QTrH+L/Gn8udOg==
 
 jest-mock@^25.5.0:
   version "25.5.0"
