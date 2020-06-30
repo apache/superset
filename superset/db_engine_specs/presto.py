@@ -51,6 +51,9 @@ QueryStatus = utils.QueryStatus
 config = app.config
 logger = logging.getLogger(__name__)
 
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long
+DEFAULT_PYHIVE_POLL_INTERVAL = 1
+
 
 def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     """
@@ -729,6 +732,9 @@ class PrestoEngineSpec(BaseEngineSpec):
     def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
         """Updates progress information"""
         query_id = query.id
+        poll_interval = query.database.connect_args.get(
+            "poll_interval", DEFAULT_PYHIVE_POLL_INTERVAL
+        )
         logger.info("Query %i: Polling the cursor for progress", query_id)
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
@@ -762,7 +768,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
-            time.sleep(1)
+            time.sleep(poll_interval)
             logger.info("Query %i: Polling the cursor for progress", query_id)
             polled = cursor.poll()
 
