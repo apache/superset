@@ -26,6 +26,7 @@ import rison from 'rison';
 import { Panel } from 'react-bootstrap';
 import { SHORT_DATE, SHORT_TIME } from 'src/utils/common';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import DeleteModal from 'src/components/DeleteModal';
 import ListView from 'src/components/ListView/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
@@ -41,27 +42,30 @@ import Icon from 'src/components/Icon';
 const PAGE_SIZE = 25;
 
 type Owner = {
-  id: string;
   first_name: string;
+  id: string;
   last_name: string;
   username: string;
 };
 
-interface Props {
+interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
 
-interface State {
-  datasets: any[];
+interface DatasetListState {
+  databases: Array<{ text: string; value: number }>;
   datasetCount: number;
-  loading: boolean;
+  datasets: any[];
   filterOperators: FilterOperatorMap;
   filters: Filters;
-  owners: Array<{ text: string; value: number }>;
-  databases: Array<{ text: string; value: number }>;
-  permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
+  loading: boolean;
+  datasetCurrentlyDeleting:
+    | (Dataset & { chart_count: number; dashboard_count: number })
+    | null;
+  owners: Array<{ text: string; value: number }>;
+  permissions: string[];
 }
 
 interface Dataset {
@@ -77,20 +81,24 @@ interface Dataset {
   table_name: string;
 }
 
-class DatasetList extends React.PureComponent<Props, State> {
+class DatasetList extends React.PureComponent<
+  DatasetListProps,
+  DatasetListState
+> {
   static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
   };
 
-  state: State = {
+  state: DatasetListState = {
+    databases: [],
     datasetCount: 0,
+    datasetCurrentlyDeleting: null,
     datasets: [],
     filterOperators: {},
     filters: [],
     lastFetchDataConfig: null,
     loading: true,
     owners: [],
-    databases: [],
     permissions: [],
   };
 
@@ -285,8 +293,8 @@ class DatasetList extends React.PureComponent<Props, State> {
     },
     {
       Cell: ({ row: { state, original } }: any) => {
-        const handleDelete = () => this.handleDatasetDelete(original);
         const handleEdit = () => this.handleDatasetEdit(original);
+        const handleDelete = () => this.openDatasetDeleteModal(original);
         if (!this.canEdit && !this.canDelete) {
           return null;
         }
@@ -309,34 +317,22 @@ class DatasetList extends React.PureComponent<Props, State> {
               </a>
             </TooltipWrapper>
             {this.canDelete && (
-              <ConfirmStatusChange
-                title={t('Please Confirm')}
-                description={
-                  <>
-                    {t('Are you sure you want to delete ')}{' '}
-                    <b>{original.table_name}</b>?
-                  </>
-                }
-                onConfirm={handleDelete}
+              <TooltipWrapper
+                label="delete-action"
+                tooltip={t('Delete')}
+                placement="bottom"
               >
-                {confirmDelete => (
-                  <TooltipWrapper
-                    label="delete-action"
-                    tooltip={t('Delete')}
-                    placement="bottom"
-                  >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={confirmDelete}
-                    >
-                      <Icon name="trash" />
-                    </span>
-                  </TooltipWrapper>
-                )}
-              </ConfirmStatusChange>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handleDelete}
+                >
+                  <Icon name="trash" />
+                </span>
+              </TooltipWrapper>
             )}
+
             {this.canEdit && (
               <TooltipWrapper
                 label="edit-action"
@@ -383,6 +379,10 @@ class DatasetList extends React.PureComponent<Props, State> {
     ],
   };
 
+  closeDatasetDeleteModal = () => {
+    this.setState({ datasetCurrentlyDeleting: null });
+  };
+
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
@@ -404,6 +404,7 @@ class DatasetList extends React.PureComponent<Props, State> {
         if (lastFetchDataConfig) {
           this.fetchData(lastFetchDataConfig);
         }
+        this.setState({ datasetCurrentlyDeleting: null });
         this.props.addSuccessToast(t('Deleted: %s', tableName));
       },
       (err: any) => {
@@ -477,6 +478,25 @@ class DatasetList extends React.PureComponent<Props, State> {
       });
   };
 
+  openDatasetDeleteModal = (dataset: Dataset) =>
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${dataset.id}/related_objects`,
+    })
+      .then(({ json = {} }) => {
+        this.setState({
+          datasetCurrentlyDeleting: {
+            ...dataset,
+            chart_count: json.charts.count,
+            dashboard_count: json.dashboards.count,
+          },
+        });
+      })
+      .catch(() => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching dataset related data'),
+        );
+      });
+
   updateFilters = () => {
     const { filterOperators, owners, databases } = this.state;
     const convertFilter = ({
@@ -527,10 +547,31 @@ class DatasetList extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const { datasets, datasetCount, loading, filters } = this.state;
+    const {
+      datasetCount,
+      datasetCurrentlyDeleting,
+      datasets,
+      filters,
+      loading,
+    } = this.state;
 
     return (
       <>
+        {datasetCurrentlyDeleting && (
+          <DeleteModal
+            description={t(
+              `The datasource ${datasetCurrentlyDeleting.table_name} is linked to 
+              ${datasetCurrentlyDeleting.chart_count} charts that appear on 
+              ${datasetCurrentlyDeleting.dashboard_count} dashboards. 
+              Are you sure you want to continue? Deleting the datasource will break 
+              those objects.`,
+            )}
+            onConfirm={() => this.handleDatasetDelete(datasetCurrentlyDeleting)}
+            onHide={this.closeDatasetDeleteModal}
+            open
+            title={t('Delete Datatset?')}
+          />
+        )}
         <SubMenu {...this.menu} canCreate={this.canCreate} />
         <ConfirmStatusChange
           title={t('Please confirm')}
