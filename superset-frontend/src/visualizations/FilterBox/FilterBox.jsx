@@ -19,13 +19,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { CreatableSelect } from 'src/components/Select';
+import AsyncSelect from 'react-select/async';
 import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 
 import DateFilterControl from '../../explore/components/controls/DateFilterControl';
 import ControlRow from '../../explore/components/ControlRow';
 import Control from '../../explore/components/Control';
 import controls from '../../explore/controls';
+import { getExploreUrl } from '../../explore/exploreUtils';
 import OnPasteSelect from '../../components/Select/OnPasteSelect';
 import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKey';
 import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
@@ -99,11 +102,14 @@ class FilterBox extends React.Component {
       selectedValues: props.origSelectedValues,
       // this flag is used by non-instant filter, to make the apply button enabled/disabled
       hasChanged: false,
+      inputValue: '',
     };
     this.changeFilter = this.changeFilter.bind(this);
     this.onFilterMenuOpen = this.onFilterMenuOpen.bind(this);
     this.onOpenDateFilterControl = this.onOpenDateFilterControl.bind(this);
     this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
+    this.loadOptions = this.loadOptions.bind(this);
+    this.handleInputChange = this.handleInputChange.bind(this);
   }
 
   onFilterMenuOpen(column) {
@@ -160,6 +166,59 @@ class FilterBox extends React.Component {
         this.props.onChange({ [fltr]: vals }, false);
       }
     });
+  }
+
+  loadOptions(inputValue = '') {
+    const filterConfig = {
+      asc: true,
+      clearable: true,
+      column: 'name',
+      key: 'name',
+      label: 'name',
+      multiple: true,
+    };
+    const { filtersChoices } = this.props;
+    const { key, label } = filterConfig;
+    const data = filtersChoices[key] || [];
+    const max = Math.max(...data.map(d => d.metric));
+
+    const form_data = {
+      datasource: this.props.datasource,
+      slice_id: this.props.chartId,
+      adhoc_filters:[{
+        "clause":"WHERE",
+        "comparator":null,
+        "expressionType":"SQL",
+        "sqlExpression":"lower(" + key + ") like '" + inputValue.toLowerCase() + "%'",
+        }]
+    };
+    const url = getExploreUrl({
+      formData: form_data,
+      endpointType: 'json',
+      method: 'GET',
+    });
+
+    return SupersetClient.get({
+      url,
+      signal: null,
+      timeout: 60 * 1000,
+    }).then(({ json }) => {
+      return json.data.name
+        .filter(opt => opt.id !== null)
+        .filter(opt => opt.id.toLowerCase().includes(inputValue.toLowerCase()))
+        .map(opt => {
+          const perc = Math.round((opt.metric / max) * 100);
+          const color = 'lightgrey';
+          const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
+          const style = { backgroundImage };
+          return { value: opt.id, label: opt.id, style };
+        });
+    });
+  }
+
+  handleInputChange(newValue) {
+    const inputValue = newValue.replace(/\W/g, '');
+    this.setState({ inputValue });
   }
 
   renderDateFilter() {
@@ -228,7 +287,7 @@ class FilterBox extends React.Component {
   }
   renderSelect(filterConfig) {
     const { filtersChoices } = this.props;
-    const { selectedValues } = this.state;
+    const { selectedValues, inputValue } = this.state;
 
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
@@ -273,20 +332,24 @@ class FilterBox extends React.Component {
 
     return (
       <OnPasteSelect
+        cacheOptions
+        loadOptions={this.loadOptions}
+        defaultOptions
+        onInputChange={this.handleInputChange}
         key={key}
         placeholder={t('Select [%s]', label)}
         isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
         isClearable={filterConfig.clearable}
-        value={value}
-        options={data
-          .filter(opt => opt.id !== null)
-          .map(opt => {
-            const perc = Math.round((opt.metric / max) * 100);
-            const color = 'lightgrey';
-            const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
-            const style = { backgroundImage };
-            return { value: opt.id, label: opt.id, style };
-          })}
+        value={value || inputValue}
+        // options={data
+        //   .filter(opt => opt.id !== null)
+        //   .map(opt => {
+        //     const perc = Math.round((opt.metric / max) * 100);
+        //     const color = 'lightgrey';
+        //     const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
+        //     const style = { backgroundImage };
+        //     return { value: opt.id, label: opt.id, style };
+        //   })}
         onChange={newValue => {
           // avoid excessive re-renders
           if (newValue !== value) {
@@ -297,7 +360,8 @@ class FilterBox extends React.Component {
         onMenuOpen={() => this.onFilterMenuOpen(key)}
         onBlur={this.onFilterMenuClose}
         onMenuClose={this.onFilterMenuClose}
-        selectWrap={CreatableSelect}
+        // selectWrap={CreatableSelect}
+        selectWrap={AsyncSelect}
         noResultsText={t('No results found')}
       />
     );
