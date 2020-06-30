@@ -249,6 +249,10 @@ class Database(
     def default_schemas(self) -> List[str]:
         return self.get_extra().get("default_schemas", [])
 
+    @property
+    def connect_args(self) -> Dict[str, Any]:
+        return self.get_extra().get("engine_params", {}).get("connect_args", {})
+
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
         cls, uri: str
