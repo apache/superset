@@ -118,7 +118,7 @@ If you decide to join the [Community Slack](https://join.slack.com/t/apache-supe
 - We strive to make this community a warm place for people from all industries, use cases, geographies, and backgrounds. Harassment of any kind is not acceptable and won’t be tolerated. 
 - Please follow the guidelines as outlined in the Superset Community code of conduct here.
 
-**2. Use the right channel.**
+**2. Use the right channel.** 
 
 - Channels are an effective way to organize and focus discussions while also empowering members to opt-in to the types of content they’re interested in. When questions are posted or discussions are started in the wrong channel, it dilutes the trust of the members in the channel and, more practically, makes it harder for your questions to be answered.  
 
