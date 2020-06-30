@@ -4339,7 +4339,7 @@
   dependencies:
     "@vx/point" "0.0.136"
 
-"@vx/event@0.0.197":
+"@vx/event@0.0.197", "@vx/event@^0.0.197":
   version "0.0.197"
   resolved "https://registry.yarnpkg.com/@vx/event/-/event-0.0.197.tgz#4aff7648deae894f13dbfdd07b28d65b15d77d92"
   integrity sha512-XXoehTuQArxCVCfjr0I2hVKu8uy9wMXNn413LHZV5z7Vsyabut9opsqdMriF/OjX4W6a3pigHqetYS2DP1VAaA==
@@ -4360,14 +4360,6 @@
   integrity sha512-wEwqKsxrzoRV/A9Va/f/CHPmV9asrTH/kW/f88jCydsVXd5W/nrJZiVpozN2Zr1Ernv0i1gW5896FWo/LHRg0A==
   dependencies:
     "@vx/point" "0.0.165"
-
-"@vx/event@^0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/event/-/event-0.0.196.tgz#be859997ef127819ef14a79e2447d737134b7dd2"
-  integrity sha512-Tv9AaXce3tuT5bSjvi26pHWVdRll44iYJVAmT4SPIK3brVxejngiL/Z+HCWeNjBg+YXexzKETJSbp8XjwFxohw==
-  dependencies:
-    "@types/react" "*"
-    "@vx/point" "0.0.196"
 
 "@vx/glyph@0.0.140":
   version "0.0.140"
@@ -4529,11 +4521,6 @@
   version "0.0.165"
   resolved "https://registry.yarnpkg.com/@vx/point/-/point-0.0.165.tgz#7ebde5da3d86954fe31a56f923f31550f0b4b867"
   integrity sha512-spoHilhjcWNgccrSzBUPw+PXV81tYxeyEWBkgr35aGVU4m7YT86Ywvfemwp7AVVGPn+XJHrhB0ujAhDoyqFPoA==
-
-"@vx/point@0.0.196":
-  version "0.0.196"
-  resolved "https://registry.yarnpkg.com/@vx/point/-/point-0.0.196.tgz#68c3c18dd09a5254f67f8c4b245d554d2c5d4502"
-  integrity sha512-dya1cwMwqQtRP+oQwC5x0N2bCiKENGqDd6Y4IuAKwkWMvxpjOAPoOlglZ9QKLDPzftUqLFxrjrsT5RlHTxyKnw==
 
 "@vx/point@0.0.197":
   version "0.0.197"
