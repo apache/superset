@@ -32,7 +32,7 @@ from sqlalchemy.exc import ArgumentError
 import tests.test_app
 from superset import app, db, security_manager
 from superset.exceptions import CertificateException, SupersetException
-from superset.models.core import Database
+from superset.models.core import Database, Log
 from superset.utils.cache_manager import CacheManager
 from superset.utils.core import (
     base_json_conv,
@@ -1316,3 +1316,31 @@ class TestUtils(SupersetTestCase):
             )
 
             self.assertEqual(slc, None)
+
+    def test_log_this(self) -> None:
+        # TODO: Add additional scenarios.
+        self.login(username="admin")
+        slc = self.get_slice("Girls", db.session)
+        dashboard_id = 1
+
+        resp = self.get_json_resp(
+            f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/"
+            + f'?form_data={{"slice_id": {slc.id}}}&dashboard_id={dashboard_id}',
+            {"form_data": json.dumps(slc.viz.form_data)},
+        )
+
+        record = (
+            db.session.query(Log)
+            .filter_by(action="explore_json", slice_id=slc.id)
+            .order_by(Log.dttm.desc())
+            .first()
+        )
+
+        self.assertEqual(record.dashboard_id, dashboard_id)
+        self.assertEqual(json.loads(record.json)["dashboard_id"], str(dashboard_id))
+        self.assertEqual(json.loads(record.json)["form_data"]["slice_id"], slc.id)
+
+        self.assertEqual(
+            json.loads(record.json)["form_data"]["viz_type"],
+            slc.viz.form_data["viz_type"],
+        )
