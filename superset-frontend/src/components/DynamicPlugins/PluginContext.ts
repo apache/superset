@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 
 export enum LoadingStatus {
   LOADING = 'loading',
@@ -11,15 +11,13 @@ export type PluginContextType = {
   error: null | {
     message: string;
   };
-  pluginKeys: string[];
 };
 
 export const initialPluginContext: PluginContextType = {
   status: LoadingStatus.LOADING,
   error: null,
-  pluginKeys: [],
 };
 
-const PluginContext = React.createContext(initialPluginContext);
+export const PluginContext = React.createContext(initialPluginContext);
 
-export default PluginContext;
+export const useDynamicPluginContext = () => useContext(PluginContext);

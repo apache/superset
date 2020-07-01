@@ -20,6 +20,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, FormControl } from 'react-bootstrap';
 import { t, getChartMetadataRegistry } from '@superset-ui/core';
+import {
+  useDynamicPluginContext,
+  LoadingStatus,
+} from 'src/components/DynamicPlugins/PluginContext';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Modal from 'src/common/components/Modal';
 import Label from 'src/components/Label';
@@ -91,6 +95,19 @@ const DEFAULT_ORDER = [
 ];
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
+
+function VizSupportValidation({ vizType }) {
+  const state = useDynamicPluginContext();
+  if (state.status === LoadingStatus.LOADING || registry.has(vizType)) {
+    return null;
+  }
+  return (
+    <div className="text-danger">
+      <i className="fa fa-exclamation-circle text-danger" />{' '}
+      <small>{t('This visualization type is not supported.')}</small>
+    </div>
+  );
+}
 
 const VizTypeControl = props => {
   const [showModal, setShowModal] = useState(false);
@@ -185,12 +202,7 @@ const VizTypeControl = props => {
           <Label onClick={toggleModal} bsStyle={labelBsStyle}>
             {registry.has(value) ? registry.get(value).name : `${value}`}
           </Label>
-          {!registry.has(value) && (
-            <div className="text-danger">
-              <i className="fa fa-exclamation-circle text-danger" />{' '}
-              <small>{t('This visualization type is not supported.')}</small>
-            </div>
-          )}
+          <VizSupportValidation vizType={value} />
         </>
       </Tooltip>
       <Modal

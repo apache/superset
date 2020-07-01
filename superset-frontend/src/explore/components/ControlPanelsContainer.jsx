@@ -23,9 +23,13 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
 import { css } from '@emotion/core';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
+import {
+  PluginContext,
+  LoadingStatus,
+} from 'src/components/DynamicPlugins/PluginContext';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -74,6 +78,9 @@ const ControlPanelsTabs = styled(Tabs)`
 `;
 
 class ControlPanelsContainer extends React.Component {
+  // trigger updates to the component when async plugins load
+  static contextType = PluginContext;
+
   constructor(props) {
     super(props);
 
@@ -182,6 +189,15 @@ class ControlPanelsContainer extends React.Component {
   }
 
   render() {
+    const cpRegistry = getChartControlPanelRegistry();
+    if (
+      !cpRegistry.has(this.props.form_data.viz_type) &&
+      this.context.status === LoadingStatus.LOADING
+    ) {
+      // TODO [dynamic-plugins] replace with a snazzy loading spinner
+      return 'loading...';
+    }
+
     const querySectionsToRender = [];
     const displaySectionsToRender = [];
     this.sectionsToRender().forEach(section => {

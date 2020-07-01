@@ -23,6 +23,10 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, logging, t } from '@superset-ui/core';
 
+import {
+  PluginContext,
+  LoadingStatus,
+} from 'src/components/DynamicPlugins/PluginContext';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -75,6 +79,8 @@ const Styles = styled.div`
 `;
 
 class ExploreViewContainer extends React.Component {
+  static contextType = PluginContext; // eslint-disable-line react/sort-comp
+
   constructor(props) {
     super(props);
 
@@ -326,6 +332,9 @@ class ExploreViewContainer extends React.Component {
   }
 
   render() {
+    if (this.context.status === LoadingStatus.LOADING) {
+      return 'loading...';
+    }
     if (this.props.standalone) {
       return this.renderChartContainer();
     }
