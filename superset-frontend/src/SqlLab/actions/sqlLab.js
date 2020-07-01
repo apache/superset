@@ -350,7 +350,7 @@ export function runQuery(query) {
       sql: query.sql,
       sql_editor_id: query.sqlEditorId,
       tab: query.tab,
-      tmp_table_name: query.tempTableName,
+      tmp_table_name: query.tempTable,
       select_as_cta: query.ctas,
       ctas_method: query.ctas_method,
       templateParams: query.templateParams,
