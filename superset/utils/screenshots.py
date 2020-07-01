@@ -326,4 +326,4 @@ class DashboardScreenshot(BaseScreenshot):
 
     @property
     def url(self) -> str:
-        return get_url_path("Superset.dashboard", dashboard_id=self.model_id)
+        return get_url_path("Superset.dashboard", dashboard_id_or_slug=self.model_id)
