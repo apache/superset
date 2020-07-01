@@ -662,19 +662,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         chart = self.datamodel.get(pk, self._base_filters)
         if not chart:
             return self.response_404()
+
+        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if kwargs["rison"].get("force", False):
             logger.info("Triggering thumbnail compute ASYNC")
-            cache_chart_thumbnail.delay(chart.id, force=True)
+            cache_chart_thumbnail.delay(url, chart.digest, force=True)
             return self.response(202, message="OK Async")
         # fetch the chart screenshot using the current user and cache if set
-        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
             cache=thumbnail_cache
         )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
             logger.info("Triggering thumbnail compute ASYNC")
-            cache_chart_thumbnail.delay(chart.id, force=True)
+            cache_chart_thumbnail.delay(url, chart.digest, force=True)
             return self.response(202, message="OK Async")
         # If digests
         if chart.digest != digest:

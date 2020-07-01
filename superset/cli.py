@@ -34,6 +34,7 @@ from superset import app, appbuilder, security_manager
 from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
+from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
 
@@ -524,7 +525,13 @@ def compute_thumbnails(
                 action = "Processing"
             msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
             click.secho(msg, fg="green")
-            func(model.id, force=force)
+            if friendly_type == "chart":
+                url = get_url_path(
+                    "Superset.slice", slice_id=model.id, standalone="true"
+                )
+            else:
+                url = get_url_path("Superset.dashboard", dashboard_id=model.id)
+            func(url, model.digest, force=force)
 
     if not charts_only:
         compute_generic_thumbnail(

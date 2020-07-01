@@ -50,14 +50,14 @@ def cache_chart_thumbnail(
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
 def cache_dashboard_thumbnail(
-    dashboard_id: int, force: bool = False, thumb_size=None
+    url: str, digest: str, force: bool = False, thumb_size=None
 ) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logging.warning("No cache set, refusing to compute")
             return
         logger.info("Caching dashboard %i", dashboard_id)
-        screenshot = DashboardScreenshot(model_id=dashboard_id)
+        screenshot = DashboardScreenshot(url, digest)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         screenshot.compute_and_cache(
             user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,

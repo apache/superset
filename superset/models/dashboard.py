@@ -476,7 +476,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 def event_after_dashboard_changed(  # pylint: disable=unused-argument
     mapper: Mapper, connection: Connection, target: Dashboard
 ) -> None:
-    cache_dashboard_thumbnail.delay(target.id, force=True)
+    url = get_url_path("Superset.dashboard", dashboard_id=target.id)
+    cache_dashboard_thumbnail.delay(url, target.digest, force=True)
 
 
 # events for updating tags
