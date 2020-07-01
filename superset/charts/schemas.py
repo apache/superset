@@ -28,7 +28,7 @@ from superset.utils import core as utils
 # RISON/JSON schemas for query parameters
 #
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-width_heiht_schema = {
+width_height_schema = {
     "type": "array",
     "items": [{"type": "integer"}, {"type": "integer"},],
 }
@@ -41,8 +41,8 @@ screenshot_query_schema = {
     "type": "object",
     "properties": {
         "force": {"type": "boolean"},
-        "window_size": width_heiht_schema,
-        "thumb_size": width_heiht_schema,
+        "window_size": width_height_schema,
+        "thumb_size": width_height_schema,
     },
 }
 

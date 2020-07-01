@@ -610,8 +610,8 @@ def sync_tags() -> None:
     add_favorites(db.engine, metadata)
 
 
-@with_appcontext
 @superset.command()
+@with_appcontext
 def alert():
     """Run the scheduler loop"""
     # TODO DELETE ME this CLI command is just for testing purposes

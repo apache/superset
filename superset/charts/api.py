@@ -617,7 +617,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 FileWrapper(img), mimetype="image/png", direct_passthrough=True
             )
         # TODO: return an empty image
-        return None
+        return self.response_404()
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
     @protect()
@@ -665,7 +665,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if kwargs["rison"].get("force", False):
-            logger.info("Triggering thumbnail compute ASYNC")
+            logger.info(
+                "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
+            )
             cache_chart_thumbnail.delay(url, chart.digest, force=True)
             return self.response(202, message="OK Async")
         # fetch the chart screenshot using the current user and cache if set
@@ -674,7 +676,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
-            logger.info("Triggering thumbnail compute ASYNC")
+            logger.info(
+                "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
+            )
             cache_chart_thumbnail.delay(url, chart.digest, force=True)
             return self.response(202, message="OK Async")
         # If digests
