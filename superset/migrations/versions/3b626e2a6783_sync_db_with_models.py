@@ -45,10 +45,10 @@ def upgrade():
             table="slices",
             columns={"druid_datasource_id"},
             referenced="datasources",
-            db=db,
+            database=db,
         )
         slices_ibfk_2 = generic_find_constraint_name(
-            table="slices", columns={"table_id"}, referenced="tables", db=db
+            table="slices", columns={"table_id"}, referenced="tables", database=db
         )
 
         with op.batch_alter_table("slices") as batch_op:
@@ -119,7 +119,7 @@ def downgrade():
             table="columns",
             columns={"datasource_name"},
             referenced="datasources",
-            db=db,
+            database=db,
         )
         with op.batch_alter_table("columns") as batch_op:
             batch_op.drop_constraint(fk_columns, type_="foreignkey")

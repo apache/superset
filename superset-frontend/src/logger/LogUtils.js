@@ -25,7 +25,6 @@ export const LOG_ACTIONS_MOUNT_DASHBOARD = 'mount_dashboard';
 export const LOG_ACTIONS_MOUNT_EXPLORER = 'mount_explorer';
 
 export const LOG_ACTIONS_SELECT_DASHBOARD_TAB = 'select_dashboard_tab';
-export const LOG_ACTIONS_RENDER_CHART_CONTAINER = 'render_chart_container';
 export const LOG_ACTIONS_FORCE_REFRESH_CHART = 'force_refresh_chart';
 export const LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS = 'change_explore_controls';
 export const LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD = 'toggle_edit_dashboard';
@@ -57,7 +56,6 @@ export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_OMNIBAR_TRIGGERED,
   LOG_ACTIONS_MOUNT_EXPLORER,
-  LOG_ACTIONS_RENDER_CHART_CONTAINER,
 ]);
 
 export const Logger = {

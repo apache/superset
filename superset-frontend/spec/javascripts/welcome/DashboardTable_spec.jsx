@@ -21,6 +21,7 @@ import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import ListView from 'src/components/ListView/ListView';
 import DashboardTable from 'src/welcome/DashboardTable';
@@ -36,22 +37,28 @@ fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
 
 function setup() {
   // use mount because data fetching is triggered on mount
-  return mount(<DashboardTable />, { context: { store } });
+  return mount(<DashboardTable />, {
+    context: { store },
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
 }
 
 describe('DashboardTable', () => {
   beforeEach(fetchMock.resetHistory);
 
-  it('fetches dashboards and renders a ListView', done => {
-    const wrapper = setup();
+  it('fetches dashboards and renders a ListView', () => {
+    return new Promise(done => {
+      const wrapper = setup();
 
-    setTimeout(() => {
-      expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(1);
-      // there's a delay between response and updating state, so manually set it
-      // rather than adding a timeout which could introduce flakiness
-      wrapper.setState({ dashaboards: mockDashboards });
-      expect(wrapper.find(ListView)).toHaveLength(1);
-      done();
+      setTimeout(() => {
+        expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(1);
+        // there's a delay between response and updating state, so manually set it
+        // rather than adding a timeout which could introduce flakiness
+        wrapper.setState({ dashaboards: mockDashboards });
+        expect(wrapper.find(ListView)).toHaveLength(1);
+        done();
+      });
     });
   });
 });

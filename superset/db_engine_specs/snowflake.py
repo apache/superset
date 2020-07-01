@@ -22,6 +22,7 @@ from urllib import parse
 from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pylint: disable=unused-import
@@ -74,11 +75,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
+        if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}')"
-        if tt == "DATETIME":
+        if tt == utils.TemporalType.DATETIME:
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
-        if tt == "TIMESTAMP":
+        if tt == utils.TemporalType.TIMESTAMP:
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
         return None
 

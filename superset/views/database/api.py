@@ -22,6 +22,7 @@ from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from superset import event_logger
 from superset.models.core import Database
+from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi
 from superset.views.database.decorators import check_datasource_access
@@ -49,7 +50,7 @@ def get_indexes_metadata(
     return indexes
 
 
-def get_col_type(col: Dict) -> str:
+def get_col_type(col: Dict[Any, Any]) -> str:
     try:
         dtype = f"{col['type']}"
     except Exception:  # pylint: disable=broad-except
@@ -60,7 +61,7 @@ def get_col_type(col: Dict) -> str:
 
 def get_table_metadata(
     database: Database, table_name: str, schema_name: Optional[str]
-) -> Dict:
+) -> Dict[str, Any]:
     """
         Get table metadata information, including type, pk, fks.
         This function raises SQLAlchemyError when a schema is not found.
@@ -71,7 +72,7 @@ def get_table_metadata(
     :param schema_name: schema name
     :return: Dict table metadata ready for API response
     """
-    keys: List = []
+    keys = []
     columns = database.get_columns(table_name, schema_name)
     primary_key = database.get_pk_constraint(table_name, schema_name)
     if primary_key and primary_key.get("constrained_columns"):
@@ -81,7 +82,7 @@ def get_table_metadata(
     foreign_keys = get_foreign_keys_metadata(database, table_name, schema_name)
     indexes = get_indexes_metadata(database, table_name, schema_name)
     keys += foreign_keys + indexes
-    payload_columns: List[Dict] = []
+    payload_columns: List[Dict[str, Any]] = []
     for col in columns:
         dtype = get_col_type(col)
         payload_columns.append(
@@ -89,7 +90,7 @@ def get_table_metadata(
                 "name": col["name"],
                 "type": dtype.split("(")[0] if "(" in dtype else dtype,
                 "longType": dtype,
-                "keys": [k for k in keys if col["name"] in k.get("column_names")],
+                "keys": [k for k in keys if col["name"] in k["column_names"]],
             }
         )
     return {
@@ -127,6 +128,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         "database_name",
         "expose_in_sqllab",
         "allow_ctas",
+        "allow_cvas",
         "force_ctas_schema",
         "allow_run_async",
         "allow_dml",
@@ -134,6 +136,8 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         "allow_csv_upload",
         "allows_subquery",
         "allows_cost_estimate",
+        "allows_virtual_table_explore",
+        "explore_database_id",
         "backend",
         "function_names",
     ]
@@ -145,14 +149,14 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Database"
 
-    @expose(
-        "/<int:pk>/table/<string:table_name>/<string:schema_name>/", methods=["GET"]
-    )
+    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
     @check_datasource_access
     @safe
     @event_logger.log_this
-    def table_metadata(self, database: Database, table_name: str, schema_name: str):
+    def table_metadata(
+        self, database: Database, table_name: str, schema_name: str
+    ) -> FlaskResponse:
         """ Table schema info
         ---
         get:
@@ -171,7 +175,7 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: schema
+            name: schema_name
             description: Table schema
           responses:
             200:
@@ -269,25 +273,22 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         """
         self.incr_stats("init", self.table_metadata.__name__)
         try:
-            table_info: Dict = get_table_metadata(database, table_name, schema_name)
+            table_info = get_table_metadata(database, table_name, schema_name)
         except SQLAlchemyError as ex:
             self.incr_stats("error", self.table_metadata.__name__)
             return self.response_422(error_msg_from_exception(ex))
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
-    @expose("/<int:pk>/select_star/<string:table_name>/", methods=["GET"])
-    @expose(
-        "/<int:pk>/select_star/<string:table_name>/<string:schema_name>/",
-        methods=["GET"],
-    )
+    @expose("/<int:pk>/select_star/<table_name>/", methods=["GET"])
+    @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
     @check_datasource_access
     @safe
     @event_logger.log_this
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
-    ):
+    ) -> FlaskResponse:
         """ Table schema info
         ---
         get:

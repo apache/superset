@@ -17,10 +17,10 @@
 from tests.test_app import app  # isort:skip
 
 from superset.db_engine_specs.athena import AthenaEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class AthenaTestCase(DbEngineSpecTestCase):
+class TestAthenaDbEngineSpec(TestDbEngineSpec):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 

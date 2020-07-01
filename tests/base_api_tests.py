@@ -48,7 +48,7 @@ class Model1Api(BaseSupersetModelRestApi):
 appbuilder.add_api(Model1Api)
 
 
-class BaseModelRestApiTests(SupersetTestCase):
+class TestBaseModelRestApi(SupersetTestCase):
     def test_default_missing_declaration_get(self):
         """
             API: Test default missing declaration on get

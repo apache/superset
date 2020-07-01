@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, Set
+
 from sqlalchemy import or_
+from sqlalchemy.orm import Query
 
 from superset import security_manager
 from superset.views.base import BaseFilter
@@ -22,17 +25,14 @@ from superset.views.base import BaseFilter
 
 class DatabaseFilter(BaseFilter):
     # TODO(bogdan): consider caching.
-    def schema_access_databases(self):  # noqa pylint: disable=no-self-use
-        found_databases = set()
-        for vm in security_manager.user_view_menu_names("schema_access"):
-            database_name, _ = security_manager.unpack_schema_perm(vm)
-            found_databases.add(database_name)
-        return found_databases
+    def schema_access_databases(self) -> Set[str]:  # noqa pylint: disable=no-self-use
+        return {
+            security_manager.unpack_schema_perm(vm)[0]
+            for vm in security_manager.user_view_menu_names("schema_access")
+        }
 
-    def apply(
-        self, query, func
-    ):  # noqa pylint: disable=unused-argument,arguments-differ
-        if security_manager.all_database_access():
+    def apply(self, query: Query, value: Any) -> Query:
+        if security_manager.can_access_all_databases():
             return query
         database_perms = security_manager.user_view_menu_names("database_access")
         # TODO(bogdan): consider adding datasource access here as well.

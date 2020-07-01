@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument
+import dataclasses
 import hashlib
 import json
 import logging
@@ -33,7 +34,6 @@ from typing import (
     Union,
 )
 
-import dataclasses
 import pandas as pd
 import sqlparse
 from flask import g
@@ -151,7 +151,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
 
     # default matching patterns for identifying column types
-    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern, ...]] = {
+    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern[Any], ...]] = {
         utils.DbColumnType.NUMERIC: (
             re.compile(r".*DOUBLE.*", re.IGNORECASE),
             re.compile(r".*FLOAT.*", re.IGNORECASE),
@@ -296,7 +296,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return select_exprs
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
         """
 
         :param cursor: Cursor instance
@@ -311,8 +311,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def expand_data(
-        cls, columns: List[dict], data: List[dict]
-    ) -> Tuple[List[dict], List[dict], List[dict]]:
+        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
+    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
         Some engines support expanding nested fields. See implementation in Presto
         spec for details.
@@ -332,7 +332,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         set to is_dttm=True. Note that this only gets called when new
         columns are detected/created"""
         # TODO: Fix circular import caused by importing TableColumn
-        pass
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -401,9 +400,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 .limit(limit)
             )
             return database.compile_sqla_query(qry)
-        elif LimitMethod.FORCE_LIMIT:
+
+        if LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.set_or_update_query_limit(limit)
+
         return sql
 
     @classmethod
@@ -465,7 +466,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Create table from contents of a csv. Note: this method does not create
         metadata for the table.
         """
-        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs,)
+        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs)
         engine = cls.get_engine(database)
         if table.schema:
             # only add schema when it is preset and non empty
@@ -529,7 +530,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         for handling the cursor and updating progress information in the
         query object"""
         # TODO: Fix circular import error caused by importing sql_lab.Query
-        pass
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
@@ -573,14 +573,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Some database drivers like presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
-        pass
 
     @classmethod
     def patch(cls) -> None:
         """
         TODO: Improve docstring and refactor implementation in Hive
         """
-        pass
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> List[str]:
@@ -645,7 +643,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str],
         database: "Database",
         query: Select,
-        columns: Optional[List] = None,
+        columns: Optional[List[Dict[str, str]]] = None,
     ) -> Optional[Select]:
         """
         Add a where clause to a query to reference only the most recent partition
@@ -925,7 +923,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return []
 
     @staticmethod
-    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple]:
+    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple[Any, ...]]:
         """
         Convert pyodbc.Row objects from `fetch_data` to tuples.
 

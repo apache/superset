@@ -30,7 +30,7 @@ from superset.utils.core import get_example_database, QueryStatus
 from .base_tests import SupersetTestCase
 
 
-class DatabaseModelTestCase(SupersetTestCase):
+class TestDatabaseModel(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("requests"), "requests not installed"
     )
@@ -173,7 +173,7 @@ class DatabaseModelTestCase(SupersetTestCase):
             self.assertEqual(df.iat[0, 0], ";")
 
 
-class SqlaTableModelTestCase(SupersetTestCase):
+class TestSqlaTableModel(SupersetTestCase):
     def test_get_timestamp_expression(self):
         tbl = self.get_table_by_name("birth_names")
         ds_col = tbl.get_column("ds")
@@ -329,6 +329,6 @@ class SqlaTableModelTestCase(SupersetTestCase):
         )
 
         data_for_slices = tbl.data_for_slices([slc])
-        self.assertEquals(len(data_for_slices["columns"]), 0)
-        self.assertEquals(len(data_for_slices["metrics"]), 1)
-        self.assertEquals(len(data_for_slices["verbose_map"].keys()), 2)
+        self.assertEqual(len(data_for_slices["columns"]), 0)
+        self.assertEqual(len(data_for_slices["metrics"]), 1)
+        self.assertEqual(len(data_for_slices["verbose_map"].keys()), 2)

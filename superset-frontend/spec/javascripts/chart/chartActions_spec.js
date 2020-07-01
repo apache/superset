@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import URI from 'urijs';
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
@@ -25,17 +26,16 @@ import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/chart/chartAction';
 
 describe('chart actions', () => {
-  const V1_URL = '/http//localhost/api/v1/chart/data';
   const MOCK_URL = '/mockURL';
   let dispatch;
-  let urlStub;
+  let getExploreUrlStub;
+  let getChartDataUriStub;
   let metadataRegistryStub;
   let buildQueryRegistryStub;
   let fakeMetadata;
 
   const setupDefaultFetchMock = () => {
     fetchMock.post(MOCK_URL, { json: {} }, { overwriteRoutes: true });
-    fetchMock.post(V1_URL, { json: {} }, { overwriteRoutes: true });
   };
 
   beforeAll(() => {
@@ -46,20 +46,30 @@ describe('chart actions', () => {
 
   beforeEach(() => {
     dispatch = sinon.spy();
-    urlStub = sinon
+    getExploreUrlStub = sinon
       .stub(exploreUtils, 'getExploreUrl')
       .callsFake(() => MOCK_URL);
+    getChartDataUriStub = sinon
+      .stub(exploreUtils, 'getChartDataUri')
+      .callsFake(() => URI(MOCK_URL));
     fakeMetadata = { useLegacyApi: true };
     metadataRegistryStub = sinon
       .stub(chartlib, 'getChartMetadataRegistry')
       .callsFake(() => ({ get: () => fakeMetadata }));
     buildQueryRegistryStub = sinon
       .stub(chartlib, 'getChartBuildQueryRegistry')
-      .callsFake(() => ({ get: () => () => ({ some_param: 'fake query!' }) }));
+      .callsFake(() => ({
+        get: () => () => ({
+          some_param: 'fake query!',
+          result_type: 'full',
+          result_format: 'json',
+        }),
+      }));
   });
 
   afterEach(() => {
-    urlStub.restore();
+    getExploreUrlStub.restore();
+    getChartDataUriStub.restore();
     fetchMock.resetHistory();
     metadataRegistryStub.restore();
     buildQueryRegistryStub.restore();
@@ -67,16 +77,20 @@ describe('chart actions', () => {
 
   describe('v1 API', () => {
     beforeEach(() => {
-      fakeMetadata = { useLegacyApi: false };
+      fakeMetadata = { viz_type: 'my_viz', useLegacyApi: false };
     });
 
     it('should query with the built query', async () => {
       const actionThunk = actions.postChartFormData({});
       await actionThunk(dispatch);
 
-      expect(fetchMock.calls(V1_URL)).toHaveLength(1);
-      expect(fetchMock.calls(V1_URL)[0][1].body).toBe(
-        JSON.stringify({ some_param: 'fake query!' }),
+      expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+      expect(fetchMock.calls(MOCK_URL)[0][1].body).toBe(
+        JSON.stringify({
+          some_param: 'fake query!',
+          result_type: 'full',
+          result_format: 'json',
+        }),
       );
       expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
     });
@@ -153,6 +167,7 @@ describe('chart actions', () => {
 
       return actionThunk(dispatch).then(() => {
         // chart update, trigger query, update form data, fail
+        expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
         expect(dispatch.callCount).toBe(5);
         expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
         setupDefaultFetchMock();

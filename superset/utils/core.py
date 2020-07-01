@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """Utility functions used across Superset"""
 import decimal
 import errno
@@ -39,6 +38,7 @@ from email.utils import formatdate
 from enum import Enum
 from time import struct_time
 from timeit import default_timer
+from types import TracebackType
 from typing import (
     Any,
     Callable,
@@ -51,6 +51,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    Type,
     TYPE_CHECKING,
     Union,
 )
@@ -69,10 +70,12 @@ from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder import SQLA
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.engine import Connection, Engine
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
 
@@ -81,7 +84,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import Metric
+from superset.typing import FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
 try:
@@ -90,6 +93,7 @@ except ImportError:
     pass
 
 if TYPE_CHECKING:
+    from superset.connectors.base.models import BaseDatasource
     from superset.models.core import Database
 
 
@@ -121,7 +125,7 @@ except NameError:
     pass
 
 
-def flasher(msg: str, severity: str) -> None:
+def flasher(msg: str, severity: str = "message") -> None:
     """Flask's flash if available, logging call if not"""
     try:
         flash(msg, severity)
@@ -142,17 +146,19 @@ class _memoized:
     should account for instance variable changes.
     """
 
-    def __init__(self, func, watch=()):
+    def __init__(
+        self, func: Callable[..., Any], watch: Optional[Tuple[str, ...]] = None
+    ) -> None:
         self.func = func
-        self.cache = {}
+        self.cache: Dict[Any, Any] = {}
         self.is_method = False
-        self.watch = watch or []
+        self.watch = watch or ()
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         key = [args, frozenset(kwargs.items())]
         if self.is_method:
             key.append(tuple([getattr(args[0], v, None) for v in self.watch]))
-        key = tuple(key)
+        key = tuple(key)  # type: ignore
         if key in self.cache:
             return self.cache[key]
         try:
@@ -164,26 +170,29 @@ class _memoized:
             # Better to not cache than to blow up entirely.
             return self.func(*args, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the function's docstring."""
-        return self.func.__doc__
+        return self.func.__doc__ or ""
 
-    def __get__(self, obj, objtype):
+    def __get__(
+        self, obj: Any, objtype: Type[Any]
+    ) -> functools.partial:  # type: ignore
         if not self.is_method:
             self.is_method = True
-        """Support instance methods."""
+        # Support instance methods.
         return functools.partial(self.__call__, obj)
 
 
-def memoized(func: Optional[Callable] = None, watch: Optional[List[str]] = None):
+def memoized(
+    func: Optional[Callable[..., Any]] = None, watch: Optional[Tuple[str, ...]] = None
+) -> Callable[..., Any]:
     if func:
         return _memoized(func)
-    else:
 
-        def wrapper(f):
-            return _memoized(f, watch)
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        return _memoized(f, watch)
 
-        return wrapper
+    return wrapper
 
 
 def parse_js_uri_path_item(
@@ -229,7 +238,7 @@ def cast_to_num(value: Union[float, int, str]) -> Optional[Union[float, int]]:
         return None
 
 
-def list_minus(l: List, minus: List) -> List:
+def list_minus(l: List[Any], minus: List[Any]) -> List[Any]:
     """Returns l without what is in minus
 
     >>> list_minus([1, 2, 3], [2])
@@ -238,7 +247,7 @@ def list_minus(l: List, minus: List) -> List:
     return [o for o in l if o not in minus]
 
 
-def parse_human_datetime(s: str) -> datetime:
+def parse_human_datetime(human_readable: str) -> datetime:
     """
     Returns ``datetime.datetime`` from human readable strings
 
@@ -260,23 +269,30 @@ def parse_human_datetime(s: str) -> datetime:
     True
     """
     try:
-        dttm = parse(s)
-    except Exception:
+        dttm = parse(human_readable)
+    except Exception:  # pylint: disable=broad-except
         try:
             cal = parsedatetime.Calendar()
-            parsed_dttm, parsed_flags = cal.parseDT(s)
+            parsed_dttm, parsed_flags = cal.parseDT(human_readable)
             # when time is not extracted, we 'reset to midnight'
             if parsed_flags & 2 == 0:
                 parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
             dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
         except Exception as ex:
             logger.exception(ex)
-            raise ValueError("Couldn't parse date string [{}]".format(s))
+            raise ValueError("Couldn't parse date string [{}]".format(human_readable))
     return dttm
 
 
-def dttm_from_timetuple(d: struct_time) -> datetime:
-    return datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
+def dttm_from_timetuple(date_: struct_time) -> datetime:
+    return datetime(
+        date_.tm_year,
+        date_.tm_mon,
+        date_.tm_mday,
+        date_.tm_hour,
+        date_.tm_min,
+        date_.tm_sec,
+    )
 
 
 def md5_hex(data: str) -> str:
@@ -284,22 +300,22 @@ def md5_hex(data: str) -> str:
 
 
 class DashboardEncoder(json.JSONEncoder):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.sort_keys = True
 
     # pylint: disable=E0202
-    def default(self, o):
+    def default(self, o: Any) -> Dict[Any, Any]:
         try:
             vals = {k: v for k, v in o.__dict__.items() if k != "_sa_instance_state"}
             return {"__{}__".format(o.__class__.__name__): vals}
-        except Exception:
-            if type(o) == datetime:
+        except Exception:  # pylint: disable=broad-except
+            if isinstance(o, datetime):
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
-            return json.JSONEncoder(sort_keys=True).default(self, o)
+            return json.JSONEncoder(sort_keys=True).default(o)
 
 
-def parse_human_timedelta(s: Optional[str]) -> timedelta:
+def parse_human_timedelta(human_readable: Optional[str]) -> timedelta:
     """
     Returns ``datetime.datetime`` from natural language time deltas
 
@@ -308,9 +324,16 @@ def parse_human_timedelta(s: Optional[str]) -> timedelta:
     """
     cal = parsedatetime.Calendar()
     dttm = dttm_from_timetuple(datetime.now().timetuple())
-    d = cal.parse(s or "", dttm)[0]
-    d = datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
-    return d - dttm
+    date_ = cal.parse(human_readable or "", dttm)[0]
+    date_ = datetime(
+        date_.tm_year,
+        date_.tm_mon,
+        date_.tm_mday,
+        date_.tm_hour,
+        date_.tm_min,
+        date_.tm_sec,
+    )
+    return date_ - dttm
 
 
 def parse_past_timedelta(delta_str: str) -> timedelta:
@@ -327,36 +350,23 @@ def parse_past_timedelta(delta_str: str) -> timedelta:
     )
 
 
-class JSONEncodedDict(TypeDecorator):
+class JSONEncodedDict(TypeDecorator):  # pylint: disable=abstract-method
     """Represents an immutable structure as a json-encoded string."""
 
     impl = TEXT
 
-    def process_bind_param(self, value, dialect):
-        if value is not None:
-            value = json.dumps(value)
+    def process_bind_param(
+        self, value: Optional[Dict[Any, Any]], dialect: str
+    ) -> Optional[str]:
+        return json.dumps(value) if value is not None else None
 
-        return value
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            value = json.loads(value)
-        return value
-
-
-def datetime_f(dttm):
-    """Formats datetime to take less room when it is recent"""
-    if dttm:
-        dttm = dttm.isoformat()
-        now_iso = datetime.now().isoformat()
-        if now_iso[:10] == dttm[:10]:
-            dttm = dttm[11:]
-        elif now_iso[:4] == dttm[:4]:
-            dttm = dttm[5:]
-    return "<nobr>{}</nobr>".format(dttm)
+    def process_result_value(
+        self, value: Optional[str], dialect: str
+    ) -> Optional[Dict[Any, Any]]:
+        return json.loads(value) if value is not None else None
 
 
-def format_timedelta(td: timedelta) -> str:
+def format_timedelta(time_delta: timedelta) -> str:
     """
     Ensures negative time deltas are easily interpreted by humans
 
@@ -366,38 +376,40 @@ def format_timedelta(td: timedelta) -> str:
     >>> format_timedelta(td)
     '-1 day, 5:06:00'
     """
-    if td < timedelta(0):
-        return "-" + str(abs(td))
-    else:
-        # Change this to format positive time deltas the way you want
-        return str(td)
+    if time_delta < timedelta(0):
+        return "-" + str(abs(time_delta))
+
+    # Change this to format positive time deltas the way you want
+    return str(time_delta)
 
 
-def base_json_conv(obj):
+def base_json_conv(  # pylint: disable=inconsistent-return-statements,too-many-return-statements
+    obj: Any,
+) -> Any:
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
         return int(obj)
-    elif isinstance(obj, np.bool_):
+    if isinstance(obj, np.bool_):
         return bool(obj)
-    elif isinstance(obj, np.ndarray):
+    if isinstance(obj, np.ndarray):
         return obj.tolist()
-    elif isinstance(obj, set):
+    if isinstance(obj, set):
         return list(obj)
-    elif isinstance(obj, decimal.Decimal):
+    if isinstance(obj, decimal.Decimal):
         return float(obj)
-    elif isinstance(obj, uuid.UUID):
+    if isinstance(obj, uuid.UUID):
         return str(obj)
-    elif isinstance(obj, timedelta):
+    if isinstance(obj, timedelta):
         return format_timedelta(obj)
-    elif isinstance(obj, bytes):
+    if isinstance(obj, bytes):
         try:
             return obj.decode("utf-8")
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             return "[bytes]"
 
 
-def json_iso_dttm_ser(obj, pessimistic: Optional[bool] = False):
+def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
     """
     json serializer that deals with dates
 
@@ -413,21 +425,19 @@ def json_iso_dttm_ser(obj, pessimistic: Optional[bool] = False):
     else:
         if pessimistic:
             return "Unserializable [{}]".format(type(obj))
-        else:
-            raise TypeError(
-                "Unserializable object {} of type {}".format(obj, type(obj))
-            )
+
+        raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
     return obj
 
 
-def pessimistic_json_iso_dttm_ser(obj):
+def pessimistic_json_iso_dttm_ser(obj: Any) -> str:
     """Proxy to call json_iso_dttm_ser in a pessimistic way
 
     If one of object is not serializable to json, it will still succeed"""
     return json_iso_dttm_ser(obj, pessimistic=True)
 
 
-def json_int_dttm_ser(obj):
+def json_int_dttm_ser(obj: Any) -> float:
     """json serializer that deals with dates"""
     val = base_json_conv(obj)
     if val is not None:
@@ -441,7 +451,7 @@ def json_int_dttm_ser(obj):
     return obj
 
 
-def json_dumps_w_dates(payload):
+def json_dumps_w_dates(payload: Dict[Any, Any]) -> str:
     return json.dumps(payload, default=json_int_dttm_ser)
 
 
@@ -468,7 +478,7 @@ def error_msg_from_exception(ex: Exception) -> str:
     return msg or str(ex)
 
 
-def markdown(s: str, markup_wrap: Optional[bool] = False) -> str:
+def markdown(raw: str, markup_wrap: Optional[bool] = False) -> str:
     safe_markdown_tags = [
         "h1",
         "h2",
@@ -500,18 +510,18 @@ def markdown(s: str, markup_wrap: Optional[bool] = False) -> str:
         "img": ["src", "alt", "title"],
         "a": ["href", "alt", "title"],
     }
-    s = md.markdown(
-        s or "",
+    safe = md.markdown(
+        raw or "",
         extensions=[
             "markdown.extensions.tables",
             "markdown.extensions.fenced_code",
             "markdown.extensions.codehilite",
         ],
     )
-    s = bleach.clean(s, safe_markdown_tags, safe_markdown_attrs)
+    safe = bleach.clean(safe, safe_markdown_tags, safe_markdown_attrs)
     if markup_wrap:
-        s = Markup(s)
-    return s
+        safe = Markup(safe)
+    return safe
 
 
 def readfile(file_path: str) -> Optional[str]:
@@ -521,19 +531,23 @@ def readfile(file_path: str) -> Optional[str]:
 
 
 def generic_find_constraint_name(
-    table: str, columns: Set[str], referenced: str, db: SQLA
-):
+    table: str, columns: Set[str], referenced: str, database: SQLA
+) -> Optional[str]:
     """Utility to find a constraint name in alembic migrations"""
-    t = sa.Table(table, db.metadata, autoload=True, autoload_with=db.engine)
+    tbl = sa.Table(
+        table, database.metadata, autoload=True, autoload_with=database.engine
+    )
 
-    for fk in t.foreign_key_constraints:
+    for fk in tbl.foreign_key_constraints:
         if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
             return fk.name
 
+    return None
 
-def generic_find_fk_constraint_name(
-    table: str, columns: Set[str], referenced: str, insp
-):
+
+def generic_find_fk_constraint_name(  # pylint: disable=invalid-name
+    table: str, columns: Set[str], referenced: str, insp: Inspector
+) -> Optional[str]:
     """Utility to find a foreign-key constraint name in alembic migrations"""
     for fk in insp.get_foreign_keys(table):
         if (
@@ -542,8 +556,12 @@ def generic_find_fk_constraint_name(
         ):
             return fk["name"]
 
+    return None
 
-def generic_find_fk_constraint_names(table, columns, referenced, insp):
+
+def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
+    table: str, columns: Set[str], referenced: str, insp: Inspector
+) -> Set[str]:
     """Utility to find foreign-key constraint names in alembic migrations"""
     names = set()
 
@@ -557,12 +575,16 @@ def generic_find_fk_constraint_names(table, columns, referenced, insp):
     return names
 
 
-def generic_find_uq_constraint_name(table, columns, insp):
+def generic_find_uq_constraint_name(
+    table: str, columns: Set[str], insp: Inspector
+) -> Optional[str]:
     """Utility to find a unique constraint name in alembic migrations"""
 
     for uq in insp.get_unique_constraints(table):
         if columns == set(uq["column_names"]):
             return uq["name"]
+
+    return None
 
 
 def get_datasource_full_name(
@@ -578,34 +600,26 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
         try:
             json.loads(obj)
         except Exception as ex:
-            logger.error(f"JSON is not valid {ex}")
+            logger.error("JSON is not valid %s", str(ex))
             raise SupersetException("JSON is not valid")
 
 
-def table_has_constraint(table, name, db):
-    """Utility to find a constraint name in alembic migrations"""
-    t = sa.Table(table, db.metadata, autoload=True, autoload_with=db.engine)
-
-    for c in t.constraints:
-        if c.name == name:
-            return True
-    return False
-
-
-class timeout:
+class timeout:  # pylint: disable=invalid-name
     """
     To be used in a ``with`` block and timeout its content.
     """
 
-    def __init__(self, seconds=1, error_message="Timeout"):
+    def __init__(self, seconds: int = 1, error_message: str = "Timeout") -> None:
         self.seconds = seconds
         self.error_message = error_message
 
-    def handle_timeout(self, signum, frame):
+    def handle_timeout(  # pylint: disable=unused-argument
+        self, signum: int, frame: Any
+    ) -> None:
         logger.error("Process timed out")
         raise SupersetTimeoutException(self.error_message)
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         try:
             signal.signal(signal.SIGALRM, self.handle_timeout)
             signal.alarm(self.seconds)
@@ -613,7 +627,9 @@ class timeout:
             logger.warning("timeout can't be used in the current context")
             logger.exception(ex)
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(  # pylint: disable=redefined-outer-name,unused-variable,redefined-builtin
+        self, type: Any, value: Any, traceback: TracebackType
+    ) -> None:
         try:
             signal.alarm(0)
         except ValueError as ex:
@@ -621,9 +637,11 @@ class timeout:
             logger.exception(ex)
 
 
-def pessimistic_connection_handling(some_engine):
+def pessimistic_connection_handling(some_engine: Engine) -> None:
     @event.listens_for(some_engine, "engine_connect")
-    def ping_connection(connection, branch):
+    def ping_connection(  # pylint: disable=unused-variable
+        connection: Connection, branch: bool
+    ) -> None:
         if branch:
             # 'branch' refers to a sub-connection of a connection,
             # we don't want to bother pinging on these.
@@ -658,7 +676,7 @@ def pessimistic_connection_handling(some_engine):
             connection.should_close_with_result = save_should_close_with_result
 
 
-class QueryStatus:
+class QueryStatus:  # pylint: disable=too-few-public-methods
     """Enum-type class for query statuses"""
 
     STOPPED: str = "stopped"
@@ -670,7 +688,14 @@ class QueryStatus:
     TIMED_OUT: str = "timed_out"
 
 
-def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, config):
+def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
+    granter: User,
+    user: User,
+    role: Role,
+    datasource: "BaseDatasource",
+    tpl_name: str,
+    config: Dict[str, Any],
+) -> None:
     msg = render_template(
         tpl_name, granter=granter, user=user, role=role, datasource=datasource
     )
@@ -689,7 +714,7 @@ def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name, conf
     )
 
 
-def send_email_smtp(
+def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many-locals
     to: str,
     subject: str,
     html_content: str,
@@ -759,30 +784,36 @@ def send_email_smtp(
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
 
-    send_MIME_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
+    send_mime_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
 
 
-def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
-    SMTP_HOST = config["SMTP_HOST"]
-    SMTP_PORT = config["SMTP_PORT"]
-    SMTP_USER = config["SMTP_USER"]
-    SMTP_PASSWORD = config["SMTP_PASSWORD"]
-    SMTP_STARTTLS = config["SMTP_STARTTLS"]
-    SMTP_SSL = config["SMTP_SSL"]
+def send_mime_email(
+    e_from: str,
+    e_to: List[str],
+    mime_msg: MIMEMultipart,
+    config: Dict[str, Any],
+    dryrun: bool = False,
+) -> None:
+    smtp_host = config["SMTP_HOST"]
+    smtp_port = config["SMTP_PORT"]
+    smtp_user = config["SMTP_USER"]
+    smtp_password = config["SMTP_PASSWORD"]
+    smtp_starttls = config["SMTP_STARTTLS"]
+    smtp_ssl = config["SMTP_SSL"]
 
     if not dryrun:
-        s = (
-            smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
-            if SMTP_SSL
-            else smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        smtp = (
+            smtplib.SMTP_SSL(smtp_host, smtp_port)
+            if smtp_ssl
+            else smtplib.SMTP(smtp_host, smtp_port)
         )
-        if SMTP_STARTTLS:
-            s.starttls()
-        if SMTP_USER and SMTP_PASSWORD:
-            s.login(SMTP_USER, SMTP_PASSWORD)
-        logger.info("Sent an email to " + str(e_to))
-        s.sendmail(e_from, e_to, mime_msg.as_string())
-        s.quit()
+        if smtp_starttls:
+            smtp.starttls()
+        if smtp_user and smtp_password:
+            smtp.login(smtp_user, smtp_password)
+        logger.info("Sent an email to %s", str(e_to))
+        smtp.sendmail(e_from, e_to, mime_msg.as_string())
+        smtp.quit()
     else:
         logger.info("Dryrun enabled, email notification content is below:")
         logger.info(mime_msg.as_string())
@@ -791,7 +822,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
 def get_email_address_list(address_string: str) -> List[str]:
     address_string_list: List[str] = []
     if isinstance(address_string, str):
-        address_string_list = re.split(",|\s|;", address_string)
+        address_string_list = re.split(r",|\s|;", address_string)
     return [x.strip() for x in address_string_list if x.strip()]
 
 
@@ -800,7 +831,7 @@ def choicify(values: Iterable[Any]) -> List[Tuple[Any, Any]]:
     return [(v, v) for v in values]
 
 
-def zlib_compress(data):
+def zlib_compress(data: Union[bytes, str]) -> bytes:
     """
     Compress things in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
@@ -827,15 +858,17 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
     return decompressed.decode("utf-8") if decode else decompressed
 
 
-def to_adhoc(filt, expressionType="SIMPLE", clause="where"):
+def to_adhoc(
+    filt: Dict[str, Any], expression_type: str = "SIMPLE", clause: str = "where"
+) -> Dict[str, Any]:
     result = {
         "clause": clause.upper(),
-        "expressionType": expressionType,
+        "expressionType": expression_type,
         "filterOptionName": str(uuid.uuid4()),
-        "isExtra": True if filt.get("isExtra") is True else False,
+        "isExtra": bool(filt.get("isExtra")),
     }
 
-    if expressionType == "SIMPLE":
+    if expression_type == "SIMPLE":
         result.update(
             {
                 "comparator": filt.get("val"),
@@ -843,13 +876,15 @@ def to_adhoc(filt, expressionType="SIMPLE", clause="where"):
                 "subject": filt.get("col"),
             }
         )
-    elif expressionType == "SQL":
+    elif expression_type == "SQL":
         result.update({"sqlExpression": filt.get(clause)})
 
     return result
 
 
-def merge_extra_filters(form_data: dict):
+def merge_extra_filters(  # pylint: disable=too-many-branches
+    form_data: Dict[str, Any]
+) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
     # interactive filters like the ones emitted by the "Filter Box" visualization.
@@ -872,11 +907,11 @@ def merge_extra_filters(form_data: dict):
         }
         # Grab list of existing filters 'keyed' on the column and operator
 
-        def get_filter_key(f):
+        def get_filter_key(f: Dict[str, Any]) -> str:
             if "expressionType" in f:
                 return "{}__{}".format(f["subject"], f["operator"])
-            else:
-                return "{}__{}".format(f["col"], f["op"])
+
+            return "{}__{}".format(f["col"], f["op"])
 
         existing_filters = {}
         for existing in form_data["adhoc_filters"]:
@@ -887,7 +922,9 @@ def merge_extra_filters(form_data: dict):
             ):
                 existing_filters[get_filter_key(existing)] = existing["comparator"]
 
-        for filtr in form_data["extra_filters"]:
+        for filtr in form_data[  # pylint: disable=too-many-nested-blocks
+            "extra_filters"
+        ]:
             filtr["isExtra"] = True
             # Pull out time filters/options and merge into form data
             if date_options.get(filtr["col"]):
@@ -939,13 +976,15 @@ def user_label(user: User) -> Optional[str]:
     if user:
         if user.first_name and user.last_name:
             return user.first_name + " " + user.last_name
-        else:
-            return user.username
+
+        return user.username
 
     return None
 
 
-def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
+def get_or_create_db(
+    database_name: str, sqlalchemy_uri: str, *args: Any, **kwargs: Any
+) -> "Database":
     from superset import db
     from superset.models import core as models
 
@@ -954,7 +993,7 @@ def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     )
 
     if not database:
-        logger.info(f"Creating database reference for {database_name}")
+        logger.info("Creating database reference for %s", database_name)
         database = models.Database(database_name=database_name, *args, **kwargs)
         db.session.add(database)
 
@@ -996,7 +1035,7 @@ def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
     return [get_metric_name(metric) for metric in metrics]
 
 
-def ensure_path_exists(path: str):
+def ensure_path_exists(path: str) -> None:
     try:
         os.makedirs(path)
     except OSError as exc:
@@ -1004,14 +1043,14 @@ def ensure_path_exists(path: str):
             raise
 
 
-def get_since_until(
+def get_since_until(  # pylint: disable=too-many-arguments
     time_range: Optional[str] = None,
     since: Optional[str] = None,
     until: Optional[str] = None,
     time_shift: Optional[str] = None,
     relative_start: Optional[str] = None,
     relative_end: Optional[str] = None,
-) -> Tuple[datetime, datetime]:
+) -> Tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -1037,8 +1076,12 @@ def get_since_until(
 
     """
     separator = " : "
-    relative_start = parse_human_datetime(relative_start if relative_start else "today")  # type: ignore
-    relative_end = parse_human_datetime(relative_end if relative_end else "today")  # type: ignore
+    relative_start = parse_human_datetime(  # type: ignore
+        relative_start if relative_start else "today"
+    )
+    relative_end = parse_human_datetime(  # type: ignore
+        relative_end if relative_end else "today"
+    )
     common_time_frames = {
         "Last day": (
             relative_start - relativedelta(days=1),  # type: ignore
@@ -1067,8 +1110,8 @@ def get_since_until(
             since, until = time_range.split(separator, 1)
             if since and since not in common_time_frames:
                 since = add_ago_to_since(since)
-            since = parse_human_datetime(since)  # type: ignore
-            until = parse_human_datetime(until)  # type: ignore
+            since = parse_human_datetime(since) if since else None  # type: ignore
+            until = parse_human_datetime(until) if until else None  # type: ignore
         elif time_range in common_time_frames:
             since, until = common_time_frames[time_range]
         elif time_range == "No filter":
@@ -1089,7 +1132,7 @@ def get_since_until(
         since = since or ""
         if since:
             since = add_ago_to_since(since)
-        since = parse_human_datetime(since)  # type: ignore
+        since = parse_human_datetime(since) if since else None  # type: ignore
         until = parse_human_datetime(until) if until else relative_end  # type: ignore
 
     if time_shift:
@@ -1119,33 +1162,37 @@ def add_ago_to_since(since: str) -> str:
     return since
 
 
-def convert_legacy_filters_into_adhoc(fd):
+def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
+    form_data: FormData,
+) -> None:
     mapping = {"having": "having_filters", "where": "filters"}
 
-    if not fd.get("adhoc_filters"):
-        fd["adhoc_filters"] = []
+    if not form_data.get("adhoc_filters"):
+        form_data["adhoc_filters"] = []
 
         for clause, filters in mapping.items():
-            if clause in fd and fd[clause] != "":
-                fd["adhoc_filters"].append(to_adhoc(fd, "SQL", clause))
+            if clause in form_data and form_data[clause] != "":
+                form_data["adhoc_filters"].append(to_adhoc(form_data, "SQL", clause))
 
-            if filters in fd:
-                for filt in filter(lambda x: x is not None, fd[filters]):
-                    fd["adhoc_filters"].append(to_adhoc(filt, "SIMPLE", clause))
+            if filters in form_data:
+                for filt in filter(lambda x: x is not None, form_data[filters]):
+                    form_data["adhoc_filters"].append(to_adhoc(filt, "SIMPLE", clause))
 
     for key in ("filters", "having", "having_filters", "where"):
-        if key in fd:
-            del fd[key]
+        if key in form_data:
+            del form_data[key]
 
 
-def split_adhoc_filters_into_base_filters(fd):
+def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
+    form_data: FormData,
+) -> None:
     """
     Mutates form data to restructure the adhoc filters in the form of the four base
     filters, `where`, `having`, `filters`, and `having_filters` which represent
     free form where sql, free form having sql, structured where clauses and structured
     having clauses.
     """
-    adhoc_filters = fd.get("adhoc_filters")
+    adhoc_filters = form_data.get("adhoc_filters")
     if isinstance(adhoc_filters, list):
         simple_where_filters = []
         simple_having_filters = []
@@ -1176,17 +1223,21 @@ def split_adhoc_filters_into_base_filters(fd):
                     sql_where_filters.append(adhoc_filter.get("sqlExpression"))
                 elif clause == "HAVING":
                     sql_having_filters.append(adhoc_filter.get("sqlExpression"))
-        fd["where"] = " AND ".join(["({})".format(sql) for sql in sql_where_filters])
-        fd["having"] = " AND ".join(["({})".format(sql) for sql in sql_having_filters])
-        fd["having_filters"] = simple_having_filters
-        fd["filters"] = simple_where_filters
+        form_data["where"] = " AND ".join(
+            ["({})".format(sql) for sql in sql_where_filters]
+        )
+        form_data["having"] = " AND ".join(
+            ["({})".format(sql) for sql in sql_having_filters]
+        )
+        form_data["having_filters"] = simple_having_filters
+        form_data["filters"] = simple_where_filters
 
 
 def get_username() -> Optional[str]:
     """Get username if within the flask context, otherwise return noffin'"""
     try:
         return g.user.username
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         return None
 
 
@@ -1230,7 +1281,9 @@ def create_ssl_cert_file(certificate: str) -> str:
     return path
 
 
-def time_function(func: Callable, *args, **kwargs) -> Tuple[float, Any]:
+def time_function(
+    func: Callable[..., FlaskResponse], *args: Any, **kwargs: Any
+) -> Tuple[float, Any]:
     """
     Measures the amount of time a function takes to execute in ms
 
@@ -1245,7 +1298,7 @@ def time_function(func: Callable, *args, **kwargs) -> Tuple[float, Any]:
     return (stop - start) * 1000.0, response
 
 
-def MediumText() -> Variant:
+def MediumText() -> Variant:  # pylint:disable=invalid-name
     return Text().with_variant(MEDIUMTEXT(), "mysql")
 
 
@@ -1265,12 +1318,12 @@ def get_stacktrace() -> Optional[str]:
 
 
 def split(
-    s: str, delimiter: str = " ", quote: str = '"', escaped_quote: str = r"\""
+    string: str, delimiter: str = " ", quote: str = '"', escaped_quote: str = r"\""
 ) -> Iterator[str]:
     """
     A split function that is aware of quotes and parentheses.
 
-    :param s: string to split
+    :param string: string to split
     :param delimiter: string defining where to split, usually a comma or space
     :param quote: string, either a single or a double quote
     :param escaped_quote: string representing an escaped quote
@@ -1279,24 +1332,24 @@ def split(
     parens = 0
     quotes = False
     i = 0
-    for j, c in enumerate(s):
+    for j, character in enumerate(string):
         complete = parens == 0 and not quotes
-        if complete and c == delimiter:
-            yield s[i:j]
+        if complete and character == delimiter:
+            yield string[i:j]
             i = j + len(delimiter)
-        elif c == "(":
+        elif character == "(":
             parens += 1
-        elif c == ")":
+        elif character == ")":
             parens -= 1
-        elif c == quote:
-            if quotes and s[j - len(escaped_quote) + 1 : j + 1] != escaped_quote:
+        elif character == quote:
+            if quotes and string[j - len(escaped_quote) + 1 : j + 1] != escaped_quote:
                 quotes = False
             elif not quotes:
                 quotes = True
-    yield s[i:]
+    yield string[i:]
 
 
-def get_iterable(x: Any) -> List:
+def get_iterable(x: Any) -> List[Any]:
     """
     Get an iterable (list) representation of the object.
 
@@ -1305,6 +1358,17 @@ def get_iterable(x: Any) -> List:
     """
 
     return x if isinstance(x, list) else [x]
+
+
+class LenientEnum(Enum):
+    """Enums that do not raise ValueError when value is invalid"""
+
+    @classmethod
+    def get(cls, value: Any) -> Any:
+        try:
+            return super().__new__(cls, value)
+        except ValueError:
+            return None
 
 
 class TimeRangeEndpoint(str, Enum):
@@ -1353,6 +1417,15 @@ class DbColumnType(Enum):
     TEMPORAL = 2
 
 
+class QueryMode(str, LenientEnum):
+    """
+    Whether the query runs on aggregate or returns raw records
+    """
+
+    RAW = "raw"
+    AGGREGATE = "aggregate"
+
+
 class FilterOperator(str, Enum):
     """
     Operators used filter controls
@@ -1367,25 +1440,39 @@ class FilterOperator(str, Enum):
     LIKE = "LIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
-    IN = "IN"
+    IN = "IN"  # pylint: disable=invalid-name
     NOT_IN = "NOT IN"
     REGEX = "REGEX"
 
 
-class ChartDataResponseType(str, Enum):
+class ChartDataResultType(str, Enum):
     """
     Chart data response type
     """
 
+    FULL = "full"
     QUERY = "query"
     RESULTS = "results"
     SAMPLES = "samples"
 
 
-class ChartDataResponseFormat(str, Enum):
+class ChartDataResultFormat(str, Enum):
     """
     Chart data response format
     """
 
     CSV = "csv"
     JSON = "json"
+
+
+class TemporalType(str, Enum):
+    """
+    Supported temporal types
+    """
+
+    DATE = "DATE"
+    DATETIME = "DATETIME"
+    SMALLDATETIME = "SMALLDATETIME"
+    TEXT = "TEXT"
+    TIME = "TIME"
+    TIMESTAMP = "TIMESTAMP"

@@ -37,6 +37,7 @@ describe('ResultSet', () => {
     cache: true,
     query: queries[0],
     height: 0,
+    database: { allows_virtual_table_explore: true },
   };
   const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
   const runningQueryProps = { ...mockedProps, query: runningQuery };
@@ -62,8 +63,8 @@ describe('ResultSet', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     let spy;
     beforeEach(() => {
-      clearQuerySpy.reset();
-      fetchQuerySpy.reset();
+      clearQuerySpy.resetHistory();
+      fetchQuerySpy.resetHistory();
       spy = sinon.spy(ResultSet.prototype, 'UNSAFE_componentWillReceiveProps');
     });
     afterEach(() => {

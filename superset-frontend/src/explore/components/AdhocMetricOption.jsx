@@ -53,7 +53,7 @@ export default class AdhocMetricOption extends React.PureComponent {
     // once the overlay has been opened, the metric/filter will never be
     // considered new again.
     this.props.adhocMetric.isNew = false;
-    this.setState({ overlayShown: false });
+    this.setState({ overlayShown: true });
   }
 
   onOverlayExited() {
@@ -99,7 +99,9 @@ export default class AdhocMetricOption extends React.PureComponent {
           <Label className="option-label adhoc-option">
             {adhocMetric.label}
             <i
-              className={`glyphicon glyphicon-triangle-right adhoc-label-arrow`}
+              className={`fa fa-caret-${
+                this.state.overlayShown ? 'left' : 'right'
+              } adhoc-label-arrow`}
             />
           </Label>
         </OverlayTrigger>

@@ -30,7 +30,7 @@ from superset.utils.core import get_example_database
 from .base_tests import SupersetTestCase
 
 
-class DatabaseApiTests(SupersetTestCase):
+class TestDatabaseApi(SupersetTestCase):
     def test_get_items(self):
         """
             Database API: Test get items
@@ -43,13 +43,16 @@ class DatabaseApiTests(SupersetTestCase):
         expected_columns = [
             "allow_csv_upload",
             "allow_ctas",
+            "allow_cvas",
             "allow_dml",
             "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
             "allows_subquery",
+            "allows_virtual_table_explore",
             "backend",
             "database_name",
+            "explore_database_id",
             "expose_in_sqllab",
             "force_ctas_schema",
             "function_names",

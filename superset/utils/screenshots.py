@@ -18,7 +18,7 @@ import logging
 import time
 import urllib.parse
 from io import BytesIO
-from typing import Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app, request, Response, session, url_for
 from flask_login import login_user
@@ -54,7 +54,7 @@ SELENIUM_HEADSTART = 3
 WindowSize = Tuple[int, int]
 
 
-def get_auth_cookies(user: "User") -> List[Dict]:
+def get_auth_cookies(user: "User") -> List[Dict[Any, Any]]:
     # Login with the user specified to get the reports
     with current_app.test_request_context("/login"):
         login_user(user)
@@ -95,14 +95,14 @@ class AuthWebDriverProxy:
         self,
         driver_type: str,
         window: Optional[WindowSize] = None,
-        auth_func: Optional[Callable] = None,
+        auth_func: Optional[
+            Callable[..., Any]
+        ] = None,  # pylint: disable=bad-whitespace
     ):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-        config_auth_func: Callable = current_app.config.get(
-            "WEBDRIVER_AUTH_FUNC", auth_driver
-        )
-        self._auth_func: Callable = auth_func or config_auth_func
+        config_auth_func = current_app.config.get("WEBDRIVER_AUTH_FUNC", auth_driver)
+        self._auth_func = auth_func or config_auth_func
 
     def create(self) -> WebDriver:
         if self._driver_type == "firefox":
@@ -120,7 +120,7 @@ class AuthWebDriverProxy:
             raise Exception(f"Webdriver name ({self._driver_type}) not supported")
         # Prepare args for the webdriver init
         options.add_argument("--headless")
-        kwargs: Dict = dict(options=options)
+        kwargs: Dict[Any, Any] = dict(options=options)
         kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
         logger.info("Init selenium driver")
         return driver_class(**kwargs)
@@ -132,7 +132,7 @@ class AuthWebDriverProxy:
         return self._auth_func(driver, user)
 
     @staticmethod
-    def destroy(driver: WebDriver, tries=2):
+    def destroy(driver: WebDriver, tries: int = 2) -> None:
         """Destroy a driver"""
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
@@ -157,14 +157,14 @@ class AuthWebDriverProxy:
         driver.set_window_size(*self._window)
         driver.get(url)
         img: Optional[bytes] = None
-        logger.debug(f"Sleeping for {SELENIUM_HEADSTART} seconds")
+        logger.debug("Sleeping for %i seconds", SELENIUM_HEADSTART)
         time.sleep(SELENIUM_HEADSTART)
         try:
-            logger.debug(f"Wait for the presence of {element_name}")
+            logger.debug("Wait for the presence of %s", element_name)
             element = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CLASS_NAME, element_name))
             )
-            logger.debug(f"Wait for .loading to be done")
+            logger.debug("Wait for .loading to be done")
             WebDriverWait(driver, 60).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
@@ -315,13 +315,13 @@ class BaseScreenshot:
     ) -> bytes:
         thumb_size = thumb_size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
-        logger.debug(f"Selenium image size: {img.size}")
+        logger.debug("Selenium image size: %s", str(img.size))
         if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
-            logger.debug(f"Cropping to: {img.size[0]}*{desired_width}")
+            logger.debug("Cropping to: %s*%s", str(img.size[0]), str(desired_width))
             img = img.crop((0, 0, img.size[0], desired_width))
-        logger.debug(f"Resizing to {thumb_size}")
+        logger.debug("Resizing to %s", str(thumb_size))
         img = img.resize(thumb_size, Image.ANTIALIAS)
         new_img = BytesIO()
         if output != "png":

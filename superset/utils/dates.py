@@ -21,7 +21,7 @@ import pytz
 EPOCH = datetime(1970, 1, 1)
 
 
-def datetime_to_epoch(dttm):
+def datetime_to_epoch(dttm: datetime) -> float:
     if dttm.tzinfo:
         dttm = dttm.replace(tzinfo=pytz.utc)
         epoch_with_tz = pytz.utc.localize(EPOCH)
@@ -29,5 +29,5 @@ def datetime_to_epoch(dttm):
     return (dttm - EPOCH).total_seconds() * 1000
 
 
-def now_as_float():
+def now_as_float() -> float:
     return datetime_to_epoch(datetime.utcnow())

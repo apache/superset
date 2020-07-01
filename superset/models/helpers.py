@@ -81,7 +81,7 @@ class ImportMixin:
             for u in cls.__table_args__  # type: ignore
             if isinstance(u, UniqueConstraint)
         ]
-        unique.extend(  # type: ignore
+        unique.extend(
             {c.name} for c in cls.__table__.columns if c.unique  # type: ignore
         )
         return unique
@@ -363,6 +363,7 @@ class AuditMixinNullable(AuditMixin):
             nullable=True,
         )
 
+    @property
     def changed_by_name(self) -> str:
         if self.created_by:
             return escape("{}".format(self.created_by))

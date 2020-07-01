@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
+from typing import List, Union
 
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
@@ -26,16 +27,16 @@ from flask_babel import gettext as __, lazy_gettext as _
 import superset.models.core as models
 from superset import app, db, event_logger
 from superset.constants import RouteMethod
+from superset.typing import FlaskResponse
 from superset.utils import core as utils
-
-from ..base import (
+from superset.views.base import (
     BaseSupersetView,
     check_ownership,
     DeleteMixin,
     generate_download_headers,
     SupersetModelView,
 )
-from .mixin import DashboardMixin
+from superset.views.dashboard.mixin import DashboardMixin
 
 
 class DashboardModelView(
@@ -53,14 +54,16 @@ class DashboardModelView(
 
     @has_access
     @expose("/list/")
-    def list(self):
+    def list(self) -> FlaskResponse:
         if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
             return super().list()
 
         return super().render_app_template()
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
-    def mulexport(self, items):  # pylint: disable=no-self-use
+    def mulexport(  # pylint: disable=no-self-use
+        self, items: Union["DashboardModelView", List["DashboardModelView"]]
+    ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
         ids = "".join("&id={}".format(d.id) for d in items)
@@ -69,7 +72,7 @@ class DashboardModelView(
     @event_logger.log_this
     @has_access
     @expose("/export_dashboards_form")
-    def download_dashboards(self):
+    def download_dashboards(self) -> FlaskResponse:
         if request.args.get("action") == "go":
             ids = request.args.getlist("id")
             return Response(
@@ -81,7 +84,7 @@ class DashboardModelView(
             "superset/export_dashboards.html", dashboards_url="/dashboard/list"
         )
 
-    def pre_add(self, item):
+    def pre_add(self, item: "DashboardModelView") -> None:
         item.slug = item.slug or None
         if item.slug:
             item.slug = item.slug.strip()
@@ -91,11 +94,11 @@ class DashboardModelView(
             item.owners.append(g.user)
         utils.validate_json(item.json_metadata)
         utils.validate_json(item.position_json)
-        owners = [o for o in item.owners]
+        owners = list(item.owners)
         for slc in item.slices:
             slc.owners = list(set(owners) | set(slc.owners))
 
-    def pre_update(self, item):
+    def pre_update(self, item: "DashboardModelView") -> None:
         check_ownership(item)
         self.pre_add(item)
 
@@ -105,7 +108,7 @@ class Dashboard(BaseSupersetView):
 
     @has_access
     @expose("/new/")
-    def new(self):  # pylint: disable=no-self-use
+    def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Creates a new, blank dashboard and redirects to it in edit mode"""
         new_dashboard = models.Dashboard(
             dashboard_title="[ untitled dashboard ]", owners=[g.user]

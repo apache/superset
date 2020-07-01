@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from sqlalchemy import and_, or_
+from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
 from superset.models.core import FavStar
@@ -37,14 +40,13 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     if they wish to see those dashboards which are published first
     """
 
-    def apply(self, query, value):
+    def apply(self, query: Query, value: Any) -> Query:
         user_roles = [role.name.lower() for role in list(get_user_roles())]
         if "admin" in user_roles:
             return query
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
-        all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices)
@@ -54,7 +56,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                     or_(
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
-                        all_datasource_access,
+                        security_manager.can_access_all_datasources(),
                     ),
                 )
             )

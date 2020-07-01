@@ -1,0 +1,45 @@
+name: Prefer TypeScript
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get changed files
+        id: changed
+        uses: trilom/file-changes-action@master
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine if a .js or .jsx file was added
+        id: check
+        run: |
+          js_files_added() {
+            jq -r '
+              map(
+                select((endswith(".js") or endswith(".jsx"))
+              ) | join("\n")
+            ' ${HOME}/files_added.json
+          }
+          echo ::set-output name=js_files_added::$(js_files_added)
+
+      - if: steps.check.outputs.js_files_added
+        name: Add Comment to PR
+        uses: unsplash/comment-on-pr@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          msg: |
+            ### WARNING: Prefer TypeScript
+            
+            Looks like your PR contains new `.js` or `.jsx` files:
+
+            ```
+            ${{steps.check.outputs.js_files_added}}
+            ```
+
+            As decided in [SIP-36](https://github.com/apache/incubator-superset/issues/9101), all new frontend code should be written in TypeScript. Please convert above files to TypeScript then re-request review.

@@ -22,9 +22,9 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/translation';
-import { InfoTooltipWithTrigger } from '@superset-ui/control-utils';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-import { exportChart } from '../../explore/exploreUtils';
+import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
 import Button from '../../components/Button';
 
@@ -77,7 +77,7 @@ class ExploreCtasResultsButton extends React.PureComponent {
         );
 
         // open new window for data visualization
-        exportChart(formData);
+        exploreChart(formData);
       })
       .catch(() => {
         this.props.actions.addDangerToast(

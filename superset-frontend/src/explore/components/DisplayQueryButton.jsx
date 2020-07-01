@@ -41,7 +41,7 @@ import { SupersetClient } from '@superset-ui/connection';
 
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
-import { getExploreUrl } from '../exploreUtils';
+import { getChartDataRequest } from '../../chart/chartAction';
 
 import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
@@ -87,33 +87,33 @@ export class DisplayQueryButton extends React.PureComponent {
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
   }
-  beforeOpen(endpointType) {
+  beforeOpen(resultType) {
     this.setState({ isLoading: true });
-    const url = getExploreUrl({
+
+    getChartDataRequest({
       formData: this.props.latestQueryFormData,
-      endpointType,
-    });
-    SupersetClient.post({
-      url,
-      postPayload: { form_data: this.props.latestQueryFormData },
+      resultFormat: 'json',
+      resultType,
     })
-      .then(({ json }) => {
+      .then(response => {
+        // Currently displaying of only first query is supported
+        const result = response.result[0];
         this.setState({
-          language: json.language,
-          query: json.query,
-          data: json.data,
+          language: result.language,
+          query: result.query,
+          data: result.data,
           isLoading: false,
           error: null,
         });
       })
-      .catch(response =>
+      .catch(response => {
         getClientErrorObject(response).then(({ error, statusText }) => {
           this.setState({
             error: error || statusText || t('Sorry, An error occurred'),
             isLoading: false,
           });
-        }),
-      );
+        });
+      });
   }
   changeFilterText(event) {
     this.setState({ filterText: event.target.value });
@@ -208,13 +208,7 @@ export class DisplayQueryButton extends React.PureComponent {
   }
   renderSamplesModalBody() {
     if (this.state.isLoading) {
-      return (
-        <img
-          className="loading"
-          alt="Loading..."
-          src="/static/assets/images/loading.gif"
-        />
-      );
+      return <Loading />;
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;
     } else if (this.state.data) {
