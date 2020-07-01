@@ -13704,10 +13704,10 @@ number-is-nan@^1.0.0:
   resolved "https://registry.yarnpkg.com/number-is-nan/-/number-is-nan-1.0.1.tgz#097b602b53422a522c1afb8790318336941a011d"
   integrity sha1-CXtgK1NCKlIsGvuHkDGDNpQaAR0=
 
-nvd3-fork@2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/nvd3-fork/-/nvd3-fork-2.0.1.tgz#fa41824eabc6b1e2bb2ea6fda33659e308825b87"
-  integrity sha512-Z20PvqPvVEEyNr1Sk87tbER8RTM6L1PxIkz/FnS51CWEEKu8QwKQBuABVUq8acE5mJKnKj7upi/ezuKNG/cIAA==
+nvd3-fork@2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/nvd3-fork/-/nvd3-fork-2.0.3.tgz#715b56fd5b50c613a019b8e7c7d3329f47fa8f76"
+  integrity sha512-sNyYndO9TH4f/PmoPhr2RATjBELLnwWaoQhgTeVS3iyiLnXn7DATBOFXeK/hH+ZgfCpE/CFuVpSMDsRmAvqHmw==
 
 nvd3@1.8.6:
   version "1.8.6"
