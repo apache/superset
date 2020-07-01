@@ -96,6 +96,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
+    show_select_columns = show_columns + ["table.id"]
+
     list_columns = [
         "id",
         "slice_name",
@@ -118,6 +120,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
+
     order_columns = [
         "slice_name",
         "viz_type",

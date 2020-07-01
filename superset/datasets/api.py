@@ -61,7 +61,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     resource_name = "dataset"
     allow_browser_login = True
-
     class_permission_name = "TableModelView"
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
