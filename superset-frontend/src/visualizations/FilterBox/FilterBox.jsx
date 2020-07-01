@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { CreatableSelect } from 'src/components/Select';
-import AsyncSelect from 'react-select/async';
+import { debounce } from 'lodash';
+import { max as d3Max } from 'd3-array';
+import { AsyncCreatableSelect } from 'src/components/Select';
 import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
@@ -102,14 +103,13 @@ class FilterBox extends React.Component {
       selectedValues: props.origSelectedValues,
       // this flag is used by non-instant filter, to make the apply button enabled/disabled
       hasChanged: false,
-      inputValue: '',
     };
+    this.debouncerCache = {};
+    this.maxValueCache = {};
     this.changeFilter = this.changeFilter.bind(this);
     this.onFilterMenuOpen = this.onFilterMenuOpen.bind(this);
     this.onOpenDateFilterControl = this.onOpenDateFilterControl.bind(this);
     this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
-    this.loadOptions = this.loadOptions.bind(this);
-    this.handleInputChange = this.handleInputChange.bind(this);
   }
 
   onFilterMenuOpen(column) {
@@ -168,57 +168,86 @@ class FilterBox extends React.Component {
     });
   }
 
-  loadOptions(inputValue = '') {
-    const filterConfig = {
-      asc: true,
-      clearable: true,
-      column: 'name',
-      key: 'name',
-      label: 'name',
-      multiple: true,
-    };
-    const { filtersChoices } = this.props;
-    const { key, label } = filterConfig;
-    const data = filtersChoices[key] || [];
-    const max = Math.max(...data.map(d => d.metric));
+  /**
+   * Generate a debounce function that loads options for a specific column
+   */
+  debounceLoadOptions(key) {
+    if (!(key in this.debouncerCache)) {
+      this.debouncerCache[key] = debounce((input, callback) => {
+        this.loadOptions(key, input).then(callback);
+      }, 200);
+    }
+    return this.debouncerCache[key];
+  }
 
-    const form_data = {
-      datasource: this.props.datasource,
-      slice_id: this.props.chartId,
-      adhoc_filters:[{
-        "clause":"WHERE",
-        "comparator":null,
-        "expressionType":"SQL",
-        "sqlExpression":"lower(" + key + ") like '" + inputValue.toLowerCase() + "%'",
-        }]
-    };
-    const url = getExploreUrl({
-      formData: form_data,
-      endpointType: 'json',
-      method: 'GET',
-    });
+  /**
+   * Get known max value of a column
+   */
+  getKnownMax(key, choices) {
+    this.maxValueCache[key] = Math.max(
+      this.maxValueCache[key] || 0,
+      d3Max(choices || this.props.filtersChoices[key] || [], x => x.metric),
+    );
+    return this.maxValueCache[key];
+  }
 
-    return SupersetClient.get({
-      url,
-      signal: null,
-      timeout: 60 * 1000,
-    }).then(({ json }) => {
-      return json.data.name
-        .filter(opt => opt.id !== null)
-        .filter(opt => opt.id.toLowerCase().includes(inputValue.toLowerCase()))
-        .map(opt => {
-          const perc = Math.round((opt.metric / max) * 100);
-          const color = 'lightgrey';
-          const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
-          const style = { backgroundImage };
-          return { value: opt.id, label: opt.id, style };
-        });
+  /**
+   * Transform select options, add bar background
+   */
+  transformOptions(options, max) {
+    const maxValue = max === undefined ? d3Max(options, x => x.metric) : max;
+    return options.map(opt => {
+      const perc = Math.round((opt.metric / maxValue) * 100);
+      const color = 'lightgrey';
+      const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
+      const style = { backgroundImage };
+      return { value: opt.id, label: opt.id, style };
     });
   }
 
-  handleInputChange(newValue) {
-    const inputValue = newValue.replace(/\W/g, '');
-    this.setState({ inputValue });
+  async loadOptions(key, inputValue = '') {
+    const input = inputValue.toLowerCase();
+    const sortAsc = this.props.filtersFields.find(x => x.key === key).asc;
+    const formData = {
+      ...this.props.rawFormData,
+      adhoc_filters: inputValue
+        ? [
+            {
+              clause: 'WHERE',
+              comparator: null,
+              expressionType: 'SQL',
+              // XXX: Evaluate SQL Injection risk
+              sqlExpression: `lower(${key}) like '%${input}%'`,
+            },
+          ]
+        : null,
+    };
+
+    const { json } = await SupersetClient.get({
+      url: getExploreUrl({
+        formData,
+        endpointType: 'json',
+        method: 'GET',
+      }),
+      signal: null,
+      timeout: 60 * 1000,
+    });
+    const options = (json?.data?.[key] || []).filter(x => x.id);
+    if (!options || options.length === 0) {
+      return [];
+    }
+    if (input) {
+      // sort those starts with search query to front
+      options.sort((a, b) => {
+        const labelA = a.id.toLowerCase();
+        const labelB = b.id.toLowerCase();
+        const textOrder = labelB.startsWith(input) - labelA.startsWith(input);
+        return textOrder === 0
+          ? (a.metric - b.metric) * (sortAsc ? 1 : -1)
+          : textOrder;
+      });
+    }
+    return this.transformOptions(options, this.getKnownMax(key, options));
   }
 
   renderDateFilter() {
@@ -287,7 +316,9 @@ class FilterBox extends React.Component {
   }
   renderSelect(filterConfig) {
     const { filtersChoices } = this.props;
-    const { selectedValues, inputValue } = this.state;
+    const { selectedValues } = this.state;
+    this.debouncerCache = {};
+    this.maxValueCache = {};
 
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
@@ -296,7 +327,7 @@ class FilterBox extends React.Component {
         key => selectedValues.hasOwnProperty(key) && key in filtersChoices,
       )
       .forEach(key => {
-        const choices = filtersChoices[key] || [];
+        const choices = filtersChoices[key] || (filtersChoices[key] = []);
         const choiceIds = new Set(choices.map(f => f.id));
         const selectedValuesForKey = Array.isArray(selectedValues[key])
           ? selectedValues[key]
@@ -314,7 +345,6 @@ class FilterBox extends React.Component {
       });
     const { key, label } = filterConfig;
     const data = filtersChoices[key] || [];
-    const max = Math.max(...data.map(d => d.metric));
     let value = selectedValues[key] || null;
 
     // Assign default value if required
@@ -333,23 +363,13 @@ class FilterBox extends React.Component {
     return (
       <OnPasteSelect
         cacheOptions
-        loadOptions={this.loadOptions}
-        defaultOptions
-        onInputChange={this.handleInputChange}
+        loadOptions={this.debounceLoadOptions(key)}
+        defaultOptions={this.transformOptions(data)}
         key={key}
         placeholder={t('Select [%s]', label)}
         isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
         isClearable={filterConfig.clearable}
-        value={value || inputValue}
-        // options={data
-        //   .filter(opt => opt.id !== null)
-        //   .map(opt => {
-        //     const perc = Math.round((opt.metric / max) * 100);
-        //     const color = 'lightgrey';
-        //     const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
-        //     const style = { backgroundImage };
-        //     return { value: opt.id, label: opt.id, style };
-        //   })}
+        value={value}
         onChange={newValue => {
           // avoid excessive re-renders
           if (newValue !== value) {
@@ -360,8 +380,7 @@ class FilterBox extends React.Component {
         onMenuOpen={() => this.onFilterMenuOpen(key)}
         onBlur={this.onFilterMenuClose}
         onMenuClose={this.onFilterMenuClose}
-        // selectWrap={CreatableSelect}
-        selectWrap={AsyncSelect}
+        selectWrap={AsyncCreatableSelect}
         noResultsText={t('No results found')}
       />
     );
