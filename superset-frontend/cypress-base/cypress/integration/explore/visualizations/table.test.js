@@ -103,6 +103,7 @@ describe('Visualization > Table', () => {
   it('Test table with columns and row limit', () => {
     const formData = {
       ...VIZ_DEFAULTS,
+      query_mode: 'raw',
       all_columns: ['name'],
       metrics: [],
       row_limit: 10,
@@ -117,6 +118,7 @@ describe('Visualization > Table', () => {
 
     const formData = {
       ...VIZ_DEFAULTS,
+      query_mode: 'raw',
       all_columns: ['name', 'state', 'ds', 'num'],
       metrics: [],
       row_limit: limit,
