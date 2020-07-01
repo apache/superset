@@ -49,9 +49,9 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
   if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
     return mode as QueryMode;
   }
-  const groupby = controls?.groupby?.value;
-  const hasGroupBy = groupby && (groupby as string[])?.length > 0;
-  return hasGroupBy ? QueryMode.aggregate : QueryMode.raw;
+  const rawColumns = controls?.all_columns?.value;
+  const hasRawColumns = rawColumns && (rawColumns as string[])?.length > 0;
+  return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
 
 /**
@@ -69,7 +69,7 @@ const isRawMode = isQueryMode(QueryMode.raw);
 const queryMode: ControlConfig<'RadioButtonControl'> = {
   type: 'RadioButtonControl',
   label: t('Query Mode'),
-  default: QueryMode.aggregate,
+  default: null,
   options: [
     {
       label: QueryModeLabel[QueryMode.aggregate],
