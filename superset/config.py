@@ -332,7 +332,7 @@ GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] =
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "Admin"
-THUMBNAIL_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "redis"}
+THUMBNAIL_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -350,8 +350,8 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # IMG_SIZE = (300, 200, True)
 
 CACHE_DEFAULT_TIMEOUT = 60 * 24
-CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "redis"}
-TABLE_NAMES_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "redis"}
+CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+TABLE_NAMES_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # CORS Options
 ENABLE_CORS = False
