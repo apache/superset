@@ -17,14 +17,14 @@
 """add_alerts
 
 Revision ID: 2f1d15e8a6af
-Revises: 620241d1153f
+Revises: a72cb0ebeb22
 Create Date: 2020-05-26 23:21:50.059635
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "2f1d15e8a6af"
-down_revision = "620241d1153f"
+down_revision = "a72cb0ebeb22"
 
 import sqlalchemy as sa
 from alembic import op
