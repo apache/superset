@@ -23,10 +23,10 @@ import { DataColumnMeta } from '../types';
 const xss = new FilterXSS({
   whiteList: {
     ...getDefaultWhiteList(),
-    span: ['style', 'title'],
-    div: ['style'],
-    a: ['style'],
-    img: ['style', 'src', 'alt', 'title', 'width', 'height'],
+    span: ['style', 'class', 'title'],
+    div: ['style', 'class'],
+    a: ['style', 'class', 'href', 'title', 'target'],
+    img: ['style', 'class', 'src', 'alt', 'title', 'width', 'height'],
   },
   stripIgnoreTag: true,
   css: false,
