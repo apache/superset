@@ -76,13 +76,6 @@ class ControlPanelsContainer extends React.Component {
       // apply current value in formData
       value: formData[name],
     };
-    const { mapStateToProps: mapFn } = controlData;
-    if (mapFn) {
-      Object.assign(
-        controlData,
-        mapFn(exploreState, controlData, actions) || {},
-      );
-    }
     const {
       validationErrors,
       provideFormDataToProps,
