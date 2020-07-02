@@ -118,9 +118,13 @@ export default function exploreReducer(state = {}, action) {
 
       // combine newly detected errors with errors from `onChange` event of
       // each control component (passed via reducer action).
-      const errors = (control.validationErrors || []).concat(
-        validationErrors || [],
-      );
+      const errors = control.validationErrors || [];
+      (validationErrors || []).forEach(err => {
+        // skip duplicated errors
+        if (!errors.includes(err)) {
+          errors.push(err);
+        }
+      });
       const hasErrors = errors && errors.length > 0;
 
       return {
