@@ -26,6 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.datasets.commands.create import CreateDatasetCommand
 from superset.datasets.commands.delete import DeleteDatasetCommand
+from superset.datasets.dao import DatasetDAO
 from superset.datasets.commands.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
@@ -66,6 +67,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
         "refresh",
+        "related_counts",
     }
     list_columns = [
         "id",
@@ -412,3 +414,54 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 "Error refreshing dataset %s: %s", self.__class__.__name__, str(ex)
             )
             return self.response_422(message=str(ex))
+
+    @expose("/<pk>/related_counts", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def related_counts(self, pk: int) -> Response:
+        """Get charts and dashboards count associated to a dataset
+        ---
+        get:
+          description:
+            Get charts and dashboards count associated to a dataset
+          parameters:
+          - in: path
+            name: pk
+            schema:
+              type: integer
+          responses:
+            200:
+              description: chart and dashboard counts
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      chart:
+                        type: object
+                        properties:
+                        count:
+                          type: integer
+                      dashboard:
+                        type: object
+                        properties:
+                        count:
+                          type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            result = DatasetDAO.get_related_counts(pk)
+            return self.response(200, result=result)
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+

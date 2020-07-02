@@ -24,6 +24,8 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import Database
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
@@ -48,6 +50,27 @@ class DatasetDAO(BaseDAO):
         except SQLAlchemyError as ex:  # pragma: no cover
             logger.error("Could not get database by id: %s", str(ex))
             return None
+
+    @staticmethod
+    def get_related_counts(database_id: int) -> Dict[str, int]:
+        chart_result = (
+            db.session.query(Slice.id)
+            .filter(
+                Slice.datasource_id == database_id, Slice.datasource_type == "table"
+            )
+            .all()
+        )
+        chart_ids = [result.id for result in chart_result]
+        dashboard_count = (
+            (
+                db.session.query(Dashboard.id)
+                .join(Dashboard.slices)
+                .filter(Slice.id.in_(chart_ids))
+            )
+            .distinct()
+            .count()
+        )
+        return dict(chart_count=len(chart_result), dashboard_count=dashboard_count)
 
     @staticmethod
     def validate_table_exists(database: Database, table_name: str, schema: str) -> bool:
