@@ -171,32 +171,66 @@ def test_create_table_from_csv_append() -> None:
 def test_get_create_table_stmt() -> None:
     table = Table("employee")
     schema_def = """eid int, name String, salary String, destination String"""
-    assert HiveEngineSpec.get_create_table_stmt(table, schema_def, 0, [""]) == (
+    location = "s3a://directory/table"
+    from unittest import TestCase
+
+    TestCase.maxDiff = None
+    assert HiveEngineSpec.get_create_table_stmt(
+        table, schema_def, location, ",", 0, [""]
+    ) == (
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-            STORED AS TEXTFILE LOCATION :location
-            tblproperties ('serialization.null.format'='')"""
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location
+                tblproperties ('skip.header.line.count'=':header_line_count', 'serialization.null.format'=':null_value')""",
+        {
+            "delim": ",",
+            "location": "s3a://directory/table",
+            "header_line_count": "1",
+            "null_value": "",
+        },
     )
-    assert HiveEngineSpec.get_create_table_stmt(table, schema_def, 1, ["1", "2"]) == (
+    assert HiveEngineSpec.get_create_table_stmt(
+        table, schema_def, location, ",", 1, ["1", "2"]
+    ) == (
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-            STORED AS TEXTFILE LOCATION :location
-            tblproperties ('skip.header.line.count'='1', 'serialization.null.format'='1')"""
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location
+                tblproperties ('skip.header.line.count'=':header_line_count', 'serialization.null.format'=':null_value')""",
+        {
+            "delim": ",",
+            "location": "s3a://directory/table",
+            "header_line_count": "2",
+            "null_value": "1",
+        },
     )
-    assert HiveEngineSpec.get_create_table_stmt(table, schema_def, 100, ["NaN"]) == (
+    assert HiveEngineSpec.get_create_table_stmt(
+        table, schema_def, location, ",", 100, ["NaN"]
+    ) == (
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-            STORED AS TEXTFILE LOCATION :location
-            tblproperties ('skip.header.line.count'='100', 'serialization.null.format'='NaN')"""
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location
+                tblproperties ('skip.header.line.count'=':header_line_count', 'serialization.null.format'=':null_value')""",
+        {
+            "delim": ",",
+            "location": "s3a://directory/table",
+            "header_line_count": "101",
+            "null_value": "NaN",
+        },
     )
-    assert HiveEngineSpec.get_create_table_stmt(table, schema_def, 0, None) == (
+    assert HiveEngineSpec.get_create_table_stmt(
+        table, schema_def, location, ",", None, None
+    ) == (
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-            STORED AS TEXTFILE LOCATION :location"""
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location""",
+        {"delim": ",", "location": "s3a://directory/table"},
     )
-    assert HiveEngineSpec.get_create_table_stmt(table, schema_def, 100, []) == (
+    assert HiveEngineSpec.get_create_table_stmt(
+        table, schema_def, location, ",", 100, []
+    ) == (
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-            STORED AS TEXTFILE LOCATION :location
-            tblproperties ('skip.header.line.count'='100')"""
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location
+                tblproperties ('skip.header.line.count'=':header_line_count')""",
+        {"delim": ",", "location": "s3a://directory/table", "header_line_count": "101"},
     )

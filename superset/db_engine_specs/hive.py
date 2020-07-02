@@ -107,29 +107,43 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
-    def get_create_table_stmt(
+    def get_create_table_stmt(  # pylint: disable=too-many-arguments
         cls,
         table: Table,
         schema_definition: str,
-        header_line_count: int,
+        location: str,
+        delim: str,
+        header_line_count: Optional[int],
         null_values: Optional[List[str]],
     ) -> text:
         tblproperties = []
         # available options:
         # https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
-        if header_line_count > 0:
-            tblproperties.append(f"'skip.header.line.count'='{header_line_count}'")
+        # TODO(bkyryliuk): figure out what to do with the skip rows field.
+        params: Dict[str, str] = {
+            "delim": delim,
+            "location": location,
+        }
+        if header_line_count is not None and header_line_count >= 0:
+            header_line_count += 1
+            tblproperties.append("'skip.header.line.count'=':header_line_count'")
+            params["header_line_count"] = str(header_line_count)
         if null_values:
             # hive only supports 1 value for the null format
-            tblproperties.append(f"'serialization.null.format'='{null_values[0]}'")
-        tblproperties_stmt = ""
+            tblproperties.append("'serialization.null.format'=':null_value'")
+            params["null_value"] = null_values[0]
+
         if tblproperties:
             tblproperties_stmt = f"tblproperties ({', '.join(tblproperties)})"
-
-        return f"""CREATE TABLE {str(table)} ( {schema_definition} )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-            STORED AS TEXTFILE LOCATION :location
-            {tblproperties_stmt}""".strip()
+            sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location
+                {tblproperties_stmt}"""
+        else:
+            sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location"""
+        return sql, params
 
     @classmethod
     def create_table_from_csv(  # pylint: disable=too-many-arguments, too-many-locals
@@ -208,20 +222,16 @@ class HiveEngineSpec(PrestoEngineSpec):
             os.path.join(upload_prefix, table.table, os.path.basename(filename)),
         )
 
-        sql = text(
-            cls.get_create_table_stmt(
-                table,
-                schema_definition,
-                int(csv_to_df_kwargs.get("header", 0)),
-                csv_to_df_kwargs.get("na_values"),
-            )
+        sql, params = cls.get_create_table_stmt(
+            table,
+            schema_definition,
+            location,
+            csv_to_df_kwargs["sep"].encode().decode("unicode_escape"),
+            int(csv_to_df_kwargs.get("header", 0)),
+            csv_to_df_kwargs.get("na_values"),
         )
         engine = cls.get_engine(database)
-        engine.execute(
-            sql,
-            delim=csv_to_df_kwargs["sep"].encode().decode("unicode_escape"),
-            location=location,
-        )
+        engine.execute(text(sql), **params)
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
