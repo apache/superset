@@ -45,7 +45,6 @@ export function validateControl(control, processedState) {
         validationErrors.push(v);
       }
     });
-    delete validatedControl.validators;
     return { ...validatedControl, validationErrors };
   }
   return control;
@@ -95,7 +94,6 @@ export function applyMapStateToPropsToControl(control, state) {
     if (state) {
       Object.assign(appliedControl, control.mapStateToProps(state, control));
     }
-    delete appliedControl.mapStateToProps;
     return appliedControl;
   }
   return control;
@@ -141,6 +139,7 @@ export function getControlStateFromControlConfig(controlConfig, state, value) {
   // If a choice control went from multi=false to true, wrap value in array
   const controlValue =
     controlConfig.multi && value && !Array.isArray(value) ? [value] : value;
+
   controlState.value =
     typeof controlValue === 'undefined' ? controlState.default : controlValue;
 
