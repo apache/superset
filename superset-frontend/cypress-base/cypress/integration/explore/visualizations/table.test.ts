@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
+import {
+  FORM_DATA_DEFAULTS,
+  NUM_METRIC,
+  MAX_DS,
+  MAX_STATE,
+  SIMPLE_FILTER,
+} from './shared.helper';
 import readResponseBlob from '../../../utils/readResponseBlob';
 
 // Table
@@ -29,13 +35,40 @@ describe('Visualization > Table', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
-  it('Test table with adhoc metric', () => {
-    cy.visitChartByParams({ ...VIZ_DEFAULTS, metrics: NUM_METRIC });
-    cy.verifySliceSuccess({
-      waitAlias: '@getJson',
-      querySubstring: NUM_METRIC.label,
-      chartSelector: 'table',
+  it('Format non-numeric metrics correctly', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      include_time: true,
+      granularity_sqla: 'ds',
+      time_grain_sqla: 'P0.25Y',
+      metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
     });
+    // when format with smart_date, time column use format by granularity
+    cy.get('.chart-container td:nth-child(1)').contains('2008 Q1');
+    // other column with timestamp use raw timestamp
+    cy.get('.chart-container td:nth-child(3)').contains('2008-01-01T00:00:00');
+    cy.get('.chart-container td').contains('other');
+  });
+
+  it('Format with table_timestamp_format', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      include_time: true,
+      granularity_sqla: 'ds',
+      time_grain_sqla: 'P0.25Y',
+      table_timestamp_format: '%Y-%m-%d %H:%M',
+      metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
+    });
+    // time column and MAX(ds) metric column both use UTC time
+    cy.get('.chart-container td:nth-child(1)').contains('2008-01-01 00:00');
+    cy.get('.chart-container td:nth-child(3)').contains('2008-01-01 00:00');
+    cy.get('.chart-container td')
+      .contains('2008-01-01 08:00')
+      .should('not.exist');
+    // time column should not use time granularity when timestamp format is set
+    cy.get('.chart-container td').contains('2008 Q1').should('not.exist');
+    // other num numeric metric column should stay as string
+    cy.get('.chart-container td').contains('other');
   });
 
   it('Test table with groupby', () => {
