@@ -205,7 +205,6 @@ type SelectOption = AnyDict | string | [ReactText, ReactNode];
 type SelectControlType =
   | 'SelectControl'
   | 'SelectAsyncControl'
-  | 'SelectControl'
   | 'MetricsControl'
   | 'FixedOrMetricControl'
   | 'AdhocFilterControl'
