@@ -189,15 +189,15 @@ describe('controlUtils', () => {
     it('removes the mapStateToProps key from the object', () => {
       let control = getControlConfig('all_columns', 'table');
       control = applyMapStateToPropsToControl(control, state);
-      expect(control.mapStateToProps).toBe(undefined);
+      expect(control.mapStateToProps[0]).toBe(undefined);
     });
   });
 
   describe('getControlState', () => {
-    it('to be function free', () => {
-      const control = getControlState('all_columns', 'table', state, ['a']);
-      expect(control.mapStateToProps).toBe(undefined);
-      expect(control.validators).toBe(undefined);
+    it('to still have the functions', () => {
+      const control = getControlState('metrics', 'table', state, ['a']);
+      expect(typeof control.mapStateToProps).toBe('function');
+      expect(typeof control.validators[0]).toBe('function');
     });
 
     it('to fix multi with non-array values', () => {

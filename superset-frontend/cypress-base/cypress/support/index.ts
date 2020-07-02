@@ -42,7 +42,9 @@ Cypress.Commands.add('visitChartById', chartId => {
 });
 
 Cypress.Commands.add('visitChartByParams', params => {
-  return cy.visit(`${BASE_EXPLORE_URL}${params}`);
+  const queryString =
+    typeof params === 'string' ? params : JSON.stringify(params);
+  return cy.visit(`${BASE_EXPLORE_URL}${queryString}`);
 });
 
 Cypress.Commands.add('verifyResponseCodes', (xhr: XMLHttpRequest, callback) => {
@@ -78,17 +80,21 @@ Cypress.Commands.add(
     chartSelector,
   }: {
     waitAlias: string;
-    querySubstring: string;
     chartSelector: JQuery.Selector;
+    querySubstring?: string | RegExp;
   }) => {
     cy.wait(waitAlias).then(xhr => {
       cy.verifySliceContainer(chartSelector);
       cy.verifyResponseCodes(xhr, responseBody => {
         if (querySubstring) {
-          type QueryResponse = { query: string };
-          expect(
-            responseBody && (responseBody as QueryResponse).query,
-          ).contains(querySubstring);
+          const query = responseBody
+            ? (responseBody as { query: string }).query
+            : '';
+          if (querySubstring instanceof RegExp) {
+            expect(query).to.match(querySubstring);
+          } else {
+            expect(query).to.contain(querySubstring);
+          }
         }
       });
     });

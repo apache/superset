@@ -30,9 +30,7 @@ describe('Visualization > Table', () => {
   });
 
   it('Test table with adhoc metric', () => {
-    const formData = { ...VIZ_DEFAULTS, metrics: NUM_METRIC };
-
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams({ ...VIZ_DEFAULTS, metrics: NUM_METRIC });
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,
@@ -41,16 +39,14 @@ describe('Visualization > Table', () => {
   });
 
   it('Test table with groupby', () => {
-    const formData = {
+    cy.visitChartByParams({
       ...VIZ_DEFAULTS,
       metrics: NUM_METRIC,
       groupby: ['name'],
-    };
-
-    cy.visitChartByParams(JSON.stringify(formData));
+    });
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
-      querySubstring: formData.groupby[0],
+      querySubstring: /groupby.*name/,
       chartSelector: 'table',
     });
   });
@@ -62,7 +58,6 @@ describe('Visualization > Table', () => {
       metrics: [],
       groupby: ['name'],
     };
-
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   });
@@ -74,23 +69,19 @@ describe('Visualization > Table', () => {
       groupby: ['name'],
       order_desc: true,
     };
-
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   });
 
   it('Test table with groupby and limit', () => {
     const limit = 10;
-
     const formData = {
       ...VIZ_DEFAULTS,
       metrics: NUM_METRIC,
       groupby: ['name'],
       row_limit: limit,
     };
-
     cy.visitChartByParams(JSON.stringify(formData));
-
     cy.wait('@getJson').then(async xhr => {
       cy.verifyResponseCodes(xhr);
       cy.verifySliceContainer('table');
