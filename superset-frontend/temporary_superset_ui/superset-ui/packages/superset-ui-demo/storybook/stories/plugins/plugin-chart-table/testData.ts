@@ -21,48 +21,71 @@ import { TableChartProps } from '@superset-ui/plugin-chart-table';
 import birthNamesJson from './birthNames.json';
 
 export const birthNames = (birthNamesJson as unknown) as TableChartProps;
+export const basicFormData = {
+  alignPn: false,
+  colorPn: false,
+  includeSearch: false,
+  metrics: ['sum__num', 'MAX(ds)'],
+  orderDesc: true,
+  pageLength: 0,
+  percentMetrics: null,
+  showCellBars: true,
+  tableFilter: false,
+  tableTimestampFormat: 'smart_date',
+  timeseriesLimitMetric: null,
+};
 export const basicData = {
-  columns: ['name', 'sum__num'],
+  columns: ['name', 'sum__num', 'MAX(ds)'],
   records: [
     {
       name: 'Michael',
       sum__num: 2467063,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'Christopher',
       sum__num: 1725265,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'David',
       sum__num: 1570516,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'James',
       sum__num: 1506025,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'John',
       sum__num: 1426074,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'Matthew',
       sum__num: 1355803,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'Robert',
       sum__num: 1314800,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'Daniel',
       sum__num: 1159354,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'Joseph',
       sum__num: 1114098,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
     {
       name: 'William',
       sum__num: 1113701,
+      'MAX(ds)': '2008-01-01T00:00:00',
     },
   ],
 };
