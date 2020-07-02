@@ -1913,7 +1913,7 @@ class FilterBoxViz(BaseViz):
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     cache_type = "get_data"
-    filter_row_limit = 25
+    filter_row_limit = 1000
 
     def query_obj(self) -> QueryObjectDict:
         return {}

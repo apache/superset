@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
-import { AsyncCreatableSelect } from 'src/components/Select';
+import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
@@ -137,13 +137,23 @@ class FilterBox extends React.Component {
     return mapFunc ? { ...control, ...mapFunc(this.props) } : control;
   }
 
+  /**
+   * Get known max value of a column
+   */
+  getKnownMax(key, choices) {
+    this.maxValueCache[key] = Math.max(
+      this.maxValueCache[key] || 0,
+      d3Max(choices || this.props.filtersChoices[key] || [], x => x.metric),
+    );
+    return this.maxValueCache[key];
+  }
+
   clickApply() {
     const { selectedValues } = this.state;
     this.setState({ hasChanged: false }, () => {
       this.props.onChange(selectedValues, false);
     });
   }
-
   changeFilter(filter, options) {
     const fltr = TIME_FILTER_MAP[filter] || filter;
     let vals = null;
@@ -175,20 +185,9 @@ class FilterBox extends React.Component {
     if (!(key in this.debouncerCache)) {
       this.debouncerCache[key] = debounce((input, callback) => {
         this.loadOptions(key, input).then(callback);
-      }, 200);
+      }, 500);
     }
     return this.debouncerCache[key];
-  }
-
-  /**
-   * Get known max value of a column
-   */
-  getKnownMax(key, choices) {
-    this.maxValueCache[key] = Math.max(
-      this.maxValueCache[key] || 0,
-      d3Max(choices || this.props.filtersChoices[key] || [], x => x.metric),
-    );
-    return this.maxValueCache[key];
   }
 
   /**
@@ -216,7 +215,7 @@ class FilterBox extends React.Component {
               clause: 'WHERE',
               comparator: null,
               expressionType: 'SQL',
-              // XXX: Evaluate SQL Injection risk
+              // TODO: Evaluate SQL Injection risk
               sqlExpression: `lower(${key}) like '%${input}%'`,
             },
           ]
@@ -229,8 +228,6 @@ class FilterBox extends React.Component {
         endpointType: 'json',
         method: 'GET',
       }),
-      signal: null,
-      timeout: 60 * 1000,
     });
     const options = (json?.data?.[key] || []).filter(x => x.id);
     if (!options || options.length === 0) {
@@ -343,7 +340,8 @@ class FilterBox extends React.Component {
             });
           });
       });
-    const { key, label } = filterConfig;
+    // if fixedOptions is undefined, use fixed_options
+    const { key, label, fixedOptions = true } = filterConfig;
     const data = filtersChoices[key] || [];
     let value = selectedValues[key] || null;
 
@@ -366,10 +364,11 @@ class FilterBox extends React.Component {
         loadOptions={this.debounceLoadOptions(key)}
         defaultOptions={this.transformOptions(data)}
         key={key}
-        placeholder={t('Select [%s]', label)}
+        placeholder={t('Type or Select [%s]', label)}
         isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
-        isClearable={filterConfig.clearable}
+        isClearable={filterConfig[FILTER_CONFIG_ATTRIBUTES.CLEARABLE]}
         value={value}
+        options={this.transformOptions(data)}
         onChange={newValue => {
           // avoid excessive re-renders
           if (newValue !== value) {
@@ -380,7 +379,7 @@ class FilterBox extends React.Component {
         onMenuOpen={() => this.onFilterMenuOpen(key)}
         onBlur={this.onFilterMenuClose}
         onMenuClose={this.onFilterMenuClose}
-        selectWrap={AsyncCreatableSelect}
+        selectWrap={fixedOptions ? CreatableSelect : AsyncCreatableSelect}
         noResultsText={t('No results found')}
       />
     );

@@ -53,6 +53,7 @@ const propTypes = {
   multiple: PropTypes.bool,
   column: PropTypes.string,
   metric: PropTypes.string,
+  fixedOptions: PropTypes.bool,
   defaultValue: PropTypes.string,
 };
 
@@ -61,6 +62,7 @@ const defaultProps = {
   asc: true,
   clearable: true,
   multiple: true,
+  fixedOptions: true,
 };
 
 const STYLE_WIDTH = { width: 350 };
@@ -68,8 +70,24 @@ const STYLE_WIDTH = { width: 350 };
 export default class FilterBoxItemControl extends React.Component {
   constructor(props) {
     super(props);
-    const { column, metric, asc, clearable, multiple, defaultValue } = props;
-    const state = { column, metric, asc, clearable, multiple, defaultValue };
+    const {
+      column,
+      metric,
+      asc,
+      clearable,
+      multiple,
+      fixedOptions,
+      defaultValue,
+    } = props;
+    const state = {
+      column,
+      metric,
+      asc,
+      clearable,
+      multiple,
+      fixedOptions,
+      defaultValue,
+    };
     this.state = state;
     this.onChange = this.onChange.bind(this);
     this.onControlChange = this.onControlChange.bind(this);
@@ -199,6 +217,21 @@ export default class FilterBoxItemControl extends React.Component {
               onChange={v =>
                 this.onControlChange(FILTER_CONFIG_ATTRIBUTES.MULTIPLE, v)
               }
+            />
+          }
+        />
+        <FormRow
+          label={t('Fixed Filter Options')}
+          tooltip={t(
+            'By default, filter box will only load top 1000 filter options once. ' +
+              'When disabled, filter box will load options from a remote source as the user types, ' +
+              'with 1000 options per load.',
+          )}
+          isCheckbox
+          control={
+            <CheckboxControl
+              value={this.state.fixedOptions}
+              onChange={v => this.onControlChange('fixedOptions', v)}
             />
           }
         />
