@@ -293,7 +293,7 @@ class SqlEditor extends React.PureComponent {
       sqlEditorId: qe.id,
       tab: qe.title,
       schema: qe.schema,
-      tempTableName: ctas ? this.state.ctas : '',
+      tempTable: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
       queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
       runAsync: this.props.database
