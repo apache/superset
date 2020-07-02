@@ -134,7 +134,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       }: any) => <a href={url}>{dashboardTitle}</a>,
       Header: t('Title'),
       accessor: 'dashboard_title',
-      sortable: true,
     },
     {
       Cell: ({
@@ -152,6 +151,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       ),
       Header: t('Owners'),
       accessor: 'owners',
+      disableSortBy: true,
     },
     {
       Cell: ({
@@ -164,7 +164,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       }: any) => <a href={changedByUrl}>{changedByName}</a>,
       Header: t('Creator'),
       accessor: 'changed_by_fk',
-      sortable: true,
     },
     {
       Cell: ({
@@ -178,7 +177,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       ),
       Header: t('Published'),
       accessor: 'published',
-      sortable: true,
     },
     {
       Cell: ({
@@ -188,11 +186,11 @@ class DashboardList extends React.PureComponent<Props, State> {
       }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
       Header: t('Modified'),
       accessor: 'changed_on',
-      sortable: true,
     },
     {
       accessor: 'slug',
       hidden: true,
+      disableSortBy: true,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
@@ -254,6 +252,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       },
       Header: t('Actions'),
       id: 'actions',
+      disableSortBy: true,
     },
   ];
 
