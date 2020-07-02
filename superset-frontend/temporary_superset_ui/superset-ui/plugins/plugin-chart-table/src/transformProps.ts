@@ -17,7 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { DataRecord } from '@superset-ui/chart';
+import { DataRecord, DataRecordValue } from '@superset-ui/chart';
 import { QueryFormDataMetric } from '@superset-ui/query';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import {
@@ -31,6 +31,7 @@ import { TableChartProps, TableChartTransformedProps, DataType, DataColumnMeta }
 
 const { PERCENT_3_POINT } = NumberFormats;
 const TIME_COLUMN = '__timestamp';
+const toString = (x: DataRecordValue) => String(x);
 
 /**
  * Consolidate list of metrics to string, identified by its unique identifier
@@ -47,9 +48,20 @@ function isTimeColumn(key: string) {
   return key === TIME_COLUMN;
 }
 
+const REGEXP_DATETIME = /^\d{4}-[01]\d-[03]\d/;
 const REGEXP_TIMESTAMP_NO_TIMEZONE = /T(\d{2}:){2}\d{2}$/;
 function isTimeType(key: string, data: DataRecord[] = []) {
-  return isTimeColumn(key) || data.some(x => x[key] instanceof Date);
+  return (
+    isTimeColumn(key) ||
+    data.some(x => {
+      const value = x[key];
+      return value instanceof Date || (typeof value === 'string' && REGEXP_DATETIME.test(value));
+    })
+  );
+}
+
+function isNumeric(key: string, data: DataRecord[] = []) {
+  return data.every(x => x[key] === null || x[key] === undefined || typeof x[key] === 'number');
 }
 
 const processDataRecords = memoizeOne(function processDataRecords(data: DataRecord[] | undefined) {
@@ -57,15 +69,16 @@ const processDataRecords = memoizeOne(function processDataRecords(data: DataReco
     return data || [];
   }
   return data.map(x => {
-    const time = x[TIME_COLUMN];
-    return {
-      ...x,
-      [TIME_COLUMN]:
-        typeof time === 'string' && REGEXP_TIMESTAMP_NO_TIMEZONE.test(time)
-          ? // force UTC time for timestamps without a timezone
-            `${time}Z`
-          : time,
-    };
+    const datum: typeof x = {};
+    Object.entries(x).forEach(([key, value]) => {
+      // force UTC time for all timestamps without a timezone
+      if (typeof value === 'string' && REGEXP_TIMESTAMP_NO_TIMEZONE.test(value)) {
+        datum[key] = `${value}Z`;
+      } else {
+        datum[key] = value;
+      }
+    });
+    return datum;
   });
 });
 
@@ -108,24 +121,34 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
       // add a " " after "%" for percent metric labels
       label = `% ${label.slice(1)}`;
     }
-    // percent metrics have a default format
+    // fallback to column level formats defined in datasource
     const format = columnFormats?.[key];
     const isTime = isTimeType(key, records);
-    const isMetric = metricsSet.has(key);
+    // for the purpose of presentation, only numeric values are treated as metrics
+    const isMetric = metricsSet.has(key) && isNumeric(key, records);
     const isPercentMetric = percentMetricsSet.has(key);
     let dataType = DataType.Number; // TODO: get this from data source
     let formatter;
     if (isTime) {
       // Use ganularity for "Adaptive Formatting" (smart_date)
       const timeFormat = format || tableTimestampFormat;
-      formatter =
-        timeFormat === smartDateFormatter.id && isTimeColumn(key)
-          ? getTimeFormatterForGranularity(granularity)
-          : getTimeFormatter(timeFormat);
+      formatter = getTimeFormatter(timeFormat);
+      if (timeFormat === smartDateFormatter.id) {
+        if (isTimeColumn(key)) {
+          formatter = getTimeFormatterForGranularity(granularity);
+        } else if (format) {
+          formatter = getTimeFormatter(format);
+        } else {
+          // return the identity string when datasource level formatter is not set
+          // and table timestamp format is set to Adaptive formatting
+          formatter = toString;
+        }
+      }
       dataType = DataType.DateTime;
     } else if (isMetric) {
       formatter = getNumberFormatter(format);
     } else if (isPercentMetric) {
+      // percent metrics have a default format
       formatter = getNumberFormatter(format || PERCENT_3_POINT);
     } else {
       dataType = DataType.String;

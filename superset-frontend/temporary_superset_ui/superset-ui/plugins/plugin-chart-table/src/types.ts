@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryFormDataMetric } from '@superset-ui/query';
-import { ChartProps, DataRecord, DataRecordFilters } from '@superset-ui/chart';
+import { ChartProps, DataRecord, DataRecordValue, DataRecordFilters } from '@superset-ui/chart';
 import { TimeFormatter, TimeGranularity } from '@superset-ui/time-format';
 import { NumberFormatter } from '@superset-ui/number-format';
 
@@ -27,13 +27,15 @@ export enum DataType {
   DateTime = 'datetime',
 }
 
+export type CustomFormatter = (value: DataRecordValue) => string;
+
 export interface DataColumnMeta {
   // `key` is what is called `label` in the input props
   key: string;
   // `label` is verbose column name used for rendering
   label: string;
   dataType: DataType;
-  formatter?: TimeFormatter | NumberFormatter;
+  formatter?: TimeFormatter | NumberFormatter | CustomFormatter;
 }
 
 export interface TableChartData<D extends DataRecord = DataRecord> {

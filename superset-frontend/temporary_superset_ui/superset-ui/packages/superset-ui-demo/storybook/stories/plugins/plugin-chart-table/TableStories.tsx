@@ -3,7 +3,7 @@ import memoizeOne from 'memoize-one';
 import { withKnobs, number, boolean } from '@storybook/addon-knobs';
 import { SuperChart } from '@superset-ui/chart';
 import TableChartPlugin, { TableChartProps } from '@superset-ui/plugin-chart-table';
-import { basicData, birthNames } from './testData';
+import { basicFormData, basicData, birthNames } from './testData';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
 export default {
@@ -71,19 +71,7 @@ export const basic = ({ width, height }) => (
     width={width}
     height={height}
     queryData={{ data: basicData }}
-    formData={{
-      alignPn: false,
-      colorPn: false,
-      includeSearch: false,
-      metrics: ['sum__num'],
-      orderDesc: true,
-      pageLength: 0,
-      percentMetrics: null,
-      showCellBars: true,
-      tableFilter: false,
-      tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
-      timeseriesLimitMetric: null,
-    }}
+    formData={basicFormData}
   />
 );
 basic.story = {
