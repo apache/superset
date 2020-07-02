@@ -25,14 +25,6 @@ module.exports = class extends Generator {
             name: 'Create superset-ui chart plugin package',
             value: 'plugin-chart',
           },
-          {
-            name: 'Create superset-ui-legacy package',
-            value: 'legacy-plugin-chart',
-          },
-          {
-            name: 'Create superset-ui-legacy chart demo in storybook',
-            value: 'legacy-plugin-chart-demo',
-          },
         ],
       },
     ]);

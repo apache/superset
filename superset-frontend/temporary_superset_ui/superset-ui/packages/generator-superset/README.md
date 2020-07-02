@@ -7,7 +7,8 @@
 
 ## Installation
 
-First, install [Yeoman](http://yeoman.io) and `generator-superset` using [npm](https://www.npmjs.com/) (we assume you have pre-installed [node.js](https://nodejs.org/)).
+First, install [Yeoman](http://yeoman.io) and `generator-superset` using
+[npm](https://www.npmjs.com/) (we assume you have pre-installed [node.js](https://nodejs.org/)).
 
 ```bash
 npm install -g yo
@@ -16,7 +17,7 @@ npm install -g @superset-ui/generator-superset
 
 ## Usage
 
-Generate a new package in `@superset-ui`
+Generate a new package or visualization plugin in `@superset-ui`
 
 ```bash
 cd superset-ui/packages
