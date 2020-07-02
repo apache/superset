@@ -387,7 +387,7 @@ export const stoppedQuery = {
   startDttm: 1497400851936,
   state: 'stopped',
   tab: 'Untitled Query 2',
-  tempTableName: '',
+  tempTable: '',
 };
 export const runningQuery = {
   dbId: 1,
@@ -428,7 +428,7 @@ export const query = {
   sql: 'SELECT * FROM something',
   sqlEditorId: defaultQueryEditor.id,
   tab: 'unimportant',
-  tempTableName: null,
+  tempTable: null,
   runAsync: false,
   ctas: false,
   cached: false,
