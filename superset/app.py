@@ -563,8 +563,7 @@ class SupersetAppInitializer:
             )
 
         # Flask-Compress
-        if self.config["ENABLE_FLASK_COMPRESS"]:
-            Compress(self.flask_app)
+        Compress(self.flask_app)
 
         if self.config["TALISMAN_ENABLED"]:
             talisman.init_app(self.flask_app, **self.config["TALISMAN_CONFIG"])
