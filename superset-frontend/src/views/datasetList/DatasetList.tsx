@@ -176,6 +176,7 @@ class DatasetList extends React.PureComponent<Props, State> {
         );
       },
       accessor: 'kind_icon',
+      disableSortBy: true,
       size: 'xs',
     },
     {
@@ -186,7 +187,6 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => datasetTitle,
       Header: t('Name'),
       accessor: 'table_name',
-      sortable: true,
     },
     {
       Cell: ({
@@ -196,16 +196,19 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => kind[0]?.toUpperCase() + kind.slice(1),
       Header: t('Type'),
       accessor: 'kind',
+      disableSortBy: true,
       size: 'md',
     },
     {
       Header: t('Source'),
       accessor: 'database_name',
+      disableSortBy: true,
       size: 'lg',
     },
     {
       Header: t('Schema'),
       accessor: 'schema',
+      disableSortBy: true,
       size: 'lg',
     },
     {
@@ -229,7 +232,6 @@ class DatasetList extends React.PureComponent<Props, State> {
       },
       Header: t('Last Modified'),
       accessor: 'changed_on',
-      sortable: true,
       size: 'xl',
     },
     {
@@ -240,10 +242,12 @@ class DatasetList extends React.PureComponent<Props, State> {
       }: any) => changedByName,
       Header: t('Modified By'),
       accessor: 'changed_by_fk',
+      disableSortBy: true,
       size: 'xl',
     },
     {
       accessor: 'database',
+      disableSortBy: true,
       hidden: true,
     },
     {
@@ -271,11 +275,13 @@ class DatasetList extends React.PureComponent<Props, State> {
       },
       Header: t('Owners'),
       id: 'owners',
+      disableSortBy: true,
       size: 'lg',
     },
     {
       accessor: 'is_sqllab_view',
       hidden: true,
+      disableSortBy: true,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
@@ -352,6 +358,7 @@ class DatasetList extends React.PureComponent<Props, State> {
       },
       Header: t('Actions'),
       id: 'actions',
+      disableSortBy: true,
     },
   ];
 

@@ -119,7 +119,6 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => <a href={url}>{sliceName}</a>,
       Header: t('Chart'),
       accessor: 'slice_name',
-      canSort: true,
     },
     {
       Cell: ({
@@ -129,7 +128,6 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => vizType,
       Header: t('Visualization Type'),
       accessor: 'viz_type',
-      canSort: true,
     },
     {
       Cell: ({
@@ -139,7 +137,6 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
       Header: t('Datasource'),
       accessor: 'datasource_name',
-      canSort: true,
     },
     {
       Cell: ({
@@ -152,7 +149,6 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => <a href={changedByUrl}>{changedByName}</a>,
       Header: t('Creator'),
       accessor: 'changed_by_fk',
-      canSort: true,
     },
     {
       Cell: ({
@@ -162,19 +158,21 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
       Header: t('Last Modified'),
       accessor: 'changed_on',
-      canSort: true,
     },
     {
       accessor: 'description',
       hidden: true,
+      disableSortBy: true,
     },
     {
       accessor: 'owners',
       hidden: true,
+      disableSortBy: true,
     },
     {
       accessor: 'datasource',
       hidden: true,
+      disableSortBy: true,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
@@ -226,6 +224,7 @@ class ChartList extends React.PureComponent<Props, State> {
       },
       Header: t('Actions'),
       id: 'actions',
+      disableSortBy: true,
     },
   ];
 
