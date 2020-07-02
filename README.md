@@ -157,6 +157,7 @@ Interested in contributing? Check out
   * [Installing Database Drivers](https://preset.io/blog/2020-05-18-install-db-drivers/)
   * [Connect Superset To Google Sheets](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/)
   * [Create Your First Chart](https://preset.io/blog/2020-06-08-first-chart/)
+  * [Create Time Series Charts](https://preset.io/blog/2020-06-26-timeseries-chart/)
 * [Docker image](https://hub.docker.com/r/preset/superset/)
 * [Youtube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
   * [May 15, 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
