@@ -613,8 +613,8 @@ def sync_tags() -> None:
 @superset.command()
 @with_appcontext
 def alert():
-    """Run the scheduler loop"""
-    # TODO DELETE ME this CLI command is just for testing purposes
+    """Run the alert scheduler loop"""
+    # this command is just for testing purposes
     from superset.tasks.schedules import schedule_window
 
     click.secho("Processing one alert loop", fg="green")

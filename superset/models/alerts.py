@@ -94,7 +94,6 @@ class AlertLog(Model):
     dttm_end = Column(DateTime, default=datetime.utcnow)
     alert_id = Column(Integer, ForeignKey("alerts.id"))
     alert = relationship("Alert", backref="logs", foreign_keys=[alert_id])
-    resultset = Column(Text)
     state = Column(String(10))
 
     @property

@@ -582,10 +582,12 @@ def deliver_alert(alert):
             user=user, cache=thumbnail_cache, force=True,
         )
     else:
+        # TODO: dashboard delivery!
         image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
 
     # generate the email
     subject = f"[Superset] Triggered alert: {alert.label}"
+    deliver_as_group = False
     data = None
     images = {"screenshot": img_data}
     body = __(
@@ -599,10 +601,7 @@ def deliver_alert(alert):
         image_url=image_url,
     )
 
-    email = EmailContent(body, data, images)
-
-    # send the email
-    _deliver_email(alert, subject, email)
+    _deliver_email(alert.recipients, deliver_as_group, subject, body, data, images)
 
 
 def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
@@ -656,7 +655,6 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
             dttm_start=dttm_start,
             dttm_end=dttm_end,
             state=state,
-            resultset=json.dumps(df.to_dict(orient="records"), indent=2),
         )
     )
     session.commit()
