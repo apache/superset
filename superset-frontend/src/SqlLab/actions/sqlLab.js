@@ -271,7 +271,7 @@ export function querySuccess(query, results) {
   };
 }
 
-export function queryFailed(query, msg, link) {
+export function queryFailed(query, msg, link, errors) {
   return function (dispatch) {
     const sync =
       !query.isDataPreview &&
@@ -283,7 +283,7 @@ export function queryFailed(query, msg, link) {
         : Promise.resolve();
 
     return sync
-      .then(() => dispatch({ type: QUERY_FAILED, query, msg, link }))
+      .then(() => dispatch({ type: QUERY_FAILED, query, msg, link, errors }))
       .catch(() =>
         dispatch(
           addDangerToast(
@@ -332,7 +332,9 @@ export function fetchQueryResults(query, displayLimit) {
             error.statusText ||
             t('Failed at retrieving results');
 
-          return dispatch(queryFailed(query, message, error.link));
+          return dispatch(
+            queryFailed(query, message, error.link, error.errors),
+          );
         }),
       );
   };
@@ -376,7 +378,7 @@ export function runQuery(query) {
           if (message.includes('CSRF token')) {
             message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
           }
-          dispatch(queryFailed(query, message, error.link));
+          dispatch(queryFailed(query, message, error.link, error.errors));
         }),
       );
   };

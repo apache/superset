@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CtasEnum } from './actions/sqlLab';
+import { SupersetError } from 'src/components/ErrorMessage/types';
+import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
 
 export type Column = {
   name: string;
@@ -27,6 +28,7 @@ export type Query = {
   ctas: boolean;
   ctas_method?: keyof typeof CtasEnum;
   dbId: number;
+  errors?: SupersetError[];
   errorMessage: string | null;
   extra: {
     progress: string | null;

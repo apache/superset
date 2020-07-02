@@ -21,6 +21,7 @@ import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -215,15 +216,11 @@ export default class ResultSet extends React.PureComponent<
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     } else if (query.state === 'failed') {
       return (
-        <Alert bsStyle="danger">
-          {query.errorMessage}
-          {query.link && (
-            <a href={query.link} target="_blank" rel="noopener noreferrer">
-              {' '}
-              {t('(Request Access)')}{' '}
-            </a>
-          )}
-        </Alert>
+        <ErrorMessageWithStackTrace
+          error={query.errors?.[0]}
+          message={query.errorMessage || undefined}
+          link={query.link}
+        />
       );
     } else if (query.state === 'success' && query.ctas) {
       const { tempSchema, tempTable } = query;
