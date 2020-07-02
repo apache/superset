@@ -22,6 +22,42 @@ module.exports = class extends Generator {
         // Default to current folder name
         default: _.upperFirst(_.startCase(this.appname.replace('plugin chart', '').trim())),
       },
+      {
+        type: 'list',
+        name: 'componentType',
+        message: 'What type of React component would you like?',
+        choices: [
+          {
+            name: 'Class component',
+            value: 'class',
+          },
+          {
+            name: 'Function component (with hooks)',
+            value: 'function',
+          },
+        ],
+      },
+      {
+        type: 'list',
+        name: 'chartType',
+        message: 'What type of chart would you like?',
+        choices: [
+          {
+            name: 'Time-series chart',
+            value: 'timeseries',
+          },
+          {
+            name: 'Regular chart',
+            value: 'regular',
+          },
+        ],
+      },
+      {
+        type: 'confirm',
+        name: 'addBadges',
+        message: "Add superset-ui badges to your plugin's README.md",
+        default: true,
+      },
     ]);
   }
 
@@ -37,10 +73,14 @@ module.exports = class extends Generator {
       ['package.erb', 'package.json'],
       ['README.erb', 'README.md'],
       ['src/index.erb', 'src/index.ts'],
+      ['src/plugin/buildQuery.erb', 'src/plugin/buildQuery.ts'],
+      ['src/plugin/controlPanel.erb', 'src/plugin/controlPanel.ts'],
       ['src/plugin/index.erb', 'src/plugin/index.ts'],
-      ['src/plugin/transformProps.txt', 'src/plugin/transformProps.ts'],
+      ['src/plugin/transformProps.erb', 'src/plugin/transformProps.ts'],
       ['src/MyChart.erb', `src/${packageLabel}.tsx`],
       ['test/index.erb', 'test/index.test.ts'],
+      ['test/plugin/buildQuery.test.erb', 'test/plugin/buildQuery.test.ts'],
+      ['test/plugin/transformProps.test.erb', 'test/plugin/transformProps.test.ts'],
     ].forEach(([src, dest]) => {
       this.fs.copyTpl(this.templatePath(src), this.destinationPath(dest), params);
     });

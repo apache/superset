@@ -33,11 +33,15 @@ describe('generator-superset:plugin-chart', () => {
     assert.file([
       'package.json',
       'README.md',
+      'src/plugin/buildQuery.ts',
+      'src/plugin/controlPanel.ts',
       'src/plugin/index.ts',
       'src/plugin/transformProps.ts',
-      'src/index.ts',
       'src/ColdMap.tsx',
+      'src/index.ts',
       'test/index.test.ts',
+      'test/plugin/buildQuery.test.ts',
+      'test/plugin/transformProps.test.ts',
       'types/external.d.ts',
       'src/images/thumbnail.png',
     ]);
