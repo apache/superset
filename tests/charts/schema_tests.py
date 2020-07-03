@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 from typing import Any, Dict, Tuple
 
+from marshmallow import ValidationError
 from tests.test_app import app
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
@@ -48,8 +49,7 @@ class TestSchema(SupersetTestCase):
         # Valid limit and offset
         payload["queries"][0]["row_limit"] = 100
         payload["queries"][0]["row_offset"] = 200
-        query_context, errors = ChartDataQueryContextSchema().load(payload)
-        self.assertEqual(errors, {})
+        query_context= ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         self.assertEqual(query_object.row_limit, 100)
         self.assertEqual(query_object.row_offset, 200)
@@ -57,9 +57,11 @@ class TestSchema(SupersetTestCase):
         # too low limit and offset
         payload["queries"][0]["row_limit"] = 0
         payload["queries"][0]["row_offset"] = -1
-        query_context, errors = ChartDataQueryContextSchema().load(payload)
-        self.assertIn("row_limit", errors["queries"][0])
-        self.assertIn("row_offset", errors["queries"][0])
+        try:
+            query_context = ChartDataQueryContextSchema().load(payload)
+        except ValidationError as errors:
+            self.assertIn("row_limit", errors["queries"][0])
+            self.assertIn("row_offset", errors["queries"][0])
 
     def test_query_context_null_timegrain(self):
         self.login(username="admin")
@@ -68,5 +70,4 @@ class TestSchema(SupersetTestCase):
         payload = get_query_context(table.name, table.id, table.type)
 
         payload["queries"][0]["extras"]["time_grain_sqla"] = None
-        _, errors = ChartDataQueryContextSchema().load(payload)
-        self.assertEqual(errors, {})
+        _ = ChartDataQueryContextSchema().load(payload)
