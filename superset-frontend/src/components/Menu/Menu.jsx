@@ -52,7 +52,7 @@ const propTypes = {
   }).isRequired,
 };
 
-var Styles = styled.header`
+const Styles = styled.header`
   .navbar-brand {
     display: flex;
     flex-direction: column;

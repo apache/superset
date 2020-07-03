@@ -185,8 +185,7 @@ SHOW_STACKTRACE = True
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
 ENABLE_PROXY_FIX = False
-PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1,
-                    "x_host": 1, "x_port": 1, "x_prefix": 1}
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
 # ------------------------------
 # GLOBALS FOR APP Builder
@@ -328,8 +327,7 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #     if hasattr(g, "user") and g.user.is_active:
 #         feature_flags_dict['some_feature'] = g.user and g.user.id == 5
 #     return feature_flags_dict
-GET_FEATURE_FLAGS_FUNC: Optional[Callable[[
-    Dict[str, bool]], Dict[str, bool]]] = None
+GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -699,7 +697,8 @@ BLUEPRINTS: List[Blueprint] = []
 # into a proxied one
 
 
-def TRACKING_URL_TRANSFORMER(x): return x
+def TRACKING_URL_TRANSFORMER(x):
+    return x
 
 
 # Interval between consecutive polls when using Hive Engine
@@ -894,7 +893,8 @@ SIP_15_TOAST_MESSAGE = (
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
-def SQLA_TABLE_MUTATOR(table): return table
+def SQLA_TABLE_MUTATOR(table):
+    return table
 
 
 if CONFIG_PATH_ENV_VAR in os.environ:
@@ -919,8 +919,7 @@ elif importlib.util.find_spec("superset_config"):
         from superset_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config  # pylint: disable=import-error
 
-        print(
-            f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
+        print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
