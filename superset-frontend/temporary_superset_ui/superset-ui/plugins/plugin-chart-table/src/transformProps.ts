@@ -130,7 +130,7 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
     let dataType = DataType.Number; // TODO: get this from data source
     let formatter;
     if (isTime) {
-      // Use ganularity for "Adaptive Formatting" (smart_date)
+      // Use granularity for "Adaptive Formatting" (smart_date)
       const timeFormat = format || tableTimestampFormat;
       formatter = getTimeFormatter(timeFormat);
       if (timeFormat === smartDateFormatter.id) {
@@ -140,7 +140,7 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
           formatter = getTimeFormatter(format);
         } else {
           // return the identity string when datasource level formatter is not set
-          // and table timestamp format is set to Adaptive formatting
+          // and table timestamp format is set to Adaptive Formatting
           formatter = toString;
         }
       }
