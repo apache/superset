@@ -10,7 +10,7 @@ import { CACHE_AVAILABLE, CACHE_KEY, HTTP_STATUS_NOT_MODIFIED, HTTP_STATUS_OK } 
  * @param {Payload} jsonPayload json payload to post, will automatically add Content-Type header
  * @param {string} stringify whether to stringify field values when post as formData
  */
-export default function callApi({
+export default async function callApi({
   body,
   cache = 'default',
   credentials = 'same-origin',
@@ -40,39 +40,32 @@ export default function callApi({
 
   if (
     method === 'GET' &&
+    cache !== 'no-store' &&
+    cache !== 'reload' &&
     CACHE_AVAILABLE &&
     (self.location && self.location.protocol) === 'https:'
   ) {
-    return caches.open(CACHE_KEY).then(supersetCache =>
-      supersetCache
-        .match(url)
-        .then(cachedResponse => {
-          if (cachedResponse) {
-            // if we have a cached response, send its ETag in the
-            // `If-None-Match` header in a conditional request
-            const etag = cachedResponse.headers.get('Etag') as string;
-            request.headers = { ...request.headers, 'If-None-Match': etag };
-          }
-
-          return fetchWithRetry(url, request);
-        })
-        .then(response => {
-          if (response.status === HTTP_STATUS_NOT_MODIFIED) {
-            return supersetCache.match(url).then(cachedResponse => {
-              if (cachedResponse) {
-                return cachedResponse.clone();
-              }
-              throw new Error('Received 304 but no content is cached!');
-            });
-          }
-          if (response.status === HTTP_STATUS_OK && response.headers.get('Etag')) {
-            supersetCache.delete(url);
-            supersetCache.put(url, response.clone());
-          }
-
-          return response;
-        }),
-    );
+    const supersetCache = await caches.open(CACHE_KEY);
+    const cachedResponse = await supersetCache.match(url);
+    if (cachedResponse) {
+      // if we have a cached response, send its ETag in the
+      // `If-None-Match` header in a conditional request
+      const etag = cachedResponse.headers.get('Etag') as string;
+      request.headers = { ...request.headers, 'If-None-Match': etag };
+    }
+    const response = await fetchWithRetry(url, request);
+    if (response.status === HTTP_STATUS_NOT_MODIFIED) {
+      const cachedFullResponse = await supersetCache.match(url);
+      if (cachedFullResponse) {
+        return cachedFullResponse.clone();
+      }
+      throw new Error('Received 304 but no content is cached!');
+    }
+    if (response.status === HTTP_STATUS_OK && response.headers.get('Etag')) {
+      supersetCache.delete(url);
+      supersetCache.put(url, response.clone());
+    }
+    return response;
   }
 
   if (method === 'POST' || method === 'PATCH' || method === 'PUT') {
@@ -80,13 +73,13 @@ export default function callApi({
       try {
         return JSON.parse(payloadString) as JsonObject;
       } catch (error) {
-        throw new Error(`Invalid postPayload:\n\n${payloadString}`);
+        throw new Error(`Invalid payload:\n\n${payloadString}`);
       }
     };
-
     // override request body with post payload
     const payload: JsonObject | undefined =
       typeof postPayload === 'string' ? tryParsePayload(postPayload) : postPayload;
+
     if (typeof payload === 'object') {
       // using FormData has the effect that Content-Type header is set to `multipart/form-data`,
       // not e.g., 'application/x-www-form-urlencoded'
