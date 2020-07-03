@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import fetchMock from 'fetch-mock';
 
 import callApiAndParseWithTimeout from '../../src/callApi/callApiAndParseWithTimeout';
@@ -8,7 +26,6 @@ import * as parseResponse from '../../src/callApi/parseResponse';
 import * as rejectAfterTimeout from '../../src/callApi/rejectAfterTimeout';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
-import throwIfCalled from '../utils/throwIfCalled';
 
 describe('callApiAndParseWithTimeout()', () => {
   beforeAll(() => {
@@ -64,40 +81,39 @@ describe('callApiAndParseWithTimeout()', () => {
       rejectionSpy.mockClear();
     });
 
-    it('rejects if the request exceeds the timeout', () => {
-      return new Promise(done => {
-        expect.assertions(3);
-        jest.useFakeTimers();
+    it('rejects if the request exceeds the timeout', async () => {
+      expect.assertions(2);
+      jest.useFakeTimers();
 
-        const mockTimeoutUrl = '/mock/timeout/url';
-        const unresolvingPromise = new Promise(() => {});
-        fetchMock.get(mockTimeoutUrl, () => unresolvingPromise);
+      const mockTimeoutUrl = '/mock/timeout/url';
+      const unresolvingPromise = new Promise(() => {});
+      fetchMock.get(mockTimeoutUrl, () => unresolvingPromise);
 
-        callApiAndParseWithTimeout({ url: mockTimeoutUrl, method: 'GET', timeout: 1 })
-          .then(throwIfCalled)
-          .catch((error: { error: string; statusText: string }) => {
-            expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
-            expect(Object.keys(error)).toEqual(['error', 'statusText']);
-            expect(error.statusText).toBe('timeout');
-
-            return done(); // eslint-disable-line promise/no-callback-in-promise
-          });
-
+      try {
+        const promise = callApiAndParseWithTimeout({
+          url: mockTimeoutUrl,
+          method: 'GET',
+          timeout: 1,
+        });
         jest.advanceTimersByTime(2);
-      });
+        await promise;
+      } catch (error) {
+        expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
+        expect(error).toEqual({
+          error: 'Request timed out',
+          statusText: 'timeout',
+        });
+      }
     });
 
-    it('resolves if the request does not exceed the timeout', () => {
+    it('resolves if the request does not exceed the timeout', async () => {
       expect.assertions(1);
-
-      return callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET', timeout: 100 }).then(
-        response => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          expect(response.json).toEqual(expect.objectContaining(mockGetPayload));
-
-          return true;
-        },
-      );
+      const { json } = await callApiAndParseWithTimeout({
+        url: mockGetUrl,
+        method: 'GET',
+        timeout: 100,
+      });
+      expect(json).toEqual(mockGetPayload);
     });
   });
 });

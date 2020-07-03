@@ -1,26 +1,43 @@
-import { ParseMethod, SupersetClientResponse } from '../types';
+import { ParseMethod, TextResponse, JsonResponse } from '../types';
 
-function rejectIfNotOkay(response: Response): Promise<Response> {
-  if (!response.ok) return Promise.reject<Response>(response);
-
-  return Promise.resolve<Response>(response);
-}
-
-export default function parseResponse(
+export default async function parseResponse<T extends ParseMethod = 'json'>(
   apiPromise: Promise<Response>,
-  parseMethod: ParseMethod = 'json',
-): Promise<SupersetClientResponse> {
-  const checkedPromise = apiPromise.then(rejectIfNotOkay);
+  parseMethod?: T,
+) {
+  type ReturnType = T extends 'raw' | null
+    ? Response
+    : T extends 'json' | undefined
+    ? JsonResponse
+    : T extends 'text'
+    ? TextResponse
+    : never;
+  const response = await apiPromise;
+  // reject failed HTTP requests with the raw response
+  if (!response.ok) {
+    // eslint-disable-next-line @typescript-eslint/no-throw-literal
+    throw response;
+  }
 
-  if (parseMethod === null) {
-    return apiPromise.then(rejectIfNotOkay);
+  if (parseMethod === null || parseMethod === 'raw') {
+    return response as ReturnType;
   }
   if (parseMethod === 'text') {
-    return checkedPromise.then(response => response.text().then(text => ({ response, text })));
+    const text = await response.text();
+    const result: TextResponse = {
+      response,
+      text,
+    };
+    return result as ReturnType;
   }
-  if (parseMethod === 'json') {
-    return checkedPromise.then(response => response.json().then(json => ({ json, response })));
+  // by default treat this as json
+  if (parseMethod === undefined || parseMethod === 'json') {
+    const json = await response.json();
+    const result: JsonResponse = {
+      json,
+      response,
+    };
+    return result as ReturnType;
   }
 
-  throw new Error(`Expected parseResponse=null|json|text, got '${parseMethod}'.`);
+  throw new Error(`Expected parseResponse=json|text|raw|null, got '${parseMethod}'.`);
 }

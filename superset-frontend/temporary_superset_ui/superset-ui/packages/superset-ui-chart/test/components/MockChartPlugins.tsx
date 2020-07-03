@@ -1,6 +1,6 @@
 /* eslint-disable max-classes-per-file */
 import React from 'react';
-import { QueryFormData } from '@superset-ui/query/src';
+import { QueryFormData } from '@superset-ui/query';
 import { ChartMetadata, ChartPlugin } from '../../src';
 
 const DIMENSION_STYLE = {

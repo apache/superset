@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import fetchMock from 'fetch-mock';
 
 import { SupersetClient, SupersetClientClass } from '../src';
@@ -30,12 +48,12 @@ describe('SupersetClient', () => {
     expect(SupersetClient.isAuthenticated).toThrow();
     expect(SupersetClient.reAuthenticate).toThrow();
     expect(SupersetClient.request).toThrow();
-
     expect(SupersetClient.configure).not.toThrow();
   });
 
   // this also tests that the ^above doesn't throw if configure is called appropriately
-  it('calls appropriate SupersetClient methods when configured', () => {
+  it('calls appropriate SupersetClient methods when configured', async () => {
+    expect.assertions(10);
     const mockGetUrl = '/mock/get/url';
     const mockPostUrl = '/mock/post/url';
     const mockRequestUrl = '/mock/request/url';
@@ -43,8 +61,13 @@ describe('SupersetClient', () => {
     const mockDeleteUrl = '/mock/delete/url';
     const mockGetPayload = { get: 'payload' };
     const mockPostPayload = { post: 'payload' };
+    const mockDeletePayload = { delete: 'ok' };
+    const mockPutPayload = { put: 'ok' };
     fetchMock.get(mockGetUrl, mockGetPayload);
     fetchMock.post(mockPostUrl, mockPostPayload);
+    fetchMock.delete(mockDeleteUrl, mockDeletePayload);
+    fetchMock.put(mockPutUrl, mockPutPayload);
+    fetchMock.get(mockRequestUrl, mockGetPayload);
 
     const initSpy = jest.spyOn(SupersetClientClass.prototype, 'init');
     const getSpy = jest.spyOn(SupersetClientClass.prototype, 'get');
@@ -56,19 +79,19 @@ describe('SupersetClient', () => {
     const requestSpy = jest.spyOn(SupersetClientClass.prototype, 'request');
 
     SupersetClient.configure({});
-    SupersetClient.init();
+    await SupersetClient.init();
 
     expect(initSpy).toHaveBeenCalledTimes(1);
-    expect(authenticatedSpy).toHaveBeenCalledTimes(1);
+    expect(authenticatedSpy).toHaveBeenCalledTimes(2);
     expect(csrfSpy).toHaveBeenCalledTimes(1);
 
-    SupersetClient.get({ url: mockGetUrl });
-    SupersetClient.post({ url: mockPostUrl });
-    SupersetClient.delete({ url: mockDeleteUrl });
-    SupersetClient.put({ url: mockPutUrl });
-    SupersetClient.request({ url: mockRequestUrl });
+    await SupersetClient.get({ url: mockGetUrl });
+    await SupersetClient.post({ url: mockPostUrl });
+    await SupersetClient.delete({ url: mockDeleteUrl });
+    await SupersetClient.put({ url: mockPutUrl });
+    await SupersetClient.request({ url: mockRequestUrl });
     SupersetClient.isAuthenticated();
-    SupersetClient.reAuthenticate();
+    await SupersetClient.reAuthenticate();
 
     expect(initSpy).toHaveBeenCalledTimes(2);
     expect(deleteSpy).toHaveBeenCalledTimes(1);

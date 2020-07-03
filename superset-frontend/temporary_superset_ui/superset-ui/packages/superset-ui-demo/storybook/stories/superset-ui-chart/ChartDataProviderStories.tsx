@@ -1,5 +1,5 @@
 import React from 'react';
-import { text, select } from '@storybook/addon-knobs';
+import { text, select, withKnobs } from '@storybook/addon-knobs';
 
 import { SuperChart, ChartDataProvider } from '@superset-ui/chart';
 import { SupersetClient } from '@superset-ui/connection';
@@ -26,13 +26,12 @@ const WORD_CLOUD_LEGACY = wordCloudFormData.viz_type;
 const WORD_CLOUD = 'new_word_cloud';
 
 new LegacyBigNumberPlugin().configure({ key: BIG_NUMBER }).register();
-// @ts-ignore
+// eslint-disable-next-line
 new LegacySankeyPlugin().configure({ key: SANKEY }).register();
-// @ts-ignore
+// eslint-disable-next-line
 new LegacySunburstPlugin().configure({ key: SUNBURST }).register();
-// @ts-ignore
+// eslint-disable-next-line
 new LegacyWordCloudPlugin().configure({ key: WORD_CLOUD_LEGACY }).register();
-// @ts-ignore
 new WordCloudChartPlugin().configure({ key: WORD_CLOUD }).register();
 
 const VIS_TYPES = [BIG_NUMBER, SANKEY, SUNBURST, WORD_CLOUD, WORD_CLOUD_LEGACY];
@@ -46,14 +45,19 @@ const FORM_DATA_LOOKUP = {
 
 export default {
   title: 'Core Packages|@superset-ui/chart',
+  decorators: [
+    withKnobs({
+      escapeHTML: false,
+    }),
+  ],
 };
 
 export const dataProvider = () => {
-  const host = text('Set Superset App host for CORS request', 'localhost:9000');
+  const host = text('Set Superset App host for CORS request', 'localhost:8088');
   const visType = select('Chart Plugin Type', VIS_TYPES, VIS_TYPES[0]);
-  const formData = text('Override formData', JSON.stringify(FORM_DATA_LOOKUP[visType]));
   const width = text('Vis width', '500');
   const height = text('Vis height', '300');
+  const formData = text('Override formData', JSON.stringify(FORM_DATA_LOOKUP[visType]));
 
   return (
     <div style={{ margin: 16 }}>
