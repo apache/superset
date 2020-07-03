@@ -1,10 +1,26 @@
-/* eslint promise/no-callback-in-promise: 'off' */
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import fetchMock from 'fetch-mock';
 import callApi from '../../src/callApi/callApi';
 import * as constants from '../../src/constants';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
-import throwIfCalled from '../utils/throwIfCalled';
 import { CallApi, JsonObject } from '../../src/types';
 import { DEFAULT_FETCH_RETRY_OPTIONS } from '../../src/constants';
 
@@ -47,27 +63,22 @@ describe('callApi()', () => {
   afterEach(fetchMock.reset);
 
   describe('request config', () => {
-    it('calls the right url with the specified method', () => {
+    it('calls the right url with the specified method', async () => {
       expect.assertions(4);
-
-      return Promise.all([
+      await Promise.all([
         callApi({ url: mockGetUrl, method: 'GET' }),
         callApi({ url: mockPostUrl, method: 'POST' }),
         callApi({ url: mockPutUrl, method: 'PUT' }),
         callApi({ url: mockPatchUrl, method: 'PATCH' }),
-      ]).then(() => {
-        expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
-        expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
-        expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
-        expect(fetchMock.calls(mockPatchUrl)).toHaveLength(1);
-
-        return true;
-      });
+      ]);
+      expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
+      expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+      expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
+      expect(fetchMock.calls(mockPatchUrl)).toHaveLength(1);
     });
 
-    it('passes along mode, cache, credentials, headers, body, signal, and redirect parameters in the request', () => {
+    it('passes along mode, cache, credentials, headers, body, signal, and redirect parameters in the request', async () => {
       expect.assertions(8);
-
       const mockRequest: CallApi = {
         url: mockGetUrl,
         mode: 'cors',
@@ -81,64 +92,55 @@ describe('callApi()', () => {
         body: 'BODY',
       };
 
-      return callApi(mockRequest).then(() => {
-        const calls = fetchMock.calls(mockGetUrl);
-        const fetchParams = calls[0][1];
-        expect(calls).toHaveLength(1);
-        expect(fetchParams.mode).toBe(mockRequest.mode);
-        expect(fetchParams.cache).toBe(mockRequest.cache);
-        expect(fetchParams.credentials).toBe(mockRequest.credentials);
-        expect(fetchParams.headers).toEqual(
-          expect.objectContaining(mockRequest.headers) as typeof fetchParams.headers,
-        );
-        expect(fetchParams.redirect).toBe(mockRequest.redirect);
-        expect(fetchParams.signal).toBe(mockRequest.signal);
-        expect(fetchParams.body).toBe(mockRequest.body);
-
-        return true;
-      });
+      await callApi(mockRequest);
+      const calls = fetchMock.calls(mockGetUrl);
+      const fetchParams = calls[0][1];
+      expect(calls).toHaveLength(1);
+      expect(fetchParams.mode).toBe(mockRequest.mode);
+      expect(fetchParams.cache).toBe(mockRequest.cache);
+      expect(fetchParams.credentials).toBe(mockRequest.credentials);
+      expect(fetchParams.headers).toEqual(
+        expect.objectContaining(mockRequest.headers) as typeof fetchParams.headers,
+      );
+      expect(fetchParams.redirect).toBe(mockRequest.redirect);
+      expect(fetchParams.signal).toBe(mockRequest.signal);
+      expect(fetchParams.body).toBe(mockRequest.body);
     });
   });
 
   describe('POST requests', () => {
-    it('encodes key,value pairs from postPayload', () => {
+    it('encodes key,value pairs from postPayload', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', anotherKey: 1237 };
 
-      return callApi({ url: mockPostUrl, method: 'POST', postPayload }).then(() => {
-        const calls = fetchMock.calls(mockPostUrl);
-        expect(calls).toHaveLength(1);
+      await callApi({ url: mockPostUrl, method: 'POST', postPayload });
+      const calls = fetchMock.calls(mockPostUrl);
+      expect(calls).toHaveLength(1);
 
-        const fetchParams = calls[0][1];
-        const body = fetchParams.body as FormData;
+      const fetchParams = calls[0][1];
+      const body = fetchParams.body as FormData;
 
-        Object.entries(postPayload).forEach(([key, value]) => {
-          expect(body.get(key)).toBe(JSON.stringify(value));
-        });
-
-        return true;
+      Object.entries(postPayload).forEach(([key, value]) => {
+        expect(body.get(key)).toBe(JSON.stringify(value));
       });
     });
 
     // the reason for this is to omit strings like 'undefined' from making their way to the backend
-    it('omits key,value pairs from postPayload that have undefined values (POST)', () => {
+    it('omits key,value pairs from postPayload that have undefined values (POST)', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', noValue: undefined };
 
-      return callApi({ url: mockPostUrl, method: 'POST', postPayload }).then(() => {
-        const calls = fetchMock.calls(mockPostUrl);
-        expect(calls).toHaveLength(1);
+      await callApi({ url: mockPostUrl, method: 'POST', postPayload });
+      const calls = fetchMock.calls(mockPostUrl);
+      expect(calls).toHaveLength(1);
 
-        const fetchParams = calls[0][1];
-        const body = fetchParams.body as FormData;
-        expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
-        expect(body.get('noValue')).toBeNull();
-
-        return true;
-      });
+      const fetchParams = calls[0][1];
+      const body = fetchParams.body as FormData;
+      expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
+      expect(body.get('noValue')).toBeNull();
     });
 
-    it('respects the stringify flag in POST requests', () => {
+    it('respects the stringify flag in POST requests', async () => {
       const postPayload = {
         string: 'value',
         number: 1237,
@@ -150,68 +152,59 @@ describe('callApi()', () => {
 
       expect.assertions(1 + 3 * Object.keys(postPayload).length);
 
-      return Promise.all([
+      await Promise.all([
         callApi({ url: mockPostUrl, method: 'POST', postPayload }),
         callApi({ url: mockPostUrl, method: 'POST', postPayload, stringify: false }),
         callApi({ url: mockPostUrl, method: 'POST', jsonPayload: postPayload }),
-      ]).then(() => {
-        const calls = fetchMock.calls(mockPostUrl);
-        expect(calls).toHaveLength(3);
+      ]);
+      const calls = fetchMock.calls(mockPostUrl);
+      expect(calls).toHaveLength(3);
 
-        const stringified = calls[0][1].body as FormData;
-        const unstringified = calls[1][1].body as FormData;
-        const jsonRequestBody = JSON.parse(calls[2][1].body as string) as JsonObject;
+      const stringified = calls[0][1].body as FormData;
+      const unstringified = calls[1][1].body as FormData;
+      const jsonRequestBody = JSON.parse(calls[2][1].body as string) as JsonObject;
 
-        Object.entries(postPayload).forEach(([key, value]) => {
-          expect(stringified.get(key)).toBe(JSON.stringify(value));
-          expect(unstringified.get(key)).toBe(String(value));
-          expect(jsonRequestBody[key]).toEqual(value);
-        });
-
-        return true;
+      Object.entries(postPayload).forEach(([key, value]) => {
+        expect(stringified.get(key)).toBe(JSON.stringify(value));
+        expect(unstringified.get(key)).toBe(String(value));
+        expect(jsonRequestBody[key]).toEqual(value);
       });
     });
   });
 
   describe('PUT requests', () => {
-    it('encodes key,value pairs from postPayload', () => {
+    it('encodes key,value pairs from postPayload', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', anotherKey: 1237 };
 
-      return callApi({ url: mockPutUrl, method: 'PUT', postPayload }).then(() => {
-        const calls = fetchMock.calls(mockPutUrl);
-        expect(calls).toHaveLength(1);
+      await callApi({ url: mockPutUrl, method: 'PUT', postPayload });
+      const calls = fetchMock.calls(mockPutUrl);
+      expect(calls).toHaveLength(1);
 
-        const fetchParams = calls[0][1];
-        const body = fetchParams.body as FormData;
+      const fetchParams = calls[0][1];
+      const body = fetchParams.body as FormData;
 
-        Object.entries(postPayload).forEach(([key, value]) => {
-          expect(body.get(key)).toBe(JSON.stringify(value));
-        });
-
-        return true;
+      Object.entries(postPayload).forEach(([key, value]) => {
+        expect(body.get(key)).toBe(JSON.stringify(value));
       });
     });
 
     // the reason for this is to omit strings like 'undefined' from making their way to the backend
-    it('omits key,value pairs from postPayload that have undefined values (PUT)', () => {
+    it('omits key,value pairs from postPayload that have undefined values (PUT)', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', noValue: undefined };
 
-      return callApi({ url: mockPutUrl, method: 'PUT', postPayload }).then(() => {
-        const calls = fetchMock.calls(mockPutUrl);
-        expect(calls).toHaveLength(1);
+      await callApi({ url: mockPutUrl, method: 'PUT', postPayload });
+      const calls = fetchMock.calls(mockPutUrl);
+      expect(calls).toHaveLength(1);
 
-        const fetchParams = calls[0][1];
-        const body = fetchParams.body as FormData;
-        expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
-        expect(body.get('noValue')).toBeNull();
-
-        return true;
-      });
+      const fetchParams = calls[0][1];
+      const body = fetchParams.body as FormData;
+      expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
+      expect(body.get('noValue')).toBeNull();
     });
 
-    it('respects the stringify flag in PUT requests', () => {
+    it('respects the stringify flag in PUT requests', async () => {
       const postPayload = {
         string: 'value',
         number: 1237,
@@ -223,65 +216,56 @@ describe('callApi()', () => {
 
       expect.assertions(1 + 2 * Object.keys(postPayload).length);
 
-      return Promise.all([
+      await Promise.all([
         callApi({ url: mockPutUrl, method: 'PUT', postPayload }),
         callApi({ url: mockPutUrl, method: 'PUT', postPayload, stringify: false }),
-      ]).then(() => {
-        const calls = fetchMock.calls(mockPutUrl);
-        expect(calls).toHaveLength(2);
+      ]);
+      const calls = fetchMock.calls(mockPutUrl);
+      expect(calls).toHaveLength(2);
 
-        const stringified = calls[0][1].body as FormData;
-        const unstringified = calls[1][1].body as FormData;
+      const stringified = calls[0][1].body as FormData;
+      const unstringified = calls[1][1].body as FormData;
 
-        Object.entries(postPayload).forEach(([key, value]) => {
-          expect(stringified.get(key)).toBe(JSON.stringify(value));
-          expect(unstringified.get(key)).toBe(String(value));
-        });
-
-        return true;
+      Object.entries(postPayload).forEach(([key, value]) => {
+        expect(stringified.get(key)).toBe(JSON.stringify(value));
+        expect(unstringified.get(key)).toBe(String(value));
       });
     });
   });
 
   describe('PATCH requests', () => {
-    it('encodes key,value pairs from postPayload', () => {
+    it('encodes key,value pairs from postPayload', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', anotherKey: 1237 };
 
-      return callApi({ url: mockPatchUrl, method: 'PATCH', postPayload }).then(() => {
-        const calls = fetchMock.calls(mockPatchUrl);
-        expect(calls).toHaveLength(1);
+      await callApi({ url: mockPatchUrl, method: 'PATCH', postPayload });
+      const calls = fetchMock.calls(mockPatchUrl);
+      expect(calls).toHaveLength(1);
 
-        const fetchParams = calls[0][1];
-        const body = fetchParams.body as FormData;
+      const fetchParams = calls[0][1];
+      const body = fetchParams.body as FormData;
 
-        Object.entries(postPayload).forEach(([key, value]) => {
-          expect(body.get(key)).toBe(JSON.stringify(value));
-        });
-
-        return true;
+      Object.entries(postPayload).forEach(([key, value]) => {
+        expect(body.get(key)).toBe(JSON.stringify(value));
       });
     });
 
     // the reason for this is to omit strings like 'undefined' from making their way to the backend
-    it('omits key,value pairs from postPayload that have undefined values (PATCH)', () => {
+    it('omits key,value pairs from postPayload that have undefined values (PATCH)', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', noValue: undefined };
 
-      return callApi({ url: mockPatchUrl, method: 'PATCH', postPayload }).then(() => {
-        const calls = fetchMock.calls(mockPatchUrl);
-        expect(calls).toHaveLength(1);
+      await callApi({ url: mockPatchUrl, method: 'PATCH', postPayload });
+      const calls = fetchMock.calls(mockPatchUrl);
+      expect(calls).toHaveLength(1);
 
-        const fetchParams = calls[0][1];
-        const body = fetchParams.body as FormData;
-        expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
-        expect(body.get('noValue')).toBeNull();
-
-        return true;
-      });
+      const fetchParams = calls[0][1];
+      const body = fetchParams.body as FormData;
+      expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
+      expect(body.get('noValue')).toBeNull();
     });
 
-    it('respects the stringify flag in PATCH requests', () => {
+    it('respects the stringify flag in PATCH requests', async () => {
       const postPayload = {
         string: 'value',
         number: 1237,
@@ -293,22 +277,19 @@ describe('callApi()', () => {
 
       expect.assertions(1 + 2 * Object.keys(postPayload).length);
 
-      return Promise.all([
+      await Promise.all([
         callApi({ url: mockPatchUrl, method: 'PATCH', postPayload }),
         callApi({ url: mockPatchUrl, method: 'PATCH', postPayload, stringify: false }),
-      ]).then(() => {
-        const calls = fetchMock.calls(mockPatchUrl);
-        expect(calls).toHaveLength(2);
+      ]);
+      const calls = fetchMock.calls(mockPatchUrl);
+      expect(calls).toHaveLength(2);
 
-        const stringified = calls[0][1].body as FormData;
-        const unstringified = calls[1][1].body as FormData;
+      const stringified = calls[0][1].body as FormData;
+      const unstringified = calls[1][1].body as FormData;
 
-        Object.entries(postPayload).forEach(([key, value]) => {
-          expect(stringified.get(key)).toBe(JSON.stringify(value));
-          expect(unstringified.get(key)).toBe(String(value));
-        });
-
-        return true;
+      Object.entries(postPayload).forEach(([key, value]) => {
+        expect(stringified.get(key)).toBe(JSON.stringify(value));
+        expect(unstringified.get(key)).toBe(String(value));
       });
     });
   });
@@ -326,42 +307,34 @@ describe('callApi()', () => {
 
     beforeEach(() => {
       self.location.protocol = 'https:';
-
       return caches.delete(constants.CACHE_KEY);
     });
 
-    it('caches requests with ETags', () =>
-      callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
-        const calls = fetchMock.calls(mockCacheUrl);
-        expect(calls).toHaveLength(1);
+    it('caches requests with ETags', async () => {
+      expect.assertions(2);
+      await callApi({ url: mockCacheUrl, method: 'GET' });
+      const calls = fetchMock.calls(mockCacheUrl);
+      expect(calls).toHaveLength(1);
+      const supersetCache = await caches.open(constants.CACHE_KEY);
+      const cachedResponse = await supersetCache.match(mockCacheUrl);
+      expect(cachedResponse).toBeDefined();
+    });
 
-        return caches.open(constants.CACHE_KEY).then(supersetCache =>
-          supersetCache.match(mockCacheUrl).then(cachedResponse => {
-            expect(cachedResponse).toBeDefined();
-
-            return true;
-          }),
-        );
-      }));
-
-    it('will not use cache when running off an insecure connection', () => {
+    it('will not use cache when running off an insecure connection', async () => {
+      expect.assertions(2);
       self.location.protocol = 'http:';
 
-      return callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
-        const calls = fetchMock.calls(mockCacheUrl);
-        expect(calls).toHaveLength(1);
+      await callApi({ url: mockCacheUrl, method: 'GET' });
+      const calls = fetchMock.calls(mockCacheUrl);
+      expect(calls).toHaveLength(1);
 
-        return caches.open(constants.CACHE_KEY).then(supersetCache =>
-          supersetCache.match(mockCacheUrl).then(cachedResponse => {
-            expect(cachedResponse).toBeUndefined();
-
-            return true;
-          }),
-        );
-      });
+      const supersetCache = await caches.open(constants.CACHE_KEY);
+      const cachedResponse = await supersetCache.match(mockCacheUrl);
+      expect(cachedResponse).toBeUndefined();
     });
 
     it('works when the Cache API is disabled', async () => {
+      expect.assertions(5);
       // eslint-disable-next-line no-import-assign
       Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: false });
 
@@ -383,26 +356,25 @@ describe('callApi()', () => {
       Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: true });
     });
 
-    it('sends known ETags in the If-None-Match header', () =>
+    it('sends known ETags in the If-None-Match header', async () => {
+      expect.assertions(3);
       // first call sets the cache
-      callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
-        const calls = fetchMock.calls(mockCacheUrl);
-        expect(calls).toHaveLength(1);
+      await callApi({ url: mockCacheUrl, method: 'GET' });
+      const calls = fetchMock.calls(mockCacheUrl);
+      expect(calls).toHaveLength(1);
 
-        // second call sends the Etag in the If-None-Match header
-        return callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
-          const fetchParams = calls[1][1];
-          const headers = { 'If-None-Match': 'etag' };
-          expect(calls).toHaveLength(2);
-          expect(fetchParams.headers).toEqual(
-            expect.objectContaining(headers) as typeof fetchParams.headers,
-          );
-
-          return true;
-        });
-      }));
+      // second call sends the Etag in the If-None-Match header
+      await callApi({ url: mockCacheUrl, method: 'GET' });
+      const fetchParams = calls[1][1];
+      const headers = { 'If-None-Match': 'etag' };
+      expect(calls).toHaveLength(2);
+      expect(fetchParams.headers).toEqual(
+        expect.objectContaining(headers) as typeof fetchParams.headers,
+      );
+    });
 
     it('reuses cached responses on 304 status', async () => {
+      expect.assertions(3);
       // first call sets the cache
       await callApi({ url: mockCacheUrl, method: 'GET' });
       const calls = fetchMock.calls(mockCacheUrl);
@@ -417,23 +389,28 @@ describe('callApi()', () => {
       expect(secondBody).toEqual('BODY');
     });
 
-    it('throws error when cache fails on 304', () => {
+    it('throws error when cache fails on 304', async () => {
+      expect.assertions(2);
+
       // this should never happen, since a 304 is only returned if we have
       // the cached response and sent the If-None-Match header
       const mockUncachedUrl = '/mock/uncached/url';
       const mockCachedPayload = { status: 304 };
       fetchMock.get(mockUncachedUrl, mockCachedPayload);
 
-      return callApi({ url: mockUncachedUrl, method: 'GET' }).catch(
-        (error: { message: string }) => {
-          const calls = fetchMock.calls(mockUncachedUrl);
-          expect(calls).toHaveLength(1);
-          expect(error.message).toEqual('Received 304 but no content is cached!');
-        },
-      );
+      try {
+        await callApi({ url: mockUncachedUrl, method: 'GET' });
+      } catch (error) {
+        const calls = fetchMock.calls(mockUncachedUrl);
+        expect(calls).toHaveLength(1);
+        expect((error as { message: string }).message).toEqual(
+          'Received 304 but no content is cached!',
+        );
+      }
     });
 
     it('returns original response if no Etag', async () => {
+      expect.assertions(3);
       const url = mockGetUrl;
       const response = await callApi({ url, method: 'GET' });
       const calls = fetchMock.calls(url);
@@ -444,6 +421,7 @@ describe('callApi()', () => {
     });
 
     it('returns original response if status not 304 or 200', async () => {
+      expect.assertions(2);
       const url = mockNotFound;
       const response = await callApi({ url, method: 'GET' });
       const calls = fetchMock.calls(url);
@@ -452,39 +430,40 @@ describe('callApi()', () => {
     });
   });
 
-  it('rejects after retrying thrice if the request throws', () => {
+  it('rejects after retrying thrice if the request throws', async () => {
     expect.assertions(3);
-
-    return callApi({
-      fetchRetryOptions: DEFAULT_FETCH_RETRY_OPTIONS,
-      url: mockErrorUrl,
-      method: 'GET',
-    })
-      .then(throwIfCalled)
-      .catch((error: { status: number; statusText: string }) => {
-        expect(fetchMock.calls(mockErrorUrl)).toHaveLength(4);
-        expect(error.status).toBe(mockErrorPayload.status);
-        expect(error.statusText).toBe(mockErrorPayload.statusText);
+    try {
+      await callApi({
+        fetchRetryOptions: DEFAULT_FETCH_RETRY_OPTIONS,
+        url: mockErrorUrl,
+        method: 'GET',
       });
+    } catch (error) {
+      const err = error as { status: number; statusText: string };
+      expect(fetchMock.calls(mockErrorUrl)).toHaveLength(4);
+      expect(err.status).toBe(mockErrorPayload.status);
+      expect(err.statusText).toBe(mockErrorPayload.statusText);
+    }
   });
 
-  it('rejects without retries if the config is set to 0 retries', () => {
+  it('rejects without retries if the config is set to 0 retries', async () => {
     expect.assertions(3);
-
-    return callApi({
-      fetchRetryOptions: { retries: 0 },
-      url: mockErrorUrl,
-      method: 'GET',
-    })
-      .then(throwIfCalled)
-      .catch((error: { status: number; statusText: string }) => {
-        expect(fetchMock.calls(mockErrorUrl)).toHaveLength(1);
-        expect(error.status).toBe(mockErrorPayload.status);
-        expect(error.statusText).toBe(mockErrorPayload.statusText);
+    try {
+      await callApi({
+        fetchRetryOptions: { retries: 0 },
+        url: mockErrorUrl,
+        method: 'GET',
       });
+    } catch (error) {
+      const err = error as { status: number; statusText: string };
+      expect(fetchMock.calls(mockErrorUrl)).toHaveLength(1);
+      expect(err.status).toBe(mockErrorPayload.status);
+      expect(err.statusText).toBe(mockErrorPayload.statusText);
+    }
   });
 
   it('rejects after retrying thrice if the request returns a 503', async () => {
+    expect.assertions(2);
     const url = mock503;
     const response = await callApi({
       fetchRetryOptions: DEFAULT_FETCH_RETRY_OPTIONS,
@@ -496,13 +475,17 @@ describe('callApi()', () => {
     expect(response.status).toEqual(503);
   });
 
-  it('invalid json for postPayload should thrown error', () => {
-    expect(() => {
-      callApi({
+  it('invalid json for postPayload should thrown error', async () => {
+    expect.assertions(2);
+    try {
+      await callApi({
         url: mockPostUrl,
         method: 'POST',
         postPayload: 'haha',
       });
-    }).toThrow('Invalid postPayload:\n\nhaha');
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toEqual('Invalid payload:\n\nhaha');
+    }
   });
 });

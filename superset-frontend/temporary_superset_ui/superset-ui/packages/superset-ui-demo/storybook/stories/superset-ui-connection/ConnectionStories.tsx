@@ -1,6 +1,6 @@
 import React from 'react';
 import { select, text, withKnobs } from '@storybook/addon-knobs';
-import { sankeyFormData } from '@superset-ui/chart/test/fixtures/formData';
+import { bigNumberFormData } from '@superset-ui/chart/test/fixtures/formData';
 
 import VerifyCORS, { Props as VerifyCORSProps } from '../../shared/components/VerifyCORS';
 import Expandable from '../../shared/components/Expandable';
@@ -21,14 +21,14 @@ export default {
 };
 
 export const configureCORS = () => {
-  const host = text('Superset App host for CORS request', 'localhost:9000');
+  const host = text('Superset App host for CORS request', 'localhost:8088');
   const selectEndpoint = select('Endpoint', ENDPOINTS, '');
   const customEndpoint = text('Custom Endpoint (override above)', '');
   const endpoint = customEndpoint || selectEndpoint;
   const method = endpoint ? select('Request method', REQUEST_METHODS, 'POST') : undefined;
   const postPayload =
     endpoint && method === 'POST'
-      ? text('POST payload', JSON.stringify({ form_data: sankeyFormData }, null, 2))
+      ? text('POST payload', JSON.stringify({ form_data: bigNumberFormData }))
       : undefined;
 
   return (
