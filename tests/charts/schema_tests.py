@@ -40,8 +40,7 @@ class TestSchema(SupersetTestCase):
         # Use defaults
         payload["queries"][0].pop("row_limit", None)
         payload["queries"][0].pop("row_offset", None)
-        query_context, errors = load_query_context(payload)
-        self.assertEqual(errors, {})
+        query_context = load_query_context(payload)
         query_object = query_context.queries[0]
         self.assertEqual(query_object.row_limit, app.config["ROW_LIMIT"])
         self.assertEqual(query_object.row_offset, 0)
@@ -49,7 +48,7 @@ class TestSchema(SupersetTestCase):
         # Valid limit and offset
         payload["queries"][0]["row_limit"] = 100
         payload["queries"][0]["row_offset"] = 200
-        query_context= ChartDataQueryContextSchema().load(payload)
+        query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         self.assertEqual(query_object.row_limit, 100)
         self.assertEqual(query_object.row_offset, 200)
@@ -58,7 +57,7 @@ class TestSchema(SupersetTestCase):
         payload["queries"][0]["row_limit"] = 0
         payload["queries"][0]["row_offset"] = -1
         try:
-            query_context = ChartDataQueryContextSchema().load(payload)
+            _ = ChartDataQueryContextSchema().load(payload)
         except ValidationError as errors:
             self.assertIn("row_limit", errors["queries"][0])
             self.assertIn("row_offset", errors["queries"][0])
