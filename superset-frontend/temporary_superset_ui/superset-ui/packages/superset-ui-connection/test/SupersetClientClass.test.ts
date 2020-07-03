@@ -1,6 +1,23 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import fetchMock from 'fetch-mock';
 import { SupersetClientClass, ClientConfig } from '../src';
-import throwIfCalled from './utils/throwIfCalled';
 import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClientClass', () => {
@@ -13,6 +30,11 @@ describe('SupersetClientClass', () => {
   it('new SupersetClientClass()', () => {
     const client = new SupersetClientClass();
     expect(client).toBeInstanceOf(SupersetClientClass);
+  });
+
+  it('fallback protocol to https when setting only host', () => {
+    const client = new SupersetClientClass({ host: 'TEST-HOST' });
+    expect(client.baseUrl).toEqual('https://test-host');
   });
 
   describe('.getUrl()', () => {
@@ -36,12 +58,12 @@ describe('SupersetClientClass', () => {
     });
 
     it('constructs a valid url from config.host + endpoint if host is omitted', () => {
-      expect(client.getUrl({ endpoint: '/test' })).toBe('https://CONFIG_HOST/test');
+      expect(client.getUrl({ endpoint: '/test' })).toBe('https://config_host/test');
     });
 
-    it('does not throw if url, endpoint, and host are', () => {
+    it('does not throw if url, endpoint, and host are all empty', () => {
       client = new SupersetClientClass({ protocol: 'https:', host: '' });
-      expect(client.getUrl()).toBe('https:///');
+      expect(client.getUrl()).toBe('https://localhost/');
     });
   });
 
@@ -52,194 +74,151 @@ describe('SupersetClientClass', () => {
       fetchMock.get(LOGIN_GLOB, { csrf_token: 1234 }, { overwriteRoutes: true });
     });
 
-    it('calls superset/csrf_token/ when init() is called if no CSRF token is passed', () => {
+    it('calls superset/csrf_token/ when init() is called if no CSRF token is passed', async () => {
       expect.assertions(1);
-
-      return new SupersetClientClass().init().then(() => {
-        expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
-
-        return true;
-      });
+      await new SupersetClientClass().init();
+      expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
     });
 
-    it('does NOT call superset/csrf_token/ when init() is called if a CSRF token is passed', () => {
+    it('does NOT call superset/csrf_token/ when init() is called if a CSRF token is passed', async () => {
       expect.assertions(1);
-
-      return new SupersetClientClass({ csrfToken: 'abc' }).init().then(() => {
-        expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
-
-        return true;
-      });
+      await new SupersetClientClass({ csrfToken: 'abc' }).init();
+      expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
     });
 
-    it('calls superset/csrf_token/ when init(force=true) is called even if a CSRF token is passed', () => {
+    it('calls superset/csrf_token/ when init(force=true) is called even if a CSRF token is passed', async () => {
       expect.assertions(4);
       const initialToken = 'initial_token';
       const client = new SupersetClientClass({ csrfToken: initialToken });
 
-      return client.init().then(() => {
-        expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
-        expect(client.csrfToken).toBe(initialToken);
+      await client.init();
+      expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
+      expect(client.csrfToken).toBe(initialToken);
 
-        return client.init(true).then(() => {
-          expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
-          expect(client.csrfToken).not.toBe(initialToken);
-
-          return true;
-        });
-      });
+      await client.init(true);
+      expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
+      expect(client.csrfToken).not.toBe(initialToken);
     });
 
-    it('throws if superset/csrf_token/ returns an error', () => {
+    it('throws if superset/csrf_token/ returns an error', async () => {
       expect.assertions(1);
-
-      fetchMock.get(LOGIN_GLOB, () => Promise.reject({ status: 403 }), {
+      const rejectError = { status: 403 };
+      fetchMock.get(LOGIN_GLOB, () => Promise.reject(rejectError), {
         overwriteRoutes: true,
       });
-
-      return new SupersetClientClass({})
-        .init()
-        .then(throwIfCalled)
-        .catch((error: { status: number }) => {
-          expect(error.status).toBe(403);
-
-          return true;
-        });
+      try {
+        await new SupersetClientClass({}).init();
+      } catch (error) {
+        expect(error as typeof rejectError).toEqual(rejectError);
+      }
     });
 
-    it('throws if superset/csrf_token/ does not return a token', () => {
+    const invalidCsrfTokenError = { error: 'Failed to fetch CSRF token' };
+
+    it('throws if superset/csrf_token/ does not return a token', async () => {
       expect.assertions(1);
       fetchMock.get(LOGIN_GLOB, {}, { overwriteRoutes: true });
-
-      return new SupersetClientClass({})
-        .init()
-        .then(throwIfCalled)
-        .catch((error: unknown) => {
-          expect(error).toBeDefined();
-
-          return true;
-        });
+      try {
+        await new SupersetClientClass({}).init();
+      } catch (error) {
+        expect(error as typeof invalidCsrfTokenError).toEqual(invalidCsrfTokenError);
+      }
     });
 
-    it('does not set csrfToken if response is not json', () => {
+    it('does not set csrfToken if response is not json', async () => {
+      expect.assertions(1);
       fetchMock.get(LOGIN_GLOB, '123', {
         overwriteRoutes: true,
       });
-
-      return new SupersetClientClass({})
-        .init()
-        .then(throwIfCalled)
-        .catch((error: unknown) => {
-          expect(error).toBeDefined();
-
-          return true;
-        });
+      try {
+        await new SupersetClientClass({}).init();
+      } catch (error) {
+        expect(error as typeof invalidCsrfTokenError).toEqual(invalidCsrfTokenError);
+      }
     });
   });
 
   describe('.isAuthenticated()', () => {
     afterEach(fetchMock.reset);
 
-    it('returns true if there is a token and false if not', () => {
+    it('returns true if there is a token and false if not', async () => {
       expect.assertions(2);
       const client = new SupersetClientClass({});
       expect(client.isAuthenticated()).toBe(false);
-
-      return client.init().then(() => {
-        expect(client.isAuthenticated()).toBe(true);
-
-        return true;
-      });
+      await client.init();
+      expect(client.isAuthenticated()).toBe(true);
     });
 
     it('returns true if a token is passed at configuration', () => {
       expect.assertions(2);
       const clientWithoutToken = new SupersetClientClass({ csrfToken: undefined });
       const clientWithToken = new SupersetClientClass({ csrfToken: 'token' });
-
       expect(clientWithoutToken.isAuthenticated()).toBe(false);
       expect(clientWithToken.isAuthenticated()).toBe(true);
     });
   });
 
   describe('.ensureAuth()', () => {
-    it(`returns a promise that rejects if .init() has not been called`, () => {
+    it(`returns a promise that rejects if .init() has not been called`, async () => {
       expect.assertions(2);
 
       const client = new SupersetClientClass({});
-
-      return client
-        .ensureAuth()
-        .then(throwIfCalled)
-        .catch((error: { error: string }) => {
-          expect(error).toEqual(
-            expect.objectContaining({ error: expect.any(String) }) as typeof error,
-          );
-          expect(client.isAuthenticated()).toBe(false);
-
-          return true;
-        });
+      try {
+        await client.ensureAuth();
+      } catch (error) {
+        expect(error).toEqual({ error: expect.any(String) });
+      }
+      expect(client.isAuthenticated()).toBe(false);
     });
 
-    it('returns a promise that resolves if .init() resolves successfully', () => {
+    it('returns a promise that resolves if .init() resolves successfully', async () => {
       expect.assertions(1);
 
       const client = new SupersetClientClass({});
+      await client.init();
+      await client.ensureAuth();
 
-      return client.init().then(() =>
-        client
-          .ensureAuth()
-          .then(throwIfCalled)
-          .catch(() => {
-            expect(client.isAuthenticated()).toBe(true);
-
-            return true;
-          }),
-      );
+      expect(client.isAuthenticated()).toBe(true);
     });
 
-    it(`returns a promise that rejects if .init() is unsuccessful`, () => {
+    it(`returns a promise that rejects if .init() is unsuccessful`, async () => {
+      expect.assertions(4);
+
       const rejectValue = { status: 403 };
       fetchMock.get(LOGIN_GLOB, () => Promise.reject(rejectValue), {
         overwriteRoutes: true,
       });
 
-      expect.assertions(3);
-
       const client = new SupersetClientClass({});
 
-      return client
-        .init()
-        .then(throwIfCalled)
-        .catch((error: unknown) => {
-          expect(error).toEqual(expect.objectContaining(rejectValue) as unknown);
+      try {
+        await client.init();
+      } catch (error) {
+        expect(error).toEqual(expect.objectContaining(rejectValue));
+        expect(client.isAuthenticated()).toBe(false);
+        try {
+          await client.ensureAuth();
+        } catch (error2) {
+          expect(error2).toEqual(expect.objectContaining(rejectValue));
+          expect(client.isAuthenticated()).toBe(false);
+        }
+      }
 
-          return client
-            .ensureAuth()
-            .then(throwIfCalled)
-            .catch((error2: unknown) => {
-              expect(error2).toEqual(expect.objectContaining(rejectValue) as unknown);
-              expect(client.isAuthenticated()).toBe(false);
-
-              // reset
-              fetchMock.get(
-                LOGIN_GLOB,
-                { csrf_token: 1234 },
-                {
-                  overwriteRoutes: true,
-                },
-              );
-
-              return true;
-            });
-        });
+      // reset
+      fetchMock.get(
+        LOGIN_GLOB,
+        { csrf_token: 1234 },
+        {
+          overwriteRoutes: true,
+        },
+      );
     });
   });
 
   describe('requests', () => {
     afterEach(fetchMock.reset);
     const protocol = 'https:';
-    const host = 'HOST';
+    const host = 'host';
     const mockGetEndpoint = '/get/url';
     const mockRequestEndpoint = '/request/url';
     const mockPostEndpoint = '/post/url';
@@ -263,34 +242,32 @@ describe('SupersetClientClass', () => {
     fetchMock.get(mockTextUrl, mockTextJsonResponse);
     fetchMock.post(mockTextUrl, mockTextJsonResponse);
 
-    it('checks for authentication before every get and post request', () => {
+    it('checks for authentication before every get and post request', async () => {
       expect.assertions(6);
+
       const authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
       const client = new SupersetClientClass({ protocol, host });
 
-      return client.init().then(() =>
-        Promise.all([
-          client.get({ url: mockGetUrl }),
-          client.post({ url: mockPostUrl }),
-          client.put({ url: mockPutUrl }),
-          client.delete({ url: mockDeleteUrl }),
-          client.request({ url: mockRequestUrl, method: 'DELETE' }),
-        ]).then(() => {
-          expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
-          expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
-          expect(fetchMock.calls(mockDeleteUrl)).toHaveLength(1);
-          expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
-          expect(fetchMock.calls(mockRequestUrl)).toHaveLength(1);
-          expect(authSpy).toHaveBeenCalledTimes(5);
-          authSpy.mockRestore();
+      await client.init();
+      await client.get({ url: mockGetUrl });
+      await client.post({ url: mockPostUrl });
+      await client.put({ url: mockPutUrl });
+      await client.delete({ url: mockDeleteUrl });
+      await client.request({ url: mockRequestUrl, method: 'DELETE' });
 
-          return true;
-        }),
-      );
+      expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
+      expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+      expect(fetchMock.calls(mockDeleteUrl)).toHaveLength(1);
+      expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
+      expect(fetchMock.calls(mockRequestUrl)).toHaveLength(1);
+
+      expect(authSpy).toHaveBeenCalledTimes(5);
+      authSpy.mockRestore();
     });
 
-    it('sets protocol, host, headers, mode, and credentials from config', () => {
+    it('sets protocol, host, headers, mode, and credentials from config', async () => {
       expect.assertions(3);
+
       const clientConfig: ClientConfig = {
         host,
         protocol,
@@ -300,60 +277,43 @@ describe('SupersetClientClass', () => {
       };
 
       const client = new SupersetClientClass(clientConfig);
+      await client.init();
+      await client.get({ url: mockGetUrl });
 
-      return client.init().then(() =>
-        client.get({ url: mockGetUrl }).then(() => {
-          const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
-          expect(fetchRequest.mode).toBe(clientConfig.mode);
-          expect(fetchRequest.credentials).toBe(clientConfig.credentials);
-          expect(fetchRequest.headers).toEqual(
-            expect.objectContaining(clientConfig.headers) as typeof fetchRequest.headers,
-          );
-
-          return true;
-        }),
+      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
+      expect(fetchRequest.mode).toBe(clientConfig.mode);
+      expect(fetchRequest.credentials).toBe(clientConfig.credentials);
+      expect(fetchRequest.headers).toEqual(
+        expect.objectContaining(clientConfig.headers) as typeof fetchRequest.headers,
       );
     });
 
     describe('.get()', () => {
-      it('makes a request using url or endpoint', () => {
-        expect.assertions(1);
+      it('makes a request using url or endpoint', async () => {
+        expect.assertions(2);
+
         const client = new SupersetClientClass({ protocol, host });
+        await client.init();
 
-        return client.init().then(() =>
-          Promise.all([
-            client.get({ url: mockGetUrl }),
-            client.get({ endpoint: mockGetEndpoint }),
-          ]).then(() => {
-            expect(fetchMock.calls(mockGetUrl)).toHaveLength(2);
+        await client.get({ url: mockGetUrl });
+        expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
 
-            return true;
-          }),
-        );
+        await client.get({ endpoint: mockGetEndpoint });
+        expect(fetchMock.calls(mockGetUrl)).toHaveLength(2);
       });
 
-      it('supports parsing a response as text', () => {
+      it('supports parsing a response as text', async () => {
         expect.assertions(2);
         const client = new SupersetClientClass({ protocol, host });
-
-        return client
-          .init()
-          .then(() =>
-            client
-              .get({ url: mockTextUrl, parseMethod: 'text' })
-              .then(({ text }) => {
-                expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
-                expect(text).toBe(mockTextJsonResponse);
-
-                return true;
-              })
-              .catch(throwIfCalled),
-          )
-          .catch(throwIfCalled);
+        await client.init();
+        const { text } = await client.get({ url: mockTextUrl, parseMethod: 'text' });
+        expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
+        expect(text).toBe(mockTextJsonResponse);
       });
 
-      it('allows overriding host, headers, mode, and credentials per-request', () => {
+      it('allows overriding host, headers, mode, and credentials per-request', async () => {
         expect.assertions(3);
+
         const clientConfig: ClientConfig = {
           host,
           protocol,
@@ -361,7 +321,6 @@ describe('SupersetClientClass', () => {
           credentials: 'include',
           headers: { my: 'header' },
         };
-
         const overrideConfig: ClientConfig = {
           host: 'override_host',
           mode: 'no-cors',
@@ -370,46 +329,34 @@ describe('SupersetClientClass', () => {
         };
 
         const client = new SupersetClientClass(clientConfig);
+        await client.init();
+        await client.get({ url: mockGetUrl, ...overrideConfig });
 
-        return client
-          .init()
-          .then(() =>
-            client
-              .get({ url: mockGetUrl, ...overrideConfig })
-              .then(() => {
-                const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
-                expect(fetchRequest.mode).toBe(overrideConfig.mode);
-                expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
-                expect(fetchRequest.headers).toEqual(
-                  expect.objectContaining(overrideConfig.headers) as typeof fetchRequest.headers,
-                );
-
-                return true;
-              })
-              .catch(throwIfCalled),
-          )
-          .catch(throwIfCalled);
+        const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
+        expect(fetchRequest.mode).toBe(overrideConfig.mode);
+        expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
+        expect(fetchRequest.headers).toEqual(
+          expect.objectContaining(overrideConfig.headers) as typeof fetchRequest.headers,
+        );
       });
     });
 
     describe('.post()', () => {
-      it('makes a request using url or endpoint', () => {
-        expect.assertions(1);
+      it('makes a request using url or endpoint', async () => {
+        expect.assertions(2);
+
         const client = new SupersetClientClass({ protocol, host });
+        await client.init();
 
-        return client.init().then(() =>
-          Promise.all([
-            client.post({ url: mockPostUrl }),
-            client.post({ endpoint: mockPostEndpoint }),
-          ]).then(() => {
-            expect(fetchMock.calls(mockPostUrl)).toHaveLength(2);
+        await client.post({ url: mockPostUrl });
+        expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
 
-            return true;
-          }),
-        );
+        await client.post({ endpoint: mockPostEndpoint });
+        expect(fetchMock.calls(mockPostUrl)).toHaveLength(2);
       });
 
-      it('allows overriding host, headers, mode, and credentials per-request', () => {
+      it('allows overriding host, headers, mode, and credentials per-request', async () => {
+        expect.assertions(3);
         const clientConfig: ClientConfig = {
           host,
           protocol,
@@ -417,7 +364,6 @@ describe('SupersetClientClass', () => {
           credentials: 'include',
           headers: { my: 'header' },
         };
-
         const overrideConfig: ClientConfig = {
           host: 'override_host',
           mode: 'no-cors',
@@ -426,70 +372,57 @@ describe('SupersetClientClass', () => {
         };
 
         const client = new SupersetClientClass(clientConfig);
+        await client.init();
+        await client.post({ url: mockPostUrl, ...overrideConfig });
 
-        return client.init().then(() =>
-          client.post({ url: mockPostUrl, ...overrideConfig }).then(() => {
-            const fetchRequest = fetchMock.calls(mockPostUrl)[0][1];
-            expect(fetchRequest.mode).toBe(overrideConfig.mode);
-            expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
-            expect(fetchRequest.headers).toEqual(
-              expect.objectContaining(overrideConfig.headers) as typeof fetchRequest.headers,
-            );
+        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1];
 
-            return true;
-          }),
+        expect(fetchRequest.mode).toBe(overrideConfig.mode);
+        expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
+        expect(fetchRequest.headers).toEqual(
+          expect.objectContaining(overrideConfig.headers) as typeof fetchRequest.headers,
         );
       });
 
-      it('supports parsing a response as text', () => {
+      it('supports parsing a response as text', async () => {
         expect.assertions(2);
         const client = new SupersetClientClass({ protocol, host });
-
-        return client.init().then(() =>
-          client.post({ url: mockTextUrl, parseMethod: 'text' }).then(({ text }) => {
-            expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
-            expect(text).toBe(mockTextJsonResponse);
-
-            return true;
-          }),
-        );
+        await client.init();
+        const { text } = await client.post({ url: mockTextUrl, parseMethod: 'text' });
+        expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
+        expect(text).toBe(mockTextJsonResponse);
       });
 
-      it('passes postPayload key,values in the body', () => {
+      it('passes postPayload key,values in the body', async () => {
         expect.assertions(3);
 
         const postPayload = { number: 123, array: [1, 2, 3] };
         const client = new SupersetClientClass({ protocol, host });
+        await client.init();
+        await client.post({ url: mockPostUrl, postPayload });
 
-        return client.init().then(() =>
-          client.post({ url: mockPostUrl, postPayload }).then(() => {
-            const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
-            expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
-            Object.entries(postPayload).forEach(([key, value]) => {
-              expect(formData.get(key)).toBe(JSON.stringify(value));
-            });
+        const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
 
-            return true;
-          }),
-        );
+        expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+        Object.entries(postPayload).forEach(([key, value]) => {
+          expect(formData.get(key)).toBe(JSON.stringify(value));
+        });
       });
 
-      it('respects the stringify parameter for postPayload key,values', () => {
+      it('respects the stringify parameter for postPayload key,values', async () => {
         expect.assertions(3);
+
         const postPayload = { number: 123, array: [1, 2, 3] };
         const client = new SupersetClientClass({ protocol, host });
+        await client.init();
+        await client.post({ url: mockPostUrl, postPayload, stringify: false });
 
-        return client.init().then(() =>
-          client.post({ url: mockPostUrl, postPayload, stringify: false }).then(() => {
-            const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
-            expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
-            Object.entries(postPayload).forEach(([key, value]) => {
-              expect(formData.get(key)).toBe(String(value));
-            });
+        const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
 
-            return true;
-          }),
-        );
+        expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+        Object.entries(postPayload).forEach(([key, value]) => {
+          expect(formData.get(key)).toBe(String(value));
+        });
       });
     });
   });
