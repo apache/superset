@@ -451,7 +451,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         else:
             return self.response_400(message="Request is not JSON")
         try:
-            query_context = ChartDataQueryContextSchema().load(request.json)
+            query_context = ChartDataQueryContextSchema().load(json_body)
         except KeyError:
             return self.response_400(message="Request is incorrect")
         except ValidationError as err:
