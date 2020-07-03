@@ -132,6 +132,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "SQL Lab",
         "Queries",
         "Refresh Druid Metadata",
+        "AnnotationLayerModelView",
+        "CssTemplateModelView",
+        "QueryView",
         "ResetPasswordView",
         "RoleModelView",
         "LogModelView",
@@ -149,6 +152,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_approve",
         "can_update_role",
         "all_query_access",
+        "import_dashboards",
     }
 
     READ_ONLY_PERMISSION = {"can_show", "can_list", "can_get", "can_external_metadata"}
