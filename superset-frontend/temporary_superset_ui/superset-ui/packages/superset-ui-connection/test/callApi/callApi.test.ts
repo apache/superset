@@ -5,7 +5,7 @@ import * as constants from '../../src/constants';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 import throwIfCalled from '../utils/throwIfCalled';
-import { CallApi } from '../../src/types';
+import { CallApi, JsonObject } from '../../src/types';
 import { DEFAULT_FETCH_RETRY_OPTIONS } from '../../src/constants';
 
 describe('callApi()', () => {
@@ -148,21 +148,24 @@ describe('callApi()', () => {
         emptyString: '',
       };
 
-      expect.assertions(1 + 2 * Object.keys(postPayload).length);
+      expect.assertions(1 + 3 * Object.keys(postPayload).length);
 
       return Promise.all([
         callApi({ url: mockPostUrl, method: 'POST', postPayload }),
         callApi({ url: mockPostUrl, method: 'POST', postPayload, stringify: false }),
+        callApi({ url: mockPostUrl, method: 'POST', jsonPayload: postPayload }),
       ]).then(() => {
         const calls = fetchMock.calls(mockPostUrl);
-        expect(calls).toHaveLength(2);
+        expect(calls).toHaveLength(3);
 
         const stringified = calls[0][1].body as FormData;
         const unstringified = calls[1][1].body as FormData;
+        const jsonRequestBody = JSON.parse(calls[2][1].body as string) as JsonObject;
 
         Object.entries(postPayload).forEach(([key, value]) => {
           expect(stringified.get(key)).toBe(JSON.stringify(value));
           expect(unstringified.get(key)).toBe(String(value));
+          expect(jsonRequestBody[key]).toEqual(value);
         });
 
         return true;
@@ -491,5 +494,15 @@ describe('callApi()', () => {
     const calls = fetchMock.calls(url);
     expect(calls).toHaveLength(4);
     expect(response.status).toEqual(503);
+  });
+
+  it('invalid json for postPayload should thrown error', () => {
+    expect(() => {
+      callApi({
+        url: mockPostUrl,
+        method: 'POST',
+        postPayload: 'haha',
+      });
+    }).toThrow('Invalid postPayload:\n\nhaha');
   });
 });

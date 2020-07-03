@@ -92,6 +92,7 @@ export default class SupersetClientClass {
     mode,
     parseMethod,
     postPayload,
+    jsonPayload,
     signal,
     stringify,
     timeout,
@@ -107,6 +108,7 @@ export default class SupersetClientClass {
         mode: mode ?? this.mode,
         parseMethod,
         postPayload,
+        jsonPayload,
         signal,
         stringify,
         timeout: timeout ?? this.timeout,
@@ -143,16 +145,14 @@ export default class SupersetClientClass {
       url: this.getUrl({ endpoint: 'superset/csrf_token/' }),
     }).then(response => {
       if (typeof response.json === 'object') {
-        this.csrfToken = response.json.csrf_token;
+        this.csrfToken = response.json.csrf_token as string;
         if (typeof this.csrfToken === 'string') {
           this.headers = { ...this.headers, 'X-CSRFToken': this.csrfToken };
         }
       }
-
       if (!this.isAuthenticated()) {
         return Promise.reject({ error: 'Failed to fetch CSRF token' });
       }
-
       return this.csrfToken;
     });
 

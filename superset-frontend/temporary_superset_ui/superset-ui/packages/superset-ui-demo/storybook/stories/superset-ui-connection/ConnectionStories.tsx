@@ -1,24 +1,34 @@
 import React from 'react';
 import { select, text, withKnobs } from '@storybook/addon-knobs';
-import { bigNumberFormData } from '@superset-ui/chart/test/fixtures/formData';
+import { sankeyFormData } from '@superset-ui/chart/test/fixtures/formData';
 
 import VerifyCORS, { Props as VerifyCORSProps } from '../../shared/components/VerifyCORS';
 import Expandable from '../../shared/components/Expandable';
 
 const REQUEST_METHODS = ['GET', 'POST'];
+const ENDPOINTS = {
+  '(Empty - verify auth only)': '/',
+  '/api/v1/chart/data': '/api/v1/chart/data',
+};
 
 export default {
   title: 'Core Packages|@superset-ui/connection',
-  decorators: [withKnobs],
+  decorators: [
+    withKnobs({
+      escapeHTML: false,
+    }),
+  ],
 };
 
 export const configureCORS = () => {
   const host = text('Superset App host for CORS request', 'localhost:9000');
-  const endpoint = text('Endpoint to test (blank to test auth only)', '');
+  const selectEndpoint = select('Endpoint', ENDPOINTS, '');
+  const customEndpoint = text('Custom Endpoint (override above)', '');
+  const endpoint = customEndpoint || selectEndpoint;
   const method = endpoint ? select('Request method', REQUEST_METHODS, 'POST') : undefined;
   const postPayload =
     endpoint && method === 'POST'
-      ? text('Optional POST payload', JSON.stringify({ form_data: bigNumberFormData }))
+      ? text('POST payload', JSON.stringify({ form_data: sankeyFormData }, null, 2))
       : undefined;
 
   return (

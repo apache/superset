@@ -1,9 +1,15 @@
 import 'whatwg-fetch';
 import fetchRetry from 'fetch-retry';
-import { CallApi } from '../types';
+import { CallApi, JsonObject, JsonValue } from '../types';
 import { CACHE_AVAILABLE, CACHE_KEY, HTTP_STATUS_NOT_MODIFIED, HTTP_STATUS_OK } from '../constants';
 
-// This function fetches an API response and returns the corresponding json
+/**
+ * Fetch an API response and returns the corresponding json.
+ *
+ * @param {Payload} postPayload payload to send as FormData in a post form
+ * @param {Payload} jsonPayload json payload to post, will automatically add Content-Type header
+ * @param {string} stringify whether to stringify field values when post as formData
+ */
 export default function callApi({
   body,
   cache = 'default',
@@ -13,6 +19,7 @@ export default function callApi({
   method = 'GET',
   mode = 'same-origin',
   postPayload,
+  jsonPayload,
   redirect = 'follow',
   signal,
   stringify = true,
@@ -68,23 +75,33 @@ export default function callApi({
     );
   }
 
-  if (
-    (method === 'POST' || method === 'PATCH' || method === 'PUT') &&
-    typeof postPayload === 'object'
-  ) {
-    // using FormData has the effect that Content-Type header is set to `multipart/form-data`,
-    // not e.g., 'application/x-www-form-urlencoded'
-    const formData: FormData = new FormData();
-
-    Object.keys(postPayload).forEach(key => {
-      const value = postPayload[key];
-      if (typeof value !== 'undefined') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        formData.append(key, stringify ? JSON.stringify(value) : value);
+  if (method === 'POST' || method === 'PATCH' || method === 'PUT') {
+    const tryParsePayload = (payloadString: string) => {
+      try {
+        return JSON.parse(payloadString) as JsonObject;
+      } catch (error) {
+        throw new Error(`Invalid postPayload:\n\n${payloadString}`);
       }
-    });
+    };
 
-    request.body = formData;
+    // override request body with post payload
+    const payload: JsonObject | undefined =
+      typeof postPayload === 'string' ? tryParsePayload(postPayload) : postPayload;
+    if (typeof payload === 'object') {
+      // using FormData has the effect that Content-Type header is set to `multipart/form-data`,
+      // not e.g., 'application/x-www-form-urlencoded'
+      const formData: FormData = new FormData();
+      Object.keys(payload).forEach(key => {
+        const value = payload[key] as JsonValue;
+        if (typeof value !== 'undefined') {
+          formData.append(key, stringify ? JSON.stringify(value) : String(value));
+        }
+      });
+      request.body = formData;
+    } else if (jsonPayload !== undefined) {
+      request.body = JSON.stringify(jsonPayload);
+      request.headers = { ...request.headers, 'Content-Type': 'application/json' };
+    }
   }
 
   return fetchWithRetry(url, request);

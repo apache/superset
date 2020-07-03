@@ -51,9 +51,7 @@ export default class VerifyCORS extends React.Component<Props, State> {
 
   handleVerify() {
     const { endpoint, host, postPayload, method } = this.props;
-
     SupersetClient.reset();
-
     SupersetClient.configure({
       credentials: 'include',
       host,
@@ -66,13 +64,13 @@ export default class VerifyCORS extends React.Component<Props, State> {
           ? SupersetClient.request({
               endpoint,
               method,
-              postPayload: postPayload ? JSON.parse(postPayload) : '',
+              postPayload,
             })
           : Promise.resolve({}),
       )
       .then(response => this.setState({ didVerify: true, error: undefined, payload: response }))
       .catch((error: Response) => {
-        const { status, statusText = error } = error;
+        const { status, statusText } = error;
         this.setState({ error: new Error(`${status || ''}${status ? ':' : ''} ${statusText}`) });
       });
   }
