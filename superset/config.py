@@ -695,11 +695,7 @@ BLUEPRINTS: List[Blueprint] = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-
-
-def TRACKING_URL_TRANSFORMER(x):
-    return x
-
+TRACKING_URL_TRANSFORMER = lambda x: x
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = 5
@@ -893,9 +889,7 @@ SIP_15_TOAST_MESSAGE = (
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
-def SQLA_TABLE_MUTATOR(table):
-    return table
-
+SQLA_TABLE_MUTATOR = lambda table: table
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
