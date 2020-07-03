@@ -59,8 +59,8 @@ class TestSchema(SupersetTestCase):
         try:
             _ = ChartDataQueryContextSchema().load(payload)
         except ValidationError as errors:
-            self.assertIn("row_limit", errors["queries"][0])
-            self.assertIn("row_offset", errors["queries"][0])
+            self.assertIn("row_limit", errors.messages["queries"][0])
+            self.assertIn("row_offset", errors.messages["queries"][0])
 
     def test_query_context_null_timegrain(self):
         self.login(username="admin")
