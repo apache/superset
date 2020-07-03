@@ -52,25 +52,26 @@ class DatasetDAO(BaseDAO):
             return None
 
     @staticmethod
-    def get_related_counts(database_id: int) -> Dict[str, int]:
-        chart_result = (
-            db.session.query(Slice.id)
+    def get_related_objects(database_id: int) -> Dict[str, Any]:
+        charts = (
+            db.session.query(Slice)
             .filter(
                 Slice.datasource_id == database_id, Slice.datasource_type == "table"
             )
             .all()
         )
-        chart_ids = [result.id for result in chart_result]
-        dashboard_count = (
+        chart_ids = [chart.id for chart in charts]
+
+        dashboards = (
             (
-                db.session.query(Dashboard.id)
+                db.session.query(Dashboard)
                 .join(Dashboard.slices)
                 .filter(Slice.id.in_(chart_ids))
             )
             .distinct()
-            .count()
+            .all()
         )
-        return dict(chart_count=len(chart_result), dashboard_count=dashboard_count)
+        return dict(charts=charts, dashboards=dashboards)
 
     @staticmethod
     def validate_table_exists(database: Database, table_name: str, schema: str) -> bool:
