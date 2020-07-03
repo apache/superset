@@ -252,6 +252,8 @@ If you run a production system you should schedule downtime for this
 upgrade.
 
 The PRs bellow have more information around the breaking changes:
+* [9825](https://github.com/apache/incubator-superset/pull/9825):  Support for Excel sheet upload added. To enable support, install Superset with the optional dependency `excel`
+
 * [4587](https://github.com/apache/incubator-superset/pull/4587) : a backward
   incompatible database migration that requires downtime. Once the
   db migration succeeds, the web server needs to be restarted with the
