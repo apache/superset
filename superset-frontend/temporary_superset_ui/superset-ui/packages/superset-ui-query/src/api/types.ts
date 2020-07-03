@@ -6,5 +6,5 @@ import {
 
 export interface BaseParams {
   client?: SupersetClientInterface | SupersetClientClass;
-  requestConfig?: Partial<RequestConfig>;
+  requestConfig?: RequestConfig;
 }
