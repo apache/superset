@@ -9,7 +9,6 @@ import * as rejectAfterTimeout from '../../src/callApi/rejectAfterTimeout';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 import throwIfCalled from '../utils/throwIfCalled';
-import { Json } from '../../src/types';
 
 describe('callApiAndParseWithTimeout()', () => {
   beforeAll(() => {
@@ -92,7 +91,7 @@ describe('callApiAndParseWithTimeout()', () => {
       expect.assertions(1);
 
       return callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET', timeout: 100 }).then(
-        (response: Json) => {
+        response => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           expect(response.json).toEqual(expect.objectContaining(mockGetPayload));
 

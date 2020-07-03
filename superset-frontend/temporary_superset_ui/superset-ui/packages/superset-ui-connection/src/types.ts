@@ -11,11 +11,36 @@ export type FetchRetryOptions = {
 };
 export type Headers = { [k: string]: string };
 export type Host = string;
+
+export type JsonPrimitive = string | number | boolean | null;
+/**
+ * More strict JSON value types. If this fails to satisfy TypeScript when using
+ * as function arguments, use `JsonObject` instead. `StrictJsonObject` helps make
+ * sure all values are plain objects, but it does not accept specific types when
+ * used as function arguments.
+ * (Ref: https://github.com/microsoft/TypeScript/issues/15300).
+ */
+export type StrictJsonValue = JsonPrimitive | StrictJsonObject | StrictJsonArray;
+export type StrictJsonArray = StrictJsonValue[];
+/**
+ * More strict JSON objects that makes sure all values are plain objects.
+ * If this fails to satisfy TypeScript when using as function arguments,
+ * use `JsonObject` instead.
+ * (Ref: https://github.com/microsoft/TypeScript/issues/15300).
+ */
+export type StrictJsonObject = { [member: string]: StrictJsonValue };
+
+export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+export type JsonArray = JsonValue[];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Json = { [k: string]: any };
+export type JsonObject = { [member: string]: any };
+
+/**
+ * Post form or JSON payload, if string, will parse with JSON.parse
+ */
+export type Payload = JsonObject | string;
+
 export type Method = RequestInit['method'];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type PostPayload = { [key: string]: any };
 export type Mode = RequestInit['mode'];
 export type Redirect = RequestInit['redirect'];
 export type ClientTimeout = number | undefined;
@@ -23,21 +48,6 @@ export type ParseMethod = 'json' | 'text' | null;
 export type Signal = RequestInit['signal'];
 export type Stringify = boolean;
 export type Url = string;
-
-export interface CallApi {
-  body?: Body;
-  cache?: Cache;
-  credentials?: Credentials;
-  fetchRetryOptions?: FetchRetryOptions;
-  headers?: Headers;
-  method?: Method;
-  mode?: Mode;
-  postPayload?: PostPayload;
-  redirect?: Redirect;
-  signal?: Signal;
-  stringify?: Stringify;
-  url: Url;
-}
 
 export interface RequestBase {
   body?: Body;
@@ -48,26 +58,34 @@ export interface RequestBase {
   mode?: Mode;
   method?: Method;
   parseMethod?: ParseMethod;
-  postPayload?: PostPayload;
+  postPayload?: Payload;
+  jsonPayload?: Payload;
   signal?: Signal;
   stringify?: Stringify;
   timeout?: ClientTimeout;
 }
 
+export interface CallApi extends RequestBase {
+  url: Url;
+  cache?: Cache;
+  redirect?: Redirect;
+}
+
 export interface RequestWithEndpoint extends RequestBase {
   endpoint: Endpoint;
-  url?: undefined;
+  url?: Url;
 }
 
 export interface RequestWithUrl extends RequestBase {
   url: Url;
-  endpoint?: undefined;
+  endpoint?: Endpoint;
 }
 
+// this make sure at least one of `url` or `endpoint` is set
 export type RequestConfig = RequestWithEndpoint | RequestWithUrl;
 
 export interface JsonTextResponse {
-  json?: Json;
+  json?: JsonObject;
   response: Response;
   text?: string;
 }
