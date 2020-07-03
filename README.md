@@ -109,6 +109,40 @@ supported databases can be found
 * [Join Community Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
 * [Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
 
+## Slack Community Guidelines
+
+If you decide to join the [Community Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU), please adhere to the following rules:
+
+**1. Treat everyone in the community with respect.**
+
+- We strive to make this community a warm place for people from all industries, use cases, geographies, and backgrounds. Harassment of any kind is not acceptable and won’t be tolerated. 
+- Please follow the guidelines as outlined in the Superset Community [code of conduct here](https://github.com/apache/incubator-superset/blob/master/CODE_OF_CONDUCT.md).
+
+**2. Use the right channel.** 
+
+- Channels are an effective way to organize and focus discussions while also empowering members to opt-in to the types of content they’re interested in. When questions are posted or discussions are started in the wrong channel, it dilutes the trust of the members in the channel and, more practically, makes it harder for your questions to be answered.  
+
+**3. Ask thoughtful questions.**
+
+- We’re all here to help each other out. The best way to get help is by investing effort into your questions. First check and see if your question is answered in [the Superset documentation](https://superset.incubator.apache.org/faq.html) or on [Stack Overflow](https://stackoverflow.com/search?q=apache+superset). You can also check [Github issues](https://github.com/apache/incubator-superset/issues) to see if your question or feature request has been submitted before. Then, use Slack search to see if your question has already been asked and answered in the past. If you still feel the need to ask a question, make sure you include:
+
+- The steps you’ve already taken
+- Relevant details presented cleanly (text stacktraces, formatted markdown, or screenshots. Please don’t paste large blocks of code unformatted or post photos of your screen from your phone)
+- The specific question you have or the specific type of help you're seeking
+
+**4. Avoid double posting**
+
+- This Slack community is not a customer support channel and all members are here voluntarily. If you aren’t getting a response to a question you have, make sure you look at rules 1, 2, and 3.  It’s also worth remembering that there may not be someone in the community who has the context to help you out.
+
+**5. Communicate openly**
+
+- Unless you have explicit permission from the person, please avoid sending direct messages to individuals. Communicating in public channels ensures that we’re all respecting each other’s attentions and we can scalably moderate our communication to mitigate harassment or discrimination. Do not use direct messages to pitch products and services. If you are receiving unwelcome direct messages, please notify an admin.
+
+**6. Practice good Slack hygiene by using threads for discussions and emojis for light reactions.**
+
+- The medium is the message. Slack can foster a warm, collaborative, and organized community when used effectively. We want to respect people’s attentions (thread notifications > channel notifications > DM notifications) and we want to improve information density (a member should be able to browse and explore many convo threads, not just see one thread discussed in a top level channel).
+
+
 
 ## Contributor Guide
 
@@ -118,7 +152,12 @@ Interested in contributing? Check out
 
 ## Resources
 
-* [Blog](https://preset.io/blog/)
+* Superset 101 -- Getting Started Guide (From [Preset](https://preset.io) [Blog](https://preset.io/blog/))
+  * [Installing Apache Superset Locally](https://preset.io/blog/2020-05-11-getting-started-installing-superset/)
+  * [Installing Database Drivers](https://preset.io/blog/2020-05-18-install-db-drivers/)
+  * [Connect Superset To Google Sheets](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/)
+  * [Create Your First Chart](https://preset.io/blog/2020-06-08-first-chart/)
+  * [Create Time Series Charts](https://preset.io/blog/2020-06-26-timeseries-chart/)
 * [Docker image](https://hub.docker.com/r/preset/superset/)
 * [Youtube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
   * [May 15, 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
@@ -150,8 +189,10 @@ Join our growing community!
  1. [Dial Once](https://www.dial-once.com/en/) 
  1. [Digit Game Studios](https://www.digitgaming.com/)
  1. [Douban](https://www.douban.com/) [@luchuan]
+ 1. [DouroECI](http://douroeci.com/en/) [@nunohelibeires]
  1. [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
  1. [Dremio](https://dremio.com) [@narendrans]
+ 1. [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
  1. [Endress+Hauser](http://www.endress.com/) [@rumbin]
  1. [Faasos](http://faasos.com/) [@shashanksingh]
  1. [Fanatics](https://www.fanatics.com) [@coderfender]
@@ -160,6 +201,7 @@ Join our growing community!
  1. [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
  1. [GfK Data Lab](http://datalab.gfk.com) [@mherr]
  1. [Grassroot](https://www.grassrootinstitute.org/) 
+ 1. [GrowthSimple](https://growthsimple.ai/)
  1. [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
  1. [HuiShouBao](http://www.huishoubao.com/) [@Yukinoshita-Yukino]
  1. [Intercom](https://www.intercom.com/) [@kate-gallo]
@@ -173,6 +215,7 @@ Join our growing community!
  1. [Lyft](https://www.lyft.com/) 
  1. [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
  1. [Myra Labs](http://www.myralabs.com/) [@viksit]
+ 1. [Nielsen](http://www.nielsen.com/) [@amitNielsen]
  1. [Now](https://www.now.vn/) [@davidkohcw]
  1. [Ona](https://ona.io) [@pld]
  1. [Peak AI](https://www.peak.ai/) [@azhar22k]

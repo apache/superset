@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateChartCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int, data: Dict):
+    def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
         self._actor = user
         self._model_id = model_id
         self._properties = data.copy()

@@ -19,6 +19,8 @@
 import React from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
+import styled from '@superset-ui/style';
+import Icon from 'src/components/Icon';
 
 interface Props {
   getTableProps: (userProps?: any) => any;
@@ -28,6 +30,56 @@ interface Props {
   rows: TableInstance['rows'];
   loading: boolean;
 }
+
+const Table = styled.table`
+  th {
+    &.xs {
+      min-width: 25px;
+    }
+    &.sm {
+      min-width: 50px;
+    }
+    &.md {
+      min-width: 75px;
+    }
+    &.lg {
+      min-width: 100px;
+    }
+    &.xl {
+      min-width: 150px;
+    }
+    &.xxl {
+      min-width: 200px;
+    }
+
+    svg {
+      display: inline-block;
+      top: 6px;
+      position: relative;
+    }
+  }
+  td {
+    &.xs {
+      width: 25px;
+    }
+    &.sm {
+      width: 50px;
+    }
+    &.md {
+      width: 75px;
+    }
+    &.lg {
+      width: 100px;
+    }
+    &.xl {
+      width: 150px;
+    }
+    &.xxl {
+      width: 200px;
+    }
+  }
+`;
+
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -37,32 +89,34 @@ export default function TableCollection({
   loading,
 }: Props) {
   return (
-    <table {...getTableProps()} className="table table-hover">
+    <Table {...getTableProps()} className="table table-hover">
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map(column =>
-              column.hidden ? null : (
+            {headerGroup.headers.map(column => {
+              let sortIcon = <Icon name="sort" />;
+              if (column.isSorted && column.isSortedDesc) {
+                sortIcon = <Icon name="sort-desc" />;
+              } else if (column.isSorted && !column.isSortedDesc) {
+                sortIcon = <Icon name="sort-asc" />;
+              }
+              return column.hidden ? null : (
                 <th
                   {...column.getHeaderProps(
-                    column.sortable ? column.getSortByToggleProps() : {},
+                    column.canSort ? column.getSortByToggleProps() : {},
                   )}
                   data-test="sort-header"
+                  className={cx({
+                    [column.size || '']: column.size,
+                  })}
                 >
-                  {column.render('Header')}
-                  {'  '}
-                  {column.sortable && (
-                    <i
-                      className={cx('text-primary fa', {
-                        'fa-sort': !column.isSorted,
-                        'fa-sort-down': column.isSorted && column.isSortedDesc,
-                        'fa-sort-up': column.isSorted && !column.isSortedDesc,
-                      })}
-                    />
-                  )}
+                  <span>
+                    {column.render('Header')}
+                    {column.canSort && sortIcon}
+                  </span>
                 </th>
-              ),
-            )}
+              );
+            })}
           </tr>
         ))}
       </thead>
@@ -73,7 +127,6 @@ export default function TableCollection({
             <tr
               {...row.getRowProps()}
               className={cx({
-                'table-row-loader': loading,
                 'table-row-selected': row.isSelected,
               })}
               onMouseEnter={() => row.setState && row.setState({ hover: true })}
@@ -85,14 +138,18 @@ export default function TableCollection({
                 if (cell.column.hidden) return null;
 
                 const columnCellProps = cell.column.cellProps || {};
-
                 return (
                   <td
-                    className="table-cell"
+                    className={cx('table-cell', {
+                      'table-cell-loader': loading,
+                      [cell.column.size || '']: cell.column.size,
+                    })}
                     {...cell.getCellProps()}
                     {...columnCellProps}
                   >
-                    <span>{cell.render('Cell')}</span>
+                    <span className={cx({ 'loading-bar': loading })}>
+                      <span>{cell.render('Cell')}</span>
+                    </span>
                   </td>
                 );
               })}
@@ -100,6 +157,6 @@ export default function TableCollection({
           );
         })}
       </tbody>
-    </table>
+    </Table>
   );
 }

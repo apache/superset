@@ -38,7 +38,7 @@ from superset.models.slice import Slice
 from .base_tests import SupersetTestCase
 
 
-class ImportExportTests(SupersetTestCase):
+class TestImportExport(SupersetTestCase):
     """Testing export import functionality for dashboards"""
 
     @classmethod

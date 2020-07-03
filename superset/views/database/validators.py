@@ -50,7 +50,4 @@ def schema_allows_csv_upload(database: Database, schema: Optional[str]) -> bool:
     schemas = database.get_schema_access_for_csv_upload()
     if schemas:
         return schema in schemas
-    return (
-        security_manager.database_access(database)
-        or security_manager.all_datasource_access()
-    )
+    return security_manager.can_access_database(database)

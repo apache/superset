@@ -22,9 +22,11 @@ import { getChartMetadataRegistry } from '@superset-ui/chart';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
+import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView/ListView';
 import {
   FetchDataConfig,
@@ -67,7 +69,7 @@ class ChartList extends React.PureComponent<Props, State> {
     filterOperators: {},
     filters: [],
     lastFetchDataConfig: null,
-    loading: false,
+    loading: true,
     permissions: [],
     sliceCurrentlyEditing: null,
   };
@@ -102,8 +104,8 @@ class ChartList extends React.PureComponent<Props, State> {
     return this.hasPerm('can_delete');
   }
 
-  get isNewUIEnabled() {
-    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_NEW_UI);
+  get isSIP34FilterUIEnabled() {
+    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
   }
 
   initialSort = [{ id: 'changed_on', desc: true }];
@@ -117,7 +119,6 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => <a href={url}>{sliceName}</a>,
       Header: t('Chart'),
       accessor: 'slice_name',
-      sortable: true,
     },
     {
       Cell: ({
@@ -127,7 +128,6 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => vizType,
       Header: t('Visualization Type'),
       accessor: 'viz_type',
-      sortable: true,
     },
     {
       Cell: ({
@@ -137,7 +137,6 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
       Header: t('Datasource'),
       accessor: 'datasource_name',
-      sortable: true,
     },
     {
       Cell: ({
@@ -150,7 +149,6 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => <a href={changedByUrl}>{changedByName}</a>,
       Header: t('Creator'),
       accessor: 'changed_by_fk',
-      sortable: true,
     },
     {
       Cell: ({
@@ -160,19 +158,21 @@ class ChartList extends React.PureComponent<Props, State> {
       }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
       Header: t('Last Modified'),
       accessor: 'changed_on',
-      sortable: true,
     },
     {
       accessor: 'description',
       hidden: true,
+      disableSortBy: true,
     },
     {
       accessor: 'owners',
       hidden: true,
+      disableSortBy: true,
     },
     {
       accessor: 'datasource',
       hidden: true,
+      disableSortBy: true,
     },
     {
       Cell: ({ row: { state, original } }: any) => {
@@ -222,8 +222,9 @@ class ChartList extends React.PureComponent<Props, State> {
           </span>
         );
       },
-      Header: 'Actions',
+      Header: t('Actions'),
       id: 'actions',
+      disableSortBy: true,
     },
   ];
 
@@ -281,7 +282,7 @@ class ChartList extends React.PureComponent<Props, State> {
 
   handleBulkChartDelete = (charts: Chart[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/chart/?q=!(${charts.map(({ id }) => id).join(',')})`,
+      endpoint: `/api/v1/chart/?q=${rison.encode(charts.map(({ id }) => id))}`,
     }).then(
       ({ json = {} }) => {
         const { lastFetchDataConfig } = this.state;
@@ -338,7 +339,7 @@ class ChartList extends React.PureComponent<Props, State> {
         return [...acc, fltr];
       }, []);
 
-    const queryParams = JSON.stringify({
+    const queryParams = rison.encode({
       order_column: sortBy[0].id,
       order_direction: sortBy[0].desc ? 'desc' : 'asc',
       page: pageIndex,
@@ -363,41 +364,67 @@ class ChartList extends React.PureComponent<Props, State> {
       });
   };
 
-  createFetchResource = ({
-    resource,
-    postProcess,
-  }: {
-    resource: string;
-    postProcess?: (value: []) => any[];
-  }) => async () => {
+  fetchOwners = async (
+    filterValue = '',
+    pageIndex?: number,
+    pageSize?: number,
+  ) => {
+    const resource = '/api/v1/chart/related/owners';
+
     try {
-      const { json = {} } = await SupersetClient.get({
-        endpoint: resource,
+      const queryParams = rison.encode({
+        ...(pageIndex ? { page: pageIndex } : {}),
+        ...(pageSize ? { page_ize: pageSize } : {}),
+        ...(filterValue ? { filter: filterValue } : {}),
       });
-      return postProcess ? postProcess(json?.result) : json?.result;
+      const { json = {} } = await SupersetClient.get({
+        endpoint: `${resource}?q=${queryParams}`,
+      });
+
+      return json?.result?.map(
+        ({ text: label, value }: { text: string; value: any }) => ({
+          label,
+          value,
+        }),
+      );
     } catch (e) {
+      console.error(e);
       this.props.addDangerToast(
-        t('An error occurred while fetching chart filters: %s', e.statusText),
+        t(
+          'An error occurred while fetching chart owner values: %s',
+          e.statusText,
+        ),
       );
     }
     return [];
   };
 
-  convertOwners = (owners: any[]) =>
-    owners.map(({ text: label, value }) => ({ label, value }));
+  fetchDatasets = async () => {
+    const resource = '/api/v1/chart/datasources';
+    try {
+      const { json = {} } = await SupersetClient.get({
+        endpoint: `${resource}`,
+      });
 
-  stringifyValues = (datasources: any[]) => {
-    return datasources.map(ds => ({ ...ds, value: JSON.stringify(ds.value) }));
+      return json?.result?.map((ds: { label: string; value: any }) => ({
+        ...ds,
+        value: JSON.stringify(ds.value),
+      }));
+    } catch (e) {
+      this.props.addDangerToast(
+        t(
+          'An error occurred while fetching chart dataset values: %s',
+          e.statusText,
+        ),
+      );
+    }
+    return [];
   };
 
   updateFilters = async () => {
     const { filterOperators } = this.state;
-    const fetchOwners = this.createFetchResource({
-      resource: '/api/v1/chart/related/owners',
-      postProcess: this.convertOwners,
-    });
 
-    if (this.isNewUIEnabled) {
+    if (this.isSIP34FilterUIEnabled) {
       this.setState({
         filters: [
           {
@@ -406,7 +433,8 @@ class ChartList extends React.PureComponent<Props, State> {
             input: 'select',
             operator: 'rel_m_m',
             unfilteredLabel: 'All',
-            fetchSelects: fetchOwners,
+            fetchSelects: this.fetchOwners,
+            paginate: true,
           },
           {
             Header: 'Viz Type',
@@ -424,10 +452,8 @@ class ChartList extends React.PureComponent<Props, State> {
             input: 'select',
             operator: 'eq',
             unfilteredLabel: 'All',
-            fetchSelects: this.createFetchResource({
-              resource: '/api/v1/chart/datasources',
-              postProcess: this.stringifyValues,
-            }),
+            fetchSelects: this.fetchDatasets,
+            paginate: false,
           },
           {
             Header: 'Search',
@@ -448,7 +474,7 @@ class ChartList extends React.PureComponent<Props, State> {
       operator: string;
     }) => ({ label, value: operator });
 
-    const owners = await fetchOwners();
+    const owners = await this.fetchOwners();
     this.setState({
       filters: [
         {
@@ -491,58 +517,54 @@ class ChartList extends React.PureComponent<Props, State> {
       sliceCurrentlyEditing,
     } = this.state;
     return (
-      <div className="container welcome">
-        <Panel>
-          <Panel.Body>
-            {sliceCurrentlyEditing && (
-              <PropertiesModal
-                show
-                onHide={this.closeChartEditModal}
-                onSave={this.handleChartUpdated}
-                slice={sliceCurrentlyEditing}
+      <>
+        <SubMenu name={t('Charts')} />
+        {sliceCurrentlyEditing && (
+          <PropertiesModal
+            show
+            onHide={this.closeChartEditModal}
+            onSave={this.handleChartUpdated}
+            slice={sliceCurrentlyEditing}
+          />
+        )}
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={t(
+            'Are you sure you want to delete the selected charts?',
+          )}
+          onConfirm={this.handleBulkChartDelete}
+        >
+          {confirmDelete => {
+            const bulkActions = [];
+            if (this.canDelete) {
+              bulkActions.push({
+                key: 'delete',
+                name: (
+                  <>
+                    <i className="fa fa-trash" /> {t('Delete')}
+                  </>
+                ),
+                onSelect: confirmDelete,
+              });
+            }
+            return (
+              <ListView
+                className="chart-list-view"
+                columns={this.columns}
+                data={charts}
+                count={chartCount}
+                pageSize={PAGE_SIZE}
+                fetchData={this.fetchData}
+                loading={loading}
+                initialSort={this.initialSort}
+                filters={filters}
+                bulkActions={bulkActions}
+                isSIP34FilterUIEnabled={this.isSIP34FilterUIEnabled}
               />
-            )}
-            <ConfirmStatusChange
-              title={t('Please confirm')}
-              description={t(
-                'Are you sure you want to delete the selected charts?',
-              )}
-              onConfirm={this.handleBulkChartDelete}
-            >
-              {confirmDelete => {
-                const bulkActions = [];
-                if (this.canDelete) {
-                  bulkActions.push({
-                    key: 'delete',
-                    name: (
-                      <>
-                        <i className="fa fa-trash" /> Delete
-                      </>
-                    ),
-                    onSelect: confirmDelete,
-                  });
-                }
-                return (
-                  <ListView
-                    className="chart-list-view"
-                    title={'Charts'}
-                    columns={this.columns}
-                    data={charts}
-                    count={chartCount}
-                    pageSize={PAGE_SIZE}
-                    fetchData={this.fetchData}
-                    loading={loading}
-                    initialSort={this.initialSort}
-                    filters={filters}
-                    bulkActions={bulkActions}
-                    useNewUIFilters={this.isNewUIEnabled}
-                  />
-                );
-              }}
-            </ConfirmStatusChange>
-          </Panel.Body>
-        </Panel>
-      </div>
+            );
+          }}
+        </ConfirmStatusChange>
+      </>
     );
   }
 }

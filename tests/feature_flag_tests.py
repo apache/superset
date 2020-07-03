@@ -20,7 +20,7 @@ from superset import is_feature_enabled
 from tests.base_tests import SupersetTestCase
 
 
-class FeatureFlagTests(SupersetTestCase):
+class TestFeatureFlag(SupersetTestCase):
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         {"FOO": True},

@@ -24,6 +24,7 @@ from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -72,18 +73,18 @@ class BigQueryEngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
+        if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == "DATETIME":
+        if tt == utils.TemporalType.DATETIME:
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
-        if tt == "TIME":
+        if tt == utils.TemporalType.TIME:
             return f"""CAST('{dttm.strftime("%H:%M:%S.%f")}' AS TIME)"""
-        if tt == "TIMESTAMP":
+        if tt == utils.TemporalType.TIMESTAMP:
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
         return None
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
         data = super().fetch_data(cursor, limit)
         # Support type BigQuery Row, introduced here PR #4071
         # google.cloud.bigquery.table.Row

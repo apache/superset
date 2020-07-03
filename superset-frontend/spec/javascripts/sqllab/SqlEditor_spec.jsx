@@ -109,7 +109,7 @@ describe('SqlEditor', () => {
   it('allows toggling autocomplete', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
     expect(wrapper.find(AceEditorWrapper).props().autocomplete).toBe(true);
-    wrapper.find(Checkbox).props().onChange();
+    wrapper.find('.autocomplete').simulate('click');
     expect(wrapper.find(AceEditorWrapper).props().autocomplete).toBe(false);
   });
 });

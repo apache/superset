@@ -21,7 +21,7 @@ from superset import is_feature_enabled
 from tests.base_tests import SupersetTestCase
 
 
-class TaggingTests(SupersetTestCase):
+class TestTagging(SupersetTestCase):
     @skipUnless(
         (is_feature_enabled("TAGGING_SYSTEM") == False),
         "skipping as tagging endpoints are not enabled",

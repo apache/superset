@@ -28,7 +28,7 @@ from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
 
 
-class QueryContextTests(SupersetTestCase):
+class TestQueryContext(SupersetTestCase):
     def test_schema_deserialization(self):
         """
         Ensure that the deserialized QueryContext contains all required fields.
@@ -114,7 +114,7 @@ class QueryContextTests(SupersetTestCase):
         extras = query_object.to_dict()["extras"]
         self.assertTrue("time_range_endpoints" in extras)
 
-        self.assertEquals(
+        self.assertEqual(
             extras["time_range_endpoints"],
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
         )

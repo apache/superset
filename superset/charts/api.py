@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Dict
 
@@ -53,16 +54,17 @@ from superset.charts.schemas import (
 )
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import event_logger, security_manager
+from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
-from superset.utils.core import json_int_dttm_ser
+from superset.utils.core import ChartDataResultFormat, json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     statsd_metrics,
 )
+from superset.views.core import CsvResponse, generate_download_headers
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -222,7 +224,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
-            logger.error(f"Error creating model {self.__class__.__name__}: {ex}")
+            logger.error(
+                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+            )
             return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])
@@ -291,7 +295,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartUpdateFailedError as ex:
-            logger.error(f"Error updating model {self.__class__.__name__}: {ex}")
+            logger.error(
+                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+            )
             return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["DELETE"])
@@ -338,7 +344,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartForbiddenError:
             return self.response_403()
         except ChartDeleteFailedError as ex:
-            logger.error(f"Error deleting model {self.__class__.__name__}: {ex}")
+            logger.error(
+                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+            )
             return self.response_422(message=str(ex))
 
     @expose("/", methods=["DELETE"])
@@ -390,9 +398,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200,
                 message=ngettext(
-                    f"Deleted %(num)d chart",
-                    f"Deleted %(num)d charts",
-                    num=len(item_ids),
+                    "Deleted %(num)d chart", "Deleted %(num)d charts", num=len(item_ids)
                 ),
             )
         except ChartNotFoundError:
@@ -437,7 +443,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
+        if request.is_json:
+            json_body = request.json
+        elif request.form.get("form_data"):
+            # CSV export submits regular form data
+            json_body = json.loads(request.form["form_data"])
+        else:
             return self.response_400(message="Request is not JSON")
         try:
             query_context = ChartDataQueryContextSchema().load(request.json)
@@ -448,16 +459,30 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 _("Request is incorrect: %(error)s", error=err.messages)
             )
         try:
-            security_manager.assert_query_context_permission(query_context)
+            query_context.raise_for_access()
         except SupersetSecurityException:
             return self.response_401()
-        payload_json = query_context.get_payload()
-        response_data = simplejson.dumps(
-            {"result": payload_json}, default=json_int_dttm_ser, ignore_nan=True
-        )
-        resp = make_response(response_data, 200)
-        resp.headers["Content-Type"] = "application/json; charset=utf-8"
-        return resp
+        payload = query_context.get_payload()
+        result_format = query_context.result_format
+        if result_format == ChartDataResultFormat.CSV:
+            # return the first result
+            result = payload[0]["data"]
+            return CsvResponse(
+                result,
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv",
+            )
+
+        if result_format == ChartDataResultFormat.JSON:
+            response_data = simplejson.dumps(
+                {"result": payload}, default=json_int_dttm_ser, ignore_nan=True
+            )
+            resp = make_response(response_data, 200)
+            resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            return resp
+
+        raise self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
     @protect()

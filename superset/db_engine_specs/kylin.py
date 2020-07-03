@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -42,8 +43,8 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
+        if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == "TIMESTAMP":
+        if tt == utils.TemporalType.TIMESTAMP:
             return f"""CAST('{dttm.isoformat(sep=" ", timespec="seconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
         return None

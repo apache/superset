@@ -19,8 +19,13 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import { SupersetClient } from '@superset-ui/connection';
-import { allowCrossDomain, availableDomains } from '../utils/hostNamesConfig';
-import { safeStringify } from '../utils/safeStringify';
+import { buildQueryContext } from '@superset-ui/query';
+import { availableDomains } from 'src/utils/hostNamesConfig';
+import { safeStringify } from 'src/utils/safeStringify';
+import {
+  getChartBuildQueryRegistry,
+  getChartMetadataRegistry,
+} from '@superset-ui/chart';
 
 const MAX_URL_LENGTH = 8000;
 
@@ -30,7 +35,7 @@ export function getChartKey(explore) {
 }
 
 let requestCounter = 0;
-function getHostName(allowDomainSharding = false) {
+export function getHostName(allowDomainSharding = false) {
   let currentIndex = 0;
   if (allowDomainSharding) {
     currentIndex = requestCounter % availableDomains.length;
@@ -44,7 +49,6 @@ function getHostName(allowDomainSharding = false) {
       requestCounter += 1;
     }
   }
-
   return availableDomains[currentIndex];
 }
 
@@ -109,6 +113,22 @@ export function getExploreLongUrl(
   return url;
 }
 
+export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
+  // The search params from the window.location are carried through,
+  // but can be specified with curUrl (used for unit tests to spoof
+  // the window.location).
+  let uri = new URI({
+    protocol: location.protocol.slice(0, -1),
+    hostname: getHostName(allowDomainSharding),
+    port: location.port ? location.port : '',
+    path,
+  });
+  if (qs) {
+    uri = uri.search(qs);
+  }
+  return uri;
+}
+
 export function getExploreUrl({
   formData,
   endpointType = 'base',
@@ -121,17 +141,7 @@ export function getExploreUrl({
   if (!formData.datasource) {
     return null;
   }
-
-  // The search params from the window.location are carried through,
-  // but can be specified with curUrl (used for unit tests to spoof
-  // the window.location).
-  let uri = new URI({
-    protocol: location.protocol.slice(0, -1),
-    hostname: getHostName(allowDomainSharding),
-    port: location.port ? location.port : '',
-    path: '/',
-  });
-
+  let uri = getChartDataUri({ path: '/', allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -183,6 +193,37 @@ export function getExploreUrl({
   return uri.search(search).directory(directory).toString();
 }
 
+export const shouldUseLegacyApi = formData => {
+  const vizMetadata = getChartMetadataRegistry().get(formData.viz_type);
+  return vizMetadata ? vizMetadata.useLegacyApi : false;
+};
+
+export const buildV1ChartDataPayload = ({
+  formData,
+  force,
+  resultFormat,
+  resultType,
+}) => {
+  const buildQuery =
+    getChartBuildQueryRegistry().get(formData.viz_type) ??
+    (buildQueryformData =>
+      buildQueryContext(buildQueryformData, baseQueryObject => [
+        {
+          ...baseQueryObject,
+        },
+      ]));
+  return buildQuery({
+    ...formData,
+    force,
+    result_format: resultFormat,
+    result_type: resultType,
+  });
+};
+
+export const getLegacyEndpointType = ({ resultType, resultFormat }) => {
+  return resultFormat === 'csv' ? resultFormat : resultType;
+};
+
 export function postForm(url, payload, target = '_blank') {
   if (!url) {
     return;
@@ -208,11 +249,39 @@ export function postForm(url, payload, target = '_blank') {
   document.body.removeChild(hiddenForm);
 }
 
-export function exportChart(formData, endpointType) {
+export const exportChart = ({
+  formData,
+  resultFormat = 'json',
+  resultType = 'full',
+  force = false,
+}) => {
+  let url;
+  let payload;
+  if (shouldUseLegacyApi(formData)) {
+    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+    url = getExploreUrl({
+      formData,
+      endpointType,
+      allowDomainSharding: false,
+    });
+    payload = formData;
+  } else {
+    url = '/api/v1/chart/data';
+    payload = buildV1ChartDataPayload({
+      formData,
+      force,
+      resultFormat,
+      resultType,
+    });
+  }
+  postForm(url, payload);
+};
+
+export const exploreChart = formData => {
   const url = getExploreUrl({
     formData,
-    endpointType,
+    endpointType: 'base',
     allowDomainSharding: false,
   });
   postForm(url, formData);
-}
+};

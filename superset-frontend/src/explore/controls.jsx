@@ -67,7 +67,7 @@ import {
   validateNonEmpty,
 } from '@superset-ui/validator';
 
-import { ColumnOption } from '@superset-ui/control-utils';
+import { ColumnOption } from '@superset-ui/chart-controls';
 import {
   formatSelectOptionsForRange,
   formatSelectOptions,
@@ -125,7 +125,7 @@ const timeColumnOption = {
 
 const groupByControl = {
   type: 'SelectControl',
-  controlGroup: 'groupby',
+  queryField: 'groupby',
   multi: true,
   freeForm: true,
   label: t('Group by'),
@@ -157,7 +157,7 @@ const groupByControl = {
 
 const metrics = {
   type: 'MetricsControl',
-  controlGroup: 'metrics',
+  queryField: 'metrics',
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],

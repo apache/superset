@@ -23,8 +23,8 @@ class LogMixin:  # pylint: disable=too-few-public-methods
     add_title = _("Add Log")
     edit_title = _("Edit Log")
 
-    list_columns = ("user", "action", "dttm")
-    edit_columns = ("user", "action", "dttm", "json")
+    list_columns = ["user", "action", "dttm"]
+    edit_columns = ["user", "action", "dttm", "json"]
     base_order = ("dttm", "desc")
     label_columns = {
         "user": _("User"),

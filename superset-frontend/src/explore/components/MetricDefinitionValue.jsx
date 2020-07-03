@@ -18,11 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { MetricOption } from '@superset-ui/chart-controls';
 
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
-import MetricOption from '../../components/MetricOption';
 import savedMetricType from '../propTypes/savedMetricType';
 import adhocMetricType from '../propTypes/adhocMetricType';
 

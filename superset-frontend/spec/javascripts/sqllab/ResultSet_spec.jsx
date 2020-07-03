@@ -37,6 +37,7 @@ describe('ResultSet', () => {
     cache: true,
     query: queries[0],
     height: 0,
+    database: { allows_virtual_table_explore: true },
   };
   const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
   const runningQueryProps = { ...mockedProps, query: runningQuery };

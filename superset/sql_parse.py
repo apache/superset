@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from dataclasses import dataclass
+from enum import Enum
 from typing import List, Optional, Set
 from urllib import parse
 
 import sqlparse
-from dataclasses import dataclass
 from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
 from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
@@ -29,6 +30,11 @@ ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
 logger = logging.getLogger(__name__)
+
+
+class CtasMethod(str, Enum):
+    TABLE = "TABLE"
+    VIEW = "VIEW"
 
 
 def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
@@ -158,7 +164,7 @@ class ParsedQuery:
     def _is_identifier(token: Token) -> bool:
         return isinstance(token, (IdentifierList, Identifier))
 
-    def _process_tokenlist(self, token_list: TokenList):
+    def _process_tokenlist(self, token_list: TokenList) -> None:
         """
         Add table names to table set
 
@@ -185,6 +191,7 @@ class ParsedQuery:
         table_name: str,
         schema_name: Optional[str] = None,
         overwrite: bool = False,
+        method: CtasMethod = CtasMethod.TABLE,
     ) -> str:
         """Reformats the query into the create table as query.
 
@@ -193,6 +200,7 @@ class ParsedQuery:
         :param table_name: table that will contain the results of the query execution
         :param schema_name: schema name for the target table
         :param overwrite: table_name will be dropped if true
+        :param method: method for the CTA query, currently view or table creation
         :return: Create table as query
         """
         exec_sql = ""
@@ -200,13 +208,21 @@ class ParsedQuery:
         # TODO(bkyryliuk): quote full_table_name
         full_table_name = f"{schema_name}.{table_name}" if schema_name else table_name
         if overwrite:
-            exec_sql = f"DROP TABLE IF EXISTS {full_table_name};\n"
-        exec_sql += f"CREATE TABLE {full_table_name} AS \n{sql}"
+            exec_sql = f"DROP {method} IF EXISTS {full_table_name};\n"
+        exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
 
-    def _extract_from_token(self, token: Token):  # pylint: disable=too-many-branches
+    def _extract_from_token(  # pylint: disable=too-many-branches
+        self, token: Token
+    ) -> None:
         """
-        Populate self._tables from token
+        <Identifier> store a list of subtokens and <IdentifierList> store lists of
+        subtoken list.
+
+        It extracts <IdentifierList> and <Identifier> from :param token: and loops
+        through all subtokens recursively. It finds table_name_preceding_token and
+        passes <IdentifierList> and <Identifier> to self._process_tokenlist to populate
+        self._tables.
 
         :param token: instance of Token or child class, e.g. TokenList, to be processed
         """
@@ -238,9 +254,8 @@ class ParsedQuery:
                         if isinstance(token2, TokenList):
                             self._process_tokenlist(token2)
             elif isinstance(item, IdentifierList):
-                for token2 in item.tokens:
-                    if not self._is_identifier(token2):
-                        self._extract_from_token(item)
+                if any(not self._is_identifier(token2) for token2 in item.tokens):
+                    self._extract_from_token(item)
 
     def set_or_update_query_limit(self, new_limit: int) -> str:
         """Returns the query with the specified limit.

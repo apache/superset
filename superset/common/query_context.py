@@ -17,7 +17,6 @@
 import copy
 import logging
 import math
-import pickle as pkl
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, List, Optional, Union
 
@@ -25,13 +24,12 @@ import numpy as np
 import pandas as pd
 
 from superset import app, cache, db, security_manager
+from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
-
-from .query_object import QueryObject
 
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
@@ -156,8 +154,8 @@ class QueryContext:
             query_obj.metrics = []
             query_obj.post_processing = []
             query_obj.row_limit = min(row_limit, config["SAMPLES_ROW_LIMIT"])
+            query_obj.row_offset = 0
             query_obj.columns = [o.column_name for o in self.datasource.columns]
-
         payload = self.get_df_payload(query_obj)
         df = payload["df"]
         status = payload["status"]
@@ -167,6 +165,8 @@ class QueryContext:
             else:
                 payload["data"] = self.get_data(df)
         del payload["df"]
+        if self.result_type == utils.ChartDataResultType.RESULTS:
+            return {"data": payload["data"]}
         return payload
 
     def get_payload(self) -> List[Dict[str, Any]]:
@@ -195,6 +195,7 @@ class QueryContext:
                 extra_cache_keys=extra_cache_keys,
                 rls=security_manager.get_rls_ids(self.datasource)
                 if config["ENABLE_ROW_LEVEL_SECURITY"]
+                and self.datasource.is_rls_supported
                 else [],
                 changed_on=self.datasource.changed_on,
                 **kwargs
@@ -223,7 +224,6 @@ class QueryContext:
             if cache_value:
                 stats_logger.incr("loading_from_cache")
                 try:
-                    cache_value = pkl.loads(cache_value)
                     df = cache_value["df"]
                     query = cache_value["query"]
                     status = utils.QueryStatus.SUCCESS
@@ -258,14 +258,8 @@ class QueryContext:
             if is_loaded and cache_key and cache and status != utils.QueryStatus.FAILED:
                 try:
                     cache_value = dict(dttm=cached_dttm, df=df, query=query)
-                    cache_binary = pkl.dumps(cache_value, protocol=pkl.HIGHEST_PROTOCOL)
-
-                    logger.info(
-                        "Caching %d chars at key %s", len(cache_binary), cache_key
-                    )
-
                     stats_logger.incr("set_cache_key")
-                    cache.set(cache_key, cache_binary, timeout=self.cache_timeout)
+                    cache.set(cache_key, cache_value, timeout=self.cache_timeout)
                 except Exception as ex:  # pylint: disable=broad-except
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
@@ -284,3 +278,12 @@ class QueryContext:
             "stacktrace": stacktrace,
             "rowcount": len(df.index),
         }
+
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the resource.
+
+        :raises SupersetSecurityException: If the user cannot access the resource
+        """
+
+        security_manager.raise_for_access(query_context=self)

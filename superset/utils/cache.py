@@ -27,8 +27,9 @@ def view_cache_key(*args: Any, **kwargs: Any) -> str:  # pylint: disable=unused-
 
 
 def memoized_func(
-    key: Callable = view_cache_key, attribute_in_key: Optional[str] = None
-) -> Callable:
+    key: Callable[..., str] = view_cache_key,  # pylint: disable=bad-whitespace
+    attribute_in_key: Optional[str] = None,
+) -> Callable[..., Any]:
     """Use this decorator to cache functions that have predefined first arg.
 
     enable_cache is treated as True by default,
@@ -45,7 +46,7 @@ def memoized_func(
     returns the caching key.
     """
 
-    def wrap(f: Callable) -> Callable:
+    def wrap(f: Callable[..., Any]) -> Callable[..., Any]:
         if cache_manager.tables_cache:
 
             def wrapped_f(self: Any, *args: Any, **kwargs: Any) -> Any:

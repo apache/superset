@@ -19,7 +19,7 @@ import unittest
 from superset.sql_parse import ParsedQuery, Table
 
 
-class SupersetTestCase(unittest.TestCase):
+class TestSupersetSqlParse(unittest.TestCase):
     def extract_tables(self, query):
         return ParsedQuery(query).tables
 

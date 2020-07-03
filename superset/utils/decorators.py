@@ -46,7 +46,7 @@ def stats_timing(stats_key: str, stats_logger: BaseStatsLogger) -> Iterator[floa
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def etag_cache(max_age: int, check_perms: Callable) -> Callable:
+def etag_cache(max_age: int, check_perms: Callable[..., Any]) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
 
@@ -60,7 +60,7 @@ def etag_cache(max_age: int, check_perms: Callable) -> Callable:
 
     """
 
-    def decorator(f: Callable) -> Callable:
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> ETagResponseMixin:
             # check if the user can access the resource

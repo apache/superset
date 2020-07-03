@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef } from 'react';
-import styled from '@superset-ui/style';
-import { withTheme } from 'emotion-theming';
+import React, { useState } from 'react';
+import { styled, withTheme } from '@superset-ui/style';
 
 import {
   Select,
-  AsyncSelect,
+  PaginatedSelect,
   PartialThemeConfig,
   PartialStylesConfig,
 } from 'src/components/Select';
+
 import SearchInput from 'src/components/SearchInput';
 import {
   Filter,
@@ -45,6 +45,7 @@ interface SelectFilterProps extends BaseFilter {
   selects: Filter['selects'];
   emptyLabel?: string;
   fetchSelects?: Filter['fetchSelects'];
+  paginate?: boolean;
 }
 
 const FilterContainer = styled.div`
@@ -90,6 +91,7 @@ function SelectFilter({
   initialValue,
   onSelect,
   fetchSelects,
+  paginate = false,
 }: SelectFilterProps) {
   const clearFilterSelect = {
     label: emptyLabel,
@@ -97,9 +99,6 @@ function SelectFilter({
   };
 
   const options = [clearFilterSelect, ...selects];
-  const optionsCache: React.MutableRefObject<SelectOption[] | null> = useRef(
-    null,
-  );
 
   const [selectedOption, setSelectedOption] = useState(clearFilterSelect);
   const onChange = (selected: SelectOption | null) => {
@@ -109,40 +108,52 @@ function SelectFilter({
     );
     setSelectedOption(selected);
   };
-  const fetchAndFormatSelects = async (inputValue: string) => {
-    // only include clear filter when filter value exists
-    let result = inputValue ? [] : [clearFilterSelect];
-    // only call fetch once
-    // TODO: allow real async search with `inputValue`
-    if (optionsCache.current) return optionsCache.current;
+  const fetchAndFormatSelects = async (
+    inputValue: string,
+    loadedOptions: SelectOption[],
+    { page }: { page: number },
+  ) => {
+    // only include clear filter when filter value does not exist
+    let result = inputValue || page > 0 ? [] : [clearFilterSelect];
+    let hasMore = paginate;
     if (fetchSelects) {
-      const selectValues = await fetchSelects();
+      const selectValues = await fetchSelects(inputValue, page);
       // update matching option at initial load
       const matchingOption = result.find(x => x.value === initialValue);
       if (matchingOption) {
         setSelectedOption(matchingOption);
       }
+      if (!selectValues.length) {
+        hasMore = false;
+      }
       result = [...result, ...selectValues];
     }
-    optionsCache.current = result;
-    return result;
+    return {
+      options: result,
+      hasMore,
+      additional: {
+        page: page + 1,
+      },
+    };
   };
 
   return (
     <FilterContainer>
       <FilterTitle>{Header}</FilterTitle>
       {fetchSelects ? (
-        <AsyncSelect
+        <PaginatedSelect
           data-test="filters-select"
           themeConfig={filterSelectTheme}
           stylesConfig={filterSelectStyles}
           value={selectedOption}
           onChange={onChange}
           loadOptions={fetchAndFormatSelects}
-          defaultOptions
           placeholder={emptyLabel}
           loadingMessage={() => 'Loading...'}
           clearable={false}
+          additional={{
+            page: 0,
+          }}
         />
       ) : (
         <Select
@@ -207,7 +218,15 @@ function UIFilters({
     <FilterWrapper>
       {filters.map(
         (
-          { Header, id, input, selects, unfilteredLabel, fetchSelects },
+          {
+            Header,
+            id,
+            input,
+            selects,
+            unfilteredLabel,
+            fetchSelects,
+            paginate,
+          },
           index,
         ) => {
           const initialValue =
@@ -222,6 +241,7 @@ function UIFilters({
                 emptyLabel={unfilteredLabel}
                 initialValue={initialValue}
                 fetchSelects={fetchSelects}
+                paginate={paginate}
                 onSelect={(value: any) => updateFilterValue(index, value)}
               />
             );

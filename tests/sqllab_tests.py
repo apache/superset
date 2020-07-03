@@ -18,6 +18,7 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
+from parameterized import parameterized
 from random import random
 from unittest import mock
 
@@ -29,6 +30,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
+from superset.sql_parse import CtasMethod
 from superset.utils.core import datetime_to_epoch, get_example_database
 
 from .base_tests import SupersetTestCase
@@ -38,11 +40,8 @@ QUERY_2 = "SELECT * FROM NO_TABLE"
 QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 
 
-class SqlLabTests(SupersetTestCase):
+class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
-
-    def __init__(self, *args, **kwargs):
-        super(SqlLabTests, self).__init__(*args, **kwargs)
 
     def run_some_queries(self):
         db.session.query(Query).delete()
@@ -67,38 +66,44 @@ class SqlLabTests(SupersetTestCase):
         data = self.run_sql("SELECT * FROM unexistant_table", "2")
         self.assertLess(0, len(data["error"]))
 
-    @mock.patch(
-        "superset.views.core.get_cta_schema_name",
-        lambda d, u, s, sql: f"{u.username}_database",
-    )
-    def test_sql_json_cta_dynamic_db(self):
+    @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
+    def test_sql_json_cta_dynamic_db(self, ctas_method):
         main_db = get_example_database()
         if main_db.backend == "sqlite":
             # sqlite doesn't support database creation
             return
 
-        old_allow_ctas = main_db.allow_ctas
-        main_db.allow_ctas = True  # enable cta
+        with mock.patch(
+            "superset.views.core.get_cta_schema_name",
+            lambda d, u, s, sql: f"{u.username}_database",
+        ):
+            old_allow_ctas = main_db.allow_ctas
+            main_db.allow_ctas = True  # enable cta
 
-        self.login("admin")
-        self.run_sql(
-            "SELECT * FROM birth_names",
-            "1",
-            database_name="examples",
-            tmp_table_name="test_target",
-            select_as_cta=True,
-        )
+            self.login("admin")
+            tmp_table_name = f"test_target_{ctas_method.lower()}"
+            self.run_sql(
+                "SELECT * FROM birth_names",
+                "1",
+                database_name="examples",
+                tmp_table_name=tmp_table_name,
+                select_as_cta=True,
+                ctas_method=ctas_method,
+            )
 
-        # assertions
-        data = db.session.execute("SELECT * FROM admin_database.test_target").fetchall()
-        self.assertEqual(
-            75691, len(data)
-        )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
+            # assertions
+            db.session.commit()
+            data = db.session.execute(
+                f"SELECT * FROM admin_database.{tmp_table_name}"
+            ).fetchall()
+            self.assertEqual(
+                75691, len(data)
+            )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
-        # cleanup
-        db.session.execute("DROP TABLE admin_database.test_target")
-        main_db.allow_ctas = old_allow_ctas
-        db.session.commit()
+            # cleanup
+            db.session.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
+            main_db.allow_ctas = old_allow_ctas
+            db.session.commit()
 
     def test_multi_sql(self):
         self.login("admin")
@@ -192,6 +197,8 @@ class SqlLabTests(SupersetTestCase):
         self.login("admin")
         data = self.get_json_resp("/superset/queries/0")
         self.assertEqual(2, len(data))
+        data = self.get_json_resp("/superset/queries/0.0")
+        self.assertEqual(2, len(data))
 
         # Run 2 more queries
         self.run_sql("SELECT * FROM birth_names LIMIT 1", client_id="client_id_4")
@@ -210,7 +217,7 @@ class SqlLabTests(SupersetTestCase):
         db.session.commit()
 
         data = self.get_json_resp(
-            "/superset/queries/{}".format(int(datetime_to_epoch(now)) - 1000)
+            "/superset/queries/{}".format(float(datetime_to_epoch(now)) - 1000)
         )
         self.assertEqual(1, len(data))
 

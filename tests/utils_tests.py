@@ -108,7 +108,7 @@ def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
     return result
 
 
-class UtilsTestCase(SupersetTestCase):
+class TestUtils(SupersetTestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         ts = 1577836800000.0
@@ -555,7 +555,7 @@ class UtilsTestCase(SupersetTestCase):
         merge_request_params(form_data, url_params)
         self.assertIn("url_params", form_data.keys())
         self.assertIn("abc", form_data["url_params"])
-        self.assertEquals(
+        self.assertEqual(
             url_params["dashboard_ids"], form_data["url_params"]["dashboard_ids"]
         )
 
@@ -1294,6 +1294,22 @@ class UtilsTestCase(SupersetTestCase):
                 form_data,
                 {
                     "baz": "bar",
+                    "foo": "bar",
+                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
+                },
+            )
+
+            self.assertEqual(slc, None)
+
+    def test_get_form_data_globals(self) -> None:
+        with app.test_request_context():
+            g.form_data = {"foo": "bar"}
+            form_data, slc = get_form_data()
+            delattr(g, "form_data")
+
+            self.assertEqual(
+                form_data,
+                {
                     "foo": "bar",
                     "time_range_endpoints": get_time_range_endpoints(form_data={}),
                 },

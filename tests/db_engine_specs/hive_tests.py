@@ -17,10 +17,12 @@
 from unittest import mock
 
 from superset.db_engine_specs.hive import HiveEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from superset.exceptions import SupersetException
+from superset.sql_parse import Table
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class HiveTests(DbEngineSpecTestCase):
+class TestHiveDbEngineSpec(TestDbEngineSpec):
     def test_0_progress(self):
         log = """
             17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=compile from=org.apache.hadoop.hive.ql.Driver>
@@ -161,4 +163,15 @@ class HiveTests(DbEngineSpecTestCase):
         self.assertEqual(
             HiveEngineSpec.convert_dttm("TIMESTAMP", dttm),
             "CAST('2019-01-02 03:04:05.678900' AS TIMESTAMP)",
+        )
+
+    def test_create_table_from_csv_append(self) -> None:
+        self.assertRaises(
+            SupersetException,
+            HiveEngineSpec.create_table_from_csv,
+            "foo.csv",
+            Table("foobar"),
+            None,
+            {},
+            {"if_exists": "append"},
         )

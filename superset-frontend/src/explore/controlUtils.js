@@ -16,49 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import memoizeOne from 'memoize-one';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { expandControlConfig } from '@superset-ui/chart-controls';
 import { controls as SHARED_CONTROLS } from './controls';
 import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
-  const formData = {};
-  formData.controlGroups = {};
+  const formData = { queryFields: {} };
   Object.keys(controlsState).forEach(controlName => {
     const control = controlsState[controlName];
     formData[controlName] = control.value;
-    if (control.hasOwnProperty('controlGroup')) {
-      formData.controlGroups[controlName] = control.controlGroup;
+    if (control.hasOwnProperty('queryField')) {
+      formData.queryFields[controlName] = control.queryField;
     }
   });
   return formData;
 }
 
-export function validateControl(control) {
+export function validateControl(control, processedState) {
   const validators = control.validators;
   if (validators && validators.length > 0) {
     const validatedControl = { ...control };
     const validationErrors = [];
     validators.forEach(f => {
-      const v = f(control.value);
+      const v = f.call(control, control.value, processedState);
       if (v) {
         validationErrors.push(v);
       }
     });
-    delete validatedControl.validators;
     return { ...validatedControl, validationErrors };
   }
   return control;
 }
 
-function findCustomControl(controlPanelSections, controlKey) {
-  // find custom control in `controlPanelSections` and apply `controlOverrides` if needed.
+/**
+ * Find control item from control panel config.
+ */
+function findControlItem(controlPanelSections, controlKey) {
   for (const section of controlPanelSections) {
     for (const controlArr of section.controlSetRows) {
       for (const control of controlArr) {
-        if (control != null && typeof control === 'object') {
-          if (control.config && control.name === controlKey) {
-            return control.config;
-          }
+        if (controlKey === control) return control;
+        if (
+          control !== null &&
+          typeof control === 'object' &&
+          control.name === controlKey
+        ) {
+          return control;
         }
       }
     }
@@ -66,23 +71,22 @@ function findCustomControl(controlPanelSections, controlKey) {
   return null;
 }
 
-export function getControlConfig(controlKey, vizType) {
+export const getControlConfig = memoizeOne(function getControlConfig(
+  controlKey,
+  vizType,
+) {
   const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
   const {
     controlOverrides = {},
     controlPanelSections = [],
   } = controlPanelConfig;
 
-  const config =
-    controlKey in SHARED_CONTROLS
-      ? SHARED_CONTROLS[controlKey]
-      : findCustomControl(controlPanelSections, controlKey);
-
-  return {
-    ...config,
-    ...controlOverrides[controlKey],
-  };
-}
+  const control = expandControlConfig(
+    findControlItem(controlPanelSections, controlKey),
+    controlOverrides,
+  );
+  return control?.config || control;
+});
 
 export function applyMapStateToPropsToControl(control, state) {
   if (control.mapStateToProps) {
@@ -90,7 +94,6 @@ export function applyMapStateToPropsToControl(control, state) {
     if (state) {
       Object.assign(appliedControl, control.mapStateToProps(state, control));
     }
-    delete appliedControl.mapStateToProps;
     return appliedControl;
   }
   return control;
@@ -119,6 +122,10 @@ function handleMissingChoice(control) {
 }
 
 export function getControlStateFromControlConfig(controlConfig, state, value) {
+  // skip invalid config values
+  if (!controlConfig) {
+    return null;
+  }
   const controlState = applyMapStateToPropsToControl(
     { ...controlConfig },
     state,
@@ -132,10 +139,11 @@ export function getControlStateFromControlConfig(controlConfig, state, value) {
   // If a choice control went from multi=false to true, wrap value in array
   const controlValue =
     controlConfig.multi && value && !Array.isArray(value) ? [value] : value;
+
   controlState.value =
     typeof controlValue === 'undefined' ? controlState.default : controlValue;
 
-  return validateControl(handleMissingChoice(controlState));
+  return validateControl(handleMissingChoice(controlState), controlState);
 }
 
 export function getControlState(controlKey, vizType, state, value) {
@@ -146,15 +154,24 @@ export function getControlState(controlKey, vizType, state, value) {
   );
 }
 
-export function sectionsToRender(vizType, datasourceType) {
+/**
+ * Get the clean and processed control panel sections
+ */
+export const sectionsToRender = memoizeOne(function sectionsToRender(
+  vizType,
+  datasourceType,
+) {
   const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
   const {
     sectionOverrides = {},
+    controlOverrides,
     controlPanelSections = [],
   } = controlPanelConfig;
 
+  // default control panel sections
   const sections = { ...SECTIONS };
 
+  // apply section overrides
   Object.entries(sectionOverrides).forEach(([section, overrides]) => {
     if (typeof overrides === 'object' && overrides.constructor === Object) {
       sections[section] = {
@@ -172,34 +189,34 @@ export function sectionsToRender(vizType, datasourceType) {
 
   return []
     .concat(datasourceAndVizType, timeSection, controlPanelSections)
-    .filter(section => section);
-}
+    .filter(section => !!section)
+    .map(section => {
+      const { controlSetRows } = section;
+      return {
+        ...section,
+        controlSetRows:
+          controlSetRows?.map(row =>
+            row.map(item => expandControlConfig(item, controlOverrides)),
+          ) || [],
+      };
+    });
+});
 
 export function getAllControlsState(vizType, datasourceType, state, formData) {
   const controlsState = {};
   sectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach(field => {
-        if (typeof field === 'string') {
-          controlsState[field] = getControlState(
-            field,
-            vizType,
+        if (field && field.config && field.name) {
+          const { config, name } = field;
+          controlsState[name] = getControlStateFromControlConfig(
+            config,
             state,
-            formData[field],
+            formData[name],
           );
-        } else if (field != null && typeof field === 'object') {
-          if (field.config && field.name) {
-            const { config, name } = field;
-            controlsState[name] = getControlStateFromControlConfig(
-              config,
-              state,
-              formData[name],
-            );
-          }
         }
       }),
     ),
   );
-
   return controlsState;
 }

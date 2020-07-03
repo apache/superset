@@ -67,6 +67,7 @@ class EmailSchedule:
         )
 
     recipients = Column(Text)
+    slack_channel = Column(Text)
     deliver_as_group = Column(Boolean, default=False)
     delivery_type = Column(Enum(EmailDeliveryType))
 
@@ -89,6 +90,6 @@ class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
 def get_scheduler_model(report_type: ScheduleType) -> Optional[Type[EmailSchedule]]:
     if report_type == ScheduleType.dashboard:
         return DashboardEmailSchedule
-    elif report_type == ScheduleType.slice:
+    if report_type == ScheduleType.slice:
         return SliceEmailSchedule
     return None

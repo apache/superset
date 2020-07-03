@@ -24,8 +24,26 @@
 /* component styles. This will allow us to more easily adjust theming   */
 /************************************************************************/
 
-@primary-color: #00a699;
-@indicator-color: #44c0ff;
+@primary-color: #20a7c9;
+@indicator-color: @primary-color;
+
+@brand-primary-dark1: #1a85a0;
+@brand-primary-dark2: #156378;
+@brand-primary-light1: #79cade;
+@brand-primary-light2: #a5dae9;
+@brand-primary-light3: #d2edf4;
+@brand-primary-light4: #e9f6f9;
+@brand-primary-light5: #f3f8fa;
+
+@brand-secondary: #444e7c;
+@brand-secondary-dark1: #363e63;
+@brand-secondary-dark2: #282e4a;
+@brand-secondary-dark3: #1b1f31;
+@brand-secondary-light1: #8e94b0;
+@brand-secondary-light2: #b4b8ca;
+@brand-secondary-light3: #d9dbe4;
+@brand-secondary-light4: #eceef2;
+@brand-secondary-light5: #f5f5f8;
 
 @almost-black: #263238;
 @gray-dark: #484848;
@@ -38,18 +56,14 @@
 @darkest: #000000;
 
 /**************************** text-specific *****************************/
-@link: @brand-primary;
+@link: #1985a0;
 @link-hover: darken(@link, @colorstop-one);
 
 /***************************** status colors ****************************/
-@success: #4ac15f;
-@info: lighten(#2ab7ca, 15%);
-@warning: mix(
-  #fed766,
-  #ffab00,
-  50%
-); // mix of old superset warning color and cosmo warning color. Compromise!
-@danger: #fe4a49;
+@success: #5ac189;
+@info: #66bcfe;
+@warning: #ff7f44;
+@danger: #e04355;
 
 /* general component effects */
 @shadow-highlight: @primary-color;
@@ -63,6 +77,7 @@
   #0b7285, #5f3dc4, #c92a2a, #5c940d, #087f5b;
 
 @iterations: length(@badge-colors);
+
 .badge-loop (@i) when (@i > 0) {
   .filter-badge.badge-@{i},
   .active .color-bar.badge-@{i},
@@ -71,8 +86,10 @@
     @value: extract(@badge-colors, @i);
     background-color: @value;
   }
+
   .badge-loop(@i - 1);
 }
+
 .badge-loop(@iterations);
 
 /************************************************************************/
@@ -157,9 +174,11 @@
 
 // setting up OTF settings based on @use-ligatures:
 .set-otf-options(@use-ligatures);
+
 .set-otf-options(true) {
   @font-feature-settings: 'liga' on, 'calt' on;
 }
+
 .set-otf-options(false) {
   @font-feature-settings: 'liga' off, 'calt' off;
 }
@@ -180,7 +199,7 @@
 /* BORDER RADII                                                         */
 /* Standard border-radius settings                                      */
 /************************************************************************/
-@border-radius-normal: 2px;
+@border-radius-normal: 4px;
 @border-radius-large: (@border-radius-normal * 2);
 
 /************************************************************************/

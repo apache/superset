@@ -33,7 +33,7 @@ import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import { t } from '@superset-ui/translation';
-import { ColumnOption } from '@superset-ui/control-utils';
+import { ColumnOption } from '@superset-ui/chart-controls';
 
 import { AGGREGATES, AGGREGATES_OPTIONS } from '../constants';
 import AdhocMetricEditPopoverTitle from './AdhocMetricEditPopoverTitle';
@@ -318,7 +318,7 @@ export default class AdhocMetricEditPopover extends React.Component {
           </Button>
           <i
             onMouseDown={this.onDragDown}
-            className="glyphicon glyphicon-resize-full edit-popover-resize"
+            className="fa fa-expand edit-popover-resize text-muted"
           />
         </div>
       </Popover>

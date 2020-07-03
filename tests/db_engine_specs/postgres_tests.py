@@ -20,10 +20,10 @@ from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
 from superset.db_engine_specs.postgres import PostgresEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class PostgresTests(DbEngineSpecTestCase):
+class TestPostgresDbEngineSpec(TestDbEngineSpec):
     def test_get_table_names(self):
         """
         DB Eng Specs (postgres): Test get table names

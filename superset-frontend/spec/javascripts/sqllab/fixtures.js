@@ -315,6 +315,16 @@ export const queryWithBadColumns = {
         name: 'CASE WHEN 1=1 THEN 1 ELSE 0 END',
         type: 'STRING',
       },
+      {
+        is_date: true,
+        name: '_TIMESTAMP',
+        type: 'TIMESTAMP',
+      },
+      {
+        is_date: true,
+        name: '__TIMESTAMP',
+        type: 'TIMESTAMP',
+      },
     ],
   },
 };
@@ -377,7 +387,7 @@ export const stoppedQuery = {
   startDttm: 1497400851936,
   state: 'stopped',
   tab: 'Untitled Query 2',
-  tempTableName: '',
+  tempTable: '',
 };
 export const runningQuery = {
   dbId: 1,
@@ -418,7 +428,7 @@ export const query = {
   sql: 'SELECT * FROM something',
   sqlEditorId: defaultQueryEditor.id,
   tab: 'unimportant',
-  tempTableName: null,
+  tempTable: null,
   runAsync: false,
   ctas: false,
   cached: false,

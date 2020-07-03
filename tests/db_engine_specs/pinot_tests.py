@@ -17,10 +17,10 @@
 from sqlalchemy import column
 
 from superset.db_engine_specs.pinot import PinotEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class PinotTestCase(DbEngineSpecTestCase):
+class TestPinotDbEngineSpec(TestDbEngineSpec):
     """ Tests pertaining to our Pinot database support """
 
     def test_pinot_time_expression_sec_one_1m_grain(self):
@@ -29,5 +29,5 @@ class PinotTestCase(DbEngineSpecTestCase):
         result = str(expr.compile())
         self.assertEqual(
             result,
-            'DATETIMECONVERT(tstamp, "1:SECONDS:EPOCH", "1:SECONDS:EPOCH", "1:MONTHS")',
+            "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:MONTHS')",
         )  # noqa

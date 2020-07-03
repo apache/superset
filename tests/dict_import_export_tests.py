@@ -40,11 +40,8 @@ NAME_PREFIX = "dict_"
 ID_PREFIX = 20000
 
 
-class DictImportExportTests(SupersetTestCase):
+class TestDictImportExport(SupersetTestCase):
     """Testing export import functionality for dashboards"""
-
-    def __init__(self, *args, **kwargs):
-        super(DictImportExportTests, self).__init__(*args, **kwargs)
 
     @classmethod
     def delete_imports(cls):
@@ -280,6 +277,9 @@ class DictImportExportTests(SupersetTestCase):
         )
 
     def test_export_datasource_ui_cli(self):
+        # TODO(bkyryliuk): find fake db is leaking from
+        self.delete_fake_db()
+
         cli_export = export_to_dict(
             session=db.session,
             recursive=True,

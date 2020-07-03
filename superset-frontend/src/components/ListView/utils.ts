@@ -245,6 +245,7 @@ export function useListViewState({
     const updatedFilters = updateInList(internalFilters, index, update);
     setInternalFilters(updatedFilters);
     setAllFilters(convertFilters(updatedFilters));
+    gotoPage(0); // clear pagination on filter
   };
 
   const removeFilterAndApply = (index: number) => {

@@ -40,9 +40,9 @@ const RunQueryActionButton = ({
   runQuery = NO_OP,
   selectedText,
   stopQuery = NO_OP,
-  sql,
+  sql = '',
 }: Props) => {
-  const runBtnText = selectedText ? t('Run Selected Query') : t('Run Query');
+  const runBtnText = selectedText ? t('Run Selected Query') : t('Run');
   const btnStyle = selectedText ? 'warning' : 'primary';
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
@@ -68,7 +68,7 @@ const RunQueryActionButton = ({
         tooltip={t('Run query asynchronously (Ctrl + ↵)')}
         disabled={!sql.trim()}
       >
-        <i className="fa fa-table" /> {runBtnText}
+        <i className="fa fa-bolt" /> {runBtnText}
       </Button>
     );
   }
