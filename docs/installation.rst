@@ -228,7 +228,7 @@ Note that the development web
 server (`superset run` or `flask run`) is not intended for production use.
 
 If not using gunicorn, you may want to disable the use of flask-compress
-by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
+by setting `COMPRESS_REGISTER = False` in your `superset_config.py`
 
 Flask-AppBuilder Permissions
 ----------------------------
