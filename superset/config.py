@@ -365,8 +365,9 @@ CORS_OPTIONS: Dict[Any, Any] = {}
 SUPERSET_WEBSERVER_DOMAINS = None
 
 # Allowed format types for upload on Database view
-# TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
-ALLOWED_EXTENSIONS = {"csv", "tsv"}
+EXCEL_EXTENSIONS = {"xlsx", "xls"}
+CSV_EXTENSIONS = {"csv", "tsv"}
+ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS}
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.

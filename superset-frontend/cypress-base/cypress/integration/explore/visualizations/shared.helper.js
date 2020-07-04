@@ -63,6 +63,52 @@ export const NUM_METRIC = {
   optionName: 'metric_1de0s4viy5d_ly7y8k6ghvk',
 };
 
+export const MAX_DS = {
+  aggregate: 'MAX',
+  column: {
+    column_name: 'ds',
+    description: null,
+    expression: null,
+    filterable: true,
+    groupby: true,
+    id: 333,
+    is_dttm: true,
+    optionName: '_col_ds',
+    python_date_format: null,
+    type: 'TIMESTAMP WITHOUT TIME ZONE',
+    verbose_name: null,
+  },
+  expressionType: 'SIMPLE',
+  hasCustomLabel: false,
+  isNew: false,
+  label: 'MAX(ds)',
+  optionName: 'metric_pbib7j9m15a_js80vs9vca',
+  sqlExpression: null,
+};
+
+export const MAX_STATE = {
+  expressionType: 'SIMPLE',
+  column: {
+    id: 337,
+    column_name: 'state',
+    verbose_name: null,
+    description: null,
+    expression: null,
+    filterable: true,
+    groupby: true,
+    is_dttm: false,
+    type: 'VARCHAR(10)',
+    python_date_format: null,
+    optionName: '_col_state',
+  },
+  aggregate: 'MAX',
+  sqlExpression: null,
+  isNew: false,
+  hasCustomLabel: false,
+  label: 'MAX(state)',
+  optionName: 'metric_kvval50pvbo_hewj3pzacb',
+};
+
 export const SIMPLE_FILTER = {
   expressionType: 'SIMPLE',
   subject: 'name',
