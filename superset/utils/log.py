@@ -36,31 +36,32 @@ class AbstractEventLogger(ABC):
         pass
 
     def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        from superset.views.core import get_form_data
+
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
-            form_data = request.form.to_dict() or {}
+            payload = request.form.to_dict() or {}
 
             # request parameters can overwrite post body
             request_params = request.args.to_dict()
-            form_data.update(request_params)
-            form_data.update(kwargs)
+            payload.update(request_params)
+            payload.update(kwargs)
 
-            slice_id = form_data.get("slice_id")
-            dashboard_id = form_data.get("dashboard_id")
+            dashboard_id = payload.get("dashboard_id")
+
+            if "form_data" in payload:
+                form_data, _ = get_form_data()
+                payload["form_data"] = form_data
+                slice_id = form_data.get("slice_id")
+            else:
+                slice_id = payload.get("slice_id")
 
             try:
-                slice_id = int(
-                    slice_id
-                    or json.loads(
-                        form_data.get("form_data")  # type: ignore
-                    ).get(
-                        "slice_id"
-                    )
-                )
-            except (ValueError, TypeError):
+                slice_id = int(slice_id)  # type: ignore
+            except (TypeError, ValueError):
                 slice_id = 0
 
             self.stats_logger.incr(f.__name__)
@@ -70,10 +71,10 @@ class AbstractEventLogger(ABC):
 
             # bulk insert
             try:
-                explode_by = form_data.get("explode")
-                records = json.loads(form_data.get(explode_by))  # type: ignore
+                explode_by = payload.get("explode")
+                records = json.loads(payload.get(explode_by))  # type: ignore
             except Exception:  # pylint: disable=broad-except
-                records = [form_data]
+                records = [payload]
 
             referrer = request.referrer[:1000] if request.referrer else None
 
