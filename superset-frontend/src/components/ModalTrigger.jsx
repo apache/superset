@@ -70,6 +70,7 @@ export default class ModalTrigger extends React.Component {
     this.props.beforeOpen();
     this.setState(() => ({ showModal: true }));
   }
+
   renderModal() {
     return (
       <Modal
@@ -112,7 +113,8 @@ export default class ModalTrigger extends React.Component {
           {this.renderModal()}
         </>
       );
-    } else if (this.props.isMenuItem) {
+    }
+    if (this.props.isMenuItem) {
       return (
         <>
           <MenuItem onClick={this.open}>{this.props.triggerNode}</MenuItem>

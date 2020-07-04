@@ -29,7 +29,7 @@ import {
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlHeader from '../ControlHeader';
-import controlMap from './';
+import controlMap from '.';
 import './CollectionControl.less';
 
 const propTypes = {
@@ -68,19 +68,24 @@ export default class CollectionControl extends React.Component {
     super(props);
     this.onAdd = this.onAdd.bind(this);
   }
+
   onChange(i, value) {
     Object.assign(this.props.value[i], value);
     this.props.onChange(this.props.value);
   }
+
   onAdd() {
     this.props.onChange(this.props.value.concat([this.props.itemGenerator()]));
   }
+
   onSortEnd({ oldIndex, newIndex }) {
     this.props.onChange(arrayMove(this.props.value, oldIndex, newIndex));
   }
+
   removeItem(i) {
     this.props.onChange(this.props.value.filter((o, ix) => i !== ix));
   }
+
   renderList() {
     if (this.props.value.length === 0) {
       return <div className="text-muted">{this.props.placeholder}</div>;
@@ -122,6 +127,7 @@ export default class CollectionControl extends React.Component {
       </SortableListGroup>
     );
   }
+
   render() {
     return (
       <div className="CollectionControl">

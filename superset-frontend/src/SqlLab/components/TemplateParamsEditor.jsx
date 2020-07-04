@@ -56,9 +56,11 @@ export default class TemplateParamsEditor extends React.Component {
     };
     this.onChange = this.onChange.bind(this);
   }
+
   componentDidMount() {
     this.onChange(this.state.codeText);
   }
+
   onChange(value) {
     const codeText = value;
     let isValid;
@@ -75,6 +77,7 @@ export default class TemplateParamsEditor extends React.Component {
       this.props.onChange(newValue);
     }
   }
+
   renderDoc() {
     return (
       <p>
@@ -83,8 +86,12 @@ export default class TemplateParamsEditor extends React.Component {
         {t('below (example:')}
         <code>{'{"my_table": "foo"}'}</code>
         {t('), and they become available in your SQL (example:')}
-        <code>SELECT * FROM {'{{ my_table }}'} </code>
-        {t(') by using')}&nbsp;
+        <code>
+          SELECT * FROM
+          {'{{ my_table }}'}{' '}
+        </code>
+        {t(') by using')}
+        &nbsp;
         <a
           href="https://superset.apache.org/sqllab.html#templating-with-jinja"
           target="_blank"
@@ -96,6 +103,7 @@ export default class TemplateParamsEditor extends React.Component {
       </p>
     );
   }
+
   renderModalBody() {
     return (
       <div>
@@ -115,6 +123,7 @@ export default class TemplateParamsEditor extends React.Component {
       </div>
     );
   }
+
   render() {
     const paramCount = this.state.parsedJSON
       ? Object.keys(this.state.parsedJSON).length

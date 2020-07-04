@@ -160,7 +160,7 @@ describe('SaveModal', () => {
     it('should save slice', () => {
       const wrapper = getWrapper();
       wrapper.instance().saveOrOverwrite(true);
-      const args = defaultProps.actions.saveSlice.getCall(0).args;
+      const { args } = defaultProps.actions.saveSlice.getCall(0);
       expect(args[0]).toEqual(defaultProps.form_data);
     });
 
@@ -174,7 +174,7 @@ describe('SaveModal', () => {
 
       wrapper.setState({ saveToDashboardId });
       wrapper.instance().saveOrOverwrite(true);
-      const args = defaultProps.actions.saveSlice.getCall(0).args;
+      const { args } = defaultProps.actions.saveSlice.getCall(0);
       expect(args[1].save_to_dashboard_id).toBe(saveToDashboardId);
     });
 
@@ -188,7 +188,7 @@ describe('SaveModal', () => {
 
       wrapper.setState({ newDashboardName });
       wrapper.instance().saveOrOverwrite(true);
-      const args = defaultProps.actions.saveSlice.getCall(0).args;
+      const { args } = defaultProps.actions.saveSlice.getCall(0);
       expect(args[1].new_dashboard_name).toBe(newDashboardName);
     });
 

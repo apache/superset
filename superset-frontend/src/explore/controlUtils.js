@@ -35,7 +35,7 @@ export function getFormDataFromControls(controlsState) {
 }
 
 export function validateControl(control, processedState) {
-  const validators = control.validators;
+  const { validators } = control;
   if (validators && validators.length > 0) {
     const validatedControl = { ...control };
     const validationErrors = [];
@@ -101,7 +101,7 @@ export function applyMapStateToPropsToControl(control, state) {
 
 function handleMissingChoice(control) {
   // If the value is not valid anymore based on choices, clear it
-  const value = control.value;
+  const { value } = control;
   if (
     control.type === 'SelectControl' &&
     !control.freeForm &&
@@ -113,7 +113,8 @@ function handleMissingChoice(control) {
     if (control.multi && value.length > 0) {
       alteredControl.value = value.filter(el => choiceValues.indexOf(el) > -1);
       return alteredControl;
-    } else if (!control.multi && choiceValues.indexOf(value) < 0) {
+    }
+    if (!control.multi && choiceValues.indexOf(value) < 0) {
       alteredControl.value = null;
       return alteredControl;
     }

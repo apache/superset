@@ -25,7 +25,7 @@ export function addToObject(
   state: Record<string, any>,
   arrKey: string,
   obj: Record<string, any>,
-) {
+): Record<string, any> {
   const newObject = { ...state[arrKey] };
   const copiedObject = { ...obj };
 
@@ -41,7 +41,7 @@ export function alterInObject(
   arrKey: string,
   obj: Record<string, any>,
   alterations: Record<string, any>,
-) {
+): Record<string, any> {
   const newObject = { ...state[arrKey] };
   newObject[obj.id] = { ...newObject[obj.id], ...alterations };
   return { ...state, [arrKey]: newObject };
@@ -53,7 +53,7 @@ export function alterInArr(
   obj: Record<string, any>,
   alterations: Record<string, any>,
   idKey = 'id',
-) {
+): Record<string, any> {
   // Finds an item in an array in the state and replaces it with a
   // new object with an altered property
   const newArr: unknown[] = [];
@@ -72,7 +72,7 @@ export function removeFromArr(
   arrKey: string,
   obj: Record<string, any>,
   idKey = 'id',
-) {
+): Record<string, any> {
   const newArr: unknown[] = [];
   state[arrKey].forEach((arrItem: Record<string, any>) => {
     if (!(obj[idKey] === arrItem[idKey])) {
@@ -82,7 +82,10 @@ export function removeFromArr(
   return { ...state, [arrKey]: newArr };
 }
 
-export function getFromArr(arr: Record<string, any>[], id: string) {
+export function getFromArr(
+  arr: Record<string, any>[],
+  id: string,
+): Record<string, any> | undefined {
   let obj;
   arr.forEach(o => {
     if (o.id === id) {
@@ -97,7 +100,7 @@ export function addToArr(
   arrKey: string,
   obj: Record<string, any>,
   prepend = false,
-) {
+): Record<string, any> {
   const newObj = { ...obj };
   if (!newObj.id) {
     newObj.id = shortid.generate();
@@ -116,7 +119,7 @@ export function extendArr(
   arrKey: string,
   arr: Record<string, any>[],
   prepend = false,
-) {
+): Record<string, any> {
   const newArr = [...arr];
   newArr.forEach(el => {
     if (!el.id) {
@@ -136,7 +139,7 @@ export function extendArr(
 export function initEnhancer(
   persist = true,
   persistConfig: { paths?: StorageAdapter<unknown>; config?: string } = {},
-) {
+): any {
   const { paths, config } = persistConfig;
   const composeEnhancers =
     process.env.WEBPACK_MODE === 'development'
@@ -149,7 +152,10 @@ export function initEnhancer(
     : composeEnhancers();
 }
 
-export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
+export function areArraysShallowEqual(
+  arr1: unknown[],
+  arr2: unknown[],
+): boolean {
   // returns whether 2 arrays are shallow equal
   // used in shouldComponentUpdate when denormalizing arrays
   // where the array object is different every time, but the content might
@@ -160,7 +166,7 @@ export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
   if (arr1.length !== arr2.length) {
     return false;
   }
-  const length = arr1.length;
+  const { length } = arr1;
   for (let i = 0; i < length; i++) {
     if (arr1[i] !== arr2[i]) {
       return false;
@@ -172,6 +178,6 @@ export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
 export function areObjectsEqual(
   obj1: Record<string, any>,
   obj2: Record<string, any>,
-) {
+): boolean {
   return isEqual(obj1, obj2);
 }

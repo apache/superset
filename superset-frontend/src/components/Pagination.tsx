@@ -123,10 +123,17 @@ const PaginationList = styled.ul`
 
 export default class Pagination extends PureComponent<PaginationProps> {
   static Next = Next;
+
   static Prev = Prev;
+
   static Item = Item;
+
   static Ellipsis = Ellipsis;
+
   render() {
-    return <PaginationList> {this.props.children}</PaginationList>;
+    return <PaginationList> 
+{' '}
+{this.props.children}
+</PaginationList>;
   }
 }

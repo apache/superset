@@ -58,7 +58,7 @@ export default function Modal({
   disabled,
   onClick,
   children,
-}: ModalProps) {
+}: ModalProps): JSX.Element {
   return (
     <StyledButton disabled={disabled} bsStyle={bsStyle} onClick={onClick}>
       {children}

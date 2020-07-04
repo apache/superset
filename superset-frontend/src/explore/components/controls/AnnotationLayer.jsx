@@ -423,7 +423,7 @@ export default class AnnotationLayer extends React.PureComponent {
       intervalEndColumn,
       descriptionColumns,
     } = this.state;
-    const slice = (valueOptions.find(x => x.value === value) || {}).slice;
+    const { slice } = valueOptions.find(x => x.value === value) || {};
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE && slice) {
       const columns = (slice.data.groupby || [])
         .concat(slice.data.all_columns || [])
@@ -450,7 +450,7 @@ export default class AnnotationLayer extends React.PureComponent {
                     ? 'Interval Start column'
                     : 'Event Time Column'
                 }
-                description={'This column must contain date/time information.'}
+                description="This column must contain date/time information."
                 validationErrors={!timeColumn ? ['Mandatory'] : []}
                 clearable={false}
                 options={timeColumnOptions}
@@ -463,7 +463,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 hovered
                 name="annotation-layer-intervalEnd"
                 label="Interval End column"
-                description={'This column must contain date/time information.'}
+                description="This column must contain date/time information."
                 validationErrors={!intervalEndColumn ? ['Mandatory'] : []}
                 options={columns}
                 value={intervalEndColumn}
@@ -474,7 +474,7 @@ export default class AnnotationLayer extends React.PureComponent {
               hovered
               name="annotation-layer-title"
               label="Title Column"
-              description={'Pick a title for you annotation.'}
+              description="Pick a title for you annotation."
               options={[{ value: '', label: 'None' }].concat(columns)}
               value={titleColumn}
               onChange={v => this.setState({ titleColumn: v })}
@@ -639,7 +639,7 @@ export default class AnnotationLayer extends React.PureComponent {
             hovered
             name="annotation-layer-show-markers"
             label="Show Markers"
-            description={'Shows or hides markers for the time series'}
+            description="Shows or hides markers for the time series"
             value={showMarkers}
             onChange={v => this.setState({ showMarkers: v })}
           />
@@ -649,7 +649,7 @@ export default class AnnotationLayer extends React.PureComponent {
             hovered
             name="annotation-layer-hide-line"
             label="Hide Line"
-            description={'Hides the Line for the time series'}
+            description="Hides the Line for the time series"
             value={hideLine}
             onChange={v => this.setState({ hideLine: v })}
           />
@@ -673,7 +673,10 @@ export default class AnnotationLayer extends React.PureComponent {
     return (
       <div>
         {this.props.error && (
-          <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
+          <span style={{ color: 'red' }}>
+            ERROR:
+            {this.props.error}
+          </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <div style={{ marginRight: '2rem' }}>

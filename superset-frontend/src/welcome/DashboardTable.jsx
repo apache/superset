@@ -28,28 +28,6 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 const PAGE_SIZE = 25;
 
 class DashboardTable extends React.PureComponent {
-  static propTypes = {
-    addDangerToast: PropTypes.func.isRequired,
-    search: PropTypes.string,
-  };
-
-  state = {
-    dashboards: [],
-    dashboard_count: 0,
-    loading: false,
-  };
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.search !== this.props.search) {
-      this.fetchDataDebounced({
-        pageSize: PAGE_SIZE,
-        pageIndex: 0,
-        sortBy: this.initialSort,
-        filters: {},
-      });
-    }
-  }
-
   columns = [
     {
       accessor: 'dashboard_title',
@@ -81,6 +59,28 @@ class DashboardTable extends React.PureComponent {
   ];
 
   initialSort = [{ id: 'changed_on', desc: true }];
+
+  fetchDataDebounced = debounce(this.fetchData, 200);
+
+  constructor(props, context) {
+    super(props, context);
+    this.state = {
+      dashboards: [],
+      dashboard_count: 0,
+      loading: false,
+    };
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.search !== this.props.search) {
+      this.fetchDataDebounced({
+        pageSize: PAGE_SIZE,
+        pageIndex: 0,
+        sortBy: this.initialSort,
+        filters: {},
+      });
+    }
+  }
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
     this.setState({ loading: true });
@@ -132,8 +132,6 @@ class DashboardTable extends React.PureComponent {
       .finally(() => this.setState({ loading: false }));
   };
 
-  fetchDataDebounced = debounce(this.fetchData, 200);
-
   render() {
     return (
       <ListView
@@ -148,5 +146,10 @@ class DashboardTable extends React.PureComponent {
     );
   }
 }
+
+DashboardTable.propTypes = {
+  addDangerToast: PropTypes.func.isRequired,
+  search: PropTypes.string,
+};
 
 export default withToasts(DashboardTable);

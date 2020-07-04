@@ -175,7 +175,8 @@ class AnnotationLayerControl extends React.PureComponent {
             overlay={this.renderPopover('overlay-new')}
           >
             <ListGroupItem>
-              <i className="fa fa-plus" /> &nbsp; {t('Add Annotation Layer')}
+              <i className="fa fa-plus" /> &nbsp;
+              {t('Add Annotation Layer')}
             </ListGroupItem>
           </OverlayTrigger>
         </ListGroup>

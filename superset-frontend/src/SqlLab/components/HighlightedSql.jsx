@@ -50,6 +50,7 @@ class HighlightedSql extends React.Component {
       modalBody: null,
     };
   }
+
   shrinkSql() {
     const ssql = this.props.sql || '';
     let lines = ssql.split('\n');
@@ -66,6 +67,7 @@ class HighlightedSql extends React.Component {
       })
       .join('\n');
   }
+
   triggerNode() {
     const shownSql = this.props.shrink
       ? this.shrinkSql(this.props.sql)
@@ -76,6 +78,7 @@ class HighlightedSql extends React.Component {
       </SyntaxHighlighter>
     );
   }
+
   generateModal() {
     let rawSql;
     if (this.props.rawSql && this.props.rawSql !== this.props.sql) {
@@ -100,6 +103,7 @@ class HighlightedSql extends React.Component {
       ),
     });
   }
+
   render() {
     return (
       <ModalTrigger

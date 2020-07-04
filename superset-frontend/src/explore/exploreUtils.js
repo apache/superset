@@ -30,7 +30,7 @@ import {
 const MAX_URL_LENGTH = 8000;
 
 export function getChartKey(explore) {
-  const slice = explore.slice;
+  const { slice } = explore;
   return slice ? slice.slice_id : 0;
 }
 

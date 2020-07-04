@@ -109,7 +109,7 @@ function ColumnCollectionTable({
               fieldKey="python_date_format"
               label={t('Datetime Format')}
               descr={
-                /* Note the fragmented translations may not work. */
+                // Note the fragmented translations may not work.
                 <div>
                   {t('The pattern of timestamp format. For strings use ')}
                   <a href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
@@ -246,6 +246,7 @@ export class DatasourceEditor extends React.PureComponent {
     };
     this.props.onChange(datasource, this.state.errors);
   }
+
   onDatasourceChange(datasource) {
     this.setState({ datasource }, this.validateAndChange);
   }
@@ -286,6 +287,7 @@ export class DatasourceEditor extends React.PureComponent {
       this.setColumns({ databaseColumns });
     }
   }
+
   syncMetadata() {
     const { datasource } = this.state;
     // Handle carefully when the schema is empty
@@ -329,7 +331,7 @@ export class DatasourceEditor extends React.PureComponent {
   validate(callback) {
     let errors = [];
     let dups;
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
 
     // Looking for duplicate column_name
     dups = this.findDuplicates(datasource.columns, obj => obj.column_name);
@@ -361,7 +363,7 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   renderSettingsFieldset() {
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
     return (
       <Fieldset
         title={t('Basic')}
@@ -456,7 +458,7 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   renderAdvancedFieldset() {
-    const datasource = this.state.datasource;
+    const { datasource } = this.state;
     return (
       <Fieldset
         title={t('Advanced')}

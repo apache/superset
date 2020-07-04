@@ -399,7 +399,8 @@ export function exploreJSON(
           return dispatch(
             chartUpdateTimeout(response.statusText, timeout, key),
           );
-        } else if (response.name === 'AbortError') {
+        }
+        if (response.name === 'AbortError') {
           appendErrorLog('abort');
           return dispatch(chartUpdateStopped(key));
         }

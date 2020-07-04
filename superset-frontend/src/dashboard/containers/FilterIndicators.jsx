@@ -26,8 +26,8 @@ function mapStateToProps(
   { datasources, dashboardState, dashboardFilters, dashboardLayout, charts },
   ownProps,
 ) {
-  const chartId = ownProps.chartId;
-  const chartStatus = (charts[chartId] || {}).chartStatus;
+  const { chartId } = ownProps;
+  const { chartStatus } = charts[chartId] || {};
 
   return {
     datasources,

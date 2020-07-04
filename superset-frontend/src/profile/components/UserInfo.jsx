@@ -64,7 +64,8 @@ const UserInfo = ({ user }) => (
         <p>
           <i className="fa fa-key" />
           &nbsp;
-          <span className="text-muted">{t('id:')}</span>&nbsp;
+          <span className="text-muted">{t('id:')}</span>
+          &nbsp;
           <span className="user-id">{user.userId}</span>
         </p>
       </Panel.Body>

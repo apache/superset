@@ -74,6 +74,7 @@ export default class ControlHeader extends React.Component {
     }
     return null;
   }
+
   render() {
     if (!this.props.label) {
       return null;
@@ -97,7 +98,7 @@ export default class ControlHeader extends React.Component {
                 <OverlayTrigger
                   placement="top"
                   overlay={
-                    <Tooltip id={'error-tooltip'}>{this.props.warning}</Tooltip>
+                    <Tooltip id="error-tooltip">{this.props.warning}</Tooltip>
                   }
                 >
                   <i className="fa fa-exclamation-circle text-warning" />
@@ -109,7 +110,7 @@ export default class ControlHeader extends React.Component {
                 <OverlayTrigger
                   placement="top"
                   overlay={
-                    <Tooltip id={'error-tooltip'}>{this.props.danger}</Tooltip>
+                    <Tooltip id="error-tooltip">{this.props.danger}</Tooltip>
                   }
                 >
                   <i className="fa fa-exclamation-circle text-danger" />
@@ -121,7 +122,7 @@ export default class ControlHeader extends React.Component {
                 <OverlayTrigger
                   placement="top"
                   overlay={
-                    <Tooltip id={'error-tooltip'}>
+                    <Tooltip id="error-tooltip">
                       {this.props.validationErrors.join(' ')}
                     </Tooltip>
                   }

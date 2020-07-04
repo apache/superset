@@ -238,9 +238,9 @@ export default class Tab extends React.PureComponent {
                   ? []
                   : [
                       <DeleteComponentModal
-                        triggerNode={deleteTabIcon}
-                        onDelete={this.handleDeleteComponent}
-                      />,
+                      triggerNode={deleteTabIcon}
+                      onDelete={this.handleDeleteComponent}
+                    />,
                     ]
               }
               editMode={editMode}

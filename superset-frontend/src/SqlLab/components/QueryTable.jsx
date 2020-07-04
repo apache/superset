@@ -56,16 +56,20 @@ class QueryTable extends React.PureComponent {
       activeQuery: null,
     };
   }
+
   openQuery(id) {
     const url = `/superset/sqllab?queryId=${id}`;
     window.open(url);
   }
+
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
   }
+
   showVisualizeModal(query) {
     this.setState({ activeQuery: query, showVisualizeModal: true });
   }
+
   restoreSql(query) {
     this.props.actions.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
   }
@@ -73,15 +77,19 @@ class QueryTable extends React.PureComponent {
   openQueryInNewTab(query) {
     this.props.actions.cloneQueryToNewTab(query, true);
   }
+
   openAsyncResults(query, displayLimit) {
     this.props.actions.fetchQueryResults(query, displayLimit);
   }
+
   clearQueryResults(query) {
     this.props.actions.clearQueryResults(query);
   }
+
   removeQuery(query) {
     this.props.actions.removeQuery(query);
   }
+
   render() {
     const data = this.props.queries
       .map(query => {

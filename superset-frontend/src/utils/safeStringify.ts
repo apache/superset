@@ -17,13 +17,15 @@
  * under the License.
  */
 
+type AnyType = any;
+
 /**
  * A Stringify function that will not crash when it runs into circular JSON references,
  * unlike JSON.stringify. Any circular references are simply omitted, as if there had
  * been no data present
  * @param object any JSON object to be stringified
  */
-export function safeStringify(object: any): string {
+export function safeStringify(object: AnyType): string {
   const cache = new Set();
   return JSON.stringify(object, (key, value) => {
     if (typeof value === 'object' && value !== null) {

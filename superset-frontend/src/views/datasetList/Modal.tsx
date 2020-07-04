@@ -71,7 +71,7 @@ export default function Modal({
   onSave,
   show,
   title,
-}: ModalProps) {
+}: ModalProps): JSX.Element {
   return (
     <StyledModal show={show} onHide={onHide} bsSize="lg">
       <BaseModal.Header closeButton>

@@ -23,7 +23,7 @@ import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
-import Loading from '../components/Loading';
+import Loading from './Loading';
 import '../../stylesheets/reactable-pagination.less';
 
 const propTypes = {

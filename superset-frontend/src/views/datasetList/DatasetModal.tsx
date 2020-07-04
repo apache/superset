@@ -52,14 +52,13 @@ class DatasetModal extends React.PureComponent<
     super(props);
     this.onSave = this.onSave.bind(this);
     this.onChange = this.onChange.bind(this);
+    this.state = {
+      datasourceId: undefined,
+      disableSave: true,
+      schema: '',
+      tableName: '',
+    };
   }
-
-  state: DatasetModalState = {
-    datasourceId: undefined,
-    disableSave: true,
-    schema: '',
-    tableName: '',
-  };
 
   onChange({
     dbId,

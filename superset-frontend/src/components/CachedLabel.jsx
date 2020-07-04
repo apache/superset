@@ -50,7 +50,7 @@ class CacheLabel extends React.PureComponent {
 
     const tooltipContent = (
       <span>
-        {cachedText}. {t('Click to force-refresh')}
+        {cachedText}.{t('Click to force-refresh')}
       </span>
     );
     this.setState({ tooltipContent });

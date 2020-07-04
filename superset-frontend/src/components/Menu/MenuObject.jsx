@@ -34,7 +34,8 @@ export default function MenuObject({ label, icon, childs, url, index }) {
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
-        <i className={`fa ${icon}`} /> &nbsp; {label}
+        <i className={`fa ${icon}`} /> &nbsp;
+        {label}
       </NavItem>
     );
   }

@@ -33,7 +33,7 @@ import FilterBox from '../explore/controlPanels/FilterBox';
 import Separator from '../explore/controlPanels/Separator';
 import TimeTable from '../explore/controlPanels/TimeTable';
 
-export default function setupPlugins() {
+export default function setupPlugins(): void {
   new MainPreset().register();
 
   // TODO: Remove these shims once the control panel configs are moved into the plugin package.

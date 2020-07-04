@@ -50,7 +50,7 @@ function toggleCheckbox(apiUrlPrefix: string, selector: string) {
     );
 }
 
-export default function setupApp() {
+export default function setupApp(): void {
   $(document).ready(function () {
     $(':checkbox[data-checkbox-api-prefix]').change(function (
       this: HTMLElement,
@@ -75,17 +75,14 @@ export default function setupApp() {
         url: ev.currentTarget.href,
         parseMethod: null,
       }).then(() => {
-        location.reload();
+        window.location.reload();
       });
     });
   });
 
   // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
-  // @ts-ignore
-  window.$ = $;
-  // @ts-ignore
-  window.jQuery = $;
+  Object.assign(window, { $, jQuery: $ });
   require('bootstrap');
 
   // setup appwide custom error messages

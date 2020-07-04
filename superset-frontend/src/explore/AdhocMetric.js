@@ -95,7 +95,8 @@ export default class AdhocMetric {
       return `${this.aggregate || ''}(${
         (this.column && this.column.column_name) || ''
       })`;
-    } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
+    }
+    if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return this.sqlExpression;
     }
     return '';
@@ -125,7 +126,8 @@ export default class AdhocMetric {
   isValid() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       return !!(this.column && this.aggregate);
-    } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
+    }
+    if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return !!this.sqlExpression;
     }
     return false;

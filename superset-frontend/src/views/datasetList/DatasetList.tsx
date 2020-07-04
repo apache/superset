@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,11 +20,8 @@
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import moment from 'moment';
-import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-// @ts-ignore
-import { Panel } from 'react-bootstrap';
 import { SHORT_DATE, SHORT_TIME } from 'src/utils/common';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView/ListView';
@@ -78,75 +76,6 @@ interface Dataset {
 }
 
 class DatasetList extends React.PureComponent<Props, State> {
-  static propTypes = {
-    addDangerToast: PropTypes.func.isRequired,
-  };
-
-  state: State = {
-    datasetCount: 0,
-    datasets: [],
-    filterOperators: {},
-    filters: [],
-    lastFetchDataConfig: null,
-    loading: true,
-    owners: [],
-    databases: [],
-    permissions: [],
-  };
-
-  componentDidMount() {
-    Promise.all([
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/_info`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/owners`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/database`,
-      }),
-    ]).then(
-      ([
-        { json: infoJson = {} },
-        { json: ownersJson = {} },
-        { json: databasesJson = {} },
-      ]) => {
-        this.setState(
-          {
-            filterOperators: infoJson.filters,
-            owners: ownersJson.result,
-            databases: databasesJson.result,
-            permissions: infoJson.permissions,
-          },
-          this.updateFilters,
-        );
-      },
-      ([e1, e2]) => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching datasets'),
-        );
-        if (e1) {
-          console.error(e1);
-        }
-        if (e2) {
-          console.error(e2);
-        }
-      },
-    );
-  }
-
-  get canEdit() {
-    return this.hasPerm('can_edit');
-  }
-
-  get canDelete() {
-    return this.hasPerm('can_delete');
-  }
-
-  get canCreate() {
-    return this.hasPerm('can_add');
-  }
-
   initialSort = [{ id: 'changed_on', desc: true }];
 
   columns = [
@@ -382,6 +311,74 @@ class DatasetList extends React.PureComponent<Props, State> {
       },
     ],
   };
+
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      datasetCount: 0,
+      datasets: [],
+      filterOperators: {},
+      filters: [],
+      lastFetchDataConfig: null,
+      loading: true,
+      owners: [],
+      databases: [],
+      permissions: [],
+    };
+  }
+
+  componentDidMount() {
+    Promise.all([
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/_info`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/related/owners`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/related/database`,
+      }),
+    ]).then(
+      ([
+        { json: infoJson = {} },
+        { json: ownersJson = {} },
+        { json: databasesJson = {} },
+      ]) => {
+        this.setState(
+          {
+            filterOperators: infoJson.filters,
+            owners: ownersJson.result,
+            databases: databasesJson.result,
+            permissions: infoJson.permissions,
+          },
+          this.updateFilters,
+        );
+      },
+      ([e1, e2]) => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching datasets'),
+        );
+        if (e1) {
+          console.error(e1);
+        }
+        if (e2) {
+          console.error(e2);
+        }
+      },
+    );
+  }
+
+  get canEdit() {
+    return this.hasPerm('can_edit');
+  }
+
+  get canDelete() {
+    return this.hasPerm('can_delete');
+  }
+
+  get canCreate() {
+    return this.hasPerm('can_add');
+  }
 
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {

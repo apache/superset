@@ -74,6 +74,7 @@ class TabbedSqlEditors extends React.PureComponent {
     );
     this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
   }
+
   componentDidMount() {
     // migrate query editor and associated tables state to server
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
@@ -128,7 +129,7 @@ class TabbedSqlEditors extends React.PureComponent {
         if (dbId) {
           dbId = parseInt(dbId, 10);
         } else {
-          const databases = this.props.databases;
+          const { databases } = this.props;
           const dbName = query.dbname;
           if (dbName) {
             Object.keys(databases).forEach(db => {
@@ -167,6 +168,7 @@ class TabbedSqlEditors extends React.PureComponent {
       }
     }
   }
+
   UNSAFE_componentWillReceiveProps(nextProps) {
     const nextActiveQeId =
       nextProps.tabHistory[nextProps.tabHistory.length - 1];
@@ -200,11 +202,13 @@ class TabbedSqlEditors extends React.PureComponent {
       this.setState({ dataPreviewQueries });
     }
   }
+
   popNewTab() {
     queryCount++;
     // Clean the url in browser history
     window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
+
   renameTab(qe) {
     /* eslint no-alert: 0 */
     const newTitle = prompt(t('Enter a new title for the tab'));
@@ -212,6 +216,7 @@ class TabbedSqlEditors extends React.PureComponent {
       this.props.actions.queryEditorSetTitle(qe, newTitle);
     }
   }
+
   activeQueryEditor() {
     if (this.props.tabHistory.length === 0) {
       return this.props.queryEditors[0];
@@ -219,6 +224,7 @@ class TabbedSqlEditors extends React.PureComponent {
     const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
     return this.props.queryEditors.find(qe => qe.id === qeid) || null;
   }
+
   newQueryEditor() {
     queryCount++;
     const activeQueryEditor = this.activeQueryEditor();
@@ -243,6 +249,7 @@ class TabbedSqlEditors extends React.PureComponent {
     };
     this.props.actions.addQueryEditor(qe);
   }
+
   handleSelect(key) {
     if (key === 'add_tab') {
       this.newQueryEditor();
@@ -257,20 +264,25 @@ class TabbedSqlEditors extends React.PureComponent {
       }
     }
   }
+
   removeQueryEditor(qe) {
     this.props.actions.removeQueryEditor(qe);
   }
+
   removeAllOtherQueryEditors(cqe) {
     this.props.queryEditors.forEach(
       qe => qe !== cqe && this.removeQueryEditor(qe),
     );
   }
+
   duplicateQueryEditor(qe) {
     this.props.actions.cloneQueryToNewTab(qe, false);
   }
+
   toggleLeftBar() {
     this.setState({ hideLeftBar: !this.state.hideLeftBar });
   }
+
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
       const isSelected =

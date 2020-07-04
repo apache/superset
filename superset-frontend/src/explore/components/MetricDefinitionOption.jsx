@@ -38,9 +38,11 @@ const propTypes = {
 function MetricDefinitionOption({ option, addWarningToast }) {
   if (option.metric_name) {
     return <MetricOption metric={option} showType />;
-  } else if (option.column_name) {
+  }
+  if (option.column_name) {
     return <ColumnOption column={option} showType />;
-  } else if (option.aggregate_name) {
+  }
+  if (option.aggregate_name) {
     return <AggregateOption aggregate={option} showType />;
   }
   addWarningToast(

@@ -172,8 +172,8 @@ export default function (bootstrapData) {
       // build DashboardFilters for interactive filter features
       if (slice.form_data.viz_type === 'filter_box') {
         const configs = getFilterConfigsFromFormdata(slice.form_data);
-        let columns = configs.columns;
-        const labels = configs.labels;
+        let { columns } = configs;
+        const { labels } = configs;
         if (preselectFilters[key]) {
           Object.keys(columns).forEach(col => {
             if (preselectFilters[key][col]) {

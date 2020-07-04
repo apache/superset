@@ -53,6 +53,7 @@ export default class ShowSQL extends React.PureComponent {
       </div>
     );
   }
+
   render() {
     return (
       <ModalTrigger

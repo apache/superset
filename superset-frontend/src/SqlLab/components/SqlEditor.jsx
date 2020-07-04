@@ -127,6 +127,7 @@ class SqlEditor extends React.PureComponent {
       WINDOW_RESIZE_THROTTLE_MS,
     );
   }
+
   UNSAFE_componentWillMount() {
     if (this.state.autorun) {
       this.setState({ autorun: false });
@@ -134,6 +135,7 @@ class SqlEditor extends React.PureComponent {
       this.startQuery();
     }
   }
+
   componentDidMount() {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
@@ -142,14 +144,17 @@ class SqlEditor extends React.PureComponent {
 
     window.addEventListener('resize', this.handleWindowResize);
   }
+
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
   }
+
   onResizeStart() {
     // Set the heights on the ace editor and the ace content area after drag starts
     // to smooth out the visual transition to the new heights when drag ends
     document.getElementsByClassName('ace_content')[0].style.height = '100%';
   }
+
   onResizeEnd([northPercent, southPercent]) {
     this.setState({ northPercent, southPercent });
 
@@ -161,6 +166,7 @@ class SqlEditor extends React.PureComponent {
       );
     }
   }
+
   onSqlChanged(sql) {
     this.setState({ sql });
     this.setQueryEditorSqlWithDebounce(sql);
@@ -170,12 +176,14 @@ class SqlEditor extends React.PureComponent {
       this.requestValidation();
     }
   }
+
   // One layer of abstraction for easy spying in unit tests
   getSqlEditorHeight() {
     return this.sqlEditorRef.current
       ? this.sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2
       : 0;
   }
+
   // Return the heights for the ace editor and the south pane as an object
   // given the height of the sql editor, north pane percent and south pane percent.
   getAceEditorAndSouthPaneHeights(height, northPercent, southPercent) {
@@ -189,6 +197,7 @@ class SqlEditor extends React.PureComponent {
         (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
     };
   }
+
   getHotkeyConfig() {
     return [
       {
@@ -223,15 +232,18 @@ class SqlEditor extends React.PureComponent {
       },
     ];
   }
+
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
+
   setQueryLimit(queryLimit) {
     this.props.actions.queryEditorSetQueryLimit(
       this.props.queryEditor,
       queryLimit,
     );
   }
+
   getQueryCostEstimate() {
     if (this.props.database) {
       const qe = this.props.queryEditor;
@@ -245,12 +257,15 @@ class SqlEditor extends React.PureComponent {
       this.props.actions.estimateQueryCost(query);
     }
   }
+
   handleWindowResize() {
     this.setState({ height: this.getSqlEditorHeight() });
   }
+
   handleToggleAutocompleteEnabled = () => {
     this.setState({ autocompleteEnabled: !this.state.autocompleteEnabled });
   };
+
   elementStyle(dimension, elementSize, gutterSize) {
     return {
       [dimension]: `calc(${elementSize}% - ${
@@ -258,6 +273,7 @@ class SqlEditor extends React.PureComponent {
       }px)`,
     };
   }
+
   requestValidation() {
     if (this.props.database) {
       const qe = this.props.queryEditor;
@@ -271,6 +287,7 @@ class SqlEditor extends React.PureComponent {
       this.props.actions.validateQuery(query);
     }
   }
+
   canValidateQuery() {
     // Check whether or not we can validate the current query based on whether
     // or not the backend has a validator configured for it.
@@ -280,11 +297,13 @@ class SqlEditor extends React.PureComponent {
     }
     return false;
   }
+
   runQuery() {
     if (this.props.database) {
       this.startQuery();
     }
   }
+
   startQuery(ctas = false, ctas_method = CtasEnum.TABLE) {
     const qe = this.props.queryEditor;
     const query = {
@@ -306,6 +325,7 @@ class SqlEditor extends React.PureComponent {
     this.props.actions.runQuery(query);
     this.props.actions.setActiveSouthPaneTab('Results');
   }
+
   stopQuery() {
     if (
       this.props.latestQuery &&
@@ -314,15 +334,19 @@ class SqlEditor extends React.PureComponent {
       this.props.actions.postStopQuery(this.props.latestQuery);
     }
   }
+
   createTableAs() {
     this.startQuery(true, CtasEnum.TABLE);
   }
+
   createViewAs() {
     this.startQuery(true, CtasEnum.VIEW);
   }
+
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
   }
+
   queryPane() {
     const hotkeys = this.getHotkeyConfig();
     const {
@@ -375,6 +399,7 @@ class SqlEditor extends React.PureComponent {
       </Split>
     );
   }
+
   renderEditorBottomBar(hotkeys) {
     let ctasControls;
     if (
@@ -558,6 +583,7 @@ class SqlEditor extends React.PureComponent {
       </div>
     );
   }
+
   render() {
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">

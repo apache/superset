@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
-import CopyToClipboard from './../../components/CopyToClipboard';
+import CopyToClipboard from '../../components/CopyToClipboard';
 import { getExploreLongUrl } from '../exploreUtils';
 
 const propTypes = {
@@ -39,8 +39,8 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   handleInputChange(e) {
-    const value = e.currentTarget.value;
-    const name = e.currentTarget.name;
+    const { value } = e.currentTarget;
+    const { name } = e.currentTarget;
     const data = {};
     data[name] = value;
     this.setState(data);
@@ -132,6 +132,7 @@ export default class EmbedCodeButton extends React.Component {
       </Popover>
     );
   }
+
   render() {
     return (
       <OverlayTrigger

@@ -24,7 +24,7 @@ import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
-import DatasourceEditor from '../datasource/DatasourceEditor';
+import DatasourceEditor from './DatasourceEditor';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
 const propTypes = {

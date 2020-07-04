@@ -94,7 +94,7 @@ export default class PublishedStatus extends React.Component {
     }
 
     // Show the published badge for the owner of the dashboard to toggle
-    else if (this.props.canEdit && this.props.canSave) {
+    if (this.props.canEdit && this.props.canSave) {
       return (
         <TooltipWrapper
           label="Published Dashboard"

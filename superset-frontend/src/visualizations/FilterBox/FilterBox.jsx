@@ -167,16 +167,18 @@ class FilterBox extends React.Component {
         vals = options;
       }
     }
-    const selectedValues = {
-      ...this.state.selectedValues,
-      [fltr]: vals,
-    };
-
-    this.setState({ selectedValues, hasChanged: true }, () => {
-      if (this.props.instantFiltering) {
-        this.props.onChange({ [fltr]: vals }, false);
-      }
-    });
+    this.setState(
+      ({ selectedValues }) => ({
+        selectedValues,
+        [fltr]: vals,
+        hasChanged: true,
+      }),
+      () => {
+        if (this.props.instantFiltering) {
+          this.props.onChange({ [fltr]: vals }, false);
+        }
+      },
+    );
   }
 
   /**
@@ -312,6 +314,7 @@ class FilterBox extends React.Component {
     }
     return datasourceFilters;
   }
+
   renderSelect(filterConfig) {
     const { filtersChoices } = this.props;
     const { selectedValues } = this.state;

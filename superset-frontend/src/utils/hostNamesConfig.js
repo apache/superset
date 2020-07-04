@@ -23,7 +23,7 @@ function getDomainsConfig() {
   }
 
   const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
-  const availableDomains = new Set([location.hostname]);
+  const availableDomains = new Set([window.location.hostname]);
   if (
     bootstrapData &&
     bootstrapData.common &&

@@ -70,7 +70,7 @@ class ColorComponentPane extends React.PureComponent {
       <div className="slider-container">
         <div className="component-layer slide-content">
           <div className="dashboard-builder-sidepane-header">
-            <span>{'Color Settings'}</span>
+            <span>Color Settings</span>
             <i
               className="fa fa-times trigger"
               onClick={this.onCloseButtonClick}

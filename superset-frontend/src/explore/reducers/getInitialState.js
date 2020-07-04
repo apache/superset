@@ -40,7 +40,7 @@ export default function getInitialState(bootstrapData) {
     isStarred: false,
   };
 
-  const slice = bootstrappedState.slice;
+  const { slice } = bootstrappedState;
   const sliceName = slice ? slice.slice_name : null;
 
   const sliceFormData = slice

@@ -75,8 +75,8 @@ describe('DashboardBuilder', () => {
     return useProvider
       ? mount(
           <Provider store={store}>
-            <WithDragDropContext>{builder}</WithDragDropContext>
-          </Provider>,
+          <WithDragDropContext>{builder}</WithDragDropContext>
+        </Provider>,
         )
       : shallow(builder);
   }

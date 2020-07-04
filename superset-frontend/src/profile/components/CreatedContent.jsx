@@ -37,6 +37,7 @@ class CreatedContent extends React.PureComponent {
       slices: [],
     };
   }
+
   renderSliceTable() {
     const mutator = data =>
       data.map(slice => ({
@@ -55,6 +56,7 @@ class CreatedContent extends React.PureComponent {
       />
     );
   }
+
   renderDashboardTable() {
     const mutator = data =>
       data.map(dash => ({
@@ -73,6 +75,7 @@ class CreatedContent extends React.PureComponent {
       />
     );
   }
+
   render() {
     return (
       <div>

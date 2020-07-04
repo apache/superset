@@ -20,11 +20,8 @@ import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
 import moment from 'moment';
-import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-// @ts-ignore
-import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView/ListView';
@@ -59,55 +56,6 @@ interface State {
 }
 
 class ChartList extends React.PureComponent<Props, State> {
-  static propTypes = {
-    addDangerToast: PropTypes.func.isRequired,
-  };
-
-  state: State = {
-    chartCount: 0,
-    charts: [],
-    filterOperators: {},
-    filters: [],
-    lastFetchDataConfig: null,
-    loading: true,
-    permissions: [],
-    sliceCurrentlyEditing: null,
-  };
-
-  componentDidMount() {
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/_info`,
-    }).then(
-      ({ json: infoJson = {} }) => {
-        this.setState(
-          {
-            filterOperators: infoJson.filters,
-            permissions: infoJson.permissions,
-          },
-          this.updateFilters,
-        );
-      },
-      e => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching charts: %s', e.statusText),
-        );
-        console.error(e);
-      },
-    );
-  }
-
-  get canEdit() {
-    return this.hasPerm('can_edit');
-  }
-
-  get canDelete() {
-    return this.hasPerm('can_delete');
-  }
-
-  get isSIP34FilterUIEnabled() {
-    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
-  }
-
   initialSort = [{ id: 'changed_on', desc: true }];
 
   columns = [
@@ -228,6 +176,54 @@ class ChartList extends React.PureComponent<Props, State> {
     },
   ];
 
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      chartCount: 0,
+      charts: [],
+      filterOperators: {},
+      filters: [],
+      lastFetchDataConfig: null,
+      loading: true,
+      permissions: [],
+      sliceCurrentlyEditing: null,
+    };
+  }
+
+  componentDidMount() {
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/_info`,
+    }).then(
+      ({ json: infoJson = {} }) => {
+        this.setState(
+          {
+            filterOperators: infoJson.filters,
+            permissions: infoJson.permissions,
+          },
+          this.updateFilters,
+        );
+      },
+      e => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching charts: %s', e.statusText),
+        );
+        console.error(e);
+      },
+    );
+  }
+
+  get canEdit() {
+    return this.hasPerm('can_edit');
+  }
+
+  get canDelete() {
+    return this.hasPerm('can_delete');
+  }
+
+  get isSIP34FilterUIEnabled() {
+    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
+  }
+
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
@@ -253,12 +249,11 @@ class ChartList extends React.PureComponent<Props, State> {
 
   handleChartUpdated = (edits: Chart) => {
     // update the chart in our state with the edited info
-    const newCharts = this.state.charts.map(chart =>
-      chart.id === edits.id ? { ...chart, ...edits } : chart,
-    );
-    this.setState({
-      charts: newCharts,
-    });
+    this.setState(({ charts }) => ({
+      charts: charts.map(chart =>
+        chart.id === edits.id ? { ...chart, ...edits } : chart,
+      ),
+    }));
   };
 
   handleChartDelete = ({ id, slice_name: sliceName }: Chart) => {

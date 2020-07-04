@@ -81,7 +81,7 @@ describe('logger middleware', () => {
     clock.tick(2000);
 
     expect(SupersetClient.post.callCount).toBe(1);
-    const events = SupersetClient.post.getCall(0).args[0].postPayload.events;
+    const { events } = SupersetClient.post.getCall(0).args[0].postPayload;
     const mockEventdata = action.payload.eventData;
     const mockEventname = action.payload.eventName;
     expect(events[0]).toMatchObject({

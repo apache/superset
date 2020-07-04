@@ -23,12 +23,12 @@ import { SupersetClient } from '@superset-ui/connection';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
-import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
+import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
   removeFilter,
   updateDirectPathToFilter,
-} from '../../dashboard/actions/dashboardFilters';
+} from './dashboardFilters';
 import { applyDefaultFormData } from '../../explore/store';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
@@ -37,7 +37,7 @@ import {
   addWarningToast,
   addDangerToast,
 } from '../../messageToasts/actions';
-import { UPDATE_COMPONENTS_PARENTS_LIST } from '../actions/dashboardLayout';
+import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import serializeActiveFilterValues from '../util/serializeActiveFilterValues';
 import serializeFilterScopes from '../util/serializeFilterScopes';
 import { getActiveFilters } from '../util/activeDashboardFilters';

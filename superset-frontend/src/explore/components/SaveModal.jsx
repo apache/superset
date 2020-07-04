@@ -53,6 +53,7 @@ class SaveModal extends React.Component {
       vizType: props.form_data.viz_type,
     };
   }
+
   componentDidMount() {
     this.props.actions.fetchDashboards(this.props.userId).then(() => {
       const dashboardIds = this.props.dashboards.map(
@@ -73,6 +74,7 @@ class SaveModal extends React.Component {
       }
     });
   }
+
   onChange(name, event) {
     switch (name) {
       case 'newSliceName':
@@ -89,12 +91,15 @@ class SaveModal extends React.Component {
         break;
     }
   }
+
   changeAction(action) {
     this.setState({ action });
   }
+
   changeDash(dash) {
     this.setState({ addToDash: dash });
   }
+
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
@@ -112,7 +117,7 @@ class SaveModal extends React.Component {
     sliceParams.action = this.state.action;
     sliceParams.slice_name = this.state.newSliceName;
 
-    const addToDash = this.state.addToDash;
+    const { addToDash } = this.state;
     sliceParams.add_to_dash = addToDash;
     let dashboard = null;
     switch (addToDash) {
@@ -157,12 +162,14 @@ class SaveModal extends React.Component {
       });
     this.props.onHide();
   }
+
   removeAlert() {
     if (this.props.alert) {
       this.props.actions.removeSaveModalAlert();
     }
     this.setState({ alert: null });
   }
+
   render() {
     const canNotSaveToDash =
       EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;

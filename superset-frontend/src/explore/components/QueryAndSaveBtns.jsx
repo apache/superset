@@ -97,9 +97,7 @@ export default function QueryAndSaveBtns({
           {' '}
           <OverlayTrigger
             placement="right"
-            overlay={
-              <Tooltip id={'query-error-tooltip'}>{errorMessage}</Tooltip>
-            }
+            overlay={<Tooltip id="query-error-tooltip">{errorMessage}</Tooltip>}
           >
             <i className="fa fa-exclamation-circle text-danger fa-lg" />
           </OverlayTrigger>

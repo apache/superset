@@ -58,12 +58,14 @@ export default class ViewportControl extends React.Component {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
+
   onChange(ctrl, value) {
     this.props.onChange({
       ...this.props.value,
       [ctrl]: value,
     });
   }
+
   renderTextControl(ctrl) {
     return (
       <div key={ctrl}>
@@ -76,6 +78,7 @@ export default class ViewportControl extends React.Component {
       </div>
     );
   }
+
   renderPopover() {
     return (
       <Popover id={`filter-popover-${this.props.name}`} title="Viewport">
@@ -83,6 +86,7 @@ export default class ViewportControl extends React.Component {
       </Popover>
     );
   }
+
   renderLabel() {
     if (this.props.value.longitude && this.props.value.latitude) {
       return (
@@ -93,6 +97,7 @@ export default class ViewportControl extends React.Component {
     }
     return 'N/A';
   }
+
   render() {
     return (
       <div>

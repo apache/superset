@@ -38,6 +38,7 @@ export default class CheckboxControl extends React.Component {
   onChange() {
     this.props.onChange(!this.props.value);
   }
+
   renderCheckbox() {
     return (
       <Checkbox
@@ -47,6 +48,7 @@ export default class CheckboxControl extends React.Component {
       />
     );
   }
+
   render() {
     if (this.props.label) {
       return (

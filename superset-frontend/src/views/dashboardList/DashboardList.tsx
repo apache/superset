@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,11 +20,8 @@
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import moment from 'moment';
-import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-// @ts-ignore
-import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView/ListView';
@@ -67,62 +65,6 @@ interface Dashboard {
 }
 
 class DashboardList extends React.PureComponent<Props, State> {
-  static propTypes = {
-    addDangerToast: PropTypes.func.isRequired,
-  };
-
-  state: State = {
-    dashboardCount: 0,
-    dashboards: [],
-    filterOperators: {},
-    filters: [],
-    lastFetchDataConfig: null,
-    loading: true,
-    permissions: [],
-    dashboardToEdit: null,
-  };
-
-  componentDidMount() {
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/_info`,
-    }).then(
-      ({ json: infoJson = {} }) => {
-        this.setState(
-          {
-            filterOperators: infoJson.filters,
-            permissions: infoJson.permissions,
-          },
-          this.updateFilters,
-        );
-      },
-      e => {
-        this.props.addDangerToast(
-          t(
-            'An error occurred while fetching Dashboards: %s, %s',
-            e.statusText,
-          ),
-        );
-        console.error(e);
-      },
-    );
-  }
-
-  get canEdit() {
-    return this.hasPerm('can_edit');
-  }
-
-  get canDelete() {
-    return this.hasPerm('can_delete');
-  }
-
-  get canExport() {
-    return this.hasPerm('can_mulexport');
-  }
-
-  get isSIP34FilterUIEnabled() {
-    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
-  }
-
   initialSort = [{ id: 'changed_on', desc: true }];
 
   columns = [
@@ -256,6 +198,61 @@ class DashboardList extends React.PureComponent<Props, State> {
     },
   ];
 
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      dashboardCount: 0,
+      dashboards: [],
+      filterOperators: {},
+      filters: [],
+      lastFetchDataConfig: null,
+      loading: true,
+      permissions: [],
+      dashboardToEdit: null,
+    };
+  }
+
+  componentDidMount() {
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/_info`,
+    }).then(
+      ({ json: infoJson = {} }) => {
+        this.setState(
+          {
+            filterOperators: infoJson.filters,
+            permissions: infoJson.permissions,
+          },
+          this.updateFilters,
+        );
+      },
+      e => {
+        this.props.addDangerToast(
+          t(
+            'An error occurred while fetching Dashboards: %s, %s',
+            e.statusText,
+          ),
+        );
+        console.error(e);
+      },
+    );
+  }
+
+  get canEdit() {
+    return this.hasPerm('can_edit');
+  }
+
+  get canDelete() {
+    return this.hasPerm('can_delete');
+  }
+
+  get canExport() {
+    return this.hasPerm('can_mulexport');
+  }
+
+  get isSIP34FilterUIEnabled() {
+    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
+  }
+
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
@@ -276,15 +273,15 @@ class DashboardList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/dashboard/${edits.id}`,
     })
       .then(({ json = {} }) => {
-        this.setState({
-          dashboards: this.state.dashboards.map(dashboard => {
+        this.setState(({ dashboards }) => ({
+          dashboards: dashboards.map(dashboard => {
             if (dashboard.id === json.id) {
               return json.result;
             }
             return dashboard;
           }),
           loading: false,
-        });
+        }));
       })
       .catch(e => {
         this.props.addDangerToast(

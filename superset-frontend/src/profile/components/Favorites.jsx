@@ -37,6 +37,7 @@ export default class Favorites extends React.PureComponent {
       slices: [],
     };
   }
+
   renderSliceTable() {
     const mutator = data =>
       data.map(slice => ({
@@ -56,6 +57,7 @@ export default class Favorites extends React.PureComponent {
       />
     );
   }
+
   renderDashboardTable() {
     const mutator = data =>
       data.map(dash => ({
@@ -74,6 +76,7 @@ export default class Favorites extends React.PureComponent {
       />
     );
   }
+
   render() {
     return (
       <div>

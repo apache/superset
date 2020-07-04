@@ -24,7 +24,7 @@ import dashboardState from './dashboardState';
 import dashboardFilters from './dashboardFilters';
 import datasources from './datasources';
 import sliceEntities from './sliceEntities';
-import dashboardLayout from '../reducers/undoableDashboardLayout';
+import dashboardLayout from './undoableDashboardLayout';
 import messageToasts from '../../messageToasts/reducers';
 
 const impressionId = (state = '') => state;

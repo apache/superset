@@ -61,7 +61,8 @@ class EstimateQueryCostButton extends React.PureComponent {
           {this.props.queryCostEstimate.error}
         </Alert>
       );
-    } else if (this.props.queryCostEstimate.completed) {
+    }
+    if (this.props.queryCostEstimate.completed) {
       return (
         <Table
           className="table cost-estimate"

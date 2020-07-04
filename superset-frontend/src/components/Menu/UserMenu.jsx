@@ -53,8 +53,18 @@ export default function UserMenu({
       </MenuItem>
       {(versionString || versionSha) && (
         <li className="version-info">
-          {versionString && <div>Version: {versionString}</div>}
-          {versionSha && <div>SHA: {versionSha}</div>}
+          {versionString && (
+            <div>
+              Version:
+              {versionString}
+            </div>
+          )}
+          {versionSha && (
+            <div>
+              SHA:
+              {versionSha}
+            </div>
+          )}
         </li>
       )}
     </NavDropdown>

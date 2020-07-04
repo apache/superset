@@ -85,10 +85,12 @@ export default class ResultSet extends React.PureComponent<
       this,
     );
   }
+
   componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
   }
+
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
     // when new results comes in, save them locally and clear in store
     if (
@@ -109,9 +111,11 @@ export default class ResultSet extends React.PureComponent<
       this.fetchResults(nextProps.query);
     }
   }
+
   clearQueryResults(query: Query) {
     this.props.actions.clearQueryResults(query);
   }
+
   popSelectStar(tempSchema: string | null, tempTable: string) {
     const qe = {
       id: shortid.generate(),
@@ -122,20 +126,25 @@ export default class ResultSet extends React.PureComponent<
     };
     this.props.actions.addQueryEditor(qe);
   }
+
   toggleExploreResultsButton() {
     this.setState({
       showExploreResultsButton: !this.state.showExploreResultsButton,
     });
   }
+
   changeSearch(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ searchText: event.target.value });
   }
+
   fetchResults(query: Query) {
     this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
+
   reFetchQueryResults(query: Query) {
     this.props.actions.reFetchQueryResults(query);
   }
+
   reRunQueryIfSessionTimeoutErrorOnMount() {
     const { query } = this.props;
     if (
@@ -145,9 +154,10 @@ export default class ResultSet extends React.PureComponent<
       this.props.actions.runQuery(query, true);
     }
   }
+
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
-      let data = this.props.query.results.data;
+      let { data } = this.props.query.results;
       if (this.props.cache && this.props.query.cached) {
         data = this.state.data;
       }
@@ -196,8 +206,9 @@ export default class ResultSet extends React.PureComponent<
     }
     return <div className="noControls" />;
   }
+
   render() {
-    const query = this.props.query;
+    const { query } = this.props;
     const height = Math.max(
       0,
       this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
@@ -214,7 +225,8 @@ export default class ResultSet extends React.PureComponent<
 
     if (query.state === 'stopped') {
       return <Alert bsStyle="warning">Query was stopped</Alert>;
-    } else if (query.state === 'failed') {
+    }
+    if (query.state === 'failed') {
       return (
         <ErrorMessageWithStackTrace
           error={query.errors?.[0]}
@@ -222,7 +234,8 @@ export default class ResultSet extends React.PureComponent<
           link={query.link}
         />
       );
-    } else if (query.state === 'success' && query.ctas) {
+    }
+    if (query.state === 'success' && query.ctas) {
       const { tempSchema, tempTable } = query;
       let object = 'Table';
       if (query.ctas_method === CtasEnum.VIEW) {
@@ -233,31 +246,32 @@ export default class ResultSet extends React.PureComponent<
           <Alert bsStyle="info">
             {t(object)} [
             <strong>
-              {tempSchema ? `${tempSchema}.` : ''}
-              {tempTable}
-            </strong>
+  {tempSchema ? `${tempSchema}.` : ''}
+  {tempTable}
+</strong>
             ] {t('was created')} &nbsp;
             <ButtonGroup>
               <Button
-                bsSize="small"
-                className="m-r-5"
-                onClick={() => this.popSelectStar(tempSchema, tempTable)}
-              >
-                {t('Query in a new tab')}
-              </Button>
+    bsSize="small"
+    className="m-r-5"
+    onClick={() => this.popSelectStar(tempSchema, tempTable)}
+  >
+    {t('Query in a new tab')}
+  </Button>
               <ExploreCtasResultsButton
-                table={tempTable}
-                schema={tempSchema}
-                dbId={exploreDBId}
-                database={this.props.database}
-                actions={this.props.actions}
-              />
+    table={tempTable}
+    schema={tempSchema}
+    dbId={exploreDBId}
+    database={this.props.database}
+    actions={this.props.actions}
+  />
             </ButtonGroup>
           </Alert>
         </div>
       );
-    } else if (query.state === 'success' && query.results) {
-      const results = query.results;
+    }
+    if (query.state === 'success' && query.results) {
+      const { results } = query;
       let data;
       if (this.props.cache && query.cached) {
         data = this.state.data;
@@ -281,7 +295,8 @@ export default class ResultSet extends React.PureComponent<
             />
           </>
         );
-      } else if (data && data.length === 0) {
+      }
+      if (data && data.length === 0) {
         return (
           <Alert bsStyle="warning">{t('The query returned no data')}</Alert>
         );
@@ -304,7 +319,8 @@ export default class ResultSet extends React.PureComponent<
             {t('Fetch data preview')}
           </Button>
         );
-      } else if (query.resultsKey) {
+      }
+      if (query.resultsKey) {
         return (
           <Button
             bsSize="sm"

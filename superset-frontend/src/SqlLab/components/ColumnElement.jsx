@@ -38,7 +38,7 @@ const tooltipTitleMap = {
 
 export default function ColumnElement(props) {
   const col = props.column;
-  let name = col.name;
+  let { name } = col;
   let icons;
   if (col.keys && col.keys.length > 0) {
     name = <strong>{col.name}</strong>;

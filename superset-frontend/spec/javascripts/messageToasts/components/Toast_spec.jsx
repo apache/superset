@@ -53,7 +53,7 @@ describe('Toast', () => {
         done();
       };
       const wrapper = setup({ onCloseToast });
-      const handleClosePress = wrapper.instance().handleClosePress;
+      const { handleClosePress } = wrapper.instance();
       expect(wrapper.find(Alert).prop('onDismiss')).toBe(handleClosePress);
       handleClosePress(); // there is a timeout for onCloseToast to be called
     });

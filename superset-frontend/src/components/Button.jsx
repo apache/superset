@@ -45,8 +45,8 @@ const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
 
 export default function Button(props) {
   const buttonProps = { ...props };
-  const tooltip = props.tooltip;
-  const placement = props.placement;
+  const { tooltip } = props;
+  const { placement } = props;
   delete buttonProps.tooltip;
   delete buttonProps.placement;
 

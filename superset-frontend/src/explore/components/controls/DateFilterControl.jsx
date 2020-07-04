@@ -192,7 +192,7 @@ export default class DateFilterControl extends React.Component {
       untilViewMode: 'days',
     };
 
-    const value = props.value;
+    const { value } = props;
     if (value.indexOf(SEPARATOR) >= 0) {
       this.state = { ...this.state, ...getStateFromSeparator(value) };
     } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
@@ -223,11 +223,13 @@ export default class DateFilterControl extends React.Component {
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClick);
   }
+
   onEnter(event) {
     if (event.key === 'Enter') {
       this.close();
     }
   }
+
   setCustomRange(key, value) {
     const updatedState = { ...this.state, [key]: value };
     const combinedValue = [
@@ -237,6 +239,7 @@ export default class DateFilterControl extends React.Component {
     ].join(' ');
     this.setState(getStateFromCustomRange(combinedValue));
   }
+
   setCustomStartEnd(key, value) {
     const closeCalendar =
       (key === 'since' && this.state.sinceViewMode === 'days') ||
@@ -250,9 +253,11 @@ export default class DateFilterControl extends React.Component {
       untilViewMode: closeCalendar ? 'days' : this.state.untilViewMode,
     });
   }
+
   setTypeCustomRange() {
     this.setState({ type: TYPES.CUSTOM_RANGE });
   }
+
   setTypeCustomStartEnd() {
     this.setState({ type: TYPES.CUSTOM_START_END });
   }
@@ -267,7 +272,7 @@ export default class DateFilterControl extends React.Component {
   }
 
   handleClick(e) {
-    const target = e.target;
+    const { target } = e;
     // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
     if (this.startEndSectionRef && this.startEndSectionRef.contains(target)) {
       this.setTypeCustomStartEnd();
@@ -310,18 +315,21 @@ export default class DateFilterControl extends React.Component {
     this.refs.trigger.hide();
     this.setState({ showSinceCalendar: false, showUntilCalendar: false });
   }
+
   isValidSince(date) {
     return (
       !isValidMoment(this.state.until) ||
       date <= moment(this.state.until, MOMENT_FORMAT)
     );
   }
+
   isValidUntil(date) {
     return (
       !isValidMoment(this.state.since) ||
       date >= moment(this.state.since, MOMENT_FORMAT)
     );
   }
+
   toggleCalendar(key) {
     const nextState = {};
     if (key === 'showSinceCalendar') {
@@ -337,6 +345,7 @@ export default class DateFilterControl extends React.Component {
     }
     this.setState(nextState);
   }
+
   renderInput(props, key) {
     return (
       <FormGroup>
@@ -357,6 +366,7 @@ export default class DateFilterControl extends React.Component {
       </FormGroup>
     );
   }
+
   renderPopover() {
     const grainOptions = TIME_GRAIN_OPTIONS.map(grain => (
       <MenuItem
@@ -370,7 +380,7 @@ export default class DateFilterControl extends React.Component {
     ));
     const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
-      const endpoints = this.props.endpoints;
+      const { endpoints } = this.props;
       return (
         <OverlayTrigger
           key={timeFrame}
@@ -556,9 +566,10 @@ export default class DateFilterControl extends React.Component {
       </Popover>
     );
   }
+
   render() {
     let value = this.props.value || defaultProps.value;
-    const endpoints = this.props.endpoints;
+    const { endpoints } = this.props;
     value = value
       .split(SEPARATOR)
       .map(

@@ -45,7 +45,7 @@ export const FilterMenu = ({
     <DropdownButton
       id="filter-picker"
       bsSize="small"
-      bsStyle={'default'}
+      bsStyle="default"
       noCaret
       title={
         <>

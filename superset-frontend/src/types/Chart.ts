@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,7 +21,6 @@
 /**
  * The Chart model as returned from the API
  */
-
 export default interface Chart {
   id: number;
   url: string;
