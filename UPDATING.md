@@ -23,6 +23,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [10233](https://github.com/apache/incubator-superset/pull/10233): a change which deprecates the `ENABLE_FLASK_COMPRESS` config option in favor of the Flask-Compress `COMPRESS_REGISTER` config option which serves the same purpose.
+
 * [10222](https://github.com/apache/incubator-superset/pull/10222): a change which changes how payloads are cached. Previous cached objects cannot be decoded and thus will be reloaded from source.
 
 * [10130](https://github.com/apache/incubator-superset/pull/10130): a change which deprecates the `dbs.perm` column in favor of SQLAlchemy [hybird attributes](https://docs.sqlalchemy.org/en/13/orm/extensions/hybrid.html).
