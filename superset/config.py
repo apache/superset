@@ -731,10 +731,6 @@ DB_CONNECTION_MUTATOR = None
 #        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
 SQL_QUERY_MUTATOR = None
 
-# When not using gunicorn, (nginx for instance), you may want to disable
-# using flask-compress
-ENABLE_FLASK_COMPRESS = True
-
 # Enable / disable scheduled email reports
 ENABLE_SCHEDULED_EMAIL_REPORTS = False
 
