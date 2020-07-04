@@ -18,6 +18,7 @@
  * under the License.
  */
 const fs = require('fs');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const path = require('path');
 const webpack = require('webpack');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');

@@ -61,11 +61,9 @@ export default class DeleteComponentModal extends React.PureComponent {
             <h1>{t('Delete dashboard tab?')}</h1>
             <div>
               Deleting a tab will remove all content within it. You may still
-              reverse this action with the <b>undo</b>
-{' '}
-button (cmd + z) until
+              reverse this action with the <b>undo</b> button (cmd + z) until
               you save your changes.
-</div>
+            </div>
             <div className="dashboard-modal-actions-container">
               <Button onClick={this.close}>{t('Cancel')}</Button>
               <Button bsStyle="primary" onClick={this.deleteTab}>

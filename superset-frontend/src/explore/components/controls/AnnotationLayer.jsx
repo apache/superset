@@ -328,7 +328,7 @@ export default class AnnotationLayer extends React.PureComponent {
       annotation.color =
         annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
       this.props.addAnnotationLayer(annotation);
-      this.setState({ isNew: false, oldName: this.state.name });
+      this.setState(({ name }) => ({ isNew: false, oldName: name }));
     }
   }
 
@@ -544,9 +544,9 @@ export default class AnnotationLayer extends React.PureComponent {
                   (example:  24 hours, 7 days, 56 weeks, 365 days)`}
                 placeholder=""
                 value={overrides.time_shift}
-                onChange={v =>
-                  this.setState({ overrides: { ...overrides, time_shift: v } })
-                }
+                onChange={v => {
+                  this.setState({ overrides: { ...overrides, time_shift: v } });
+                }}
               />
             </div>
           </PopoverSection>

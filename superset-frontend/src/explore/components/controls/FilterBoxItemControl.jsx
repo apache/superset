@@ -113,9 +113,9 @@ export default class FilterBoxItemControl extends React.Component {
         if (type === 'BOOLEAN') {
           typedValue = value === 'true';
         } else if (INTEGRAL_TYPES.has(type)) {
-          typedValue = isNaN(value) ? null : parseInt(value, 10);
+          typedValue = Number.isNaN(value) ? null : parseInt(value, 10);
         } else if (DECIMAL_TYPES.has(type)) {
-          typedValue = isNaN(value) ? null : parseFloat(value);
+          typedValue = Number.isNaN(value) ? null : parseFloat(value);
         }
       }
     }
@@ -172,9 +172,9 @@ export default class FilterBoxItemControl extends React.Component {
             <TextControl
               value={this.state.defaultValue}
               name="defaultValue"
-              onChange={v =>
-                this.onControlChange(FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE, v)
-              }
+              onChange={v => {
+                this.onControlChange(FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE, v);
+              }}
             />
           }
         />
@@ -219,9 +219,9 @@ export default class FilterBoxItemControl extends React.Component {
           control={
             <CheckboxControl
               value={this.state.multiple}
-              onChange={v =>
-                this.onControlChange(FILTER_CONFIG_ATTRIBUTES.MULTIPLE, v)
-              }
+              onChange={v => {
+                this.onControlChange(FILTER_CONFIG_ATTRIBUTES.MULTIPLE, v);
+              }}
             />
           }
         />

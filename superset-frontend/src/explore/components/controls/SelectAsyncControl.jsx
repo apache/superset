@@ -56,6 +56,7 @@ const SelectAsyncControl = props => {
     mutator,
     placeholder,
     onAsyncErrorMessage,
+    addDangerToast,
   } = props;
   const onSelectionChange = options => {
     let val;
@@ -75,9 +76,9 @@ const SelectAsyncControl = props => {
       <Select
         dataEndpoint={dataEndpoint}
         onChange={onSelectionChange}
-        onAsyncError={errorMsg =>
-          this.props.addDangerToast(onAsyncErrorMessage + ': ' + errorMsg)
-        }
+        onAsyncError={errorMsg => {
+          addDangerToast(onAsyncErrorMessage + ': ' + errorMsg);
+        }}
         mutator={mutator}
         multi={multi}
         value={value}

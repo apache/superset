@@ -131,9 +131,6 @@ export default class Pagination extends PureComponent<PaginationProps> {
   static Ellipsis = Ellipsis;
 
   render() {
-    return <PaginationList> 
-{' '}
-{this.props.children}
-</PaginationList>;
+    return <PaginationList> {this.props.children}</PaginationList>;
   }
 }

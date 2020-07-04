@@ -24,9 +24,7 @@ import {
   Col,
   FormControl,
   FormGroup,
-  // @ts-ignore
 } from 'react-bootstrap';
-// @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
@@ -37,9 +35,12 @@ import Chart from 'src/types/Chart';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
 export type Slice = {
+  // eslint-disable-next-line camelcase
   slice_id: number;
+  // eslint-disable-next-line camelcase
   slice_name: string;
   description: string | null;
+  // eslint-disable-next-line camelcase
   cache_timeout: number | null;
 };
 
@@ -65,7 +66,7 @@ export default function PropertiesModalWrapper({
   animation,
   slice,
   onSave,
-}: WrapperProps) {
+}: WrapperProps): JSX.Element {
   // The wrapper is a separate component so that hooks only run when the modal opens
   return (
     <Modal show={show} onHide={onHide} animation={animation} bsSize="large">
@@ -190,10 +191,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={name}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setName(event.target.value)
-                }
+                onChange={event => {
+                  setName((event.target as HTMLInputElement).value);
+                }}
               />
             </FormGroup>
             <FormGroup>
@@ -206,10 +206,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDescription(event.target.value)
-                }
+                onChange={event => {
+                  setDescription((event.target as HTMLInputElement).value);
+                }}
                 style={{ maxWidth: '100%' }}
               />
               <p className="help-block">
@@ -230,10 +229,14 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
-                }
+                onChange={event => {
+                  setCacheTimeout(
+                    (event.target as HTMLInputElement).value.replace(
+                      /[^0-9]/,
+                      '',
+                    ),
+                  );
+                }}
               />
               <p className="help-block">
                 {t(

@@ -19,6 +19,7 @@
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
+// eslint-disable-next-line import/no-cycle
 import CollectionControl from './CollectionControl';
 import ColorMapControl from './ColorMapControl';
 import ColorPickerControl from './ColorPickerControl';

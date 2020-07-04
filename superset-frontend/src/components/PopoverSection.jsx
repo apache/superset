@@ -40,7 +40,7 @@ export default function PopoverSection({
       <div onClick={onSelect} className="pointer">
         <strong>{title}</strong> &nbsp;
         {info && (
-<InfoTooltipWithTrigger tooltip={info} label="date-free-tooltip" />
+          <InfoTooltipWithTrigger tooltip={info} label="date-free-tooltip" />
         )}
         &nbsp;
         <i className={isSelected ? 'fa fa-check text-primary' : ''} />

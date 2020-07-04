@@ -246,25 +246,25 @@ export default class ResultSet extends React.PureComponent<
           <Alert bsStyle="info">
             {t(object)} [
             <strong>
-  {tempSchema ? `${tempSchema}.` : ''}
-  {tempTable}
-</strong>
+              {tempSchema ? `${tempSchema}.` : ''}
+              {tempTable}
+            </strong>
             ] {t('was created')} &nbsp;
             <ButtonGroup>
               <Button
-    bsSize="small"
-    className="m-r-5"
-    onClick={() => this.popSelectStar(tempSchema, tempTable)}
-  >
-    {t('Query in a new tab')}
-  </Button>
+                bsSize="small"
+                className="m-r-5"
+                onClick={() => this.popSelectStar(tempSchema, tempTable)}
+              >
+                {t('Query in a new tab')}
+              </Button>
               <ExploreCtasResultsButton
-    table={tempTable}
-    schema={tempSchema}
-    dbId={exploreDBId}
-    database={this.props.database}
-    actions={this.props.actions}
-  />
+                table={tempTable}
+                schema={tempSchema}
+                dbId={exploreDBId}
+                database={this.props.database}
+                actions={this.props.actions}
+              />
             </ButtonGroup>
           </Alert>
         </div>

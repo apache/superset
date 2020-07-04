@@ -241,17 +241,27 @@ export default class DateFilterControl extends React.Component {
   }
 
   setCustomStartEnd(key, value) {
-    const closeCalendar =
-      (key === 'since' && this.state.sinceViewMode === 'days') ||
-      (key === 'until' && this.state.untilViewMode === 'days');
-    this.setState({
-      type: TYPES.CUSTOM_START_END,
-      [key]: typeof value === 'string' ? value : value.format(MOMENT_FORMAT),
-      showSinceCalendar: this.state.showSinceCalendar && !closeCalendar,
-      showUntilCalendar: this.state.showUntilCalendar && !closeCalendar,
-      sinceViewMode: closeCalendar ? 'days' : this.state.sinceViewMode,
-      untilViewMode: closeCalendar ? 'days' : this.state.untilViewMode,
-    });
+    this.setState(
+      ({
+        showSinceCalendar,
+        showUntilCalendar,
+        sinceViewMode,
+        untilViewMode,
+      }) => {
+        const closeCalendar =
+          (key === 'since' && this.state.sinceViewMode === 'days') ||
+          (key === 'until' && this.state.untilViewMode === 'days');
+        return {
+          type: TYPES.CUSTOM_START_END,
+          [key]:
+            typeof value === 'string' ? value : value.format(MOMENT_FORMAT),
+          showSinceCalendar: showSinceCalendar && !closeCalendar,
+          showUntilCalendar: showUntilCalendar && !closeCalendar,
+          sinceViewMode: closeCalendar ? 'days' : sinceViewMode,
+          untilViewMode: closeCalendar ? 'days' : untilViewMode,
+        };
+      },
+    );
   }
 
   setTypeCustomRange() {
@@ -469,9 +479,9 @@ export default class DateFilterControl extends React.Component {
                       <FormControl
                         bsSize="small"
                         type="text"
-                        onChange={event =>
-                          this.setCustomRange('num', event.target.value)
-                        }
+                        onChange={event => {
+                          this.setCustomRange('num', event.target.value);
+                        }}
                         onFocus={this.setTypeCustomRange}
                         onKeyPress={this.onEnter}
                         value={this.state.num}
@@ -511,19 +521,19 @@ export default class DateFilterControl extends React.Component {
                           value={this.state.since}
                           defaultValue={this.state.since}
                           viewDate={this.state.since}
-                          onChange={value =>
-                            this.setCustomStartEnd('since', value)
-                          }
+                          onChange={value => {
+                            this.setCustomStartEnd('since', value);
+                          }}
                           isValidDate={this.isValidSince}
                           onClick={this.setTypeCustomStartEnd}
-                          renderInput={props =>
-                            this.renderInput(props, 'showSinceCalendar')
-                          }
+                          renderInput={props => {
+                            this.renderInput(props, 'showSinceCalendar');
+                          }}
                           open={this.state.showSinceCalendar}
                           viewMode={this.state.sinceViewMode}
-                          onViewModeChange={sinceViewMode =>
-                            this.setState({ sinceViewMode })
-                          }
+                          onViewModeChange={sinceViewMode => {
+                            this.setState({ sinceViewMode });
+                          }}
                         />
                       </div>
                       <div style={{ margin: '5px 0' }}>
@@ -531,19 +541,19 @@ export default class DateFilterControl extends React.Component {
                           value={this.state.until}
                           defaultValue={this.state.until}
                           viewDate={this.state.until}
-                          onChange={value =>
-                            this.setCustomStartEnd('until', value)
-                          }
+                          onChange={value => {
+                            this.setCustomStartEnd('until', value);
+                          }}
                           isValidDate={this.isValidUntil}
                           onClick={this.setTypeCustomStartEnd}
-                          renderInput={props =>
-                            this.renderInput(props, 'showUntilCalendar')
-                          }
+                          renderInput={props => {
+                            this.renderInput(props, 'showUntilCalendar');
+                          }}
                           open={this.state.showUntilCalendar}
                           viewMode={this.state.untilViewMode}
-                          onViewModeChange={untilViewMode =>
-                            this.setState({ untilViewMode })
-                          }
+                          onViewModeChange={untilViewMode => {
+                            this.setState({ untilViewMode });
+                          }}
                         />
                       </div>
                     </InputGroup>

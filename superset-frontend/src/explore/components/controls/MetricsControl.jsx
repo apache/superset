@@ -200,7 +200,7 @@ export default class MetricsControl extends React.PureComponent {
       return value;
     });
     if (!this.props.multi) {
-      newValue = newValue[0];
+      [newValue] = newValue;
     }
     this.props.onChange(newValue);
   }

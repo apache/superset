@@ -58,7 +58,7 @@ export default class SpatialControl extends React.Component {
     const v = props.value || {};
     let defaultCol;
     if (props.choices.length > 0) {
-      defaultCol = props.choices[0][0];
+      [[defaultCol]] = props.choices;
     }
     this.state = {
       type: v.type || spatialTypes.latlong,
@@ -119,7 +119,7 @@ export default class SpatialControl extends React.Component {
 
   toggleCheckbox() {
     this.setState(
-      { reverseCheckbox: !this.state.reverseCheckbox },
+      ({ reverseCheckbox }) => ({ reverseCheckbox: !reverseCheckbox }),
       this.onChange,
     );
   }

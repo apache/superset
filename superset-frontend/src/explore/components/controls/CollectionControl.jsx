@@ -29,6 +29,7 @@ import {
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlHeader from '../ControlHeader';
+// eslint-disable-next-line import/no-cycle
 import controlMap from '.';
 import './CollectionControl.less';
 

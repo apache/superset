@@ -124,7 +124,7 @@ export default class VizTypeControl extends React.PureComponent {
   }
 
   toggleModal() {
-    this.setState({ showModal: !this.state.showModal });
+    this.setState(({ showModal }) => ({ showModal: !showModal }));
   }
 
   changeSearch(event) {
