@@ -21,7 +21,7 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any, Dict, Optional
 
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Session
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
