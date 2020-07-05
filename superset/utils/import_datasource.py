@@ -24,12 +24,13 @@ from sqlalchemy.orm.session import make_transient
 logger = logging.getLogger(__name__)
 
 
-def import_datasource(
+def import_datasource(  # pylint: disable=too-many-arguments
     session: Session,
     i_datasource: Model,
     lookup_database: Callable[[Model], Model],
     lookup_datasource: Callable[[Model], Model],
     import_time: Optional[int] = None,
+    database_id: Optional[int] = None,
 ) -> int:
     """Imports the datasource from the object to the database.
 
@@ -41,7 +42,9 @@ def import_datasource(
     logger.info("Started import of the datasource: %s", i_datasource.to_json())
 
     i_datasource.id = None
-    i_datasource.database_id = lookup_database(i_datasource).id
+    i_datasource.database_id = (
+        database_id if database_id else lookup_database(i_datasource).id
+    )
     i_datasource.alter_params(import_time=import_time)
 
     # override the datasource
