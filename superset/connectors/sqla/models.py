@@ -1238,7 +1238,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     @classmethod
     def import_obj(
-        cls, i_datasource: "SqlaTable", import_time: Optional[int] = None
+        cls,
+        i_datasource: "SqlaTable",
+        database_id: Optional[int] = None,
+        import_time: Optional[int] = None,
     ) -> int:
         """Imports the datasource from the object to the database.
 
@@ -1275,7 +1278,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
 
         return import_datasource.import_datasource(
-            db.session, i_datasource, lookup_database, lookup_sqlatable, import_time
+            db.session,
+            i_datasource,
+            lookup_database,
+            lookup_sqlatable,
+            import_time,
+            database_id,
         )
 
     @classmethod

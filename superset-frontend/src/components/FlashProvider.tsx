@@ -31,6 +31,7 @@ interface Props {
 
 const flashObj = {
   info: 'addInfoToast',
+  alert: 'addDangerToast',
   danger: 'addDangerToast',
   warning: 'addWarningToast',
   success: 'addSuccessToast',
@@ -42,7 +43,9 @@ class FlashProvider extends React.PureComponent<Props> {
     flashMessages.forEach(message => {
       const [type, text] = message;
       const flash = flashObj[type];
-      this.props[flash](text);
+      if (this.props[flash]) {
+        this.props[flash](text);
+      }
     });
   }
   render() {
