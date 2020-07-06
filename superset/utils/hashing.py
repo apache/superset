@@ -14,11 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (
-    alerts,
-    core,
-    datasource_access_request,
-    schedules,
-    sql_lab,
-    user_attributes,
-)
+import hashlib
+import json
+from typing import Any, Dict
+
+
+def md5_sha_from_str(val: str) -> str:
+    return hashlib.md5(val.encode("utf-8")).hexdigest()
+
+
+def md5_sha_from_dict(opts: Dict[Any, Any]) -> str:
+    json_data = json.dumps(opts, sort_keys=True)
+    return md5_sha_from_str(json_data)

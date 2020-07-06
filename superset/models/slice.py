@@ -34,6 +34,7 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
+from superset.utils.urls import get_url_path
 
 if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
     from superset.viz_sip38 import BaseViz, viz_types
@@ -340,7 +341,8 @@ def set_related_perm(mapper: Mapper, connection: Connection, target: Slice) -> N
 def event_after_chart_changed(  # pylint: disable=unused-argument
     mapper: Mapper, connection: Connection, target: Slice
 ) -> None:
-    cache_chart_thumbnail.delay(target.id, force=True)
+    url = get_url_path("Superset.slice", slice_id=target.id, standalone="true")
+    cache_chart_thumbnail.delay(url, target.digest, force=True)
 
 
 sqla.event.listen(Slice, "before_insert", set_related_perm)

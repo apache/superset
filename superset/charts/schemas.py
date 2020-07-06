@@ -28,9 +28,22 @@ from superset.utils import core as utils
 # RISON/JSON schemas for query parameters
 #
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+width_height_schema = {
+    "type": "array",
+    "items": [{"type": "integer"}, {"type": "integer"},],
+}
 thumbnail_query_schema = {
     "type": "object",
-    "properties": {"force": {"type": "boolean"}},
+    "properties": {"force": {"type": "boolean"},},
+}
+
+screenshot_query_schema = {
+    "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "window_size": width_height_schema,
+        "thumb_size": width_height_schema,
+    },
 }
 
 #
@@ -85,7 +98,6 @@ openapi_spec_methods_override = {
         "get": {"description": "Get a list of all possible owners for a chart."}
     },
 }
-""" Overrides GET methods OpenApi descriptions """
 
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
