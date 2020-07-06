@@ -201,8 +201,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
-        except ValidationError as err:
-            return self.response_400(message=err.messages)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
         try:
             new_model = CreateDashboardCommand(g.user, item).run()
             return self.response(201, id=new_model.id, result=item)
@@ -268,8 +268,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             item = self.edit_model_schema.load(request.json)
         # This validates custom Schema with custom validations
-        except ValidationError as err:
-            return self.response_400(message=err.messages)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
         try:
             changed_model = UpdateDashboardCommand(g.user, pk, item).run()
             return self.response(200, id=changed_model.id, result=item)
