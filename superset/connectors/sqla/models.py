@@ -1188,12 +1188,16 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         any_date_col = None
         db_engine_spec = self.database.db_engine_spec
         db_dialect = self.database.get_dialect()
-        dbcols = (
-            db.session.query(TableColumn)
-            .filter(TableColumn.table == self)
-            .filter(or_(TableColumn.column_name == col.name for col in table_.columns))
-        )
-        dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
+        
+        try:
+            dbcols = (
+                db.session.query(TableColumn)
+                .filter(TableColumn.table == self)
+                .filter(TableColumn.column_name.in_([col.name for col in table.columns]))
+            )
+            dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
+        except Exception as e:
+            logger.error("Failed to get columns: " + str(e))
 
         for col in table_.columns:
             try:
