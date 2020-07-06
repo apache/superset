@@ -56,10 +56,10 @@ class TestSchema(SupersetTestCase):
         # too low limit and offset
         payload["queries"][0]["row_limit"] = 0
         payload["queries"][0]["row_offset"] = -1
-        with self.assertRaises(ValidationError) as errors:
+        with self.assertRaises(ValidationError) as context:
             _ = ChartDataQueryContextSchema().load(payload)
-        self.assertIn("row_limit", errors.messages["queries"][0])
-        self.assertIn("row_offset", errors.messages["queries"][0])
+        self.assertIn("row_limit", context.exception.messages["queries"][0])
+        self.assertIn("row_offset", context.exception.messages["queries"][0])
 
     def test_query_context_null_timegrain(self):
         self.login(username="admin")
