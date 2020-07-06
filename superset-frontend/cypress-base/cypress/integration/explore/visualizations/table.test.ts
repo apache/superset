@@ -47,7 +47,7 @@ describe('Visualization > Table', () => {
     cy.get('.chart-container td:nth-child(1)').contains('2008 Q1');
     // other column with timestamp use raw timestamp
     cy.get('.chart-container td:nth-child(3)').contains('2008-01-01T00:00:00');
-    cy.get('.chart-container td').contains('other');
+    cy.get('.chart-container td:nth-child(4)').contains('other');
   });
 
   it('Format with table_timestamp_format', () => {
@@ -74,7 +74,7 @@ describe('Visualization > Table', () => {
   it('Test table with groupby', () => {
     cy.visitChartByParams({
       ...VIZ_DEFAULTS,
-      metrics: NUM_METRIC,
+      metrics: [NUM_METRIC, MAX_DS],
       groupby: ['name'],
     });
     cy.verifySliceSuccess({
@@ -82,6 +82,29 @@ describe('Visualization > Table', () => {
       querySubstring: /groupby.*name/,
       chartSelector: 'table',
     });
+  });
+
+  it('Test table with groupby + time column', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      include_time: true,
+      granularity_sqla: 'ds',
+      time_grain_sqla: 'P0.25Y',
+      metrics: [NUM_METRIC, MAX_DS],
+      groupby: ['name'],
+    });
+    cy.verifySliceSuccess({
+      waitAlias: '@getJson',
+      querySubstring: /groupby.*name/,
+      chartSelector: 'table',
+    });
+  });
+
+  it('Handle sorting correctly', () => {
+    cy.get('.chart-container th').contains('name').click();
+    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Aaron');
+    cy.get('.chart-container th').contains('Time').click().click();
+    cy.get('.chart-container td:nth-child(1):eq(0)').contains('2008');
   });
 
   it('Test table with percent metrics and groupby', () => {
