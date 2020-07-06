@@ -19,10 +19,10 @@ import json
 from typing import Any, Dict
 
 
-def md5_sha_from_str(s: str) -> str:
-    return hashlib.md5(s.encode("utf-8")).hexdigest()
+def md5_sha_from_str(val: str) -> str:
+    return hashlib.md5(val.encode("utf-8")).hexdigest()
 
 
-def md5_sha_from_dict(d: Dict[Any, Any]) -> str:
-    json_data = json.dumps(d, sort_keys=True)
+def md5_sha_from_dict(opts: Dict[Any, Any]) -> str:
+    json_data = json.dumps(opts, sort_keys=True)
     return md5_sha_from_str(json_data)

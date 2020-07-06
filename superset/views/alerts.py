@@ -14,36 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import enum
-from typing import Optional, Type
-
-import simplejson as json
-from croniter import croniter
-from flask import flash, g
-from flask_appbuilder import CompactCRUDMixin, expose
+from flask_appbuilder import CompactCRUDMixin
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
-from wtforms import BooleanField, StringField
 
-from superset import db, security_manager
 from superset.constants import RouteMethod
-from superset.exceptions import SupersetException
 from superset.models.alerts import Alert, AlertLog
-from superset.models.schedules import (
-    DashboardEmailSchedule,
-    ScheduleType,
-    SliceEmailSchedule,
-)
-from superset.models.slice import Slice
-from superset.tasks.schedules import schedule_email_report
-from superset.utils.core import get_email_address_list, json_iso_dttm_ser, markdown
-from superset.views.core import json_success
+from superset.utils.core import markdown
 
-from .base import DeleteMixin, SupersetModelView
+from .base import SupersetModelView
+
+# TODO: access control rules for this module
 
 
-class AlertLogModelView(CompactCRUDMixin, SupersetModelView):
+class AlertLogModelView(
+    CompactCRUDMixin, SupersetModelView
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AlertLog)
     include_route_methods = {RouteMethod.LIST} | {"show"}
     list_columns = (

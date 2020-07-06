@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import urllib
-from typing import Any, Callable, Dict
+from typing import Any
 
 from flask import current_app, url_for
 

@@ -22,7 +22,6 @@ import textwrap
 import time
 import urllib.request
 from collections import namedtuple
-from contextlib import closing
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
 from typing import (
@@ -68,6 +67,8 @@ from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
+
+# pylint: disable=too-few-public-methods
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -606,11 +607,11 @@ def deliver_alert(alert: Alert) -> None:
     _deliver_email(alert.recipients, deliver_as_group, subject, body, data, images)
 
 
-def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
+def run_alert_query(alert: Alert, dbsession: Session) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
     """
-    logger.info(f"Processing alert: {alert}")
+    logger.info("Processing alert ID: %i", alert.id)
     database = alert.database
     if not database:
         logger.error("Alert database not preset")
@@ -630,10 +631,9 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
     try:
         logger.info("Evaluating SQL for alert %s", alert)
         df = database.get_df(sql)
-    except Exception as e:
-        dttm_end = datetime.utcnow()
+    except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
-        logging.exception(e)
+        logging.exception(exc)
         logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
 
     dttm_end = datetime.utcnow()
@@ -659,7 +659,7 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
             state=state,
         )
     )
-    session.commit()
+    dbsession.commit()
 
     return None
 
@@ -726,9 +726,9 @@ def schedule_window(
 def get_scheduler_action(report_type: str) -> Optional[Callable[..., Any]]:
     if report_type == ScheduleType.dashboard:
         return schedule_email_report
-    elif report_type == ScheduleType.slice:
+    if report_type == ScheduleType.slice:
         return schedule_email_report
-    elif report_type == ScheduleType.alert:
+    if report_type == ScheduleType.alert:
         return schedule_alert_query
     return None
 

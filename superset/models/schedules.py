@@ -94,6 +94,6 @@ def get_scheduler_model(report_type: str) -> Optional[Type[EmailSchedule]]:
         return DashboardEmailSchedule
     if report_type == ScheduleType.slice:
         return SliceEmailSchedule
-    elif report_type == ScheduleType.alert:
+    if report_type == ScheduleType.alert:
         return Alert
     return None

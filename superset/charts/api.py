@@ -16,7 +16,7 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import simplejson
 from flask import g, make_response, redirect, request, Response, url_for
@@ -567,9 +567,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
-    def screenshot(
-        self, pk: int, digest: str, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
+    def screenshot(self, pk: int, digest: str) -> WerkzeugResponse:
         """Get Chart screenshot
         ---
         get:

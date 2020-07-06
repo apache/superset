@@ -16,11 +16,10 @@
 # under the License.
 import logging
 import time
-import urllib.parse
 from io import BytesIO
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
-from flask import current_app, request, Response, session, url_for
+from flask import current_app, request, Response, session
 from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -32,7 +31,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
 
 from superset.utils.hashing import md5_sha_from_dict
-from superset.utils.urls import get_url_path, headless_url
+from superset.utils.urls import headless_url
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +113,7 @@ class AuthWebDriverProxy:
             arg: str = f"--window-size={self._window[0]},{self._window[1]}"
             options.add_argument(arg)
             # TODO: 2 lines attempting retina PPI don't seem to be working
-            options.add_argument(f"--force-device-scale-factor=2.0")
+            options.add_argument("--force-device-scale-factor=2.0")
             options.add_argument("--high-dpi-support=2.0")
         else:
             raise Exception(f"Webdriver name ({self._driver_type}) not supported")
@@ -151,7 +150,6 @@ class AuthWebDriverProxy:
         element_name: str,
         user: "User",
         retries: int = SELENIUM_RETRIES,
-        window_size: Optional[WindowSize] = None,
     ) -> Optional[bytes]:
         driver = self.auth(user)
         driver.set_window_size(*self._window)
@@ -205,14 +203,14 @@ class BaseScreenshot:
     ) -> str:
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
-        d = {
+        args = {
             "thumbnail_type": self.thumbnail_type,
             "digest": self.digest,
             "type": "thumb",
             "window_size": window_size,
             "thumb_size": thumb_size,
         }
-        return md5_sha_from_dict(d)
+        return md5_sha_from_dict(args)
 
     def get_screenshot(
         self, user: "User", window_size: Optional[WindowSize] = None
@@ -243,7 +241,7 @@ class BaseScreenshot:
                 user=user, thumb_size=thumb_size, cache=cache
             )
         else:
-            logger.info(f"Loaded thumbnail from cache: {cache_key}")
+            logger.info("Loaded thumbnail from cache: %s", cache_key)
         if payload:
             return BytesIO(payload)
         return None
@@ -255,7 +253,6 @@ class BaseScreenshot:
         thumb_size: Optional[WindowSize] = None,
     ) -> Optional[BytesIO]:
         cache_key = self.cache_key(window_size, thumb_size)
-        payload = cache.get(cache_key)
         return self.get_from_cache_key(cache, cache_key)
 
     @staticmethod
@@ -291,7 +288,7 @@ class BaseScreenshot:
         if not force and cache and cache.get(cache_key):
             logger.info("Thumb already cached, skipping...")
             return None
-        logger.info(f"Processing url for thumbnail: %s", cache_key)
+        logger.info("Processing url for thumbnail: %s", cache_key)
 
         payload = None
 
@@ -309,7 +306,7 @@ class BaseScreenshot:
                 payload = None
 
         if payload and cache:
-            logger.info(f"Caching thumbnail: %s", cache_key)
+            logger.info("Caching thumbnail: %s", cache_key)
             cache.set(cache_key, payload)
             logger.info("Done caching thumbnail")
         return payload
