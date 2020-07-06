@@ -105,7 +105,7 @@ setup(
         "slackclient>=2.6.2",
         "sqlalchemy>=1.3.16, <2.0",
         "sqlalchemy-utils>=0.36.6,<0.37",
-        "sqlparse>=0.3.0, <0.4",
+        "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "wtforms-json",
     ],
     extras_require={
