@@ -51,6 +51,7 @@ from superset.dashboards.schemas import (
 from superset.models.dashboard import Dashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils.screenshots import DashboardScreenshot
+from superset.utils.urls import get_url_path
 from superset.views.base import generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -504,15 +505,19 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         dashboard = self.datamodel.get(pk, self._base_filters)
         if not dashboard:
             return self.response_404()
+
+        dashboard_url = get_url_path("Superset.dashboard", dashboard_id=dashboard.id)
         # If force, request a screenshot from the workers
         if kwargs["rison"].get("force", False):
-            cache_dashboard_thumbnail.delay(dashboard.id, force=True)
+            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
             return self.response(202, message="OK Async")
         # fetch the dashboard screenshot using the current user and cache if set
-        screenshot = DashboardScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        screenshot = DashboardScreenshot(
+            dashboard_url, dashboard.digest
+        ).get_from_cache(cache=thumbnail_cache)
         # If the screenshot does not exist, request one from the workers
         if not screenshot:
-            cache_dashboard_thumbnail.delay(dashboard.id, force=True)
+            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
             return self.response(202, message="OK Async")
         # If digests
         if dashboard.digest != digest:

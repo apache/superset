@@ -14,11 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (
-    alerts,
-    core,
-    datasource_access_request,
-    schedules,
-    sql_lab,
-    user_attributes,
-)
+import urllib
+from typing import Any
+
+from flask import current_app, url_for
+
+
+def headless_url(path: str) -> str:
+    base_url = current_app.config.get("WEBDRIVER_BASEURL", "")
+    return urllib.parse.urljoin(base_url, path)
+
+
+def get_url_path(view: str, **kwargs: Any) -> str:
+    with current_app.test_request_context():
+        return headless_url(url_for(view, **kwargs))
