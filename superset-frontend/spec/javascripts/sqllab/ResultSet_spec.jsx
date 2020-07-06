@@ -19,12 +19,20 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
-
 import { Alert, ProgressBar } from 'react-bootstrap';
+
 import FilterableTable from 'src/components/FilterableTable/FilterableTable';
 import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
 import ResultSet from 'src/SqlLab/components/ResultSet';
-import { queries, stoppedQuery, runningQuery, cachedQuery } from './fixtures';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import {
+  cachedQuery,
+  failedQueryWithErrorMessage,
+  failedQueryWithErrors,
+  queries,
+  runningQuery,
+  stoppedQuery,
+} from './fixtures';
 
 describe('ResultSet', () => {
   const clearQuerySpy = sinon.spy();
@@ -42,6 +50,14 @@ describe('ResultSet', () => {
   const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
   const runningQueryProps = { ...mockedProps, query: runningQuery };
   const cachedQueryProps = { ...mockedProps, query: cachedQuery };
+  const failedQueryWithErrorMessageProps = {
+    ...mockedProps,
+    query: failedQueryWithErrorMessage,
+  };
+  const failedQueryWithErrorsProps = {
+    ...mockedProps,
+    query: failedQueryWithErrors,
+  };
   const newProps = {
     query: {
       cached: false,
@@ -116,6 +132,16 @@ describe('ResultSet', () => {
     it('should render running/pending/fetching query', () => {
       const wrapper = shallow(<ResultSet {...runningQueryProps} />);
       expect(wrapper.find(ProgressBar)).toHaveLength(1);
+    });
+    it('should render a failed query with an error message', () => {
+      const wrapper = shallow(
+        <ResultSet {...failedQueryWithErrorMessageProps} />,
+      );
+      expect(wrapper.find(ErrorMessageWithStackTrace)).toHaveLength(1);
+    });
+    it('should render a failed query with an errors object', () => {
+      const wrapper = shallow(<ResultSet {...failedQueryWithErrorsProps} />);
+      expect(wrapper.find(ErrorMessageWithStackTrace)).toHaveLength(1);
     });
   });
 });

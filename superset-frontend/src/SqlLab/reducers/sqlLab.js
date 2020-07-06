@@ -343,6 +343,7 @@ export default function sqlLabReducer(state = {}, action) {
       }
       const alts = {
         state: 'failed',
+        errors: action.errors,
         errorMessage: action.msg,
         endDttm: now(),
         link: action.link,
