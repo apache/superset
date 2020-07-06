@@ -79,7 +79,7 @@ class Alert(Model):
     last_eval_dttm = Column(DateTime, default=datetime.utcnow)
     last_state = Column(String(10))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.id}:{self.label}>"
 
 
@@ -97,5 +97,5 @@ class AlertLog(Model):
     state = Column(String(10))
 
     @property
-    def duration(self):
+    def duration(self) -> int:
         return (self.dttm_end - self.dttm_start).total_seconds()

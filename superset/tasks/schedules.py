@@ -116,7 +116,7 @@ def _deliver_email(  # pylint: disable=too-many-arguments
     subject: str,
     body: str,
     data: Optional[Dict[str, Any]],
-    images: Optional[Dict[str, str]],
+    images: Optional[Dict[str, bytes]],
 ) -> None:
     for (to, bcc) in _get_email_to_and_bcc(recipients, deliver_as_group):
         send_email_smtp(
@@ -563,9 +563,10 @@ class AlertState:
     PASS = "pass"
 
 
-def deliver_alert(alert):
+def deliver_alert(alert: Alert) -> None:
     logging.info("Triggering alert: %s", alert)
     img_data = None
+    images = {}
     if alert.slice:
 
         chart_url = get_url_path(
@@ -589,7 +590,8 @@ def deliver_alert(alert):
     subject = f"[Superset] Triggered alert: {alert.label}"
     deliver_as_group = False
     data = None
-    images = {"screenshot": img_data}
+    if img_data:
+        images = {"screenshot": img_data}
     body = __(
         textwrap.dedent(
             """\
@@ -612,11 +614,11 @@ def run_alert_query(alert: Alert, session: Session) -> Optional[bool]:
     database = alert.database
     if not database:
         logger.error("Alert database not preset")
-        return
+        return None
 
     if not alert.sql:
         logger.error("Alert SQL not preset")
-        return
+        return None
 
     parsed_query = ParsedQuery(alert.sql)
     sql = parsed_query.stripped()
@@ -685,7 +687,7 @@ def next_schedules(
 
 
 def schedule_window(
-    report_type: ScheduleType, start_at: datetime, stop_at: datetime, resolution: int
+    report_type: str, start_at: datetime, stop_at: datetime, resolution: int
 ) -> None:
     """
     Find all active schedules and schedule celery tasks for
@@ -715,13 +717,13 @@ def schedule_window(
         for eta in next_schedules(
             schedule.crontab, start_at, stop_at, resolution=resolution
         ):
-            get_scheduler_action(report_type).apply_async(args, eta=eta)
+            get_scheduler_action(report_type).apply_async(args, eta=eta)  # type: ignore
             break
 
     return None
 
 
-def get_scheduler_action(report_type: ScheduleType) -> Optional[Callable]:
+def get_scheduler_action(report_type: str) -> Optional[Callable[..., Any]]:
     if report_type == ScheduleType.dashboard:
         return schedule_email_report
     elif report_type == ScheduleType.slice:
@@ -751,13 +753,7 @@ def schedule_hourly() -> None:
 @celery_app.task(name="alerts.schedule_check")
 def schedule_alerts() -> None:
     """ Celery beat job meant to be invoked every minute to check alerts """
-
-    # if not config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
-    #     logger.info("Scheduled email reports not enabled in config")
-    #     return
-
     resolution = 0
-
     now = datetime.utcnow()
     start_at = now - timedelta(
         seconds=3600

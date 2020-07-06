@@ -51,6 +51,7 @@ from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
 )
+from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import

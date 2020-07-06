@@ -16,7 +16,7 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import simplejson
 from flask import g, make_response, redirect, request, Response, url_for
@@ -546,7 +546,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             "ChartRestApi.screenshot", pk=chart.id, digest=cache_key
         )
 
-        def trigger_celery():
+        def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
             kwargs = {
                 "url": chart_url,
@@ -568,7 +568,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def screenshot(
-        self, pk: int, digest: str = None, **kwargs: Dict[str, bool]
+        self, pk: int, digest: str, **kwargs: Dict[str, bool]
     ) -> WerkzeugResponse:
         """Get Chart screenshot
         ---

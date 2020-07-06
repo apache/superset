@@ -18,7 +18,7 @@ import logging
 import time
 import urllib.parse
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from flask import current_app, request, Response, session, url_for
 from flask_login import login_user
@@ -151,7 +151,7 @@ class AuthWebDriverProxy:
         element_name: str,
         user: "User",
         retries: int = SELENIUM_RETRIES,
-        window_size=None,
+        window_size: Optional[WindowSize] = None,
     ) -> Optional[bytes]:
         driver = self.auth(user)
         driver.set_window_size(*self._window)
@@ -189,16 +189,20 @@ class BaseScreenshot:
     window_size: WindowSize = (800, 600)
     thumb_size: WindowSize = (400, 300)
 
-    def __init__(self, url, digest: str):
+    def __init__(self, url: str, digest: str):
         self.digest: str = digest
         self.url = url
         self.screenshot: Optional[bytes] = None
 
-    def driver(self, window_size=None):
+    def driver(self, window_size: Optional[WindowSize] = None) -> AuthWebDriverProxy:
         window_size = window_size or self.window_size
         return AuthWebDriverProxy(self.driver_type, window_size)
 
-    def cache_key(self, window_size=None, thumb_size=None) -> str:
+    def cache_key(
+        self,
+        window_size: Optional[Union[bool, WindowSize]] = None,
+        thumb_size: Optional[Union[bool, WindowSize]] = None,
+    ) -> str:
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
         d = {
@@ -210,7 +214,9 @@ class BaseScreenshot:
         }
         return md5_sha_from_dict(d)
 
-    def get_screenshot(self, user: "User", window_size=None) -> Optional[bytes]:
+    def get_screenshot(
+        self, user: "User", window_size: Optional[WindowSize] = None
+    ) -> Optional[bytes]:
         driver = self.driver(window_size)
         self.screenshot = driver.get_screenshot(self.url, self.element, user)
         return self.screenshot
@@ -243,7 +249,10 @@ class BaseScreenshot:
         return None
 
     def get_from_cache(
-        self, cache: "Cache", window_size=None, thumb_size=None,
+        self,
+        cache: "Cache",
+        window_size: Optional[WindowSize] = None,
+        thumb_size: Optional[WindowSize] = None,
     ) -> Optional[BytesIO]:
         cache_key = self.cache_key(window_size, thumb_size)
         payload = cache.get(cache_key)

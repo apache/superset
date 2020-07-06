@@ -89,7 +89,7 @@ class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
     email_format = Column(Enum(SliceEmailReportFormat))
 
 
-def get_scheduler_model(report_type: ScheduleType) -> Optional[Type[EmailSchedule]]:
+def get_scheduler_model(report_type: str) -> Optional[Type[EmailSchedule]]:
     if report_type == ScheduleType.dashboard:
         return DashboardEmailSchedule
     if report_type == ScheduleType.slice:

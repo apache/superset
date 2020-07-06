@@ -18,6 +18,7 @@
 """Utility functions used across Superset"""
 
 import logging
+from typing import Optional, Tuple
 
 from flask import current_app
 
@@ -27,10 +28,16 @@ from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 
 logger = logging.getLogger(__name__)
 
+WindowSize = Tuple[int, int]
+
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
 def cache_chart_thumbnail(
-    url: str, digest: str, force: bool = False, window_size=None, thumb_size=None,
+    url: str,
+    digest: str,
+    force: bool = False,
+    window_size: Optional[WindowSize] = None,
+    thumb_size: Optional[WindowSize] = None,
 ) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
@@ -50,13 +57,13 @@ def cache_chart_thumbnail(
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
 def cache_dashboard_thumbnail(
-    url: str, digest: str, force: bool = False, thumb_size=None
+    url: str, digest: str, force: bool = False, thumb_size: Optional[WindowSize] = None
 ) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logging.warning("No cache set, refusing to compute")
             return
-        logger.info("Caching dashboard %i", dashboard_id)
+        logger.info("Caching dashboard: %s", url)
         screenshot = DashboardScreenshot(url, digest)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         screenshot.compute_and_cache(
