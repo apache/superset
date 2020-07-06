@@ -35,6 +35,7 @@ import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKe
 import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
 import {
   FILTER_CONFIG_ATTRIBUTES,
+  FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
 } from '../../explore/constants';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
@@ -340,8 +341,7 @@ class FilterBox extends React.Component {
             });
           });
       });
-    // if fixedOptions is undefined, use fixed_options
-    const { key, label, fixedOptions = true } = filterConfig;
+    const { key, label } = filterConfig;
     const data = filtersChoices[key] || [];
     let value = selectedValues[key] || null;
 
@@ -379,7 +379,12 @@ class FilterBox extends React.Component {
         onMenuOpen={() => this.onFilterMenuOpen(key)}
         onBlur={this.onFilterMenuClose}
         onMenuClose={this.onFilterMenuClose}
-        selectWrap={fixedOptions ? CreatableSelect : AsyncCreatableSelect}
+        selectWrap={
+          [FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
+          data.length >= FILTER_OPTIONS_LIMIT
+            ? AsyncCreatableSelect
+            : CreatableSelect
+        }
         noResultsText={t('No results found')}
       />
     );

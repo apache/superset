@@ -53,7 +53,7 @@ const propTypes = {
   multiple: PropTypes.bool,
   column: PropTypes.string,
   metric: PropTypes.string,
-  fixedOptions: PropTypes.bool,
+  searchAllOptions: PropTypes.bool,
   defaultValue: PropTypes.string,
 };
 
@@ -62,7 +62,7 @@ const defaultProps = {
   asc: true,
   clearable: true,
   multiple: true,
-  fixedOptions: true,
+  searchAllOptions: true,
 };
 
 const STYLE_WIDTH = { width: 350 };
@@ -76,7 +76,7 @@ export default class FilterBoxItemControl extends React.Component {
       asc,
       clearable,
       multiple,
-      fixedOptions,
+      searchAllOptions,
       defaultValue,
     } = props;
     const state = {
@@ -85,7 +85,7 @@ export default class FilterBoxItemControl extends React.Component {
       asc,
       clearable,
       multiple,
-      fixedOptions,
+      searchAllOptions,
       defaultValue,
     };
     this.state = state;
@@ -221,17 +221,22 @@ export default class FilterBoxItemControl extends React.Component {
           }
         />
         <FormRow
-          label={t('Fixed Filter Options')}
+          label={t('Search All Filter Options')}
           tooltip={t(
-            'By default, filter box will only load top 1000 filter options once. ' +
-              'When disabled, filter box will load options from a remote source as the user types, ' +
-              'with 1000 options per load.',
+            'By default, each filter loads at most 1000 choices at the initial page load. ' +
+              'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
+              'searching that loads filter values as users type (may add stress to your database).',
           )}
           isCheckbox
           control={
             <CheckboxControl
-              value={this.state.fixedOptions}
-              onChange={v => this.onControlChange('fixedOptions', v)}
+              value={this.state.searchAllOptions}
+              onChange={v =>
+                this.onControlChange(
+                  FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS,
+                  v,
+                )
+              }
             />
           }
         />
