@@ -750,3 +750,17 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="gamma")
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 401)
+
+    def test_get_dataset_related_objects(self):
+        """
+        Dataset API: Test get chart and dashboard count related to a dataset
+        :return:
+        """
+        self.login(username="admin")
+        table = self.get_birth_names_dataset()
+        uri = f"api/v1/dataset/{table.id}/related_objects"
+        rv = self.get_assert_metric(uri, "related_objects")
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response["charts"]["count"], 18)
+        self.assertEqual(response["dashboards"]["count"], 2)
