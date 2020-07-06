@@ -734,6 +734,11 @@ SQL_QUERY_MUTATOR = None
 # Enable / disable scheduled email reports
 ENABLE_SCHEDULED_EMAIL_REPORTS = False
 
+# Enable / disable Alerts, where users can define custom SQL that
+# will send emails with screenshots of charts or dashboards periodically
+# if it meets the criteria
+ENABLE_ALERTS = False
+
 # Slack API token for the superset reports
 SLACK_API_TOKEN = None
 SLACK_PROXY = None

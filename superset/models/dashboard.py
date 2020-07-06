@@ -51,6 +51,7 @@ from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
 )
+from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -480,7 +481,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 def event_after_dashboard_changed(  # pylint: disable=unused-argument
     mapper: Mapper, connection: Connection, target: Dashboard
 ) -> None:
-    cache_dashboard_thumbnail.delay(target.id, force=True)
+    url = get_url_path("Superset.dashboard", dashboard_id=target.id)
+    cache_dashboard_thumbnail.delay(url, target.digest, force=True)
 
 
 # events for updating tags

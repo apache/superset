@@ -49,6 +49,7 @@ from superset.charts.schemas import (
     ChartPutSchema,
     get_delete_ids_schema,
     openapi_spec_methods_override,
+    screenshot_query_schema,
     thumbnail_query_schema,
 )
 from superset.constants import RouteMethod
@@ -58,6 +59,7 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.core import ChartDataResultFormat, json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
+from superset.utils.urls import get_url_path
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -166,7 +168,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     def __init__(self) -> None:
         if is_feature_enabled("THUMBNAILS"):
-            self.include_route_methods = self.include_route_methods | {"thumbnail"}
+            self.include_route_methods = self.include_route_methods | {
+                "thumbnail",
+                "screenshot",
+                "cache_screenshot",
+            }
         super().__init__()
 
     @expose("/", methods=["POST"])
@@ -479,18 +485,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         raise self.response_400(message=f"Unsupported result_format: {result_format}")
 
-    @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
+    @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()
-    @rison(thumbnail_query_schema)
+    @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
-    def thumbnail(
-        self, pk: int, digest: str, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
-        """Get Chart thumbnail
+    def cache_screenshot(self, pk: int, **kwargs: Dict[str, bool]) -> WerkzeugResponse:
+        """Get Chart screenshot
         ---
         get:
-          description: Compute or get already computed chart thumbnail from cache.
+          description: Compute or get already computed screenshot from cache.
           parameters:
           - in: path
             schema:
@@ -500,6 +504,83 @@ class ChartRestApi(BaseSupersetModelRestApi):
             schema:
               type: string
             name: sha
+          responses:
+            200:
+              description: Chart thumbnail image
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      cache_key:
+                        type: string
+                      chart_url:
+                        type: string
+                      image_url:
+                        type: string
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        rison_dict = kwargs["rison"]
+        window_size = rison_dict.get("window_size") or (800, 600)
+
+        # Don't shrink the image if thumb_size is not specified
+        thumb_size = rison_dict.get("thumb_size") or window_size
+
+        chart = self.datamodel.get(pk, self._base_filters)
+        if not chart:
+            return self.response_404()
+
+        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        screenshot_obj = ChartScreenshot(chart_url, chart.digest)
+        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
+        image_url = get_url_path(
+            "ChartRestApi.screenshot", pk=chart.id, digest=cache_key
+        )
+
+        def trigger_celery() -> WerkzeugResponse:
+            logger.info("Triggering screenshot ASYNC")
+            kwargs = {
+                "url": chart_url,
+                "digest": chart.digest,
+                "force": True,
+                "window_size": window_size,
+                "thumb_size": thumb_size,
+            }
+            cache_chart_thumbnail.delay(**kwargs)
+            return self.response(
+                202, cache_key=cache_key, chart_url=chart_url, image_url=image_url,
+            )
+
+        return trigger_celery()
+
+    @expose("/<pk>/screenshot/<digest>/", methods=["GET"])
+    @protect()
+    @rison(screenshot_query_schema)
+    @safe
+    @statsd_metrics
+    def screenshot(self, pk: int, digest: str) -> WerkzeugResponse:
+        """Get Chart screenshot
+        ---
+        get:
+          description: Get a computed screenshot from cache.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: path
+            schema:
+              type: string
+            name: digest
           responses:
             200:
               description: Chart thumbnail image
@@ -520,16 +601,83 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         chart = self.datamodel.get(pk, self._base_filters)
+
+        # Making sure the chart still exists
         if not chart:
             return self.response_404()
+
+        # TODO make sure the user has access to the chart
+
+        # fetch the chart screenshot using the current user and cache if set
+        img = ChartScreenshot.get_from_cache_key(thumbnail_cache, digest)
+        if img:
+            return Response(
+                FileWrapper(img), mimetype="image/png", direct_passthrough=True
+            )
+        # TODO: return an empty image
+        return self.response_404()
+
+    @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
+    @protect()
+    @rison(thumbnail_query_schema)
+    @safe
+    @statsd_metrics
+    def thumbnail(
+        self, pk: int, digest: str, **kwargs: Dict[str, bool]
+    ) -> WerkzeugResponse:
+        """Get Chart thumbnail
+        ---
+        get:
+          description: Compute or get already computed chart thumbnail from cache.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: path
+            schema:
+              type: string
+            name: digest
+          responses:
+            200:
+              description: Chart thumbnail image
+              /content:
+               image/*:
+                 schema:
+                   type: string
+                   format: binary
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = self.datamodel.get(pk, self._base_filters)
+        if not chart:
+            return self.response_404()
+
+        url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if kwargs["rison"].get("force", False):
-            cache_chart_thumbnail.delay(chart.id, force=True)
+            logger.info(
+                "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
+            )
+            cache_chart_thumbnail.delay(url, chart.digest, force=True)
             return self.response(202, message="OK Async")
         # fetch the chart screenshot using the current user and cache if set
-        screenshot = ChartScreenshot(pk).get_from_cache(cache=thumbnail_cache)
+        screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
+            cache=thumbnail_cache
+        )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
-            cache_chart_thumbnail.delay(chart.id, force=True)
+            logger.info(
+                "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
+            )
+            cache_chart_thumbnail.delay(url, chart.digest, force=True)
             return self.response(202, message="OK Async")
         # If digests
         if chart.digest != digest:
