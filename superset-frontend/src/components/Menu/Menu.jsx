@@ -52,7 +52,7 @@ const propTypes = {
   }).isRequired,
 };
 
-const Styles = styled.header`
+const StyledHeader = styled.header`
   .navbar-brand {
     display: flex;
     flex-direction: column;
@@ -64,7 +64,7 @@ export default function Menu({
   data: { menu, brand, navbar_right: navbarRight },
 }) {
   return (
-    <Styles className="top" id="main-menu">
+    <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
         <Navbar.Header>
           <Navbar.Brand>
@@ -123,7 +123,7 @@ export default function Menu({
           )}
         </Nav>
       </Navbar>
-    </Styles>
+    </StyledHeader>
   );
 }
 
