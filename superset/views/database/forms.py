@@ -26,7 +26,11 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 from superset import app, db, security_manager
-from superset.forms import CommaSeparatedListField, filter_not_empty_values
+from superset.forms import (
+    CommaSeparatedListField,
+    filter_not_empty_values,
+    JsonListField,
+)
 from superset.models.core import Database
 
 config = app.config
@@ -210,6 +214,16 @@ class CsvToDatabaseForm(DynamicForm):
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
     )
+    null_values = JsonListField(
+        _("Null values"),
+        default=config["CSV_DEFAULT_NA_NAMES"],
+        description=_(
+            "Json list of the values that should be treated as null. "
+            'Examples: [""], ["None", "N/A"], ["nan", "null"]. '
+            "Warning: Hive database supports only single value. "
+            'Use [""] for empty string.'
+        ),
+    )
 
 
 class ExcelToDatabaseForm(DynamicForm):
@@ -375,4 +389,14 @@ class ExcelToDatabaseForm(DynamicForm):
         ),
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
+    )
+    null_values = JsonListField(
+        _("Null values"),
+        default=config["CSV_DEFAULT_NA_NAMES"],
+        description=_(
+            "Json list of the values that should be treated as null. "
+            'Examples: [""], ["None", "N/A"], ["nan", "null"]. '
+            "Warning: Hive database supports only single value. "
+            'Use [""] for empty string.'
+        ),
     )

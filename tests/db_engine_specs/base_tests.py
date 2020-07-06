@@ -14,13 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 from datetime import datetime
 
+from tests.test_app import app
+from tests.base_tests import SupersetTestCase
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.models.core import Database
-from tests.base_tests import SupersetTestCase
-
-from tests.test_app import app  # isort:skip
 
 
 class TestDbEngineSpec(SupersetTestCase):

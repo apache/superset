@@ -916,12 +916,12 @@ class TestCore(SupersetTestCase):
 
     def test_import_csv(self):
         self.login(username="admin")
-        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
 
         f1 = "testCSV.csv"
         self.create_sample_csvfile(f1, ["a,b", "john,1", "paul,2"])
         f2 = "testCSV2.csv"
-        self.create_sample_csvfile(f2, ["b,c,d", "john,1,x", "paul,2,y"])
+        self.create_sample_csvfile(f2, ["b,c,d", "john,1,x", "paul,2,"])
         self.enable_csv_upload(utils.get_example_database())
 
         try:
@@ -957,6 +957,23 @@ class TestCore(SupersetTestCase):
             table = self.get_table_by_name(table_name)
             # make sure the new column name is reflected in the table metadata
             self.assertIn("d", table.column_names)
+
+            # null values are set
+            self.upload_csv(
+                f2,
+                table_name,
+                extra={"null_values": '["", "john"]', "if_exists": "replace"},
+            )
+            # make sure that john and empty string are replaced with None
+            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            assert data == [(None, 1, "x"), ("paul", 2, None)]
+
+            # default null values
+            self.upload_csv(f2, table_name, extra={"if_exists": "replace"})
+            # make sure that john and empty string are replaced with None
+            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            assert data == [("john", 1, "x"), ("paul", 2, None)]
+
         finally:
             os.remove(f1)
             os.remove(f2)

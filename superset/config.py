@@ -35,6 +35,7 @@ from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
+from pandas.io.parsers import STR_NA_VALUES
 
 from superset.jinja_context import (  # pylint: disable=unused-import
     BaseTemplateProcessor,
@@ -621,6 +622,9 @@ ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[
 ] = lambda database, user: [
     UPLOADED_CSV_HIVE_NAMESPACE
 ] if UPLOADED_CSV_HIVE_NAMESPACE else []
+
+# Values that should be treated as nulls for the csv uploads.
+CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
