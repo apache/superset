@@ -48,7 +48,7 @@ type ToastType =
 
 interface ToastPresenterProps {
   toast: { id: string; toastType: ToastType; text: string; duration: number };
-  onCloseToast: (arg0: string) => void;
+  onCloseToast: (id: string) => void;
 }
 
 interface ToastPresenterState {
@@ -118,7 +118,11 @@ class Toast extends React.Component<ToastPresenterProps, ToastPresenterState> {
         )}
       >
         <ToastContianer>
-          {toastType === SUCCESS_TOAST && <Icon name="check" />}
+          {toastType === SUCCESS_TOAST ? (
+            <Icon name="check" />
+          ) : (
+            <Icon name="error" />
+          )}
           <Interweave content={text} />
         </ToastContianer>
       </Alert>

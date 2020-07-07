@@ -26,6 +26,7 @@ import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
+import { ReactComponent as ErrorIcon } from 'images/icons/error.svg';
 import { ReactComponent as PencilIcon } from 'images/icons/pencil.svg';
 import { ReactComponent as SearchIcon } from 'images/icons/search.svg';
 import { ReactComponent as SortAscIcon } from 'images/icons/sort-asc.svg';
@@ -43,6 +44,7 @@ type Icon =
   | 'compass'
   | 'dataset-physical'
   | 'dataset-virtual'
+  | 'error'
   | 'pencil'
   | 'search'
   | 'sort'
@@ -62,6 +64,7 @@ const iconsRegistry: { [key in Icon]: React.ComponentType } = {
   'sort-desc': SortDescIcon,
   check: CheckIcon,
   compass: CompassIcon,
+  error: ErrorIcon,
   pencil: PencilIcon,
   search: SearchIcon,
   sort: SortIcon,
