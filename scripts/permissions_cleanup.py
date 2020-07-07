@@ -22,7 +22,7 @@ from superset import sm
 def cleanup_permissions():
     # 1. Clean up duplicates.
     pvms = sm.get_session.query(sm.permissionview_model).all()
-    print('# of permission view menues is: {}'.format(len(pvms)))
+    print("# of permission view menues is: {}".format(len(pvms)))
     pvms_dict = defaultdict(list)
     for pvm in pvms:
         pvms_dict[(pvm.permission, pvm.view_menu)].append(pvm)
@@ -39,6 +39,7 @@ def cleanup_permissions():
     sm.get_session.commit()
 
     pvms = sm.get_session.query(sm.permissionview_model).all()
+
     print('Stage 1: # of permission view menues is: {}'.format(len(pvms)))
 
     # 2. Clean up None permissions or view menues
