@@ -322,10 +322,10 @@ Does Superset offer a public API?
 Yes, a public REST API, and the surface of that API formal
 is expanding steadily. Some of the original vision for the collection
 of endpoints under ``/api/v1`` was originally specified in
-`SIP-17<https://github.com/apache/incubator-superset/issues/7259>`_ and
+`SIP-17 <https://github.com/apache/incubator-superset/issues/7259>`_ and
 constant progress has been made to cover more and more use cases.
 
-The API available is documented using `Swagger<https://swagger.io/>`_
+The API available is documented using `Swagger <https://swagger.io/>`_
 and the documentation
 can be made available under ``/swagger/v1`` by enabling
 the ``FAB_API_SWAGGER_UI = True`` configuration flag.
@@ -342,4 +342,5 @@ may fit your use case temporarily:
 How do I create a new visualization?
 ------------------------------------
 
-The process has been documented in the `So, You Want to Build a Superset Viz Plugin...<https://preset.io/blog/2020-07-02-hello-world/>`_ blog post.
+The process has been documented in the
+`So, You Want to Build a Superset Viz Plugin... <https://preset.io/blog/2020-07-02-hello-world/>`_ blog post.
