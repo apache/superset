@@ -23,7 +23,7 @@ assists people when migrating to a new version.
 
 ## Next
 
-* [9964](https://github.com/apache/incubator-superset/pull/9964): Breaking change on Flask-AppBuilder 3, if your using OAuth, checkout what needs to change [here](https://github.com/dpgaspar/Flask-AppBuilder/blob/master/README.rst#change-log).
+* [9964](https://github.com/apache/incubator-superset/pull/9964): Breaking change on Flask-AppBuilder 3. If you're using OAuth, find out what needs to be changed [here](https://github.com/dpgaspar/Flask-AppBuilder/blob/master/README.rst#change-log).
 
 * [10233](https://github.com/apache/incubator-superset/pull/10233): a change which deprecates the `ENABLE_FLASK_COMPRESS` config option in favor of the Flask-Compress `COMPRESS_REGISTER` config option which serves the same purpose.
 
