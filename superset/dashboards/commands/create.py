@@ -50,7 +50,7 @@ class CreateDashboardCommand(BaseCommand):
         return dashboard
 
     def validate(self) -> None:
-        exceptions = list()
+        exceptions: List[ValidationError] = list()
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         slug: str = self._properties.get("slug", "")
 

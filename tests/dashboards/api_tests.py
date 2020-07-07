@@ -40,7 +40,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"a": "A"}',
+        "json_metadata": '{"refresh_frequency": 30}',
         "published": False,
     }
 
@@ -473,7 +473,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "owners": [admin_id],
             "position_json": '{"a": "A"}',
             "css": "css",
-            "json_metadata": '{"b": "B"}',
+            "json_metadata": '{"refresh_frequency": 30}',
             "published": True,
         }
         self.login(username="admin")
