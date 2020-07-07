@@ -53,6 +53,7 @@ const propTypes = {
   multiple: PropTypes.bool,
   column: PropTypes.string,
   metric: PropTypes.string,
+  searchAllOptions: PropTypes.bool,
   defaultValue: PropTypes.string,
 };
 
@@ -61,6 +62,7 @@ const defaultProps = {
   asc: true,
   clearable: true,
   multiple: true,
+  searchAllOptions: true,
 };
 
 const STYLE_WIDTH = { width: 350 };
@@ -68,8 +70,24 @@ const STYLE_WIDTH = { width: 350 };
 export default class FilterBoxItemControl extends React.Component {
   constructor(props) {
     super(props);
-    const { column, metric, asc, clearable, multiple, defaultValue } = props;
-    const state = { column, metric, asc, clearable, multiple, defaultValue };
+    const {
+      column,
+      metric,
+      asc,
+      clearable,
+      multiple,
+      searchAllOptions,
+      defaultValue,
+    } = props;
+    const state = {
+      column,
+      metric,
+      asc,
+      clearable,
+      multiple,
+      searchAllOptions,
+      defaultValue,
+    };
     this.state = state;
     this.onChange = this.onChange.bind(this);
     this.onControlChange = this.onControlChange.bind(this);
@@ -198,6 +216,26 @@ export default class FilterBoxItemControl extends React.Component {
               value={this.state.multiple}
               onChange={v =>
                 this.onControlChange(FILTER_CONFIG_ATTRIBUTES.MULTIPLE, v)
+              }
+            />
+          }
+        />
+        <FormRow
+          label={t('Search All Filter Options')}
+          tooltip={t(
+            'By default, each filter loads at most 1000 choices at the initial page load. ' +
+              'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
+              'searching that loads filter values as users type (may add stress to your database).',
+          )}
+          isCheckbox
+          control={
+            <CheckboxControl
+              value={this.state.searchAllOptions}
+              onChange={v =>
+                this.onControlChange(
+                  FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS,
+                  v,
+                )
               }
             />
           }
