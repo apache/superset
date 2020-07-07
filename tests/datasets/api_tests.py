@@ -777,7 +777,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         max_id = db.session.query(func.max(SqlaTable.id)).scalar()
         # id does not exist and we get 404
-        invalid_id = [max_id + 1, 1]
+        invalid_id = max_id + 1
         uri = f"api/v1/dataset/{invalid_id}/related_objects/"
         self.login(username="admin")
         rv = self.client.get(uri)
