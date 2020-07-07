@@ -7,7 +7,7 @@
 aiohttp==3.6.2            # via slackclient
 alembic==1.4.2            # via flask-migrate
 amqp==2.5.2               # via kombu
-apispec[yaml]==1.3.3      # via flask-appbuilder
+apispec[yaml]==3.3.1      # via flask-appbuilder
 async-timeout==3.0.1      # via aiohttp
 attrs==19.3.0             # via aiohttp, jsonschema
 babel==2.8.0              # via flask-babel
@@ -29,7 +29,7 @@ decorator==4.4.2          # via retry
 defusedxml==0.6.0         # via python3-openid
 dnspython==1.16.0         # via email-validator
 email-validator==1.1.0    # via flask-appbuilder
-flask-appbuilder==2.3.4   # via apache-superset (setup.py)
+flask-appbuilder==3.0.0   # via apache-superset (setup.py)
 flask-babel==1.0.0        # via flask-appbuilder
 flask-caching==1.8.0      # via apache-superset (setup.py)
 flask-compress==1.5.0     # via apache-superset (setup.py)
@@ -58,7 +58,7 @@ markdown==3.2.2           # via apache-superset (setup.py)
 markupsafe==1.1.1         # via jinja2, mako, wtforms
 marshmallow-enum==1.5.1   # via flask-appbuilder
 marshmallow-sqlalchemy==0.23.0  # via flask-appbuilder
-marshmallow==2.21.0       # via flask-appbuilder, marshmallow-enum, marshmallow-sqlalchemy
+marshmallow==3.6.1        # via flask-appbuilder, marshmallow-enum, marshmallow-sqlalchemy
 msgpack==1.0.0            # via apache-superset (setup.py)
 multidict==4.7.6          # via aiohttp, yarl
 numpy==1.18.4             # via pandas, pyarrow

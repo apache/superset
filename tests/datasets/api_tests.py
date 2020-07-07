@@ -371,6 +371,11 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.get_assert_metric(uri, "get")
         data = json.loads(rv.data.decode("utf-8"))
+
+        for column in data["result"]["columns"]:
+            column.pop("changed_on", None)
+            column.pop("created_on", None)
+
         data["result"]["columns"].append(new_column_data)
         rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
 
@@ -404,6 +409,10 @@ class TestDatasetApi(SupersetTestCase):
         # Get current cols and alter one
         rv = self.get_assert_metric(uri, "get")
         resp_columns = json.loads(rv.data.decode("utf-8"))["result"]["columns"]
+        for column in resp_columns:
+            column.pop("changed_on", None)
+            column.pop("created_on", None)
+
         resp_columns[0]["groupby"] = False
         resp_columns[0]["filterable"] = False
         v = self.client.put(uri, json={"columns": resp_columns})

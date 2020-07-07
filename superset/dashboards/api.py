@@ -21,6 +21,7 @@ from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -118,7 +119,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.last_name",
     ]
-    edit_columns = [
+    add_columns = [
         "dashboard_title",
         "slug",
         "owners",
@@ -127,9 +128,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "json_metadata",
         "published",
     ]
+    edit_columns = add_columns
+
     search_columns = ("dashboard_title", "slug", "owners", "published")
     search_filters = {"dashboard_title": [DashboardTitleOrSlugFilter]}
-    add_columns = edit_columns
     base_order = ("changed_on", "desc")
 
     add_model_schema = DashboardPostSchema()
@@ -197,13 +199,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
-        item = self.add_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_400(message=item.errors)
         try:
-            new_model = CreateDashboardCommand(g.user, item.data).run()
-            return self.response(201, id=new_model.id, result=item.data)
+            item = self.add_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            new_model = CreateDashboardCommand(g.user, item).run()
+            return self.response(201, id=new_model.id, result=item)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardCreateFailedError as ex:
@@ -263,13 +266,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
-        item = self.edit_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_400(message=item.errors)
         try:
-            changed_model = UpdateDashboardCommand(g.user, pk, item.data).run()
-            return self.response(200, id=changed_model.id, result=item.data)
+            item = self.edit_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            changed_model = UpdateDashboardCommand(g.user, pk, item).run()
+            return self.response(200, id=changed_model.id, result=item)
         except DashboardNotFoundError:
             return self.response_404()
         except DashboardForbiddenError:

@@ -66,7 +66,7 @@ class UpdateDatasetCommand(BaseCommand):
         raise DatasetUpdateFailedError()
 
     def validate(self) -> None:
-        exceptions = list()
+        exceptions: List[ValidationError] = list()
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
