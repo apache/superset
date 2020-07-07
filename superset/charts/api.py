@@ -23,6 +23,7 @@ from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
+from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -99,6 +100,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
+    show_select_columns = show_columns + ["table.id"]
+
     list_columns = [
         "id",
         "slice_name",
@@ -121,6 +124,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
+
     order_columns = [
         "slice_name",
         "viz_type",
@@ -215,13 +219,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
-        item = self.add_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_400(message=item.errors)
         try:
-            new_model = CreateChartCommand(g.user, item.data).run()
-            return self.response(201, id=new_model.id, result=item.data)
+            item = self.add_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            new_model = CreateChartCommand(g.user, item).run()
+            return self.response(201, id=new_model.id, result=item)
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
@@ -281,13 +286,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
-        item = self.edit_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        if item.errors:
-            return self.response_400(message=item.errors)
         try:
-            changed_model = UpdateChartCommand(g.user, pk, item.data).run()
-            return self.response(200, id=changed_model.id, result=item.data)
+            item = self.edit_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            changed_model = UpdateChartCommand(g.user, pk, item).run()
+            return self.response(200, id=changed_model.id, result=item)
         except ChartNotFoundError:
             return self.response_404()
         except ChartForbiddenError:
@@ -442,8 +448,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             500:
               $ref: '#/components/responses/500'
-            """
-
+        """
         if request.is_json:
             json_body = request.json
         elif request.form.get("form_data"):
@@ -452,13 +457,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         else:
             return self.response_400(message="Request is not JSON")
         try:
-            query_context, errors = ChartDataQueryContextSchema().load(json_body)
-            if errors:
-                return self.response_400(
-                    message=_("Request is incorrect: %(error)s", error=errors)
-                )
+            query_context = ChartDataQueryContextSchema().load(json_body)
         except KeyError:
             return self.response_400(message="Request is incorrect")
+        except ValidationError as error:
+            return self.response_400(
+                _("Request is incorrect: %(error)s", error=error.messages)
+            )
         try:
             query_context.raise_for_access()
         except SupersetSecurityException:

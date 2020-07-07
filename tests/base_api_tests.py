@@ -51,7 +51,10 @@ appbuilder.add_api(Model1Api)
 class TestBaseModelRestApi(SupersetTestCase):
     def test_default_missing_declaration_get(self):
         """
-            API: Test default missing declaration on get
+        API: Test default missing declaration on get
+
+        We want to make sure that not declared list_columns will
+        not render all columns by default but just the model's pk
         """
         # Check get list response
         self.login(username="admin")
@@ -73,6 +76,12 @@ class TestBaseModelRestApi(SupersetTestCase):
         self.assertEqual(list(response["result"].keys()), ["id"])
 
     def test_default_missing_declaration_put_spec(self):
+        """
+        API: Test default missing declaration on put openapi spec
+
+        We want to make sure that not declared edit_columns will
+        not render all columns by default but just the model's pk
+        """
         self.login(username="admin")
         uri = "api/v1/_openapi"
         rv = self.client.get(uri)
@@ -91,6 +100,12 @@ class TestBaseModelRestApi(SupersetTestCase):
         )
 
     def test_default_missing_declaration_post(self):
+        """
+        API: Test default missing declaration on post
+
+        We want to make sure that not declared add_columns will
+        not accept all columns by default
+        """
         dashboard_data = {
             "dashboard_title": "title1",
             "slug": "slug1",
@@ -102,30 +117,41 @@ class TestBaseModelRestApi(SupersetTestCase):
         self.login(username="admin")
         uri = "api/v1/model1api/"
         rv = self.client.post(uri, json=dashboard_data)
-        # dashboard model accepts all fields are null
-        self.assertEqual(rv.status_code, 201)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(list(response["result"].keys()), ["id"])
-        model = db.session.query(Dashboard).get(response["id"])
-        self.assertEqual(model.dashboard_title, None)
-        self.assertEqual(model.slug, None)
-        self.assertEqual(model.position_json, None)
-        self.assertEqual(model.json_metadata, None)
-        db.session.delete(model)
-        db.session.commit()
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": {
+                "css": ["Unknown field."],
+                "dashboard_title": ["Unknown field."],
+                "json_metadata": ["Unknown field."],
+                "position_json": ["Unknown field."],
+                "published": ["Unknown field."],
+                "slug": ["Unknown field."],
+            }
+        }
+        self.assertEqual(response, expected_response)
 
     def test_default_missing_declaration_put(self):
+        """
+        API: Test default missing declaration on put
+
+        We want to make sure that not declared edit_columns will
+        not accept all columns by default
+        """
         dashboard = db.session.query(Dashboard).first()
         dashboard_data = {"dashboard_title": "CHANGED", "slug": "CHANGED"}
         self.login(username="admin")
         uri = f"api/v1/model1api/{dashboard.id}"
         rv = self.client.put(uri, json=dashboard_data)
-        # dashboard model accepts all fields are null
-        self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        changed_dashboard = db.session.query(Dashboard).get(dashboard.id)
-        self.assertNotEqual(changed_dashboard.dashboard_title, "CHANGED")
-        self.assertNotEqual(changed_dashboard.slug, "CHANGED")
+        self.assertEqual(rv.status_code, 422)
+        expected_response = {
+            "message": {
+                "dashboard_title": ["Unknown field."],
+                "slug": ["Unknown field."],
+            }
+        }
+        self.assertEqual(response, expected_response)
 
 
 class ApiOwnersTestCaseMixin:
