@@ -110,14 +110,14 @@ supersetNode:
       icon: fa-google
       token_key: access_token
       remote_app:
-        base_url: https://www.googleapis.com/oauth2/v2/
-        request_token_params:
+        api_base_url: https://www.googleapis.com/oauth2/v2/
+        client_kwargs:
           scope: email profile
         request_token_url: null
         access_token_url: https://accounts.google.com/o/oauth2/token
         authorize_url: https://accounts.google.com/o/oauth2/auth
-        # consumer_key: xx
-        # consumer_secret: xx
+        # client_id: xx
+        # client_secret: xx
 
 ##
 ## Init job configuration
