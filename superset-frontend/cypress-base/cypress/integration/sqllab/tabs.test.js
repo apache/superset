@@ -40,10 +40,12 @@ describe('SqlLab query tabs', () => {
       const initialTabCount = tabListA.length;
 
       // open the tab dropdown to remove
-      cy.get('.SqlEditorTabs > ul > li .dropdown-toggle').click();
+      cy.get('.SqlEditorTabs > ul > li .dropdown-toggle').click({
+        force: true,
+      });
 
       // first item is close
-      cy.get('.SqlEditorTabs .close-btn a').click();
+      cy.get('.SqlEditorTabs .ddbtn-tab .close').first().click();
 
       cy.get('.SqlEditorTabs > ul > li').should(
         'have.length',
