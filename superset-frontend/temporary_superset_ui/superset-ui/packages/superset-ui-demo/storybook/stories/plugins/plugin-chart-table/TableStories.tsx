@@ -7,7 +7,7 @@ import { basicFormData, basicData, birthNames } from './testData';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
 export default {
-  title: 'Legacy Chart Plugins|legacy-plugin-chart-table',
+  title: 'Chart Plugins|plugin-chart-table',
   decorators: [withKnobs, withResizableChartDemo],
 };
 
