@@ -38,7 +38,12 @@ if "sqlite" in SQLALCHEMY_DATABASE_URI:
 
 SQL_MAX_ROW = 666
 SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take affect for the CTA queries
-FEATURE_FLAGS = {"foo": "bar", "KV_STORE": True, "SHARE_QUERIES_VIA_KV_STORE": True}
+FEATURE_FLAGS = {
+    "foo": "bar",
+    "KV_STORE": True,
+    "SHARE_QUERIES_VIA_KV_STORE": True,
+    **FEATURE_FLAGS, # allow overrides from local config
+}
 
 
 def GET_FEATURE_FLAGS_FUNC(ff):
