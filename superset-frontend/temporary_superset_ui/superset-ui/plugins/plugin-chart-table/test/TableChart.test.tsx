@@ -20,6 +20,7 @@ import React from 'react';
 import { mount, CommonWrapper } from 'enzyme';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
+import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 
 describe('plugin-chart-table', () => {
@@ -49,6 +50,12 @@ describe('plugin-chart-table', () => {
           formData: { ...testData.basic.formData, pageLength: null },
         }).columns,
       );
+    });
+    it('should format timestamp', () => {
+      // eslint-disable-next-line no-underscore-dangle
+      const parsedDate = transformProps(testData.basic).data[0].__timestamp as DateWithFormatter;
+      expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
+      expect(parsedDate.getTime()).toBe(1577882096000);
     });
   });
 
