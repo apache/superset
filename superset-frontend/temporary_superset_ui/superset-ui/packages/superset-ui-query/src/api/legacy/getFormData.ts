@@ -1,4 +1,4 @@
-import { SupersetClient, RequestConfig } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/connection';
 import { BaseParams } from '../types';
 import { QueryFormData } from '../../types/QueryFormData';
 
@@ -17,8 +17,8 @@ export default function getFormData({
     .get({
       endpoint: `/api/v1/form_data/?slice_id=${sliceId}`,
       ...requestConfig,
-    } as RequestConfig)
-    .then(response => response.json as QueryFormData);
+    })
+    .then(({ json }) => json as QueryFormData);
 
   return overrideFormData
     ? promise.then(formData => ({ ...formData, ...overrideFormData }))
