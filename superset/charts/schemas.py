@@ -414,8 +414,6 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
         fields.String(
             allow_none=False, description="Columns to group by on the table columns",
         ),
-        minLength=1,
-        required=True,
     )
     metric_fill_value = fields.Number(
         description="Value to replace missing values with in aggregate calculations.",
