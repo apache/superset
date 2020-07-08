@@ -55,7 +55,8 @@ export default styled.div`
 
   .dt-pagination {
     text-align: right;
-    margin-top: 0.5em;
+    /* use padding instead of margin so clientHeight can capture it */
+    padding-top: 0.5em;
   }
   .dt-pagination .pagination {
     margin: 0;
