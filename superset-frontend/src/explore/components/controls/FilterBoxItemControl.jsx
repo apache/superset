@@ -62,7 +62,7 @@ const defaultProps = {
   asc: true,
   clearable: true,
   multiple: true,
-  searchAllOptions: true,
+  searchAllOptions: false,
 };
 
 const STYLE_WIDTH = { width: 350 };
