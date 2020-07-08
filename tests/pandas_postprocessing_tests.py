@@ -57,10 +57,52 @@ def round_floats(
 
 
 class TestPostProcessing(SupersetTestCase):
+    def test_flatten_column_name_after_pivot(self):
+        single_aggregate = {"abc": {"operator": "sum"}}
+        multiple_aggregates = {
+            "abc": {"operator": "sum"},
+            "qwerty": {"operator": "mean"},
+        }
+
+        # single aggregate cases
+        self.assertEqual(
+            proc._flatten_column_name_after_pivot(
+                aggregates=single_aggregate, column="abc",
+            ),
+            "abc",
+        )
+        self.assertEqual(
+            proc._flatten_column_name_after_pivot(
+                aggregates=single_aggregate, column=("abc", "col1"),
+            ),
+            "col1",
+        )
+        self.assertEqual(
+            proc._flatten_column_name_after_pivot(
+                aggregates=single_aggregate, column=("abc", "col1", "col2"),
+            ),
+            "col1, col2",
+        )
+
+        # Multiple aggregate cases
+        self.assertEqual(
+            proc._flatten_column_name_after_pivot(
+                aggregates=multiple_aggregates, column=("abc", "qwerty", "col1"),
+            ),
+            "abc, qwerty, col1",
+        )
+        self.assertEqual(
+            proc._flatten_column_name_after_pivot(
+                aggregates=multiple_aggregates,
+                column=("abc", "qwerty", "col1", "col2"),
+            ),
+            "abc, qwerty, col1, col2",
+        )
+
     def test_pivot(self):
         aggregates = {"idx_nulls": {"operator": "sum"}}
 
-        # regular pivot
+        # single index/column pivots
         df = proc.pivot(
             df=categories_df,
             index=["name"],
@@ -68,13 +110,35 @@ class TestPostProcessing(SupersetTestCase):
             aggregates=aggregates,
         )
         self.assertListEqual(
-            df.columns.tolist(),
-            [("idx_nulls", "cat0"), ("idx_nulls", "cat1"), ("idx_nulls", "cat2")],
+            df.columns.tolist(), ["name", "cat0", "cat1", "cat2"],
+        )
+        self.assertEqual(len(df), 101)
+        self.assertEqual(df.sum()[1], 315)
+
+        df = proc.pivot(
+            df=categories_df,
+            index=["dept"],
+            columns=["category"],
+            aggregates=aggregates,
+        )
+        self.assertListEqual(
+            df.columns.tolist(), ["dept", "cat0", "cat1", "cat2"],
+        )
+        self.assertEqual(len(df), 5)
+
+        # single index/column pivots
+        df = proc.pivot(
+            df=categories_df,
+            index=["name"],
+            columns=["category"],
+            aggregates=aggregates,
+        )
+        self.assertListEqual(
+            df.columns.tolist(), ["name", "cat0", "cat1", "cat2"],
         )
         self.assertEqual(len(df), 101)
         self.assertEqual(df.sum()[0], 315)
 
-        # regular pivot
         df = proc.pivot(
             df=categories_df,
             index=["dept"],
