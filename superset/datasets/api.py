@@ -42,6 +42,7 @@ from superset.datasets.dao import DatasetDAO
 from superset.datasets.schemas import (
     DatasetPostSchema,
     DatasetPutSchema,
+    DatasetRelatedObjectsResponse,
     get_export_ids_schema,
 )
 from superset.views.base import DatasourceFilter, generate_download_headers
@@ -138,6 +139,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
+
+    openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
 
     @expose("/", methods=["POST"])
     @protect()
@@ -434,48 +437,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               type: integer
           responses:
             200:
-              description: chart and dashboard counts
+            200:
+              description: Query result
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      charts:
-                        type: object
-                        properties:
-                          count:
-                            type: integer
-                          result:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                id:
-                                  type: integer
-                                slice_name:
-                                  type: string
-                                viz_type:
-                                  type: string
-                      dashboards:
-                        type: object
-                        properties:
-                          count:
-                            type: integer
-                          result:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                id:
-                                  type: integer
-                                json_metadata:
-                                  type: object
-                                slug:
-                                  type: string
-                                title:
-                                  type: string
-            400:
-              $ref: '#/components/responses/400'
+                    $ref: "#/components/schemas/DatasetRelatedObjectsResponse"
             401:
               $ref: '#/components/responses/401'
             404:
@@ -483,31 +450,29 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            data = DatasetDAO.get_related_objects(pk)
-            charts = [
-                {
-                    "id": chart.id,
-                    "slice_name": chart.slice_name,
-                    "viz_type": chart.viz_type,
-                }
-                for chart in data["charts"]
-            ]
-            dashboards = [
-                {
-                    "id": dashboard.id,
-                    "json_metadata": dashboard.json_metadata,
-                    "slug": dashboard.slug,
-                    "title": dashboard.dashboard_title,
-                }
-                for dashboard in data["dashboards"]
-            ]
-            return self.response(
-                200,
-                charts={"count": len(charts), "result": charts},
-                dashboards={"count": len(dashboards), "result": dashboards},
-            )
-        except DatasetNotFoundError:
+        dataset = DatasetDAO.find_by_id(pk)
+        if not dataset:
             return self.response_404()
-        except DatasetForbiddenError:
-            return self.response_403()
+        data = DatasetDAO.get_related_objects(pk)
+        charts = [
+            {
+                "id": chart.id,
+                "slice_name": chart.slice_name,
+                "viz_type": chart.viz_type,
+            }
+            for chart in data["charts"]
+        ]
+        dashboards = [
+            {
+                "id": dashboard.id,
+                "json_metadata": dashboard.json_metadata,
+                "slug": dashboard.slug,
+                "title": dashboard.dashboard_title,
+            }
+            for dashboard in data["dashboards"]
+        ]
+        return self.response(
+            200,
+            charts={"count": len(charts), "result": charts},
+            dashboards={"count": len(dashboards), "result": dashboards},
+        )
