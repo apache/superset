@@ -72,11 +72,11 @@ WHITELIST_CUMULATIVE_FUNCTIONS = (
 )
 
 
-def _flatten_column_name_after_pivot(
+def _flatten_column_after_pivot(
     column: Union[str, Tuple[str, ...]], aggregates: Dict[str, Dict[str, Any]]
 ) -> str:
     """
-    Method for flattening column names into a single string. This step is necessary
+    Function for flattening column names into a single string. This step is necessary
     to be able to properly serialize a DataFrame. If the column is a string, return
     element unchanged. For multi-element columns, join column elements with a comma,
     with the exception of pivots made with a single aggregate, in which case the
@@ -244,8 +244,7 @@ def pivot(  # pylint: disable=too-many-arguments
     # Make index regular column
     if flatten_columns:
         df.columns = [
-            _flatten_column_name_after_pivot(col, aggregates)
-            for col in df.columns
+            _flatten_column_after_pivot(col, aggregates) for col in df.columns
         ]
     # return index as regular column
     df.reset_index(level=0, inplace=True)
