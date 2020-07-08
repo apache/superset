@@ -37,7 +37,6 @@ import {
 } from './Shared_DeckGL';
 
 export default {
-  requiresTime: true,
   onInit: controlState => ({
     ...controlState,
     time_grain_sqla: {
