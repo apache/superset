@@ -100,7 +100,7 @@ describe('DatasetList', () => {
     const callsD = fetchMock.calls(/dataset\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"/http//localhost/api/v1/dataset/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/dataset/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 });

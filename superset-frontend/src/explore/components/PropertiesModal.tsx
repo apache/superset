@@ -32,7 +32,7 @@ import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
 import { t } from '@superset-ui/translation';
-import { SupersetClient, Json } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/connection';
 import Chart from 'src/types/Chart';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
@@ -101,7 +101,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
       });
-      const chart = (response.json as Json).result;
+      const chart = response.json.result;
       setOwners(
         chart.owners.map((owner: any) => ({
           value: owner.id,
@@ -127,7 +127,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
       endpoint: `/api/v1/chart/related/owners?q=${query}`,
     }).then(
       response => {
-        const { result } = response.json as Json;
+        const { result } = response.json;
         return result.map((item: any) => ({
           value: item.value,
           label: item.text,
@@ -160,7 +160,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
       });
       // update the redux state
       const updatedChart = {
-        ...(res.json as Json).result,
+        ...res.json.result,
         id: slice.slice_id,
       };
       onSave(updatedChart);
