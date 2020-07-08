@@ -261,8 +261,55 @@ div.Workspace {
     }
   }
 
+  .dropdown.btn-group.btn-group-sm {
+    width: 3px;
+    height: 3px;
+    border-radius: 1.5px;
+    background: #bababa;
+    margin-right: 8px;
+    font-weight: @font-weight-normal;
+    display: inline-flex;
+
+    &:hover {
+      background-color: @primary-color;
+
+      &:before,
+      &:after {
+        background-color: @primary-color;
+      }
+    }
+
+    &:before,
+    &:after {
+      position: absolute;
+      content: ' ';
+      width: 3px;
+      height: 3px;
+      border-radius: 1.5px;
+      background-color: #bababa;
+    }
+    &:before {
+      transform: translateY(-5px);
+    }
+    &:after {
+      transform: translateY(5px);
+    }
+  }
+
+  ul.dropdown-menu {
+    margin-top: 10px;
+  }
+
   .dropdown-toggle {
     padding-top: 2px;
+  }
+
+  .close {
+    opacity: 1;
+    color: @almost-black;
+    position: relative;
+    top: -2px;
+    right: -4px;
   }
 }
 
@@ -462,6 +509,8 @@ a.Link {
   padding: 0;
   border: none;
   background: none;
+  position: relative;
+  top: 2px;
 
   &:focus {
     outline: 0;
