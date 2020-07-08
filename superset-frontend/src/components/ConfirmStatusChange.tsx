@@ -18,7 +18,6 @@
  */
 import { t } from '@superset-ui/translation';
 import * as React from 'react';
-// @ts-ignore
 import { Button, Modal } from 'react-bootstrap';
 
 type Callback = (...args: any[]) => void;
@@ -34,12 +33,15 @@ interface State {
   open: boolean;
 }
 export default class ConfirmStatusChange extends React.Component<Props, State> {
-  public state = {
-    callbackArgs: [],
-    open: false,
-  };
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      callbackArgs: [],
+      open: false,
+    };
+  }
 
-  public showConfirm = (...callbackArgs: any[]) => {
+  showConfirm(...callbackArgs: any[]) {
     // check if any args are DOM events, if so, call persist
     callbackArgs.forEach(
       arg => arg && typeof arg.persist === 'function' && arg.persist(),
@@ -49,16 +51,18 @@ export default class ConfirmStatusChange extends React.Component<Props, State> {
       callbackArgs,
       open: true,
     });
-  };
+  }
 
-  public hide = () => this.setState({ open: false, callbackArgs: [] });
+  hide() {
+    this.setState({ open: false, callbackArgs: [] });
+  }
 
-  public confirm = () => {
+  confirm() {
     this.props.onConfirm(...this.state.callbackArgs);
     this.hide();
-  };
+  }
 
-  public render() {
+  render() {
     return (
       <>
         {this.props.children && this.props.children(this.showConfirm)}

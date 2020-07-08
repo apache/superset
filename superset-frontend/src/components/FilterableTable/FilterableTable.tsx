@@ -17,7 +17,6 @@
  * under the License.
  */
 import { List } from 'immutable';
-// @ts-ignore
 import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';

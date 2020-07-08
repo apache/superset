@@ -26,6 +26,7 @@ export type Column = {
 export type Query = {
   cached: boolean;
   ctas: boolean;
+  // eslint-disable-next-line camelcase
   ctas_method?: keyof typeof CtasEnum;
   dbId: number;
   errors?: SupersetError[];
@@ -40,6 +41,7 @@ export type Query = {
   results: {
     columns: Column[];
     data: Record<string, unknown>[];
+    // eslint-disable-next-line camelcase
     expanded_columns: Column[];
   };
   resultsKey: string | null;

@@ -128,9 +128,9 @@ export default class ResultSet extends React.PureComponent<
   }
 
   toggleExploreResultsButton() {
-    this.setState({
-      showExploreResultsButton: !this.state.showExploreResultsButton,
-    });
+    this.setState(({ showExploreResultsButton }) => ({
+      showExploreResultsButton: !showExploreResultsButton,
+    }));
   }
 
   changeSearch(event: React.ChangeEvent<HTMLInputElement>) {
@@ -309,12 +309,12 @@ export default class ResultSet extends React.PureComponent<
             bsSize="sm"
             className="fetch"
             bsStyle="primary"
-            onClick={() =>
+            onClick={() => {
               this.reFetchQueryResults({
                 ...query,
                 isDataPreview: true,
-              })
-            }
+              });
+            }}
           >
             {t('Fetch data preview')}
           </Button>

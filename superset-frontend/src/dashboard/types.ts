@@ -25,6 +25,7 @@ export type ChartReducerInitialState = typeof chart;
 // Ref: https://github.com/apache/incubator-superset/blob/dcac860f3e5528ecbc39e58f045c7388adb5c3d0/superset-frontend/src/dashboard/reducers/getInitialState.js#L120
 export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
   formData: ChartProps['formData'];
+  // eslint-disable-next-line camelcase
   form_data?: ChartProps['rawFormData'];
   [key: string]: unknown;
 }

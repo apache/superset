@@ -233,7 +233,7 @@ export function useListViewState({
       filters[index]?.operator === operator,
   );
 
-  const updateInternalFilter = (index: number, update: object) =>
+  const updateInternalFilter = (index: number, update: Record<string, any>) =>
     setInternalFilters(updateInList(internalFilters, index, update));
 
   const applyFilterValue = (index: number, value: any) => {

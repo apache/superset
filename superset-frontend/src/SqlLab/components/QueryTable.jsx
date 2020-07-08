@@ -107,6 +107,7 @@ class QueryTable extends React.PureComponent {
         );
         q.user = (
           <button
+            type="button"
             className="btn btn-link btn-xs"
             onClick={this.props.onUserClicked.bind(this, q.userId)}
           >
@@ -115,6 +116,7 @@ class QueryTable extends React.PureComponent {
         );
         q.db = (
           <button
+            type="button"
             className="btn btn-link btn-xs"
             onClick={this.props.onDbClicked.bind(this, q.dbId)}
           >
@@ -125,6 +127,7 @@ class QueryTable extends React.PureComponent {
         q.querylink = (
           <div style={{ width: '100px' }}>
             <button
+              type="button"
               className="btn btn-link btn-xs"
               onClick={this.openQuery.bind(this, q.queryId)}
             >

@@ -47,6 +47,7 @@ export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
 export type SupersetError = {
+  // eslint-disable-next-line camelcase
   error_type: ErrorType;
   extra: Record<string, any> | null;
   level: ErrorLevel;

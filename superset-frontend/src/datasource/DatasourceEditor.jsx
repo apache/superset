@@ -252,8 +252,9 @@ export class DatasourceEditor extends React.PureComponent {
   }
 
   onDatasourcePropChange(attr, value) {
-    const datasource = { ...this.state.datasource, [attr]: value };
-    this.setState({ datasource }, this.onDatasourceChange(datasource));
+    this.setState(({ datasource }) => {
+      return { datasource: { ...datasource, [attr]: value } };
+    }, this.validateAndChange);
   }
 
   setColumns(obj) {
@@ -379,15 +380,15 @@ export class DatasourceEditor extends React.PureComponent {
                 dbId={datasource.database.id}
                 schema={datasource.schema}
                 tableName={datasource.datasource_name}
-                onSchemaChange={schema =>
-                  this.onDatasourcePropChange('schema', schema)
-                }
-                onDbChange={database =>
-                  this.onDatasourcePropChange('database', database)
-                }
-                onTableChange={table =>
-                  this.onDatasourcePropChange('datasource_name', table)
-                }
+                onSchemaChange={schema => {
+                  this.onDatasourcePropChange('schema', schema);
+                }}
+                onDbChange={database => {
+                  this.onDatasourcePropChange('database', database);
+                }}
+                onTableChange={table => {
+                  this.onDatasourcePropChange('datasource_name', table);
+                }}
                 sqlLabMode={false}
                 clearable={false}
                 handleError={this.props.addDangerToast}
@@ -443,12 +444,12 @@ export class DatasourceEditor extends React.PureComponent {
             <SelectAsyncControl
               dataEndpoint="/users/api/read"
               multi
-              mutator={data =>
+              mutator={data => {
                 data.pks.map((pk, i) => ({
                   value: pk,
                   label: `${data.result[i].first_name} ${data.result[i].last_name}`,
-                }))
-              }
+                }));
+              }}
             />
           }
           controlProps={{}}
@@ -678,9 +679,9 @@ export class DatasourceEditor extends React.PureComponent {
               <div>
                 <ColumnCollectionTable
                   columns={this.state.databaseColumns}
-                  onChange={databaseColumns =>
-                    this.setColumns({ databaseColumns })
-                  }
+                  onChange={databaseColumns => {
+                    this.setColumns({ databaseColumns });
+                  }}
                 />
                 <Button
                   bsStyle="primary"
@@ -711,9 +712,9 @@ export class DatasourceEditor extends React.PureComponent {
             {activeTabKey === 3 && (
               <ColumnCollectionTable
                 columns={this.state.calculatedColumns}
-                onChange={calculatedColumns =>
-                  this.setColumns({ calculatedColumns })
-                }
+                onChange={calculatedColumns => {
+                  this.setColumns({ calculatedColumns });
+                }}
                 editableColumnName
                 showExpression
                 allowAddItem

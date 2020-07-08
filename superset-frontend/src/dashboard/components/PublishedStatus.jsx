@@ -72,6 +72,7 @@ export default class PublishedStatus extends React.Component {
             tooltip={draftButtonTooltip}
           >
             <button
+              type="button"
               style={divStyle}
               onClick={() => {
                 this.togglePublished();
@@ -102,6 +103,7 @@ export default class PublishedStatus extends React.Component {
           tooltip={publishedTooltip}
         >
           <button
+            type="button"
             style={divStyle}
             onClick={() => {
               this.togglePublished();

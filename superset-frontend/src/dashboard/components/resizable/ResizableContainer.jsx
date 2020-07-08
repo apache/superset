@@ -214,7 +214,11 @@ class ResizableContainer extends React.PureComponent {
         onResizeStart={this.handleResizeStart}
         onResize={this.handleResize}
         onResizeStop={this.handleResizeStop}
-        handleComponent={ResizableHandle}
+        handleComponent={{
+          right: ResizableHandle.Right,
+          bottom: ResizableHandle.Bottom,
+          bottomRight: ResizableHandle.BottomRight,
+        }}
         className={cx(
           'resizable-container',
           isResizing && 'resizable-container--resizing',

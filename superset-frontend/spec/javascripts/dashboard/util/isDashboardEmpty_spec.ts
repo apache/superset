@@ -20,8 +20,8 @@ import isDashboardEmpty from 'src/dashboard/util/isDashboardEmpty';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
 
 describe('isDashboardEmpty', () => {
-  const emptyLayout: object = getEmptyLayout();
-  const testLayout: object = {
+  const emptyLayout: Record<string, any> = getEmptyLayout();
+  const testLayout: Record<string, any> = {
     ...emptyLayout,
     'MARKDOWN-IhTGLhyiTd': {
       children: [],

@@ -19,8 +19,11 @@
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 interface Slice {
+  // eslint-disable-next-line camelcase
   slice_id: number;
+  // eslint-disable-next-line camelcase
   form_data: {
+    // eslint-disable-next-line camelcase
     viz_type: string;
     [key: string]: JSONValue;
   };

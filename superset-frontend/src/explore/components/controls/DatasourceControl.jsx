@@ -56,7 +56,6 @@ class DatasourceControl extends React.PureComponent {
     this.state = {
       showEditDatasourceModal: false,
       showChangeDatasourceModal: false,
-      menuExpanded: false,
     };
     this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(
       this,

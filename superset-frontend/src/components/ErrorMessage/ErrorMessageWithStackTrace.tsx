@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useState } from 'react';
-// @ts-ignore
 import { Alert, Collapse } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
@@ -36,7 +35,7 @@ export default function ErrorMessageWithStackTrace({
   message,
   link,
   stackTrace,
-}: Props) {
+}: Props): JSX.Element {
   const [showStackTrace, setShowStackTrace] = useState(false);
 
   // Check if a custom error message component was registered for this message

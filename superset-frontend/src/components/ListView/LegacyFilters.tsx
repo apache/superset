@@ -87,7 +87,7 @@ export const FilterInputs = ({
 }: {
   internalFilters: InternalFilter[];
   filters: Filters;
-  updateInternalFilter: (i: number, f: object) => void;
+  updateInternalFilter: (i: number, f: Record<string, any>) => void;
   removeFilterAndApply: (i: number) => void;
   filtersApplied: boolean;
   applyFilters: () => void;

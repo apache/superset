@@ -27,6 +27,7 @@ const rules = {
   'class-methods-use-this': 0,
   'func-names': 0,
   'guard-for-in': 0,
+  'prefer-promise-reject-errors': 1,
   'import/extensions': [
     'error',
     {
@@ -44,6 +45,8 @@ const rules = {
   'jsx-a11y/anchor-is-valid': 1,
   'jsx-a11y/no-static-element-interactions': 0,
   'jsx-a11y/click-events-have-key-events': 0,
+  'jsx-a11y/mouse-events-have-key-events': 0,
+  'jsx/indent': 0,
   'new-cap': 0,
   'no-bitwise': 0,
   'no-confusing-arrow': 0,
@@ -65,6 +68,7 @@ const rules = {
   'react/forbid-prop-types': 0,
   'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
   'react/jsx-no-bind': 0,
+  'react/jsx-indent': 0,
   'react/no-array-index-key': 0,
   'react/no-string-refs': 0,
   'react/no-unescaped-entities': 0,
@@ -115,6 +119,8 @@ module.exports = {
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
         '@typescript-eslint/explicit-function-return-type': 0,
+        '@typescript-eslint/ban-ts-comment': 1,
+        'react/static-property-placement': 0,
         ...rules,
       },
       settings: {

@@ -155,6 +155,7 @@ class FilterBox extends React.Component {
       this.props.onChange(selectedValues, false);
     });
   }
+
   changeFilter(filter, options) {
     const fltr = TIME_FILTER_MAP[filter] || filter;
     let vals = null;

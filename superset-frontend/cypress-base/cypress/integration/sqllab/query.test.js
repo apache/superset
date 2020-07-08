@@ -80,7 +80,7 @@ describe('SqlLab query panel', () => {
 
     // Save results to check agains below
     selectResultsTab().then(resultsA => {
-      initialResultsTable = resultsA[0];
+      [initialResultsTable] = resultsA;
     });
 
     cy.get('#js-sql-toolbar button')
@@ -116,7 +116,7 @@ describe('SqlLab query panel', () => {
 
     // assert the results of the saved query match the initial results
     selectResultsTab().then(resultsB => {
-      savedQueryResultsTable = resultsB[0];
+      [savedQueryResultsTable] = resultsB;
 
       assertSQLLabResultsAreEqual(initialResultsTable, savedQueryResultsTable);
     });

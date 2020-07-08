@@ -493,7 +493,7 @@ class Header extends React.PureComponent {
                 });
                 this.props.dashboardTitleChanged(updates.title);
                 if (updates.slug) {
-                  history.pushState(
+                  window.history.pushState(
                     { event: 'dashboard_properties_changed' },
                     '',
                     `/superset/dashboard/${updates.slug}/`,

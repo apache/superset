@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
-// @ts-ignore
+import React, { ReactNode, CSSProperties } from 'react';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 interface Props {
@@ -26,7 +25,7 @@ interface Props {
   href?: string;
   onClick?: () => void;
   placement?: string;
-  style?: object;
+  style?: CSSProperties;
   tooltip?: string | null;
 }
 

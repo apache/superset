@@ -128,12 +128,12 @@ class Header extends React.PureComponent {
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <div ref={dragSourceRef}>
-            {editMode &&
-            depth <= 2 && ( // drag handle looks bad when nested
-                <HoverMenu position="left">
-              <DragHandle position="left" />
-            </HoverMenu>
-              )}
+            {editMode && depth <= 2 && (
+              // drag handle looks bad when nested
+              <HoverMenu position="left">
+                <DragHandle position="left" />
+              </HoverMenu>
+            )}
 
             <WithPopoverMenu
               onChangeFocus={this.handleChangeFocus}

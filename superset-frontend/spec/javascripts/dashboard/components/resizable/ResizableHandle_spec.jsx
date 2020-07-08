@@ -23,19 +23,19 @@ import ResizableHandle from 'src/dashboard/components/resizable/ResizableHandle'
 
 describe('ResizableHandle', () => {
   it('should render a right resize handle', () => {
-    const wrapper = shallow(<ResizableHandle.right />);
+    const wrapper = shallow(<ResizableHandle.Right />);
     expect(wrapper.find('.resize-handle.resize-handle--right')).toHaveLength(1);
   });
 
   it('should render a bottom resize handle', () => {
-    const wrapper = shallow(<ResizableHandle.bottom />);
+    const wrapper = shallow(<ResizableHandle.Bottom />);
     expect(wrapper.find('.resize-handle.resize-handle--bottom')).toHaveLength(
       1,
     );
   });
 
   it('should render a bottomRight resize handle', () => {
-    const wrapper = shallow(<ResizableHandle.bottomRight />);
+    const wrapper = shallow(<ResizableHandle.BottomRight />);
     expect(
       wrapper.find('.resize-handle.resize-handle--bottom-right'),
     ).toHaveLength(1);

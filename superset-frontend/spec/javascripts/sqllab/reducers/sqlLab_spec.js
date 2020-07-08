@@ -31,7 +31,7 @@ describe('sqlLabReducer', () => {
     let qe;
     beforeEach(() => {
       newState = { ...initialState };
-      defaultQueryEditor = newState.queryEditors[0];
+      [defaultQueryEditor] = newState.queryEditors;
       const action = {
         type: actions.ADD_QUERY_EDITOR,
         queryEditor: { ...initialState.queryEditors[0], id: 'abcd' },
@@ -148,7 +148,7 @@ describe('sqlLabReducer', () => {
         table: newTable,
       };
       newState = sqlLabReducer(initialState, action);
-      newTable = newState.tables[0];
+      [newTable] = newState.tables;
     });
     it('should add a table', () => {
       // Testing that beforeEach actually added the table
@@ -245,6 +245,7 @@ describe('sqlLabReducer', () => {
       expect(Object.keys(newState.queries)).toHaveLength(0);
     });
     it('should refresh queries when polling returns empty', () => {
+      expect.assertions(0);
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
     });
   });

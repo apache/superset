@@ -66,10 +66,10 @@ export default class EditableTitle extends React.PureComponent {
 
   UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.title !== this.state.title) {
-      this.setState({
-        lastTitle: this.state.title,
+      this.setState(({ title }) => ({
+        lastTitle: title,
         title: nextProps.title,
-      });
+      }));
     }
   }
 
@@ -99,10 +99,9 @@ export default class EditableTitle extends React.PureComponent {
     });
 
     if (!title.length) {
-      this.setState({
-        title: this.state.lastTitle,
-      });
-
+      this.setState(({ lastTitle }) => ({
+        title: lastTitle,
+      }));
       return;
     }
 

@@ -147,12 +147,12 @@ export default class CRUDCollection extends React.PureComponent {
 
   toggleExpand(id) {
     this.onCellChange(id, '__expanded', false);
-    this.setState({
+    this.setState(({ expandedColumns }) => ({
       expandedColumns: {
-        ...this.state.expandedColumns,
-        [id]: !this.state.expandedColumns[id],
+        ...expandedColumns,
+        [id]: !expandedColumns[id],
       },
-    });
+    }));
   }
 
   renderHeaderRow() {
@@ -160,11 +160,11 @@ export default class CRUDCollection extends React.PureComponent {
     return (
       <thead>
         <tr>
-          {this.props.expandFieldset && <th className="tiny-cell" />}
+          {this.props.expandFieldset && <th className="tiny-cell"> </th>}
           {cols.map(col => (
             <th key={col}>{this.getLabel(col)}</th>
           ))}
-          {this.props.allowDeletes && <th className="tiny-cell" />}
+          {this.props.allowDeletes && <th className="tiny-cell"> </th>}
         </tr>
       </thead>
     );

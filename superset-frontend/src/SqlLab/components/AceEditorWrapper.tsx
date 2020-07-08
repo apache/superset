@@ -21,7 +21,7 @@ import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
-import ace from 'brace';
+import ace, { Editor } from 'brace';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import sqlKeywords from '../utils/sqlKeywords';
 import {
@@ -66,8 +66,8 @@ interface State {
 
 class AceEditorWrapper extends React.PureComponent<Props, State> {
   static defaultProps = {
-    onBlur: () => {},
-    onChange: () => {},
+    onBlur: (): void => {},
+    onChange: (): void => {},
     schemas: [],
     tables: [],
     functionNames: [],
@@ -84,13 +84,13 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     this.onChange = this.onChange.bind(this);
   }
 
-  componentDidMount() {
+  componentDidMount(): void {
     // Making sure no text is selected from previous mount
     this.props.actions.queryEditorSetSelectedText(this.props.queryEditor, null);
     this.setAutoCompleter(this.props);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props): void {
     if (
       !areArraysShallowEqual(this.props.tables, nextProps.tables) ||
       !areArraysShallowEqual(this.props.schemas, nextProps.schemas) ||
@@ -106,15 +106,15 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     }
   }
 
-  onBlur() {
+  onBlur(): void {
     this.props.onBlur(this.state.sql);
   }
 
-  onAltEnter() {
+  onAltEnter(): void {
     this.props.onBlur(this.state.sql);
   }
 
-  onEditorLoad(editor: any) {
+  onEditorLoad(editor: Editor): void {
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
@@ -131,6 +131,8 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     });
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       const selectedText = editor.getSelectedText();
       // Backspace trigger 1 character selection, ignoring
       if (
@@ -146,7 +148,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     });
   }
 
-  onChange(text: string) {
+  onChange(text: string): void {
     this.setState({ sql: text });
     this.props.onChange(text);
   }
@@ -157,10 +159,10 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     pos: any,
     prefix: string,
     callback: (p0: any, p1: any[]) => void,
-  ) {
+  ): void {
     // If the prefix starts with a number, don't try to autocomplete with a
     // table name or schema or anything else
-    if (!isNaN(parseInt(prefix, 10))) {
+    if (!Number.isNaN(parseInt(prefix, 10))) {
       return;
     }
     const completer = {

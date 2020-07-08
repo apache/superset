@@ -147,7 +147,9 @@ export default class FilterBoxItemControl extends React.Component {
                 .concat([
                   { value: this.state.column, label: this.state.column },
                 ])}
-              onChange={v => this.onControlChange('column', v)}
+              onChange={v => {
+                this.onControlChange('column', v);
+              }}
             />
           }
         />
@@ -157,7 +159,9 @@ export default class FilterBoxItemControl extends React.Component {
             <TextControl
               value={this.state.label}
               name="label"
-              onChange={v => this.onControlChange('label', v)}
+              onChange={v => {
+                this.onControlChange('label', v);
+              }}
             />
           }
         />
@@ -194,7 +198,9 @@ export default class FilterBoxItemControl extends React.Component {
                 .concat([
                   { value: this.state.metric, label: this.state.metric },
                 ])}
-              onChange={v => this.onControlChange('metric', v)}
+              onChange={v => {
+                this.onControlChange('metric', v);
+              }}
             />
           }
         />
@@ -205,7 +211,9 @@ export default class FilterBoxItemControl extends React.Component {
           control={
             <CheckboxControl
               value={this.state.asc}
-              onChange={v => this.onControlChange('asc', v)}
+              onChange={v => {
+                this.onControlChange('asc', v);
+              }}
             />
           }
         />
@@ -236,12 +244,12 @@ export default class FilterBoxItemControl extends React.Component {
           control={
             <CheckboxControl
               value={this.state.searchAllOptions}
-              onChange={v =>
+              onChange={v => {
                 this.onControlChange(
                   FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS,
                   v,
-                )
-              }
+                );
+              }}
             />
           }
         />
@@ -252,7 +260,9 @@ export default class FilterBoxItemControl extends React.Component {
           control={
             <CheckboxControl
               value={!this.state.clearable}
-              onChange={v => this.onControlChange('clearable', !v)}
+              onChange={v => {
+                this.onControlChange('clearable', !v);
+              }}
             />
           }
         />

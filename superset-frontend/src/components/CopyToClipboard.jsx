@@ -97,7 +97,7 @@ export default class CopyToClipboard extends React.Component {
     } catch (err) {
       window.alert(
         t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'),
-      ); // eslint-disable-line
+      );
     }
 
     document.body.removeChild(span);

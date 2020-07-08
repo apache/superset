@@ -76,27 +76,32 @@ interface SubMenuState {
 }
 
 class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
-  state: SubMenuState = {
-    selectedMenu:
-      this.props.childs && this.props.childs[0]
-        ? this.props.childs[0].label
-        : '',
-    isModalOpen: false,
-  };
+  constructor(props: SubMenuProps) {
+    super(props);
+    this.state = {
+      selectedMenu:
+        this.props.childs && this.props.childs[0]
+          ? this.props.childs[0].label
+          : '',
+      isModalOpen: false,
+    };
+  }
 
-  onOpen = () => {
+  onOpen(): void {
     this.setState({ isModalOpen: true });
-  };
+  }
 
-  onClose = () => {
+  onClose(): void {
     this.setState({ isModalOpen: false });
-  };
+  }
 
-  handleClick = (item: string) => () => {
-    this.setState({ selectedMenu: item });
-  };
+  handleClick(item: string) {
+    return (): void => {
+      this.setState({ selectedMenu: item });
+    };
+  }
 
-  render() {
+  render(): JSX.Element {
     return (
       <StyledHeader>
         <Navbar inverse fluid role="navigation">

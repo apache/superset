@@ -75,7 +75,9 @@ class SaveModal extends React.PureComponent {
   }
 
   toggleDuplicateSlices() {
-    this.setState({ duplicateSlices: !this.state.duplicateSlices });
+    this.setState(({ duplicateSlices }) => ({
+      duplicateSlices: !duplicateSlices,
+    }));
   }
 
   handleSaveTypeChange(event) {

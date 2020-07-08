@@ -145,11 +145,13 @@ class DashboardGrid extends React.PureComponent {
               className="empty-droptarget"
               editMode
             >
-              {({ dropIndicatorProps }) =>
-                dropIndicatorProps && (
-                  <div className="drop-indicator drop-indicator--bottom" />
-                )
-              }
+              {({ dropIndicatorProps }) => {
+                return (
+                  dropIndicatorProps && (
+                    <div className="drop-indicator drop-indicator--bottom" />
+                  )
+                );
+              }}
             </DragDroppable>
           )}
 
@@ -182,11 +184,13 @@ class DashboardGrid extends React.PureComponent {
               className="empty-droptarget"
               editMode
             >
-              {({ dropIndicatorProps }) =>
-                dropIndicatorProps && (
-                  <div className="drop-indicator drop-indicator--top" />
-                )
-              }
+              {({ dropIndicatorProps }) => {
+                return (
+                  dropIndicatorProps && (
+                    <div className="drop-indicator drop-indicator--top" />
+                  )
+                );
+              }}
             </DragDroppable>
           )}
 

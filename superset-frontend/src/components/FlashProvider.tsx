@@ -22,6 +22,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 type Message = Array<string>;
 
 interface CommonObject {
+  // eslint-disable-next-line camelcase
   flash_messages: Array<Message>;
 }
 interface Props {

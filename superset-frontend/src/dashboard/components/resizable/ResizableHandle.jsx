@@ -31,7 +31,7 @@ export function BottomResizeHandle() {
 }
 
 export default {
-  right: RightResizeHandle,
-  bottom: BottomResizeHandle,
-  bottomRight: BottomRightResizeHandle,
+  Right: RightResizeHandle,
+  Bottom: BottomResizeHandle,
+  BottomRight: BottomRightResizeHandle,
 };

@@ -44,7 +44,7 @@ export function MenuList<OptionType extends OptionTypeBase>({
   ...props
 }: MenuListComponentProps<OptionType> & {
   selectProps: WindowedSelectProps<OptionType>;
-}) {
+}): JSX.Element {
   const { windowThreshold = DEFAULT_WINDOW_THRESHOLD } = props.selectProps;
   if (Array.isArray(children) && children.length > windowThreshold) {
     // @ts-ignore

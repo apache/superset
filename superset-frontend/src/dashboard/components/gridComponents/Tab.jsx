@@ -156,11 +156,13 @@ export default class Tab extends React.PureComponent {
             editMode
             className="empty-droptarget"
           >
-            {({ dropIndicatorProps }) =>
-              dropIndicatorProps && (
-                <div className="drop-indicator drop-indicator--top" />
-              )
-            }
+            {({ dropIndicatorProps }) => {
+              return (
+                dropIndicatorProps && (
+                  <div className="drop-indicator drop-indicator--top" />
+                )
+              );
+            }}
           </DragDroppable>
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
@@ -192,11 +194,13 @@ export default class Tab extends React.PureComponent {
             editMode
             className="empty-droptarget"
           >
-            {({ dropIndicatorProps }) =>
-              dropIndicatorProps && (
-                <div className="drop-indicator drop-indicator--bottom" />
-              )
-            }
+            {({ dropIndicatorProps }) => {
+              return (
+                dropIndicatorProps && (
+                  <div className="drop-indicator drop-indicator--bottom" />
+                )
+              );
+            }}
           </DragDroppable>
         )}
       </div>
@@ -238,9 +242,9 @@ export default class Tab extends React.PureComponent {
                   ? []
                   : [
                       <DeleteComponentModal
-                      triggerNode={deleteTabIcon}
-                      onDelete={this.handleDeleteComponent}
-                    />,
+                        triggerNode={deleteTabIcon}
+                        onDelete={this.handleDeleteComponent}
+                      />,
                     ]
               }
               editMode={editMode}

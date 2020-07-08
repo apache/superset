@@ -283,9 +283,9 @@ export default class TableSelector extends React.PureComponent {
           'order_columns:database_name,order_direction:asc,page:0,page_size:-1)'
         }
         onChange={this.onDatabaseChange}
-        onAsyncError={() =>
-          this.props.handleError(t('Error while fetching database list'))
-        }
+        onAsyncError={() => {
+          this.props.handleError(t('Error while fetching database list'));
+        }}
         clearable={false}
         value={this.state.dbId}
         valueKey="id"

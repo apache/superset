@@ -141,23 +141,17 @@ class SliceAdder extends React.Component {
   }
 
   searchUpdated(searchTerm) {
-    this.setState({
+    this.setState(({ sortBy }) => ({
       searchTerm,
-      filteredSlices: this.getFilteredSortedSlices(
-        searchTerm,
-        this.state.sortBy,
-      ),
-    });
+      filteredSlices: this.getFilteredSortedSlices(searchTerm, sortBy),
+    }));
   }
 
   handleSelect(sortBy) {
-    this.setState({
+    this.setState(({ searchTerm }) => ({
       sortBy,
-      filteredSlices: this.getFilteredSortedSlices(
-        this.state.searchTerm,
-        sortBy,
-      ),
-    });
+      filteredSlices: this.getFilteredSortedSlices(searchTerm, sortBy),
+    }));
   }
 
   rowRenderer({ key, index, style, parent }) {

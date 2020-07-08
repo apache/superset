@@ -129,10 +129,12 @@ export default function TableCollection({
               className={cx({
                 'table-row-selected': row.isSelected,
               })}
-              onMouseEnter={() => row.setState && row.setState({ hover: true })}
-              onMouseLeave={() =>
-                row.setState && row.setState({ hover: false })
-              }
+              onMouseEnter={() => {
+                if (row.setState) row.setState({ hover: true });
+              }}
+              onMouseLeave={() => {
+                if (row.setState) row.setState({ hover: false });
+              }}
             >
               {row.cells.map(cell => {
                 if (cell.column.hidden) return null;
