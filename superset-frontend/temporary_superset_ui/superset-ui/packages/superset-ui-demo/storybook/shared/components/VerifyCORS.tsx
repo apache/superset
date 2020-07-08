@@ -1,18 +1,19 @@
 import React, { ReactNode } from 'react';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient, Method } from '@superset-ui/connection';
+import { makeApi, SupersetApiError } from '@superset-ui/query';
 import ErrorMessage from './ErrorMessage';
 
 export type Props = {
   children: ({ payload }: { payload?: object }) => ReactNode;
   endpoint?: string;
   host: string;
-  method?: 'POST' | 'GET';
+  method?: Method;
   postPayload?: string;
 };
 
 type State = {
   didVerify: boolean;
-  error?: Error;
+  error?: Error | SupersetApiError;
   payload?: object;
 };
 
@@ -58,21 +59,18 @@ export default class VerifyCORS extends React.Component<Props, State> {
       mode: 'cors',
     })
       .init()
-      .then(() =>
+      .then(() => {
         // Test an endpoint if specified
-        endpoint
-          ? SupersetClient.request({
-              endpoint,
-              method,
-              postPayload,
-            })
-          : Promise.resolve({}),
-      )
-      .then(response => this.setState({ didVerify: true, error: undefined, payload: response }))
-      .catch((error: Response) => {
-        const { status, statusText } = error;
-        this.setState({ error: new Error(`${status || ''}${status ? ':' : ''} ${statusText}`) });
-      });
+        if (endpoint && postPayload) {
+          return makeApi({
+            endpoint,
+            method,
+          })(postPayload);
+        }
+        return { error: 'Must provide valid endpoint and payload.' };
+      })
+      .then(result => this.setState({ didVerify: true, error: undefined, payload: result }))
+      .catch(error => this.setState({ error }));
   }
 
   render() {

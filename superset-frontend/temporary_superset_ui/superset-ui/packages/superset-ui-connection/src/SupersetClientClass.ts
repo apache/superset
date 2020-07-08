@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import callApiAndParseWithTimeout from './callApi/callApiAndParseWithTimeout';
 import {
   ClientConfig,
@@ -13,7 +31,7 @@ import {
   RequestConfig,
   ParseMethod,
 } from './types';
-import { DEFAULT_FETCH_RETRY_OPTIONS } from './constants';
+import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_BASE_URL } from './constants';
 
 export default class SupersetClientClass {
   credentials: Credentials;
@@ -28,7 +46,7 @@ export default class SupersetClientClass {
   timeout: ClientTimeout;
 
   constructor({
-    baseUrl = 'http://localhost',
+    baseUrl = DEFAULT_BASE_URL,
     host,
     protocol,
     headers = {},
@@ -40,6 +58,9 @@ export default class SupersetClientClass {
   }: ClientConfig = {}) {
     const url = new URL(
       host || protocol ? `${protocol || 'https:'}//${host || 'localhost'}` : baseUrl,
+      // baseUrl for API could also be relative, so we provide current location.href
+      // as the base of baseUrl
+      window.location.href,
     );
     this.baseUrl = url.href.replace(/\/+$/, ''); // always strip trailing slash
     this.host = url.host;
@@ -89,37 +110,23 @@ export default class SupersetClientClass {
   }
 
   async request<T extends ParseMethod = 'json'>({
-    body,
     credentials,
-    endpoint,
-    fetchRetryOptions,
-    headers,
-    host,
-    method,
     mode,
-    parseMethod,
-    postPayload,
-    jsonPayload,
-    signal,
-    stringify,
-    timeout,
+    endpoint,
+    host,
     url,
+    headers,
+    timeout,
+    ...rest
   }: RequestConfig & { parseMethod?: T }) {
     await this.ensureAuth();
     return callApiAndParseWithTimeout({
-      body,
+      ...rest,
       credentials: credentials ?? this.credentials,
-      fetchRetryOptions,
-      headers: { ...this.headers, ...headers },
-      method,
       mode: mode ?? this.mode,
-      parseMethod,
-      postPayload,
-      jsonPayload,
-      signal,
-      stringify,
-      timeout: timeout ?? this.timeout,
       url: this.getUrl({ endpoint, host, url }),
+      headers: { ...this.headers, ...headers },
+      timeout: timeout ?? this.timeout,
     });
   }
 

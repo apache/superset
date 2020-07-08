@@ -14,10 +14,8 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
   const response = await apiPromise;
   // reject failed HTTP requests with the raw response
   if (!response.ok) {
-    // eslint-disable-next-line @typescript-eslint/no-throw-literal
-    throw response;
+    return Promise.reject(response);
   }
-
   if (parseMethod === null || parseMethod === 'raw') {
     return response as ReturnType;
   }
@@ -38,6 +36,5 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     };
     return result as ReturnType;
   }
-
   throw new Error(`Expected parseResponse=json|text|raw|null, got '${parseMethod}'.`);
 }
