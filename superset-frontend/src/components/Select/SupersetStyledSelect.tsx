@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-props-no-spreading */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -30,7 +31,7 @@ import BasicSelect, {
 import Async from 'react-select/async';
 import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
-import { withAsyncPaginate } from 'react-select-async-paginate';
+import { AsyncPaginate } from 'react-select-async-paginate';
 
 import { SelectComponents } from 'react-select/src/components';
 import {
@@ -221,6 +222,7 @@ function styled<
     // Handle onPaste event
     if (onPaste) {
       const Input = components.Input || defaultComponents.Input;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore (needed for passing `onPaste`)
       components.Input = props => <Input {...props} onPaste={onPaste} />;
     }
@@ -248,10 +250,19 @@ function styled<
         selectRef.current = stateManager;
       }
     };
+    const hasSelectRef =
+      SelectComponent.defaultProps &&
+      'selectRef' in SelectComponent.defaultProps;
+
+    if (hasSelectRef) {
+      restProps.selectRef = setRef;
+    } else {
+      restProps.ref = setRef;
+    }
 
     return (
       <MaybeSortableSelect
-        ref={setRef}
+        selectRef={setRef}
         className={className}
         classNamePrefix={classNamePrefix}
         isMulti={isMulti}
@@ -287,7 +298,7 @@ export const Select = styled(WindowedSelect);
 export const AsyncSelect = styled(WindowedAsyncSelect);
 export const CreatableSelect = styled(WindowedCreatableSelect);
 export const AsyncCreatableSelect = styled(WindowedAsyncCreatableSelect);
-// Wrap with async pagination (infinite scroll). Cannot use windowed since options are appended dynamically which causes focus jumping
-// @ts-ignore
-export const PaginatedSelect = withAsyncPaginate(styled(BasicSelect));
+// Wrap with async pagination (infinite scroll). Cannot use windowed since options
+// are appended dynamically which causes focus jumping
+export const PaginatedSelect = styled(AsyncPaginate);
 export default Select;
