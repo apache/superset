@@ -3592,11 +3592,6 @@
     conventional-changelog-cli "^2.0.12"
     cz-conventional-changelog "^2.1.0"
 
-"@superset-ui/dimension@^0.13.21":
-  version "0.13.27"
-  resolved "https://registry.yarnpkg.com/@superset-ui/dimension/-/dimension-0.13.27.tgz#92b24cdca8fd19ea4439102539a92719fdf2c8f8"
-  integrity sha512-RuXzoMVel+UEN9WOG3IoAJxXVLO/KjIx/RzA15A0Z+U1TKXqiOMtxlI37o44QW/2p00q8hcEuwWnhPc49vHVtg==
-
 "@superset-ui/legacy-plugin-chart-word-cloud@^0.11.15":
   version "0.11.15"
   resolved "https://registry.yarnpkg.com/@superset-ui/legacy-plugin-chart-word-cloud/-/legacy-plugin-chart-word-cloud-0.11.15.tgz#70a146aaf3cf1977c29086c069f0216325f092b2"
@@ -3605,25 +3600,6 @@
     d3 "^3.5.17"
     d3-cloud "^1.2.1"
     prop-types "^15.6.2"
-
-"@superset-ui/number-format@^0.13.21":
-  version "0.13.27"
-  resolved "https://registry.yarnpkg.com/@superset-ui/number-format/-/number-format-0.13.27.tgz#215e33cb78a130a16f82a44c9f5a0b325a246514"
-  integrity sha512-9tddw8sZZkas9C3hWl5hvv3ZG2EAfDh8lmR0yh1YpTc5s6ME+JaJ3hvTyRw8O20i17khtx/VMQdoM8cjhiZIxg==
-  dependencies:
-    "@types/d3-format" "^1.3.0"
-    d3-format "^1.3.2"
-    pretty-ms "^7.0.0"
-
-"@superset-ui/time-format@^0.13.22":
-  version "0.13.27"
-  resolved "https://registry.yarnpkg.com/@superset-ui/time-format/-/time-format-0.13.27.tgz#7b1c449725b0c24605a745f2e51aec7106ec2737"
-  integrity sha512-3TSg0CO45Y4mkcqZjddGUqyNzUKpD3jcxtJLrnICk2BmuL9VPdQf2DIGqfjv+CGJ3c3ajAWePvKkv9ghn+QlIA==
-  dependencies:
-    "@types/d3-time" "^1.0.9"
-    "@types/d3-time-format" "^2.1.0"
-    d3-time "^1.0.10"
-    d3-time-format "^2.2.0"
 
 "@svgr/babel-plugin-add-jsx-attribute@^4.2.0":
   version "4.2.0"
@@ -13315,12 +13291,7 @@ modify-values@^1.0.0:
   resolved "https://registry.yarnpkg.com/modify-values/-/modify-values-1.0.1.tgz#b3939fa605546474e3e3e3c63d64bd43b4ee6022"
   integrity sha512-xV2bxeN6F7oYjZWTe/YPAy6MN2M+sL4u/Rlm2AHCIVGfo2p1yGmBHQ6vHehl4bRTZBdHu3TSkWdYgkwpYzAGSw==
 
-moment@^2.15.1, moment@^2.20.1, moment@^2.24.0:
-  version "2.27.0"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.27.0.tgz#8bff4e3e26a236220dfe3e36de756b6ebaa0105d"
-  integrity sha512-al0MUK7cpIcglMv3YF13qSgdAIqxHTO7brRtaz3DlSULbqfazqkc5kEjNrLDOM7fsjshoFIihnU8snrP7zUvhQ==
-
-moment@^2.26.0:
+moment@^2.15.1, moment@^2.20.1, moment@^2.24.0, moment@^2.26.0:
   version "2.27.0"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.27.0.tgz#8bff4e3e26a236220dfe3e36de756b6ebaa0105d"
   integrity sha512-al0MUK7cpIcglMv3YF13qSgdAIqxHTO7brRtaz3DlSULbqfazqkc5kEjNrLDOM7fsjshoFIihnU8snrP7zUvhQ==

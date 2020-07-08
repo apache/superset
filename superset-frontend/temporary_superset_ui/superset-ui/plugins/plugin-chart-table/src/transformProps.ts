@@ -17,21 +17,22 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { DataRecord, DataRecordValue } from '@superset-ui/chart';
+import { DataRecord } from '@superset-ui/chart';
 import { QueryFormDataMetric } from '@superset-ui/query';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import {
   getTimeFormatter,
   smartDateFormatter,
   getTimeFormatterForGranularity,
+  TimeFormatter,
 } from '@superset-ui/time-format';
 
 import isEqualArray from './utils/isEqualArray';
+import DateWithFormatter from './utils/DateWithFormatter';
 import { TableChartProps, TableChartTransformedProps, DataType, DataColumnMeta } from './types';
 
 const { PERCENT_3_POINT } = NumberFormats;
 const TIME_COLUMN = '__timestamp';
-const toString = (x: DataRecordValue) => String(x);
 
 /**
  * Consolidate list of metrics to string, identified by its unique identifier
@@ -49,7 +50,6 @@ function isTimeColumn(key: string) {
 }
 
 const REGEXP_DATETIME = /^\d{4}-[01]\d-[03]\d/;
-const REGEXP_TIMESTAMP_NO_TIMEZONE = /T(\d{2}:){2}\d{2}$/;
 function isTimeType(key: string, data: DataRecord[] = []) {
   return (
     isTimeColumn(key) ||
@@ -64,22 +64,27 @@ function isNumeric(key: string, data: DataRecord[] = []) {
   return data.every(x => x[key] === null || x[key] === undefined || typeof x[key] === 'number');
 }
 
-const processDataRecords = memoizeOne(function processDataRecords(data: DataRecord[] | undefined) {
-  if (!data || !data[0] || !(TIME_COLUMN in data[0])) {
+const processDataRecords = memoizeOne(function processDataRecords(
+  data: DataRecord[] | undefined,
+  columns: DataColumnMeta[],
+) {
+  if (!data || !data[0]) {
     return data || [];
   }
-  return data.map(x => {
-    const datum: typeof x = {};
-    Object.entries(x).forEach(([key, value]) => {
-      // force UTC time for all timestamps without a timezone
-      if (typeof value === 'string' && REGEXP_TIMESTAMP_NO_TIMEZONE.test(value)) {
-        datum[key] = `${value}Z`;
-      } else {
-        datum[key] = value;
-      }
+  const timeColumns = columns.filter(column => column.dataType === DataType.DateTime);
+
+  if (timeColumns.length > 0) {
+    return data.map(x => {
+      const datum = { ...x };
+      timeColumns.forEach(({ key, formatter }) => {
+        // Convert datetime with a custom date class so we can use `String(...)`
+        // formatted value for global search, and `date.getTime()` for sorting.
+        datum[key] = new DateWithFormatter(x[key], { formatter: formatter as TimeFormatter });
+      });
+      return datum;
     });
-    return datum;
-  });
+  }
+  return data;
 });
 
 const isEqualColumns = <T extends TableChartProps[]>(propsA: T, propsB: T) => {
@@ -141,7 +146,7 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
         } else {
           // return the identity string when datasource level formatter is not set
           // and table timestamp format is set to Adaptive Formatting
-          formatter = toString;
+          formatter = String;
         }
       }
       dataType = DataType.DateTime;
@@ -205,8 +210,8 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     orderDesc: sortDesc = false,
   } = formData;
 
-  const data = processDataRecords(queryData?.data?.records);
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
+  const data = processDataRecords(queryData?.data?.records, columns);
 
   return {
     height,
