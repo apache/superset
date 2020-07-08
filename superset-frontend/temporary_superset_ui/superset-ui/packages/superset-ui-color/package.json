@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/color",
-  "version": "0.14.3",
+  "version": "0.14.9",
   "description": "Superset UI color",
   "sideEffects": false,
   "main": "lib/index.js",
