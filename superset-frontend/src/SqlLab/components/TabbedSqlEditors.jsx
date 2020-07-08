@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { MenuItem, DropdownButton, Tab, Tabs } from 'react-bootstrap';
+import { MenuItem, SplitButton, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
@@ -288,20 +288,22 @@ class TabbedSqlEditors extends React.PureComponent {
 
       const title = (
         <>
-          {qe.title} <TabStatusIcon tabState={state} />{' '}
-          <span className="close" onClick={() => this.removeQueryEditor(qe)}>
-            {'×'}
-          </span>
+          <TabStatusIcon
+            onClose={() => this.removeQueryEditor(qe)}
+            tabState={state}
+          />{' '}
+          {qe.title}{' '}
         </>
       );
       const tabTitle = (
         <>
+          <span className="ddbtn-tab">{title}</span>
           {isSelected && (
-            <DropdownButton
+            <SplitButton
               bsSize="small"
               id={'ddbtn-tab-' + i}
-              title={' '}
-              noCaret
+              className="ddbtn-tab"
+              title="&nbsp;"
             >
               <MenuItem
                 className="close-btn"
@@ -345,9 +347,8 @@ class TabbedSqlEditors extends React.PureComponent {
                 </div>
                 {t('Duplicate tab')}
               </MenuItem>
-            </DropdownButton>
+            </SplitButton>
           )}
-          <span className="ddbtn-tab">{title}</span>
         </>
       );
       return (
