@@ -170,7 +170,7 @@
           }
         },
         {
-          "files": "*.test.{js,jsx,ts,tsx}",
+          "files": "**/test/**/*",
           "rules": {
             "import/no-extraneous-dependencies": "off",
             "promise/param-names": "off",
