@@ -87,3 +87,35 @@ class DatasetPutSchema(Schema):
     owners = fields.List(fields.Integer())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
+
+
+class DatasetRelatedChart(Schema):
+    id = fields.Integer()
+    slice_name = fields.String()
+    viz_type = fields.String()
+
+
+class DatasetRelatedDashboard(Schema):
+    id = fields.Integer()
+    json_metadata = fields.Dict()
+    slug = fields.String()
+    title = fields.String()
+
+
+class DatasetRelatedCharts(Schema):
+    count = fields.Integer(description="Chart count")
+    result = fields.List(
+        fields.Nested(DatasetRelatedChart), description="A list of dashboards"
+    )
+
+
+class DatasetRelatedDashboards(Schema):
+    count = fields.Integer(description="Dashboard count")
+    result = fields.List(
+        fields.Nested(DatasetRelatedDashboard), description="A list of dashboards"
+    )
+
+
+class DatasetRelatedObjectsResponse(Schema):
+    charts = fields.Nested(DatasetRelatedCharts)
+    dashboards = fields.Nested(DatasetRelatedDashboards)
