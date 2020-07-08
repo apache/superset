@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import SupersetClientClass from './SupersetClientClass';
 
 export type Body = RequestInit['body'];
@@ -36,9 +54,10 @@ export type JsonArray = JsonValue[];
 export type JsonObject = { [member: string]: any };
 
 /**
- * Post form or JSON payload, if string, will parse with JSON.parse
+ * Request payload, can be use in GET query string, Post form or POST JSON.
+ * If string, will parse with JSON.parse.
  */
-export type Payload = JsonObject | string;
+export type Payload = JsonObject | string | null;
 
 export type Method = RequestInit['method'];
 export type Mode = RequestInit['mode'];
@@ -57,8 +76,9 @@ export interface RequestBase {
   host?: Host;
   mode?: Mode;
   method?: Method;
-  postPayload?: Payload;
   jsonPayload?: Payload;
+  postPayload?: Payload | FormData;
+  searchParams?: Payload | URLSearchParams;
   signal?: Signal;
   stringify?: Stringify;
   timeout?: ClientTimeout;

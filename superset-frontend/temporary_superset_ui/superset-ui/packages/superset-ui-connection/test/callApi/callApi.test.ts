@@ -488,4 +488,79 @@ describe('callApi()', () => {
       expect(error.message).toEqual('Invalid payload:\n\nhaha');
     }
   });
+
+  it('should accept search params object', async () => {
+    expect.assertions(3);
+    window.location.href = 'http://localhost';
+    fetchMock.get(`glob:*/get-search*`, { yes: 'ok' });
+    const response = await callApi({
+      url: '/get-search',
+      searchParams: {
+        abc: 1,
+      },
+      method: 'GET',
+    });
+    const result = await response.json();
+    expect(response.status).toEqual(200);
+    expect(result).toEqual({ yes: 'ok' });
+    expect(fetchMock.lastUrl()).toEqual(`http://localhost/get-search?abc=1`);
+  });
+
+  it('should accept URLSearchParams', async () => {
+    expect.assertions(2);
+    window.location.href = 'http://localhost';
+    fetchMock.post(`glob:*/post-search*`, { yes: 'ok' });
+    await callApi({
+      url: '/post-search',
+      searchParams: new URLSearchParams({
+        abc: '1',
+      }),
+      method: 'POST',
+      jsonPayload: { request: 'ok' },
+    });
+    expect(fetchMock.lastUrl()).toEqual(`http://localhost/post-search?abc=1`);
+    expect(fetchMock.lastOptions()).toEqual(
+      expect.objectContaining({
+        body: JSON.stringify({ request: 'ok' }),
+      }),
+    );
+  });
+
+  it('should throw when both payloads provided', async () => {
+    expect.assertions(1);
+    fetchMock.post('/post-both-payload', {});
+    try {
+      await callApi({
+        url: '/post-both-payload',
+        method: 'POST',
+        postPayload: { a: 1 },
+        jsonPayload: '{}',
+      });
+    } catch (error) {
+      expect((error as Error).message).toContain('provide only one of jsonPayload or postPayload');
+    }
+  });
+
+  it('should accept FormData as postPayload', async () => {
+    expect.assertions(1);
+    fetchMock.post('/post-formdata', {});
+    const payload = new FormData();
+    await callApi({
+      url: '/post-formdata',
+      method: 'POST',
+      postPayload: payload,
+    });
+    expect(fetchMock.lastOptions().body).toBe(payload);
+  });
+
+  it('should ignore "null" postPayload string', async () => {
+    expect.assertions(1);
+    fetchMock.post('/post-null-postpayload', {});
+    await callApi({
+      url: '/post-formdata',
+      method: 'POST',
+      postPayload: 'null',
+    });
+    expect(fetchMock.lastOptions().body).toBeUndefined();
+  });
 });

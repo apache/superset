@@ -43,6 +43,8 @@ export type BaseFormData = {
   limit?: number;
   /** limit number of row in the results */
   row_limit?: string | number | null;
+  /** row offset for server side pagination */
+  row_offset?: string | number | null;
   /** The metric used to order timeseries for limiting */
   timeseries_limit_metric?: QueryFormResidualDataValue;
   /** Force refresh */

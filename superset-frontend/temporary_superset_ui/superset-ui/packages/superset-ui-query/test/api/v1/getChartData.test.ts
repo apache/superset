@@ -16,23 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as ApiLegacy from './api/legacy';
-import * as ApiV1 from './api/v1';
+import fetchMock from 'fetch-mock';
+import { buildQueryContext, ApiV1 } from '../../../src';
+import setupClientForTest from '../setupClientForTest';
 
-export { default as buildQueryContext } from './buildQueryContext';
-export { default as buildQueryObject } from './buildQueryObject';
-export { default as convertFilter } from './convertFilter';
-export { default as convertMetric } from './convertMetric';
-export { default as DatasourceKey } from './DatasourceKey';
+describe('API v1 > getChartData()', () => {
+  beforeAll(setupClientForTest);
+  afterEach(fetchMock.restore);
 
-export * from './types/QueryFormData';
-export * from './types/Column';
-export * from './types/Datasource';
-export * from './types/Metric';
-export * from './types/Query';
+  it('returns a promise of ChartDataResponse', async () => {
+    const response = {
+      result: [
+        {
+          field1: 'abc',
+          field2: 'def',
+        },
+      ],
+    };
 
-export * from './api/v1/types';
-export { default as makeApi } from './api/v1/makeApi';
+    fetchMock.post('glob:*/api/v1/chart/data', response);
 
-// API Callers
-export { ApiLegacy, ApiV1 };
+    const result = await ApiV1.getChartData(
+      buildQueryContext({
+        granularity: 'minute',
+        viz_type: 'word_cloud',
+        datasource: '1__table',
+      }),
+    );
+    return expect(result).toEqual(response);
+  });
+});

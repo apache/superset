@@ -1,4 +1,4 @@
-import { SupersetClient, RequestConfig } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/connection';
 import { Datasource } from '../../types/Datasource';
 import { BaseParams } from '../types';
 
@@ -15,6 +15,6 @@ export default function getDatasourceMetadata({
     .get({
       endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
       ...requestConfig,
-    } as RequestConfig)
+    })
     .then(response => response.json as Datasource);
 }

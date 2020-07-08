@@ -27,14 +27,11 @@ describe('SupersetClientClass', () => {
 
   afterAll(fetchMock.restore);
 
-  it('new SupersetClientClass()', () => {
-    const client = new SupersetClientClass();
-    expect(client).toBeInstanceOf(SupersetClientClass);
-  });
-
-  it('fallback protocol to https when setting only host', () => {
-    const client = new SupersetClientClass({ host: 'TEST-HOST' });
-    expect(client.baseUrl).toEqual('https://test-host');
+  describe('new SupersetClientClass()', () => {
+    it('fallback protocol to https when setting only host', () => {
+      const client = new SupersetClientClass({ host: 'TEST-HOST' });
+      expect(client.baseUrl).toEqual('https://test-host');
+    });
   });
 
   describe('.getUrl()', () => {

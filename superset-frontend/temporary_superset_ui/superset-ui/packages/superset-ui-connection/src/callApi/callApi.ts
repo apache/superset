@@ -1,7 +1,29 @@
 import 'whatwg-fetch';
 import fetchRetry from 'fetch-retry';
-import { CallApi, JsonObject, JsonValue } from '../types';
+import { CallApi, Payload, JsonValue } from '../types';
 import { CACHE_AVAILABLE, CACHE_KEY, HTTP_STATUS_NOT_MODIFIED, HTTP_STATUS_OK } from '../constants';
+
+function tryParsePayload(payload: Payload) {
+  try {
+    return typeof payload === 'string' ? (JSON.parse(payload) as JsonValue) : payload;
+  } catch (error) {
+    throw new Error(`Invalid payload:\n\n${payload}`);
+  }
+}
+
+/**
+ * Try appending search params to an URL if needed.
+ */
+function getFullUrl(partialUrl: string, params: CallApi['searchParams']) {
+  if (params) {
+    const url = new URL(partialUrl, window.location.href);
+    const search = params instanceof URLSearchParams ? params : new URLSearchParams(params);
+    // will completely override any existing search params
+    url.search = search.toString();
+    return url.href;
+  }
+  return partialUrl;
+}
 
 /**
  * Fetch an API response and returns the corresponding json.
@@ -23,9 +45,11 @@ export default async function callApi({
   redirect = 'follow',
   signal,
   stringify = true,
-  url,
+  url: url_,
+  searchParams,
 }: CallApi): Promise<Response> {
   const fetchWithRetry = fetchRetry(fetch, fetchRetryOptions);
+  const url = `${getFullUrl(url_, searchParams)}`;
 
   const request = {
     body,
@@ -53,7 +77,9 @@ export default async function callApi({
       const etag = cachedResponse.headers.get('Etag') as string;
       request.headers = { ...request.headers, 'If-None-Match': etag };
     }
+
     const response = await fetchWithRetry(url, request);
+
     if (response.status === HTTP_STATUS_NOT_MODIFIED) {
       const cachedFullResponse = await supersetCache.match(url);
       if (cachedFullResponse) {
@@ -65,33 +91,32 @@ export default async function callApi({
       supersetCache.delete(url);
       supersetCache.put(url, response.clone());
     }
+
     return response;
   }
 
   if (method === 'POST' || method === 'PATCH' || method === 'PUT') {
-    const tryParsePayload = (payloadString: string) => {
-      try {
-        return JSON.parse(payloadString) as JsonObject;
-      } catch (error) {
-        throw new Error(`Invalid payload:\n\n${payloadString}`);
+    if (postPayload && jsonPayload) {
+      throw new Error('Please provide only one of jsonPayload or postPayload');
+    }
+    if (postPayload instanceof FormData) {
+      request.body = postPayload;
+    } else if (postPayload) {
+      const payload = tryParsePayload(postPayload);
+      if (payload && typeof payload === 'object') {
+        // using FormData has the effect that Content-Type header is set to `multipart/form-data`,
+        // not e.g., 'application/x-www-form-urlencoded'
+        const formData: FormData = new FormData();
+        Object.keys(payload).forEach(key => {
+          const value = payload[key] as JsonValue;
+          if (typeof value !== 'undefined') {
+            formData.append(key, stringify ? JSON.stringify(value) : String(value));
+          }
+        });
+        request.body = formData;
       }
-    };
-    // override request body with post payload
-    const payload: JsonObject | undefined =
-      typeof postPayload === 'string' ? tryParsePayload(postPayload) : postPayload;
-
-    if (typeof payload === 'object') {
-      // using FormData has the effect that Content-Type header is set to `multipart/form-data`,
-      // not e.g., 'application/x-www-form-urlencoded'
-      const formData: FormData = new FormData();
-      Object.keys(payload).forEach(key => {
-        const value = payload[key] as JsonValue;
-        if (typeof value !== 'undefined') {
-          formData.append(key, stringify ? JSON.stringify(value) : String(value));
-        }
-      });
-      request.body = formData;
-    } else if (jsonPayload !== undefined) {
+    }
+    if (jsonPayload !== undefined) {
       request.body = JSON.stringify(jsonPayload);
       request.headers = { ...request.headers, 'Content-Type': 'application/json' };
     }

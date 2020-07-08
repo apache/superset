@@ -24,6 +24,7 @@ export default function extractQueryFields(
   Object.entries(residualFormData).forEach(entry => {
     const [key, residualValue] = entry;
     const normalizedKey = queryFieldAliases[key] || key;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     finalQueryFields[normalizedKey] = (finalQueryFields[normalizedKey] || []).concat(residualValue);
   });
   return finalQueryFields;
