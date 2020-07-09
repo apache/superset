@@ -144,6 +144,10 @@ export function getControlStateFromControlConfig(
       controlState,
       controlPanelState,
     );
+    // if default is still a function, discard
+    if (typeof controlState.default === 'function') {
+      delete controlState.default;
+    }
   }
 
   // If a choice control went from multi=false to true, wrap value in array
