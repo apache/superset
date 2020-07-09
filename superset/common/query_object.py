@@ -28,7 +28,12 @@ from superset import app, is_feature_enabled
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric
 from superset.utils import pandas_postprocessing
-from superset.utils.core import DTTM_ALIAS, get_metric_names, json_int_dttm_ser
+from superset.utils.core import (
+    DTTM_ALIAS,
+    find_duplicates,
+    get_metric_names,
+    json_int_dttm_ser,
+)
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
 from superset.views.utils import get_time_range_endpoints
 
@@ -106,6 +111,8 @@ class QueryObject:
     ):
         annotation_layers = annotation_layers or []
         metrics = metrics or []
+        columns = columns or []
+        groupby = groupby or []
         extras = extras or {}
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         self.annotation_layers = [
@@ -126,19 +133,18 @@ class QueryObject:
             time_range=time_range,
             time_shift=time_shift,
         )
-        # is_timeseries is True if time column is in groupby
+        # is_timeseries is True if time column is in either columns or groupby
+        # (both are dimensions)
         self.is_timeseries = (
             is_timeseries
             if is_timeseries is not None
-            else (DTTM_ALIAS in groupby if groupby else False)
+            else DTTM_ALIAS in columns + groupby
         )
         self.time_range = time_range
         self.time_shift = parse_human_timedelta(time_shift)
         self.post_processing = [
             post_proc for post_proc in post_processing or [] if post_proc
         ]
-        if not is_sip_38:
-            self.groupby = groupby or []
 
         # Support metric reference/definition in the format of
         #   1. 'metric_name'   - name of predefined metric
@@ -162,13 +168,16 @@ class QueryObject:
         if config["SIP_15_ENABLED"] and "time_range_endpoints" not in self.extras:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
 
-        self.columns = columns or []
-        if is_sip_38 and groupby:
-            self.columns += groupby
-            logger.warning(
-                "The field `groupby` is deprecated. Viz plugins should "
-                "pass all selectables via the `columns` field"
-            )
+        self.columns = columns
+        if is_sip_38:
+            if groupby:
+                logger.warning(
+                    "The field `groupby` is deprecated. Viz plugins should "
+                    "pass all selectables via the `columns` field"
+                )
+                self.columns += groupby
+        else:
+            self.groupby = groupby or []
 
         self.orderby = orderby or []
 
@@ -214,7 +223,33 @@ class QueryObject:
 
     @property
     def metric_names(self) -> List[str]:
+        """Return metrics names (labels), coerce adhoc metrics to strings."""
         return get_metric_names(self.metrics)
+
+    @property
+    def column_names(self) -> List[str]:
+        """Return column names (labels). Reserved for future adhoc calculated
+        columns."""
+        return self.columns
+
+    def validate(
+        self, raise_exceptions: Optional[bool] = True
+    ) -> Optional[QueryObjectValidationError]:
+        """Validate query object"""
+        error: Optional[QueryObjectValidationError] = None
+        all_labels = self.metric_names + self.column_names
+        if len(set(all_labels)) < len(all_labels):
+            dup_labels = find_duplicates(all_labels)
+            error = QueryObjectValidationError(
+                _(
+                    "Duplicate column/metric labels: %(labels)s. Please make "
+                    "sure all columns and metrics have a unique label.",
+                    labels=", ".join(f'"{x}"' for x in dup_labels),
+                )
+            )
+        if error and raise_exceptions:
+            raise error
+        return error
 
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {
