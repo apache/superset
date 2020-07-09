@@ -181,7 +181,7 @@ def test_get_create_table_stmt() -> None:
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
                 ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
                 STORED AS TEXTFILE LOCATION :location
-                tblproperties ('skip.header.line.count'=':header_line_count', 'serialization.null.format'=':null_value')""",
+                tblproperties ('skip.header.line.count'=:header_line_count, 'serialization.null.format'=:null_value)""",
         {
             "delim": ",",
             "location": "s3a://directory/table",
@@ -195,7 +195,7 @@ def test_get_create_table_stmt() -> None:
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
                 ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
                 STORED AS TEXTFILE LOCATION :location
-                tblproperties ('skip.header.line.count'=':header_line_count', 'serialization.null.format'=':null_value')""",
+                tblproperties ('skip.header.line.count'=:header_line_count, 'serialization.null.format'=:null_value)""",
         {
             "delim": ",",
             "location": "s3a://directory/table",
@@ -209,7 +209,7 @@ def test_get_create_table_stmt() -> None:
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
                 ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
                 STORED AS TEXTFILE LOCATION :location
-                tblproperties ('skip.header.line.count'=':header_line_count', 'serialization.null.format'=':null_value')""",
+                tblproperties ('skip.header.line.count'=:header_line_count, 'serialization.null.format'=:null_value)""",
         {
             "delim": ",",
             "location": "s3a://directory/table",
@@ -231,6 +231,6 @@ def test_get_create_table_stmt() -> None:
         """CREATE TABLE employee ( eid int, name String, salary String, destination String )
                 ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
                 STORED AS TEXTFILE LOCATION :location
-                tblproperties ('skip.header.line.count'=':header_line_count')""",
+                tblproperties ('skip.header.line.count'=:header_line_count)""",
         {"delim": ",", "location": "s3a://directory/table", "header_line_count": "101"},
     )
