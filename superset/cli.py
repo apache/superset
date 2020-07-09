@@ -530,7 +530,7 @@ def compute_thumbnails(
                     "Superset.slice", slice_id=model.id, standalone="true"
                 )
             else:
-                url = get_url_path("Superset.dashboard", dashboard_id=model.id)
+                url = get_url_path("Superset.dashboard", dashboard_id_or_slug=model.id)
             func(url, model.digest, force=force)
 
     if not charts_only:
