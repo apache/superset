@@ -380,7 +380,7 @@ class FilterBox extends React.Component {
         onBlur={this.onFilterMenuClose}
         onMenuClose={this.onFilterMenuClose}
         selectWrap={
-          [FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
+          filterConfig[FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
           data.length >= FILTER_OPTIONS_LIMIT
             ? AsyncCreatableSelect
             : CreatableSelect
