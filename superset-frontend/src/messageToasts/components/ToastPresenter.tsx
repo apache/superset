@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import styled from '@superset-ui/style';
+import { ToastType } from 'src/messageToasts/types';
 import Toast from './Toast';
 
 const StyledToastPresenter = styled.div`
@@ -65,12 +66,6 @@ const StyledToastPresenter = styled.div`
     transform: translateY(0);
   }
 `;
-
-type ToastType =
-  | 'INFO_TOAST'
-  | 'SUCCESS_TOAST'
-  | 'WARNING_TOAST'
-  | 'DANGER_TOAST';
 
 type ToastShape = {
   id: string;

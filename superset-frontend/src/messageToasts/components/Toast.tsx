@@ -22,6 +22,7 @@ import cx from 'classnames';
 import Interweave from 'interweave';
 import React from 'react';
 import Icon from 'src/components/Icon';
+import { ToastType } from 'src/messageToasts/types';
 
 import {
   INFO_TOAST,
@@ -39,12 +40,6 @@ const ToastContianer = styled.div`
     padding: 0 11px;
   }
 `;
-
-type ToastType =
-  | 'INFO_TOAST'
-  | 'SUCCESS_TOAST'
-  | 'WARNING_TOAST'
-  | 'DANGER_TOAST';
 
 interface ToastPresenterProps {
   toast: { id: string; toastType: ToastType; text: string; duration: number };
