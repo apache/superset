@@ -32,13 +32,13 @@ const props = {
 const setup = overrideProps => mount(<Toast {...props} {...overrideProps} />);
 
 describe('Toast', () => {
-  const wrapper = setup();
-
   it('should render an Alert', () => {
+    const wrapper = setup();
     expect(wrapper.find(Alert)).toHaveLength(1);
   });
 
   it('should render toastText within the alert', () => {
+    const wrapper = setup();
     const alert = wrapper.find(Alert);
 
     expect(alert.childAt(0).childAt(1).text()).toBe(props.toast.text);
@@ -47,12 +47,13 @@ describe('Toast', () => {
   it('should call onCloseToast upon alert dismissal', () => {
     const onCloseToast = id => {
       expect(id).toBe(props.toast.id);
-      done();
     };
     const wrapper = setup({ onCloseToast });
-    const handleClosePress = wrapper.instance().handleClosePress;
-    console.log('handleClosePress', handleClosePress);
-    expect(wrapper.find(Alert).prop('onDismiss')).toBe(handleClosePress);
+    const handleClosePress = wrapper.find('[label="Close alert"]').props()
+      .onClick;
+
+    const alertProps = wrapper.find(Alert).props();
+    expect(alertProps.onDismiss).toBe(handleClosePress);
 
     handleClosePress(); // there is a timeout for onCloseToast to be called
   });
