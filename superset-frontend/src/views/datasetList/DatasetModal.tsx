@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import styled from '@superset-ui/style';
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
