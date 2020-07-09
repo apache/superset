@@ -192,7 +192,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { state, original } }: any) => {
+      Cell: ({ row: { original } }: any) => {
         const handleDelete = () => this.handleDashboardDelete(original);
         const handleEdit = () => this.openDashboardEditModal(original);
         const handleExport = () => this.handleBulkDashboardExport([original]);
@@ -200,9 +200,7 @@ class DashboardList extends React.PureComponent<Props, State> {
           return null;
         }
         return (
-          <span
-            className={`actions ${state && state.hover ? '' : 'invisible'}`}
-          >
+          <span className="actions">
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}

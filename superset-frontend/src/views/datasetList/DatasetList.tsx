@@ -349,16 +349,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { state, original } }: any) => {
+      Cell: ({ row: { original } }: any) => {
         const handleEdit = () => handleDatasetEdit(original);
         const handleDelete = () => openDatasetDeleteModal(original);
         if (!canEdit() && !canDelete()) {
           return null;
         }
         return (
-          <span
-            className={`actions ${state && state.hover ? '' : 'invisible'}`}
-          >
+          <span className="actions">
             <TooltipWrapper
               label="explore-action"
               tooltip={t('Explore')}

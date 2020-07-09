@@ -104,8 +104,16 @@
     }
 
     .table-row {
+      .actions {
+        visibility: hidden;
+      }
+
       &:hover {
         background-color: @brand-secondary-light5;
+
+        .actions {
+          visibility: visible;
+        }
       }
     }
 

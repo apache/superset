@@ -174,7 +174,7 @@ class ChartList extends React.PureComponent<Props, State> {
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { state, original } }: any) => {
+      Cell: ({ row: { original } }: any) => {
         const handleDelete = () => this.handleChartDelete(original);
         const openEditModal = () => this.openChartEditModal(original);
         if (!this.canEdit && !this.canDelete) {
@@ -182,9 +182,7 @@ class ChartList extends React.PureComponent<Props, State> {
         }
 
         return (
-          <span
-            className={`actions ${state && state.hover ? '' : 'invisible'}`}
-          >
+          <span className="actions">
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
