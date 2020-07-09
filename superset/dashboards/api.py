@@ -510,7 +510,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         if not dashboard:
             return self.response_404()
 
-        dashboard_url = get_url_path("Superset.dashboard", dashboard_id=dashboard.id)
+        dashboard_url = get_url_path(
+            "Superset.dashboard", dashboard_id_or_slug=dashboard.id
+        )
         # If force, request a screenshot from the workers
         if kwargs["rison"].get("force", False):
             cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
