@@ -38,7 +38,6 @@ import {
 } from '../NVD3Controls';
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     timeSeriesSection[0],
     {

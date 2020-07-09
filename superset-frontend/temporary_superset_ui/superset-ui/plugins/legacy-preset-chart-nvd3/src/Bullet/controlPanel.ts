@@ -19,7 +19,6 @@
 import { t } from '@superset-ui/translation';
 
 export default {
-  requiresTime: false,
   controlPanelSections: [
     {
       label: t('Query'),

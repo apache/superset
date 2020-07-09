@@ -26,7 +26,6 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     {
       label: t('Query'),

@@ -33,7 +33,6 @@ import {
 } from '../NVD3Controls';
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     {
       label: t('Query'),
