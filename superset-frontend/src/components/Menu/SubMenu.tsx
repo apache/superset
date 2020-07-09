@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import styled from '@superset-ui/style';
-import DatasetModal from 'src/views/datasetList/DatasetModal';
 import { Button, Nav, Navbar, MenuItem } from 'react-bootstrap';
 
 const StyledHeader = styled.header`
@@ -29,17 +28,26 @@ const StyledHeader = styled.header`
 
   .navbar-right {
     .btn-default {
-      background-color: ${({ theme }) => theme.colors.primary.base};
-      border-radius: 4px;
+      border-radius: ${({ theme }) => theme.gridUnit}px;
       border: none;
       color: ${({ theme }) => theme.colors.secondary.light5};
       font-size: ${({ theme }) => theme.typography.sizes.s};
       font-weight: ${({ theme }) => theme.typography.weights.bold};
-      margin: 8px 43px;
-      padding: 8px 51px 8px 43px;
+      margin: ${({ theme }) => theme.gridUnit * 2}px
+        ${({ theme }) => theme.gridUnit * 4}px
+        ${({ theme }) => theme.gridUnit * 2}px 0;
+      min-width: 144px;
       text-transform: uppercase;
       i {
-        padding: 4px ${({ theme }) => theme.typography.sizes.xs};
+        padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
+      }
+
+      &.primaryButton {
+        background-color: ${({ theme }) => theme.colors.primary.base};
+      }
+      &.secondaryButton {
+        color: ${({ theme }) => theme.colors.primary.base};
+        background-color: ${({ theme }) => theme.colors.primary.light4};
       }
     }
   }
@@ -48,8 +56,8 @@ const StyledHeader = styled.header`
     li {
       a {
         font-size: ${({ theme }) => theme.typography.sizes.s};
-        padding: 8px;
-        margin: 8px;
+        padding: ${({ theme }) => theme.gridUnit * 2}px;
+        margin: ${({ theme }) => theme.gridUnit * 2}px;
         color: ${({ theme }) => theme.colors.secondary.dark1};
       }
     }
@@ -63,70 +71,63 @@ const StyledHeader = styled.header`
   }
 `;
 
-interface SubMenuProps {
-  canCreate?: boolean;
-  childs?: Array<{ label: string; name: string; url: string }>;
-  createButton?: { name: string; url: string | null };
-  fetchData?: () => void;
+type MenuChild = {
+  label: string;
   name: string;
+  url: string;
+};
+
+export interface SubMenuProps {
+  primaryButton?: {
+    name: React.ReactNode;
+    onClick: React.MouseEventHandler<Button>;
+  };
+  secondaryButton?: {
+    name: React.ReactNode;
+    onClick: React.MouseEventHandler<Button>;
+  };
+  name: string;
+  children?: MenuChild[];
+  activeChild?: MenuChild['name'];
 }
 
-const SubMenu = ({
-  canCreate,
-  childs,
-  createButton,
-  fetchData,
-  name,
-}: SubMenuProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState<string | undefined>(
-    childs?.[0]?.label,
-  );
-
-  const onOpen = () => {
-    setIsModalOpen(true);
-  };
-
-  const onClose = () => {
-    setIsModalOpen(false);
-  };
-
-  const handleClick = (item: string) => () => {
-    setSelectedMenu(item);
-  };
-
+const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
   return (
     <StyledHeader>
       <Navbar inverse fluid role="navigation">
         <Navbar.Header>
-          <Navbar.Brand>{name}</Navbar.Brand>
+          <Navbar.Brand>{props.name}</Navbar.Brand>
         </Navbar.Header>
-        <DatasetModal
-          fetchData={fetchData}
-          onHide={onClose}
-          show={isModalOpen}
-        />
         <Nav>
-          {childs &&
-            childs.map(child => (
+          {props.children &&
+            props.children.map(child => (
               <MenuItem
-                active={child.label === selectedMenu}
-                eventKey={`${child.name}`}
-                href={child.url}
+                active={child.name === props.activeChild}
                 key={`${child.label}`}
-                onClick={handleClick(child.label)}
+                href={child.url}
               >
                 {child.label}
               </MenuItem>
             ))}
         </Nav>
-        {canCreate && createButton && (
-          <Nav className="navbar-right">
-            <Button onClick={onOpen}>
-              <i className="fa fa-plus" /> {createButton.name}
+        <Nav className="navbar-right">
+          {props.secondaryButton && (
+            <Button
+              className="secondaryButton"
+              onClick={props.secondaryButton.onClick}
+            >
+              {props.secondaryButton.name}
             </Button>
-          </Nav>
-        )}
+          )}
+          {props.primaryButton && (
+            <Button
+              className="primaryButton"
+              onClick={props.primaryButton.onClick}
+            >
+              {props.primaryButton.name}
+            </Button>
+          )}
+        </Nav>
       </Navbar>
     </StyledHeader>
   );
