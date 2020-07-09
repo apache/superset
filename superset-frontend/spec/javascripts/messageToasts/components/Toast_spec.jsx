@@ -45,16 +45,19 @@ describe('Toast', () => {
   });
 
   it('should call onCloseToast upon alert dismissal', () => {
-    const onCloseToast = id => {
-      expect(id).toBe(props.toast.id);
-    };
-    const wrapper = setup({ onCloseToast });
-    const handleClosePress = wrapper.find('[label="Close alert"]').props()
-      .onClick;
+    return new Promise(done => {
+      const onCloseToast = id => {
+        expect(id).toBe(props.toast.id);
+        done();
+      };
 
-    const alertProps = wrapper.find(Alert).props();
-    expect(alertProps.onDismiss).toBe(handleClosePress);
+      const wrapper = setup({ onCloseToast });
+      const handleClosePress = wrapper.find('[label="Close alert"]').props()
+        .onClick;
 
-    handleClosePress(); // there is a timeout for onCloseToast to be called
+      const alertProps = wrapper.find(Alert).props();
+      expect(alertProps.onDismiss).toBe(handleClosePress);
+      handleClosePress(); // there is a timeout for onCloseToast to be called
+    });
   });
 });
