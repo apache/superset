@@ -21,7 +21,6 @@ import { sections } from '@superset-ui/chart-controls';
 import { xAxisFormat, yAxis2Format } from '../NVD3Controls';
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     {
       label: t('Chart Options'),

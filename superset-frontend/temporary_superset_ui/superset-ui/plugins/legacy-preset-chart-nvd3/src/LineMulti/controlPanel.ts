@@ -42,7 +42,6 @@ export type Data = {
 };
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     {
       label: t('Chart Options'),
