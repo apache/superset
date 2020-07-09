@@ -21,27 +21,33 @@ import shortid from 'shortid';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 import { getChartKey } from '../exploreUtils';
 import { getControlsState } from '../store';
-import { getFormDataFromControls } from '../controlUtils';
+import { getFormDataFromControls, applyMapStateToPropsToControl } from '../controlUtils';
 
 export default function getInitialState(bootstrapData) {
-  const controls = getControlsState(bootstrapData, bootstrapData.form_data);
-  const rawFormData = { ...bootstrapData.form_data };
-
+  const { form_data: rawFormData } = bootstrapData;
+  const slice = bootstrapData.slice;
+  const sliceName = slice ? slice.slice_name : null;
   const bootstrappedState = {
     ...bootstrapData,
+    sliceName,
     common: {
       flash_messages: bootstrapData.common.flash_messages,
       conf: bootstrapData.common.conf,
     },
     rawFormData,
-    controls,
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
   };
+  const controls = getControlsState(bootstrappedState, rawFormData);
 
-  const slice = bootstrappedState.slice;
-  const sliceName = slice ? slice.slice_name : null;
+  bootstrappedState.controls = controls;
+
+  // apply initial mapStateToProps for all controls, must be done after
+  // bootstrapState has initialized `controls`.
+  Object.values(controls).forEach(controlState => {
+    applyMapStateToPropsToControl(controlState, bootstrappedState);
+  });
 
   const sliceFormData = slice
     ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
@@ -69,10 +75,7 @@ export default function getInitialState(bootstrapData) {
       dashboards: [],
       saveModalAlert: null,
     },
-    explore: {
-      ...bootstrappedState,
-      sliceName,
-    },
+    explore: bootstrappedState,
     impressionId: shortid.generate(),
     messageToasts: getToastsFromPyFlashMessages(
       (bootstrapData.common || {}).flash_messages || [],

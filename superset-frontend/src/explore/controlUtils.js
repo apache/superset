@@ -88,15 +88,17 @@ export const getControlConfig = memoizeOne(function getControlConfig(
   return control?.config || control;
 });
 
-export function applyMapStateToPropsToControl(control, state) {
-  if (control.mapStateToProps) {
-    const appliedControl = { ...control };
-    if (state) {
-      Object.assign(appliedControl, control.mapStateToProps(state, control));
-    }
-    return appliedControl;
+/**
+ * Call `mapStateToProps` from controlState and update it in place.
+ */
+export function applyMapStateToPropsToControl(controlState, controlPanelState) {
+  if (controlState.mapStateToProps && controlPanelState) {
+    Object.assign(
+      controlState,
+      controlState.mapStateToProps(controlPanelState, controlState),
+    );
   }
-  return control;
+  return controlState;
 }
 
 function handleMissingChoice(control) {
@@ -121,15 +123,20 @@ function handleMissingChoice(control) {
   return control;
 }
 
-export function getControlStateFromControlConfig(controlConfig, state, value) {
+export function getControlStateFromControlConfig(
+  controlConfig,
+  controlPanelState,
+  value,
+) {
   // skip invalid config values
   if (!controlConfig) {
     return null;
   }
-  const controlState = applyMapStateToPropsToControl(
-    { ...controlConfig },
-    state,
-  );
+  const controlState = { ...controlConfig };
+  // only apply mapStateToProps when control states have been initialized
+  if ('controls' in controlPanelState) {
+    applyMapStateToPropsToControl(controlState, controlPanelState);
+  }
 
   // If default is a function, evaluate it
   if (typeof controlState.default === 'function') {
