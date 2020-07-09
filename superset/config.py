@@ -202,7 +202,7 @@ APP_ICON_WIDTH = 126
 LOGO_TARGET_PATH = None
 
 # Enables SWAGGER UI for superset openapi spec
-# ex: http://localhost:8080/swaggerview/v1
+# ex: http://localhost:8080/swagger/v1
 FAB_API_SWAGGER_UI = True
 
 # Druid query timezone
