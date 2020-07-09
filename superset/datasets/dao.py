@@ -52,6 +52,20 @@ class DatasetDAO(BaseDAO):
             return None
 
     @staticmethod
+    def get_table_or_none(
+        database_id: int, table_name: str, schema_name: Optional[str]
+    ) -> Optional[SqlaTable]:
+        return (
+            db.session.query(SqlaTable)
+            .filter(
+                SqlaTable.table_name == table_name,
+                SqlaTable.schema == schema_name,
+                SqlaTable.database_id == database_id,
+            )
+            .one_or_none()
+        )
+
+    @staticmethod
     def get_related_objects(database_id: int) -> Dict[str, Any]:
         charts = (
             db.session.query(Slice)
@@ -74,7 +88,9 @@ class DatasetDAO(BaseDAO):
         return dict(charts=charts, dashboards=dashboards)
 
     @staticmethod
-    def validate_table_exists(database: Database, table_name: str, schema: str) -> bool:
+    def validate_table_exists(
+        database: Database, table_name: str, schema: Optional[str]
+    ) -> bool:
         try:
             database.get_table(table_name, schema=schema)
             return True

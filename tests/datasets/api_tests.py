@@ -37,8 +37,30 @@ from superset.utils.dict_import_export import export_to_dict
 from superset.views.base import generate_download_headers
 from tests.base_tests import SupersetTestCase
 
+TABLE_CREATOR_ROLE = "TableModelViewCreator"
+TABLE_CREATOR_USER = "UserTableCreator"
+
 
 class TestDatasetApi(SupersetTestCase):
+    def setUp(self) -> None:
+        birth_names_dataset = self.get_birth_names_dataset()
+        can_add_table = security_manager.find_permission_view_menu(
+            "can_add", "TableModelView"
+        )
+        table_creator = security_manager.add_role(TABLE_CREATOR_ROLE)
+        security_manager.add_permission_role(table_creator, can_add_table)
+        db.session.commit()
+        self.create_user_with_roles(TABLE_CREATOR_USER, ["Gamma", TABLE_CREATOR_ROLE])
+
+    def tearDown(self) -> None:
+        can_add_table = security_manager.find_permission_view_menu(
+            "can_add", TABLE_CREATOR_ROLE
+        )
+        table_creator = security_manager.find_role(TABLE_CREATOR_ROLE)
+        security_manager.del_permission_role(table_creator, can_add_table)
+        db.session.delete(table_creator)
+        db.session.commit()
+
     @staticmethod
     def insert_dataset(
         table_name: str, schema: str, owners: List[int], database: Database
@@ -787,4 +809,37 @@ class TestDatasetApi(SupersetTestCase):
         table = self.get_birth_names_dataset()
         uri = f"api/v1/dataset/{table.id}/related_objects"
         rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_explore_dataset_gamma(self):
+        """
+        Dataset API: Test export dataset has gamma
+        """
+        examples_db = get_example_database()
+        birth_names_dataset = self.get_birth_names_dataset()
+
+        self.login(username=TABLE_CREATOR_USER)
+        rv = self.client.get(
+            f"api/v1/dataset/explore/{examples_db.id}/table/{birth_names_dataset.name}/"
+        )
+        self.assertEqual(rv.status_code, 302)
+
+        rv = self.client.get(
+            f"api/v1/dataset/explore/{examples_db.id}/druid/{birth_names_dataset.name}/"
+        )
+        self.assertEqual(rv.status_code, 400)
+
+        rv = self.client.get(
+            f"api/v1/dataset/explore/donotexist/table/{birth_names_dataset.name}/"
+        )
+        self.assertEqual(rv.status_code, 404)
+
+        rv = self.client.get(
+            f"api/v1/dataset/explore/100500/table/{birth_names_dataset.name}/"
+        )
+        self.assertEqual(rv.status_code, 404)
+
+        rv = self.client.get(
+            f"api/v1/dataset/explore/{examples_db.id}/table/donotexist.donotexist/"
+        )
         self.assertEqual(rv.status_code, 404)

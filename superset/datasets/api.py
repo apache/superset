@@ -15,13 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from typing import Any, Union
 
 import yaml
-from flask import g, request, Response
+from flask import g, redirect, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
+from werkzeug.wrappers import Response as WerkZeugResponse
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
@@ -45,6 +46,7 @@ from superset.datasets.schemas import (
     DatasetRelatedObjectsResponse,
     get_export_ids_schema,
 )
+from superset.utils.core import parse_table_full_name
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -65,6 +67,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
     class_permission_name = "TableModelView"
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+        "explore",
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
         "refresh",
@@ -476,3 +479,68 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             charts={"count": len(charts), "result": charts},
             dashboards={"count": len(dashboards), "result": dashboards},
         )
+
+    @expose(
+        "/explore/<int:database_id>/<datasource_type>/<datasource_name>/",
+        methods=["GET"],
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    def explore(
+        self, database_id: int, datasource_type: str, datasource_name: str
+    ) -> Union[Response, WerkZeugResponse]:
+        """Find or create and explore the dataset
+        ---
+        get:
+          description: >-
+            Finds or creates a datasource definition and redirects to the explore view.
+            Only table datasources are currently supported.
+          parameters:
+          - in: path
+            name: database_id
+            schema:
+              type: integer
+          - in: path
+            name: datasource_type
+            schema:
+              type: string
+          - in: path
+            name: datasource_name
+            schema:
+              type: string
+          responses:
+            302:
+              description: redirect to the superset explore
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if datasource_type != "table":
+            return self.response_400(
+                f"Datasource type {datasource_type} is not supported."
+            )
+
+        schema_name, table_name = parse_table_full_name(datasource_name)
+        table = DatasetDAO.get_table_or_none(database_id, table_name, schema_name)
+        if table is None:
+            database = DatasetDAO.get_database_by_id(database_id)
+            if not database or not DatasetDAO.validate_table_exists(
+                database, table_name, schema_name
+            ):
+                return self.response_404()
+            table_params = {
+                "database": database_id,
+                "table_name": table_name,
+            }
+            if schema_name:
+                table_params["schema"] = schema_name
+            table = CreateDatasetCommand(
+                g.user, self.add_model_schema.load(table_params)
+            ).run()
+        return redirect(f"/superset/explore/{datasource_type}/{table.id}")

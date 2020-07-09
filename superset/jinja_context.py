@@ -17,14 +17,18 @@
 """Defines the templating context for SQL Lab"""
 import inspect
 import re
-from typing import Any, cast, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, cast, List, Optional, TYPE_CHECKING
 
 from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
 
 from superset import jinja_base_context
 from superset.extensions import jinja_context_manager
-from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
+from superset.utils.core import (
+    convert_legacy_filters_into_adhoc,
+    merge_extra_filters,
+    parse_table_full_name,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import (  # pylint: disable=unused-import
@@ -258,14 +262,6 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
 
     engine = "presto"
 
-    @staticmethod
-    def _schema_table(
-        table_name: str, schema: Optional[str]
-    ) -> Tuple[str, Optional[str]]:
-        if "." in table_name:
-            schema, table_name = table_name.split(".")
-        return table_name, schema
-
     def first_latest_partition(self, table_name: str) -> Optional[str]:
         """
         Gets the first value in the array of all latest partitions
@@ -288,13 +284,13 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
 
         from superset.db_engine_specs.presto import PrestoEngineSpec
 
-        table_name, schema = self._schema_table(table_name, self.schema)
+        schema, table_name = parse_table_full_name(table_name, schema=self.schema)
         return cast(PrestoEngineSpec, self.database.db_engine_spec).latest_partition(
             table_name, schema, self.database
         )[1]
 
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
-        table_name, schema = self._schema_table(table_name, self.schema)
+        schema, table_name = parse_table_full_name(table_name, schema=self.schema)
 
         from superset.db_engine_specs.presto import PrestoEngineSpec
 

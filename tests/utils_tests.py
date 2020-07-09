@@ -60,6 +60,7 @@ from superset.utils.core import (
     validate_json,
     zlib_compress,
     zlib_decompress,
+    parse_table_full_name,
 )
 from superset.utils import schema
 from superset.views.utils import (
@@ -1365,3 +1366,18 @@ class TestUtils(SupersetTestCase):
         self.assertEqual("BaZ", validator("BaZ"))
         self.assertRaises(marshmallow.ValidationError, validator, "qwerty")
         self.assertRaises(marshmallow.ValidationError, validator, 4)
+
+
+def test_parse_table_full_name():
+    assert parse_table_full_name("table") == (None, "table")
+    assert parse_table_full_name("table", schema="schema") == ("schema", "table")
+    assert parse_table_full_name("table_schema.table", schema="schema") == (
+        "table_schema",
+        "table",
+    )
+    assert parse_table_full_name("table_schema.table") == ("table_schema", "table")
+    assert parse_table_full_name("hive.table_schema.table") == ("table_schema", "table")
+    assert parse_table_full_name("nonsense.hive.table_schema.table") == (
+        None,
+        "nonsense.hive.table_schema.table",
+    )

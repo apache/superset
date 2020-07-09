@@ -1484,4 +1484,21 @@ class PostProcessingContributionOrientation(str, Enum):
     """
 
     ROW = "row"
+
     COLUMN = "column"
+
+
+def parse_table_full_name(
+    full_table_name: str, schema: Optional[str] = None
+) -> Tuple[Optional[str], str]:
+    """Parses full table name into components like table name, schema name.
+    Note the table name conforms to the [[cluster.]schema.]table construct.
+    """
+    table_name_pieces = full_table_name.split(".")
+    if len(table_name_pieces) == 3:
+        return table_name_pieces[1], table_name_pieces[2]
+    if len(table_name_pieces) == 2:
+        return table_name_pieces[0], table_name_pieces[1]
+    if len(table_name_pieces) == 1:
+        return schema, table_name_pieces[0]
+    return schema, full_table_name
