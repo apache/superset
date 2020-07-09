@@ -49,6 +49,7 @@ const propTypes = {
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
+  owners: PropTypes.arrayOf(PropTypes.string),
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -139,12 +140,26 @@ class Chart extends React.PureComponent {
   }
 
   renderErrorMessage() {
-    const { chartAlert, chartStackTrace, queryResponse } = this.props;
+    const {
+      chartAlert,
+      chartStackTrace,
+      dashboardId,
+      owners,
+      queryResponse,
+    } = this.props;
+
+    const error = queryResponse?.errors?.[0];
+    if (error) {
+      const extra = error.extra || {};
+      extra.owners = owners;
+      error.extra = extra;
+    }
     return (
       <ErrorMessageWithStackTrace
-        error={queryResponse?.errors?.[0]}
+        error={error}
         message={chartAlert || queryResponse?.message}
         link={queryResponse ? queryResponse.link : null}
+        source={dashboardId ? 'dashboard' : 'explore'}
         stackTrace={chartStackTrace}
       />
     );
