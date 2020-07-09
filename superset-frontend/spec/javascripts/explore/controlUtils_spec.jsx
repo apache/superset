@@ -40,7 +40,6 @@ describe('controlUtils', () => {
   beforeAll(() => {
     getChartControlPanelRegistry()
       .registerValue('test-chart', {
-        requiresTime: true,
         controlPanelSections: [
           {
             label: t('Chart Options'),
@@ -84,7 +83,6 @@ describe('controlUtils', () => {
         ],
       })
       .registerValue('test-chart-override', {
-        requiresTime: true,
         controlPanelSections: [
           {
             label: t('Chart Options'),
