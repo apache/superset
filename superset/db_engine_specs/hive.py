@@ -140,11 +140,11 @@ class HiveEngineSpec(PrestoEngineSpec):
         }
         if header_line_count is not None and header_line_count >= 0:
             header_line_count += 1
-            tblproperties.append("'skip.header.line.count'=':header_line_count'")
+            tblproperties.append("'skip.header.line.count'=:header_line_count")
             params["header_line_count"] = str(header_line_count)
         if null_values:
             # hive only supports 1 value for the null format
-            tblproperties.append("'serialization.null.format'=':null_value'")
+            tblproperties.append("'serialization.null.format'=:null_value")
             params["null_value"] = null_values[0]
 
         if tblproperties:
