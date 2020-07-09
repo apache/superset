@@ -223,7 +223,9 @@ export default {
               type: 'CheckboxControl',
               label: t('Normalized'),
               renderTrigger: true,
-              description: t('Whether to normalize the histogram'),
+              description: t(
+                'Whether to apply a normal distribution based on rank on the color scale',
+              ),
               default: false,
             },
           },
@@ -254,7 +256,6 @@ export default {
     },
   ],
   controlOverrides: {
-    normalized: t('Whether to apply a normal distribution based on rank on the color scale'),
     y_axis_format: {
       label: t('Value Format'),
     },
