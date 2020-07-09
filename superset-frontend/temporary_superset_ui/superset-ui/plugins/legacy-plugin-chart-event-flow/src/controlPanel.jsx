@@ -28,7 +28,6 @@ import {
 const { columnChoices } = internalSharedControls;
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     {
       label: t('Event definition'),
