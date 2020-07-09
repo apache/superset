@@ -67,10 +67,7 @@ from .base_tests import SupersetTestCase
 logger = logging.getLogger(__name__)
 
 
-class CoreTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(CoreTests, self).__init__(*args, **kwargs)
-
+class TestCore(SupersetTestCase):
     def setUp(self):
         db.session.query(Query).delete()
         db.session.query(DatasourceAccessRequest).delete()
@@ -137,7 +134,7 @@ class CoreTests(SupersetTestCase):
 
         qobj["inner_from_dttm"] = datetime.datetime(1901, 1, 1)
 
-        self.assertEquals(cache_key_with_groupby, viz.cache_key(qobj))
+        self.assertEqual(cache_key_with_groupby, viz.cache_key(qobj))
 
     def test_get_superset_tables_not_allowed(self):
         example_db = utils.get_example_database()
@@ -919,12 +916,12 @@ class CoreTests(SupersetTestCase):
 
     def test_import_csv(self):
         self.login(username="admin")
-        table_name = "".join(random.choice(string.ascii_uppercase) for _ in range(5))
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
 
         f1 = "testCSV.csv"
         self.create_sample_csvfile(f1, ["a,b", "john,1", "paul,2"])
         f2 = "testCSV2.csv"
-        self.create_sample_csvfile(f2, ["b,c,d", "john,1,x", "paul,2,y"])
+        self.create_sample_csvfile(f2, ["b,c,d", "john,1,x", "paul,2,"])
         self.enable_csv_upload(utils.get_example_database())
 
         try:
@@ -960,6 +957,23 @@ class CoreTests(SupersetTestCase):
             table = self.get_table_by_name(table_name)
             # make sure the new column name is reflected in the table metadata
             self.assertIn("d", table.column_names)
+
+            # null values are set
+            self.upload_csv(
+                f2,
+                table_name,
+                extra={"null_values": '["", "john"]', "if_exists": "replace"},
+            )
+            # make sure that john and empty string are replaced with None
+            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            assert data == [(None, 1, "x"), ("paul", 2, None)]
+
+            # default null values
+            self.upload_csv(f2, table_name, extra={"if_exists": "replace"})
+            # make sure that john and empty string are replaced with None
+            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            assert data == [("john", 1, "x"), ("paul", 2, None)]
+
         finally:
             os.remove(f1)
             os.remove(f2)
@@ -1306,6 +1320,20 @@ class CoreTests(SupersetTestCase):
         extra["allows_virtual_table_explore"] = "trash value"
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, True)
+
+    def test_explore_database_id(self):
+        database = utils.get_example_database()
+        explore_database = utils.get_example_database()
+
+        # test that explore_database_id is the regular database
+        # id if none is set in the extra
+        self.assertEqual(database.explore_database_id, database.id)
+
+        # test that explore_database_id is correct if the extra is set
+        extra = database.get_extra()
+        extra["explore_database_id"] = explore_database.id
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.explore_database_id, explore_database.id)
 
 
 if __name__ == "__main__":

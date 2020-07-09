@@ -78,7 +78,7 @@ setup(
         "cryptography>=2.4.2",
         "dataclasses<0.7",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=2.3.4, <2.4.0",
+        "flask-appbuilder>=3.0.0, <4.0.0",
         "flask-caching",
         "flask-compress",
         "flask-talisman",
@@ -105,7 +105,7 @@ setup(
         "slackclient>=2.6.2",
         "sqlalchemy>=1.3.16, <2.0",
         "sqlalchemy-utils>=0.36.6,<0.37",
-        "sqlparse>=0.3.0, <0.4",
+        "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "wtforms-json",
     ],
     extras_require={
@@ -123,6 +123,7 @@ setup(
         "dremio": ["sqlalchemy_dremio>=1.1.0"],
         "cockroachdb": ["cockroachdb==0.3.3"],
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
+        "excel": ["xlrd>=1.2.0, <1.3"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",

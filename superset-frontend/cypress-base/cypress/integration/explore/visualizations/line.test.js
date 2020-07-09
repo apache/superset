@@ -27,9 +27,26 @@ describe('Visualization > Line', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
+  it('should show validator error when no metric', () => {
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
+  });
+
+  it('should not show validator error when metric added', () => {
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
+    cy.get('.text-danger').contains('Metrics');
+    cy.get('.metrics-select .Select__input input:eq(0)')
+      .focus()
+      .type('SUM(num){enter}');
+    cy.get('.text-danger').should('not.exist');
+    cy.get('.alert-warning').should('not.exist');
+  });
+
   it('should work with adhoc metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
-
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });

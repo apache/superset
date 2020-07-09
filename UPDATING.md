@@ -23,6 +23,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+* [9964](https://github.com/apache/incubator-superset/pull/9964): Breaking change on Flask-AppBuilder 3. If you're using OAuth, find out what needs to be changed [here](https://github.com/dpgaspar/Flask-AppBuilder/blob/master/README.rst#change-log).
+
+* [10233](https://github.com/apache/incubator-superset/pull/10233): a change which deprecates the `ENABLE_FLASK_COMPRESS` config option in favor of the Flask-Compress `COMPRESS_REGISTER` config option which serves the same purpose.
+
+* [10222](https://github.com/apache/incubator-superset/pull/10222): a change which changes how payloads are cached. Previous cached objects cannot be decoded and thus will be reloaded from source.
+
 * [10130](https://github.com/apache/incubator-superset/pull/10130): a change which deprecates the `dbs.perm` column in favor of SQLAlchemy [hybird attributes](https://docs.sqlalchemy.org/en/13/orm/extensions/hybrid.html).
 
 * [10034](https://github.com/apache/incubator-superset/pull/10034): a change which deprecates the public security manager  `assert_datasource_permission`, `assert_query_context_permission`, `assert_viz_permission`, and `rejected_tables` methods with the `raise_for_access` method which also handles assertion logic for SQL tables.
@@ -250,6 +256,8 @@ If you run a production system you should schedule downtime for this
 upgrade.
 
 The PRs bellow have more information around the breaking changes:
+* [9825](https://github.com/apache/incubator-superset/pull/9825):  Support for Excel sheet upload added. To enable support, install Superset with the optional dependency `excel`
+
 * [4587](https://github.com/apache/incubator-superset/pull/4587) : a backward
   incompatible database migration that requires downtime. Once the
   db migration succeeds, the web server needs to be restarted with the

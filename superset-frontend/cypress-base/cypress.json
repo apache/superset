@@ -2,9 +2,10 @@
   "baseUrl": "http://localhost:8081",
   "chromeWebSecurity": false,
   "defaultCommandTimeout": 5000,
+  "experimentalFetchPolyfill": true,
   "requestTimeout": 10000,
   "ignoreTestFiles": [
-    "**/!(*.test.js)"
+    "**/!(*.test.js|*.test.ts)"
   ],
   "video": false,
   "videoUploadOnPasses": false,

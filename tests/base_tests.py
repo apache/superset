@@ -27,8 +27,8 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.orm import Session
 
+from tests.test_app import app
 from superset.sql_parse import CtasMethod
-from tests.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -52,9 +52,7 @@ class SupersetTestCase(TestCase):
         "postgresql": "public",
     }
 
-    def __init__(self, *args, **kwargs):
-        super(SupersetTestCase, self).__init__(*args, **kwargs)
-        self.maxDiff = None
+    maxDiff = -1
 
     def create_app(self):
         return app

@@ -83,6 +83,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         "data": "list",
         "viz_types": "list",
         "datasources": "list",
+        "related_objects": "list",
     }
 
     order_rel_fields: Dict[str, Tuple[str, str]] = {}
@@ -112,7 +113,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     """  # pylint: disable=pointless-string-statement
     allowed_rel_fields: Set[str] = set()
 
-    openapi_spec_component_schemas: Tuple[Schema, ...] = tuple()
+    openapi_spec_component_schemas: Tuple[Type[Schema], ...] = tuple()
     """
     Add extra schemas to the OpenAPI component schemas section
     """  # pylint: disable=pointless-string-statement

@@ -40,11 +40,8 @@ QUERY_2 = "SELECT * FROM NO_TABLE"
 QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 
 
-class SqlLabTests(SupersetTestCase):
+class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
-
-    def __init__(self, *args, **kwargs):
-        super(SqlLabTests, self).__init__(*args, **kwargs)
 
     def run_some_queries(self):
         db.session.query(Query).delete()

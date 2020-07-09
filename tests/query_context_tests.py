@@ -28,7 +28,7 @@ from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
 
 
-class QueryContextTests(SupersetTestCase):
+class TestQueryContext(SupersetTestCase):
     def test_schema_deserialization(self):
         """
         Ensure that the deserialized QueryContext contains all required fields.
@@ -39,8 +39,7 @@ class QueryContextTests(SupersetTestCase):
         payload = get_query_context(
             table.name, table.id, table.type, add_postprocessing_operations=True
         )
-        query_context, errors = ChartDataQueryContextSchema().load(payload)
-        self.assertDictEqual(errors, {})
+        query_context = ChartDataQueryContextSchema().load(payload)
         self.assertEqual(len(query_context.queries), len(payload["queries"]))
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
@@ -115,7 +114,7 @@ class QueryContextTests(SupersetTestCase):
         extras = query_object.to_dict()["extras"]
         self.assertTrue("time_range_endpoints" in extras)
 
-        self.assertEquals(
+        self.assertEqual(
             extras["time_range_endpoints"],
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
         )

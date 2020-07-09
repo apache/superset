@@ -19,13 +19,15 @@
 import React, { useState } from 'react';
 // @ts-ignore
 import { Alert, Collapse } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
 import { SupersetError } from './types';
 
 type Props = {
   error?: SupersetError;
   link?: string;
-  message: string;
+  message?: string;
   stackTrace?: string;
 };
 
@@ -54,7 +56,7 @@ export default function ErrorMessageWithStackTrace({
         bsStyle="warning"
         onClick={() => setShowStackTrace(!showStackTrace)}
       >
-        {message}
+        {message || t('An error occurred.')}
         {link && (
           <a href={link} target="_blank" rel="noopener noreferrer">
             (Request Access)

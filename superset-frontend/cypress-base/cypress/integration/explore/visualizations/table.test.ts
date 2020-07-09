@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
+import {
+  FORM_DATA_DEFAULTS,
+  NUM_METRIC,
+  MAX_DS,
+  MAX_STATE,
+  SIMPLE_FILTER,
+} from './shared.helper';
 import readResponseBlob from '../../../utils/readResponseBlob';
 
 // Table
@@ -29,30 +35,76 @@ describe('Visualization > Table', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
-  it('Test table with adhoc metric', () => {
-    const formData = { ...VIZ_DEFAULTS, metrics: NUM_METRIC };
+  it('Format non-numeric metrics correctly', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      include_time: true,
+      granularity_sqla: 'ds',
+      time_grain_sqla: 'P0.25Y',
+      metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
+    });
+    // when format with smart_date, time column use format by granularity
+    cy.get('.chart-container td:nth-child(1)').contains('2008 Q1');
+    // other column with timestamp use raw timestamp
+    cy.get('.chart-container td:nth-child(3)').contains('2008-01-01T00:00:00');
+    cy.get('.chart-container td:nth-child(4)').contains('other');
+  });
 
-    cy.visitChartByParams(JSON.stringify(formData));
+  it('Format with table_timestamp_format', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      include_time: true,
+      granularity_sqla: 'ds',
+      time_grain_sqla: 'P0.25Y',
+      table_timestamp_format: '%Y-%m-%d %H:%M',
+      metrics: [NUM_METRIC, MAX_DS, MAX_STATE],
+    });
+    // time column and MAX(ds) metric column both use UTC time
+    cy.get('.chart-container td:nth-child(1)').contains('2008-01-01 00:00');
+    cy.get('.chart-container td:nth-child(3)').contains('2008-01-01 00:00');
+    cy.get('.chart-container td')
+      .contains('2008-01-01 08:00')
+      .should('not.exist');
+    // time column should not use time granularity when timestamp format is set
+    cy.get('.chart-container td').contains('2008 Q1').should('not.exist');
+    // other num numeric metric column should stay as string
+    cy.get('.chart-container td').contains('other');
+  });
+
+  it('Test table with groupby', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: [NUM_METRIC, MAX_DS],
+      groupby: ['name'],
+    });
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
-      querySubstring: NUM_METRIC.label,
+      querySubstring: /groupby.*name/,
       chartSelector: 'table',
     });
   });
 
-  it('Test table with groupby', () => {
-    const formData = {
+  it('Test table with groupby + time column', () => {
+    cy.visitChartByParams({
       ...VIZ_DEFAULTS,
-      metrics: NUM_METRIC,
+      include_time: true,
+      granularity_sqla: 'ds',
+      time_grain_sqla: 'P0.25Y',
+      metrics: [NUM_METRIC, MAX_DS],
       groupby: ['name'],
-    };
-
-    cy.visitChartByParams(JSON.stringify(formData));
+    });
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
-      querySubstring: formData.groupby[0],
+      querySubstring: /groupby.*name/,
       chartSelector: 'table',
     });
+  });
+
+  it('Handle sorting correctly', () => {
+    cy.get('.chart-container th').contains('name').click();
+    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Aaron');
+    cy.get('.chart-container th').contains('Time').click().click();
+    cy.get('.chart-container td:nth-child(1):eq(0)').contains('2008');
   });
 
   it('Test table with percent metrics and groupby', () => {
@@ -62,7 +114,6 @@ describe('Visualization > Table', () => {
       metrics: [],
       groupby: ['name'],
     };
-
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   });
@@ -74,23 +125,19 @@ describe('Visualization > Table', () => {
       groupby: ['name'],
       order_desc: true,
     };
-
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   });
 
   it('Test table with groupby and limit', () => {
     const limit = 10;
-
     const formData = {
       ...VIZ_DEFAULTS,
       metrics: NUM_METRIC,
       groupby: ['name'],
       row_limit: limit,
     };
-
     cy.visitChartByParams(JSON.stringify(formData));
-
     cy.wait('@getJson').then(async xhr => {
       cy.verifyResponseCodes(xhr);
       cy.verifySliceContainer('table');
@@ -103,6 +150,8 @@ describe('Visualization > Table', () => {
   it('Test table with columns and row limit', () => {
     const formData = {
       ...VIZ_DEFAULTS,
+      // should still work when query_mode is not-set/invalid
+      query_mode: undefined,
       all_columns: ['name'],
       metrics: [],
       row_limit: 10,
@@ -117,6 +166,7 @@ describe('Visualization > Table', () => {
 
     const formData = {
       ...VIZ_DEFAULTS,
+      query_mode: 'raw',
       all_columns: ['name', 'state', 'ds', 'num'],
       metrics: [],
       row_limit: limit,

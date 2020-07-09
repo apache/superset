@@ -77,3 +77,7 @@ class DatabaseNotFound(SupersetException):
 
 class QueryObjectValidationError(SupersetException):
     status = 400
+
+
+class DashboardImportException(SupersetException):
+    pass

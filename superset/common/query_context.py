@@ -17,7 +17,6 @@
 import copy
 import logging
 import math
-import pickle as pkl
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, List, Optional, Union
 
@@ -225,7 +224,6 @@ class QueryContext:
             if cache_value:
                 stats_logger.incr("loading_from_cache")
                 try:
-                    cache_value = pkl.loads(cache_value)
                     df = cache_value["df"]
                     query = cache_value["query"]
                     status = utils.QueryStatus.SUCCESS
@@ -260,14 +258,8 @@ class QueryContext:
             if is_loaded and cache_key and cache and status != utils.QueryStatus.FAILED:
                 try:
                     cache_value = dict(dttm=cached_dttm, df=df, query=query)
-                    cache_binary = pkl.dumps(cache_value, protocol=pkl.HIGHEST_PROTOCOL)
-
-                    logger.info(
-                        "Caching %d chars at key %s", len(cache_binary), cache_key
-                    )
-
                     stats_logger.incr("set_cache_key")
-                    cache.set(cache_key, cache_binary, timeout=self.cache_timeout)
+                    cache.set(cache_key, cache_value, timeout=self.cache_timeout)
                 except Exception as ex:  # pylint: disable=broad-except
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons

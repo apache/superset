@@ -23,13 +23,11 @@ import ResizableHandle from 'src/dashboard/components/resizable/ResizableHandle'
 
 describe('ResizableHandle', () => {
   it('should render a right resize handle', () => {
-    // eslint-disable-next-line react/jsx-pascal-case
     const wrapper = shallow(<ResizableHandle.right />);
     expect(wrapper.find('.resize-handle.resize-handle--right')).toHaveLength(1);
   });
 
   it('should render a bottom resize handle', () => {
-    // eslint-disable-next-line react/jsx-pascal-case
     const wrapper = shallow(<ResizableHandle.bottom />);
     expect(wrapper.find('.resize-handle.resize-handle--bottom')).toHaveLength(
       1,
@@ -37,7 +35,6 @@ describe('ResizableHandle', () => {
   });
 
   it('should render a bottomRight resize handle', () => {
-    // eslint-disable-next-line react/jsx-pascal-case
     const wrapper = shallow(<ResizableHandle.bottomRight />);
     expect(
       wrapper.find('.resize-handle.resize-handle--bottom-right'),

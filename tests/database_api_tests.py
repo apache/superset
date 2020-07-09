@@ -30,7 +30,7 @@ from superset.utils.core import get_example_database
 from .base_tests import SupersetTestCase
 
 
-class DatabaseApiTests(SupersetTestCase):
+class TestDatabaseApi(SupersetTestCase):
     def test_get_items(self):
         """
             Database API: Test get items
@@ -52,6 +52,7 @@ class DatabaseApiTests(SupersetTestCase):
             "allows_virtual_table_explore",
             "backend",
             "database_name",
+            "explore_database_id",
             "expose_in_sqllab",
             "force_ctas_schema",
             "function_names",

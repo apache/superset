@@ -33,12 +33,13 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
     get_auth_cookies,
 )
+from superset.utils.urls import get_url_path
 from tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
 
-class ThumbnailsSeleniumLive(LiveServerTestCase):
+class TestThumbnailsSeleniumLive(LiveServerTestCase):
     def create_app(self):
         return app
 
@@ -66,7 +67,7 @@ class ThumbnailsSeleniumLive(LiveServerTestCase):
             self.assertEqual(response.getcode(), 202)
 
 
-class ThumbnailsTests(SupersetTestCase):
+class TestThumbnails(SupersetTestCase):
 
     mock_image = b"bytes mock image"
 
@@ -163,8 +164,9 @@ class ThumbnailsTests(SupersetTestCase):
             Thumbnails: Simple get chart with wrong digest
         """
         chart = db.session.query(Slice).all()[0]
+        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         # Cache a test "image"
-        screenshot = ChartScreenshot(model_id=chart.id)
+        screenshot = ChartScreenshot(chart_url, chart.digest)
         thumbnail_cache.set(screenshot.cache_key, self.mock_image)
         self.login(username="admin")
         uri = f"api/v1/chart/{chart.id}/thumbnail/1234/"
@@ -178,8 +180,9 @@ class ThumbnailsTests(SupersetTestCase):
             Thumbnails: Simple get cached dashboard screenshot
         """
         dashboard = db.session.query(Dashboard).all()[0]
+        dashboard_url = get_url_path("Superset.dashboard", dashboard_id=dashboard.id)
         # Cache a test "image"
-        screenshot = DashboardScreenshot(model_id=dashboard.id)
+        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
         thumbnail_cache.set(screenshot.cache_key, self.mock_image)
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
@@ -193,8 +196,9 @@ class ThumbnailsTests(SupersetTestCase):
             Thumbnails: Simple get cached chart screenshot
         """
         chart = db.session.query(Slice).all()[0]
+        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         # Cache a test "image"
-        screenshot = ChartScreenshot(model_id=chart.id)
+        screenshot = ChartScreenshot(chart_url, chart.digest)
         thumbnail_cache.set(screenshot.cache_key, self.mock_image)
         self.login(username="admin")
         uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
@@ -208,8 +212,9 @@ class ThumbnailsTests(SupersetTestCase):
             Thumbnails: Simple get dashboard with wrong digest
         """
         dashboard = db.session.query(Dashboard).all()[0]
+        dashboard_url = get_url_path("Superset.dashboard", dashboard_id=dashboard.id)
         # Cache a test "image"
-        screenshot = DashboardScreenshot(model_id=dashboard.id)
+        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
         thumbnail_cache.set(screenshot.cache_key, self.mock_image)
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/1234/"

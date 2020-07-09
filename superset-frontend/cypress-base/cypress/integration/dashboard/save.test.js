@@ -21,7 +21,6 @@ import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard save action', () => {
   let dashboardId;
-  let boxplotChartId;
 
   beforeEach(() => {
     cy.server();
@@ -32,10 +31,6 @@ describe('Dashboard save action', () => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
       dashboardId = dashboard.id;
-      boxplotChartId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'box_plot',
-      ).slice_id;
-
       cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
     });
 

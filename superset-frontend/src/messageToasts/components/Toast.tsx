@@ -20,16 +20,11 @@ import { Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Interweave from 'interweave';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Icon from 'src/components/Icon';
 import { ToastType } from 'src/messageToasts/types';
 
-import {
-  INFO_TOAST,
-  SUCCESS_TOAST,
-  WARNING_TOAST,
-  DANGER_TOAST,
-} from '../constants';
+import { SUCCESS_TOAST, WARNING_TOAST, DANGER_TOAST } from '../constants';
 
 const ToastContianer = styled.div`
   display: flex;
@@ -46,83 +41,53 @@ interface ToastPresenterProps {
   onCloseToast: (id: string) => void;
 }
 
-interface ToastPresenterState {
-  visible: boolean;
-}
-
-class Toast extends React.Component<ToastPresenterProps, ToastPresenterState> {
-  constructor(props: ToastPresenterProps) {
-    super(props);
-
-    this.showToast = this.showToast.bind(this);
-    this.handleClosePress = this.handleClosePress.bind(this);
-  }
-
-  state: ToastPresenterState = {
-    visible: false,
+export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
+  let hideTimer: ReturnType<typeof setTimeout>;
+  const [visible, setVisible] = useState(false);
+  const showToast = () => {
+    setVisible(true);
   };
 
-  componentDidMount() {
-    const { toast } = this.props;
+  const handleClosePress = () => {
+    clearTimeout(hideTimer);
+    // Wait for the transition
+    setVisible(() => {
+      setTimeout(() => {
+        onCloseToast(toast.id);
+      }, 150);
+      return false;
+    });
+  };
 
-    setTimeout(this.showToast);
+  useEffect(() => {
+    setTimeout(showToast);
 
     if (toast.duration > 0) {
-      this.hideTimer = setTimeout(this.handleClosePress, toast.duration);
+      hideTimer = setTimeout(handleClosePress, toast.duration);
     }
-  }
+    return () => {
+      clearTimeout(hideTimer);
+    };
+  }, []);
 
-  componentWillUnmount() {
-    clearTimeout(this.hideTimer);
-  }
-
-  hideTimer: NodeJS.Timeout;
-
-  showToast() {
-    this.setState({ visible: true });
-  }
-
-  handleClosePress() {
-    clearTimeout(this.hideTimer);
-
-    this.setState({ visible: false }, () => {
-      // Wait for the transition
-      setTimeout(() => {
-        this.props.onCloseToast(this.props.toast.id);
-      }, 150);
-    });
-  }
-
-  render() {
-    const { visible } = this.state;
-    const {
-      toast: { toastType, text },
-    } = this.props;
-
-    return (
-      <Alert
-        onDismiss={this.handleClosePress}
-        bsClass={cx(
-          'alert',
-          'toast',
-          visible && 'toast--visible',
-          toastType === INFO_TOAST && 'toast--info',
-          toastType === SUCCESS_TOAST && 'toast--success',
-          toastType === WARNING_TOAST && 'toast--warning',
-          toastType === DANGER_TOAST && 'toast--danger',
-        )}
-      >
-        <ToastContianer>
-          {toastType === SUCCESS_TOAST ? (
-            <Icon name="check" />
-          ) : (
-            <Icon name="error" />
-          )}
-          <Interweave content={text} />
-        </ToastContianer>
-      </Alert>
-    );
-  }
+  return (
+    <Alert
+      onDismiss={handleClosePress}
+      bsClass={cx(
+        'alert',
+        'toast',
+        visible && 'toast--visible',
+        toast.toastType === SUCCESS_TOAST && 'toast--success',
+        toast.toastType === WARNING_TOAST && 'toast--warning',
+        toast.toastType === DANGER_TOAST && 'toast--danger',
+      )}
+    >
+      <ToastContianer>
+        {toast.toastType === SUCCESS_TOAST && <Icon name="check" />}
+        {toast.toastType === WARNING_TOAST ||
+          (toast.toastType === DANGER_TOAST && <Icon name="error" />)}
+        <Interweave content={toast.text} />
+      </ToastContianer>
+    </Alert>
+  );
 }
-
-export default Toast;

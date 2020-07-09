@@ -71,10 +71,7 @@ def apply_dttm_defaults(table: SqlaTable, dttm_defaults: Dict[str, Any]):
             dbcol.expression = dttm_column_defaults["expression"]
 
 
-class ConfigTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(ConfigTests, self).__init__(*args, **kwargs)
-
+class TestConfig(SupersetTestCase):
     def setUp(self) -> None:
         self.login(username="admin")
         self._test_db_id = get_or_create_db(
@@ -129,15 +126,15 @@ class ConfigTests(SupersetTestCase):
         self.createTable(table_defaults)
         id_col = [c for c in self._logs_table.columns if c.column_name == "id"][0]
         self.assertTrue(id_col.is_dttm)
-        self.assertEquals(id_col.python_date_format, "epoch_ms")
+        self.assertEqual(id_col.python_date_format, "epoch_ms")
         dttm_col = [c for c in self._logs_table.columns if c.column_name == "dttm"][0]
         self.assertTrue(dttm_col.is_dttm)
-        self.assertEquals(dttm_col.python_date_format, "epoch_s")
+        self.assertEqual(dttm_col.python_date_format, "epoch_s")
         dms_col = [
             c for c in self._logs_table.columns if c.column_name == "duration_ms"
         ][0]
         self.assertTrue(dms_col.is_dttm)
-        self.assertEquals(dms_col.python_date_format, "invalid")
+        self.assertEqual(dms_col.python_date_format, "invalid")
 
     def test_expression_by_column_name(self):
         table_defaults = {
@@ -163,12 +160,12 @@ class ConfigTests(SupersetTestCase):
 
         id_col = [c for c in self._logs_table.columns if c.column_name == "id"][0]
         self.assertTrue(id_col.is_dttm)
-        self.assertEquals(id_col.python_date_format, "epoch_ms")
+        self.assertEqual(id_col.python_date_format, "epoch_ms")
         self.assertIsNone(id_col.expression)
 
         dttm_col = [c for c in self._logs_table.columns if c.column_name == "dttm"][0]
         self.assertTrue(dttm_col.is_dttm)
-        self.assertEquals(dttm_col.python_date_format, "epoch_s")
+        self.assertEqual(dttm_col.python_date_format, "epoch_s")
         self.assertEqual(dttm_col.expression, "CAST(dttm as INTEGER)")
 
 

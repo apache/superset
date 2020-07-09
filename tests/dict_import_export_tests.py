@@ -40,11 +40,8 @@ NAME_PREFIX = "dict_"
 ID_PREFIX = 20000
 
 
-class DictImportExportTests(SupersetTestCase):
+class TestDictImportExport(SupersetTestCase):
     """Testing export import functionality for dashboards"""
-
-    def __init__(self, *args, **kwargs):
-        super(DictImportExportTests, self).__init__(*args, **kwargs)
 
     @classmethod
     def delete_imports(cls):

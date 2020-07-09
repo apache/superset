@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { CSSProperties } from 'react';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -31,40 +31,50 @@ import QueryStateLabel from './QueryStateLabel';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from '../../utils/common';
 import { CtasEnum } from '../actions/sqlLab';
-
-const propTypes = {
-  actions: PropTypes.object,
-  csv: PropTypes.bool,
-  query: PropTypes.object,
-  search: PropTypes.bool,
-  showSql: PropTypes.bool,
-  visualize: PropTypes.bool,
-  cache: PropTypes.bool,
-  height: PropTypes.number.isRequired,
-  database: PropTypes.object,
-  displayLimit: PropTypes.number.isRequired,
-};
-const defaultProps = {
-  search: true,
-  visualize: true,
-  showSql: false,
-  csv: true,
-  actions: {},
-  cache: false,
-  database: {},
-};
+import { Query } from '../types';
 
 const SEARCH_HEIGHT = 46;
 
-const LOADING_STYLES = { position: 'relative', minHeight: 100 };
+const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
-export default class ResultSet extends React.PureComponent {
-  constructor(props) {
+interface ResultSetProps {
+  actions: Record<string, any>;
+  cache?: boolean;
+  csv?: boolean;
+  database?: Record<string, any>;
+  displayLimit: number;
+  height: number;
+  query: Query;
+  search?: boolean;
+  showSql?: boolean;
+  visualize?: boolean;
+}
+
+interface ResultSetState {
+  searchText: string;
+  showExploreResultsButton: boolean;
+  data: Record<string, any>[];
+}
+
+export default class ResultSet extends React.PureComponent<
+  ResultSetProps,
+  ResultSetState
+> {
+  static defaultProps = {
+    cache: false,
+    csv: true,
+    database: {},
+    search: true,
+    showSql: false,
+    visualize: true,
+  };
+
+  constructor(props: ResultSetProps) {
     super(props);
     this.state = {
       searchText: '',
       showExploreResultsButton: false,
-      data: null,
+      data: [],
     };
 
     this.changeSearch = this.changeSearch.bind(this);
@@ -79,7 +89,7 @@ export default class ResultSet extends React.PureComponent {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
   }
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
     // when new results comes in, save them locally and clear in store
     if (
       this.props.cache &&
@@ -88,8 +98,7 @@ export default class ResultSet extends React.PureComponent {
       nextProps.query.results.data &&
       nextProps.query.results.data.length > 0
     ) {
-      this.setState(
-        { data: nextProps.query.results.data },
+      this.setState({ data: nextProps.query.results.data }, () =>
         this.clearQueryResults(nextProps.query),
       );
     }
@@ -100,16 +109,16 @@ export default class ResultSet extends React.PureComponent {
       this.fetchResults(nextProps.query);
     }
   }
-  clearQueryResults(query) {
+  clearQueryResults(query: Query) {
     this.props.actions.clearQueryResults(query);
   }
-  popSelectStar(tmpSchema, tmpTable) {
+  popSelectStar(tempSchema: string | null, tempTable: string) {
     const qe = {
       id: shortid.generate(),
-      title: tmpTable,
+      title: tempTable,
       autorun: false,
       dbId: this.props.query.dbId,
-      sql: `SELECT * FROM ${tmpSchema}.${tmpTable}`,
+      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -118,13 +127,13 @@ export default class ResultSet extends React.PureComponent {
       showExploreResultsButton: !this.state.showExploreResultsButton,
     });
   }
-  changeSearch(event) {
+  changeSearch(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ searchText: event.target.value });
   }
-  fetchResults(query) {
+  fetchResults(query: Query) {
     this.props.actions.fetchQueryResults(query, this.props.displayLimit);
   }
-  reFetchQueryResults(query) {
+  reFetchQueryResults(query: Query) {
     this.props.actions.reFetchQueryResults(query);
   }
   reRunQueryIfSessionTimeoutErrorOnMount() {
@@ -194,6 +203,10 @@ export default class ResultSet extends React.PureComponent {
       this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
     );
     let sql;
+    let exploreDBId = query.dbId;
+    if (this.props.database && this.props.database.explore_database_id) {
+      exploreDBId = this.props.database.explore_database_id;
+    }
 
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
@@ -203,25 +216,14 @@ export default class ResultSet extends React.PureComponent {
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     } else if (query.state === 'failed') {
       return (
-        <Alert bsStyle="danger">
-          {query.errorMessage}
-          {query.link && (
-            <a href={query.link} target="_blank" rel="noopener noreferrer">
-              {' '}
-              {t('(Request Access)')}{' '}
-            </a>
-          )}
-        </Alert>
+        <ErrorMessageWithStackTrace
+          error={query.errors?.[0]}
+          message={query.errorMessage || undefined}
+          link={query.link}
+        />
       );
     } else if (query.state === 'success' && query.ctas) {
-      // Async queries
-      let tmpSchema = query.tempSchema;
-      let tmpTable = query.tempTableName;
-      // Sync queries, query.results.query contains the source of truth for them.
-      if (query.results && query.results.query) {
-        tmpTable = query.results.query.tempTable;
-        tmpSchema = query.results.query.tempSchema;
-      }
+      const { tempSchema, tempTable } = query;
       let object = 'Table';
       if (query.ctas_method === CtasEnum.VIEW) {
         object = 'View';
@@ -231,21 +233,22 @@ export default class ResultSet extends React.PureComponent {
           <Alert bsStyle="info">
             {t(object)} [
             <strong>
-              {tmpSchema}.{tmpTable}
+              {tempSchema ? `${tempSchema}.` : ''}
+              {tempTable}
             </strong>
             ] {t('was created')} &nbsp;
             <ButtonGroup>
               <Button
                 bsSize="small"
                 className="m-r-5"
-                onClick={() => this.popSelectStar(tmpSchema, tmpTable)}
+                onClick={() => this.popSelectStar(tempSchema, tempTable)}
               >
                 {t('Query in a new tab')}
               </Button>
               <ExploreCtasResultsButton
-                table={tmpTable}
-                schema={tmpSchema}
-                dbId={query.dbId}
+                table={tempTable}
+                schema={tempSchema}
+                dbId={exploreDBId}
                 database={this.props.database}
                 actions={this.props.actions}
               />
@@ -329,9 +332,7 @@ export default class ResultSet extends React.PureComponent {
       trackingUrl = (
         <Button
           bsSize="small"
-          onClick={() => {
-            window.open(query.trackingUrl);
-          }}
+          onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
         >
           {t('Track Job')}
         </Button>
@@ -354,5 +355,3 @@ export default class ResultSet extends React.PureComponent {
     );
   }
 }
-ResultSet.propTypes = propTypes;
-ResultSet.defaultProps = defaultProps;
