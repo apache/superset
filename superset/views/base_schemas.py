@@ -52,11 +52,15 @@ class BaseSupersetSchema(Schema):
         self,
         data: Union[Mapping[str, Any], Iterable[Mapping[str, Any]]],
         many: Optional[bool] = None,
-        partial: Optional[Union[bool, Sequence[str], Set[str]]] = None,
+        partial: Union[bool, Sequence[str], Set[str], None] = None,
         instance: Optional[Model] = None,
         **kwargs: Any,
     ) -> Any:
         self.instance = instance
+        if many is None:
+            many = False
+        if partial is None:
+            partial = False
         return super().load(data, many=many, partial=partial, **kwargs)
 
     @post_load

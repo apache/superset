@@ -21,12 +21,9 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
-import dataclasses
-import hashlib
 import inspect
 import logging
 import math
-import pickle as pkl
 import re
 import uuid
 from collections import defaultdict, OrderedDict
@@ -34,6 +31,7 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, cast, Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
+import dataclasses
 import geohash
 import numpy as np
 import pandas as pd
@@ -63,6 +61,7 @@ from superset.utils.core import (
     QueryMode,
     to_adhoc,
 )
+from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -412,7 +411,7 @@ class BaseViz:
         )
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
-        return hashlib.md5(json_data.encode("utf-8")).hexdigest()
+        return md5_sha_from_str(json_data)
 
     def get_payload(self, query_obj: Optional[QueryObjectDict] = None) -> VizPayload:
         """Returns a payload of metadata and data"""
@@ -443,7 +442,6 @@ class BaseViz:
             if cache_value:
                 stats_logger.incr("loading_from_cache")
                 try:
-                    cache_value = pkl.loads(cache_value)
                     df = cache_value["df"]
                     self.query = cache_value["query"]
                     self._any_cached_dttm = cache_value["dttm"]
@@ -488,12 +486,6 @@ class BaseViz:
             ):
                 try:
                     cache_value = dict(dttm=cached_dttm, df=df, query=self.query)
-                    cache_value = pkl.dumps(cache_value, protocol=pkl.HIGHEST_PROTOCOL)
-
-                    logger.info(
-                        "Caching {} chars at key {}".format(len(cache_value), cache_key)
-                    )
-
                     stats_logger.incr("set_cache_key")
                     cache.set(cache_key, cache_value, timeout=self.cache_timeout)
                 except Exception as ex:

@@ -24,6 +24,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship, RelationshipProperty
 
 from superset import security_manager
+from superset.models.alerts import Alert
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -32,6 +33,7 @@ metadata = Model.metadata  # pylint: disable=no-member
 class ScheduleType(str, enum.Enum):
     slice = "slice"
     dashboard = "dashboard"
+    alert = "alert"
 
 
 class EmailDeliveryType(str, enum.Enum):
@@ -87,9 +89,11 @@ class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
     email_format = Column(Enum(SliceEmailReportFormat))
 
 
-def get_scheduler_model(report_type: ScheduleType) -> Optional[Type[EmailSchedule]]:
+def get_scheduler_model(report_type: str) -> Optional[Type[EmailSchedule]]:
     if report_type == ScheduleType.dashboard:
         return DashboardEmailSchedule
     if report_type == ScheduleType.slice:
         return SliceEmailSchedule
+    if report_type == ScheduleType.alert:
+        return Alert
     return None

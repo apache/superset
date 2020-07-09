@@ -18,29 +18,42 @@
 """Utility functions used across Superset"""
 
 import logging
+import textwrap
 import time
 import urllib.request
 from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
-from typing import Any, Dict, Iterator, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 from urllib.error import URLError  # pylint: disable=ungrouped-imports
 
 import croniter
+import pandas as pd
 import simplejson as json
 from celery.app.task import Task
 from dateutil.tz import tzlocal
-from flask import render_template, Response, session, url_for
+from flask import current_app, render_template, Response, session, url_for
 from flask_babel import gettext as __
 from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
+from sqlalchemy.orm import Session
 from werkzeug.http import parse_cookie
 
-# Superset framework imports
-from superset import app, db, security_manager
+from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app
+from superset.models.alerts import Alert, AlertLog
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     EmailDeliveryType,
@@ -49,8 +62,13 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.models.slice import Slice
+from superset.sql_parse import ParsedQuery
 from superset.tasks.slack_util import deliver_slack_msg
 from superset.utils.core import get_email_address_list, send_email_smtp
+from superset.utils.screenshots import ChartScreenshot
+from superset.utils.urls import get_url_path
+
+# pylint: disable=too-few-public-methods
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -99,7 +117,7 @@ def _deliver_email(  # pylint: disable=too-many-arguments
     subject: str,
     body: str,
     data: Optional[Dict[str, Any]],
-    images: Optional[Dict[str, str]],
+    images: Optional[Dict[str, bytes]],
 ) -> None:
     for (to, bcc) in _get_email_to_and_bcc(recipients, deliver_as_group):
         send_email_smtp(
@@ -132,7 +150,7 @@ def _generate_report_content(
 
     if delivery_type == EmailDeliveryType.attachment:
         images = None
-        data = {"screenshot.png": screenshot}
+        data = {"screenshot": screenshot}
         body = __(
             '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
             name=name,
@@ -512,6 +530,140 @@ def schedule_email_report(  # pylint: disable=unused-argument
         raise RuntimeError("Unknown report type")
 
 
+@celery_app.task(
+    name="alerts.run_query",
+    bind=True,
+    soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
+)
+def schedule_alert_query(  # pylint: disable=unused-argument
+    task: Task,
+    report_type: ScheduleType,
+    schedule_id: int,
+    recipients: Optional[str] = None,
+) -> None:
+    model_cls = get_scheduler_model(report_type)
+    dbsession = db.create_scoped_session()
+    schedule = dbsession.query(model_cls).get(schedule_id)
+
+    # The user may have disabled the schedule. If so, ignore this
+    if not schedule or not schedule.active:
+        logger.info("Ignoring deactivated alert")
+        return
+
+    if report_type == ScheduleType.alert:
+        if run_alert_query(schedule, dbsession):
+            # deliver_dashboard OR deliver_slice
+            return
+    else:
+        raise RuntimeError("Unknown report type")
+
+
+class AlertState:
+    ERROR = "error"
+    TRIGGER = "trigger"
+    PASS = "pass"
+
+
+def deliver_alert(alert: Alert) -> None:
+    logging.info("Triggering alert: %s", alert)
+    img_data = None
+    images = {}
+    if alert.slice:
+
+        chart_url = get_url_path(
+            "Superset.slice", slice_id=alert.slice.id, standalone="true"
+        )
+        screenshot = ChartScreenshot(chart_url, alert.slice.digest)
+        cache_key = screenshot.cache_key()
+        image_url = get_url_path(
+            "ChartRestApi.screenshot", pk=alert.slice.id, digest=cache_key
+        )
+
+        user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
+        img_data = screenshot.compute_and_cache(
+            user=user, cache=thumbnail_cache, force=True,
+        )
+    else:
+        # TODO: dashboard delivery!
+        image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
+
+    # generate the email
+    subject = f"[Superset] Triggered alert: {alert.label}"
+    deliver_as_group = False
+    data = None
+    if img_data:
+        images = {"screenshot": img_data}
+    body = __(
+        textwrap.dedent(
+            """\
+            <h2>Alert: %(label)s</h2>
+            <img src="cid:screenshot" alt="%(label)s" />
+        """
+        ),
+        label=alert.label,
+        image_url=image_url,
+    )
+
+    _deliver_email(alert.recipients, deliver_as_group, subject, body, data, images)
+
+
+def run_alert_query(alert: Alert, dbsession: Session) -> Optional[bool]:
+    """
+    Execute alert.sql and return value if any rows are returned
+    """
+    logger.info("Processing alert ID: %i", alert.id)
+    database = alert.database
+    if not database:
+        logger.error("Alert database not preset")
+        return None
+
+    if not alert.sql:
+        logger.error("Alert SQL not preset")
+        return None
+
+    parsed_query = ParsedQuery(alert.sql)
+    sql = parsed_query.stripped()
+
+    state = None
+    dttm_start = datetime.utcnow()
+
+    df = pd.DataFrame()
+    try:
+        logger.info("Evaluating SQL for alert %s", alert)
+        df = database.get_df(sql)
+    except Exception as exc:  # pylint: disable=broad-except
+        state = AlertState.ERROR
+        logging.exception(exc)
+        logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
+
+    dttm_end = datetime.utcnow()
+
+    if state != AlertState.ERROR:
+        alert.last_eval_dttm = datetime.utcnow()
+        if not df.empty:
+            # Looking for truthy cells
+            for row in df.to_records():
+                if any(row):
+                    state = AlertState.TRIGGER
+                    deliver_alert(alert)
+                    break
+        if not state:
+            state = AlertState.PASS
+
+    alert.last_state = state
+    alert.logs.append(
+        AlertLog(
+            scheduled_dttm=dttm_start,
+            dttm_start=dttm_start,
+            dttm_end=dttm_end,
+            state=state,
+        )
+    )
+    dbsession.commit()
+
+    return None
+
+
 def next_schedules(
     crontab: str, start_at: datetime, stop_at: datetime, resolution: int = 0
 ) -> Iterator[datetime]:
@@ -535,7 +687,7 @@ def next_schedules(
 
 
 def schedule_window(
-    report_type: ScheduleType, start_at: datetime, stop_at: datetime, resolution: int
+    report_type: str, start_at: datetime, stop_at: datetime, resolution: int
 ) -> None:
     """
     Find all active schedules and schedule celery tasks for
@@ -551,14 +703,33 @@ def schedule_window(
     schedules = dbsession.query(model_cls).filter(model_cls.active.is_(True))
 
     for schedule in schedules:
+        logging.info("Processing schedule %s", schedule)
         args = (report_type, schedule.id)
 
+        if (
+            hasattr(schedule, "last_eval_dttm")
+            and schedule.last_eval_dttm
+            and schedule.last_eval_dttm > start_at
+        ):
+            # start_at = schedule.last_eval_dttm + timedelta(seconds=1)
+            pass
         # Schedule the job for the specified time window
         for eta in next_schedules(
             schedule.crontab, start_at, stop_at, resolution=resolution
         ):
-            schedule_email_report.apply_async(args, eta=eta)
+            get_scheduler_action(report_type).apply_async(args, eta=eta)  # type: ignore
+            break
 
+    return None
+
+
+def get_scheduler_action(report_type: str) -> Optional[Callable[..., Any]]:
+    if report_type == ScheduleType.dashboard:
+        return schedule_email_report
+    if report_type == ScheduleType.slice:
+        return schedule_email_report
+    if report_type == ScheduleType.alert:
+        return schedule_alert_query
     return None
 
 
@@ -577,3 +748,16 @@ def schedule_hourly() -> None:
     stop_at = start_at + timedelta(seconds=3600)
     schedule_window(ScheduleType.dashboard, start_at, stop_at, resolution)
     schedule_window(ScheduleType.slice, start_at, stop_at, resolution)
+
+
+@celery_app.task(name="alerts.schedule_check")
+def schedule_alerts() -> None:
+    """ Celery beat job meant to be invoked every minute to check alerts """
+    resolution = 0
+    now = datetime.utcnow()
+    start_at = now - timedelta(
+        seconds=3600
+    )  # process any missed tasks in the past hour
+    stop_at = now + timedelta(seconds=1)
+
+    schedule_window(ScheduleType.alert, start_at, stop_at, resolution)

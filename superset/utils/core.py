@@ -721,7 +721,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     config: Dict[str, Any],
     files: Optional[List[str]] = None,
     data: Optional[Dict[str, str]] = None,
-    images: Optional[Dict[str, str]] = None,
+    images: Optional[Dict[str, bytes]] = None,
     dryrun: bool = False,
     cc: Optional[str] = None,
     bcc: Optional[str] = None,
@@ -778,8 +778,8 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
 
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
-    for msgid, body in (images or {}).items():
-        image = MIMEImage(body)
+    for msgid, imgdata in (images or {}).items():
+        image = MIMEImage(imgdata)
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)

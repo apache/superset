@@ -18,6 +18,7 @@
 """Utility functions used across Superset"""
 
 import logging
+from typing import Optional, Tuple
 
 from flask import current_app
 
@@ -27,28 +28,45 @@ from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 
 logger = logging.getLogger(__name__)
 
+WindowSize = Tuple[int, int]
+
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
-def cache_chart_thumbnail(chart_id: int, force: bool = False) -> None:
+def cache_chart_thumbnail(
+    url: str,
+    digest: str,
+    force: bool = False,
+    window_size: Optional[WindowSize] = None,
+    thumb_size: Optional[WindowSize] = None,
+) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logger.warning("No cache set, refusing to compute")
-            return
-        logging.info("Caching chart %i", chart_id)
-        screenshot = ChartScreenshot(model_id=chart_id)
+            return None
+        logging.info("Caching chart at {url}")
+        screenshot = ChartScreenshot(url, digest)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
-        screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)
+        screenshot.compute_and_cache(
+            user=user,
+            cache=thumbnail_cache,
+            force=force,
+            window_size=window_size,
+            thumb_size=thumb_size,
+        )
+        return None
 
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
-def cache_dashboard_thumbnail(  # pylint: disable=inconsistent-return-statements
-    dashboard_id: int, force: bool = False
+def cache_dashboard_thumbnail(
+    url: str, digest: str, force: bool = False, thumb_size: Optional[WindowSize] = None
 ) -> None:
     with app.app_context():  # type: ignore
         if not thumbnail_cache:
             logging.warning("No cache set, refusing to compute")
             return
-        logger.info("Caching dashboard %i", dashboard_id)
-        screenshot = DashboardScreenshot(model_id=dashboard_id)
+        logger.info("Caching dashboard: %s", url)
+        screenshot = DashboardScreenshot(url, digest)
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
-        screenshot.compute_and_cache(user=user, cache=thumbnail_cache, force=force)
+        screenshot.compute_and_cache(
+            user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,
+        )

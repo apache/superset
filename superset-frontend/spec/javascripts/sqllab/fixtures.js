@@ -387,8 +387,52 @@ export const stoppedQuery = {
   startDttm: 1497400851936,
   state: 'stopped',
   tab: 'Untitled Query 2',
-  tempTableName: '',
+  tempTable: '',
 };
+
+export const failedQueryWithErrorMessage = {
+  dbId: 1,
+  cached: false,
+  ctas: false,
+  errorMessage: 'Something went wrong',
+  id: 'ryhMUZCGb',
+  progress: 0,
+  results: [],
+  runAsync: false,
+  schema: 'main',
+  sql: 'SELECT ...',
+  sqlEditorId: 'rJaf5u9WZ',
+  startDttm: 1497400851936,
+  state: 'failed',
+  tab: 'Untitled Query 2',
+  tempTable: '',
+};
+
+export const failedQueryWithErrors = {
+  dbId: 1,
+  cached: false,
+  ctas: false,
+  errors: [
+    {
+      message: 'Something went wrong',
+      error_type: 'TEST_ERROR',
+      level: 'error',
+      extra: null,
+    },
+  ],
+  id: 'ryhMUZCGb',
+  progress: 0,
+  results: [],
+  runAsync: false,
+  schema: 'main',
+  sql: 'SELECT ...',
+  sqlEditorId: 'rJaf5u9WZ',
+  startDttm: 1497400851936,
+  state: 'failed',
+  tab: 'Untitled Query 2',
+  tempTable: '',
+};
+
 export const runningQuery = {
   dbId: 1,
   cached: false,
@@ -428,7 +472,7 @@ export const query = {
   sql: 'SELECT * FROM something',
   sqlEditorId: defaultQueryEditor.id,
   tab: 'unimportant',
-  tempTableName: null,
+  tempTable: null,
   runAsync: false,
   ctas: false,
   cached: false,

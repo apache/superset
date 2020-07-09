@@ -39,7 +39,6 @@ import {
 } from './Shared_DeckGL';
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     {
       label: t('Query'),

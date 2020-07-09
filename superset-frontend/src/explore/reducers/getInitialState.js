@@ -21,27 +21,41 @@ import shortid from 'shortid';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 import { getChartKey } from '../exploreUtils';
 import { getControlsState } from '../store';
-import { getFormDataFromControls } from '../controlUtils';
+import {
+  getFormDataFromControls,
+  applyMapStateToPropsToControl,
+} from '../controlUtils';
 
 export default function getInitialState(bootstrapData) {
-  const controls = getControlsState(bootstrapData, bootstrapData.form_data);
-  const rawFormData = { ...bootstrapData.form_data };
-
+  const { form_data: rawFormData } = bootstrapData;
+  const slice = bootstrapData.slice;
+  const sliceName = slice ? slice.slice_name : null;
   const bootstrappedState = {
     ...bootstrapData,
+    sliceName,
     common: {
       flash_messages: bootstrapData.common.flash_messages,
       conf: bootstrapData.common.conf,
     },
     rawFormData,
-    controls,
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
+    isInitializing: true,
   };
+  const controls = getControlsState(bootstrappedState, rawFormData);
+  bootstrappedState.controls = controls;
 
-  const slice = bootstrappedState.slice;
-  const sliceName = slice ? slice.slice_name : null;
+  // apply initial mapStateToProps for all controls, must execute AFTER
+  // bootstrappedState has initialized `controls`. Order of execution is not
+  // guaranteed, so controls shouldn't rely on the each other's mapped state.
+  Object.entries(controls).forEach(([key, controlState]) => {
+    controls[key] = applyMapStateToPropsToControl(
+      controlState,
+      bootstrappedState,
+    );
+  });
+  bootstrappedState.isInitializing = false;
 
   const sliceFormData = slice
     ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
@@ -69,10 +83,7 @@ export default function getInitialState(bootstrapData) {
       dashboards: [],
       saveModalAlert: null,
     },
-    explore: {
-      ...bootstrappedState,
-      sliceName,
-    },
+    explore: bootstrappedState,
     impressionId: shortid.generate(),
     messageToasts: getToastsFromPyFlashMessages(
       (bootstrapData.common || {}).flash_messages || [],

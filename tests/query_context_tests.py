@@ -39,8 +39,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context(
             table.name, table.id, table.type, add_postprocessing_operations=True
         )
-        query_context, errors = ChartDataQueryContextSchema().load(payload)
-        self.assertDictEqual(errors, {})
+        query_context = ChartDataQueryContextSchema().load(payload)
         self.assertEqual(len(query_context.queries), len(payload["queries"]))
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
