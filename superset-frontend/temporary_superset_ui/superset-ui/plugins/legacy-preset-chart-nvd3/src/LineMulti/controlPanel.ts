@@ -19,7 +19,7 @@
  */
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { D3_TIME_FORMAT_OPTIONS, sections } from '@superset-ui/chart-controls';
+import { sections } from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
   showLegend,
@@ -147,10 +147,6 @@ export default {
   controlOverrides: {
     y_axis_format: {
       label: t('Left Axis Format'),
-    },
-    x_axis_format: {
-      choices: D3_TIME_FORMAT_OPTIONS,
-      default: 'smart_date',
     },
   },
   sectionOverrides: {
