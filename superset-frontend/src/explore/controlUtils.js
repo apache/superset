@@ -134,13 +134,16 @@ export function getControlStateFromControlConfig(
   }
   const controlState = { ...controlConfig };
   // only apply mapStateToProps when control states have been initialized
-  if ('controls' in controlPanelState) {
+  if (controlPanelState.controls || !controlPanelState.isInitializing) {
     applyMapStateToPropsToControl(controlState, controlPanelState);
   }
 
   // If default is a function, evaluate it
   if (typeof controlState.default === 'function') {
-    controlState.default = controlState.default(controlState);
+    controlState.default = controlState.default(
+      controlState,
+      controlPanelState,
+    );
   }
 
   // If a choice control went from multi=false to true, wrap value in array

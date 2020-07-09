@@ -27,6 +27,7 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
   getAllControlsState,
+  getControlsState,
 } from 'src/explore/controlUtils';
 
 describe('controlUtils', () => {
@@ -185,8 +186,8 @@ describe('controlUtils', () => {
     });
 
     it('removes the mapStateToProps key from the object', () => {
-      let control = getControlConfig('all_columns', 'table');
-      control = applyMapStateToPropsToControl(control, state);
+      const control = getControlConfig('all_columns', 'table');
+      applyMapStateToPropsToControl(control, state);
       expect(control.mapStateToProps[0]).toBe(undefined);
     });
   });
@@ -245,6 +246,14 @@ describe('controlUtils', () => {
       };
       const control = getControlState('metrics', 'table', stateWithCount);
       expect(control.default).toEqual(['count']);
+    });
+
+    it('should not apply mapStateToProps when initializing', () => {
+      const control = getControlState('metrics', 'table', {
+        ...state,
+        isInitializing: true,
+      });
+      expect(control.default).toEqual(null);
     });
   });
 

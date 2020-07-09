@@ -21,7 +21,10 @@ import shortid from 'shortid';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 import { getChartKey } from '../exploreUtils';
 import { getControlsState } from '../store';
-import { getFormDataFromControls, applyMapStateToPropsToControl } from '../controlUtils';
+import {
+  getFormDataFromControls,
+  applyMapStateToPropsToControl,
+} from '../controlUtils';
 
 export default function getInitialState(bootstrapData) {
   const { form_data: rawFormData } = bootstrapData;
@@ -38,9 +41,9 @@ export default function getInitialState(bootstrapData) {
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
+    isInitializing: true,
   };
   const controls = getControlsState(bootstrappedState, rawFormData);
-
   bootstrappedState.controls = controls;
 
   // apply initial mapStateToProps for all controls, must be done after
@@ -48,6 +51,7 @@ export default function getInitialState(bootstrapData) {
   Object.values(controls).forEach(controlState => {
     applyMapStateToPropsToControl(controlState, bootstrappedState);
   });
+  bootstrappedState.isInitializing = false;
 
   const sliceFormData = slice
     ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
