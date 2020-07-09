@@ -46,10 +46,14 @@ export default function getInitialState(bootstrapData) {
   const controls = getControlsState(bootstrappedState, rawFormData);
   bootstrappedState.controls = controls;
 
-  // apply initial mapStateToProps for all controls, must be done after
-  // bootstrapState has initialized `controls`.
-  Object.values(controls).forEach(controlState => {
-    applyMapStateToPropsToControl(controlState, bootstrappedState);
+  // apply initial mapStateToProps for all controls, must execute AFTER
+  // bootstrappedState has initialized `controls`. Order of execution is not
+  // guaranteed, so controls shouldn't rely on the each other's mapped state.
+  Object.entries(controls).forEach(([key, controlState]) => {
+    controls[key] = applyMapStateToPropsToControl(
+      controlState,
+      bootstrappedState,
+    );
   });
   bootstrappedState.isInitializing = false;
 

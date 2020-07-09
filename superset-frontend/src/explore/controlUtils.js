@@ -88,15 +88,13 @@ export const getControlConfig = memoizeOne(function getControlConfig(
   return control?.config || control;
 });
 
-/**
- * Call `mapStateToProps` from controlState and update it in place.
- */
 export function applyMapStateToPropsToControl(controlState, controlPanelState) {
-  if (controlState.mapStateToProps && controlPanelState) {
-    Object.assign(
-      controlState,
-      controlState.mapStateToProps(controlPanelState, controlState),
-    );
+  const { mapStateToProps } = controlState;
+  if (mapStateToProps && controlPanelState) {
+    return {
+      ...controlState,
+      ...mapStateToProps(controlPanelState, controlState),
+    };
   }
   return controlState;
 }
@@ -132,10 +130,16 @@ export function getControlStateFromControlConfig(
   if (!controlConfig) {
     return null;
   }
-  const controlState = { ...controlConfig };
+  let controlState = { ...controlConfig };
   // only apply mapStateToProps when control states have been initialized
-  if (controlPanelState.controls || !controlPanelState.isInitializing) {
-    applyMapStateToPropsToControl(controlState, controlPanelState);
+  if (
+    controlPanelState &&
+    (controlPanelState.controls || !controlPanelState.isInitializing)
+  ) {
+    controlState = applyMapStateToPropsToControl(
+      controlState,
+      controlPanelState,
+    );
   }
 
   // If default is a function, evaluate it

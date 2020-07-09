@@ -186,8 +186,8 @@ describe('controlUtils', () => {
     });
 
     it('removes the mapStateToProps key from the object', () => {
-      const control = getControlConfig('all_columns', 'table');
-      applyMapStateToPropsToControl(control, state);
+      let control = getControlConfig('all_columns', 'table');
+      control = applyMapStateToPropsToControl(control, state);
       expect(control.mapStateToProps[0]).toBe(undefined);
     });
   });
