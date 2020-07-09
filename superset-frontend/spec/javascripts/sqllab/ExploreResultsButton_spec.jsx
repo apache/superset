@@ -65,12 +65,10 @@ describe('ExploreResultsButton', () => {
   };
   const mockChartTypeBarChart = {
     label: 'Distribution - Bar Chart',
-    requiresTime: false,
     value: 'dist_bar',
   };
   const mockChartTypeTB = {
     label: 'Time Series - Bar Chart',
-    requiresTime: true,
     value: 'bar',
   };
   const getExploreResultsButtonWrapper = (props = mockedProps) =>
