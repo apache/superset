@@ -289,9 +289,10 @@ class TabbedSqlEditors extends React.PureComponent {
       const title = (
         <>
           {qe.title} <TabStatusIcon tabState={state} />{' '}
-          <span className="close" onClick={() => this.removeQueryEditor(qe)}>
-            {'×'}
-          </span>
+          <i
+            className="fa fa-close"
+            onClick={() => this.removeQueryEditor(qe)}
+          />
         </>
       );
       const tabTitle = (
