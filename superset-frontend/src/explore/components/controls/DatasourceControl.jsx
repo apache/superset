@@ -160,11 +160,11 @@ class DatasourceControl extends React.PureComponent {
                   {t('Explore in SQL Lab')}
                 </MenuItem>
               )}
-              {this.props.isEditable ? (
+              {this.props.isEditable && (
                 <MenuItem eventKey="3" onClick={this.toggleEditDatasourceModal}>
                   {t('Edit Datasource')}
                 </MenuItem>
-              ) : null}
+              )}
             </DropdownButton>
           </TooltipWrapper>
           <OverlayTrigger
