@@ -40,6 +40,7 @@ import { areObjectsEqual } from '../../reduxUtils';
 import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
+import { PluginContext } from 'src/components/DynamicPlugins/PluginContext';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -184,6 +185,8 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
+  static contextType = PluginContext;
+
   applyFilters() {
     const { appliedFilters } = this;
     const { activeFilters } = this.props;
@@ -241,6 +244,9 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
+    if (this.context.loading) {
+      return 'loading...';
+    }
     return (
       <>
         <OmniContainer logEvent={this.props.actions.logEvent} />

@@ -15,7 +15,7 @@ export type PluginContextType = {
 };
 
 export const dummyPluginContext: PluginContextType = {
-  loading: false,
+  loading: true,
   plugins: {},
   fetchAll: () => {},
 };
