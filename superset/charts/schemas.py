@@ -395,6 +395,19 @@ class ChartDataSortOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     aggregates = ChartDataAggregateConfigField()
 
 
+class ChartDataContributionOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
+    """
+    Contribution operation config.
+    """
+
+    orientation = fields.String(
+        description="Should cell values be calculated across the row or column.",
+        required=True,
+        validate=validate.OneOf(choices=("row", "column",)),
+        example="row",
+    )
+
+
 class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
     Pivot operation config.
@@ -500,6 +513,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
         validate=validate.OneOf(
             choices=(
                 "aggregate",
+                "contribution",
                 "cum",
                 "geodetic_parse",
                 "geohash_decode",
@@ -637,7 +651,7 @@ class ChartDataQueryObjectSchema(Schema):
         "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
     )
     post_processing = fields.List(
-        fields.Nested(ChartDataPostProcessingOperationSchema),
+        fields.Nested(ChartDataPostProcessingOperationSchema, allow_none=True),
         description="Post processing operations to be applied to the result set. "
         "Operations are applied to the result set in sequential order.",
     )
@@ -812,6 +826,7 @@ CHART_DATA_SCHEMAS = (
     #  by Marshmallow<3, this is not currently possible.
     ChartDataAdhocMetricSchema,
     ChartDataAggregateOptionsSchema,
+    ChartDataContributionOptionsSchema,
     ChartDataPivotOptionsSchema,
     ChartDataRollingOptionsSchema,
     ChartDataSelectOptionsSchema,

@@ -69,3 +69,13 @@ class TestSchema(SupersetTestCase):
 
         payload["queries"][0]["extras"]["time_grain_sqla"] = None
         _ = ChartDataQueryContextSchema().load(payload)
+
+    def test_query_context_null_post_processing_op(self):
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
+
+        payload["queries"][0]["post_processing"] = [None]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        self.assertEqual(query_context.queries[0].post_processing, [])
