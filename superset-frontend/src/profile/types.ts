@@ -16,31 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export type User = {
+  createdOn: string;
+  email: string;
+  firstName: string;
+  isActive: boolean;
+  lastName: string;
+  permissions: {
+    database_access?: string[];
+    datasource_access?: string[];
+  };
+  roles: Record<string, any>;
+  userId: number;
+  username: string;
+};
 
-import { ComponentType } from 'react';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+export type Slice = {
+  dttm: number;
+  id: number;
+  url: string;
+  title: string;
+  creator?: string;
+  creator_url?: string;
+  viz_type: string;
+};
 
-import {
-  addDangerToast,
-  addInfoToast,
-  addSuccessToast,
-  addWarningToast,
-} from '../actions';
+export type Dashboard = {
+  dttm: number;
+  id: number;
+  url: string;
+  title: string;
+  creator?: string;
+  creator_url?: string;
+};
 
-// To work properly the redux state must have a `messageToasts` subtree
-export default function withToasts(BaseComponent: ComponentType<any>) {
-  return connect(null, dispatch =>
-    bindActionCreators(
-      {
-        addInfoToast,
-        addSuccessToast,
-        addWarningToast,
-        addDangerToast,
-      },
-      dispatch,
-    ),
-  )(BaseComponent) as any;
-  // Redux has some confusing typings that cause problems for consumers of this function.
-  // If someone can fix the types, great, but for now it's just any.
-}
+export type Activity = {
+  action: string;
+  item_title: string;
+  item_url: string;
+  time: number;
+};
