@@ -20,13 +20,14 @@
 import React from 'react';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { t } from '@superset-ui/translation';
-import { ColumnOption } from '@superset-ui/control-utils';
+import { ColumnOption } from '@superset-ui/chart-controls';
 import {
   getControlConfig,
   getControlState,
   getFormDataFromControls,
   applyMapStateToPropsToControl,
   getAllControlsState,
+  getControlsState,
 } from 'src/explore/controlUtils';
 
 describe('controlUtils', () => {
@@ -40,7 +41,6 @@ describe('controlUtils', () => {
   beforeAll(() => {
     getChartControlPanelRegistry()
       .registerValue('test-chart', {
-        requiresTime: true,
         controlPanelSections: [
           {
             label: t('Chart Options'),
@@ -84,7 +84,6 @@ describe('controlUtils', () => {
         ],
       })
       .registerValue('test-chart-override', {
-        requiresTime: true,
         controlPanelSections: [
           {
             label: t('Chart Options'),
@@ -105,6 +104,8 @@ describe('controlUtils', () => {
             expanded: true,
             controlSetRows: [
               [
+                'metric',
+                'metrics',
                 {
                   name: 'all_columns',
                   config: {
@@ -187,15 +188,15 @@ describe('controlUtils', () => {
     it('removes the mapStateToProps key from the object', () => {
       let control = getControlConfig('all_columns', 'table');
       control = applyMapStateToPropsToControl(control, state);
-      expect(control.mapStateToProps).toBe(undefined);
+      expect(control.mapStateToProps[0]).toBe(undefined);
     });
   });
 
   describe('getControlState', () => {
-    it('to be function free', () => {
-      const control = getControlState('all_columns', 'table', state, ['a']);
-      expect(control.mapStateToProps).toBe(undefined);
-      expect(control.validators).toBe(undefined);
+    it('to still have the functions', () => {
+      const control = getControlState('metrics', 'table', state, ['a']);
+      expect(typeof control.mapStateToProps).toBe('function');
+      expect(typeof control.validators[0]).toBe('function');
     });
 
     it('to fix multi with non-array values', () => {
@@ -213,7 +214,12 @@ describe('controlUtils', () => {
       expect(control.value).toBe('stack');
 
       control = getControlState('stacked_style', 'test-chart', state, 'FOO');
-      expect(control.value).toBe(null);
+      expect(control.value).toBeNull();
+    });
+
+    it('returns null for non-existent field', () => {
+      const control = getControlState('NON_EXISTENT', 'table', state);
+      expect(control).toBeNull();
     });
 
     it('applies the default function for metrics', () => {
@@ -241,6 +247,14 @@ describe('controlUtils', () => {
       const control = getControlState('metrics', 'table', stateWithCount);
       expect(control.default).toEqual(['count']);
     });
+
+    it('should not apply mapStateToProps when initializing', () => {
+      const control = getControlState('metrics', 'table', {
+        ...state,
+        isInitializing: true,
+      });
+      expect(control.default).toEqual(null);
+    });
   });
 
   describe('validateControl', () => {
@@ -254,7 +268,11 @@ describe('controlUtils', () => {
     it('in formData', () => {
       const controlsState = getAllControlsState('table', 'table', {}, {});
       const formData = getFormDataFromControls(controlsState);
-      expect(formData.queryFields).toEqual({ all_columns: 'columns' });
+      expect(formData.queryFields).toEqual({
+        all_columns: 'columns',
+        metric: 'metrics',
+        metrics: 'metrics',
+      });
     });
   });
 });

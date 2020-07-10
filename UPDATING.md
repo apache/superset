@@ -23,14 +23,26 @@ assists people when migrating to a new version.
 
 ## Next
 
-* [10031](https://github.com/apache/incubator-superset/pull/10030): Renames the following public security manager methods: `can_access_datasource` to `can_access_table`, `all_datasource_access` to `can_access_all_datasources`, `all_database_access` to `can_access_all_databases`, `database_access` to `can_access_database`, `schema_access` to `can_access_schema`, and
+* [9964](https://github.com/apache/incubator-superset/pull/9964): Breaking change on Flask-AppBuilder 3. If you're using OAuth, find out what needs to be changed [here](https://github.com/dpgaspar/Flask-AppBuilder/blob/master/README.rst#change-log).
+
+* [10233](https://github.com/apache/incubator-superset/pull/10233): a change which deprecates the `ENABLE_FLASK_COMPRESS` config option in favor of the Flask-Compress `COMPRESS_REGISTER` config option which serves the same purpose.
+
+* [10222](https://github.com/apache/incubator-superset/pull/10222): a change which changes how payloads are cached. Previous cached objects cannot be decoded and thus will be reloaded from source.
+
+* [10130](https://github.com/apache/incubator-superset/pull/10130): a change which deprecates the `dbs.perm` column in favor of SQLAlchemy [hybird attributes](https://docs.sqlalchemy.org/en/13/orm/extensions/hybrid.html).
+
+* [10034](https://github.com/apache/incubator-superset/pull/10034): a change which deprecates the public security manager  `assert_datasource_permission`, `assert_query_context_permission`, `assert_viz_permission`, and `rejected_tables` methods with the `raise_for_access` method which also handles assertion logic for SQL tables.
+
+* [10031](https://github.com/apache/incubator-superset/pull/10030): a change which renames the following public security manager methods: `can_access_datasource` to `can_access_table`, `all_datasource_access` to `can_access_all_datasources`, `all_database_access` to `can_access_all_databases`, `database_access` to `can_access_database`, `schema_access` to `can_access_schema`, and
 `datasource_access` to `can_access_datasource`. Regrettably it is not viable to provide aliases for the deprecated methods as this would result in a name clash. Finally the `can_access_table` (previously `can_access_database`) method signature has changed, i.e., the optional `schema` argument no longer exists.
 
-* [10030](https://github.com/apache/incubator-superset/pull/10030): Renames the public security manager `schemas_accessible_by_user` method to `get_schemas_accessible_by_user`.
+* [10030](https://github.com/apache/incubator-superset/pull/10030): a change which renames the public security manager `schemas_accessible_by_user` method to `get_schemas_accessible_by_user`.
 
 * [9786](https://github.com/apache/incubator-superset/pull/9786): with the upgrade of `werkzeug` from version `0.16.0` to `1.0.1`, the `werkzeug.contrib.cache` module has been moved to a standalone package [cachelib](https://pypi.org/project/cachelib/). For example, to import the `RedisCache` class, please use the following import: `from cachelib.redis import RedisCache`.
 
-* [9572](https://github.com/apache/incubator-superset/pull/9572): a change which by defau;t means that the Jinja `current_user_id`, `current_username`, and `url_param` context calls no longer need to be wrapped via `cache_key_wrapper` in order to be included in the cache key. The `cache_key_wrapper` function should only be required for Jinja add-ons.
+* [9794](https://github.com/apache/incubator-superset/pull/9794): introduces `create view as` functionality in the sqllab. This change will require the `query` table migration and potential service downtime as that table has quite some traffic.
+
+* [9572](https://github.com/apache/incubator-superset/pull/9572): a change which by default means that the Jinja `current_user_id`, `current_username`, and `url_param` context calls no longer need to be wrapped via `cache_key_wrapper` in order to be included in the cache key. The `cache_key_wrapper` function should only be required for Jinja add-ons.
 
 * [8867](https://github.com/apache/incubator-superset/pull/8867): a change which adds the `tmp_schema_name` column to the `query` table which requires locking the table. Given the `query` table is heavily used performance may be degraded during the migration. Scheduled downtime may be advised.
 
@@ -244,6 +256,8 @@ If you run a production system you should schedule downtime for this
 upgrade.
 
 The PRs bellow have more information around the breaking changes:
+* [9825](https://github.com/apache/incubator-superset/pull/9825):  Support for Excel sheet upload added. To enable support, install Superset with the optional dependency `excel`
+
 * [4587](https://github.com/apache/incubator-superset/pull/4587) : a backward
   incompatible database migration that requires downtime. Once the
   db migration succeeds, the web server needs to be restarted with the

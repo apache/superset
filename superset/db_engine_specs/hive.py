@@ -56,6 +56,20 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     engine = "hive"
     max_column_name_length = 767
+    # pylint: disable=line-too-long
+    _time_grain_expressions = {
+        None: "{col}",
+        "PT1S": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:mm:ss')",
+        "PT1M": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:mm:00')",
+        "PT1H": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd HH:00:00')",
+        "P1D": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd 00:00:00')",
+        "P1W": "date_format(date_sub({col}, CAST(7-from_unixtime(unix_timestamp({col}),'u') as int)), 'yyyy-MM-dd 00:00:00')",
+        "P1M": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-01 00:00:00')",
+        "P0.25Y": "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",
+        "P1Y": "from_unixtime(unix_timestamp({col}), 'yyyy-01-01 00:00:00')",
+        "P1W/1970-01-03T00:00:00Z": "date_format(date_add({col}, INT(6-from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",
+        "1969-12-28T00:00:00Z/P1W": "date_format(date_add({col}, -INT(from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",
+    }
 
     # Scoping regex at class level to avoid recompiling
     # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
@@ -105,6 +119,45 @@ class HiveEngineSpec(PrestoEngineSpec):
             return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
         except pyhive.exc.ProgrammingError:
             return []
+
+    @classmethod
+    def get_create_table_stmt(  # pylint: disable=too-many-arguments
+        cls,
+        table: Table,
+        schema_definition: str,
+        location: str,
+        delim: str,
+        header_line_count: Optional[int],
+        null_values: Optional[List[str]],
+    ) -> text:
+        tblproperties = []
+        # available options:
+        # https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
+        # TODO(bkyryliuk): figure out what to do with the skip rows field.
+        params: Dict[str, str] = {
+            "delim": delim,
+            "location": location,
+        }
+        if header_line_count is not None and header_line_count >= 0:
+            header_line_count += 1
+            tblproperties.append("'skip.header.line.count'=:header_line_count")
+            params["header_line_count"] = str(header_line_count)
+        if null_values:
+            # hive only supports 1 value for the null format
+            tblproperties.append("'serialization.null.format'=:null_value")
+            params["null_value"] = null_values[0]
+
+        if tblproperties:
+            tblproperties_stmt = f"tblproperties ({', '.join(tblproperties)})"
+            sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location
+                {tblproperties_stmt}"""
+        else:
+            sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
+                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
+                STORED AS TEXTFILE LOCATION :location"""
+        return sql, params
 
     @classmethod
     def create_table_from_csv(  # pylint: disable=too-many-arguments, too-many-locals
@@ -182,25 +235,24 @@ class HiveEngineSpec(PrestoEngineSpec):
             bucket_path,
             os.path.join(upload_prefix, table.table, os.path.basename(filename)),
         )
-        sql = text(
-            f"""CREATE TABLE {str(table)} ( {schema_definition} )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-            STORED AS TEXTFILE LOCATION :location
-            tblproperties ('skip.header.line.count'='1')"""
+
+        sql, params = cls.get_create_table_stmt(
+            table,
+            schema_definition,
+            location,
+            csv_to_df_kwargs["sep"].encode().decode("unicode_escape"),
+            int(csv_to_df_kwargs.get("header", 0)),
+            csv_to_df_kwargs.get("na_values"),
         )
         engine = cls.get_engine(database)
-        engine.execute(
-            sql,
-            delim=csv_to_df_kwargs["sep"].encode().decode("unicode_escape"),
-            location=location,
-        )
+        engine.execute(text(sql), **params)
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
+        if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == "TIMESTAMP":
+        if tt == utils.TemporalType.TIMESTAMP:
             return f"""CAST('{dttm.isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
         return None
 
@@ -437,14 +489,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         url = make_url(uri)
         backend_name = url.get_backend_name()
 
-        # Must be Hive connection, enable impersonation, and set param
+        # Must be Hive connection, enable impersonation, and set optional param
         # auth=LDAP|KERBEROS
-        if (
-            backend_name == "hive"
-            and "auth" in url.query.keys()
-            and impersonate_user is True
-            and username is not None
-        ):
+        if backend_name == "hive" and impersonate_user and username is not None:
             configuration["hive.server2.proxy.user"] = username
         return configuration
 

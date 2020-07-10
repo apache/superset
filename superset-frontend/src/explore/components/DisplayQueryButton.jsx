@@ -37,7 +37,6 @@ import {
 } from 'react-bootstrap';
 import { Table } from 'reactable-arc';
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
 
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
@@ -47,7 +46,10 @@ import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
 import RowCountLabel from './RowCountLabel';
-import { prepareCopyToClipboardTabularData } from '../../utils/common';
+import {
+  applyFormattingToTabularData,
+  prepareCopyToClipboardTabularData,
+} from '../../utils/common';
 import PropertiesModal from './PropertiesModal';
 import { sliceUpdated } from '../actions/exploreActions';
 
@@ -197,7 +199,7 @@ export class DisplayQueryButton extends React.PureComponent {
         <Table
           className="table table-condensed"
           sortable
-          data={data}
+          data={applyFormattingToTabularData(data)}
           hideFilterInput
           filterBy={this.state.filterText}
           filterable={data.length ? Object.keys(data[0]) : null}
@@ -208,13 +210,7 @@ export class DisplayQueryButton extends React.PureComponent {
   }
   renderSamplesModalBody() {
     if (this.state.isLoading) {
-      return (
-        <img
-          className="loading"
-          alt="Loading..."
-          src="/static/assets/images/loading.gif"
-        />
-      );
+      return <Loading />;
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;
     } else if (this.state.data) {

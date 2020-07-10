@@ -62,53 +62,61 @@ describe('AsyncSelect', () => {
   });
 
   describe('auto select', () => {
-    it('should not call onChange if autoSelect=false', done => {
-      expect.assertions(2);
+    it('should not call onChange if autoSelect=false', () => {
+      return new Promise(done => {
+        expect.assertions(2);
 
-      const onChangeSpy = jest.fn();
-      shallow(<AsyncSelect {...mockedProps} onChange={onChangeSpy} />);
+        const onChangeSpy = jest.fn();
+        shallow(<AsyncSelect {...mockedProps} onChange={onChangeSpy} />);
 
-      setTimeout(() => {
-        expect(fetchMock.calls(dataGlob)).toHaveLength(1);
-        expect(onChangeSpy.mock.calls).toHaveLength(0);
-        done();
+        setTimeout(() => {
+          expect(fetchMock.calls(dataGlob)).toHaveLength(1);
+          expect(onChangeSpy.mock.calls).toHaveLength(0);
+          done();
+        });
       });
     });
 
-    it('should auto select the first option if autoSelect=true', done => {
-      expect.assertions(3);
+    it('should auto select the first option if autoSelect=true', () => {
+      return new Promise(done => {
+        expect.assertions(3);
 
-      const onChangeSpy = jest.fn();
-      const wrapper = shallow(
-        <AsyncSelect {...mockedProps} onChange={onChangeSpy} autoSelect />,
-      );
+        const onChangeSpy = jest.fn();
+        const wrapper = shallow(
+          <AsyncSelect {...mockedProps} onChange={onChangeSpy} autoSelect />,
+        );
 
-      setTimeout(() => {
-        expect(fetchMock.calls(dataGlob)).toHaveLength(1);
-        expect(onChangeSpy.mock.calls).toHaveLength(1);
-        expect(onChangeSpy).toBeCalledWith(wrapper.instance().state.options[0]);
-        done();
+        setTimeout(() => {
+          expect(fetchMock.calls(dataGlob)).toHaveLength(1);
+          expect(onChangeSpy.mock.calls).toHaveLength(1);
+          expect(onChangeSpy).toBeCalledWith(
+            wrapper.instance().state.options[0],
+          );
+          done();
+        });
       });
     });
 
-    it('should not auto select when value prop is set and autoSelect=true', done => {
-      expect.assertions(3);
+    it('should not auto select when value prop is set and autoSelect=true', () => {
+      return new Promise(done => {
+        expect.assertions(3);
 
-      const onChangeSpy = jest.fn();
-      const wrapper = shallow(
-        <AsyncSelect
-          {...mockedProps}
-          value={2}
-          onChange={onChangeSpy}
-          autoSelect
-        />,
-      );
+        const onChangeSpy = jest.fn();
+        const wrapper = shallow(
+          <AsyncSelect
+            {...mockedProps}
+            value={2}
+            onChange={onChangeSpy}
+            autoSelect
+          />,
+        );
 
-      setTimeout(() => {
-        expect(fetchMock.calls(dataGlob)).toHaveLength(1);
-        expect(onChangeSpy.mock.calls).toHaveLength(0);
-        expect(wrapper.find(Select)).toHaveLength(1);
-        done();
+        setTimeout(() => {
+          expect(fetchMock.calls(dataGlob)).toHaveLength(1);
+          expect(onChangeSpy.mock.calls).toHaveLength(0);
+          expect(wrapper.find(Select)).toHaveLength(1);
+          done();
+        });
       });
     });
 

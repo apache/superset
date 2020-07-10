@@ -32,7 +32,7 @@ from sqlalchemy.exc import ArgumentError
 import tests.test_app
 from superset import app, db, security_manager
 from superset.exceptions import CertificateException, SupersetException
-from superset.models.core import Database
+from superset.models.core import Database, Log
 from superset.utils.cache_manager import CacheManager
 from superset.utils.core import (
     base_json_conv,
@@ -108,7 +108,7 @@ def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
     return result
 
 
-class UtilsTestCase(SupersetTestCase):
+class TestUtils(SupersetTestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         ts = 1577836800000.0
@@ -555,7 +555,7 @@ class UtilsTestCase(SupersetTestCase):
         merge_request_params(form_data, url_params)
         self.assertIn("url_params", form_data.keys())
         self.assertIn("abc", form_data["url_params"])
-        self.assertEquals(
+        self.assertEqual(
             url_params["dashboard_ids"], form_data["url_params"]["dashboard_ids"]
         )
 
@@ -1316,3 +1316,31 @@ class UtilsTestCase(SupersetTestCase):
             )
 
             self.assertEqual(slc, None)
+
+    def test_log_this(self) -> None:
+        # TODO: Add additional scenarios.
+        self.login(username="admin")
+        slc = self.get_slice("Girls", db.session)
+        dashboard_id = 1
+
+        resp = self.get_json_resp(
+            f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/"
+            + f'?form_data={{"slice_id": {slc.id}}}&dashboard_id={dashboard_id}',
+            {"form_data": json.dumps(slc.viz.form_data)},
+        )
+
+        record = (
+            db.session.query(Log)
+            .filter_by(action="explore_json", slice_id=slc.id)
+            .order_by(Log.dttm.desc())
+            .first()
+        )
+
+        self.assertEqual(record.dashboard_id, dashboard_id)
+        self.assertEqual(json.loads(record.json)["dashboard_id"], str(dashboard_id))
+        self.assertEqual(json.loads(record.json)["form_data"]["slice_id"], slc.id)
+
+        self.assertEqual(
+            json.loads(record.json)["form_data"]["viz_type"],
+            slc.viz.form_data["viz_type"],
+        )

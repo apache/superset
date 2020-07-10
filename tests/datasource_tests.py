@@ -24,10 +24,7 @@ from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
 
 
-class DatasourceTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(DatasourceTests, self).__init__(*args, **kwargs)
-
+class TestDatasource(SupersetTestCase):
     def test_external_metadata(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
@@ -84,11 +81,11 @@ class DatasourceTests(SupersetTestCase):
 
         datasource_post["database"]["id"] = new_db.id
         resp = self.save_datasource_from_dict(datasource_post)
-        self.assertEquals(resp["database"]["id"], new_db.id)
+        self.assertEqual(resp["database"]["id"], new_db.id)
 
         datasource_post["database"]["id"] = db_id
         resp = self.save_datasource_from_dict(datasource_post)
-        self.assertEquals(resp["database"]["id"], db_id)
+        self.assertEqual(resp["database"]["id"], db_id)
 
         self.delete_fake_db()
 

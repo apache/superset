@@ -17,11 +17,18 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/connection';
+import { getTimeFormatter, TimeFormats } from '@superset-ui/time-format';
 import getClientErrorObject from './getClientErrorObject';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
 
 export const NULL_STRING = '<NULL>';
+
+// moment time format strings
+export const SHORT_DATE = 'MMM D, YYYY';
+export const SHORT_TIME = 'h:m a';
+
+const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
 export function getParamFromQuery(query, param) {
   const vars = query.split('&');
@@ -113,4 +120,15 @@ export function prepareCopyToClipboardTabularData(data) {
     result += Object.values(data[i]).join('\t') + '\n';
   }
   return result;
+}
+
+export function applyFormattingToTabularData(data) {
+  if (!data || data.length === 0 || !('__timestamp' in data[0])) {
+    return data;
+  }
+  return data.map(row => ({
+    ...row,
+    // eslint-disable-next-line no-underscore-dangle
+    __timestamp: DATETIME_FORMATTER(new Date(row.__timestamp)),
+  }));
 }

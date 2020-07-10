@@ -22,10 +22,10 @@ from sqlalchemy import column
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class BigQueryTestCase(DbEngineSpecTestCase):
+class TestBigQueryDbEngineSpec(TestDbEngineSpec):
     def test_bigquery_sqla_column_label(self):
         """
         DB Eng Specs (bigquery): Test column label

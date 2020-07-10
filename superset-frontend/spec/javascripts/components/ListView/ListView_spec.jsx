@@ -19,18 +19,18 @@
 import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { act } from 'react-dom/test-utils';
-import { MenuItem, Pagination } from 'react-bootstrap';
+import { MenuItem } from 'react-bootstrap';
 import Select from 'src/components/Select';
 import { QueryParamProvider } from 'use-query-params';
 
 import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
+import Pagination from 'src/components/Pagination';
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import { ThemeProvider } from 'emotion-theming';
-import { supersetTheme } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-export function makeMockLocation(query) {
+function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
   return {
     protocol: 'http:',
@@ -292,16 +292,14 @@ Array [
       ...mockedProps,
       filters: [...mockedProps.filters, { id: 'some_column' }],
     };
-    try {
+    expect(() => {
       shallow(<ListView {...props} />, {
         wrappingComponent: ThemeProvider,
         wrappingComponentProps: { theme: supersetTheme },
       });
-    } catch (e) {
-      expect(e).toMatchInlineSnapshot(
-        `[ListViewError: Invalid filter config, some_column is not present in columns]`,
-      );
-    }
+    }).toThrowErrorMatchingInlineSnapshot(
+      '"Invalid filter config, some_column is not present in columns"',
+    );
   });
 });
 
@@ -309,7 +307,7 @@ describe('ListView with new UI filters', () => {
   const fetchSelectsMock = jest.fn(() => []);
   const newFiltersProps = {
     ...mockedProps,
-    useNewUIFilters: true,
+    isSIP34FilterUIEnabled: true,
     filters: [
       {
         Header: 'ID',

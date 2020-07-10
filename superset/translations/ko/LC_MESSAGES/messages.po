@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.7.0\n"
+"Generated-By: Babel 2.8.0\n"
 
 #: superset/assets/src/explore/controls.jsx:818 superset/db_engine_specs.py:343
 #: superset/db_engine_specs.py:393 superset/db_engine_specs.py:422
@@ -87,3955 +87,3724 @@ msgstr "일"
 msgid "week"
 msgstr "주"
 
-#: superset/db_engine_specs.py:354 superset/db_engine_specs.py:399
-#: superset/db_engine_specs.py:427 superset/db_engine_specs.py:473
-#: superset/db_engine_specs.py:507 superset/db_engine_specs.py:576
-#: superset/db_engine_specs.py:641 superset/db_engine_specs.py:1212
-#: superset/db_engine_specs.py:1248 superset/db_engine_specs.py:1303
-#: superset/db_engine_specs.py:1338 superset/db_engine_specs.py:1370
-#: superset/db_engine_specs.py:1401 superset/db_engine_specs.py:1430
-msgid "month"
-msgstr "월"
-
-#: superset/db_engine_specs.py:356 superset/db_engine_specs.py:400
-#: superset/db_engine_specs.py:428 superset/db_engine_specs.py:476
-#: superset/db_engine_specs.py:579 superset/db_engine_specs.py:644
-#: superset/db_engine_specs.py:1215 superset/db_engine_specs.py:1251
-#: superset/db_engine_specs.py:1306 superset/db_engine_specs.py:1339
-#: superset/db_engine_specs.py:1371 superset/db_engine_specs.py:1402
-#: superset/db_engine_specs.py:1433
-msgid "quarter"
-msgstr "분기"
-
-#: superset/db_engine_specs.py:358 superset/db_engine_specs.py:401
-#: superset/db_engine_specs.py:429 superset/db_engine_specs.py:481
-#: superset/db_engine_specs.py:510 superset/db_engine_specs.py:582
-#: superset/db_engine_specs.py:655 superset/db_engine_specs.py:1218
-#: superset/db_engine_specs.py:1309 superset/db_engine_specs.py:1341
-#: superset/db_engine_specs.py:1372 superset/db_engine_specs.py:1403
-#: superset/db_engine_specs.py:1437
-msgid "year"
-msgstr "년"
-
-#: superset/db_engine_specs.py:513 superset/db_engine_specs.py:647
-#: superset/db_engine_specs.py:1254
-msgid "week_ending_saturday"
-msgstr ""
-
-#: superset/db_engine_specs.py:516 superset/db_engine_specs.py:651
-#: superset/db_engine_specs.py:1258
-msgid "week_start_sunday"
-msgstr ""
-
-#: superset/db_engine_specs.py:585
-msgid "week_start_monday"
-msgstr ""
-
-#: superset/db_engine_specs.py:1197 superset/db_engine_specs.py:1291
-msgid "5 minute"
-msgstr "5분"
-
-#: superset/db_engine_specs.py:1200
-msgid "half hour"
-msgstr "30분"
-
-#: superset/db_engine_specs.py:1294
-msgid "10 minute"
-msgstr "10분"
-
-#: superset/connectors/sqla/views.py:234 superset/forms.py:56
-msgid "Table Name"
-msgstr "테이블 명"
-
-#: superset/forms.py:57
-msgid "Name of table to be created from csv data."
-msgstr ""
-
-#: superset/forms.py:61
-msgid "CSV File"
-msgstr "CSV 파일"
-
-#: superset/forms.py:62
-msgid "Select a CSV file to be uploaded to a database."
-msgstr ""
-
-#: superset/forms.py:64
-msgid "CSV Files Only!"
-msgstr ""
-
-#: superset/connectors/sqla/views.py:227 superset/forms.py:66
-#: superset/views/core.py:275 superset/views/sql_lab.py:24
-#: superset/views/sql_lab.py:61
-msgid "Database"
-msgstr "데이터베이스"
-
-#: superset/forms.py:70
-msgid "Delimiter"
-msgstr "구분자"
-
-#: superset/forms.py:71
-msgid "Delimiter used by CSV file (for whitespace use \\s+)."
-msgstr ""
-
-#: superset/forms.py:75
-msgid "Table Exists"
-msgstr "테이블 존재"
-
-#: superset/forms.py:76
-msgid ""
-"If table exists do one of the following: Fail (do nothing), Replace (drop"
-" and recreate table) or Append (insert data)."
-msgstr ""
-
-#: superset/forms.py:81
-msgid "Fail"
-msgstr "실패"
-
-#: superset/forms.py:81
-msgid "Replace"
-msgstr "바꾸기"
-
-#: superset/forms.py:82
-msgid "Append"
-msgstr ""
-
-#: superset/connectors/sqla/views.py:230 superset/forms.py:85
-msgid "Schema"
-msgstr "스키마"
-
-#: superset/forms.py:86
-msgid "Specify a schema (if database flavour supports this)."
-msgstr ""
-
-#: superset/forms.py:91
-msgid "Header Row"
-msgstr ""
-
-#: superset/forms.py:92
-msgid ""
-"Row containing the headers to use as column names (0 is first line of "
-"data). Leave empty if there is no header row."
-msgstr ""
-
-#: superset/forms.py:100
-msgid "Index Column"
-msgstr ""
-
-#: superset/forms.py:101
-msgid ""
-"Column to use as the row labels of the dataframe. Leave empty if no index"
-" column."
-msgstr ""
-
-#: superset/forms.py:108
-msgid "Mangle Duplicate Columns"
-msgstr ""
-
-#: superset/forms.py:109
-msgid "Specify duplicate columns as \"X.0, X.1\"."
-msgstr ""
-
-#: superset/forms.py:111
-msgid "Skip Initial Space"
-msgstr ""
-
-#: superset/forms.py:112
-msgid "Skip spaces after delimiter."
-msgstr ""
-
-#: superset/forms.py:114
-msgid "Skip Rows"
-msgstr ""
-
-#: superset/forms.py:115
-msgid "Number of rows to skip at start of file."
-msgstr ""
-
-#: superset/forms.py:120
-msgid "Rows to Read"
-msgstr ""
-
-#: superset/forms.py:121
-msgid "Number of rows of file to read."
-msgstr ""
-
-#: superset/forms.py:126
-msgid "Skip Blank Lines"
-msgstr ""
-
-#: superset/forms.py:127
-msgid "Skip blank lines rather than interpreting them as NaN values."
-msgstr ""
-
-#: superset/forms.py:131
-msgid "Parse Dates"
-msgstr ""
-
-#: superset/forms.py:132
-msgid "A comma separated list of columns that should be parsed as dates."
-msgstr ""
-
-#: superset/forms.py:137
-msgid "Infer Datetime Format"
-msgstr ""
-
-#: superset/forms.py:138
-msgid "Use Pandas to interpret the datetime format automatically."
-msgstr ""
-
-#: superset/forms.py:142
-msgid "Decimal Character"
-msgstr ""
-
-#: superset/forms.py:143
-msgid "Character to interpret as decimal point."
-msgstr ""
-
-#: superset/forms.py:148
-msgid "Dataframe Index"
-msgstr ""
-
-#: superset/forms.py:149
-msgid "Write dataframe index as a column."
-msgstr ""
-
-#: superset/forms.py:151
-msgid "Column Label(s)"
-msgstr ""
-
-#: superset/forms.py:152
-msgid ""
-"Column label for index column(s). If None is given and Dataframe Index is"
-" True, Index Names are used."
-msgstr ""
-
-#: superset/utils.py:576
-#, python-format
-msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr ""
-
-#: superset/viz.py:65
-msgid "Viz is missing a datasource"
-msgstr ""
-
-#: superset/viz.py:277
-msgid "From date cannot be larger than to date"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:881 superset/viz.py:483
-msgid "Table View"
-msgstr ""
-
-#: superset/viz.py:495
-msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
-msgstr ""
-
-#: superset/viz.py:505
-msgid "Choose either fields to [Group By] and [Metrics] or [Columns], not both"
-msgstr ""
-
-#: superset/viz.py:587
-msgid "Time Table View"
-msgstr ""
-
-#: superset/viz.py:596 superset/viz.py:1495
-msgid "Pick at least one metric"
-msgstr ""
-
-#: superset/viz.py:599
-msgid "When using 'Group By' you are limited to use a single metric"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:966 superset/viz.py:628
-msgid "Pivot Table"
-msgstr ""
-
-#: superset/viz.py:642
-msgid "Please choose at least one 'Group by' field "
-msgstr ""
-
-#: superset/viz.py:644
-msgid "Please choose at least one metric"
-msgstr ""
-
-#: superset/viz.py:648
-msgid "Group By' and 'Columns' can't overlap"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:952 superset/viz.py:681
-msgid "Markup"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:992 superset/viz.py:703
-msgid "Separator"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1014 superset/viz.py:715
-msgid "Word Cloud"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1036 superset/viz.py:738
-msgid "Treemap"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1064 superset/viz.py:764
-msgid "Calendar Heatmap"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1102 superset/viz.py:829
-msgid "Box Plot"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1124 superset/viz.py:918
-msgid "Bubble Chart"
-msgstr ""
-
-#: superset/viz.py:942
-msgid "Pick a metric for x, y and size"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1174 superset/viz.py:968
-msgid "Bullet Chart"
-msgstr ""
-
-#: superset/viz.py:994
-msgid "Pick a metric to display"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1198 superset/viz.py:1017
-msgid "Big Number with Trendline"
-msgstr ""
-
-#: superset/viz.py:1025 superset/viz.py:1054
-msgid "Pick a metric!"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1225 superset/viz.py:1046
-msgid "Big Number"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:184 superset/viz.py:1073
-msgid "Time Series - Line Chart"
-msgstr ""
-
-#: superset/viz.py:1136 superset/viz.py:1338
-msgid "Pick a time granularity for your time series"
-msgstr ""
-
-#: superset/viz.py:1220
-msgid ""
-"`Since` and `Until` time bounds should be specified when using the `Time "
-"Shift` feature."
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:229 superset/viz.py:1252
-msgid "Time Series - Multiple Line Charts"
-msgstr ""
-
-#: superset/viz.py:1281
-msgid "Time Series - Dual Axis Line Chart"
-msgstr ""
-
-#: superset/viz.py:1291
-msgid "Pick a metric for left axis!"
-msgstr ""
-
-#: superset/viz.py:1293
-msgid "Pick a metric for right axis!"
-msgstr ""
-
-#: superset/viz.py:1295
-msgid "Please choose different metrics on left and right axis"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:394 superset/viz.py:1356
-msgid "Time Series - Bar Chart"
-msgstr ""
-
-#: superset/viz.py:1365
-msgid "Time Series - Period Pivot"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:440 superset/viz.py:1405
-msgid "Time Series - Percent Change"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:835 superset/viz.py:1413
-msgid "Time Series - Stacked"
-msgstr ""
-
-#: superset/viz.py:1422
-msgid "Distribution - NVD3 - Pie Chart"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1252 superset/viz.py:1441
-msgid "Histogram"
-msgstr ""
-
-#: superset/viz.py:1451
-msgid "Must have at least one numeric column specified"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:110 superset/viz.py:1482
-msgid "Distribution - Bar Chart"
-msgstr ""
-
-#: superset/viz.py:1493
-msgid "Can't have overlap between Series and Breakdowns"
-msgstr ""
-
-#: superset/viz.py:1497
-msgid "Pick at least one field for [Series]"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1294 superset/viz.py:1551
-msgid "Sunburst"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1333 superset/viz.py:1582
-msgid "Sankey"
-msgstr ""
-
-#: superset/viz.py:1589
-msgid "Pick exactly 2 columns as [Source / Target]"
-msgstr ""
-
-#: superset/viz.py:1620
-msgid ""
-"There's a loop in your Sankey, please provide a tree. Here's a faulty "
-"link: {}"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1361 superset/viz.py:1631
-#: superset/viz.py:1652
-msgid "Directed Force Layout"
-msgstr ""
-
-#: superset/viz.py:1638
-msgid "Pick exactly 2 columns to 'Group By'"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1427 superset/viz.py:1685
-msgid "Country Map"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1461 superset/viz.py:1713
-msgid "World Map"
-msgstr ""
-
-#: superset/assets/src/explore/controls.jsx:1840
-#: superset/assets/src/explore/visTypes.js:85 superset/viz.py:1763
-msgid "Filters"
-msgstr "필터"
-
-#: superset/viz.py:1784
-msgid "Pick at least one filter field"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1526 superset/viz.py:1809
-msgid "iFrame"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1538 superset/viz.py:1829
-msgid "Parallel Coordinates"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1560 superset/viz.py:1854
-msgid "Heatmap"
-msgstr ""
-
-#: superset/viz.py:1910
-msgid "Horizon Charts"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1621 superset/viz.py:1921
-msgid "Mapbox"
-msgstr ""
-
-#: superset/viz.py:1936
-msgid "Must have a [Group By] column to have 'count' as the [Label]"
-msgstr ""
-
-#: superset/viz.py:1949
-msgid "Choice of [Label] must be present in [Group By]"
-msgstr ""
-
-#: superset/viz.py:1954
-msgid "Choice of [Point Radius] must be present in [Group By]"
-msgstr ""
-
-#: superset/viz.py:1959
-msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:481 superset/viz.py:2028
-msgid "Deck.gl - Multiple Layers"
-msgstr ""
-
-#: superset/viz.py:2067 superset/viz.py:2080
-msgid "Bad spatial key"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:768 superset/viz.py:2163
-msgid "Deck.gl - Scatter plot"
-msgstr ""
-
-#: superset/viz.py:2206
-msgid "Deck.gl - Screen Grid"
-msgstr ""
-
-#: superset/viz.py:2228
-msgid "Deck.gl - 3D Grid"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:573 superset/viz.py:2243
-msgid "Deck.gl - Paths"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:690 superset/viz.py:2276
-msgid "Deck.gl - Polygon"
-msgstr ""
-
-#: superset/viz.py:2284
-msgid "Deck.gl - 3D HEX"
-msgstr ""
-
-#: superset/viz.py:2299
-msgid "Deck.gl - GeoJSON"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:730 superset/viz.py:2318
-msgid "Deck.gl - Arc"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1691 superset/viz.py:2342
-msgid "Event flow"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1736 superset/viz.py:2373
-msgid "Time Series - Paired t-test"
-msgstr ""
-
-#: superset/assets/src/explore/visTypes.js:1754 superset/viz.py:2431
-msgid "Time Series - Nightingale Rose Chart"
-msgstr ""
-
-#: superset/viz.py:2461
-msgid "Partition Diagram"
-msgstr ""
-
-#: superset/assets/src/common.js:37
-msgid "Your session timed out, please refresh your page and try again."
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:59
-msgid "Your query was saved"
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:60
-msgid "Your query could not be saved"
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:113
-msgid "Failed at retrieving results from the results backend"
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:163
-msgid "Unknown error"
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:186
-msgid "Query was stopped."
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:189
-msgid "Failed at stopping query."
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:309
-#: superset/assets/src/SqlLab/actions.js:322
-msgid "Error occurred while fetching table metadata"
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:376
-msgid "shared query"
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:384
-#: superset/assets/src/SqlLab/actions.js:404
-msgid "The query couldn't be loaded"
-msgstr ""
-
-#: superset/assets/src/SqlLab/actions.js:438
-msgid "An error occurred while creating the data source"
-msgstr ""
-
-#: superset/assets/src/SqlLab/constants.js:30
-msgid "Pick a chart type!"
-msgstr ""
-
-#: superset/assets/src/SqlLab/constants.js:31
-msgid "To use this chart type you need at least one column flagged as a date"
-msgstr ""
-
-#: superset/assets/src/SqlLab/constants.js:32
-msgid "To use this chart type you need at least one dimension"
-msgstr ""
-
-#: superset/assets/src/SqlLab/constants.js:33
-msgid "To use this chart type you need at least one aggregation function"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QueryTable.jsx:49
-#: superset/assets/src/SqlLab/components/SqlEditor.jsx:112
-#: superset/assets/src/SqlLab/reducers.js:11
-msgid "Untitled Query"
-msgstr ""
-
-#: superset/assets/src/SqlLab/reducers.js:44
-#, python-format
-msgid "Copy of %s"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/CopyQueryTabUrl.jsx:30
-msgid "share query"
-msgstr "Query 공유"
-
-#: superset/assets/src/SqlLab/components/CopyQueryTabUrl.jsx:33
-#: superset/assets/src/SqlLab/components/ShareQuery.jsx:17
-msgid "copy URL to clipboard"
-msgstr "URL 복사"
-
-#: superset/assets/src/SqlLab/components/HighlightedSql.jsx:61
-msgid "Raw SQL"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/HighlightedSql.jsx:71
-msgid "Source SQL"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/HighlightedSql.jsx:83
-#: superset/assets/src/explore/visTypes.js:44
-msgid "SQL"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QueryHistory.jsx:28
-msgid "No query history yet..."
-msgstr "Query 실행 이력이 없습니다."
-
-#: superset/assets/src/SqlLab/components/QuerySearch.jsx:123
-#: superset/assets/src/SqlLab/components/SqlEditorLeftBar.jsx:67
-msgid "It seems you don't have access to any database"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QuerySearch.jsx:171
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:89
-msgid "Search Results"
-msgstr "검색 결과"
-
-#: superset/assets/src/SqlLab/components/QuerySearch.jsx:177
-msgid "[From]-"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QuerySearch.jsx:187
-msgid "[To]-"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QuerySearch.jsx:196
-msgid "[Query Status]"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QuerySearch.jsx:205
-msgid "Search"
-msgstr "검색"
-
-#: superset/assets/src/SqlLab/components/QueryTable.jsx:114
-msgid "Open in SQL Editor"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QueryTable.jsx:133
-msgid "view results"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QueryTable.jsx:136
-msgid "Data preview"
-msgstr "데이터 미리보기"
-
-#: superset/assets/src/SqlLab/components/QueryTable.jsx:176
-msgid "Visualize the data out of this query"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QueryTable.jsx:182
-msgid "Overwrite text in editor with a query on this table"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/QueryTable.jsx:188
-msgid "Run query in a new tab"
-msgstr "새로운 탭에서 Query실행"
-
-#: superset/assets/src/SqlLab/components/QueryTable.jsx:193
-msgid "Remove query from log"
-msgstr "Query 로그 삭제"
-
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:67
-msgid ".CSV"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:78
-#: superset/assets/src/SqlLab/components/VisualizeModal.jsx:247
-#: superset/assets/src/SqlLab/components/VisualizeModal.jsx:286
-msgid "Visualize"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:163
-#: superset/connectors/sqla/views.py:88 superset/connectors/sqla/views.py:136
-#: superset/connectors/sqla/views.py:225 superset/views/core.py:467
-msgid "Table"
-msgstr "테이블"
-
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:163
-msgid "was created"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:170
-msgid "Query in a new tab"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:211
-msgid "Fetch data preview"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:231
-msgid "Track Job"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/ResultSet.jsx:237
-msgid "Loading..."
-msgstr "로딩중..."
-
-#: superset/assets/src/SqlLab/components/RunQueryActionButton.jsx:21
-msgid "Run Selected Query"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/RunQueryActionButton.jsx:21
-#: superset/assets/src/components/RefreshChartOverlay.jsx:26
-msgid "Run Query"
-msgstr "Query 실행"
-
-#: superset/assets/src/SqlLab/components/RunQueryActionButton.jsx:36
-msgid "Run query synchronously"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/RunQueryActionButton.jsx:48
-msgid "Run query asynchronously"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/RunQueryActionButton.jsx:60
-msgid "Stop"
-msgstr "중지"
-
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:18
-msgid "Undefined"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:67
-#: superset/views/sql_lab.py:59
-msgid "Label"
-msgstr "레이블"
-
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:72
-msgid "Label for your query"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:82
-#: superset/connectors/druid/views.py:134
-#: superset/connectors/druid/views.py:258 superset/connectors/sqla/views.py:85
-#: superset/connectors/sqla/views.py:132 superset/connectors/sqla/views.py:238
-#: superset/views/core.py:461 superset/views/sql_lab.py:62
-msgid "Description"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:86
-msgid "Write a description for your query"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:100
-#: superset/assets/src/dashboard/components/Controls.jsx:125
-#: superset/assets/src/dashboard/components/SaveModal.jsx:151
-#: superset/assets/src/explore/components/SaveModal.jsx:221
-msgid "Save"
-msgstr "저장"
-
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:103
-#: superset/templates/superset/request_access.html:16
-msgid "Cancel"
-msgstr "취소"
-
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:115
-#: superset/assets/src/SqlLab/components/SaveQuery.jsx:119
-msgid "Save Query"
-msgstr "Query 저장"
-
-#: superset/assets/src/SqlLab/components/ShareQuery.jsx:14
-msgid "Share Query"
-msgstr "Query 공유"
-
-#: superset/assets/src/SqlLab/components/SouthPane.jsx:52
-msgid "Run a query to display results here"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SouthPane.jsx:57
-#, python-format
-msgid "Preview for %s"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SouthPane.jsx:81
-msgid "Results"
-msgstr "결과"
-
-#: superset/assets/src/SqlLab/components/SouthPane.jsx:87
-msgid "Query History"
-msgstr "Query 실행 이력"
-
-#: superset/assets/src/SqlLab/components/SqlEditor.jsx:165
-msgid "Create table as with query results"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SqlEditor.jsx:173
-msgid "new table name"
-msgstr "새로운 테이블명"
-
-#: superset/assets/src/SqlLab/components/SqlEditorLeftBar.jsx:91
-msgid "Error while fetching table list"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SqlEditorLeftBar.jsx:132
-msgid "Error while fetching schema list"
-msgstr ""
-
-#: superset/assets/src/SqlLab/components/SqlEditorLeftBar.jsx:146
-msgid "Type to search ..."
-msgstr ""
-
-msgid "Select table "
-msgstr "테이블 선택"
-
-msgid "Error while fetching database list"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
-msgid "Database:"
-msgstr "데이터베이스"
-
-msgid "Select a database"
-msgstr "데이터베이스 선택"
-
-msgid "Select a schema (%s)"
-msgstr ""
-
-msgid "Schema:"
-msgstr "스키마"
-
-msgid "Add a table (%s)"
-msgstr ""
-
-msgid "Reset State"
-msgstr ""
-
-msgid "Enter a new title for the tab"
-msgstr ""
-
-msgid "Untitled Query %s"
-msgstr ""
-
-msgid "close tab"
-msgstr "탭 닫기"
-
-msgid "rename tab"
-msgstr ""
-
-msgid "expand tool bar"
-msgstr ""
-
-msgid "hide tool bar"
-msgstr ""
-
-msgid "Copy partition query to clipboard"
-msgstr ""
-
-msgid "latest partition:"
-msgstr ""
-
-msgid "Keys for table"
-msgstr ""
-
-msgid "View keys & indexes (%s)"
-msgstr ""
-
-msgid "Sort columns alphabetically"
-msgstr ""
-
-msgid "Original table column order"
-msgstr ""
-
-msgid "Copy SELECT statement to clipboard"
-msgstr ""
-
-msgid "Remove table preview"
-msgstr ""
-
-msgid "Template Parameters"
-msgstr ""
-
-msgid "Edit template parameters"
-msgstr ""
-
-msgid "Invalid JSON"
-msgstr ""
+#~ msgid "month"
+#~ msgstr "월"
 
-msgid ""
-"%s is not right as a column "
-"name, please alias it (as in "
-"SELECT count(*) "
-msgstr ""
+#~ msgid "quarter"
+#~ msgstr "분기"
 
-msgid "AS my_alias"
-msgstr ""
+#~ msgid "year"
+#~ msgstr "년"
 
-msgid "using only alphanumeric characters and underscores"
-msgstr ""
+#~ msgid "week_ending_saturday"
+#~ msgstr ""
 
-msgid "Creating a data source and popping a new tab"
-msgstr ""
+#~ msgid "week_start_sunday"
+#~ msgstr ""
 
-msgid "No results available for this query"
-msgstr ""
+#~ msgid "week_start_monday"
+#~ msgstr ""
 
-msgid "Chart Type"
-msgstr "차트 유형"
+#~ msgid "5 minute"
+#~ msgstr "5분"
 
-msgid "[Chart Type]"
-msgstr "[차트 유형]"
+#~ msgid "half hour"
+#~ msgstr "30분"
 
-msgid "Datasource Name"
-msgstr "데이터소스 명"
+#~ msgid "10 minute"
+#~ msgstr "10분"
 
-msgid "datasource name"
-msgstr "데이터소스 명"
+#~ msgid "Table Name"
+#~ msgstr "테이블 명"
 
-msgid "Create a new chart"
-msgstr "새 차트 생성"
+#~ msgid "Name of table to be created from csv data."
+#~ msgstr ""
 
-msgid "Choose a datasource"
-msgstr "데이터소스 선택"
+#~ msgid "CSV File"
+#~ msgstr "CSV 파일"
 
-msgid ""
-"If the datasource your are looking "
-"for is not available in the list,"
-" follow the instructions on the how"
-" to add it on the "
-msgstr ""
+#~ msgid "Select a CSV file to be uploaded to a database."
+#~ msgstr ""
 
-msgid "Superset tutorial"
-msgstr "Superset 튜토리얼"
+#~ msgid "CSV Files Only!"
+#~ msgstr ""
 
-msgid "Choose a visualization type"
-msgstr "시각화 유형 선택"
+#~ msgid "Database"
+#~ msgstr "데이터베이스"
 
-msgid "Create new chart"
-msgstr "새 차트 생성"
+#~ msgid "Delimiter"
+#~ msgstr "구분자"
 
-msgid "Unexpected error: "
-msgstr ""
+#~ msgid "Delimiter used by CSV file (for whitespace use \\s+)."
+#~ msgstr ""
 
-msgid "Unexpected error."
-msgstr ""
+#~ msgid "Table Exists"
+#~ msgstr "테이블 존재"
 
-msgid "Updating chart was stopped"
-msgstr ""
+#~ msgid ""
+#~ "If table exists do one of the "
+#~ "following: Fail (do nothing), Replace "
+#~ "(drop and recreate table) or Append "
+#~ "(insert data)."
+#~ msgstr ""
 
-msgid "An error occurred while rendering the visualization: %s"
-msgstr ""
+#~ msgid "Fail"
+#~ msgstr "실패"
 
-msgid "visualization queries are set to timeout at ${action.timeout} seconds. "
-msgstr ""
+#~ msgid "Replace"
+#~ msgstr "바꾸기"
 
-msgid ""
-"Perhaps your data has grown, your "
-"database is under unusual load, or "
-"you are simply querying a data "
-"source that is too large to be "
-"processed within the timeout range. If"
-" that is the case, we recommend "
-"that you summarize your data further."
-msgstr ""
+#~ msgid "Append"
+#~ msgstr ""
 
-msgid "Network error."
-msgstr ""
+#~ msgid "Schema"
+#~ msgstr "스키마"
 
-msgid "Click to see difference"
-msgstr ""
+#~ msgid "Specify a schema (if database flavour supports this)."
+#~ msgstr ""
 
-msgid "Altered"
-msgstr ""
+#~ msgid "Header Row"
+#~ msgstr ""
 
-msgid "Chart changes"
-msgstr ""
+#~ msgid ""
+#~ "Row containing the headers to use "
+#~ "as column names (0 is first line"
+#~ " of data). Leave empty if there "
+#~ "is no header row."
+#~ msgstr ""
 
-msgid "Select ..."
-msgstr ""
+#~ msgid "Index Column"
+#~ msgstr ""
 
-msgid "Loaded data cached"
-msgstr ""
+#~ msgid ""
+#~ "Column to use as the row labels"
+#~ " of the dataframe. Leave empty if "
+#~ "no index column."
+#~ msgstr ""
 
-msgid "Loaded from cache"
-msgstr ""
+#~ msgid "Mangle Duplicate Columns"
+#~ msgstr ""
 
-msgid "Click to force-refresh"
-msgstr ""
+#~ msgid "Specify duplicate columns as \"X.0, X.1\"."
+#~ msgstr ""
 
-msgid "Copy to clipboard"
-msgstr "클립보드에 복사하기"
+#~ msgid "Skip Initial Space"
+#~ msgstr ""
 
-msgid "Not successful"
-msgstr ""
+#~ msgid "Skip spaces after delimiter."
+#~ msgstr ""
 
-msgid "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!"
-msgstr ""
+#~ msgid "Skip Rows"
+#~ msgstr ""
 
-msgid "Copied!"
-msgstr "복사됨!"
+#~ msgid "Number of rows to skip at start of file."
+#~ msgstr ""
 
-msgid "Title"
-msgstr "제목"
+#~ msgid "Rows to Read"
+#~ msgstr ""
 
-msgid "click to edit title"
-msgstr "클릭하여 제목 수정하기"
+#~ msgid "Number of rows of file to read."
+#~ msgstr ""
 
-msgid "You don't have the rights to alter this title."
-msgstr ""
+#~ msgid "Skip Blank Lines"
+#~ msgstr ""
 
-msgid "Click to favorite/unfavorite"
-msgstr ""
+#~ msgid "Skip blank lines rather than interpreting them as NaN values."
+#~ msgstr ""
 
-msgid "Dismiss"
-msgstr ""
+#~ msgid "Parse Dates"
+#~ msgstr ""
 
-msgid "%s%s"
-msgstr ""
+#~ msgid "A comma separated list of columns that should be parsed as dates."
+#~ msgstr ""
 
-msgid "Active Dashboard Filters"
-msgstr ""
+#~ msgid "Infer Datetime Format"
+#~ msgstr ""
 
-msgid "Checkout this dashboard: %s"
-msgstr ""
+#~ msgid "Use Pandas to interpret the datetime format automatically."
+#~ msgstr ""
 
-msgid "Save as"
-msgstr ""
+#~ msgid "Decimal Character"
+#~ msgstr ""
 
-msgid "Force Refresh"
-msgstr ""
+#~ msgid "Character to interpret as decimal point."
+#~ msgstr ""
 
-msgid "Force refresh the whole dashboard"
-msgstr ""
+#~ msgid "Dataframe Index"
+#~ msgstr ""
 
-msgid "Set autorefresh"
-msgstr ""
+#~ msgid "Write dataframe index as a column."
+#~ msgstr ""
 
-msgid "Set the auto-refresh interval for this session"
-msgstr ""
+#~ msgid "Column Label(s)"
+#~ msgstr ""
 
-msgid "Save the dashboard"
-msgstr ""
+#~ msgid ""
+#~ "Column label for index column(s). If "
+#~ "None is given and Dataframe Index "
+#~ "is True, Index Names are used."
+#~ msgstr ""
 
-msgid "Edit properties"
-msgstr ""
+#~ msgid "[Superset] Access to the datasource %(name)s was granted"
+#~ msgstr ""
 
-msgid "Edit the dashboards's properties"
-msgstr ""
+#~ msgid "Viz is missing a datasource"
+#~ msgstr ""
 
-msgid "Email"
-msgstr "이메일"
+#~ msgid "From date cannot be larger than to date"
+#~ msgstr ""
 
-msgid "Email a link to this dashboard"
-msgstr ""
+#~ msgid "Table View"
+#~ msgstr ""
 
-msgid "Add Charts"
-msgstr "차트 추가"
+#~ msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
+#~ msgstr ""
 
-msgid "Add some charts to this dashboard"
-msgstr ""
+#~ msgid "Choose either fields to [Group By] and [Metrics] or [Columns], not both"
+#~ msgstr ""
 
-msgid "Edit CSS"
-msgstr "CSS 수정"
+#~ msgid "Time Table View"
+#~ msgstr ""
 
-msgid "Change the style of the dashboard using CSS code"
-msgstr ""
+#~ msgid "Pick at least one metric"
+#~ msgstr ""
 
-msgid "Load a template"
-msgstr "템플릿 불러오기"
+#~ msgid "When using 'Group By' you are limited to use a single metric"
+#~ msgstr ""
 
-msgid "Load a CSS template"
-msgstr "CSS 템플릿 불러오기"
+#~ msgid "Pivot Table"
+#~ msgstr ""
 
-msgid "CSS"
-msgstr ""
+#~ msgid "Please choose at least one 'Group by' field "
+#~ msgstr ""
 
-msgid "Live CSS Editor"
-msgstr ""
+#~ msgid "Please choose at least one metric"
+#~ msgstr ""
 
-msgid "You have unsaved changes."
-msgstr ""
+#~ msgid "Group By' and 'Columns' can't overlap"
+#~ msgstr ""
 
-msgid "Unsaved changes"
-msgstr ""
+#~ msgid "Markup"
+#~ msgstr ""
 
-msgid "Don't refresh"
-msgstr ""
+#~ msgid "Separator"
+#~ msgstr ""
 
-msgid "10 seconds"
-msgstr "10초"
+#~ msgid "Word Cloud"
+#~ msgstr ""
 
-msgid "30 seconds"
-msgstr "30초"
+#~ msgid "Treemap"
+#~ msgstr ""
 
-msgid "1 minute"
-msgstr "1분"
+#~ msgid "Calendar Heatmap"
+#~ msgstr ""
 
-msgid "5 minutes"
-msgstr "5분"
+#~ msgid "Box Plot"
+#~ msgstr ""
 
-msgid "30 minutes"
-msgstr "30분"
+#~ msgid "Bubble Chart"
+#~ msgstr ""
 
-msgid "1 hour"
-msgstr "1시간"
+#~ msgid "Pick a metric for x, y and size"
+#~ msgstr ""
 
-msgid "6 hours"
-msgstr "6시간"
+#~ msgid "Bullet Chart"
+#~ msgstr ""
 
-msgid "12 hours"
-msgstr "12시간"
+#~ msgid "Pick a metric to display"
+#~ msgstr ""
 
-msgid "24 hours"
-msgstr "24시간"
+#~ msgid "Big Number with Trendline"
+#~ msgstr ""
 
-msgid "Refresh Interval"
-msgstr "새로고침 간격"
+#~ msgid "Pick a metric!"
+#~ msgstr ""
 
-msgid "Choose the refresh frequency for this dashboard"
-msgstr ""
+#~ msgid "Big Number"
+#~ msgstr ""
 
-msgid "This dashboard was saved successfully."
-msgstr ""
+#~ msgid "Time Series - Line Chart"
+#~ msgstr ""
 
-msgid "Sorry, there was an error saving this dashboard: "
-msgstr ""
+#~ msgid "Pick a time granularity for your time series"
+#~ msgstr ""
 
-msgid "Error"
-msgstr "에러"
+#~ msgid ""
+#~ "`Since` and `Until` time bounds should"
+#~ " be specified when using the `Time"
+#~ " Shift` feature."
+#~ msgstr ""
 
-msgid "You must pick a name for the new dashboard"
-msgstr ""
+#~ msgid "Time Series - Multiple Line Charts"
+#~ msgstr ""
 
-msgid "Save Dashboard"
-msgstr "대시보드 저장"
+#~ msgid "Time Series - Dual Axis Line Chart"
+#~ msgstr ""
 
-msgid "Overwrite Dashboard [%s]"
-msgstr ""
+#~ msgid "Pick a metric for left axis!"
+#~ msgstr ""
 
-msgid "Save as:"
-msgstr "다른이름으로 저장"
+#~ msgid "Pick a metric for right axis!"
+#~ msgstr ""
 
-msgid "[dashboard name]"
-msgstr ""
+#~ msgid "Please choose different metrics on left and right axis"
+#~ msgstr ""
 
-msgid "Sorry, there was an error fetching charts to this dashboard: "
-msgstr ""
+#~ msgid "Time Series - Bar Chart"
+#~ msgstr ""
 
-msgid "Sorry, there was an error adding charts to this dashboard: "
-msgstr ""
+#~ msgid "Time Series - Period Pivot"
+#~ msgstr ""
 
-msgid "Name"
-msgstr "이름"
+#~ msgid "Time Series - Percent Change"
+#~ msgstr ""
 
-msgid "Viz"
-msgstr ""
+#~ msgid "Time Series - Stacked"
+#~ msgstr ""
 
-msgid "Datasource"
-msgstr "데이터소스"
+#~ msgid "Distribution - NVD3 - Pie Chart"
+#~ msgstr ""
 
-msgid "Modified"
-msgstr "수정됨"
+#~ msgid "Histogram"
+#~ msgstr ""
 
-msgid "Add a new chart to the dashboard"
-msgstr "대시보드에 새 차트 추가"
+#~ msgid "Must have at least one numeric column specified"
+#~ msgstr ""
 
-msgid "Add Charts to Dashboard"
-msgstr "대시보드에 차트 추가"
+#~ msgid "Distribution - Bar Chart"
+#~ msgstr ""
 
-msgid "Served from data cached %s . Click to force refresh."
-msgstr ""
+#~ msgid "Can't have overlap between Series and Breakdowns"
+#~ msgstr ""
 
-msgid "Force refresh data"
-msgstr ""
+#~ msgid "Pick at least one field for [Series]"
+#~ msgstr ""
 
-msgid "Annotation layers are still loading."
-msgstr ""
+#~ msgid "Sunburst"
+#~ msgstr ""
 
-msgid "One ore more annotation layers failed loading."
-msgstr ""
+#~ msgid "Sankey"
+#~ msgstr ""
 
-msgid "Move chart"
-msgstr "차트 이동"
+#~ msgid "Pick exactly 2 columns as [Source / Target]"
+#~ msgstr ""
 
-msgid "Toggle chart description"
-msgstr ""
+#~ msgid ""
+#~ "There's a loop in your Sankey, "
+#~ "please provide a tree. Here's a "
+#~ "faulty link: {}"
+#~ msgstr ""
 
-msgid "Edit chart"
-msgstr "차트 수정"
+#~ msgid "Directed Force Layout"
+#~ msgstr ""
 
-msgid "Export CSV"
-msgstr "CSV 내보내기"
+#~ msgid "Pick exactly 2 columns to 'Group By'"
+#~ msgstr ""
 
-msgid "Explore chart"
-msgstr ""
+#~ msgid "Country Map"
+#~ msgstr ""
 
-msgid "Remove chart from dashboard"
-msgstr ""
+#~ msgid "World Map"
+#~ msgstr ""
 
-msgid ""
-"A reference to the [Time] configuration,"
-" taking granularity into account"
-msgstr ""
+#~ msgid "Filters"
+#~ msgstr "필터"
 
-msgid "Group by"
-msgstr ""
+#~ msgid "Pick at least one filter field"
+#~ msgstr ""
 
-msgid "One or many controls to group by"
-msgstr ""
+#~ msgid "iFrame"
+#~ msgstr ""
 
-msgid "Metrics"
-msgstr "메트릭"
+#~ msgid "Parallel Coordinates"
+#~ msgstr ""
 
-msgid "One or many metrics to display"
-msgstr ""
+#~ msgid "Heatmap"
+#~ msgstr ""
 
-msgid "Metric"
-msgstr "메트릭"
+#~ msgid "Horizon Charts"
+#~ msgstr ""
 
-msgid ""
-"For more information about objects are"
-" in context in the scope of "
-"this function, refer to the"
-msgstr ""
+#~ msgid "Mapbox"
+#~ msgstr ""
 
-msgid " source code of Superset's sandboxed parser"
-msgstr ""
+#~ msgid "Must have a [Group By] column to have 'count' as the [Label]"
+#~ msgstr ""
 
-msgid ""
-"This functionality is disabled in your"
-" environment for security reasons."
-msgstr ""
+#~ msgid "Choice of [Label] must be present in [Group By]"
+#~ msgstr ""
 
-msgid "Visualization Type"
-msgstr "시각화 유형"
+#~ msgid "Choice of [Point Radius] must be present in [Group By]"
+#~ msgstr ""
 
-msgid "The type of visualization to display"
-msgstr ""
+#~ msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
+#~ msgstr ""
 
-msgid "Percentage Metrics"
-msgstr ""
+#~ msgid "Deck.gl - Multiple Layers"
+#~ msgstr ""
 
-msgid "Metrics for which percentage of total are to be displayed"
-msgstr ""
+#~ msgid "Bad spatial key"
+#~ msgstr ""
 
-msgid "Y Axis Bounds"
-msgstr ""
+#~ msgid "Deck.gl - Scatter plot"
+#~ msgstr ""
 
-msgid ""
-"Bounds for the Y axis. When left"
-" empty, the bounds are dynamically "
-"defined based on the min/max of "
-"the data. Note that this feature "
-"will only expand the axis range. "
-"It won't narrow the data's extent."
-msgstr ""
+#~ msgid "Deck.gl - Screen Grid"
+#~ msgstr ""
 
-msgid "Ordering"
-msgstr ""
+#~ msgid "Deck.gl - 3D Grid"
+#~ msgstr ""
 
-msgid "Fixed Color"
-msgstr ""
+#~ msgid "Deck.gl - Paths"
+#~ msgstr ""
 
-msgid "Use this to define a static color for all circles"
-msgstr ""
+#~ msgid "Deck.gl - Polygon"
+#~ msgstr ""
 
-msgid "Legend Position"
-msgstr ""
+#~ msgid "Deck.gl - 3D HEX"
+#~ msgstr ""
 
-msgid "Choose the position of the legend"
-msgstr ""
+#~ msgid "Deck.gl - GeoJSON"
+#~ msgstr ""
 
-msgid "Fill Color"
-msgstr ""
+#~ msgid "Deck.gl - Arc"
+#~ msgstr ""
 
-msgid ""
-" Set the opacity to 0 if you"
-" do not want to override the "
-"color specified in the GeoJSON"
-msgstr ""
+#~ msgid "Event flow"
+#~ msgstr ""
 
-msgid "Stroke Color"
-msgstr ""
+#~ msgid "Time Series - Paired t-test"
+#~ msgstr ""
 
-msgid "Right Axis Metric"
-msgstr ""
+#~ msgid "Time Series - Nightingale Rose Chart"
+#~ msgstr ""
 
-msgid "Choose a metric for right axis"
-msgstr ""
+#~ msgid "Partition Diagram"
+#~ msgstr ""
 
-msgid "Stacked Style"
-msgstr ""
+#~ msgid "Your session timed out, please refresh your page and try again."
+#~ msgstr ""
 
-msgid "Sort X Axis"
-msgstr ""
+#~ msgid "Your query was saved"
+#~ msgstr ""
 
-msgid "Sort Y Axis"
-msgstr ""
+#~ msgid "Your query could not be saved"
+#~ msgstr ""
 
-msgid "Linear Color Scheme"
-msgstr ""
+#~ msgid "Failed at retrieving results from the results backend"
+#~ msgstr ""
 
-msgid "Normalize Across"
-msgstr ""
+#~ msgid "Unknown error"
+#~ msgstr ""
 
-msgid ""
-"Color will be rendered based on a"
-" ratio of the cell against the "
-"sum of across this criteria"
-msgstr ""
+#~ msgid "Query was stopped."
+#~ msgstr ""
 
-msgid "Horizon Color Scale"
-msgstr ""
+#~ msgid "Failed at stopping query."
+#~ msgstr ""
 
-msgid "Defines how the color are attributed."
-msgstr ""
+#~ msgid "Error occurred while fetching table metadata"
+#~ msgstr ""
 
-msgid "Rendering"
-msgstr ""
+#~ msgid "shared query"
+#~ msgstr ""
 
-msgid ""
-"image-rendering CSS attribute of the "
-"canvas object that defines how the "
-"browser scales up the image"
-msgstr ""
+#~ msgid "The query couldn't be loaded"
+#~ msgstr ""
 
-msgid "XScale Interval"
-msgstr ""
+#~ msgid "An error occurred while creating the data source"
+#~ msgstr ""
 
-msgid "Number of steps to take between ticks when displaying the X scale"
-msgstr ""
+#~ msgid "Pick a chart type!"
+#~ msgstr ""
 
-msgid "YScale Interval"
-msgstr ""
+#~ msgid "To use this chart type you need at least one column flagged as a date"
+#~ msgstr ""
 
-msgid "Number of steps to take between ticks when displaying the Y scale"
-msgstr ""
+#~ msgid "To use this chart type you need at least one dimension"
+#~ msgstr ""
 
-msgid "Include Time"
-msgstr ""
+#~ msgid "To use this chart type you need at least one aggregation function"
+#~ msgstr ""
 
-msgid "Whether to include the time granularity as defined in the time section"
-msgstr ""
+#~ msgid "Untitled Query"
+#~ msgstr ""
 
-msgid "Auto Zoom"
-msgstr ""
+#~ msgid "Copy of %s"
+#~ msgstr ""
 
-msgid "When checked, the map will zoom to your data after each query"
-msgstr ""
+#~ msgid "share query"
+#~ msgstr "Query 공유"
 
-msgid "Show percentage"
-msgstr ""
+#~ msgid "copy URL to clipboard"
+#~ msgstr "URL 복사"
 
-msgid "Whether to include the percentage in the tooltip"
-msgstr ""
+#~ msgid "Raw SQL"
+#~ msgstr ""
 
-msgid "Stacked Bars"
-msgstr ""
+#~ msgid "Source SQL"
+#~ msgstr ""
 
-msgid "Show totals"
-msgstr ""
+#~ msgid "SQL"
+#~ msgstr ""
 
-msgid "Display total row/column"
-msgstr ""
+#~ msgid "No query history yet..."
+#~ msgstr "Query 실행 이력이 없습니다."
 
-msgid "Show Markers"
-msgstr ""
+#~ msgid "It seems you don't have access to any database"
+#~ msgstr ""
 
-msgid "Show data points as circle markers on the lines"
-msgstr ""
+#~ msgid "Search Results"
+#~ msgstr "검색 결과"
 
-msgid "Bar Values"
-msgstr ""
+#~ msgid "[From]-"
+#~ msgstr ""
 
-msgid "Show the value on top of the bar"
-msgstr ""
+#~ msgid "[To]-"
+#~ msgstr ""
 
-msgid "Sort Bars"
-msgstr ""
+#~ msgid "[Query Status]"
+#~ msgstr ""
 
-msgid "Sort bars by x labels."
-msgstr ""
+#~ msgid "Search"
+#~ msgstr "검색"
 
-msgid "Combine Metrics"
-msgstr ""
+#~ msgid "Open in SQL Editor"
+#~ msgstr ""
 
-msgid ""
-"Display metrics side by side within "
-"each column, as opposed to each "
-"column being displayed side by side "
-"for each metric."
-msgstr ""
+#~ msgid "view results"
+#~ msgstr ""
 
-msgid "Extra Controls"
-msgstr ""
+#~ msgid "Data preview"
+#~ msgstr "데이터 미리보기"
 
-msgid ""
-"Whether to show extra controls or "
-"not. Extra controls include things like"
-" making mulitBar charts stacked or "
-"side by side."
-msgstr ""
+#~ msgid "Visualize the data out of this query"
+#~ msgstr ""
 
-msgid "Reduce X ticks"
-msgstr ""
+#~ msgid "Overwrite text in editor with a query on this table"
+#~ msgstr ""
 
-msgid ""
-"Reduces the number of X axis ticks"
-" to be rendered. If true, the x"
-" axis wont overflow and labels may"
-" be missing. If false, a minimum "
-"width will be applied to columns "
-"and the width may overflow into an"
-" horizontal scroll."
-msgstr ""
+#~ msgid "Run query in a new tab"
+#~ msgstr "새로운 탭에서 Query실행"
 
-msgid "Include Series"
-msgstr ""
+#~ msgid "Remove query from log"
+#~ msgstr "Query 로그 삭제"
 
-msgid "Include series name as an axis"
-msgstr ""
+#~ msgid ".CSV"
+#~ msgstr ""
 
-msgid "Color Metric"
-msgstr ""
+#~ msgid "Visualize"
+#~ msgstr ""
 
-msgid "A metric to use for color"
-msgstr ""
+#~ msgid "Table"
+#~ msgstr "테이블"
 
-msgid "Country Name"
-msgstr ""
+#~ msgid "was created"
+#~ msgstr ""
 
-msgid "The name of country that Superset should display"
-msgstr ""
+#~ msgid "Query in a new tab"
+#~ msgstr ""
 
-msgid "Country Field Type"
-msgstr ""
+#~ msgid "Fetch data preview"
+#~ msgstr ""
 
-msgid ""
-"The country code standard that Superset"
-" should expect to find in the "
-"[country] column"
-msgstr ""
+#~ msgid "Track Job"
+#~ msgstr ""
 
-msgid "Frequency"
-msgstr ""
+#~ msgid "Loading..."
+#~ msgstr "로딩중..."
 
-msgid ""
-"The periodicity over which to pivot time. Users can provide\n"
-"      \"Pandas\" offset alias.\n"
-"      Click on the info bubble for"
-" more details on accepted \"freq\" "
-"expressions."
-msgstr ""
+#~ msgid "Run Selected Query"
+#~ msgstr ""
 
-msgid "Dimension"
-msgstr ""
+#~ msgid "Run Query"
+#~ msgstr "Query 실행"
 
-msgid "Select a dimension"
-msgstr ""
+#~ msgid "Run query synchronously"
+#~ msgstr ""
 
-msgid "Columns"
-msgstr ""
+#~ msgid "Run query asynchronously"
+#~ msgstr ""
 
-msgid "One or many controls to pivot as columns"
-msgstr ""
+#~ msgid "Stop"
+#~ msgstr "중지"
 
-msgid "Columns to display"
-msgstr ""
+#~ msgid "Undefined"
+#~ msgstr ""
 
-msgid "Longitude & Latitude"
-msgstr ""
+#~ msgid "Label"
+#~ msgstr "레이블"
 
-msgid "Point to your spatial columns"
-msgstr ""
+#~ msgid "Label for your query"
+#~ msgstr ""
 
-msgid "Start Longitude & Latitude"
-msgstr ""
+#~ msgid "Description"
+#~ msgstr ""
 
-msgid "End Longitude & Latitude"
-msgstr ""
+#~ msgid "Write a description for your query"
+#~ msgstr ""
 
-msgid "Longitude"
-msgstr ""
+#~ msgid "Save"
+#~ msgstr "저장"
 
-msgid "Select the longitude column"
-msgstr ""
+#~ msgid "Cancel"
+#~ msgstr "취소"
 
-msgid "Latitude"
-msgstr ""
+#~ msgid "Save Query"
+#~ msgstr "Query 저장"
 
-msgid "Select the latitude column"
-msgstr ""
+#~ msgid "Share Query"
+#~ msgstr "Query 공유"
 
-msgid "GeoJson Column"
-msgstr ""
+#~ msgid "Run a query to display results here"
+#~ msgstr ""
 
-msgid "Select the geojson column"
-msgstr ""
+#~ msgid "Preview for %s"
+#~ msgstr ""
 
-msgid "Polygon Column"
-msgstr ""
+#~ msgid "Results"
+#~ msgstr "결과"
 
-msgid ""
-"Select the polygon column. Each row "
-"should contain JSON.array(N) of [longitude,"
-" latitude] points"
-msgstr ""
+#~ msgid "Query History"
+#~ msgstr "Query 실행 이력"
 
-msgid "Point Radius Scale"
-msgstr ""
+#~ msgid "Create table as with query results"
+#~ msgstr ""
 
-msgid "Stroke Width"
-msgstr ""
+#~ msgid "new table name"
+#~ msgstr "새로운 테이블명"
 
-msgid "Origin"
-msgstr ""
+#~ msgid "Error while fetching table list"
+#~ msgstr ""
 
-msgid ""
-"Defines the origin where time buckets"
-" start, accepts natural dates as in"
-" `now`, `sunday` or `1970-01-01`"
-msgstr ""
+#~ msgid "Error while fetching schema list"
+#~ msgstr ""
 
-msgid "Bottom Margin"
-msgstr ""
+#~ msgid "Type to search ..."
+#~ msgstr ""
 
-msgid "Bottom margin, in pixels, allowing for more room for axis labels"
-msgstr ""
+#~ msgid "Select table "
+#~ msgstr "테이블 선택"
 
-msgid "X Tick Layout"
-msgstr ""
+#~ msgid "Error while fetching database list"
+#~ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-msgid "The way the ticks are laid out on the X axis"
-msgstr ""
+#~ msgid "Database:"
+#~ msgstr "데이터베이스"
 
-msgid "Left Margin"
-msgstr ""
+#~ msgid "Select a database"
+#~ msgstr "데이터베이스 선택"
 
-msgid "Left margin, in pixels, allowing for more room for axis labels"
-msgstr ""
+#~ msgid "Select a schema (%s)"
+#~ msgstr ""
 
-msgid "Time Granularity"
-msgstr ""
+#~ msgid "Schema:"
+#~ msgstr "스키마"
 
-msgid ""
-"The time granularity for the "
-"visualization. Note that you can type"
-" and use simple natural language as"
-" in `10 seconds`, `1 day` or "
-"`56 weeks`"
-msgstr ""
+#~ msgid "Add a table (%s)"
+#~ msgstr ""
 
-msgid "Domain"
-msgstr ""
+#~ msgid "Reset State"
+#~ msgstr ""
 
-msgid "The time unit used for the grouping of blocks"
-msgstr ""
+#~ msgid "Enter a new title for the tab"
+#~ msgstr ""
 
-msgid "Subdomain"
-msgstr ""
+#~ msgid "Untitled Query %s"
+#~ msgstr ""
 
-msgid ""
-"The time unit for each block. "
-"Should be a smaller unit than "
-"domain_granularity. Should be larger or "
-"equal to Time Grain"
-msgstr ""
+#~ msgid "close tab"
+#~ msgstr "탭 닫기"
 
-msgid "Link Length"
-msgstr ""
+#~ msgid "rename tab"
+#~ msgstr ""
 
-msgid "Link length in the force layout"
-msgstr ""
+#~ msgid "expand tool bar"
+#~ msgstr ""
 
-msgid "Charge"
-msgstr ""
+#~ msgid "hide tool bar"
+#~ msgstr ""
 
-msgid "Charge in the force layout"
-msgstr ""
+#~ msgid "Copy partition query to clipboard"
+#~ msgstr ""
 
-msgid ""
-"The time column for the visualization."
-" Note that you can define arbitrary"
-" expression that return a DATETIME "
-"column in the table. Also note "
-"that the filter below is applied "
-"against this column or expression"
-msgstr ""
+#~ msgid "latest partition:"
+#~ msgstr ""
 
-msgid "Time Grain"
-msgstr ""
+#~ msgid "Keys for table"
+#~ msgstr ""
 
-msgid ""
-"The time granularity for the "
-"visualization. This applies a date "
-"transformation to alter your time column"
-" and defines a new time granularity."
-" The options here are defined on "
-"a per database engine basis in the"
-" Superset source code."
-msgstr ""
+#~ msgid "View keys & indexes (%s)"
+#~ msgstr ""
 
-msgid "Resample Rule"
-msgstr ""
+#~ msgid "Sort columns alphabetically"
+#~ msgstr ""
 
-msgid "Pandas resample rule"
-msgstr ""
+#~ msgid "Original table column order"
+#~ msgstr ""
 
-msgid "Resample How"
-msgstr ""
+#~ msgid "Copy SELECT statement to clipboard"
+#~ msgstr ""
 
-msgid "Pandas resample how"
-msgstr ""
+#~ msgid "Remove table preview"
+#~ msgstr ""
 
-msgid "Resample Fill Method"
-msgstr ""
+#~ msgid "Template Parameters"
+#~ msgstr ""
 
-msgid "Pandas resample fill method"
-msgstr ""
+#~ msgid "Edit template parameters"
+#~ msgstr ""
 
-msgid "Since"
-msgstr ""
+#~ msgid "Invalid JSON"
+#~ msgstr ""
 
-msgid "7 days ago"
-msgstr ""
+#~ msgid ""
+#~ "%s is not right as a column "
+#~ "name, please alias it (as in "
+#~ "SELECT count(*) "
+#~ msgstr ""
 
-msgid "Until"
-msgstr ""
+#~ msgid "AS my_alias"
+#~ msgstr ""
 
-msgid "Max Bubble Size"
-msgstr ""
+#~ msgid "using only alphanumeric characters and underscores"
+#~ msgstr ""
 
-msgid "Whisker/outlier options"
-msgstr ""
+#~ msgid "Creating a data source and popping a new tab"
+#~ msgstr ""
 
-msgid "Determines how whiskers and outliers are calculated."
-msgstr ""
+#~ msgid "No results available for this query"
+#~ msgstr ""
 
-msgid "Ratio"
-msgstr ""
+#~ msgid "Chart Type"
+#~ msgstr "차트 유형"
 
-msgid "Target aspect ratio for treemap tiles."
-msgstr ""
+#~ msgid "[Chart Type]"
+#~ msgstr "[차트 유형]"
 
-msgid "Number format"
-msgstr ""
+#~ msgid "Datasource Name"
+#~ msgstr "데이터소스 명"
 
-msgid "Row limit"
-msgstr ""
+#~ msgid "datasource name"
+#~ msgstr "데이터소스 명"
 
-msgid "Series limit"
-msgstr ""
+#~ msgid "Create a new chart"
+#~ msgstr "새 차트 생성"
 
-msgid ""
-"Limits the number of time series "
-"that get displayed. A sub query "
-"(or an extra phase where sub "
-"queries are not supported) is applied"
-" to limit the number of time "
-"series that get fetched and displayed."
-" This feature is useful when grouping"
-" by high cardinality dimension(s)."
-msgstr ""
+#~ msgid "Choose a datasource"
+#~ msgstr "데이터소스 선택"
 
-msgid "Sort By"
-msgstr ""
+#~ msgid ""
+#~ "If the datasource your are looking "
+#~ "for is not available in the list,"
+#~ " follow the instructions on the how"
+#~ " to add it on the "
+#~ msgstr ""
 
-msgid "Metric used to define the top series"
-msgstr ""
+#~ msgid "Superset tutorial"
+#~ msgstr "Superset 튜토리얼"
 
-msgid "Sort Descending"
-msgstr ""
+#~ msgid "Choose a visualization type"
+#~ msgstr "시각화 유형 선택"
 
-msgid "Whether to sort descending or ascending"
-msgstr ""
+#~ msgid "Create new chart"
+#~ msgstr "새 차트 생성"
 
-msgid "Rolling"
-msgstr ""
+#~ msgid "Unexpected error: "
+#~ msgstr ""
 
-msgid ""
-"Defines a rolling window function to "
-"apply, works along with the [Periods]"
-" text box"
-msgstr ""
+#~ msgid "Unexpected error."
+#~ msgstr ""
 
-msgid "Multiplier"
-msgstr ""
+#~ msgid "Updating chart was stopped"
+#~ msgstr ""
 
-msgid "Factor to multiply the metric by"
-msgstr ""
+#~ msgid "An error occurred while rendering the visualization: %s"
+#~ msgstr ""
 
-msgid "Periods"
-msgstr ""
+#~ msgid "visualization queries are set to timeout at ${action.timeout} seconds. "
+#~ msgstr ""
 
-msgid ""
-"Defines the size of the rolling "
-"window function, relative to the time"
-" granularity selected"
-msgstr ""
+#~ msgid ""
+#~ "Perhaps your data has grown, your "
+#~ "database is under unusual load, or "
+#~ "you are simply querying a data "
+#~ "source that is too large to be "
+#~ "processed within the timeout range. If"
+#~ " that is the case, we recommend "
+#~ "that you summarize your data further."
+#~ msgstr ""
 
-msgid "Cell Size"
-msgstr ""
+#~ msgid "Network error."
+#~ msgstr ""
 
-msgid "The size of the square cell, in pixels"
-msgstr ""
+#~ msgid "Click to see difference"
+#~ msgstr ""
 
-msgid "Cell Padding"
-msgstr ""
+#~ msgid "Altered"
+#~ msgstr ""
 
-msgid "The distance between cells, in pixels"
-msgstr ""
+#~ msgid "Chart changes"
+#~ msgstr ""
 
-msgid "Cell Radius"
-msgstr ""
+#~ msgid "Select ..."
+#~ msgstr ""
 
-msgid "The pixel radius"
-msgstr ""
+#~ msgid "Loaded data cached"
+#~ msgstr ""
 
-msgid "Color Steps"
-msgstr ""
+#~ msgid "Loaded from cache"
+#~ msgstr ""
 
-msgid "The number color \"steps\""
-msgstr ""
+#~ msgid "Click to force-refresh"
+#~ msgstr ""
 
-msgid "Grid Size"
-msgstr ""
+#~ msgid "Copy to clipboard"
+#~ msgstr "클립보드에 복사하기"
 
-msgid "Defines the grid size in pixels"
-msgstr ""
+#~ msgid "Not successful"
+#~ msgstr ""
 
-msgid "Min Periods"
-msgstr ""
+#~ msgid "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!"
+#~ msgstr ""
 
-msgid ""
-"The minimum number of rolling periods"
-" required to show a value. For "
-"instance if you do a cumulative "
-"sum on 7 days you may want "
-"your \"Min Period\" to be 7, so"
-" that all data points shown are "
-"the total of 7 periods. This will"
-" hide the \"ramp up\" taking place"
-" over the first 7 periods"
-msgstr ""
+#~ msgid "Copied!"
+#~ msgstr "복사됨!"
 
-msgid "Series"
-msgstr ""
+#~ msgid "Title"
+#~ msgstr "제목"
 
-msgid ""
-"Defines the grouping of entities. Each"
-" series is shown as a specific "
-"color on the chart and has a "
-"legend toggle"
-msgstr ""
+#~ msgid "click to edit title"
+#~ msgstr "클릭하여 제목 수정하기"
 
-msgid "Entity"
-msgstr ""
+#~ msgid "You don't have the rights to alter this title."
+#~ msgstr ""
 
-msgid "This defines the element to be plotted on the chart"
-msgstr ""
+#~ msgid "Click to favorite/unfavorite"
+#~ msgstr ""
 
-msgid "X Axis"
-msgstr ""
+#~ msgid "Dismiss"
+#~ msgstr ""
 
-msgid "Metric assigned to the [X] axis"
-msgstr ""
+#~ msgid "%s%s"
+#~ msgstr ""
 
-msgid "Y Axis"
-msgstr ""
+#~ msgid "Active Dashboard Filters"
+#~ msgstr ""
 
-msgid "Metric assigned to the [Y] axis"
-msgstr ""
+#~ msgid "Checkout this dashboard: %s"
+#~ msgstr ""
 
-msgid "Bubble Size"
-msgstr ""
+#~ msgid "Save as"
+#~ msgstr ""
 
-msgid "URL"
-msgstr ""
+#~ msgid "Force Refresh"
+#~ msgstr ""
 
-msgid ""
-"The URL, this control is templated, "
-"so you can integrate {{ width }}"
-" and/or {{ height }} in your "
-"URL string."
-msgstr ""
+#~ msgid "Force refresh the whole dashboard"
+#~ msgstr ""
 
-msgid "X Axis Label"
-msgstr ""
+#~ msgid "Set autorefresh"
+#~ msgstr ""
 
-msgid "Y Axis Label"
-msgstr ""
+#~ msgid "Set the auto-refresh interval for this session"
+#~ msgstr ""
 
-msgid "Custom WHERE clause"
-msgstr ""
+#~ msgid "Save the dashboard"
+#~ msgstr ""
 
-msgid ""
-"The text in this box gets included"
-" in your query's WHERE clause, as "
-"an AND to other criteria. You can"
-" include complex expression, parenthesis "
-"and anything else supported by the "
-"backend it is directed towards."
-msgstr ""
+#~ msgid "Edit properties"
+#~ msgstr ""
 
-msgid "Custom HAVING clause"
-msgstr ""
+#~ msgid "Edit the dashboards's properties"
+#~ msgstr ""
 
-msgid ""
-"The text in this box gets included"
-" in your query's HAVING clause, as"
-" an AND to other criteria. You "
-"can include complex expression, parenthesis"
-" and anything else supported by the"
-" backend it is directed towards."
-msgstr ""
+#~ msgid "Email"
+#~ msgstr "이메일"
 
-msgid "Comparison Period Lag"
-msgstr ""
+#~ msgid "Email a link to this dashboard"
+#~ msgstr ""
 
-msgid "Based on granularity, number of time periods to compare against"
-msgstr ""
+#~ msgid "Add Charts"
+#~ msgstr "차트 추가"
 
-msgid "Comparison suffix"
-msgstr ""
+#~ msgid "Add some charts to this dashboard"
+#~ msgstr ""
 
-msgid "Suffix to apply after the percentage display"
-msgstr ""
+#~ msgid "Edit CSS"
+#~ msgstr "CSS 수정"
 
-msgid "Table Timestamp Format"
-msgstr ""
+#~ msgid "Change the style of the dashboard using CSS code"
+#~ msgstr ""
 
-msgid "Timestamp Format"
-msgstr ""
+#~ msgid "Load a template"
+#~ msgstr "템플릿 불러오기"
 
-msgid "Series Height"
-msgstr ""
+#~ msgid "Load a CSS template"
+#~ msgstr "CSS 템플릿 불러오기"
 
-msgid "Pixel height of each series"
-msgstr ""
+#~ msgid "CSS"
+#~ msgstr ""
 
-msgid "Page Length"
-msgstr ""
+#~ msgid "Live CSS Editor"
+#~ msgstr ""
 
-msgid "Rows per page, 0 means no pagination"
-msgstr ""
+#~ msgid "You have unsaved changes."
+#~ msgstr ""
 
-msgid "X Axis Format"
-msgstr ""
+#~ msgid "Unsaved changes"
+#~ msgstr ""
 
-msgid "Y Axis Format"
-msgstr ""
+#~ msgid "Don't refresh"
+#~ msgstr ""
 
-msgid "When `Period Ratio` is set, the Y Axis Format is forced to `.1%`"
-msgstr ""
+#~ msgid "10 seconds"
+#~ msgstr "10초"
 
-msgid "Right Axis Format"
-msgstr ""
+#~ msgid "30 seconds"
+#~ msgstr "30초"
 
-msgid "Date Time Format"
-msgstr ""
+#~ msgid "1 minute"
+#~ msgstr "1분"
 
-msgid "Markup Type"
-msgstr ""
+#~ msgid "5 minutes"
+#~ msgstr "5분"
 
-msgid "Pick your favorite markup language"
-msgstr ""
+#~ msgid "30 minutes"
+#~ msgstr "30분"
 
-msgid "Rotation"
-msgstr ""
+#~ msgid "1 hour"
+#~ msgstr "1시간"
 
-msgid "Rotation to apply to words in the cloud"
-msgstr ""
+#~ msgid "6 hours"
+#~ msgstr "6시간"
 
-msgid "Line Style"
-msgstr ""
+#~ msgid "12 hours"
+#~ msgstr "12시간"
 
-msgid "Line interpolation as defined by d3.js"
-msgstr ""
+#~ msgid "24 hours"
+#~ msgstr "24시간"
 
-msgid "Label Type"
-msgstr ""
+#~ msgid "Refresh Interval"
+#~ msgstr "새로고침 간격"
 
-msgid "What should be shown on the label?"
-msgstr ""
+#~ msgid "Choose the refresh frequency for this dashboard"
+#~ msgstr ""
 
-msgid "Code"
-msgstr ""
+#~ msgid "This dashboard was saved successfully."
+#~ msgstr ""
 
-msgid "Put your code here"
-msgstr ""
+#~ msgid "Sorry, there was an error saving this dashboard: "
+#~ msgstr ""
 
-msgid "Aggregation function"
-msgstr ""
+#~ msgid "Error"
+#~ msgstr "에러"
 
-msgid ""
-"Aggregate function to apply when "
-"pivoting and computing the total rows"
-" and columns"
-msgstr ""
+#~ msgid "You must pick a name for the new dashboard"
+#~ msgstr ""
 
-msgid "Font Size From"
-msgstr ""
+#~ msgid "Save Dashboard"
+#~ msgstr "대시보드 저장"
 
-msgid "Font size for the smallest value in the list"
-msgstr ""
+#~ msgid "Overwrite Dashboard [%s]"
+#~ msgstr ""
 
-msgid "Font Size To"
-msgstr ""
+#~ msgid "Save as:"
+#~ msgstr "다른이름으로 저장"
 
-msgid "Font size for the biggest value in the list"
-msgstr ""
+#~ msgid "[dashboard name]"
+#~ msgstr ""
 
-msgid "Instant Filtering"
-msgstr ""
+#~ msgid "Sorry, there was an error fetching charts to this dashboard: "
+#~ msgstr ""
 
-msgid "Extruded"
-msgstr ""
+#~ msgid "Sorry, there was an error adding charts to this dashboard: "
+#~ msgstr ""
 
-msgid "Show Range Filter"
-msgstr ""
+#~ msgid "Name"
+#~ msgstr "이름"
 
-msgid "Whether to display the time range interactive selector"
-msgstr ""
+#~ msgid "Viz"
+#~ msgstr ""
 
-msgid "Date Filter"
-msgstr ""
+#~ msgid "Datasource"
+#~ msgstr "데이터소스"
 
-msgid "Whether to include a time filter"
-msgstr ""
+#~ msgid "Modified"
+#~ msgstr "수정됨"
 
-msgid "Show SQL Granularity Dropdown"
-msgstr ""
+#~ msgid "Add a new chart to the dashboard"
+#~ msgstr "대시보드에 새 차트 추가"
 
-msgid "Check to include SQL Granularity dropdown"
-msgstr ""
+#~ msgid "Add Charts to Dashboard"
+#~ msgstr "대시보드에 차트 추가"
 
-msgid "Show SQL Time Column"
-msgstr ""
+#~ msgid "Served from data cached %s . Click to force refresh."
+#~ msgstr ""
 
-msgid "Check to include Time Column dropdown"
-msgstr ""
+#~ msgid "Force refresh data"
+#~ msgstr ""
 
-msgid "Show Druid Granularity Dropdown"
-msgstr ""
+#~ msgid "Annotation layers are still loading."
+#~ msgstr ""
 
-msgid "Check to include Druid Granularity dropdown"
-msgstr ""
+#~ msgid "One ore more annotation layers failed loading."
+#~ msgstr ""
 
-msgid "Show Druid Time Origin"
-msgstr ""
+#~ msgid "Move chart"
+#~ msgstr "차트 이동"
 
-msgid "Check to include Time Origin dropdown"
-msgstr ""
+#~ msgid "Toggle chart description"
+#~ msgstr ""
 
-msgid "Data Table"
-msgstr ""
+#~ msgid "Edit chart"
+#~ msgstr "차트 수정"
 
-msgid "Whether to display the interactive data table"
-msgstr ""
+#~ msgid "Export CSV"
+#~ msgstr "CSV 내보내기"
 
-msgid "Search Box"
-msgstr ""
+#~ msgid "Explore chart"
+#~ msgstr ""
 
-msgid "Whether to include a client side search box"
-msgstr ""
+#~ msgid "Remove chart from dashboard"
+#~ msgstr ""
 
-msgid "Table Filter"
-msgstr ""
+#~ msgid ""
+#~ "A reference to the [Time] configuration,"
+#~ " taking granularity into account"
+#~ msgstr ""
 
-msgid "Whether to apply filter when table cell is clicked"
-msgstr ""
+#~ msgid "Group by"
+#~ msgstr ""
 
-msgid "Align +/-"
-msgstr ""
+#~ msgid "One or many controls to group by"
+#~ msgstr ""
 
-msgid "Whether to align the background chart for +/- values"
-msgstr ""
+#~ msgid "Metrics"
+#~ msgstr "메트릭"
 
-msgid "Color +/-"
-msgstr ""
+#~ msgid "One or many metrics to display"
+#~ msgstr ""
 
-msgid "Whether to color +/- values"
-msgstr ""
+#~ msgid "Metric"
+#~ msgstr "메트릭"
 
-msgid "Show Bubbles"
-msgstr ""
+#~ msgid ""
+#~ "For more information about objects are"
+#~ " in context in the scope of "
+#~ "this function, refer to the"
+#~ msgstr ""
 
-msgid "Whether to display bubbles on top of countries"
-msgstr ""
+#~ msgid " source code of Superset's sandboxed parser"
+#~ msgstr ""
 
-msgid "Legend"
-msgstr ""
+#~ msgid ""
+#~ "This functionality is disabled in your"
+#~ " environment for security reasons."
+#~ msgstr ""
 
-msgid "Whether to display the legend (toggles)"
-msgstr ""
+#~ msgid "Visualization Type"
+#~ msgstr "시각화 유형"
 
-msgid "Show Values"
-msgstr ""
+#~ msgid "The type of visualization to display"
+#~ msgstr ""
 
-msgid "Whether to display the numerical values within the cells"
-msgstr ""
+#~ msgid "Percentage Metrics"
+#~ msgstr ""
 
-msgid "Show Metric Names"
-msgstr ""
+#~ msgid "Metrics for which percentage of total are to be displayed"
+#~ msgstr ""
 
-msgid "Whether to display the metric name as a title"
-msgstr ""
+#~ msgid "Y Axis Bounds"
+#~ msgstr ""
 
-msgid "X bounds"
-msgstr ""
+#~ msgid ""
+#~ "Bounds for the Y axis. When left"
+#~ " empty, the bounds are dynamically "
+#~ "defined based on the min/max of "
+#~ "the data. Note that this feature "
+#~ "will only expand the axis range. "
+#~ "It won't narrow the data's extent."
+#~ msgstr ""
 
-msgid "Whether to display the min and max values of the X axis"
-msgstr ""
+#~ msgid "Ordering"
+#~ msgstr ""
 
-msgid "Y bounds"
-msgstr ""
+#~ msgid "Fixed Color"
+#~ msgstr ""
 
-msgid "Whether to display the min and max values of the Y axis"
-msgstr ""
+#~ msgid "Use this to define a static color for all circles"
+#~ msgstr ""
 
-msgid "Rich Tooltip"
-msgstr ""
+#~ msgid "Legend Position"
+#~ msgstr ""
 
-msgid "The rich tooltip shows a list of all series for that point in time"
-msgstr ""
+#~ msgid "Choose the position of the legend"
+#~ msgstr ""
 
-msgid "Y Log Scale"
-msgstr ""
+#~ msgid "Fill Color"
+#~ msgstr ""
 
-msgid "Use a log scale for the Y axis"
-msgstr ""
+#~ msgid ""
+#~ " Set the opacity to 0 if you"
+#~ " do not want to override the "
+#~ "color specified in the GeoJSON"
+#~ msgstr ""
 
-msgid "X Log Scale"
-msgstr ""
+#~ msgid "Stroke Color"
+#~ msgstr ""
 
-msgid "Use a log scale for the X axis"
-msgstr ""
+#~ msgid "Right Axis Metric"
+#~ msgstr ""
 
-msgid "Log Scale"
-msgstr ""
+#~ msgid "Choose a metric for right axis"
+#~ msgstr ""
 
-msgid "Use a log scale"
-msgstr ""
+#~ msgid "Stacked Style"
+#~ msgstr ""
 
-msgid "Donut"
-msgstr ""
+#~ msgid "Sort X Axis"
+#~ msgstr ""
 
-msgid "Do you want a donut or a pie?"
-msgstr ""
+#~ msgid "Sort Y Axis"
+#~ msgstr ""
 
-msgid "Put labels outside"
-msgstr ""
+#~ msgid "Linear Color Scheme"
+#~ msgstr ""
 
-msgid "Put the labels outside the pie?"
-msgstr ""
+#~ msgid "Normalize Across"
+#~ msgstr ""
 
-msgid "Contribution"
-msgstr ""
+#~ msgid ""
+#~ "Color will be rendered based on a"
+#~ " ratio of the cell against the "
+#~ "sum of across this criteria"
+#~ msgstr ""
 
-msgid "Compute the contribution to the total"
-msgstr ""
+#~ msgid "Horizon Color Scale"
+#~ msgstr ""
 
-msgid "Period Ratio"
-msgstr ""
+#~ msgid "Defines how the color are attributed."
+#~ msgstr ""
 
-msgid ""
-"[integer] Number of period to compare"
-" against, this is relative to the "
-"granularity selected"
-msgstr ""
+#~ msgid "Rendering"
+#~ msgstr ""
 
-msgid "Period Ratio Type"
-msgstr ""
+#~ msgid ""
+#~ "image-rendering CSS attribute of the "
+#~ "canvas object that defines how the "
+#~ "browser scales up the image"
+#~ msgstr ""
 
-msgid ""
-"`factor` means (new/previous), `growth` is "
-"((new/previous) - 1), `value` is "
-"(new-previous)"
-msgstr ""
+#~ msgid "XScale Interval"
+#~ msgstr ""
 
-msgid "Time Shift"
-msgstr ""
+#~ msgid "Number of steps to take between ticks when displaying the X scale"
+#~ msgstr ""
 
-msgid ""
-"Overlay one or more timeseries from "
-"a relative time period. Expects relative"
-" time deltas in natural language "
-"(example:  24 hours, 7 days, 56 "
-"weeks, 365 days)"
-msgstr ""
+#~ msgid "YScale Interval"
+#~ msgstr ""
 
-msgid "Subheader"
-msgstr ""
+#~ msgid "Number of steps to take between ticks when displaying the Y scale"
+#~ msgstr ""
 
-msgid "Description text that shows up below your Big Number"
-msgstr ""
+#~ msgid "Include Time"
+#~ msgstr ""
 
-msgid "label"
-msgstr ""
+#~ msgid "Whether to include the time granularity as defined in the time section"
+#~ msgstr ""
 
-msgid ""
-"`count` is COUNT(*) if a group by"
-" is used. Numerical columns will be"
-" aggregated with the aggregator. Non-"
-"numerical columns will be used to "
-"label points. Leave empty to get a"
-" count of points in each cluster."
-msgstr ""
+#~ msgid "Auto Zoom"
+#~ msgstr ""
 
-msgid "Map Style"
-msgstr ""
+#~ msgid "When checked, the map will zoom to your data after each query"
+#~ msgstr ""
 
-msgid "Base layer map style"
-msgstr ""
+#~ msgid "Show percentage"
+#~ msgstr ""
 
-msgid "Clustering Radius"
-msgstr ""
+#~ msgid "Whether to include the percentage in the tooltip"
+#~ msgstr ""
 
-msgid ""
-"The radius (in pixels) the algorithm "
-"uses to define a cluster. Choose 0"
-" to turn off clustering, but beware"
-" that a large number of points "
-"(>1000) will cause lag."
-msgstr ""
+#~ msgid "Stacked Bars"
+#~ msgstr ""
 
-msgid "Point Size"
-msgstr ""
+#~ msgid "Show totals"
+#~ msgstr ""
 
-msgid "Fixed point radius"
-msgstr ""
+#~ msgid "Display total row/column"
+#~ msgstr ""
 
-msgid "Point Radius"
-msgstr ""
+#~ msgid "Show Markers"
+#~ msgstr ""
 
-msgid ""
-"The radius of individual points (ones"
-" that are not in a cluster). "
-"Either a numerical column or `Auto`, "
-"which scales the point based on "
-"the largest cluster"
-msgstr ""
+#~ msgid "Show data points as circle markers on the lines"
+#~ msgstr ""
 
-msgid "Point Radius Unit"
-msgstr ""
+#~ msgid "Bar Values"
+#~ msgstr ""
 
-msgid "The unit of measure for the specified point radius"
-msgstr ""
+#~ msgid "Show the value on top of the bar"
+#~ msgstr ""
 
-msgid "Point Unit"
-msgstr ""
+#~ msgid "Sort Bars"
+#~ msgstr ""
 
-msgid "Opacity"
-msgstr ""
+#~ msgid "Sort bars by x labels."
+#~ msgstr ""
 
-msgid "Opacity of all clusters, points, and labels. Between 0 and 1."
-msgstr ""
+#~ msgid "Combine Metrics"
+#~ msgstr ""
 
-msgid "Viewport"
-msgstr ""
+#~ msgid ""
+#~ "Display metrics side by side within "
+#~ "each column, as opposed to each "
+#~ "column being displayed side by side "
+#~ "for each metric."
+#~ msgstr ""
 
-msgid "Parameters related to the view and perspective on the map"
-msgstr ""
+#~ msgid "Extra Controls"
+#~ msgstr ""
 
-msgid "Zoom"
-msgstr ""
+#~ msgid ""
+#~ "Whether to show extra controls or "
+#~ "not. Extra controls include things like"
+#~ " making mulitBar charts stacked or "
+#~ "side by side."
+#~ msgstr ""
 
-msgid "Zoom level of the map"
-msgstr ""
+#~ msgid "Reduce X ticks"
+#~ msgstr ""
 
-msgid "Default latitude"
-msgstr ""
+#~ msgid ""
+#~ "Reduces the number of X axis ticks"
+#~ " to be rendered. If true, the x"
+#~ " axis wont overflow and labels may"
+#~ " be missing. If false, a minimum "
+#~ "width will be applied to columns "
+#~ "and the width may overflow into an"
+#~ " horizontal scroll."
+#~ msgstr ""
 
-msgid "Latitude of default viewport"
-msgstr ""
+#~ msgid "Include Series"
+#~ msgstr ""
 
-msgid "Default longitude"
-msgstr ""
+#~ msgid "Include series name as an axis"
+#~ msgstr ""
 
-msgid "Longitude of default viewport"
-msgstr ""
+#~ msgid "Color Metric"
+#~ msgstr ""
 
-msgid "Live render"
-msgstr ""
+#~ msgid "A metric to use for color"
+#~ msgstr ""
 
-msgid "Points and clusters will update as viewport is being changed"
-msgstr ""
+#~ msgid "Country Name"
+#~ msgstr ""
 
-msgid "RGB Color"
-msgstr ""
+#~ msgid "The name of country that Superset should display"
+#~ msgstr ""
 
-msgid "The color for points and clusters in RGB"
-msgstr ""
+#~ msgid "Country Field Type"
+#~ msgstr ""
 
-msgid "Color"
-msgstr ""
+#~ msgid ""
+#~ "The country code standard that Superset"
+#~ " should expect to find in the "
+#~ "[country] column"
+#~ msgstr ""
 
-msgid "Pick a color"
-msgstr ""
+#~ msgid "Frequency"
+#~ msgstr ""
 
-msgid "Ranges"
-msgstr ""
+#~ msgid ""
+#~ "The periodicity over which to pivot time. Users can provide\n"
+#~ "      \"Pandas\" offset alias.\n"
+#~ "      Click on the info bubble for"
+#~ " more details on accepted \"freq\" "
+#~ "expressions."
+#~ msgstr ""
 
-msgid "Ranges to highlight with shading"
-msgstr ""
+#~ msgid "Dimension"
+#~ msgstr ""
 
-msgid "Range labels"
-msgstr ""
+#~ msgid "Select a dimension"
+#~ msgstr ""
 
-msgid "Labels for the ranges"
-msgstr ""
+#~ msgid "Columns"
+#~ msgstr ""
 
-msgid "Markers"
-msgstr ""
+#~ msgid "One or many controls to pivot as columns"
+#~ msgstr ""
 
-msgid "List of values to mark with triangles"
-msgstr ""
+#~ msgid "Columns to display"
+#~ msgstr ""
 
-msgid "Marker labels"
-msgstr ""
+#~ msgid "Longitude & Latitude"
+#~ msgstr ""
 
-msgid "Labels for the markers"
-msgstr ""
+#~ msgid "Point to your spatial columns"
+#~ msgstr ""
 
-msgid "Marker lines"
-msgstr ""
+#~ msgid "Start Longitude & Latitude"
+#~ msgstr ""
 
-msgid "List of values to mark with lines"
-msgstr ""
+#~ msgid "End Longitude & Latitude"
+#~ msgstr ""
 
-msgid "Marker line labels"
-msgstr ""
+#~ msgid "Longitude"
+#~ msgstr ""
 
-msgid "Labels for the marker lines"
-msgstr ""
+#~ msgid "Select the longitude column"
+#~ msgstr ""
 
-msgid "Chart ID"
-msgstr ""
+#~ msgid "Latitude"
+#~ msgstr ""
 
-msgid "The id of the active chart"
-msgstr ""
+#~ msgid "Select the latitude column"
+#~ msgstr ""
 
-msgid "Cache Timeout (seconds)"
-msgstr ""
+#~ msgid "GeoJson Column"
+#~ msgstr ""
 
-msgid "The number of seconds before expiring the cache"
-msgstr ""
+#~ msgid "Select the geojson column"
+#~ msgstr ""
 
-msgid "Order by entity id"
-msgstr ""
+#~ msgid "Polygon Column"
+#~ msgstr ""
 
-msgid ""
-"Important! Select this if the table "
-"is not already sorted by entity "
-"id, else there is no guarantee "
-"that all events for each entity "
-"are returned."
-msgstr ""
+#~ msgid ""
+#~ "Select the polygon column. Each row "
+#~ "should contain JSON.array(N) of [longitude,"
+#~ " latitude] points"
+#~ msgstr ""
 
-msgid "Minimum leaf node event count"
-msgstr ""
+#~ msgid "Point Radius Scale"
+#~ msgstr ""
 
-msgid ""
-"Leaf nodes that represent fewer than "
-"this number of events will be "
-"initially hidden in the visualization"
-msgstr ""
+#~ msgid "Stroke Width"
+#~ msgstr ""
 
-msgid "Color Scheme"
-msgstr ""
+#~ msgid "Origin"
+#~ msgstr ""
 
-msgid "The color scheme for rendering chart"
-msgstr ""
+#~ msgid ""
+#~ "Defines the origin where time buckets"
+#~ " start, accepts natural dates as in"
+#~ " `now`, `sunday` or `1970-01-01`"
+#~ msgstr ""
 
-msgid "Significance Level"
-msgstr ""
+#~ msgid "Bottom Margin"
+#~ msgstr ""
 
-msgid "Threshold alpha level for determining significance"
-msgstr ""
+#~ msgid "Bottom margin, in pixels, allowing for more room for axis labels"
+#~ msgstr ""
 
-msgid "p-value precision"
-msgstr ""
+#~ msgid "X Tick Layout"
+#~ msgstr ""
 
-msgid "Number of decimal places with which to display p-values"
-msgstr ""
+#~ msgid "The way the ticks are laid out on the X axis"
+#~ msgstr ""
 
-msgid "Lift percent precision"
-msgstr ""
+#~ msgid "Left Margin"
+#~ msgstr ""
 
-msgid "Number of decimal places with which to display lift values"
-msgstr ""
+#~ msgid "Left margin, in pixels, allowing for more room for axis labels"
+#~ msgstr ""
 
-msgid "Time Series Columns"
-msgstr ""
+#~ msgid "Time Granularity"
+#~ msgstr ""
 
-msgid "Use Area Proportions"
-msgstr ""
+#~ msgid ""
+#~ "The time granularity for the "
+#~ "visualization. Note that you can type"
+#~ " and use simple natural language as"
+#~ " in `10 seconds`, `1 day` or "
+#~ "`56 weeks`"
+#~ msgstr ""
 
-msgid ""
-"Check if the Rose Chart should use"
-" segment area instead of segment "
-"radius for proportioning"
-msgstr ""
+#~ msgid "Domain"
+#~ msgstr ""
 
-msgid "Options"
-msgstr ""
+#~ msgid "The time unit used for the grouping of blocks"
+#~ msgstr ""
 
-msgid "Not Time Series"
-msgstr ""
+#~ msgid "Subdomain"
+#~ msgstr ""
 
-msgid "Ignore time"
-msgstr ""
+#~ msgid ""
+#~ "The time unit for each block. "
+#~ "Should be a smaller unit than "
+#~ "domain_granularity. Should be larger or "
+#~ "equal to Time Grain"
+#~ msgstr ""
 
-msgid "Time Series"
-msgstr ""
+#~ msgid "Link Length"
+#~ msgstr ""
 
-msgid "Standard time series"
-msgstr ""
+#~ msgid "Link length in the force layout"
+#~ msgstr ""
 
-msgid "Aggregate Mean"
-msgstr ""
+#~ msgid "Charge"
+#~ msgstr ""
 
-msgid "Mean of values over specified period"
-msgstr ""
+#~ msgid "Charge in the force layout"
+#~ msgstr ""
 
-msgid "Aggregate Sum"
-msgstr ""
+#~ msgid ""
+#~ "The time column for the visualization."
+#~ " Note that you can define arbitrary"
+#~ " expression that return a DATETIME "
+#~ "column in the table. Also note "
+#~ "that the filter below is applied "
+#~ "against this column or expression"
+#~ msgstr ""
 
-msgid "Sum of values over specified period"
-msgstr ""
+#~ msgid "Time Grain"
+#~ msgstr ""
 
-msgid "Difference"
-msgstr ""
+#~ msgid ""
+#~ "The time granularity for the "
+#~ "visualization. This applies a date "
+#~ "transformation to alter your time column"
+#~ " and defines a new time granularity."
+#~ " The options here are defined on "
+#~ "a per database engine basis in the"
+#~ " Superset source code."
+#~ msgstr ""
 
-msgid "Metric change in value from `since` to `until`"
-msgstr ""
+#~ msgid "Resample Rule"
+#~ msgstr ""
 
-msgid "Percent Change"
-msgstr ""
+#~ msgid "Pandas resample rule"
+#~ msgstr ""
 
-msgid "Metric percent change in value from `since` to `until`"
-msgstr ""
+#~ msgid "Resample How"
+#~ msgstr ""
 
-msgid "Factor"
-msgstr ""
+#~ msgid "Pandas resample how"
+#~ msgstr ""
 
-msgid "Metric factor change from `since` to `until`"
-msgstr ""
+#~ msgid "Resample Fill Method"
+#~ msgstr ""
 
-msgid "Advanced Analytics"
-msgstr ""
+#~ msgid "Pandas resample fill method"
+#~ msgstr ""
 
-msgid "Use the Advanced Analytics options below"
-msgstr ""
+#~ msgid "Since"
+#~ msgstr ""
 
-msgid "Settings for time series"
-msgstr ""
+#~ msgid "7 days ago"
+#~ msgstr ""
 
-msgid "Equal Date Sizes"
-msgstr ""
+#~ msgid "Until"
+#~ msgstr ""
 
-msgid "Check to force date partitions to have the same height"
-msgstr ""
+#~ msgid "Max Bubble Size"
+#~ msgstr ""
 
-msgid "Partition Limit"
-msgstr ""
+#~ msgid "Whisker/outlier options"
+#~ msgstr ""
 
-msgid ""
-"The maximum number of subdivisions of"
-" each group; lower values are pruned"
-" first"
-msgstr ""
+#~ msgid "Determines how whiskers and outliers are calculated."
+#~ msgstr ""
 
-msgid "Minimum Radius"
-msgstr ""
+#~ msgid "Ratio"
+#~ msgstr ""
 
-msgid ""
-"Minimum radius size of the circle, "
-"in pixels. As the zoom level "
-"changes, this insures that the circle"
-" respects this minimum radius."
-msgstr ""
+#~ msgid "Target aspect ratio for treemap tiles."
+#~ msgstr ""
 
-msgid "Maximum Radius"
-msgstr ""
+#~ msgid "Number format"
+#~ msgstr ""
 
-msgid ""
-"Maxium radius size of the circle, "
-"in pixels. As the zoom level "
-"changes, this insures that the circle"
-" respects this maximum radius."
-msgstr ""
+#~ msgid "Row limit"
+#~ msgstr ""
 
-msgid "Partition Threshold"
-msgstr ""
+#~ msgid "Series limit"
+#~ msgstr ""
 
-msgid ""
-"Partitions whose height to parent height"
-" proportions are below this value are"
-" pruned"
-msgstr ""
+#~ msgid ""
+#~ "Limits the number of time series "
+#~ "that get displayed. A sub query "
+#~ "(or an extra phase where sub "
+#~ "queries are not supported) is applied"
+#~ " to limit the number of time "
+#~ "series that get fetched and displayed."
+#~ " This feature is useful when grouping"
+#~ " by high cardinality dimension(s)."
+#~ msgstr ""
 
-msgid "Lines column"
-msgstr ""
+#~ msgid "Sort By"
+#~ msgstr ""
 
-msgid "The database columns that contains lines information"
-msgstr ""
+#~ msgid "Metric used to define the top series"
+#~ msgstr ""
 
-msgid "Lines encoding"
-msgstr ""
+#~ msgid "Sort Descending"
+#~ msgstr ""
 
-msgid "The encoding format of the lines"
-msgstr ""
+#~ msgid "Whether to sort descending or ascending"
+#~ msgstr ""
 
-msgid "Line width"
-msgstr ""
+#~ msgid "Rolling"
+#~ msgstr ""
 
-msgid "The width of the lines"
-msgstr ""
+#~ msgid ""
+#~ "Defines a rolling window function to "
+#~ "apply, works along with the [Periods]"
+#~ " text box"
+#~ msgstr ""
 
-msgid "Line charts"
-msgstr ""
+#~ msgid "Multiplier"
+#~ msgstr ""
 
-msgid "Pick a set of line charts to layer on top of one another"
-msgstr ""
+#~ msgid "Factor to multiply the metric by"
+#~ msgstr ""
 
-msgid "Select charts"
-msgstr ""
+#~ msgid "Periods"
+#~ msgstr ""
 
-msgid "Error while fetching charts"
-msgstr ""
+#~ msgid ""
+#~ "Defines the size of the rolling "
+#~ "window function, relative to the time"
+#~ " granularity selected"
+#~ msgstr ""
 
-msgid "Right Axis chart(s)"
-msgstr ""
+#~ msgid "Cell Size"
+#~ msgstr ""
 
-msgid "Choose one or more charts for right axis"
-msgstr ""
+#~ msgid "The size of the square cell, in pixels"
+#~ msgstr ""
 
-msgid "Prefix metric name with slice name"
-msgstr ""
+#~ msgid "Cell Padding"
+#~ msgstr ""
 
-msgid "Reverse Lat & Long"
-msgstr ""
+#~ msgid "The distance between cells, in pixels"
+#~ msgstr ""
 
-msgid "deck.gl charts"
-msgstr ""
+#~ msgid "Cell Radius"
+#~ msgstr ""
 
-msgid "Pick a set of deck.gl charts to layer on top of one another"
-msgstr ""
+#~ msgid "The pixel radius"
+#~ msgstr ""
 
-msgid "Javascript data interceptor"
-msgstr ""
+#~ msgid "Color Steps"
+#~ msgstr ""
 
-msgid ""
-"Define a javascript function that "
-"receives the data array used in "
-"the visualization and is expected to "
-"return a modified version of that "
-"array. This can be used to alter"
-" properties of the data, filter, or"
-" enrich the array."
-msgstr ""
+#~ msgid "The number color \"steps\""
+#~ msgstr ""
 
-msgid "Javascript data mutator"
-msgstr ""
+#~ msgid "Grid Size"
+#~ msgstr ""
 
-msgid ""
-"Define a function that receives "
-"intercepts the data objects and can "
-"mutate it"
-msgstr ""
+#~ msgid "Defines the grid size in pixels"
+#~ msgstr ""
 
-msgid "Javascript tooltip generator"
-msgstr ""
+#~ msgid "Min Periods"
+#~ msgstr ""
 
-msgid ""
-"Define a function that receives the "
-"input and outputs the content for "
-"a tooltip"
-msgstr ""
+#~ msgid ""
+#~ "The minimum number of rolling periods"
+#~ " required to show a value. For "
+#~ "instance if you do a cumulative "
+#~ "sum on 7 days you may want "
+#~ "your \"Min Period\" to be 7, so"
+#~ " that all data points shown are "
+#~ "the total of 7 periods. This will"
+#~ " hide the \"ramp up\" taking place"
+#~ " over the first 7 periods"
+#~ msgstr ""
 
-msgid "Javascript onClick href"
-msgstr ""
+#~ msgid "Series"
+#~ msgstr ""
 
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
+#~ msgid ""
+#~ "Defines the grouping of entities. Each"
+#~ " series is shown as a specific "
+#~ "color on the chart and has a "
+#~ "legend toggle"
+#~ msgstr ""
 
-msgid "Extra data for JS"
-msgstr ""
+#~ msgid "Entity"
+#~ msgstr ""
 
-msgid "List of extra columns made available in Javascript functions"
-msgstr ""
+#~ msgid "This defines the element to be plotted on the chart"
+#~ msgstr ""
 
-msgid "Stroked"
-msgstr ""
+#~ msgid "X Axis"
+#~ msgstr ""
 
-msgid "Whether to display the stroke"
-msgstr ""
+#~ msgid "Metric assigned to the [X] axis"
+#~ msgstr ""
 
-msgid "Filled"
-msgstr ""
+#~ msgid "Y Axis"
+#~ msgstr ""
 
-msgid "Whether to fill the objects"
-msgstr ""
+#~ msgid "Metric assigned to the [Y] axis"
+#~ msgstr ""
 
-msgid "Normalized"
-msgstr ""
+#~ msgid "Bubble Size"
+#~ msgstr ""
 
-msgid "Whether to normalize the histogram"
-msgstr ""
+#~ msgid "URL"
+#~ msgstr ""
 
-msgid "is expected to be a number"
-msgstr ""
+#~ msgid ""
+#~ "The URL, this control is templated, "
+#~ "so you can integrate {{ width }}"
+#~ " and/or {{ height }} in your "
+#~ "URL string."
+#~ msgstr ""
 
-msgid "is expected to be an integer"
-msgstr ""
+#~ msgid "X Axis Label"
+#~ msgstr ""
 
-msgid "cannot be empty"
-msgstr ""
+#~ msgid "Y Axis Label"
+#~ msgstr ""
 
-msgid "Time"
-msgstr ""
+#~ msgid "Custom WHERE clause"
+#~ msgstr ""
 
-msgid "Time related form attributes"
-msgstr ""
+#~ msgid ""
+#~ "The text in this box gets included"
+#~ " in your query's WHERE clause, as "
+#~ "an AND to other criteria. You can"
+#~ " include complex expression, parenthesis "
+#~ "and anything else supported by the "
+#~ "backend it is directed towards."
+#~ msgstr ""
 
-msgid "Datasource & Chart Type"
-msgstr ""
+#~ msgid "Custom HAVING clause"
+#~ msgstr ""
 
-msgid "This section exposes ways to include snippets of SQL in your query"
-msgstr ""
+#~ msgid ""
+#~ "The text in this box gets included"
+#~ " in your query's HAVING clause, as"
+#~ " an AND to other criteria. You "
+#~ "can include complex expression, parenthesis"
+#~ " and anything else supported by the"
+#~ " backend it is directed towards."
+#~ msgstr ""
 
-msgid "Annotations and Layers"
-msgstr ""
+#~ msgid "Comparison Period Lag"
+#~ msgstr ""
 
-msgid "Query"
-msgstr ""
+#~ msgid "Based on granularity, number of time periods to compare against"
+#~ msgstr ""
 
-msgid ""
-"This section contains options that allow"
-" for advanced analytical post processing"
-" of query results"
-msgstr ""
+#~ msgid "Comparison suffix"
+#~ msgstr ""
 
-msgid "Result Filters"
-msgstr ""
+#~ msgid "Suffix to apply after the percentage display"
+#~ msgstr ""
 
-msgid ""
-"The filters to apply after post-"
-"aggregation.Leave the value control empty "
-"to filter empty strings or nulls"
-msgstr ""
+#~ msgid "Table Timestamp Format"
+#~ msgstr ""
 
-msgid "Chart Options"
-msgstr ""
+#~ msgid "Timestamp Format"
+#~ msgstr ""
 
-msgid "Breakdowns"
-msgstr ""
+#~ msgid "Series Height"
+#~ msgstr ""
 
-msgid "Defines how each series is broken down"
-msgstr ""
+#~ msgid "Pixel height of each series"
+#~ msgstr ""
 
-msgid "Pie Chart"
-msgstr ""
+#~ msgid "Page Length"
+#~ msgstr ""
 
-msgid "Y Axis 1"
-msgstr ""
+#~ msgid "Rows per page, 0 means no pagination"
+#~ msgstr ""
 
-msgid "Y Axis 2"
-msgstr ""
+#~ msgid "X Axis Format"
+#~ msgstr ""
 
-msgid "Left Axis chart(s)"
-msgstr ""
+#~ msgid "Y Axis Format"
+#~ msgstr ""
 
-msgid "Choose one or more charts for left axis"
-msgstr ""
+#~ msgid "When `Period Ratio` is set, the Y Axis Format is forced to `.1%`"
+#~ msgstr ""
 
-msgid "Left Axis Format"
-msgstr ""
+#~ msgid "Right Axis Format"
+#~ msgstr ""
 
-msgid "Time Series - Periodicity Pivot"
-msgstr ""
+#~ msgid "Date Time Format"
+#~ msgstr ""
 
-msgid "Dual Axis Line Chart"
-msgstr ""
+#~ msgid "Markup Type"
+#~ msgstr ""
 
-msgid "Left Axis Metric"
-msgstr ""
+#~ msgid "Pick your favorite markup language"
+#~ msgstr ""
 
-msgid "Choose a metric for left axis"
-msgstr ""
+#~ msgid "Rotation"
+#~ msgstr ""
 
-msgid "Map"
-msgstr ""
+#~ msgid "Rotation to apply to words in the cloud"
+#~ msgstr ""
 
-msgid "Deck.gl - Hexagons"
-msgstr ""
+#~ msgid "Line Style"
+#~ msgstr ""
 
-msgid "Advanced"
-msgstr ""
+#~ msgid "Line interpolation as defined by d3.js"
+#~ msgstr ""
 
-msgid "Height"
-msgstr ""
+#~ msgid "Label Type"
+#~ msgstr ""
 
-msgid "Metric used to control height"
-msgstr ""
+#~ msgid "What should be shown on the label?"
+#~ msgstr ""
 
-msgid "Deck.gl - Grid"
-msgstr ""
+#~ msgid "Code"
+#~ msgstr ""
 
-msgid "Deck.gl - Screen grid"
-msgstr ""
+#~ msgid "Put your code here"
+#~ msgstr ""
 
-msgid "Grid"
-msgstr ""
+#~ msgid "Aggregation function"
+#~ msgstr ""
 
-msgid "Weight"
-msgstr ""
+#~ msgid ""
+#~ "Aggregate function to apply when "
+#~ "pivoting and computing the total rows"
+#~ " and columns"
+#~ msgstr ""
 
-msgid "Metric used as a weight for the grid's coloring"
-msgstr ""
+#~ msgid "Font Size From"
+#~ msgstr ""
 
-msgid "Deck.gl - GeoJson"
-msgstr ""
+#~ msgid "Font size for the smallest value in the list"
+#~ msgstr ""
 
-msgid "GeoJson Settings"
-msgstr ""
+#~ msgid "Font Size To"
+#~ msgstr ""
 
-msgid "Polygon Settings"
-msgstr ""
+#~ msgid "Font size for the biggest value in the list"
+#~ msgstr ""
 
-msgid "Arc"
-msgstr ""
+#~ msgid "Instant Filtering"
+#~ msgstr ""
 
-msgid "Point Color"
-msgstr ""
+#~ msgid "Extruded"
+#~ msgstr ""
 
-msgid "Categorical Color"
-msgstr ""
+#~ msgid "Show Range Filter"
+#~ msgstr ""
 
-msgid "Pick a dimension from which categorical colors are defined"
-msgstr ""
+#~ msgid "Whether to display the time range interactive selector"
+#~ msgstr ""
 
-msgid "GROUP BY"
-msgstr ""
+#~ msgid "Date Filter"
+#~ msgstr ""
 
-msgid "Use this section if you want a query that aggregates"
-msgstr ""
+#~ msgid "Whether to include a time filter"
+#~ msgstr ""
 
-msgid "NOT GROUPED BY"
-msgstr ""
+#~ msgid "Show SQL Granularity Dropdown"
+#~ msgstr ""
 
-msgid "Use this section if you want to query atomic rows"
-msgstr ""
+#~ msgid "Check to include SQL Granularity dropdown"
+#~ msgstr ""
 
-msgid "Time Series Table"
-msgstr ""
+#~ msgid "Show SQL Time Column"
+#~ msgstr ""
 
-msgid ""
-"Templated link, it's possible to include"
-" {{ metric }} or other values "
-"coming from the controls."
-msgstr ""
+#~ msgid "Check to include Time Column dropdown"
+#~ msgstr ""
 
-msgid "Pivot Options"
-msgstr ""
+#~ msgid "Show Druid Granularity Dropdown"
+#~ msgstr ""
 
-msgid "Number Format"
-msgstr ""
+#~ msgid "Check to include Druid Granularity dropdown"
+#~ msgstr ""
 
-msgid "Time Format"
-msgstr ""
+#~ msgid "Show Druid Time Origin"
+#~ msgstr ""
 
-msgid "Numeric Columns"
-msgstr ""
+#~ msgid "Check to include Time Origin dropdown"
+#~ msgstr ""
 
-msgid "Select the numeric columns to draw the histogram"
-msgstr ""
+#~ msgid "Data Table"
+#~ msgstr ""
 
-msgid "No of Bins"
-msgstr ""
+#~ msgid "Whether to display the interactive data table"
+#~ msgstr ""
 
-msgid "Select number of bins for the histogram"
-msgstr ""
+#~ msgid "Search Box"
+#~ msgstr ""
 
-msgid "Opacity of the bars. Between 0 and 1"
-msgstr ""
+#~ msgid "Whether to include a client side search box"
+#~ msgstr ""
 
-msgid "Primary Metric"
-msgstr ""
+#~ msgid "Table Filter"
+#~ msgstr ""
 
-msgid "The primary metric is used to define the arc segment sizes"
-msgstr ""
+#~ msgid "Whether to apply filter when table cell is clicked"
+#~ msgstr ""
 
-msgid "Secondary Metric"
-msgstr ""
+#~ msgid "Align +/-"
+#~ msgstr ""
 
-msgid ""
-"[optional] this secondary metric is used"
-" to define the color as a ratio"
-" against the primary metric. When "
-"omitted, the color is categorical and"
-" based on labels"
-msgstr ""
+#~ msgid "Whether to align the background chart for +/- values"
+#~ msgstr ""
 
-msgid "Hierarchy"
-msgstr ""
+#~ msgid "Color +/-"
+#~ msgstr ""
 
-msgid "This defines the level of the hierarchy"
-msgstr ""
+#~ msgid "Whether to color +/- values"
+#~ msgstr ""
 
-msgid "Source / Target"
-msgstr ""
+#~ msgid "Show Bubbles"
+#~ msgstr ""
 
-msgid "Choose a source and a target"
-msgstr ""
+#~ msgid "Whether to display bubbles on top of countries"
+#~ msgstr ""
 
-msgid "Chord Diagram"
-msgstr ""
+#~ msgid "Legend"
+#~ msgstr ""
 
-msgid "Choose a number format"
-msgstr ""
+#~ msgid "Whether to display the legend (toggles)"
+#~ msgstr ""
 
-msgid "Source"
-msgstr ""
+#~ msgid "Show Values"
+#~ msgstr ""
 
-msgid "Choose a source"
-msgstr ""
+#~ msgid "Whether to display the numerical values within the cells"
+#~ msgstr ""
 
-msgid "Target"
-msgstr ""
+#~ msgid "Show Metric Names"
+#~ msgstr ""
 
-msgid "Choose a target"
-msgstr ""
+#~ msgid "Whether to display the metric name as a title"
+#~ msgstr ""
 
-msgid "ISO 3166-2 codes of region/province/department"
-msgstr ""
+#~ msgid "X bounds"
+#~ msgstr ""
 
-msgid ""
-"It's ISO 3166-2 of your "
-"region/province/department in your table. (see"
-" documentation for list of ISO "
-"3166-2)"
-msgstr ""
+#~ msgid "Whether to display the min and max values of the X axis"
+#~ msgstr ""
 
-msgid "Bubbles"
-msgstr ""
+#~ msgid "Y bounds"
+#~ msgstr ""
 
-msgid "Country Control"
-msgstr ""
+#~ msgid "Whether to display the min and max values of the Y axis"
+#~ msgstr ""
 
-msgid "3 letter code of the country"
-msgstr ""
+#~ msgid "Rich Tooltip"
+#~ msgstr ""
 
-msgid "Metric for color"
-msgstr ""
+#~ msgid "The rich tooltip shows a list of all series for that point in time"
+#~ msgstr ""
 
-msgid "Metric that defines the color of the country"
-msgstr ""
+#~ msgid "Y Log Scale"
+#~ msgstr ""
 
-msgid "Bubble size"
-msgstr ""
+#~ msgid "Use a log scale for the Y axis"
+#~ msgstr ""
 
-msgid "Metric that defines the size of the bubble"
-msgstr ""
+#~ msgid "X Log Scale"
+#~ msgstr ""
 
-msgid "Filter Box"
-msgstr ""
+#~ msgid "Use a log scale for the X axis"
+#~ msgstr ""
 
-msgid "Filter controls"
-msgstr ""
+#~ msgid "Log Scale"
+#~ msgstr ""
 
-msgid ""
-"The controls you want to filter "
-"on. Note that only columns checked "
-"as \"filterable\" will show up on "
-"this list."
-msgstr ""
+#~ msgid "Use a log scale"
+#~ msgstr ""
 
-msgid "Heatmap Options"
-msgstr ""
+#~ msgid "Donut"
+#~ msgstr ""
 
-msgid "Whether to apply a normal distribution based on rank on the color scale"
-msgstr ""
+#~ msgid "Do you want a donut or a pie?"
+#~ msgstr ""
 
-msgid "Value bounds"
-msgstr ""
+#~ msgid "Put labels outside"
+#~ msgstr ""
 
-msgid ""
-"Hard value bounds applied for color "
-"coding. Is only relevant and applied "
-"when the normalization is applied "
-"against the whole heatmap."
-msgstr ""
+#~ msgid "Put the labels outside the pie?"
+#~ msgstr ""
 
-msgid "Value Format"
-msgstr ""
+#~ msgid "Contribution"
+#~ msgstr ""
 
-msgid "Horizon"
-msgstr ""
+#~ msgid "Compute the contribution to the total"
+#~ msgstr ""
 
-msgid "Points"
-msgstr ""
+#~ msgid "Period Ratio"
+#~ msgstr ""
 
-msgid "Labelling"
-msgstr ""
+#~ msgid ""
+#~ "[integer] Number of period to compare"
+#~ " against, this is relative to the "
+#~ "granularity selected"
+#~ msgstr ""
 
-msgid "Visual Tweaks"
-msgstr ""
+#~ msgid "Period Ratio Type"
+#~ msgstr ""
 
-msgid "Column containing longitude data"
-msgstr ""
+#~ msgid ""
+#~ "`factor` means (new/previous), `growth` is "
+#~ "((new/previous) - 1), `value` is "
+#~ "(new-previous)"
+#~ msgstr ""
 
-msgid "Column containing latitude data"
-msgstr ""
+#~ msgid "Time Shift"
+#~ msgstr ""
 
-msgid "Cluster label aggregator"
-msgstr ""
+#~ msgid ""
+#~ "Overlay one or more timeseries from "
+#~ "a relative time period. Expects relative"
+#~ " time deltas in natural language "
+#~ "(example:  24 hours, 7 days, 56 "
+#~ "weeks, 365 days)"
+#~ msgstr ""
 
-msgid ""
-"Aggregate function applied to the list"
-" of points in each cluster to "
-"produce the cluster label."
-msgstr ""
+#~ msgid "Subheader"
+#~ msgstr ""
 
-msgid "Tooltip"
-msgstr ""
+#~ msgid "Description text that shows up below your Big Number"
+#~ msgstr ""
 
-msgid ""
-"Show a tooltip when hovering over "
-"points and clusters describing the label"
-msgstr ""
+#~ msgid "label"
+#~ msgstr ""
 
-msgid ""
-"One or many controls to group by."
-" If grouping, latitude and longitude "
-"columns must be present."
-msgstr ""
+#~ msgid ""
+#~ "`count` is COUNT(*) if a group by"
+#~ " is used. Numerical columns will be"
+#~ " aggregated with the aggregator. Non-"
+#~ "numerical columns will be used to "
+#~ "label points. Leave empty to get a"
+#~ " count of points in each cluster."
+#~ msgstr ""
 
-msgid "Event definition"
-msgstr ""
+#~ msgid "Map Style"
+#~ msgstr ""
 
-msgid "Additional meta data"
-msgstr ""
+#~ msgid "Base layer map style"
+#~ msgstr ""
 
-msgid "Column containing entity ids"
-msgstr ""
+#~ msgid "Clustering Radius"
+#~ msgstr ""
 
-msgid "e.g., a \"user id\" column"
-msgstr ""
+#~ msgid ""
+#~ "The radius (in pixels) the algorithm "
+#~ "uses to define a cluster. Choose 0"
+#~ " to turn off clustering, but beware"
+#~ " that a large number of points "
+#~ "(>1000) will cause lag."
+#~ msgstr ""
 
-msgid "Column containing event names"
-msgstr ""
+#~ msgid "Point Size"
+#~ msgstr ""
 
-msgid "Event count limit"
-msgstr ""
+#~ msgid "Fixed point radius"
+#~ msgstr ""
 
-msgid "The maximum number of events to return, equivalent to number of rows"
-msgstr ""
+#~ msgid "Point Radius"
+#~ msgstr ""
 
-msgid "Meta data"
-msgstr ""
+#~ msgid ""
+#~ "The radius of individual points (ones"
+#~ " that are not in a cluster). "
+#~ "Either a numerical column or `Auto`, "
+#~ "which scales the point based on "
+#~ "the largest cluster"
+#~ msgstr ""
 
-msgid "Select any columns for meta data inspection"
-msgstr ""
+#~ msgid "Point Radius Unit"
+#~ msgstr ""
 
-msgid "Paired t-test"
-msgstr ""
+#~ msgid "The unit of measure for the specified point radius"
+#~ msgstr ""
 
-msgid "Time Series Options"
-msgstr ""
+#~ msgid "Point Unit"
+#~ msgstr ""
 
-msgid "No such column found. To filter on a metric, try the Custom SQL tab."
-msgstr ""
+#~ msgid "Opacity"
+#~ msgstr ""
 
-msgid "%s column(s) and metric(s)"
-msgstr ""
+#~ msgid "Opacity of all clusters, points, and labels. Between 0 and 1."
+#~ msgstr ""
 
-msgid "%s column(s)"
-msgstr ""
+#~ msgid "Viewport"
+#~ msgstr ""
 
-msgid "To filter on a metric, use Custom SQL tab."
-msgstr ""
+#~ msgid "Parameters related to the view and perspective on the map"
+#~ msgstr ""
 
-msgid "%s operators(s)"
-msgstr ""
+#~ msgid "Zoom"
+#~ msgstr ""
 
-msgid "type a value here"
-msgstr ""
+#~ msgid "Zoom level of the map"
+#~ msgstr ""
 
-msgid "Filter value"
-msgstr ""
+#~ msgid "Default latitude"
+#~ msgstr ""
 
-msgid "choose WHERE or HAVING..."
-msgstr ""
+#~ msgid "Latitude of default viewport"
+#~ msgstr ""
 
-msgid "%s aggregates(s)"
-msgstr ""
+#~ msgid "Default longitude"
+#~ msgstr ""
 
-msgid "description"
-msgstr ""
+#~ msgid "Longitude of default viewport"
+#~ msgstr ""
 
-msgid "bolt"
-msgstr ""
+#~ msgid "Live render"
+#~ msgstr ""
 
-msgid "Changing this control takes effect instantly"
-msgstr ""
+#~ msgid "Points and clusters will update as viewport is being changed"
+#~ msgstr ""
 
-msgid "Error..."
-msgstr ""
+#~ msgid "RGB Color"
+#~ msgstr ""
 
-msgid "Width"
-msgstr ""
+#~ msgid "The color for points and clusters in RGB"
+#~ msgstr ""
 
-msgid "Export to .json"
-msgstr ""
+#~ msgid "Color"
+#~ msgstr ""
 
-msgid "Export to .csv format"
-msgstr ""
+#~ msgid "Pick a color"
+#~ msgstr ""
 
-msgid "%s - untitled"
-msgstr ""
+#~ msgid "Ranges"
+#~ msgstr ""
 
-msgid "Edit chart properties"
-msgstr ""
+#~ msgid "Ranges to highlight with shading"
+#~ msgstr ""
 
-msgid "Limit reached"
-msgstr ""
+#~ msgid "Range labels"
+#~ msgstr ""
 
-msgid "Please enter a chart name"
-msgstr ""
+#~ msgid "Labels for the ranges"
+#~ msgstr ""
 
-msgid "Please select a dashboard"
-msgstr ""
+#~ msgid "Markers"
+#~ msgstr ""
 
-msgid "Please enter a dashboard name"
-msgstr ""
+#~ msgid "List of values to mark with triangles"
+#~ msgstr ""
 
-msgid "Save A Chart"
-msgstr ""
+#~ msgid "Marker labels"
+#~ msgstr ""
 
-msgid "Overwrite chart %s"
-msgstr ""
+#~ msgid "Labels for the markers"
+#~ msgstr ""
 
-msgid "[chart name]"
-msgstr ""
+#~ msgid "Marker lines"
+#~ msgstr ""
 
-msgid "Do not add to a dashboard"
-msgstr ""
+#~ msgid "List of values to mark with lines"
+#~ msgstr ""
 
-msgid "Add chart to existing dashboard"
-msgstr ""
+#~ msgid "Marker line labels"
+#~ msgstr ""
 
-msgid "Add to new dashboard"
-msgstr ""
+#~ msgid "Labels for the marker lines"
+#~ msgstr ""
 
-msgid "Save & go to dashboard"
-msgstr ""
+#~ msgid "Chart ID"
+#~ msgstr ""
 
-msgid "choose a column or metric"
-msgstr ""
+#~ msgid "The id of the active chart"
+#~ msgstr ""
 
-msgid "Add Annotation Layer"
-msgstr ""
+#~ msgid "Cache Timeout (seconds)"
+#~ msgstr ""
 
-msgid "`Min` value should be numeric or empty"
-msgstr ""
+#~ msgid "The number of seconds before expiring the cache"
+#~ msgstr ""
 
-msgid "`Max` value should be numeric or empty"
-msgstr ""
+#~ msgid "Order by entity id"
+#~ msgstr ""
 
-msgid "Min"
-msgstr ""
+#~ msgid ""
+#~ "Important! Select this if the table "
+#~ "is not already sorted by entity "
+#~ "id, else there is no guarantee "
+#~ "that all events for each entity "
+#~ "are returned."
+#~ msgstr ""
 
-msgid "Max"
-msgstr ""
+#~ msgid "Minimum leaf node event count"
+#~ msgstr ""
 
-msgid "Something went wrong while fetching the datasource list"
-msgstr ""
+#~ msgid ""
+#~ "Leaf nodes that represent fewer than "
+#~ "this number of events will be "
+#~ "initially hidden in the visualization"
+#~ msgstr ""
 
-msgid "Select a datasource"
-msgstr ""
+#~ msgid "Color Scheme"
+#~ msgstr ""
 
-msgid "Search / Filter"
-msgstr ""
+#~ msgid "The color scheme for rendering chart"
+#~ msgstr ""
 
-msgid "Click to point to another datasource"
-msgstr ""
+#~ msgid "Significance Level"
+#~ msgstr ""
 
-msgid "Edit the datasource's configuration"
-msgstr ""
+#~ msgid "Threshold alpha level for determining significance"
+#~ msgstr ""
 
-msgid "Show datasource configuration"
-msgstr ""
+#~ msgid "p-value precision"
+#~ msgstr ""
 
-msgid "Select metric"
-msgstr ""
+#~ msgid "Number of decimal places with which to display p-values"
+#~ msgstr ""
 
-msgid "Select column"
-msgstr ""
+#~ msgid "Lift percent precision"
+#~ msgstr ""
 
-msgid "Select operator"
-msgstr ""
+#~ msgid "Number of decimal places with which to display lift values"
+#~ msgstr ""
 
-msgid "Add Filter"
-msgstr ""
+#~ msgid "Time Series Columns"
+#~ msgstr ""
 
-msgid "choose a column or aggregate function"
-msgstr ""
+#~ msgid "Use Area Proportions"
+#~ msgstr ""
 
-msgid "Error while fetching data"
-msgstr ""
+#~ msgid ""
+#~ "Check if the Rose Chart should use"
+#~ " segment area instead of segment "
+#~ "radius for proportioning"
+#~ msgstr ""
 
-msgid "No results found"
-msgstr ""
+#~ msgid "Options"
+#~ msgstr ""
 
-msgid "%s option(s)"
-msgstr ""
+#~ msgid "Not Time Series"
+#~ msgstr ""
 
-msgid "Invalid lat/long configuration."
-msgstr ""
+#~ msgid "Ignore time"
+#~ msgstr ""
 
-msgid "Longitude & Latitude columns"
-msgstr ""
+#~ msgid "Time Series"
+#~ msgstr ""
 
-msgid "Delimited long & lat single column"
-msgstr ""
+#~ msgid "Standard time series"
+#~ msgstr ""
 
-msgid ""
-"Multiple formats accepted, look the "
-"geopy.points Python library for more "
-"details"
-msgstr ""
+#~ msgid "Aggregate Mean"
+#~ msgstr ""
 
-msgid "Reverse lat/long "
-msgstr ""
+#~ msgid "Mean of values over specified period"
+#~ msgstr ""
 
-msgid "Geohash"
-msgstr ""
+#~ msgid "Aggregate Sum"
+#~ msgstr ""
 
-msgid "textarea"
-msgstr ""
+#~ msgid "Sum of values over specified period"
+#~ msgstr ""
 
-msgid "Edit"
-msgstr ""
+#~ msgid "Difference"
+#~ msgstr ""
 
-msgid "in modal"
-msgstr ""
+#~ msgid "Metric change in value from `since` to `until`"
+#~ msgstr ""
 
-msgid "Select a visualization type"
-msgstr ""
+#~ msgid "Percent Change"
+#~ msgstr ""
 
-msgid "Favorites"
-msgstr ""
+#~ msgid "Metric percent change in value from `since` to `until`"
+#~ msgstr ""
 
-msgid "Created Content"
-msgstr ""
+#~ msgid "Factor"
+#~ msgstr ""
 
-msgid "Recent Activity"
-msgstr ""
+#~ msgid "Metric factor change from `since` to `until`"
+#~ msgstr ""
 
-msgid "Security & Access"
-msgstr ""
+#~ msgid "Advanced Analytics"
+#~ msgstr ""
 
-msgid "No charts"
-msgstr ""
+#~ msgid "Use the Advanced Analytics options below"
+#~ msgstr ""
 
-msgid "No dashboards"
-msgstr ""
+#~ msgid "Settings for time series"
+#~ msgstr ""
 
-msgid "Dashboards"
-msgstr "대시보드"
+#~ msgid "Equal Date Sizes"
+#~ msgstr ""
 
-msgid "Charts"
-msgstr "차트"
+#~ msgid "Check to force date partitions to have the same height"
+#~ msgstr ""
 
-msgid "No favorite charts yet, go click on stars!"
-msgstr ""
+#~ msgid "Partition Limit"
+#~ msgstr ""
 
-msgid "No favorite dashboards yet, go click on stars!"
-msgstr ""
+#~ msgid ""
+#~ "The maximum number of subdivisions of"
+#~ " each group; lower values are pruned"
+#~ " first"
+#~ msgstr ""
 
-msgid "Roles"
-msgstr ""
+#~ msgid "Minimum Radius"
+#~ msgstr ""
 
-msgid "Databases"
-msgstr "데이터베이스"
+#~ msgid ""
+#~ "Minimum radius size of the circle, "
+#~ "in pixels. As the zoom level "
+#~ "changes, this insures that the circle"
+#~ " respects this minimum radius."
+#~ msgstr ""
 
-msgid "Datasources"
-msgstr "데이터소스"
+#~ msgid "Maximum Radius"
+#~ msgstr ""
 
-msgid "Profile picture provided by Gravatar"
-msgstr ""
+#~ msgid ""
+#~ "Maxium radius size of the circle, "
+#~ "in pixels. As the zoom level "
+#~ "changes, this insures that the circle"
+#~ " respects this maximum radius."
+#~ msgstr ""
 
-msgid "joined"
-msgstr ""
+#~ msgid "Partition Threshold"
+#~ msgstr ""
 
-msgid "id:"
-msgstr ""
+#~ msgid ""
+#~ "Partitions whose height to parent height"
+#~ " proportions are below this value are"
+#~ " pruned"
+#~ msgstr ""
 
-msgid "Sorry, there appears to be no data"
-msgstr ""
+#~ msgid "Lines column"
+#~ msgstr ""
 
-msgid "Data has no time steps"
-msgstr ""
+#~ msgid "The database columns that contains lines information"
+#~ msgstr ""
 
-msgid "Select starting date"
-msgstr ""
+#~ msgid "Lines encoding"
+#~ msgstr ""
 
-msgid "Select end date"
-msgstr ""
+#~ msgid "The encoding format of the lines"
+#~ msgstr ""
 
-msgid "Select [%s]"
-msgstr ""
+#~ msgid "Line width"
+#~ msgstr ""
 
-msgid "Apply"
-msgstr ""
+#~ msgid "The width of the lines"
+#~ msgstr ""
 
-msgid "You cannot use 45° tick layout along with the time range filter"
-msgstr ""
+#~ msgid "Line charts"
+#~ msgstr ""
 
-msgid "Recently Viewed"
-msgstr ""
+#~ msgid "Pick a set of line charts to layer on top of one another"
+#~ msgstr ""
 
-msgid "Metric(s) {} must be aggregations."
-msgstr ""
+#~ msgid "Select charts"
+#~ msgstr ""
 
-msgid "No data was returned."
-msgstr ""
+#~ msgid "Error while fetching charts"
+#~ msgstr ""
 
-msgid "Unsupported extraction function: "
-msgstr ""
+#~ msgid "Right Axis chart(s)"
+#~ msgstr ""
 
-msgid "List Druid Column"
-msgstr ""
+#~ msgid "Choose one or more charts for right axis"
+#~ msgstr ""
 
-msgid "Show Druid Column"
-msgstr ""
+#~ msgid "Prefix metric name with slice name"
+#~ msgstr ""
 
-msgid "Add Druid Column"
-msgstr ""
+#~ msgid "Reverse Lat & Long"
+#~ msgstr ""
 
-msgid "Edit Druid Column"
-msgstr ""
+#~ msgid "deck.gl charts"
+#~ msgstr ""
 
-msgid "Column"
-msgstr ""
+#~ msgid "Pick a set of deck.gl charts to layer on top of one another"
+#~ msgstr ""
 
-msgid "Type"
-msgstr ""
+#~ msgid "Javascript data interceptor"
+#~ msgstr ""
 
-msgid "Groupable"
-msgstr ""
+#~ msgid ""
+#~ "Define a javascript function that "
+#~ "receives the data array used in "
+#~ "the visualization and is expected to "
+#~ "return a modified version of that "
+#~ "array. This can be used to alter"
+#~ " properties of the data, filter, or"
+#~ " enrich the array."
+#~ msgstr ""
 
-msgid "Filterable"
-msgstr ""
+#~ msgid "Javascript data mutator"
+#~ msgstr ""
 
-msgid "Count Distinct"
-msgstr ""
+#~ msgid ""
+#~ "Define a function that receives "
+#~ "intercepts the data objects and can "
+#~ "mutate it"
+#~ msgstr ""
 
-msgid "Sum"
-msgstr ""
+#~ msgid "Javascript tooltip generator"
+#~ msgstr ""
 
-msgid ""
-"Whether this column is exposed in "
-"the `Filters` section of the explore "
-"view."
-msgstr ""
+#~ msgid ""
+#~ "Define a function that receives the "
+#~ "input and outputs the content for "
+#~ "a tooltip"
+#~ msgstr ""
 
-msgid "List Druid Metric"
-msgstr ""
+#~ msgid "Javascript onClick href"
+#~ msgstr ""
 
-msgid "Show Druid Metric"
-msgstr ""
+#~ msgid "Define a function that returns a URL to navigate to when user clicks"
+#~ msgstr ""
 
-msgid "Add Druid Metric"
-msgstr ""
+#~ msgid "Extra data for JS"
+#~ msgstr ""
 
-msgid "Edit Druid Metric"
-msgstr ""
+#~ msgid "List of extra columns made available in Javascript functions"
+#~ msgstr ""
 
-msgid ""
-"Whether the access to this metric "
-"is restricted to certain roles. Only "
-"roles with the permission 'metric access"
-" on XXX (the name of this "
-"metric)' are allowed to access this "
-"metric"
-msgstr ""
+#~ msgid "Stroked"
+#~ msgstr ""
 
-msgid "Verbose Name"
-msgstr ""
+#~ msgid "Whether to display the stroke"
+#~ msgstr ""
 
-msgid "JSON"
-msgstr ""
+#~ msgid "Filled"
+#~ msgstr ""
 
-msgid "Druid Datasource"
-msgstr ""
+#~ msgid "Whether to fill the objects"
+#~ msgstr ""
 
-msgid "Warning Message"
-msgstr ""
+#~ msgid "Normalized"
+#~ msgstr ""
 
-msgid "List Druid Cluster"
-msgstr ""
+#~ msgid "Whether to normalize the histogram"
+#~ msgstr ""
 
-msgid "Show Druid Cluster"
-msgstr ""
+#~ msgid "is expected to be a number"
+#~ msgstr ""
 
-msgid "Add Druid Cluster"
-msgstr ""
+#~ msgid "is expected to be an integer"
+#~ msgstr ""
 
-msgid "Edit Druid Cluster"
-msgstr ""
+#~ msgid "cannot be empty"
+#~ msgstr ""
 
-msgid "Cluster"
-msgstr ""
+#~ msgid "Time"
+#~ msgstr ""
 
-msgid "Broker Host"
-msgstr ""
+#~ msgid "Time related form attributes"
+#~ msgstr ""
 
-msgid "Broker Port"
-msgstr ""
+#~ msgid "Datasource & Chart Type"
+#~ msgstr ""
 
-msgid "Broker Endpoint"
-msgstr ""
+#~ msgid "This section exposes ways to include snippets of SQL in your query"
+#~ msgstr ""
 
-msgid "Druid Clusters"
-msgstr "Druid 클러스터"
+#~ msgid "Annotations and Layers"
+#~ msgstr ""
 
-msgid "Sources"
-msgstr "데이터 소스"
+#~ msgid "Query"
+#~ msgstr ""
 
-msgid "List Druid Datasource"
-msgstr ""
+#~ msgid ""
+#~ "This section contains options that allow"
+#~ " for advanced analytical post processing"
+#~ " of query results"
+#~ msgstr ""
 
-msgid "Show Druid Datasource"
-msgstr ""
+#~ msgid "Result Filters"
+#~ msgstr ""
 
-msgid "Add Druid Datasource"
-msgstr ""
+#~ msgid ""
+#~ "The filters to apply after post-"
+#~ "aggregation.Leave the value control empty "
+#~ "to filter empty strings or nulls"
+#~ msgstr ""
 
-msgid "Edit Druid Datasource"
-msgstr ""
+#~ msgid "Chart Options"
+#~ msgstr ""
 
-msgid ""
-"The list of charts associated with "
-"this table. By altering this datasource,"
-" you may change how these associated"
-" charts behave. Also note that charts"
-" need to point to a datasource, "
-"so this form will fail at saving"
-" if removing charts from a "
-"datasource. If you want to change "
-"the datasource for a chart, overwrite"
-" the chart from the 'explore view'"
-msgstr ""
+#~ msgid "Breakdowns"
+#~ msgstr ""
 
-msgid "Timezone offset (in hours) for this datasource"
-msgstr ""
+#~ msgid "Defines how each series is broken down"
+#~ msgstr ""
 
-msgid ""
-"Time expression to use as a "
-"predicate when retrieving distinct values "
-"to populate the filter component. Only"
-" applies when `Enable Filter Select` "
-"is on. If you enter `7 days "
-"ago`, the distinct list of values "
-"in the filter will be populated "
-"based on the distinct value over "
-"the past week"
-msgstr ""
+#~ msgid "Pie Chart"
+#~ msgstr ""
 
-msgid ""
-"Whether to populate the filter's "
-"dropdown in the explore view's filter"
-" section with a list of distinct "
-"values fetched from the backend on "
-"the fly"
-msgstr ""
+#~ msgid "Y Axis 1"
+#~ msgstr ""
 
-msgid ""
-"Redirects to this endpoint when clicking"
-" on the datasource from the "
-"datasource list"
-msgstr ""
+#~ msgid "Y Axis 2"
+#~ msgstr ""
 
-msgid "Associated Charts"
-msgstr ""
+#~ msgid "Left Axis chart(s)"
+#~ msgstr ""
 
-msgid "Data Source"
-msgstr ""
+#~ msgid "Choose one or more charts for left axis"
+#~ msgstr ""
 
-msgid "Owner"
-msgstr ""
+#~ msgid "Left Axis Format"
+#~ msgstr ""
 
-msgid "Is Hidden"
-msgstr ""
+#~ msgid "Time Series - Periodicity Pivot"
+#~ msgstr ""
 
-msgid "Enable Filter Select"
-msgstr ""
+#~ msgid "Dual Axis Line Chart"
+#~ msgstr ""
 
-msgid "Default Endpoint"
-msgstr ""
+#~ msgid "Left Axis Metric"
+#~ msgstr ""
 
-msgid "Time Offset"
-msgstr ""
+#~ msgid "Choose a metric for left axis"
+#~ msgstr ""
 
-msgid "Cache Timeout"
-msgstr ""
+#~ msgid "Map"
+#~ msgstr ""
 
-msgid "Druid Datasources"
-msgstr "Druid 데이터소스"
+#~ msgid "Deck.gl - Hexagons"
+#~ msgstr ""
 
-msgid "Scan New Datasources"
-msgstr "새 데이터소스 스캔"
+#~ msgid "Advanced"
+#~ msgstr ""
 
-msgid "Refresh Druid Metadata"
-msgstr "Druid 메타데이터 새로고침"
+#~ msgid "Height"
+#~ msgstr ""
 
-msgid ""
-"Datetime column not provided as part "
-"table configuration and is required by"
-" this type of chart"
-msgstr ""
+#~ msgid "Metric used to control height"
+#~ msgstr ""
 
-msgid "Empty query?"
-msgstr ""
+#~ msgid "Deck.gl - Grid"
+#~ msgstr ""
 
-msgid "Metric '{}' is not valid"
-msgstr ""
+#~ msgid "Deck.gl - Screen grid"
+#~ msgstr ""
 
-msgid ""
-"Table [{}] doesn't seem to exist "
-"in the specified database, couldn't "
-"fetch column information"
-msgstr ""
+#~ msgid "Grid"
+#~ msgstr ""
 
-msgid "List Columns"
-msgstr "컬럼 목록"
+#~ msgid "Weight"
+#~ msgstr ""
 
-msgid "Show Column"
-msgstr "컬럼 보기"
+#~ msgid "Metric used as a weight for the grid's coloring"
+#~ msgstr ""
 
-msgid "Add Column"
-msgstr "컬럼 추가"
+#~ msgid "Deck.gl - GeoJson"
+#~ msgstr ""
 
-msgid "Edit Column"
-msgstr "컬럼 수정"
+#~ msgid "GeoJson Settings"
+#~ msgstr ""
 
-msgid ""
-"Whether to make this column available"
-" as a [Time Granularity] option, "
-"column has to be DATETIME or "
-"DATETIME-like"
-msgstr ""
+#~ msgid "Polygon Settings"
+#~ msgstr ""
 
-msgid ""
-"The data type that was inferred by"
-" the database. It may be necessary"
-" to input a type manually for "
-"expression-defined columns in some cases."
-" In most case users should not "
-"need to alter this."
-msgstr ""
+#~ msgid "Arc"
+#~ msgstr ""
 
-msgid "Expression"
-msgstr ""
+#~ msgid "Point Color"
+#~ msgstr ""
 
-msgid "Is temporal"
-msgstr ""
+#~ msgid "Categorical Color"
+#~ msgstr ""
 
-msgid "Datetime Format"
-msgstr ""
+#~ msgid "Pick a dimension from which categorical colors are defined"
+#~ msgstr ""
 
-msgid "Database Expression"
-msgstr ""
+#~ msgid "GROUP BY"
+#~ msgstr ""
 
-msgid "List Metrics"
-msgstr ""
+#~ msgid "Use this section if you want a query that aggregates"
+#~ msgstr ""
 
-msgid "Show Metric"
-msgstr ""
+#~ msgid "NOT GROUPED BY"
+#~ msgstr ""
 
-msgid "Add Metric"
-msgstr ""
+#~ msgid "Use this section if you want to query atomic rows"
+#~ msgstr ""
 
-msgid "Edit Metric"
-msgstr ""
+#~ msgid "Time Series Table"
+#~ msgstr ""
 
-msgid "SQL Expression"
-msgstr ""
+#~ msgid ""
+#~ "Templated link, it's possible to include"
+#~ " {{ metric }} or other values "
+#~ "coming from the controls."
+#~ msgstr ""
 
-msgid "D3 Format"
-msgstr ""
+#~ msgid "Pivot Options"
+#~ msgstr ""
 
-msgid "Is Restricted"
-msgstr ""
+#~ msgid "Number Format"
+#~ msgstr ""
 
-msgid "List Tables"
-msgstr "테이블 목록"
+#~ msgid "Time Format"
+#~ msgstr ""
 
-msgid "Show Table"
-msgstr "테이블 보기"
+#~ msgid "Numeric Columns"
+#~ msgstr ""
 
-msgid "Add Table"
-msgstr "테이블 추가"
+#~ msgid "Select the numeric columns to draw the histogram"
+#~ msgstr ""
 
-msgid "Edit Table"
-msgstr "테이블 수정"
+#~ msgid "No of Bins"
+#~ msgstr ""
 
-msgid "Name of the table that exists in the source database"
-msgstr ""
+#~ msgid "Select number of bins for the histogram"
+#~ msgstr ""
 
-msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
-msgstr ""
+#~ msgid "Opacity of the bars. Between 0 and 1"
+#~ msgstr ""
 
-msgid ""
-"This fields acts a Superset view, "
-"meaning that Superset will run a "
-"query against this string as a "
-"subquery."
-msgstr ""
+#~ msgid "Primary Metric"
+#~ msgstr ""
 
-msgid ""
-"Predicate applied when fetching distinct "
-"value to populate the filter control "
-"component. Supports jinja template syntax. "
-"Applies only when `Enable Filter Select`"
-" is on."
-msgstr ""
+#~ msgid "The primary metric is used to define the arc segment sizes"
+#~ msgstr ""
 
-msgid ""
-"Redirects to this endpoint when clicking"
-" on the table from the table "
-"list"
-msgstr ""
+#~ msgid "Secondary Metric"
+#~ msgstr ""
 
-msgid "Whether the table was generated by the 'Visualize' flow in SQL Lab"
-msgstr ""
+#~ msgid ""
+#~ "[optional] this secondary metric is used"
+#~ " to define the color as a ratio"
+#~ " against the primary metric. When "
+#~ "omitted, the color is categorical and"
+#~ " based on labels"
+#~ msgstr ""
 
-msgid ""
-"A set of parameters that become "
-"available in the query using Jinja "
-"templating syntax"
-msgstr ""
+#~ msgid "Hierarchy"
+#~ msgstr ""
 
-msgid "Changed By"
-msgstr ""
+#~ msgid "This defines the level of the hierarchy"
+#~ msgstr ""
 
-msgid "Last Changed"
-msgstr ""
+#~ msgid "Source / Target"
+#~ msgstr ""
 
-msgid "Offset"
-msgstr ""
+#~ msgid "Choose a source and a target"
+#~ msgstr ""
 
-msgid "Fetch Values Predicate"
-msgstr ""
+#~ msgid "Chord Diagram"
+#~ msgstr ""
 
-msgid "Main Datetime Column"
-msgstr ""
+#~ msgid "Choose a number format"
+#~ msgstr ""
 
-msgid "SQL Lab View"
-msgstr ""
+#~ msgid "Source"
+#~ msgstr ""
 
-msgid "Template parameters"
-msgstr ""
+#~ msgid "Choose a source"
+#~ msgstr ""
 
-msgid ""
-"Table [{}] could not be found, "
-"please double check your database "
-"connection, schema, and table name"
-msgstr ""
+#~ msgid "Target"
+#~ msgstr ""
 
-msgid ""
-"The table was created. As part of"
-" this two phase configuration process, "
-"you should now click the edit "
-"button by the new table to "
-"configure it."
-msgstr ""
+#~ msgid "Choose a target"
+#~ msgstr ""
 
-msgid "Refresh Metadata"
-msgstr ""
+#~ msgid "ISO 3166-2 codes of region/province/department"
+#~ msgstr ""
 
-msgid "Refresh column metadata"
-msgstr ""
+#~ msgid ""
+#~ "It's ISO 3166-2 of your "
+#~ "region/province/department in your table. (see"
+#~ " documentation for list of ISO "
+#~ "3166-2)"
+#~ msgstr ""
 
-msgid "Metadata refreshed for the following table(s): %(tables)s"
-msgstr ""
+#~ msgid "Bubbles"
+#~ msgstr ""
 
-msgid "Tables"
-msgstr "테이블"
+#~ msgid "Country Control"
+#~ msgstr ""
 
-msgid "Profile"
-msgstr "프로필"
+#~ msgid "3 letter code of the country"
+#~ msgstr ""
 
-msgid "Logout"
-msgstr "로그아웃"
+#~ msgid "Metric for color"
+#~ msgstr ""
 
-msgid "Login"
-msgstr "로그인"
+#~ msgid "Metric that defines the color of the country"
+#~ msgstr ""
 
-msgid "Record Count"
-msgstr "레코드 수"
+#~ msgid "Bubble size"
+#~ msgstr ""
 
-msgid "No records found"
-msgstr ""
+#~ msgid "Metric that defines the size of the bubble"
+#~ msgstr ""
 
-msgid "Import dashboards"
-msgstr "대시보드 가져오기"
+#~ msgid "Filter Box"
+#~ msgstr ""
 
-msgid "No Access!"
-msgstr ""
+#~ msgid "Filter controls"
+#~ msgstr ""
 
-msgid "You do not have permissions to access the datasource(s): %(name)s."
-msgstr ""
+#~ msgid ""
+#~ "The controls you want to filter "
+#~ "on. Note that only columns checked "
+#~ "as \"filterable\" will show up on "
+#~ "this list."
+#~ msgstr ""
 
-msgid "Request Permissions"
-msgstr ""
+#~ msgid "Heatmap Options"
+#~ msgstr ""
 
-msgid "Test Connection"
-msgstr ""
+#~ msgid "Whether to apply a normal distribution based on rank on the color scale"
+#~ msgstr ""
 
-msgid "Annotation Layers"
-msgstr "주석 레이어"
+#~ msgid "Value bounds"
+#~ msgstr ""
 
-msgid "Manage"
-msgstr "관리"
+#~ msgid ""
+#~ "Hard value bounds applied for color "
+#~ "coding. Is only relevant and applied "
+#~ "when the normalization is applied "
+#~ "against the whole heatmap."
+#~ msgstr ""
 
-msgid "Annotations"
-msgstr "주석"
+#~ msgid "Value Format"
+#~ msgstr ""
 
-msgid "Datasource %(name)s already exists"
-msgstr ""
+#~ msgid "Horizon"
+#~ msgstr ""
 
-msgid "json isn't valid"
-msgstr ""
+#~ msgid "Points"
+#~ msgstr ""
 
-msgid "Export to YAML"
-msgstr ""
+#~ msgid "Labelling"
+#~ msgstr ""
 
-msgid "Export to YAML?"
-msgstr ""
+#~ msgid "Visual Tweaks"
+#~ msgstr ""
 
-msgid "Delete"
-msgstr "삭제"
+#~ msgid "Column containing longitude data"
+#~ msgstr ""
 
-msgid "Delete all Really?"
-msgstr ""
+#~ msgid "Column containing latitude data"
+#~ msgstr ""
 
-msgid "This endpoint requires the `all_datasource_access` permission"
-msgstr ""
+#~ msgid "Cluster label aggregator"
+#~ msgstr ""
 
-msgid "The datasource seems to have been deleted"
-msgstr ""
+#~ msgid ""
+#~ "Aggregate function applied to the list"
+#~ " of points in each cluster to "
+#~ "produce the cluster label."
+#~ msgstr ""
 
-msgid "The access requests seem to have been deleted"
-msgstr ""
+#~ msgid "Tooltip"
+#~ msgstr ""
 
-msgid "The user seems to have been deleted"
-msgstr ""
+#~ msgid ""
+#~ "Show a tooltip when hovering over "
+#~ "points and clusters describing the label"
+#~ msgstr ""
 
-msgid ""
-"You don't have access to this "
-"datasource. <a href='{}'>(Gain access)</a>"
-msgstr ""
+#~ msgid ""
+#~ "One or many controls to group by."
+#~ " If grouping, latitude and longitude "
+#~ "columns must be present."
+#~ msgstr ""
 
-msgid "You don't have access to this datasource"
-msgstr ""
+#~ msgid "Event definition"
+#~ msgstr ""
 
-msgid ""
-"This view requires the database %(name)s"
-" or `all_datasource_access` permission"
-msgstr ""
+#~ msgid "Additional meta data"
+#~ msgstr ""
 
-msgid ""
-"This endpoint requires the datasource "
-"%(name)s, database or `all_datasource_access` "
-"permission"
-msgstr ""
+#~ msgid "Column containing entity ids"
+#~ msgstr ""
 
-msgid "List Databases"
-msgstr ""
+#~ msgid "e.g., a \"user id\" column"
+#~ msgstr ""
 
-msgid "Show Database"
-msgstr ""
+#~ msgid "Column containing event names"
+#~ msgstr ""
 
-msgid "Add Database"
-msgstr ""
+#~ msgid "Event count limit"
+#~ msgstr ""
 
-msgid "Edit Database"
-msgstr ""
+#~ msgid "The maximum number of events to return, equivalent to number of rows"
+#~ msgstr ""
 
-msgid "Expose this DB in SQL Lab"
-msgstr ""
+#~ msgid "Meta data"
+#~ msgstr ""
 
-msgid ""
-"Allow users to run synchronous queries,"
-" this is the default and should "
-"work well for queries that can be"
-" executed within a web request scope"
-" (<~1 minute)"
-msgstr ""
+#~ msgid "Select any columns for meta data inspection"
+#~ msgstr ""
 
-msgid ""
-"Allow users to run queries, against "
-"an async backend. This assumes that "
-"you have a Celery worker setup as"
-" well as a results backend."
-msgstr ""
+#~ msgid "Paired t-test"
+#~ msgstr ""
 
-msgid "Allow CREATE TABLE AS option in SQL Lab"
-msgstr ""
+#~ msgid "Time Series Options"
+#~ msgstr ""
 
-msgid ""
-"Allow users to run non-SELECT "
-"statements (UPDATE, DELETE, CREATE, ...) "
-"in SQL Lab"
-msgstr ""
+#~ msgid "No such column found. To filter on a metric, try the Custom SQL tab."
+#~ msgstr ""
 
-msgid ""
-"When allowing CREATE TABLE AS option "
-"in SQL Lab, this option forces the"
-" table to be created in this "
-"schema"
-msgstr ""
+#~ msgid "%s column(s) and metric(s)"
+#~ msgstr ""
 
-msgid ""
-"If Presto, all the queries in SQL"
-" Lab are going to be executed "
-"as the currently logged on user "
-"who must have permission to run "
-"them.<br/>If Hive and hive.server2.enable.doAs "
-"is enabled, will run the queries "
-"as service account, but impersonate the"
-" currently logged on user via "
-"hive.server2.proxy.user property."
-msgstr ""
+#~ msgid "%s column(s)"
+#~ msgstr ""
 
-msgid ""
-"Allow SQL Lab to fetch a list "
-"of all tables and all views across"
-" all database schemas. For large data"
-" warehouse with thousands of tables, "
-"this can be expensive and put "
-"strain on the system."
-msgstr ""
+#~ msgid "To filter on a metric, use Custom SQL tab."
+#~ msgstr ""
 
-msgid "Expose in SQL Lab"
-msgstr ""
+#~ msgid "%s operators(s)"
+#~ msgstr ""
 
-msgid "Allow CREATE TABLE AS"
-msgstr ""
+#~ msgid "type a value here"
+#~ msgstr ""
 
-msgid "Allow DML"
-msgstr "DML 허용"
+#~ msgid "Filter value"
+#~ msgstr ""
 
-msgid "CTAS Schema"
-msgstr ""
+#~ msgid "choose WHERE or HAVING..."
+#~ msgstr ""
 
-msgid "Creator"
-msgstr "생성자"
+#~ msgid "%s aggregates(s)"
+#~ msgstr ""
 
-msgid "SQLAlchemy URI"
-msgstr ""
+#~ msgid "description"
+#~ msgstr ""
 
-msgid "Extra"
-msgstr ""
+#~ msgid "bolt"
+#~ msgstr ""
 
-msgid "Allow Run Sync"
-msgstr ""
+#~ msgid "Changing this control takes effect instantly"
+#~ msgstr ""
 
-msgid "Allow Run Async"
-msgstr ""
+#~ msgid "Error..."
+#~ msgstr ""
 
-msgid "Impersonate the logged on user"
-msgstr ""
+#~ msgid "Width"
+#~ msgstr ""
 
-msgid "Import Dashboards"
-msgstr "대시보드 가져오기"
+#~ msgid "Export to .json"
+#~ msgstr ""
 
-msgid "CSV to Database configuration"
-msgstr ""
+#~ msgid "Export to .csv format"
+#~ msgstr ""
 
-msgid "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\""
-msgstr ""
+#~ msgid "%s - untitled"
+#~ msgstr ""
 
-msgid "User"
-msgstr "사용자"
+#~ msgid "Edit chart properties"
+#~ msgstr ""
 
-msgid "User Roles"
-msgstr "사용자 권한"
+#~ msgid "Limit reached"
+#~ msgstr ""
 
-msgid "Database URL"
-msgstr ""
+#~ msgid "Please enter a chart name"
+#~ msgstr ""
 
-msgid "Roles to grant"
-msgstr "권한 부여"
+#~ msgid "Please select a dashboard"
+#~ msgstr ""
 
-msgid "Created On"
-msgstr ""
+#~ msgid "Please enter a dashboard name"
+#~ msgstr ""
 
-msgid "Access requests"
-msgstr ""
+#~ msgid "Save A Chart"
+#~ msgstr ""
 
-msgid "Security"
-msgstr "보안"
+#~ msgid "Overwrite chart %s"
+#~ msgstr ""
 
-msgid "List Charts"
-msgstr "차트 목록"
+#~ msgid "[chart name]"
+#~ msgstr ""
 
-msgid "Show Chart"
-msgstr "차트 보기"
+#~ msgid "Do not add to a dashboard"
+#~ msgstr ""
 
-msgid "Add Chart"
-msgstr "차트 추가"
+#~ msgid "Add chart to existing dashboard"
+#~ msgstr ""
 
-msgid "Edit Chart"
-msgstr "차트 수정"
+#~ msgid "Add to new dashboard"
+#~ msgstr ""
 
-msgid ""
-"These parameters are generated dynamically "
-"when clicking the save or overwrite "
-"button in the explore view. This "
-"JSON object is exposed here for "
-"reference and for power users who "
-"may want to alter specific parameters."
-msgstr ""
+#~ msgid "Save & go to dashboard"
+#~ msgstr ""
 
-msgid "Duration (in seconds) of the caching timeout for this chart."
-msgstr ""
+#~ msgid "choose a column or metric"
+#~ msgstr ""
 
-msgid "Last Modified"
-msgstr "마지막 수정"
+#~ msgid "Add Annotation Layer"
+#~ msgstr ""
 
-msgid "Owners"
-msgstr ""
+#~ msgid "`Min` value should be numeric or empty"
+#~ msgstr ""
 
-msgid "Parameters"
-msgstr ""
+#~ msgid "`Max` value should be numeric or empty"
+#~ msgstr ""
 
-msgid "Chart"
-msgstr "차트"
+#~ msgid "Min"
+#~ msgstr ""
 
-msgid "List Dashboards"
-msgstr "대시보드 목록"
+#~ msgid "Max"
+#~ msgstr ""
 
-msgid "Show Dashboard"
-msgstr "대시보드 보기"
+#~ msgid "Something went wrong while fetching the datasource list"
+#~ msgstr ""
 
-msgid "Add Dashboard"
-msgstr "대시보드 추가"
+#~ msgid "Select a datasource"
+#~ msgstr ""
 
-msgid "Edit Dashboard"
-msgstr "대시보드 수정"
+#~ msgid "Search / Filter"
+#~ msgstr ""
 
-msgid ""
-"This json object describes the "
-"positioning of the widgets in the "
-"dashboard. It is dynamically generated "
-"when adjusting the widgets size and "
-"positions by using drag & drop in"
-" the dashboard view"
-msgstr ""
+#~ msgid "Click to point to another datasource"
+#~ msgstr ""
 
-msgid ""
-"The css for individual dashboards can"
-" be altered here, or in the "
-"dashboard view where changes are "
-"immediately visible"
-msgstr ""
+#~ msgid "Edit the datasource's configuration"
+#~ msgstr ""
 
-msgid "To get a readable URL for your dashboard"
-msgstr ""
+#~ msgid "Show datasource configuration"
+#~ msgstr ""
 
-msgid ""
-"This JSON object is generated "
-"dynamically when clicking the save or"
-" overwrite button in the dashboard "
-"view. It is exposed here for "
-"reference and for power users who "
-"may want to alter specific parameters."
-msgstr ""
+#~ msgid "Select metric"
+#~ msgstr ""
 
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr ""
+#~ msgid "Select column"
+#~ msgstr ""
 
-msgid "Dashboard"
-msgstr "대시보드"
+#~ msgid "Select operator"
+#~ msgstr ""
 
-msgid "Slug"
-msgstr ""
+#~ msgid "Add Filter"
+#~ msgstr ""
 
-msgid "Position JSON"
-msgstr ""
+#~ msgid "choose a column or aggregate function"
+#~ msgstr ""
 
-msgid "JSON Metadata"
-msgstr ""
+#~ msgid "Error while fetching data"
+#~ msgstr ""
 
-msgid "Underlying Tables"
-msgstr ""
+#~ msgid "No results found"
+#~ msgstr ""
 
-msgid "Export"
-msgstr ""
+#~ msgid "%s option(s)"
+#~ msgstr ""
 
-msgid "Export dashboards?"
-msgstr ""
+#~ msgid "Invalid lat/long configuration."
+#~ msgstr ""
 
-msgid "Action"
-msgstr ""
+#~ msgid "Longitude & Latitude columns"
+#~ msgstr ""
 
-msgid "dttm"
-msgstr ""
+#~ msgid "Delimited long & lat single column"
+#~ msgstr ""
 
-msgid "Action Log"
-msgstr ""
+#~ msgid ""
+#~ "Multiple formats accepted, look the "
+#~ "geopy.points Python library for more "
+#~ "details"
+#~ msgstr ""
 
-msgid "Access was requested"
-msgstr ""
+#~ msgid "Reverse lat/long "
+#~ msgstr ""
 
-msgid ""
-"%(user)s was granted the role %(role)s"
-" that gives access to the "
-"%(datasource)s"
-msgstr ""
+#~ msgid "Geohash"
+#~ msgstr ""
 
-msgid "Role %(r)s was extended to provide the access to the datasource %(ds)s"
-msgstr ""
+#~ msgid "textarea"
+#~ msgstr ""
 
-msgid "You have no permission to approve this request"
-msgstr ""
+#~ msgid "Edit"
+#~ msgstr ""
 
-msgid "You don't have the rights to "
-msgstr ""
+#~ msgid "in modal"
+#~ msgstr ""
 
-msgid "alter this "
-msgstr ""
+#~ msgid "Select a visualization type"
+#~ msgstr ""
 
-msgid "chart"
-msgstr ""
+#~ msgid "Favorites"
+#~ msgstr ""
 
-msgid "create a "
-msgstr ""
+#~ msgid "Created Content"
+#~ msgstr ""
 
-msgid ""
-"Malformed request. slice_id or table_name "
-"and db_name arguments are expected"
-msgstr ""
+#~ msgid "Recent Activity"
+#~ msgstr ""
 
-msgid "Chart %(id)s not found"
-msgstr ""
+#~ msgid "Security & Access"
+#~ msgstr ""
 
-msgid "Table %(t)s wasn't found in the database %(d)s"
-msgstr ""
+#~ msgid "No charts"
+#~ msgstr ""
 
-msgid "Can't find User '%(name)s', please ask your admin to create one."
-msgstr ""
+#~ msgid "No dashboards"
+#~ msgstr ""
 
-msgid "Can't find DruidCluster with cluster_name = '%(name)s'"
-msgstr ""
+#~ msgid "Dashboards"
+#~ msgstr "대시보드"
 
-msgid "Query record was not created as expected."
-msgstr ""
+#~ msgid "Charts"
+#~ msgstr "차트"
 
-msgid "Template Name"
-msgstr ""
+#~ msgid "No favorite charts yet, go click on stars!"
+#~ msgstr ""
 
-msgid "CSS Templates"
-msgstr "CSS 템플릿"
+#~ msgid "No favorite dashboards yet, go click on stars!"
+#~ msgstr ""
 
-msgid "SQL Editor"
-msgstr "SQL 편집기"
+#~ msgid "Roles"
+#~ msgstr ""
 
-msgid "SQL Lab"
-msgstr "SQL Lab"
+#~ msgid "Databases"
+#~ msgstr "데이터베이스"
 
-msgid "Query Search"
-msgstr "Query 검색"
+#~ msgid "Datasources"
+#~ msgstr "데이터소스"
 
-msgid "Upload a CSV"
-msgstr "CSV 업로드"
+#~ msgid "Profile picture provided by Gravatar"
+#~ msgstr ""
 
-msgid "Status"
-msgstr "상태"
+#~ msgid "joined"
+#~ msgstr ""
 
-msgid "Start Time"
-msgstr "시작 시간"
+#~ msgid "id:"
+#~ msgstr ""
 
-msgid "End Time"
-msgstr "종료 시간"
+#~ msgid "Sorry, there appears to be no data"
+#~ msgstr ""
 
-msgid "Queries"
-msgstr "Query"
+#~ msgid "Data has no time steps"
+#~ msgstr ""
 
-msgid "List Saved Query"
-msgstr "저장된 Query 목록"
+#~ msgid "Select starting date"
+#~ msgstr ""
 
-msgid "Show Saved Query"
-msgstr "저장된 Query 보기"
+#~ msgid "Select end date"
+#~ msgstr ""
 
-msgid "Add Saved Query"
-msgstr "저장된 Query 추가"
+#~ msgid "Select [%s]"
+#~ msgstr ""
 
-msgid "Edit Saved Query"
-msgstr "저장된 Query 수정"
+#~ msgid "Apply"
+#~ msgstr ""
 
-msgid "Pop Tab Link"
-msgstr ""
+#~ msgid "You cannot use 45° tick layout along with the time range filter"
+#~ msgstr ""
 
-msgid "Changed on"
-msgstr ""
+#~ msgid "Recently Viewed"
+#~ msgstr ""
 
-msgid "Saved Queries"
-msgstr "저장된 Query"
+#~ msgid "Metric(s) {} must be aggregations."
+#~ msgstr ""
 
-msgid "Sign In"
-msgstr "로그인"
+#~ msgid "No data was returned."
+#~ msgstr ""
 
-msgid "Username"
-msgstr "사용자명"
+#~ msgid "Unsupported extraction function: "
+#~ msgstr ""
 
-msgid "Password"
-msgstr "비밀번호"
+#~ msgid "List Druid Column"
+#~ msgstr ""
 
-msgid "Enter your login and password below"
-msgstr "사용자명 및 비밀번호를 입력해주세요"
+#~ msgid "Show Druid Column"
+#~ msgstr ""
 
-msgid "List Users"
-msgstr "사용자 목록"
+#~ msgid "Add Druid Column"
+#~ msgstr ""
 
-msgid "List Roles"
-msgstr "권한 목록"
+#~ msgid "Edit Druid Column"
+#~ msgstr ""
 
-msgid "User's Statistics"
-msgstr "사용자 통계"
+#~ msgid "Column"
+#~ msgstr ""
+
+#~ msgid "Type"
+#~ msgstr ""
+
+#~ msgid "Groupable"
+#~ msgstr ""
+
+#~ msgid "Filterable"
+#~ msgstr ""
+
+#~ msgid "Count Distinct"
+#~ msgstr ""
+
+#~ msgid "Sum"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Whether this column is exposed in "
+#~ "the `Filters` section of the explore "
+#~ "view."
+#~ msgstr ""
+
+#~ msgid "List Druid Metric"
+#~ msgstr ""
+
+#~ msgid "Show Druid Metric"
+#~ msgstr ""
+
+#~ msgid "Add Druid Metric"
+#~ msgstr ""
+
+#~ msgid "Edit Druid Metric"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Whether the access to this metric "
+#~ "is restricted to certain roles. Only "
+#~ "roles with the permission 'metric access"
+#~ " on XXX (the name of this "
+#~ "metric)' are allowed to access this "
+#~ "metric"
+#~ msgstr ""
+
+#~ msgid "Verbose Name"
+#~ msgstr ""
+
+#~ msgid "JSON"
+#~ msgstr ""
+
+#~ msgid "Druid Datasource"
+#~ msgstr ""
+
+#~ msgid "Warning Message"
+#~ msgstr ""
+
+#~ msgid "List Druid Cluster"
+#~ msgstr ""
+
+#~ msgid "Show Druid Cluster"
+#~ msgstr ""
+
+#~ msgid "Add Druid Cluster"
+#~ msgstr ""
+
+#~ msgid "Edit Druid Cluster"
+#~ msgstr ""
+
+#~ msgid "Cluster"
+#~ msgstr ""
+
+#~ msgid "Broker Host"
+#~ msgstr ""
+
+#~ msgid "Broker Port"
+#~ msgstr ""
+
+#~ msgid "Broker Endpoint"
+#~ msgstr ""
+
+#~ msgid "Druid Clusters"
+#~ msgstr "Druid 클러스터"
+
+#~ msgid "Sources"
+#~ msgstr "데이터 소스"
+
+#~ msgid "List Druid Datasource"
+#~ msgstr ""
+
+#~ msgid "Show Druid Datasource"
+#~ msgstr ""
+
+#~ msgid "Add Druid Datasource"
+#~ msgstr ""
+
+#~ msgid "Edit Druid Datasource"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "The list of charts associated with "
+#~ "this table. By altering this datasource,"
+#~ " you may change how these associated"
+#~ " charts behave. Also note that charts"
+#~ " need to point to a datasource, "
+#~ "so this form will fail at saving"
+#~ " if removing charts from a "
+#~ "datasource. If you want to change "
+#~ "the datasource for a chart, overwrite"
+#~ " the chart from the 'explore view'"
+#~ msgstr ""
+
+#~ msgid "Timezone offset (in hours) for this datasource"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Time expression to use as a "
+#~ "predicate when retrieving distinct values "
+#~ "to populate the filter component. Only"
+#~ " applies when `Enable Filter Select` "
+#~ "is on. If you enter `7 days "
+#~ "ago`, the distinct list of values "
+#~ "in the filter will be populated "
+#~ "based on the distinct value over "
+#~ "the past week"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Whether to populate the filter's "
+#~ "dropdown in the explore view's filter"
+#~ " section with a list of distinct "
+#~ "values fetched from the backend on "
+#~ "the fly"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Redirects to this endpoint when clicking"
+#~ " on the datasource from the "
+#~ "datasource list"
+#~ msgstr ""
+
+#~ msgid "Associated Charts"
+#~ msgstr ""
+
+#~ msgid "Data Source"
+#~ msgstr ""
+
+#~ msgid "Owner"
+#~ msgstr ""
+
+#~ msgid "Is Hidden"
+#~ msgstr ""
+
+#~ msgid "Enable Filter Select"
+#~ msgstr ""
+
+#~ msgid "Default Endpoint"
+#~ msgstr ""
+
+#~ msgid "Time Offset"
+#~ msgstr ""
+
+#~ msgid "Cache Timeout"
+#~ msgstr ""
+
+#~ msgid "Druid Datasources"
+#~ msgstr "Druid 데이터소스"
+
+#~ msgid "Scan New Datasources"
+#~ msgstr "새 데이터소스 스캔"
+
+#~ msgid "Refresh Druid Metadata"
+#~ msgstr "Druid 메타데이터 새로고침"
+
+#~ msgid ""
+#~ "Datetime column not provided as part "
+#~ "table configuration and is required by"
+#~ " this type of chart"
+#~ msgstr ""
+
+#~ msgid "Empty query?"
+#~ msgstr ""
+
+#~ msgid "Metric '{}' is not valid"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Table [{}] doesn't seem to exist "
+#~ "in the specified database, couldn't "
+#~ "fetch column information"
+#~ msgstr ""
+
+#~ msgid "List Columns"
+#~ msgstr "컬럼 목록"
+
+#~ msgid "Show Column"
+#~ msgstr "컬럼 보기"
+
+#~ msgid "Add Column"
+#~ msgstr "컬럼 추가"
+
+#~ msgid "Edit Column"
+#~ msgstr "컬럼 수정"
+
+#~ msgid ""
+#~ "Whether to make this column available"
+#~ " as a [Time Granularity] option, "
+#~ "column has to be DATETIME or "
+#~ "DATETIME-like"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "The data type that was inferred by"
+#~ " the database. It may be necessary"
+#~ " to input a type manually for "
+#~ "expression-defined columns in some cases."
+#~ " In most case users should not "
+#~ "need to alter this."
+#~ msgstr ""
+
+#~ msgid "Expression"
+#~ msgstr ""
+
+#~ msgid "Is temporal"
+#~ msgstr ""
+
+#~ msgid "Datetime Format"
+#~ msgstr ""
+
+#~ msgid "Database Expression"
+#~ msgstr ""
+
+#~ msgid "List Metrics"
+#~ msgstr ""
+
+#~ msgid "Show Metric"
+#~ msgstr ""
+
+#~ msgid "Add Metric"
+#~ msgstr ""
+
+#~ msgid "Edit Metric"
+#~ msgstr ""
+
+#~ msgid "SQL Expression"
+#~ msgstr ""
+
+#~ msgid "D3 Format"
+#~ msgstr ""
+
+#~ msgid "Is Restricted"
+#~ msgstr ""
+
+#~ msgid "List Tables"
+#~ msgstr "테이블 목록"
+
+#~ msgid "Show Table"
+#~ msgstr "테이블 보기"
+
+#~ msgid "Add Table"
+#~ msgstr "테이블 추가"
+
+#~ msgid "Edit Table"
+#~ msgstr "테이블 수정"
+
+#~ msgid "Name of the table that exists in the source database"
+#~ msgstr ""
+
+#~ msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "This fields acts a Superset view, "
+#~ "meaning that Superset will run a "
+#~ "query against this string as a "
+#~ "subquery."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Predicate applied when fetching distinct "
+#~ "value to populate the filter control "
+#~ "component. Supports jinja template syntax. "
+#~ "Applies only when `Enable Filter Select`"
+#~ " is on."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Redirects to this endpoint when clicking"
+#~ " on the table from the table "
+#~ "list"
+#~ msgstr ""
+
+#~ msgid "Whether the table was generated by the 'Visualize' flow in SQL Lab"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "A set of parameters that become "
+#~ "available in the query using Jinja "
+#~ "templating syntax"
+#~ msgstr ""
+
+#~ msgid "Changed By"
+#~ msgstr ""
+
+#~ msgid "Last Changed"
+#~ msgstr ""
+
+#~ msgid "Offset"
+#~ msgstr ""
+
+#~ msgid "Fetch Values Predicate"
+#~ msgstr ""
+
+#~ msgid "Main Datetime Column"
+#~ msgstr ""
+
+#~ msgid "SQL Lab View"
+#~ msgstr ""
+
+#~ msgid "Template parameters"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Table [{}] could not be found, "
+#~ "please double check your database "
+#~ "connection, schema, and table name"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "The table was created. As part of"
+#~ " this two phase configuration process, "
+#~ "you should now click the edit "
+#~ "button by the new table to "
+#~ "configure it."
+#~ msgstr ""
+
+#~ msgid "Refresh Metadata"
+#~ msgstr ""
+
+#~ msgid "Refresh column metadata"
+#~ msgstr ""
+
+#~ msgid "Metadata refreshed for the following table(s): %(tables)s"
+#~ msgstr ""
+
+#~ msgid "Tables"
+#~ msgstr "테이블"
+
+#~ msgid "Profile"
+#~ msgstr "프로필"
+
+#~ msgid "Logout"
+#~ msgstr "로그아웃"
+
+#~ msgid "Login"
+#~ msgstr "로그인"
+
+#~ msgid "Record Count"
+#~ msgstr "레코드 수"
+
+#~ msgid "No records found"
+#~ msgstr ""
+
+#~ msgid "Import dashboards"
+#~ msgstr "대시보드 가져오기"
+
+#~ msgid "No Access!"
+#~ msgstr ""
+
+#~ msgid "You do not have permissions to access the datasource(s): %(name)s."
+#~ msgstr ""
+
+#~ msgid "Request Permissions"
+#~ msgstr ""
+
+#~ msgid "Test Connection"
+#~ msgstr ""
+
+#~ msgid "Annotation Layers"
+#~ msgstr "주석 레이어"
+
+#~ msgid "Manage"
+#~ msgstr "관리"
+
+#~ msgid "Annotations"
+#~ msgstr "주석"
+
+#~ msgid "Datasource %(name)s already exists"
+#~ msgstr ""
+
+#~ msgid "json isn't valid"
+#~ msgstr ""
+
+#~ msgid "Export to YAML"
+#~ msgstr ""
+
+#~ msgid "Export to YAML?"
+#~ msgstr ""
+
+#~ msgid "Delete"
+#~ msgstr "삭제"
+
+#~ msgid "Delete all Really?"
+#~ msgstr ""
+
+#~ msgid "This endpoint requires the `all_datasource_access` permission"
+#~ msgstr ""
+
+#~ msgid "The datasource seems to have been deleted"
+#~ msgstr ""
+
+#~ msgid "The access requests seem to have been deleted"
+#~ msgstr ""
+
+#~ msgid "The user seems to have been deleted"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "You don't have access to this "
+#~ "datasource. <a href='{}'>(Gain access)</a>"
+#~ msgstr ""
+
+#~ msgid "You don't have access to this datasource"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "This view requires the database %(name)s"
+#~ " or `all_datasource_access` permission"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "This endpoint requires the datasource "
+#~ "%(name)s, database or `all_datasource_access` "
+#~ "permission"
+#~ msgstr ""
+
+#~ msgid "List Databases"
+#~ msgstr ""
+
+#~ msgid "Show Database"
+#~ msgstr ""
+
+#~ msgid "Add Database"
+#~ msgstr ""
+
+#~ msgid "Edit Database"
+#~ msgstr ""
+
+#~ msgid "Expose this DB in SQL Lab"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Allow users to run synchronous queries,"
+#~ " this is the default and should "
+#~ "work well for queries that can be"
+#~ " executed within a web request scope"
+#~ " (<~1 minute)"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Allow users to run queries, against "
+#~ "an async backend. This assumes that "
+#~ "you have a Celery worker setup as"
+#~ " well as a results backend."
+#~ msgstr ""
+
+#~ msgid "Allow CREATE TABLE AS option in SQL Lab"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Allow users to run non-SELECT "
+#~ "statements (UPDATE, DELETE, CREATE, ...) "
+#~ "in SQL Lab"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "When allowing CREATE TABLE AS option "
+#~ "in SQL Lab, this option forces the"
+#~ " table to be created in this "
+#~ "schema"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "If Presto, all the queries in SQL"
+#~ " Lab are going to be executed "
+#~ "as the currently logged on user "
+#~ "who must have permission to run "
+#~ "them.<br/>If Hive and hive.server2.enable.doAs "
+#~ "is enabled, will run the queries "
+#~ "as service account, but impersonate the"
+#~ " currently logged on user via "
+#~ "hive.server2.proxy.user property."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Allow SQL Lab to fetch a list "
+#~ "of all tables and all views across"
+#~ " all database schemas. For large data"
+#~ " warehouse with thousands of tables, "
+#~ "this can be expensive and put "
+#~ "strain on the system."
+#~ msgstr ""
+
+#~ msgid "Expose in SQL Lab"
+#~ msgstr ""
+
+#~ msgid "Allow CREATE TABLE AS"
+#~ msgstr ""
+
+#~ msgid "Allow DML"
+#~ msgstr "DML 허용"
+
+#~ msgid "CTAS Schema"
+#~ msgstr ""
+
+#~ msgid "Creator"
+#~ msgstr "생성자"
+
+#~ msgid "SQLAlchemy URI"
+#~ msgstr ""
+
+#~ msgid "Extra"
+#~ msgstr ""
+
+#~ msgid "Allow Run Sync"
+#~ msgstr ""
+
+#~ msgid "Allow Run Async"
+#~ msgstr ""
+
+#~ msgid "Impersonate the logged on user"
+#~ msgstr ""
+
+#~ msgid "Import Dashboards"
+#~ msgstr "대시보드 가져오기"
+
+#~ msgid "CSV to Database configuration"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "CSV file \"%(csv_filename)s\" uploaded to "
+#~ "table \"%(table_name)s\" in database "
+#~ "\"%(db_name)s\""
+#~ msgstr ""
+
+#~ msgid "User"
+#~ msgstr "사용자"
+
+#~ msgid "User Roles"
+#~ msgstr "사용자 권한"
+
+#~ msgid "Database URL"
+#~ msgstr ""
+
+#~ msgid "Roles to grant"
+#~ msgstr "권한 부여"
+
+#~ msgid "Created On"
+#~ msgstr ""
+
+#~ msgid "Access requests"
+#~ msgstr ""
+
+#~ msgid "Security"
+#~ msgstr "보안"
+
+#~ msgid "List Charts"
+#~ msgstr "차트 목록"
+
+#~ msgid "Show Chart"
+#~ msgstr "차트 보기"
+
+#~ msgid "Add Chart"
+#~ msgstr "차트 추가"
+
+#~ msgid "Edit Chart"
+#~ msgstr "차트 수정"
+
+#~ msgid ""
+#~ "These parameters are generated dynamically "
+#~ "when clicking the save or overwrite "
+#~ "button in the explore view. This "
+#~ "JSON object is exposed here for "
+#~ "reference and for power users who "
+#~ "may want to alter specific parameters."
+#~ msgstr ""
+
+#~ msgid "Duration (in seconds) of the caching timeout for this chart."
+#~ msgstr ""
+
+#~ msgid "Last Modified"
+#~ msgstr "마지막 수정"
+
+#~ msgid "Owners"
+#~ msgstr ""
+
+#~ msgid "Parameters"
+#~ msgstr ""
+
+#~ msgid "Chart"
+#~ msgstr "차트"
+
+#~ msgid "List Dashboards"
+#~ msgstr "대시보드 목록"
+
+#~ msgid "Show Dashboard"
+#~ msgstr "대시보드 보기"
+
+#~ msgid "Add Dashboard"
+#~ msgstr "대시보드 추가"
+
+#~ msgid "Edit Dashboard"
+#~ msgstr "대시보드 수정"
+
+#~ msgid ""
+#~ "This json object describes the "
+#~ "positioning of the widgets in the "
+#~ "dashboard. It is dynamically generated "
+#~ "when adjusting the widgets size and "
+#~ "positions by using drag & drop in"
+#~ " the dashboard view"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "The css for individual dashboards can"
+#~ " be altered here, or in the "
+#~ "dashboard view where changes are "
+#~ "immediately visible"
+#~ msgstr ""
+
+#~ msgid "To get a readable URL for your dashboard"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "This JSON object is generated "
+#~ "dynamically when clicking the save or"
+#~ " overwrite button in the dashboard "
+#~ "view. It is exposed here for "
+#~ "reference and for power users who "
+#~ "may want to alter specific parameters."
+#~ msgstr ""
+
+#~ msgid "Owners is a list of users who can alter the dashboard."
+#~ msgstr ""
+
+#~ msgid "Dashboard"
+#~ msgstr "대시보드"
+
+#~ msgid "Slug"
+#~ msgstr ""
+
+#~ msgid "Position JSON"
+#~ msgstr ""
+
+#~ msgid "JSON Metadata"
+#~ msgstr ""
+
+#~ msgid "Underlying Tables"
+#~ msgstr ""
+
+#~ msgid "Export"
+#~ msgstr ""
+
+#~ msgid "Export dashboards?"
+#~ msgstr ""
+
+#~ msgid "Action"
+#~ msgstr ""
+
+#~ msgid "dttm"
+#~ msgstr ""
+
+#~ msgid "Action Log"
+#~ msgstr ""
+
+#~ msgid "Access was requested"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "%(user)s was granted the role %(role)s"
+#~ " that gives access to the "
+#~ "%(datasource)s"
+#~ msgstr ""
+
+#~ msgid "Role %(r)s was extended to provide the access to the datasource %(ds)s"
+#~ msgstr ""
+
+#~ msgid "You have no permission to approve this request"
+#~ msgstr ""
+
+#~ msgid "You don't have the rights to "
+#~ msgstr ""
+
+#~ msgid "alter this "
+#~ msgstr ""
+
+#~ msgid "chart"
+#~ msgstr ""
+
+#~ msgid "create a "
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Malformed request. slice_id or table_name "
+#~ "and db_name arguments are expected"
+#~ msgstr ""
+
+#~ msgid "Chart %(id)s not found"
+#~ msgstr ""
+
+#~ msgid "Table %(t)s wasn't found in the database %(d)s"
+#~ msgstr ""
+
+#~ msgid "Can't find User '%(name)s', please ask your admin to create one."
+#~ msgstr ""
+
+#~ msgid "Can't find DruidCluster with cluster_name = '%(name)s'"
+#~ msgstr ""
+
+#~ msgid "Query record was not created as expected."
+#~ msgstr ""
+
+#~ msgid "Template Name"
+#~ msgstr ""
+
+#~ msgid "CSS Templates"
+#~ msgstr "CSS 템플릿"
+
+#~ msgid "SQL Editor"
+#~ msgstr "SQL 편집기"
+
+#~ msgid "SQL Lab"
+#~ msgstr "SQL Lab"
+
+#~ msgid "Query Search"
+#~ msgstr "Query 검색"
+
+#~ msgid "Upload a CSV"
+#~ msgstr "CSV 업로드"
+
+#~ msgid "Status"
+#~ msgstr "상태"
+
+#~ msgid "Start Time"
+#~ msgstr "시작 시간"
+
+#~ msgid "End Time"
+#~ msgstr "종료 시간"
+
+#~ msgid "Queries"
+#~ msgstr "Query"
+
+#~ msgid "List Saved Query"
+#~ msgstr "저장된 Query 목록"
+
+#~ msgid "Show Saved Query"
+#~ msgstr "저장된 Query 보기"
+
+#~ msgid "Add Saved Query"
+#~ msgstr "저장된 Query 추가"
+
+#~ msgid "Edit Saved Query"
+#~ msgstr "저장된 Query 수정"
+
+#~ msgid "Pop Tab Link"
+#~ msgstr ""
+
+#~ msgid "Changed on"
+#~ msgstr ""
+
+#~ msgid "Saved Queries"
+#~ msgstr "저장된 Query"
+
+#~ msgid "Sign In"
+#~ msgstr "로그인"
+
+#~ msgid "Username"
+#~ msgstr "사용자명"
+
+#~ msgid "Password"
+#~ msgstr "비밀번호"
+
+#~ msgid "Enter your login and password below"
+#~ msgstr "사용자명 및 비밀번호를 입력해주세요"
+
+#~ msgid "List Users"
+#~ msgstr "사용자 목록"
+
+#~ msgid "List Roles"
+#~ msgstr "권한 목록"
+
+#~ msgid "User's Statistics"
+#~ msgstr "사용자 통계"

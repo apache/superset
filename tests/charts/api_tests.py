@@ -36,11 +36,8 @@ from tests.fixtures.query_context import get_query_context
 CHART_DATA_URI = "api/v1/chart/data"
 
 
-class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
+class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "chart"
-
-    def __init__(self, *args, **kwargs):
-        super(ChartApiTests, self).__init__(*args, **kwargs)
 
     def insert_chart(
         self,
@@ -341,7 +338,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_type": ["Not a valid choice."]}}
+            response,
+            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
         )
         chart_data = {
             "slice_name": "title1",
@@ -447,7 +445,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_type": ["Not a valid choice."]}}
+            response,
+            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
         )
         chart_data = {"datasource_id": 0, "datasource_type": "table"}
         uri = f"api/v1/chart/{chart.id}"

@@ -28,9 +28,22 @@ from superset.utils import core as utils
 # RISON/JSON schemas for query parameters
 #
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+width_height_schema = {
+    "type": "array",
+    "items": [{"type": "integer"}, {"type": "integer"},],
+}
 thumbnail_query_schema = {
     "type": "object",
-    "properties": {"force": {"type": "boolean"}},
+    "properties": {"force": {"type": "boolean"},},
+}
+
+screenshot_query_schema = {
+    "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "window_size": width_height_schema,
+        "thumb_size": width_height_schema,
+    },
 }
 
 #
@@ -85,7 +98,6 @@ openapi_spec_methods_override = {
         "get": {"description": "Get a list of all possible owners for a chart."}
     },
 }
-""" Overrides GET methods OpenApi descriptions """
 
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:
@@ -234,8 +246,7 @@ class ChartDataAggregateConfigField(fields.Dict):
 
 
 class ChartDataPostProcessingOperationOptionsSchema(Schema):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    pass
 
 
 class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
@@ -357,7 +368,7 @@ class ChartDataSelectOptionsSchema(ChartDataPostProcessingOperationOptionsSchema
         "referenced here.",
         example=["country", "gender", "age"],
     )
-    exclude = fields.List(
+    exclude = fields.List(  # type: ignore
         fields.String(),
         description="Columns to exclude from selection.",
         example=["my_temp_column"],
@@ -403,8 +414,6 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
         fields.String(
             allow_none=False, description="Columns to group by on the table columns",
         ),
-        minLength=1,
-        required=True,
     )
     metric_fill_value = fields.Number(
         description="Value to replace missing values with in aggregate calculations.",
@@ -596,10 +605,12 @@ class ChartDataExtrasSchema(Schema):
             ),
         ),
         example="P1D",
+        allow_none=True,
     )
     druid_time_origin = fields.String(
         description="Starting point for time grain counting on legacy Druid "
         "datasources. Used to change e.g. Monday/Sunday first-day-of-week.",
+        allow_none=True,
     )
 
 
@@ -661,6 +672,9 @@ class ChartDataQueryObjectSchema(Schema):
     )
     timeseries_limit = fields.Integer(
         description="Maximum row count for timeseries queries. Default: `0`",
+    )
+    timeseries_limit_metric = fields.Integer(
+        description="Metric used to limit timeseries queries by.", allow_none=True,
     )
     row_limit = fields.Integer(
         description='Maximum row count. Default: `config["ROW_LIMIT"]`',
@@ -730,13 +744,13 @@ class ChartDataQueryContextSchema(Schema):
         validate=validate.OneOf(choices=("json", "csv")),
     )
 
-    # pylint: disable=no-self-use
+    # pylint: disable=no-self-use,unused-argument
     @post_load
-    def make_query_context(self, data: Dict[str, Any]) -> QueryContext:
+    def make_query_context(self, data: Dict[str, Any], **kwargs: Any) -> QueryContext:
         query_context = QueryContext(**data)
         return query_context
 
-    # pylint: enable=no-self-use
+    # pylint: enable=no-self-use,unused-argument
 
 
 class ChartDataResponseResult(Schema):

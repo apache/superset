@@ -40,7 +40,7 @@ const RunQueryActionButton = ({
   runQuery = NO_OP,
   selectedText,
   stopQuery = NO_OP,
-  sql,
+  sql = '',
 }: Props) => {
   const runBtnText = selectedText ? t('Run Selected Query') : t('Run');
   const btnStyle = selectedText ? 'warning' : 'primary';

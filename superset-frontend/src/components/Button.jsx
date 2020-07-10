@@ -27,6 +27,7 @@ import {
 
 const propTypes = {
   children: PropTypes.node,
+  className: PropTypes.string,
   tooltip: PropTypes.node,
   placement: PropTypes.string,
   onClick: PropTypes.func,

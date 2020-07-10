@@ -16,14 +16,12 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-import copy
 import json
 import unittest
 from random import random
 
-from flask import escape
+from flask import escape, url_for
 from sqlalchemy import func
-from typing import Dict
 
 import tests.test_app
 from superset import db, security_manager
@@ -31,25 +29,11 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.views import core as views
 
 from .base_tests import SupersetTestCase
 
 
-class DashboardTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(DashboardTests, self).__init__(*args, **kwargs)
-
-    @classmethod
-    def setUpClass(cls):
-        pass
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
+class TestDashboard(SupersetTestCase):
     def get_mock_positions(self, dash):
         positions = {"DASHBOARD_VERSION_KEY": "v2"}
         for i, slc in enumerate(dash.slices):
@@ -70,6 +54,9 @@ class DashboardTests(SupersetTestCase):
             urls[dash.dashboard_title] = dash.url
         for title, url in urls.items():
             assert escape(title) in self.client.get(url).data.decode("utf-8")
+
+    def test_superset_dashboard_url(self):
+        url_for("Superset.dashboard", dashboard_id_or_slug=1)
 
     def test_new_dashboard(self):
         self.login(username="admin")
@@ -237,57 +224,6 @@ class DashboardTests(SupersetTestCase):
             for key in slc:
                 if key not in ["modified", "changed_on", "changed_on_humanized"]:
                     self.assertEqual(slc[key], resp["slices"][index][key])
-
-    def test_set_dash_metadata(self, username="admin"):
-        self.login(username=username)
-        dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
-        data = dash.data
-        positions = data["position_json"]
-        data.update({"positions": positions})
-        original_data = copy.deepcopy(data)
-
-        # add filter scopes
-        filter_slice = dash.slices[0]
-        immune_slices = dash.slices[2:]
-        filter_scopes = {
-            str(filter_slice.id): {
-                "region": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [slc.id for slc in immune_slices],
-                }
-            }
-        }
-        data.update({"filter_scopes": json.dumps(filter_scopes)})
-        views.Superset._set_dash_metadata(dash, data)
-        updated_metadata = json.loads(dash.json_metadata)
-        self.assertEqual(updated_metadata["filter_scopes"], filter_scopes)
-
-        # remove a slice and change slice ids (as copy slices)
-        removed_slice = immune_slices.pop()
-        removed_component = [
-            key
-            for (key, value) in positions.items()
-            if isinstance(value, dict)
-            and value.get("type") == "CHART"
-            and value["meta"]["chartId"] == removed_slice.id
-        ]
-        positions.pop(removed_component[0], None)
-
-        data.update({"positions": positions})
-        views.Superset._set_dash_metadata(dash, data)
-        updated_metadata = json.loads(dash.json_metadata)
-        expected_filter_scopes = {
-            str(filter_slice.id): {
-                "region": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [slc.id for slc in immune_slices],
-                }
-            }
-        }
-        self.assertEqual(updated_metadata["filter_scopes"], expected_filter_scopes)
-
-        # reset dash to original data
-        views.Superset._set_dash_metadata(dash, original_data)
 
     def test_add_slices(self, username="admin"):
         self.login(username=username)

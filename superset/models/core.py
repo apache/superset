@@ -45,10 +45,11 @@ from sqlalchemy import (
 from sqlalchemy.engine import Dialect, Engine, url
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import Select
+from sqlalchemy.sql import expression, Select
 from sqlalchemy_utils import EncryptedType
 
 from superset import app, db_engine_specs, is_feature_enabled, security_manager
@@ -118,6 +119,7 @@ class Database(
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
+    allow_cvas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
     allow_multi_schema_metadata_fetch = Column(  # pylint: disable=invalid-name
@@ -137,7 +139,6 @@ class Database(
         ),
     )
     encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
-    perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
     server_cert = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
     export_fields = [
@@ -147,6 +148,7 @@ class Database(
         "expose_in_sqllab",
         "allow_run_async",
         "allow_ctas",
+        "allow_cvas",
         "allow_csv_upload",
         "extra",
     ]
@@ -188,6 +190,16 @@ class Database(
         )
 
     @property
+    def allows_virtual_table_explore(self) -> bool:
+        extra = self.get_extra()
+
+        return bool(extra.get("allows_virtual_table_explore", True))
+
+    @property
+    def explore_database_id(self) -> int:
+        return self.get_extra().get("explore_database_id", self.id)
+
+    @property
     def data(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -196,6 +208,8 @@ class Database(
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
             "allows_cost_estimate": self.allows_cost_estimate,
+            "allows_virtual_table_explore": self.allows_virtual_table_explore,
+            "explore_database_id": self.explore_database_id,
         }
 
     @property
@@ -234,6 +248,10 @@ class Database(
     @property
     def default_schemas(self) -> List[str]:
         return self.get_extra().get("default_schemas", [])
+
+    @property
+    def connect_args(self) -> Dict[str, Any]:
+        return self.get_extra().get("engine_params", {}).get("connect_args", {})
 
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
@@ -639,8 +657,18 @@ class Database(
     def sql_url(self) -> str:
         return f"/superset/sql/{self.id}/"
 
-    def get_perm(self) -> str:
+    @hybrid_property
+    def perm(self) -> str:
         return f"[{self.database_name}].(id:{self.id})"
+
+    @perm.expression  # type: ignore
+    def perm(cls) -> str:  # pylint: disable=no-self-argument
+        return (
+            "[" + cls.database_name + "].(id:" + expression.cast(cls.id, String) + ")"
+        )
+
+    def get_perm(self) -> str:
+        return self.perm  # type: ignore
 
     def has_table(self, table: Table) -> bool:
         engine = self.get_sqla_engine()

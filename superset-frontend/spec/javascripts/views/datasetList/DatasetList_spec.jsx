@@ -24,8 +24,7 @@ import fetchMock from 'fetch-mock';
 
 import DatasetList from 'src/views/datasetList/DatasetList';
 import ListView from 'src/components/ListView/ListView';
-import { ThemeProvider } from 'emotion-theming';
-import { supersetTheme } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 // store needed for withToasts(datasetTable)
 const mockStore = configureStore([thunk]);
@@ -101,7 +100,7 @@ describe('DatasetList', () => {
     const callsD = fetchMock.calls(/dataset\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"/http//localhost/api/v1/dataset/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/dataset/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 });

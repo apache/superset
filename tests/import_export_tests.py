@@ -34,11 +34,12 @@ from superset.connectors.druid.models import (
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
 
 
-class ImportExportTests(SupersetTestCase):
+class TestImportExport(SupersetTestCase):
     """Testing export import functionality for dashboards"""
 
     @classmethod
@@ -157,8 +158,11 @@ class ImportExportTests(SupersetTestCase):
     def get_table_by_name(self, name):
         return db.session.query(SqlaTable).filter_by(table_name=name).first()
 
-    def assert_dash_equals(self, expected_dash, actual_dash, check_position=True):
-        self.assertEqual(expected_dash.slug, actual_dash.slug)
+    def assert_dash_equals(
+        self, expected_dash, actual_dash, check_position=True, check_slugs=True
+    ):
+        if check_slugs:
+            self.assertEqual(expected_dash.slug, actual_dash.slug)
         self.assertEqual(expected_dash.dashboard_title, actual_dash.dashboard_title)
         self.assertEqual(len(expected_dash.slices), len(actual_dash.slices))
         expected_slices = sorted(expected_dash.slices, key=lambda s: s.slice_name or "")
@@ -378,7 +382,9 @@ class ImportExportTests(SupersetTestCase):
 
         expected_dash = self.create_dashboard("dash_with_1_slice", slcs=[slc], id=10002)
         make_transient(expected_dash)
-        self.assert_dash_equals(expected_dash, imported_dash, check_position=False)
+        self.assert_dash_equals(
+            expected_dash, imported_dash, check_position=False, check_slugs=False
+        )
         self.assertEqual(
             {"remote_id": 10002, "import_time": 1990},
             json.loads(imported_dash.json_metadata),
@@ -420,7 +426,9 @@ class ImportExportTests(SupersetTestCase):
             "dash_with_2_slices", slcs=[e_slc, b_slc], id=10003
         )
         make_transient(expected_dash)
-        self.assert_dash_equals(imported_dash, expected_dash, check_position=False)
+        self.assert_dash_equals(
+            imported_dash, expected_dash, check_position=False, check_slugs=False
+        )
         i_e_slc = self.get_slice_by_name("e_slc")
         i_b_slc = self.get_slice_by_name("b_slc")
         expected_json_metadata = {
@@ -466,7 +474,9 @@ class ImportExportTests(SupersetTestCase):
         )
         make_transient(expected_dash)
         imported_dash = self.get_dash(imported_dash_id_2)
-        self.assert_dash_equals(expected_dash, imported_dash, check_position=False)
+        self.assert_dash_equals(
+            expected_dash, imported_dash, check_position=False, check_slugs=False
+        )
         self.assertEqual(
             {"remote_id": 10004, "import_time": 1992},
             json.loads(imported_dash.json_metadata),
@@ -556,8 +566,9 @@ class ImportExportTests(SupersetTestCase):
         return dash_with_1_slice
 
     def test_import_table_no_metadata(self):
+        db_id = get_example_database().id
         table = self.create_table("pure_table", id=10001)
-        imported_id = SqlaTable.import_obj(table, import_time=1989)
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1989)
         imported = self.get_table_by_id(imported_id)
         self.assert_table_equals(table, imported)
 
@@ -565,7 +576,8 @@ class ImportExportTests(SupersetTestCase):
         table = self.create_table(
             "table_1_col_1_met", id=10002, cols_names=["col1"], metric_names=["metric1"]
         )
-        imported_id = SqlaTable.import_obj(table, import_time=1990)
+        db_id = get_example_database().id
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1990)
         imported = self.get_table_by_id(imported_id)
         self.assert_table_equals(table, imported)
         self.assertEqual(
@@ -580,7 +592,8 @@ class ImportExportTests(SupersetTestCase):
             cols_names=["c1", "c2"],
             metric_names=["m1", "m2"],
         )
-        imported_id = SqlaTable.import_obj(table, import_time=1991)
+        db_id = get_example_database().id
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1991)
 
         imported = self.get_table_by_id(imported_id)
         self.assert_table_equals(table, imported)
@@ -589,7 +602,8 @@ class ImportExportTests(SupersetTestCase):
         table = self.create_table(
             "table_override", id=10003, cols_names=["col1"], metric_names=["m1"]
         )
-        imported_id = SqlaTable.import_obj(table, import_time=1991)
+        db_id = get_example_database().id
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1991)
 
         table_over = self.create_table(
             "table_override",
@@ -597,7 +611,7 @@ class ImportExportTests(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_over_id = SqlaTable.import_obj(table_over, import_time=1992)
+        imported_over_id = SqlaTable.import_obj(table_over, db_id, import_time=1992)
 
         imported_over = self.get_table_by_id(imported_over_id)
         self.assertEqual(imported_id, imported_over.id)
@@ -616,7 +630,8 @@ class ImportExportTests(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_id = SqlaTable.import_obj(table, import_time=1993)
+        db_id = get_example_database().id
+        imported_id = SqlaTable.import_obj(table, db_id, import_time=1993)
 
         copy_table = self.create_table(
             "copy_cat",
@@ -624,7 +639,7 @@ class ImportExportTests(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        imported_id_copy = SqlaTable.import_obj(copy_table, import_time=1994)
+        imported_id_copy = SqlaTable.import_obj(copy_table, db_id, import_time=1994)
 
         self.assertEqual(imported_id, imported_id_copy)
         self.assert_table_equals(copy_table, self.get_table_by_id(imported_id))

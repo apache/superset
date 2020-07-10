@@ -70,17 +70,19 @@ describe('DatasourceEditor', () => {
     expect(wrapper.find(Tabs)).toHaveLength(1);
   });
 
-  it('makes an async request', done => {
-    wrapper.setState({ activeTabKey: 2 });
-    const syncButton = wrapper.find('.sync-from-source');
-    expect(syncButton).toHaveLength(1);
-    syncButton.simulate('click');
+  it('makes an async request', () => {
+    return new Promise(done => {
+      wrapper.setState({ activeTabKey: 2 });
+      const syncButton = wrapper.find('.sync-from-source');
+      expect(syncButton).toHaveLength(1);
+      syncButton.simulate('click');
 
-    setTimeout(() => {
-      expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
-      fetchMock.reset();
-      done();
-    }, 0);
+      setTimeout(() => {
+        expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
+        fetchMock.reset();
+        done();
+      }, 0);
+    });
   });
 
   it('merges columns', () => {

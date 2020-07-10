@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { Nav, Navbar, NavItem } from 'react-bootstrap';
+import styled from '@superset-ui/style';
 import MenuObject from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
@@ -51,11 +52,19 @@ const propTypes = {
   }).isRequired,
 };
 
+const StyledHeader = styled.header`
+  .navbar-brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+`;
+
 export default function Menu({
   data: { menu, brand, navbar_right: navbarRight },
 }) {
   return (
-    <header className="top" id="main-menu">
+    <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
         <Navbar.Header>
           <Navbar.Brand>
@@ -114,7 +123,7 @@ export default function Menu({
           )}
         </Nav>
       </Navbar>
-    </header>
+    </StyledHeader>
   );
 }
 

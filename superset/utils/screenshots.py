@@ -16,11 +16,10 @@
 # under the License.
 import logging
 import time
-import urllib.parse
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
-from flask import current_app, request, Response, session, url_for
+from flask import current_app, request, Response, session
 from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -30,6 +29,9 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
+
+from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.urls import headless_url
 
 logger = logging.getLogger(__name__)
 
@@ -87,15 +89,6 @@ def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
     return driver
 
 
-def headless_url(path: str) -> str:
-    return urllib.parse.urljoin(current_app.config.get("WEBDRIVER_BASEURL", ""), path)
-
-
-def get_url_path(view: str, **kwargs: Any) -> str:
-    with current_app.test_request_context():
-        return headless_url(url_for(view, **kwargs))
-
-
 class AuthWebDriverProxy:
     def __init__(
         self,
@@ -119,6 +112,9 @@ class AuthWebDriverProxy:
             options = chrome.options.Options()
             arg: str = f"--window-size={self._window[0]},{self._window[1]}"
             options.add_argument(arg)
+            # TODO: 2 lines attempting retina PPI don't seem to be working
+            options.add_argument("--force-device-scale-factor=2.0")
+            options.add_argument("--high-dpi-support=2.0")
         else:
             raise Exception(f"Webdriver name ({self._driver_type}) not supported")
         # Prepare args for the webdriver init
@@ -149,7 +145,11 @@ class AuthWebDriverProxy:
             pass
 
     def get_screenshot(
-        self, url: str, element_name: str, user: "User", retries: int = SELENIUM_RETRIES
+        self,
+        url: str,
+        element_name: str,
+        user: "User",
+        retries: int = SELENIUM_RETRIES,
     ) -> Optional[bytes]:
         driver = self.auth(user)
         driver.set_window_size(*self._window)
@@ -187,21 +187,36 @@ class BaseScreenshot:
     window_size: WindowSize = (800, 600)
     thumb_size: WindowSize = (400, 300)
 
-    def __init__(self, model_id: int):
-        self.model_id: int = model_id
+    def __init__(self, url: str, digest: str):
+        self.digest: str = digest
+        self.url = url
         self.screenshot: Optional[bytes] = None
-        self._driver = AuthWebDriverProxy(self.driver_type, self.window_size)
 
-    @property
-    def cache_key(self) -> str:
-        return f"thumb__{self.thumbnail_type}__{self.model_id}"
+    def driver(self, window_size: Optional[WindowSize] = None) -> AuthWebDriverProxy:
+        window_size = window_size or self.window_size
+        return AuthWebDriverProxy(self.driver_type, window_size)
 
-    @property
-    def url(self) -> str:
-        raise NotImplementedError()
+    def cache_key(
+        self,
+        window_size: Optional[Union[bool, WindowSize]] = None,
+        thumb_size: Optional[Union[bool, WindowSize]] = None,
+    ) -> str:
+        window_size = window_size or self.window_size
+        thumb_size = thumb_size or self.thumb_size
+        args = {
+            "thumbnail_type": self.thumbnail_type,
+            "digest": self.digest,
+            "type": "thumb",
+            "window_size": window_size,
+            "thumb_size": thumb_size,
+        }
+        return md5_sha_from_dict(args)
 
-    def get_screenshot(self, user: "User") -> Optional[bytes]:
-        self.screenshot = self._driver.get_screenshot(self.url, self.element, user)
+    def get_screenshot(
+        self, user: "User", window_size: Optional[WindowSize] = None
+    ) -> Optional[bytes]:
+        driver = self.driver(window_size)
+        self.screenshot = driver.get_screenshot(self.url, self.element, user)
         return self.screenshot
 
     def get(
@@ -218,28 +233,41 @@ class BaseScreenshot:
         :param thumb_size: Override thumbnail site
         """
         payload: Optional[bytes] = None
-        thumb_size = thumb_size or self.thumb_size
+        cache_key = self.cache_key(self.window_size, thumb_size)
         if cache:
-            payload = cache.get(self.cache_key)
+            payload = cache.get(cache_key)
         if not payload:
             payload = self.compute_and_cache(
                 user=user, thumb_size=thumb_size, cache=cache
             )
         else:
-            logger.info("Loaded thumbnail from cache: %s", self.cache_key)
+            logger.info("Loaded thumbnail from cache: %s", cache_key)
         if payload:
             return BytesIO(payload)
         return None
 
-    def get_from_cache(self, cache: "Cache") -> Optional[BytesIO]:
-        payload = cache.get(self.cache_key)
+    def get_from_cache(
+        self,
+        cache: "Cache",
+        window_size: Optional[WindowSize] = None,
+        thumb_size: Optional[WindowSize] = None,
+    ) -> Optional[BytesIO]:
+        cache_key = self.cache_key(window_size, thumb_size)
+        return self.get_from_cache_key(cache, cache_key)
+
+    @staticmethod
+    def get_from_cache_key(cache: "Cache", cache_key: str) -> Optional[BytesIO]:
+        logger.info("Attempting to get from cache: %s", cache_key)
+        payload = cache.get(cache_key)
         if payload:
             return BytesIO(payload)
+        logger.info("Failed at getting from cache: %s", cache_key)
         return None
 
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
         user: "User" = None,
+        window_size: Optional[WindowSize] = None,
         thumb_size: Optional[WindowSize] = None,
         cache: "Cache" = None,
         force: bool = True,
@@ -254,22 +282,23 @@ class BaseScreenshot:
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
-        cache_key = self.cache_key
+        cache_key = self.cache_key(window_size, thumb_size)
+        window_size = window_size or self.window_size
+        thumb_size = thumb_size or self.thumb_size
         if not force and cache and cache.get(cache_key):
             logger.info("Thumb already cached, skipping...")
             return None
-        thumb_size = thumb_size or self.thumb_size
         logger.info("Processing url for thumbnail: %s", cache_key)
 
         payload = None
 
         # Assuming all sorts of things can go wrong with Selenium
         try:
-            payload = self.get_screenshot(user=user)
+            payload = self.get_screenshot(user=user, window_size=window_size)
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Failed at generating thumbnail %s", ex)
 
-        if payload and self.window_size != thumb_size:
+        if payload and window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, thumb_size=thumb_size)
             except Exception as ex:  # pylint: disable=broad-except
@@ -277,8 +306,9 @@ class BaseScreenshot:
                 payload = None
 
         if payload and cache:
-            logger.info("Caching thumbnail: %s %s", cache_key, str(cache))
+            logger.info("Caching thumbnail: %s", cache_key)
             cache.set(cache_key, payload)
+            logger.info("Done caching thumbnail")
         return payload
 
     @classmethod
@@ -310,12 +340,8 @@ class BaseScreenshot:
 class ChartScreenshot(BaseScreenshot):
     thumbnail_type: str = "chart"
     element: str = "chart-container"
-    window_size: WindowSize = (600, int(600 * 0.75))
-    thumb_size: WindowSize = (300, int(300 * 0.75))
-
-    @property
-    def url(self) -> str:
-        return get_url_path("Superset.slice", slice_id=self.model_id, standalone="true")
+    window_size: WindowSize = (800, 600)
+    thumb_size: WindowSize = (800, 600)
 
 
 class DashboardScreenshot(BaseScreenshot):
@@ -323,7 +349,3 @@ class DashboardScreenshot(BaseScreenshot):
     element: str = "grid-container"
     window_size: WindowSize = (1600, int(1600 * 0.75))
     thumb_size: WindowSize = (400, int(400 * 0.75))
-
-    @property
-    def url(self) -> str:
-        return get_url_path("Superset.dashboard", dashboard_id=self.model_id)

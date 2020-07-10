@@ -69,7 +69,7 @@ setup(
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
-        "cachelib>=0.1,<0.2",
+        "cachelib>=0.1.1,<0.2",
         "celery>=4.3.0, <5.0.0, !=4.4.1",
         "click<8",
         "colorama",
@@ -78,7 +78,7 @@ setup(
         "cryptography>=2.4.2",
         "dataclasses<0.7",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=2.3.4, <2.4.0",
+        "flask-appbuilder>=3.0.0, <4.0.0",
         "flask-caching",
         "flask-compress",
         "flask-talisman",
@@ -104,14 +104,12 @@ setup(
         "simplejson>=3.15.0",
         "slackclient>=2.6.2",
         "sqlalchemy>=1.3.16, <2.0",
-        # Breaking change in sqlalchemy-utils==0.36.6, upgrading will probably
-        # require a migration on EncryptedType columns. For more information, see
-        # https://github.com/kvesteri/sqlalchemy-utils/issues/444
-        "sqlalchemy-utils>=0.33.2,<0.36.5",
-        "sqlparse>=0.3.0, <0.4",
+        "sqlalchemy-utils>=0.36.6,<0.37",
+        "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "wtforms-json",
     ],
     extras_require={
+        "athena": ["pyathena>=1.10.8,<1.11"],
         "bigquery": ["pybigquery>=0.4.10", "pandas_gbq>=0.10.0"],
         "cors": ["flask-cors>=2.0.0"],
         "gsheets": ["gsheetsdb>=0.1.9"],
@@ -125,6 +123,7 @@ setup(
         "dremio": ["sqlalchemy_dremio>=1.1.0"],
         "cockroachdb": ["cockroachdb==0.3.3"],
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
+        "excel": ["xlrd>=1.2.0, <1.3"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",

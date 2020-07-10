@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """ Superset wrapper around pyarrow.Table.
 """
 import datetime
@@ -48,14 +47,14 @@ def dedup(l: List[str], suffix: str = "__", case_sensitive: bool = True) -> List
     """
     new_l: List[str] = []
     seen: Dict[str, int] = {}
-    for s in l:
-        s_fixed_case = s if case_sensitive else s.lower()
+    for item in l:
+        s_fixed_case = item if case_sensitive else item.lower()
         if s_fixed_case in seen:
             seen[s_fixed_case] += 1
-            s += suffix + str(seen[s_fixed_case])
+            item += suffix + str(seen[s_fixed_case])
         else:
             seen[s_fixed_case] = 0
-        new_l.append(s)
+        new_l.append(item)
     return new_l
 
 
@@ -69,7 +68,7 @@ def stringify_values(array: np.ndarray) -> np.ndarray:
 
 
 class SupersetResultSet:
-    def __init__(
+    def __init__(  # pylint: disable=too-many-locals,too-many-branches
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
@@ -108,13 +107,14 @@ class SupersetResultSet:
                     pa.lib.ArrowInvalid,
                     pa.lib.ArrowTypeError,
                     pa.lib.ArrowNotImplementedError,
-                    TypeError,  # this is super hackey, https://issues.apache.org/jira/browse/ARROW-7855
+                    TypeError,  # this is super hackey,
+                    # https://issues.apache.org/jira/browse/ARROW-7855
                 ):
                     # attempt serialization of values as strings
                     stringified_arr = stringify_values(array[column])
                     pa_data.append(pa.array(stringified_arr.tolist()))
 
-        if pa_data:
+        if pa_data:  # pylint: disable=too-many-nested-blocks
             for i, column in enumerate(column_names):
                 if pa.types.is_nested(pa_data[i].type):
                     # TODO: revisit nested column serialization once nested types
@@ -124,7 +124,8 @@ class SupersetResultSet:
                     pa_data[i] = pa.array(stringified_arr.tolist())
 
                 elif pa.types.is_temporal(pa_data[i].type):
-                    # workaround for bug converting `psycopg2.tz.FixedOffsetTimezone` tzinfo values.
+                    # workaround for bug converting
+                    # `psycopg2.tz.FixedOffsetTimezone` tzinfo values.
                     # related: https://issues.apache.org/jira/browse/ARROW-5248
                     sample = self.first_nonempty(array[column])
                     if sample and isinstance(sample, datetime.datetime):
@@ -138,7 +139,7 @@ class SupersetResultSet:
                                 pa_data[i] = pa.Array.from_pandas(
                                     series, type=pa.timestamp("ns", tz=tz)
                                 )
-                        except Exception as ex:
+                        except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)
 
         self.table = pa.Table.from_arrays(pa_data, names=column_names)
@@ -150,7 +151,7 @@ class SupersetResultSet:
                 for i, col in enumerate(column_names)
                 if deduped_cursor_desc
             }
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
 
     @staticmethod
