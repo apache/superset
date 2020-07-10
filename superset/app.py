@@ -159,13 +159,21 @@ class SupersetAppInitializer:
             DashboardModelViewAsync,
         )
         from superset.views.database.api import DatabaseRestApi
-        from superset.views.database.views import DatabaseView, CsvToDatabaseView
+        from superset.views.database.views import (
+            DatabaseView,
+            CsvToDatabaseView,
+            ExcelToDatabaseView,
+        )
         from superset.views.datasource import Datasource
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.schedules import (
             DashboardEmailScheduleView,
             SliceEmailScheduleView,
+        )
+        from superset.views.alerts import (
+            AlertModelView,
+            AlertLogModelView,
         )
         from superset.views.sql_lab import (
             QueryView,
@@ -265,6 +273,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(Api)
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(CsvToDatabaseView)
+        appbuilder.add_view_no_menu(ExcelToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
@@ -324,15 +333,35 @@ class SupersetAppInitializer:
             category="SQL Lab",
             category_label=__("SQL Lab"),
         )
-        appbuilder.add_link(
-            "Upload a CSV",
-            label=__("Upload a CSV"),
-            href="/csvtodatabaseview/form",
-            icon="fa-upload",
-            category="Sources",
-            category_label=__("Sources"),
-            category_icon="fa-wrench",
-        )
+        if self.config["CSV_EXTENSIONS"].intersection(
+            self.config["ALLOWED_EXTENSIONS"]
+        ):
+            appbuilder.add_link(
+                "Upload a CSV",
+                label=__("Upload a CSV"),
+                href="/csvtodatabaseview/form",
+                icon="fa-upload",
+                category="Sources",
+                category_label=__("Sources"),
+                category_icon="fa-wrench",
+            )
+        try:
+            import xlrd  # pylint: disable=unused-import
+
+            if self.config["EXCEL_EXTENSIONS"].intersection(
+                self.config["ALLOWED_EXTENSIONS"]
+            ):
+                appbuilder.add_link(
+                    "Upload Excel",
+                    label=__("Upload Excel"),
+                    href="/exceltodatabaseview/form",
+                    icon="fa-upload",
+                    category="Sources",
+                    category_label=__("Sources"),
+                    category_icon="fa-wrench",
+                )
+        except ImportError:
+            pass
 
         #
         # Conditionally setup log views
@@ -369,6 +398,17 @@ class SupersetAppInitializer:
                 category_label=__("Manage"),
                 icon="fa-search",
             )
+
+        if self.config["ENABLE_ALERTS"]:
+            appbuilder.add_view(
+                AlertModelView,
+                "Alerts",
+                label=__("Alerts"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-exclamation-triangle",
+            )
+            appbuilder.add_view_no_menu(AlertLogModelView)
 
         #
         # Conditionally add Access Request Model View
@@ -563,8 +603,7 @@ class SupersetAppInitializer:
             )
 
         # Flask-Compress
-        if self.config["ENABLE_FLASK_COMPRESS"]:
-            Compress(self.flask_app)
+        Compress(self.flask_app)
 
         if self.config["TALISMAN_ENABLED"]:
             talisman.init_app(self.flask_app, **self.config["TALISMAN_CONFIG"])

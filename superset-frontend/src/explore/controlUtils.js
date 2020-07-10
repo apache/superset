@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { expandControlConfig } from '@superset-ui/chart-controls';
 import { controls as SHARED_CONTROLS } from './controls';
+import * as exploreActions from './actions/exploreActions';
 import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
@@ -45,7 +46,6 @@ export function validateControl(control, processedState) {
         validationErrors.push(v);
       }
     });
-    delete validatedControl.validators;
     return { ...validatedControl, validationErrors };
   }
   return control;
@@ -89,16 +89,15 @@ export const getControlConfig = memoizeOne(function getControlConfig(
   return control?.config || control;
 });
 
-export function applyMapStateToPropsToControl(control, state) {
-  if (control.mapStateToProps) {
-    const appliedControl = { ...control };
-    if (state) {
-      Object.assign(appliedControl, control.mapStateToProps(state, control));
-    }
-    delete appliedControl.mapStateToProps;
-    return appliedControl;
+export function applyMapStateToPropsToControl(controlState, controlPanelState) {
+  const { mapStateToProps } = controlState;
+  if (mapStateToProps && controlPanelState) {
+    return {
+      ...controlState,
+      ...mapStateToProps(controlPanelState, controlState, exploreActions),
+    };
   }
-  return control;
+  return controlState;
 }
 
 function handleMissingChoice(control) {
@@ -123,24 +122,43 @@ function handleMissingChoice(control) {
   return control;
 }
 
-export function getControlStateFromControlConfig(controlConfig, state, value) {
+export function getControlStateFromControlConfig(
+  controlConfig,
+  controlPanelState,
+  value,
+) {
   // skip invalid config values
   if (!controlConfig) {
     return null;
   }
-  const controlState = applyMapStateToPropsToControl(
-    { ...controlConfig },
-    state,
-  );
+  let controlState = { ...controlConfig };
+  // only apply mapStateToProps when control states have been initialized
+  if (
+    controlPanelState &&
+    (controlPanelState.controls || !controlPanelState.isInitializing)
+  ) {
+    controlState = applyMapStateToPropsToControl(
+      controlState,
+      controlPanelState,
+    );
+  }
 
   // If default is a function, evaluate it
   if (typeof controlState.default === 'function') {
-    controlState.default = controlState.default(controlState);
+    controlState.default = controlState.default(
+      controlState,
+      controlPanelState,
+    );
+    // if default is still a function, discard
+    if (typeof controlState.default === 'function') {
+      delete controlState.default;
+    }
   }
 
   // If a choice control went from multi=false to true, wrap value in array
   const controlValue =
     controlConfig.multi && value && !Array.isArray(value) ? [value] : value;
+
   controlState.value =
     typeof controlValue === 'undefined' ? controlState.default : controlValue;
 

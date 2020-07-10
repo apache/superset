@@ -67,7 +67,7 @@ class CreateDatasetCommand(BaseCommand):
         return dataset
 
     def validate(self) -> None:
-        exceptions = list()
+        exceptions: List[ValidationError] = list()
         database_id = self._properties["database"]
         table_name = self._properties["table_name"]
         schema = self._properties.get("schema", "")

@@ -327,7 +327,7 @@ constant progress has been made to cover more and more use cases.
 
 The API available is documented using [Swagger](https://swagger.io/)
 and the documentation
-can be made available under `/swaggerview/v1` by enabling
+can be made available under `/swagger/v1` by enabling
 the `FAB_API_SWAGGER_UI = True` configuration flag.
 
 There are other undocumented [private] ways to interact with Superset

@@ -28,7 +28,6 @@ x-superset-volumes: &superset-volumes
   - ./docker/pythonpath_dev:/app/pythonpath
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
-  - node_modules:/app/superset-frontend/node_modules
   - superset_home:/app/superset_home
 
 version: "3.7"
@@ -105,8 +104,6 @@ services:
 
 volumes:
   superset_home:
-    external: false
-  node_modules:
     external: false
   db_home:
     external: false

@@ -94,7 +94,7 @@ class QueryObject:
         extras: Optional[Dict[str, Any]] = None,
         columns: Optional[List[str]] = None,
         orderby: Optional[List[List[str]]] = None,
-        post_processing: Optional[List[Dict[str, Any]]] = None,
+        post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
         **kwargs: Any,
     ):
         metrics = metrics or []
@@ -114,7 +114,9 @@ class QueryObject:
         self.is_timeseries = is_timeseries
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
-        self.post_processing = post_processing or []
+        self.post_processing = [
+            post_proc for post_proc in post_processing or [] if post_proc
+        ]
         if not is_sip_38:
             self.groupby = groupby or []
 
@@ -224,9 +226,9 @@ class QueryObject:
             del cache_dict[k]
         if self.time_range:
             cache_dict["time_range"] = self.time_range
-        json_data = self.json_dumps(cache_dict, sort_keys=True)
         if self.post_processing:
             cache_dict["post_processing"] = self.post_processing
+        json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode("utf-8")).hexdigest()
 
     def json_dumps(self, obj: Any, sort_keys: bool = False) -> str:

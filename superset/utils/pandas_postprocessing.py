@@ -15,15 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
 import geohash as geohash_lib
 import numpy as np
 from flask_babel import gettext as _
 from geopy.point import Point
-from pandas import DataFrame, NamedAgg
+from pandas import DataFrame, NamedAgg, Series
 
 from superset.exceptions import QueryObjectValidationError
+from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
 
 WHITELIST_NUMPY_FUNCTIONS = (
     "average",
@@ -72,13 +73,38 @@ WHITELIST_CUMULATIVE_FUNCTIONS = (
 )
 
 
+def _flatten_column_after_pivot(
+    column: Union[str, Tuple[str, ...]], aggregates: Dict[str, Dict[str, Any]]
+) -> str:
+    """
+    Function for flattening column names into a single string. This step is necessary
+    to be able to properly serialize a DataFrame. If the column is a string, return
+    element unchanged. For multi-element columns, join column elements with a comma,
+    with the exception of pivots made with a single aggregate, in which case the
+    aggregate column name is omitted.
+
+    :param column: single element from `DataFrame.columns`
+    :param aggregates: aggregates
+    :return:
+    """
+    if isinstance(column, str):
+        return column
+    if len(column) == 1:
+        return column[0]
+    if len(aggregates) == 1 and len(column) > 1:
+        # drop aggregate for single aggregate pivots with multiple groupings
+        # from column name (aggregates always come first in column name)
+        column = column[1:]
+    return ", ".join(column)
+
+
 def validate_column_args(*argnames: str) -> Callable[..., Any]:
     def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped(df: DataFrame, **options: Any) -> Any:
             columns = df.columns.tolist()
             for name in argnames:
                 if name in options and not all(
-                    elem in columns for elem in options[name]
+                    elem in columns for elem in options.get(name) or []
                 ):
                     raise QueryObjectValidationError(
                         _("Referenced columns not available in DataFrame.")
@@ -154,14 +180,15 @@ def _append_columns(
 def pivot(  # pylint: disable=too-many-arguments
     df: DataFrame,
     index: List[str],
-    columns: List[str],
     aggregates: Dict[str, Dict[str, Any]],
+    columns: Optional[List[str]] = None,
     metric_fill_value: Optional[Any] = None,
     column_fill_value: Optional[str] = None,
     drop_missing_columns: Optional[bool] = True,
     combine_value_with_metric: bool = False,
     marginal_distributions: Optional[bool] = None,
     marginal_distribution_name: Optional[str] = None,
+    flatten_columns: bool = True,
 ) -> DataFrame:
     """
     Perform a pivot operation on a DataFrame.
@@ -179,16 +206,13 @@ def pivot(  # pylint: disable=too-many-arguments
     :param marginal_distributions: Add totals for row/column. Default to False
     :param marginal_distribution_name: Name of row/column with marginal distribution.
            Default to 'All'.
+    :param flatten_columns: Convert column names to strings
     :return: A pivot table
     :raises ChartDataValidationError: If the request in incorrect
     """
     if not index:
         raise QueryObjectValidationError(
             _("Pivot operation requires at least one index")
-        )
-    if not columns:
-        raise QueryObjectValidationError(
-            _("Pivot operation requires at least one column")
         )
     if not aggregates:
         raise QueryObjectValidationError(
@@ -218,6 +242,13 @@ def pivot(  # pylint: disable=too-many-arguments
     if combine_value_with_metric:
         df = df.stack(0).unstack()
 
+    # Make index regular column
+    if flatten_columns:
+        df.columns = [
+            _flatten_column_after_pivot(col, aggregates) for col in df.columns
+        ]
+    # return index as regular column
+    df.reset_index(level=0, inplace=True)
     return df
 
 
@@ -487,3 +518,29 @@ def geodetic_parse(
         return _append_columns(df, geodetic_df, columns)
     except ValueError:
         raise QueryObjectValidationError(_("Invalid geodetic string"))
+
+
+def contribution(
+    df: DataFrame, orientation: PostProcessingContributionOrientation
+) -> DataFrame:
+    """
+    Calculate cell contibution to row/column total.
+
+    :param df: DataFrame containing all-numeric data (temporal column ignored)
+    :param orientation: calculate by dividing cell with row/column total
+    :return: DataFrame with contributions, with temporal column at beginning if present
+    """
+    temporal_series: Optional[Series] = None
+    contribution_df = df.copy()
+    if DTTM_ALIAS in df.columns:
+        temporal_series = cast(Series, contribution_df.pop(DTTM_ALIAS))
+
+    if orientation == PostProcessingContributionOrientation.ROW:
+        contribution_dft = contribution_df.T
+        contribution_df = (contribution_dft / contribution_dft.sum()).T
+    else:
+        contribution_df = contribution_df / contribution_df.sum()
+
+    if temporal_series is not None:
+        contribution_df.insert(0, DTTM_ALIAS, temporal_series)
+    return contribution_df

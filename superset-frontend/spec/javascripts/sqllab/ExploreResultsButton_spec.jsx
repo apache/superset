@@ -65,12 +65,10 @@ describe('ExploreResultsButton', () => {
   };
   const mockChartTypeBarChart = {
     label: 'Distribution - Bar Chart',
-    requiresTime: false,
     value: 'dist_bar',
   };
   const mockChartTypeTB = {
     label: 'Time Series - Bar Chart',
-    requiresTime: true,
     value: 'bar',
   };
   const getExploreResultsButtonWrapper = (props = mockedProps) =>
@@ -201,7 +199,6 @@ describe('ExploreResultsButton', () => {
           const calls = fetchMock.calls(visualizeEndpoint);
           expect(calls).toHaveLength(1);
           const formData = calls[0][1].body;
-
           Object.keys(mockOptions).forEach(key => {
             // eslint-disable-next-line no-unused-expressions
             expect(formData.get(key)).toBeDefined();

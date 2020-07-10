@@ -30,6 +30,10 @@ declare namespace Cypress {
      */
     login(): void;
 
+    visitChartByParams(params: string | object): cy;
+    visitChartByName(name: string): cy;
+    visitChartById(id: number): cy;
+
     /**
      * Verify a waitXHR response and parse response JSON.
      */
@@ -46,14 +50,10 @@ declare namespace Cypress {
     /**
      * Verify slice successfully loaded.
      */
-    verifySliceSuccess({
-      waitAlias,
-      querySubString,
-      chartSelector,
-    }: {
+    verifySliceSuccess(options: {
       waitAlias: string;
-      querySubString: string;
-      chartSelector: JQuery.Selector;
+      querySubstring?: string | RegExp;
+      chartSelector?: JQuery.Selector;
     }): cy;
   }
 }

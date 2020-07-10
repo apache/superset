@@ -242,7 +242,7 @@ class TestSchedules(SupersetTestCase):
         send_email_smtp.assert_called_once()
         self.assertIsNone(send_email_smtp.call_args[1]["images"])
         self.assertEqual(
-            send_email_smtp.call_args[1]["data"]["screenshot.png"],
+            send_email_smtp.call_args[1]["data"]["screenshot"],
             element.screenshot_as_png,
         )
 
@@ -425,7 +425,7 @@ class TestSchedules(SupersetTestCase):
         send_email_smtp.assert_called_once()
 
         self.assertEqual(
-            send_email_smtp.call_args[1]["data"]["screenshot.png"],
+            send_email_smtp.call_args[1]["data"]["screenshot"],
             element.screenshot_as_png,
         )
 
