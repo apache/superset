@@ -19,7 +19,7 @@ usage() {
    echo "usage (BASH): . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>"
    echo "usage (ZSH): source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>"
    echo
-   echo "example: source set_relese_env.sh 0.36.0rc3 myid@apache.org"
+   echo "example: source set_release_env.sh 0.37.0rc1 myid@apache.org"
 }
 
 if [ -z "$1" ] || [ -z "$2" ]; then
