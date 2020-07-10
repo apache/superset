@@ -6,7 +6,7 @@
 #
 aiohttp==3.6.2            # via slackclient
 alembic==1.4.2            # via flask-migrate
-amqp==2.5.2               # via kombu
+amqp==2.6.0               # via kombu
 apispec[yaml]==3.3.1      # via flask-appbuilder
 async-timeout==3.0.1      # via aiohttp
 attrs==19.3.0             # via aiohttp, jsonschema
@@ -16,7 +16,7 @@ billiard==3.6.3.0         # via celery
 bleach==3.1.5             # via apache-superset (setup.py)
 brotli==1.0.7             # via flask-compress
 cachelib==0.1.1           # via apache-superset (setup.py)
-celery==4.4.2             # via apache-superset (setup.py)
+celery==4.4.6             # via apache-superset (setup.py)
 cffi==1.14.0              # via cryptography
 chardet==3.0.4            # via aiohttp
 click==7.1.2              # via apache-superset (setup.py), flask, flask-appbuilder
@@ -41,6 +41,7 @@ flask-sqlalchemy==2.4.1   # via flask-appbuilder, flask-migrate
 flask-talisman==0.7.0     # via apache-superset (setup.py)
 flask-wtf==0.14.3         # via apache-superset (setup.py), flask-appbuilder
 flask==1.1.2              # via apache-superset (setup.py), flask-appbuilder, flask-babel, flask-caching, flask-compress, flask-jwt-extended, flask-login, flask-migrate, flask-openid, flask-sqlalchemy, flask-wtf
+future==0.18.2            # via celery
 geographiclib==1.50       # via geopy
 geopy==1.22.0             # via apache-superset (setup.py)
 gunicorn==20.0.4          # via apache-superset (setup.py)
@@ -52,7 +53,7 @@ isodate==0.6.0            # via apache-superset (setup.py)
 itsdangerous==1.1.0       # via flask, flask-wtf
 jinja2==2.11.2            # via flask, flask-babel
 jsonschema==3.2.0         # via flask-appbuilder
-kombu==4.6.8              # via celery
+kombu==4.6.11             # via celery
 mako==1.1.2               # via alembic
 markdown==3.2.2           # via apache-superset (setup.py)
 markupsafe==1.1.1         # via jinja2, mako, wtforms
