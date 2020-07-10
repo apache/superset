@@ -500,6 +500,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
         validate=validate.OneOf(
             choices=(
                 "aggregate",
+                "contribution",
                 "cum",
                 "geodetic_parse",
                 "geohash_decode",
@@ -637,7 +638,7 @@ class ChartDataQueryObjectSchema(Schema):
         "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
     )
     post_processing = fields.List(
-        fields.Nested(ChartDataPostProcessingOperationSchema),
+        fields.Nested(ChartDataPostProcessingOperationSchema, allow_none=True),
         description="Post processing operations to be applied to the result set. "
         "Operations are applied to the result set in sequential order.",
     )
