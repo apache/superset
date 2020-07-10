@@ -17,58 +17,48 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import SyntaxHighlighter, {
   registerLanguage,
+  // @ts-ignore
 } from 'react-syntax-highlighter/dist/light';
+// @ts-ignore
 import sql from 'react-syntax-highlighter/dist/languages/hljs/sql';
+// @ts-ignore
 import github from 'react-syntax-highlighter/dist/styles/hljs/github';
-
-import { t } from '@superset-ui/translation';
 
 import Link from '../../components/Link';
 import ModalTrigger from '../../components/ModalTrigger';
 
 registerLanguage('sql', sql);
 
-const propTypes = {
-  tooltipText: PropTypes.string,
-  title: PropTypes.string,
-  sql: PropTypes.string,
-};
-
-const defaultProps = {
-  tooltipText: t('Show SQL'),
-  title: t('SQL statement'),
-  sql: '',
-};
-
-export default class ShowSQL extends React.PureComponent {
-  renderModalBody() {
-    return (
-      <div>
-        <SyntaxHighlighter language="sql" style={github}>
-          {this.props.sql}
-        </SyntaxHighlighter>
-      </div>
-    );
-  }
-  render() {
-    return (
-      <ModalTrigger
-        modalTitle={this.props.title}
-        triggerNode={
-          <Link
-            className="fa fa-eye pull-left m-l-2"
-            tooltip={this.props.tooltipText}
-            href="#"
-          />
-        }
-        modalBody={this.renderModalBody()}
-      />
-    );
-  }
+interface ShowSQLProps {
+  sql: string;
+  title: string;
+  tooltipText: string;
 }
 
-ShowSQL.propTypes = propTypes;
-ShowSQL.defaultProps = defaultProps;
+export default function ShowSQL({
+  tooltipText,
+  title,
+  sql: sqlString,
+}: ShowSQLProps) {
+  return (
+    <ModalTrigger
+      modalTitle={title}
+      triggerNode={
+        <Link
+          className="fa fa-eye pull-left m-l-2"
+          tooltip={tooltipText}
+          href="#"
+        />
+      }
+      modalBody={
+        <div>
+          <SyntaxHighlighter language="sql" style={github}>
+            {sqlString}
+          </SyntaxHighlighter>
+        </div>
+      }
+    />
+  );
+}
