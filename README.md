@@ -41,7 +41,7 @@ A modern, enterprise-ready business intelligence web application.
 [**Get Help**](#get-help) |
 [**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |
-[**Superset Users**](https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md) |
+[**Superset Users**](INTHEWILD.md) |
 [**License**](#license) |
 
 
