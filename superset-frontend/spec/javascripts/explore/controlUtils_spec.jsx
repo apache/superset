@@ -27,7 +27,6 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
   getAllControlsState,
-  getControlsState,
 } from 'src/explore/controlUtils';
 
 describe('controlUtils', () => {
