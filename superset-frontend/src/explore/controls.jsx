@@ -204,9 +204,9 @@ export const controls = {
     label: t('Datasource'),
     default: null,
     description: null,
-    mapStateToProps: (state, control, actions) => ({
-      datasource: state.datasource,
-      onDatasourceSave: actions ? actions.setDatasource : () => {},
+    mapStateToProps: ({ datasource }) => ({
+      datasource,
+      isEditable: !!datasource,
     }),
   },
 
