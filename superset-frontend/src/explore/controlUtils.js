@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { expandControlConfig } from '@superset-ui/chart-controls';
 import { controls as SHARED_CONTROLS } from './controls';
+import * as exploreActions from './actions/exploreActions';
 import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
@@ -93,7 +94,7 @@ export function applyMapStateToPropsToControl(controlState, controlPanelState) {
   if (mapStateToProps && controlPanelState) {
     return {
       ...controlState,
-      ...mapStateToProps(controlPanelState, controlState),
+      ...mapStateToProps(controlPanelState, controlState, exploreActions),
     };
   }
   return controlState;
