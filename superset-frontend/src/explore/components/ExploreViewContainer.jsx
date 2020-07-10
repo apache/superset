@@ -23,10 +23,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, logging, t } from '@superset-ui/core';
 
-import {
-  PluginContext,
-  LoadingStatus,
-} from 'src/components/DynamicPlugins/PluginContext';
+import { PluginContext } from 'src/components/DynamicPlugins/PluginContext';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -332,7 +329,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   render() {
-    if (this.context.status === LoadingStatus.LOADING) {
+    if (this.context.loading) {
       return 'loading...';
     }
     if (this.props.standalone) {

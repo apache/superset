@@ -1,23 +1,25 @@
 import React, { useContext } from 'react';
 
-export enum LoadingStatus {
-  LOADING = 'loading',
-  COMPLETE = 'complete',
-  ERROR = 'error',
-}
-
 export type PluginContextType = {
-  status: LoadingStatus;
-  error: null | {
-    message: string;
+  loading: boolean;
+  plugins: {
+    [key: string]: {
+      key: string;
+      loading: boolean;
+      error: null | Error;
+    };
   };
+  fetchAll: () => void;
+  // TODO: implement this
+  // fetchByKeys: (keys: string[]) => void;
 };
 
-export const initialPluginContext: PluginContextType = {
-  status: LoadingStatus.LOADING,
-  error: null,
+export const dummyPluginContext: PluginContextType = {
+  loading: false,
+  plugins: {},
+  fetchAll: () => {},
 };
 
-export const PluginContext = React.createContext(initialPluginContext);
+export const PluginContext = React.createContext(dummyPluginContext);
 
 export const useDynamicPluginContext = () => useContext(PluginContext);
