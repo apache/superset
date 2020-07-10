@@ -264,14 +264,15 @@ class SupersetAppInitializer:
             category="",
             category_icon="",
         )
-        appbuilder.add_view(
-            DynamicPluginsView,
-            "Custom Plugins",
-            label=__("Custom Plugins"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-puzzle-piece",
-        )
+        if feature_flag_manager.is_feature_enabled("DYNAMIC_PLUGINS"):
+            appbuilder.add_view(
+                DynamicPluginsView,
+                "Custom Plugins",
+                label=__("Custom Plugins"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-puzzle-piece",
+            )
         appbuilder.add_view(
             CssTemplateModelView,
             "CSS Templates",

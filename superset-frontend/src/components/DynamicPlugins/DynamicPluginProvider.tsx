@@ -1,5 +1,6 @@
 import React, { useEffect, useReducer } from 'react';
 import { SupersetClient, Json } from '@superset-ui/connection';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   PluginContext,
   PluginContextType,
@@ -96,6 +97,7 @@ export default function DynamicPluginProvider({ children }: Props) {
     ...dummyPluginContext,
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     fetchAll,
+    loading: isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS),
     // TODO: Write fetchByKeys
   });
 
@@ -130,7 +132,7 @@ export default function DynamicPluginProvider({ children }: Props) {
             // eslint-disable-next-line no-console
             console.error(
               `Failed to load plugin ${plugin.key} with the following error:`,
-              err,
+              err.stack,
             );
             error = err;
           }
@@ -148,7 +150,9 @@ export default function DynamicPluginProvider({ children }: Props) {
   }
 
   useEffect(() => {
-    fetchAll();
+    if (isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS)) {
+      fetchAll();
+    }
   }, []);
 
   return (
