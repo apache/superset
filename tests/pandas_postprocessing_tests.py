@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+from datetime import datetime
 import math
 from typing import Any, List, Optional
 
-from pandas import Series
+from pandas import DataFrame, Series
 
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import pandas_postprocessing as proc
+from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
 
 from .base_tests import SupersetTestCase
 from .fixtures.dataframes import categories_df, lonlat_df, timeseries_df
@@ -481,3 +483,28 @@ class TestPostProcessing(SupersetTestCase):
         self.assertListEqual(
             series_to_list(post_df["latitude"]), series_to_list(lonlat_df["latitude"]),
         )
+
+    def test_contribution(self):
+        df = DataFrame(
+            {
+                DTTM_ALIAS: [
+                    datetime(2020, 7, 16, 14, 49),
+                    datetime(2020, 7, 16, 14, 50),
+                ],
+                "a": [1, 3],
+                "b": [1, 9],
+            }
+        )
+
+        # cell contribution across row
+        row_df = proc.contribution(df, PostProcessingContributionOrientation.ROW)
+        self.assertListEqual(df.columns.tolist(), [DTTM_ALIAS, "a", "b"])
+        self.assertListEqual(series_to_list(row_df["a"]), [0.5, 0.25])
+        self.assertListEqual(series_to_list(row_df["b"]), [0.5, 0.75])
+
+        # cell contribution across column without temporal column
+        df.pop(DTTM_ALIAS)
+        column_df = proc.contribution(df, PostProcessingContributionOrientation.COLUMN)
+        self.assertListEqual(df.columns.tolist(), ["a", "b"])
+        self.assertListEqual(series_to_list(column_df["a"]), [0.25, 0.75])
+        self.assertListEqual(series_to_list(column_df["b"]), [0.1, 0.9])
