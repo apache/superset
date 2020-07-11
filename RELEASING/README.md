@@ -76,8 +76,6 @@ The script will output the exported variables. Here's example for 0.37.0rc1:
 
 ```
     Set Release env variables
-    SUPERSET_PATH=/Users/ville/src/incubator-superset
-    SUPERSET_BIN=/Users/ville/src/incubator-superset/superset/bin
     SUPERSET_VERSION=0.37.0
     SUPERSET_RC=1
     SUPERSET_GITHUB_BRANCH=0.37
@@ -93,15 +91,22 @@ The script will output the exported variables. Here's example for 0.37.0rc1:
 ## Crafting a source release
 
 When crafting a new minor or major release we create
-a branch named with the release MAJOR.MINOR version (on this example 0.35).
+a branch named with the release MAJOR.MINOR version (on this example 0.37).
 This new branch will hold all PATCH and release candidates
 that belong to the MAJOR.MINOR version.
 
 The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
-Then (if needed) apply all cherries that will make the PATCH
+Then (if needed) apply all cherries that will make the PATCH.
 
-Next update the `CHANGELOG.md` with all the changes that are included in the release. Make sure you have
-set your GITHUB_TOKEN environment variable.
+```bash
+git checkout -b $SUPERSET_GITHUB_BRANCH
+git push upstream $SUPERSET_GITHUB_BRANCH
+```
+
+Next, update the `CHANGELOG.md` with all the changes that are included in the release.
+Make sure the branch has been pushed to `upstream` to ensure the changelog generator
+can pick up changes since the previous release (otherwise `github-changes` will raise
+an `Error: Not Found` exception).
 
 ```bash
 # will overwrites the local CHANGELOG.md, somehow you need to merge it in
