@@ -79,8 +79,8 @@ const SubMenu = ({
   name,
 }: SubMenuProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMenu, setSelectedMenu] = useState(
-    (childs && childs[0] && childs[0].label) || '',
+  const [selectedMenu, setSelectedMenu] = useState<string | undefined>(
+    childs?.[0]?.label,
   );
 
   const onOpen = () => {
