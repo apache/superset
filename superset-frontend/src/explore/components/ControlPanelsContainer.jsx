@@ -66,19 +66,20 @@ class ControlPanelsContainer extends React.Component {
   renderControl({ name, config }) {
     const { actions, controls, exploreState, form_data: formData } = this.props;
     const { visibility } = config;
+
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
     // When it is an object we read control data straight from `config` instead
     const controlData = {
-      ...controls[name],
       ...config,
+      ...controls[name],
       name,
-      // apply current value in formData
-      value: formData[name],
     };
     const {
       validationErrors,
       provideFormDataToProps,
+      value,
+      default: defaultValue,
       ...restProps
     } = controlData;
 
@@ -90,6 +91,7 @@ class ControlPanelsContainer extends React.Component {
     return (
       <Control
         name={name}
+        value={value === undefined ? defaultValue : value}
         key={`control-${name}`}
         validationErrors={validationErrors}
         actions={actions}
