@@ -90,13 +90,32 @@ export const getControlConfig = memoizeOne(function getControlConfig(
 
 export function applyMapStateToPropsToControl(controlState, controlPanelState) {
   const { mapStateToProps } = controlState;
+  let { value } = controlState;
+  let state = { ...controlState };
   if (mapStateToProps && controlPanelState) {
-    return {
+    state = {
       ...controlState,
       ...mapStateToProps(controlPanelState, controlState),
     };
   }
-  return controlState;
+  // If default is a function, evaluate it
+  if (typeof state.default === 'function') {
+    state.default = state.default(state, controlPanelState);
+    // if default is still a function, discard
+    if (typeof state.default === 'function') {
+      delete state.default;
+    }
+  }
+  // If no current value, set it as default
+  if (state.default && value === undefined) {
+    value = state.default;
+  }
+  // If a choice control went from multi=false to true, wrap value in array
+  if (value && state.multi && !Array.isArray(value)) {
+    value = [value];
+  }
+  state.value = value;
+  return state;
 }
 
 function handleMissingChoice(control) {
@@ -130,37 +149,14 @@ export function getControlStateFromControlConfig(
   if (!controlConfig) {
     return null;
   }
-  let controlState = { ...controlConfig };
+  let controlState = { ...controlConfig, value };
   // only apply mapStateToProps when control states have been initialized
-  if (
-    controlPanelState &&
-    (controlPanelState.controls || !controlPanelState.isInitializing)
-  ) {
+  if (controlPanelState && controlPanelState.controls) {
     controlState = applyMapStateToPropsToControl(
       controlState,
       controlPanelState,
     );
   }
-
-  // If default is a function, evaluate it
-  if (typeof controlState.default === 'function') {
-    controlState.default = controlState.default(
-      controlState,
-      controlPanelState,
-    );
-    // if default is still a function, discard
-    if (typeof controlState.default === 'function') {
-      delete controlState.default;
-    }
-  }
-
-  // If a choice control went from multi=false to true, wrap value in array
-  const controlValue =
-    controlConfig.multi && value && !Array.isArray(value) ? [value] : value;
-
-  controlState.value =
-    typeof controlValue === 'undefined' ? controlState.default : controlValue;
-
   return validateControl(handleMissingChoice(controlState), controlState);
 }
 

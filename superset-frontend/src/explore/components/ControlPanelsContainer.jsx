@@ -78,8 +78,6 @@ class ControlPanelsContainer extends React.Component {
     const {
       validationErrors,
       provideFormDataToProps,
-      value,
-      default: defaultValue,
       ...restProps
     } = controlData;
 
@@ -91,7 +89,6 @@ class ControlPanelsContainer extends React.Component {
     return (
       <Control
         name={name}
-        value={value === undefined ? defaultValue : value}
         key={`control-${name}`}
         validationErrors={validationErrors}
         actions={actions}
