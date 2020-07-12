@@ -151,6 +151,7 @@ export function getControlStateFromControlConfig(
   }
   let controlState = { ...controlConfig, value };
   // only apply mapStateToProps when control states have been initialized
+  // or when explicitly didn't provide control panel state (mostly for testing)
   if (
     (controlPanelState && controlPanelState.controls) ||
     controlPanelState === null
@@ -159,8 +160,9 @@ export function getControlStateFromControlConfig(
       controlState,
       controlPanelState,
     );
+    return validateControl(handleMissingChoice(controlState), controlState);
   }
-  return validateControl(handleMissingChoice(controlState), controlState);
+  return controlState;
 }
 
 export function getControlState(controlKey, vizType, state, value) {

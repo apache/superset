@@ -263,6 +263,15 @@ describe('controlUtils', () => {
       const control = getControlState('metric', 'table', state, null);
       expect(control.validationErrors).toEqual(['cannot be empty']);
     });
+    it('should not validate if control panel is initializing', () => {
+      const control = getControlState(
+        'metric',
+        'table',
+        { ...state, controls: undefined },
+        undefined,
+      );
+      expect(control.validationErrors).toBeUndefined();
+    });
   });
 
   describe('queryFields', () => {
