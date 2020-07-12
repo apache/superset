@@ -84,7 +84,7 @@
   "devDependencies": {
     "@babel/core": "^7.9.0",
     "babel-loader": "^8.1.0",
-    "fork-ts-checker-webpack-plugin": "^4.1.2",
+    "fork-ts-checker-webpack-plugin": "^5.0.7",
     "ts-loader": "^7.0.4",
     "typescript": "^3.8.3"
   }
