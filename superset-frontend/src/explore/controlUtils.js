@@ -151,7 +151,10 @@ export function getControlStateFromControlConfig(
   }
   let controlState = { ...controlConfig, value };
   // only apply mapStateToProps when control states have been initialized
-  if (controlPanelState && controlPanelState.controls) {
+  if (
+    (controlPanelState && controlPanelState.controls) ||
+    controlPanelState === null
+  ) {
     controlState = applyMapStateToPropsToControl(
       controlState,
       controlPanelState,

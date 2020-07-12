@@ -35,6 +35,7 @@ describe('controlUtils', () => {
       columns: ['a', 'b', 'c'],
       metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
     },
+    controls: {},
   };
 
   beforeAll(() => {
@@ -250,9 +251,10 @@ describe('controlUtils', () => {
     it('should not apply mapStateToProps when initializing', () => {
       const control = getControlState('metrics', 'table', {
         ...state,
-        isInitializing: true,
+        controls: undefined,
       });
-      expect(control.default).toEqual(null);
+      expect(typeof control.default).toBe('function');
+      expect(control.value).toBe(undefined);
     });
   });
 
