@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import styled from '@superset-ui/style';
 import DatasetModal from 'src/views/datasetList/DatasetModal';
 import { Button, Nav, Navbar, MenuItem } from 'react-bootstrap';
@@ -64,71 +64,72 @@ const StyledHeader = styled.header`
 `;
 
 interface SubMenuProps {
-  createButton?: { name: string; url: string | null };
   canCreate?: boolean;
-  name: string;
   childs?: Array<{ label: string; name: string; url: string }>;
+  createButton?: { name: string; url: string | null };
+  fetchData?: () => void;
+  name: string;
 }
 
-interface SubMenuState {
-  selectedMenu: string;
-  isModalOpen: boolean;
-}
+const SubMenu = ({
+  canCreate,
+  childs,
+  createButton,
+  fetchData,
+  name,
+}: SubMenuProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMenu, setSelectedMenu] = useState<string | undefined>(
+    childs?.[0]?.label,
+  );
 
-class SubMenu extends React.PureComponent<SubMenuProps, SubMenuState> {
-  state: SubMenuState = {
-    selectedMenu:
-      this.props.childs && this.props.childs[0]
-        ? this.props.childs[0].label
-        : '',
-    isModalOpen: false,
+  const onOpen = () => {
+    setIsModalOpen(true);
   };
 
-  onOpen = () => {
-    this.setState({ isModalOpen: true });
+  const onClose = () => {
+    setIsModalOpen(false);
   };
 
-  onClose = () => {
-    this.setState({ isModalOpen: false });
+  const handleClick = (item: string) => () => {
+    setSelectedMenu(item);
   };
 
-  handleClick = (item: string) => () => {
-    this.setState({ selectedMenu: item });
-  };
-
-  render() {
-    return (
-      <StyledHeader>
-        <Navbar inverse fluid role="navigation">
-          <Navbar.Header>
-            <Navbar.Brand>{this.props.name}</Navbar.Brand>
-          </Navbar.Header>
-          <DatasetModal show={this.state.isModalOpen} onHide={this.onClose} />
-          <Nav>
-            {this.props.childs &&
-              this.props.childs.map(child => (
-                <MenuItem
-                  active={child.label === this.state.selectedMenu}
-                  key={`${child.label}`}
-                  eventKey={`${child.name}`}
-                  href={child.url}
-                  onClick={this.handleClick(child.label)}
-                >
-                  {child.label}
-                </MenuItem>
-              ))}
+  return (
+    <StyledHeader>
+      <Navbar inverse fluid role="navigation">
+        <Navbar.Header>
+          <Navbar.Brand>{name}</Navbar.Brand>
+        </Navbar.Header>
+        <DatasetModal
+          fetchData={fetchData}
+          onHide={onClose}
+          show={isModalOpen}
+        />
+        <Nav>
+          {childs &&
+            childs.map(child => (
+              <MenuItem
+                active={child.label === selectedMenu}
+                eventKey={`${child.name}`}
+                href={child.url}
+                key={`${child.label}`}
+                onClick={handleClick(child.label)}
+              >
+                {child.label}
+              </MenuItem>
+            ))}
+        </Nav>
+        {canCreate && createButton && (
+          <Nav className="navbar-right">
+            <Button onClick={onOpen}>
+              <i className="fa fa-plus" /> {createButton.name}
+            </Button>
           </Nav>
-          {this.props.canCreate && this.props.createButton && (
-            <Nav className="navbar-right">
-              <Button onClick={this.onOpen}>
-                <i className="fa fa-plus" /> {this.props.createButton.name}
-              </Button>
-            </Nav>
-          )}
-        </Navbar>
-      </StyledHeader>
-    );
-  }
-}
+        )}
+      </Navbar>
+    </StyledHeader>
+  );
+};
 
 export default SubMenu;
