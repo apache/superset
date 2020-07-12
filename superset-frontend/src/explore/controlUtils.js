@@ -88,6 +88,28 @@ export const getControlConfig = memoizeOne(function getControlConfig(
   return control?.config || control;
 });
 
+function handleMissingChoice(control) {
+  // If the value is not valid anymore based on choices, clear it
+  const value = control.value;
+  if (
+    control.type === 'SelectControl' &&
+    !control.freeForm &&
+    control.choices &&
+    value
+  ) {
+    const alteredControl = { ...control };
+    const choiceValues = control.choices.map(c => c[0]);
+    if (control.multi && value.length > 0) {
+      alteredControl.value = value.filter(el => choiceValues.indexOf(el) > -1);
+      return alteredControl;
+    } else if (!control.multi && choiceValues.indexOf(value) < 0) {
+      alteredControl.value = null;
+      return alteredControl;
+    }
+  }
+  return control;
+}
+
 export function applyMapStateToPropsToControl(controlState, controlPanelState) {
   const { mapStateToProps } = controlState;
   let { value } = controlState;
@@ -115,29 +137,7 @@ export function applyMapStateToPropsToControl(controlState, controlPanelState) {
     value = [value];
   }
   state.value = value;
-  return state;
-}
-
-function handleMissingChoice(control) {
-  // If the value is not valid anymore based on choices, clear it
-  const value = control.value;
-  if (
-    control.type === 'SelectControl' &&
-    !control.freeForm &&
-    control.choices &&
-    value
-  ) {
-    const alteredControl = { ...control };
-    const choiceValues = control.choices.map(c => c[0]);
-    if (control.multi && value.length > 0) {
-      alteredControl.value = value.filter(el => choiceValues.indexOf(el) > -1);
-      return alteredControl;
-    } else if (!control.multi && choiceValues.indexOf(value) < 0) {
-      alteredControl.value = null;
-      return alteredControl;
-    }
-  }
-  return control;
+  return validateControl(handleMissingChoice(state), state);
 }
 
 export function getControlStateFromControlConfig(
@@ -149,18 +149,14 @@ export function getControlStateFromControlConfig(
   if (!controlConfig) {
     return null;
   }
-  let controlState = { ...controlConfig, value };
+  const controlState = { ...controlConfig, value };
   // only apply mapStateToProps when control states have been initialized
   // or when explicitly didn't provide control panel state (mostly for testing)
   if (
     (controlPanelState && controlPanelState.controls) ||
     controlPanelState === null
   ) {
-    controlState = applyMapStateToPropsToControl(
-      controlState,
-      controlPanelState,
-    );
-    return validateControl(handleMissingChoice(controlState), controlState);
+    return applyMapStateToPropsToControl(controlState, controlPanelState);
   }
   return controlState;
 }
