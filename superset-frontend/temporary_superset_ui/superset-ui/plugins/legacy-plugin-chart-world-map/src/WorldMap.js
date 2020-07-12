@@ -21,7 +21,6 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { getNumberFormatter } from '@superset-ui/number-format';
-import './WorldMap.css';
 
 const propTypes = {
   data: PropTypes.arrayOf(

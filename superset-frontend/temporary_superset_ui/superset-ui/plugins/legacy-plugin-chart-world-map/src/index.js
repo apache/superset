@@ -33,7 +33,7 @@ const metadata = new ChartMetadata({
 export default class WorldMapChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactWorldMap.js'),
+      loadChart: () => import('./ReactWorldMap'),
       metadata,
       transformProps,
       controlPanel,
