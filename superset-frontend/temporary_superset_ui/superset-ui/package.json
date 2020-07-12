@@ -62,7 +62,7 @@
     "@airbnb/nimbus": "^3.1.2",
     "@superset-ui/commit-config": "^0.0.9",
     "@types/enzyme": "^3.10.3",
-    "@types/jest": "^25.1.1",
+    "@types/jest": "^26.0.4",
     "@types/jsdom": "^12.2.4",
     "@types/react-test-renderer": "^16.9.2",
     "enzyme": "^3.11.0",
