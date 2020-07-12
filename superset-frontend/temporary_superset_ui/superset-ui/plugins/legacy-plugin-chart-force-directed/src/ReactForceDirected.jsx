@@ -16,7 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { reactify } from '@superset-ui/chart';
+import styled from '@superset-ui/style';
+import PropTypes from 'prop-types';
 import Component from './ForceDirected';
 
-export default reactify(Component);
+const ReactComponent = reactify(Component);
+
+const ForceDirected = ({ className, ...otherProps }) => {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+};
+
+ForceDirected.propTypes = {
+  className: PropTypes.string.isRequired,
+};
+
+export default styled(ForceDirected)`
+  .superset-legacy-chart-force-directed {
+    path.link {
+      fill: none;
+      stroke: #000;
+      stroke-width: 1.5px;
+    }
+    circle {
+      fill: #ccc;
+      stroke: #000;
+      stroke-width: 1.5px;
+      stroke-opacity: 1;
+      opacity: 0.75;
+    }
+    text {
+      fill: #000;
+      font: 10px sans-serif;
+      pointer-events: none;
+    }
+  }
+`;
