@@ -19,16 +19,17 @@
 import React, { FunctionComponent, useState } from 'react';
 import styled from '@superset-ui/style';
 import { SupersetClient } from '@superset-ui/connection';
-import { t } from '@superset-ui/translation';
 import { isEmpty, isNil } from 'lodash';
+import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
-import TableSelector from 'src/components/TableSelector';
 import Modal from 'src/components/Modal';
+import TableSelector from 'src/components/TableSelector';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
 interface DatasetModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  fetchData?: () => void;
   onHide: () => void;
   show: boolean;
 }
@@ -47,13 +48,14 @@ const TableSelectorContainer = styled.div`
 const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   addDangerToast,
   addSuccessToast,
+  fetchData,
   onHide,
   show,
 }) => {
-  const [datasourceId, setDatasourceId] = useState<number | null>(null);
-  const [disableSave, setDisableSave] = useState(true);
   const [currentSchema, setSchema] = useState('');
   const [currentTableName, setTableName] = useState('');
+  const [datasourceId, setDatasourceId] = useState<number | null>(null);
+  const [disableSave, setDisableSave] = useState(true);
 
   const onChange = ({
     dbId,
@@ -71,17 +73,19 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   };
 
   const onSave = () => {
-    const data = {
-      database: datasourceId,
-      schema: currentSchema,
-      table_name: currentTableName,
-    };
     SupersetClient.post({
       endpoint: '/api/v1/dataset/',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        database: datasourceId,
+        schema: currentSchema,
+        table_name: currentTableName,
+      }),
       headers: { 'Content-Type': 'application/json' },
     })
       .then(() => {
+        if (fetchData) {
+          fetchData();
+        }
         addSuccessToast(t('The dataset has been saved'));
         onHide();
       })
