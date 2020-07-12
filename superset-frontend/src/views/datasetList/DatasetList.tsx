@@ -519,7 +519,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   return (
     <>
-      <SubMenu {...menu} canCreate={canCreate()} />
+      <SubMenu
+        {...menu}
+        canCreate={canCreate()}
+        fetchData={() => lastFetchDataConfig && fetchData(lastFetchDataConfig)}
+      />
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(
