@@ -23,7 +23,6 @@ import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
-import './Sankey.css';
 
 const propTypes = {
   data: PropTypes.arrayOf(
