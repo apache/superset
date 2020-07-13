@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Union
+from typing import Any, Union
 
 from marshmallow import validate, ValidationError
 
@@ -28,7 +28,7 @@ class OneOfCaseInsensitive(validate.OneOf):
     validation case insensitively.
     """
 
-    def __call__(self, value) -> str:
+    def __call__(self, value: Any) -> str:
         try:
             print(value)
             if (value.lower() if isinstance(value, str) else value) not in [
