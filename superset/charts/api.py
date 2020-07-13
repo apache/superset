@@ -465,13 +465,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is incorrect")
         except ValidationError as error:
             return self.response_400(
-                _("Request is incorrect: %(error)s", error=error.messages)
+                message=_("Request is incorrect: %(error)s", error=error.messages)
             )
         try:
             query_context.raise_for_access()
         except SupersetSecurityException:
             return self.response_401()
         payload = query_context.get_payload()
+        for query in payload:
+            if query["error"]:
+                raise self.response_500(message=f"Error: {query['error']}")
         result_format = query_context.result_format
         if result_format == ChartDataResultFormat.CSV:
             # return the first result

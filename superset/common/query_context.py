@@ -111,8 +111,7 @@ class QueryContext:
                 self.df_metrics_to_num(df, query_object)
 
             df.replace([np.inf, -np.inf], np.nan)
-
-        df = query_object.exec_post_processing(df)
+            df = query_object.exec_post_processing(df)
 
         return {
             "query": result.query,
@@ -160,10 +159,7 @@ class QueryContext:
         df = payload["df"]
         status = payload["status"]
         if status != utils.QueryStatus.FAILED:
-            if df.empty:
-                payload["error"] = "No data"
-            else:
-                payload["data"] = self.get_data(df)
+            payload["data"] = self.get_data(df)
         del payload["df"]
         if self.result_type == utils.ChartDataResultType.RESULTS:
             return {"data": payload["data"]}
