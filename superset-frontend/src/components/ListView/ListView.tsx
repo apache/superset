@@ -74,8 +74,12 @@ const BulkSelectWrapper = styled(Alert)`
     margin-left: 16px;
   }
 
+  .supersetButton {
+    margin-left: 16px;
+  }
+
   .divider {
-    margin: -8px 16px;
+    margin: -8px 0 -8px 16px;
     width: 1px;
     height: 32px;
     background: rgba(0, 0, 0, 0.0001);

@@ -25,7 +25,7 @@ import rison from 'rison';
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
-import ListView from 'src/components/ListView/ListView';
+import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import ExpandableList from 'src/components/ExpandableList';
 import {
   FetchDataConfig,
@@ -44,23 +44,24 @@ interface Props {
 }
 
 interface State {
-  dashboards: any[];
+  bulkSelectEnabled: boolean;
   dashboardCount: number;
-  loading: boolean;
+  dashboards: any[];
+  dashboardToEdit: Dashboard | null;
   filterOperators: FilterOperatorMap;
   filters: Filters;
-  permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
-  dashboardToEdit: Dashboard | null;
+  loading: boolean;
+  permissions: string[];
 }
 
 interface Dashboard {
-  id: number;
-  changed_by: string;
   changed_by_name: string;
   changed_by_url: string;
   changed_on_delta_humanized: string;
+  changed_by: string;
   dashboard_title: string;
+  id: number;
   published: boolean;
   url: string;
 }
@@ -71,14 +72,15 @@ class DashboardList extends React.PureComponent<Props, State> {
   };
 
   state: State = {
+    bulkSelectEnabled: false,
     dashboardCount: 0,
     dashboards: [],
+    dashboardToEdit: null,
     filterOperators: {},
     filters: [],
     lastFetchDataConfig: null,
     loading: true,
     permissions: [],
-    dashboardToEdit: null,
   };
 
   componentDidMount() {
@@ -140,14 +142,14 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { owners },
         },
       }: any) => (
-        <ExpandableList
-          items={owners.map(
-            ({ first_name: firstName, last_name: lastName }: any) =>
-              `${firstName} ${lastName}`,
-          )}
-          display={2}
-        />
-      ),
+          <ExpandableList
+            items={owners.map(
+              ({ first_name: firstName, last_name: lastName }: any) =>
+                `${firstName} ${lastName}`,
+            )}
+            display={2}
+          />
+        ),
       Header: t('Owners'),
       accessor: 'owners',
       disableSortBy: true,
@@ -170,10 +172,10 @@ class DashboardList extends React.PureComponent<Props, State> {
           original: { published },
         },
       }: any) => (
-        <span className="no-wrap">
-          {published ? <i className="fa fa-check" /> : ''}
-        </span>
-      ),
+          <span className="no-wrap">
+            {published ? <i className="fa fa-check" /> : ''}
+          </span>
+        ),
       Header: t('Published'),
       accessor: 'published',
     },
@@ -252,6 +254,10 @@ class DashboardList extends React.PureComponent<Props, State> {
       disableSortBy: true,
     },
   ];
+
+  toggleBulkSelect = () => {
+    this.setState({ bulkSelectEnabled: !this.state.bulkSelectEnabled });
+  };
 
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
@@ -498,15 +504,26 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   render() {
     const {
-      dashboards,
+      bulkSelectEnabled,
       dashboardCount,
-      loading,
-      filters,
+      dashboards,
       dashboardToEdit,
+      filters,
+      loading,
     } = this.state;
     return (
       <>
-        <SubMenu name={t('Dashboards')} />
+        <SubMenu
+          name={t('Dashboards')}
+          secondaryButton={
+            this.canDelete || this.canExport
+              ? {
+                name: t('Bulk Select'),
+                onClick: this.toggleBulkSelect,
+              }
+              : undefined
+          }
+        />
         <ConfirmStatusChange
           title={t('Please confirm')}
           description={t(
@@ -515,26 +532,20 @@ class DashboardList extends React.PureComponent<Props, State> {
           onConfirm={this.handleBulkDashboardDelete}
         >
           {confirmDelete => {
-            const bulkActions = [];
+            const bulkActions: ListViewProps['bulkActions'] = [];
             if (this.canDelete) {
               bulkActions.push({
                 key: 'delete',
-                name: (
-                  <>
-                    <i className="fa fa-trash" /> {t('Delete')}
-                  </>
-                ),
+                name: t('Delete'),
+                type: 'danger',
                 onSelect: confirmDelete,
               });
             }
             if (this.canExport) {
               bulkActions.push({
                 key: 'export',
-                name: (
-                  <>
-                    <i className="fa fa-database" /> {t('Export')}
-                  </>
-                ),
+                name: t('Export'),
+                type: 'primary',
                 onSelect: this.handleBulkDashboardExport,
               });
             }
@@ -559,6 +570,8 @@ class DashboardList extends React.PureComponent<Props, State> {
                   initialSort={this.initialSort}
                   filters={filters}
                   bulkActions={bulkActions}
+                  bulkSelectEnabled={bulkSelectEnabled}
+                  disableBulkSelect={this.toggleBulkSelect}
                   isSIP34FilterUIEnabled={this.isSIP34FilterUIEnabled}
                 />
               </>

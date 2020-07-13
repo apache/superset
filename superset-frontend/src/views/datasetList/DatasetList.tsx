@@ -541,6 +541,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       <AddDatasetModal
         show={datasetAddModalOpen}
         onHide={() => setDatasetAddModalOpen(false)}
+        onDatasetAdd={() => {
+          if (lastFetchDataConfig) fetchData(lastFetchDataConfig);
+        }}
       />
       {datasetCurrentlyDeleting && (
         <DeleteModal
@@ -564,15 +567,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         onConfirm={handleBulkDatasetDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = [];
-          if (canDelete) {
-            bulkActions.push({
-              key: 'delete',
-              name: t('Delete'),
-              onSelect: confirmDelete,
-              type: 'danger',
-            });
-          }
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
           return (
             <ListView
               className="dataset-list-view"
