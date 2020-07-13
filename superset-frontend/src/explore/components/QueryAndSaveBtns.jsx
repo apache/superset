@@ -60,8 +60,8 @@ const Styles = styled.div`
   flex-direction: row;
   align-items: center;
   padding-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
-  
- .save-btn {
+
+  .save-btn {
     width: 100px;
   }
 `;

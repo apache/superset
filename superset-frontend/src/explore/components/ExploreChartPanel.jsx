@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Panel } from 'react-bootstrap';
 import { ParentSize } from '@vx/responsive';
 import styled from '@superset-ui/style';
 import { chartPropShape } from '../../dashboard/util/propShapes';
@@ -56,7 +55,7 @@ const Styles = styled.div`
   flex-direction: column;
   align-items: stretch;
   align-content: stretch;
-  div:last-of-type{
+  div:last-of-type {
     flex-basis: 100%;
   }
 `;

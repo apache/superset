@@ -326,7 +326,7 @@ class ExploreViewContainer extends React.Component {
       .control-pane {
         display: flex;
         flex-direction: column;
-        padding: 0 ${({ theme }) => 2*theme.gridUnit}px;
+        padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
       }
     `;
 
@@ -415,7 +415,7 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export { ExploreViewContainer};
+export { ExploreViewContainer };
 
 export default connect(
   mapStateToProps,
