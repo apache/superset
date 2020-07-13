@@ -18,40 +18,21 @@
  */
 import React from 'react';
 import styled from '@superset-ui/style';
-import { Button, Nav, Navbar, MenuItem } from 'react-bootstrap';
+import { Nav, Navbar, MenuItem } from 'react-bootstrap';
+import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.header`
   margin-top: -20px;
   .navbar-header .navbar-brand {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
-
   .navbar-right {
-    .btn-default {
-      border-radius: ${({ theme }) => theme.gridUnit}px;
-      border: none;
-      color: ${({ theme }) => theme.colors.secondary.light5};
-      font-size: ${({ theme }) => theme.typography.sizes.s};
-      font-weight: ${({ theme }) => theme.typography.weights.bold};
+    .supersetButton {
       margin: ${({ theme }) => theme.gridUnit * 2}px
         ${({ theme }) => theme.gridUnit * 4}px
         ${({ theme }) => theme.gridUnit * 2}px 0;
-      min-width: 144px;
-      text-transform: uppercase;
-      i {
-        padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
-      }
-
-      &.primaryButton {
-        background-color: ${({ theme }) => theme.colors.primary.base};
-      }
-      &.secondaryButton {
-        color: ${({ theme }) => theme.colors.primary.base};
-        background-color: ${({ theme }) => theme.colors.primary.light4};
-      }
     }
   }
-
   .navbar-nav {
     li {
       a {
@@ -80,11 +61,11 @@ type MenuChild = {
 export interface SubMenuProps {
   primaryButton?: {
     name: React.ReactNode;
-    onClick: React.MouseEventHandler<Button>;
+    onClick: OnClickHandler;
   };
   secondaryButton?: {
     name: React.ReactNode;
-    onClick: React.MouseEventHandler<Button>;
+    onClick: OnClickHandler;
   };
   name: string;
   children?: MenuChild[];
@@ -113,7 +94,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         <Nav className="navbar-right">
           {props.secondaryButton && (
             <Button
-              className="secondaryButton"
+              className="supersetButton secondary"
               onClick={props.secondaryButton.onClick}
             >
               {props.secondaryButton.name}
@@ -121,7 +102,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
           )}
           {props.primaryButton && (
             <Button
-              className="primaryButton"
+              className="supersetButton primary"
               onClick={props.primaryButton.onClick}
             >
               {props.primaryButton.name}

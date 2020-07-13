@@ -18,7 +18,9 @@
  */
 import { t } from '@superset-ui/translation';
 import React, { FunctionComponent } from 'react';
-import { Col, DropdownButton, MenuItem, Row } from 'react-bootstrap';
+import { Col, Row, Alert } from 'react-bootstrap';
+import styled from '@superset-ui/style';
+import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import TableCollection from './TableCollection';
@@ -30,7 +32,7 @@ import { ListViewError, useListViewState } from './utils';
 
 import './ListViewStyles.less';
 
-interface Props {
+export interface ListViewProps {
   columns: any[];
   data: any[];
   count: number;
@@ -42,11 +44,51 @@ interface Props {
   filters?: Filters;
   bulkActions?: Array<{
     key: string;
-    name: React.ReactNode | string;
+    name: React.ReactNode;
     onSelect: (rows: any[]) => any;
+    type?: 'primary' | 'secondary' | 'danger';
   }>;
   isSIP34FilterUIEnabled?: boolean;
+  bulkSelectEnabled?: boolean;
+  disableBulkSelect?: () => void;
+  renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
 }
+
+const BulkSelectWrapper = styled(Alert)`
+  border-radius: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 16px;
+  padding-right: 36px;
+  color: #3d3d3d;
+  background-color: ${({ theme }) => theme.colors.primary.light4};
+
+  .selectedCopy {
+    display: inline-block;
+    padding: 16px 0;
+  }
+
+  .deselect-all {
+    color: #1985a0;
+    margin-left: 16px;
+  }
+
+  .divider {
+    margin: -8px 16px;
+    width: 1px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.0001);
+    box-shadow: inset -1px 0px 0px #dadada;
+    display: inline-flex;
+    vertical-align: middle;
+    position: relative;
+  }
+
+  .close {
+    margin: 16px 0;
+  }
+`;
 
 const bulkSelectColumnConfig = {
   Cell: ({ row }: any) => (
@@ -62,7 +104,7 @@ const bulkSelectColumnConfig = {
   size: 'sm',
 };
 
-const ListView: FunctionComponent<Props> = ({
+const ListView: FunctionComponent<ListViewProps> = ({
   columns,
   data,
   count,
@@ -74,6 +116,9 @@ const ListView: FunctionComponent<Props> = ({
   filters = [],
   bulkActions = [],
   isSIP34FilterUIEnabled = false,
+  bulkSelectEnabled = false,
+  disableBulkSelect = () => {},
+  renderBulkSelectCopy = selected => t('%s Selected', selected.length),
 }) => {
   const {
     getTableProps,
@@ -90,10 +135,11 @@ const ListView: FunctionComponent<Props> = ({
     applyFilters,
     filtersApplied,
     selectedFlatRows,
+    toggleAllRowsSelected,
     state: { pageIndex, pageSize, internalFilters },
   } = useListViewState({
     bulkSelectColumnConfig,
-    bulkSelectMode: Boolean(bulkActions.length),
+    bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
     columns,
     count,
     data,
@@ -155,6 +201,36 @@ const ListView: FunctionComponent<Props> = ({
           )}
         </div>
         <div className="body">
+          {bulkSelectEnabled && (
+            <BulkSelectWrapper bsStyle="info" onDismiss={disableBulkSelect}>
+              <div className="selectedCopy">
+                {renderBulkSelectCopy(selectedFlatRows)}
+              </div>
+              {Boolean(selectedFlatRows.length) && (
+                <>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="deselect-all"
+                    onClick={() => toggleAllRowsSelected(false)}
+                  >
+                    {t('Deselect All')}
+                  </span>
+                  <div className="divider" />
+                  {bulkActions.map(action => (
+                    <Button
+                      className={`supersetButton ${action.type}`}
+                      onClick={() =>
+                        action.onSelect(selectedFlatRows.map(r => r.original))
+                      }
+                    >
+                      {action.name}
+                    </Button>
+                  ))}
+                </>
+              )}
+            </BulkSelectWrapper>
+          )}
           <TableCollection
             getTableProps={getTableProps}
             getTableBodyProps={getTableBodyProps}
@@ -166,42 +242,6 @@ const ListView: FunctionComponent<Props> = ({
         </div>
         <div className="footer">
           <Row>
-            <Col>
-              <div className="form-actions-container">
-                <div className="btn-group">
-                  {bulkActions.length > 0 && (
-                    <DropdownButton
-                      id="bulk-actions"
-                      bsSize="small"
-                      bsStyle="default"
-                      noCaret
-                      title={
-                        <>
-                          {t('Actions')} <span className="caret" />
-                        </>
-                      }
-                    >
-                      {bulkActions.map(action => (
-                        // @ts-ignore
-                        <MenuItem
-                          key={action.key}
-                          eventKey={selectedFlatRows}
-                          // @ts-ignore
-                          onSelect={(selectedRows: typeof selectedFlatRows) => {
-                            action.onSelect(
-                              selectedRows.map((r: any) => r.original),
-                            );
-                          }}
-                        >
-                          {action.name}
-                        </MenuItem>
-                      ))}
-                    </DropdownButton>
-                  )}
-                </div>
-              </div>
-            </Col>
-
             <Col>
               <span className="row-count-container">
                 showing{' '}

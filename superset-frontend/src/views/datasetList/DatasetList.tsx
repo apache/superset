@@ -26,12 +26,10 @@ import React, {
   useState,
 } from 'react';
 import rison from 'rison';
-// @ts-ignore
-import { Panel } from 'react-bootstrap';
 import { SHORT_DATE, SHORT_TIME } from 'src/utils/common';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
-import ListView from 'src/components/ListView/ListView';
+import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import {
@@ -566,16 +564,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         onConfirm={handleBulkDatasetDelete}
       >
         {confirmDelete => {
-          const bulkActions = [];
-          if (bulkSelectEnabled && canDelete) {
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: (
-                <>
-                  <i className="fa fa-trash" /> {t('Delete')}
-                </>
-              ),
+              name: t('Delete'),
               onSelect: confirmDelete,
+              type: 'danger',
             });
           }
           return (
@@ -590,6 +585,40 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               initialSort={initialSort}
               filters={currentFilters}
               bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={() => setBulkSelectEnabled(false)}
+              renderBulkSelectCopy={selected => {
+                const { virtualCount, physicalCount } = selected.reduce(
+                  (acc, e) => {
+                    if (e.original.kind === 'physical') acc.physicalCount += 1;
+                    else if (e.original.kind === 'virtual')
+                      acc.virtualCount += 1;
+                    return acc;
+                  },
+                  { virtualCount: 0, physicalCount: 0 },
+                );
+
+                if (!selected.length) return t('0 Selected');
+                else if (virtualCount && !physicalCount)
+                  return t(
+                    '%s Selected (Virtual)',
+                    selected.length,
+                    virtualCount,
+                  );
+                else if (physicalCount && !virtualCount)
+                  return t(
+                    '%s Selected (Physical)',
+                    selected.length,
+                    physicalCount,
+                  );
+
+                return t(
+                  '%s Selected (%s Physical, %s Virtual)',
+                  selected.length,
+                  physicalCount,
+                  virtualCount,
+                );
+              }}
             />
           );
         }}
