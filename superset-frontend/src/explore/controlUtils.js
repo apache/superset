@@ -36,18 +36,17 @@ export function getFormDataFromControls(controlsState) {
 
 export function validateControl(control, processedState) {
   const validators = control.validators;
+  const validationErrors = [];
   if (validators && validators.length > 0) {
-    const validatedControl = { ...control };
-    const validationErrors = [];
     validators.forEach(f => {
       const v = f.call(control, control.value, processedState);
       if (v) {
         validationErrors.push(v);
       }
     });
-    return { ...validatedControl, validationErrors };
   }
-  return control;
+  // always reset validation errors even when there is no validator
+  return { ...control, validationErrors };
 }
 
 /**
