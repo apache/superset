@@ -30,7 +30,6 @@ class OneOfCaseInsensitive(validate.OneOf):
 
     def __call__(self, value: Any) -> str:
         try:
-            print(value)
             if (value.lower() if isinstance(value, str) else value) not in [
                 choice.lower() if isinstance(choice, str) else choice
                 for choice in self.choices
