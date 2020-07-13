@@ -476,7 +476,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/get_delete_ids_schema'
+                  $ref: '#/components/schemas/thumbnail_query_schema'
           responses:
             200:
               description: Dashboard thumbnail image
