@@ -59,6 +59,7 @@
     "@superset-ui/legacy-plugin-chart-sankey": "0.14.9",
     "@superset-ui/legacy-plugin-chart-sankey-loop": "0.14.9",
     "@superset-ui/legacy-plugin-chart-sunburst": "0.14.9",
+    "@superset-ui/legacy-plugin-chart-time-table": "^0.14.9",
     "@superset-ui/legacy-plugin-chart-treemap": "0.14.9",
     "@superset-ui/legacy-plugin-chart-word-cloud": "^0.11.15",
     "@superset-ui/legacy-plugin-chart-world-map": "0.14.9",
