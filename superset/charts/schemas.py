@@ -14,15 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 from flask_babel import gettext as _
-from marshmallow import fields, post_load, Schema, validate, ValidationError
+from marshmallow import fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 
 from superset.common.query_context import QueryContext
-from superset.exceptions import SupersetException
-from superset.utils import core as utils
+from superset.utils import schema as utils
+from superset.utils.core import FilterOperator
 
 #
 # RISON/JSON schemas for query parameters
@@ -101,13 +101,6 @@ openapi_spec_methods_override = {
 }
 
 
-def validate_json(value: Union[bytes, bytearray, str]) -> None:
-    try:
-        utils.validate_json(value)
-    except SupersetException:
-        raise ValidationError("JSON not valid")
-
-
 class ChartPostSchema(Schema):
     """
     Schema to add a new chart.
@@ -124,7 +117,7 @@ class ChartPostSchema(Schema):
     )
     owners = fields.List(fields.Integer(description=owners_description))
     params = fields.String(
-        description=params_description, allow_none=True, validate=validate_json
+        description=params_description, allow_none=True, validate=utils.validate_json
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -573,8 +566,8 @@ class ChartDataFilterSchema(Schema):
     )
     op = fields.String(  # pylint: disable=invalid-name
         description="The comparison operator.",
-        validate=validate.OneOf(
-            choices=[filter_op.value for filter_op in utils.FilterOperator]
+        validate=utils.OneOfCaseInsensitive(
+            choices=[filter_op.value for filter_op in FilterOperator]
         ),
         required=True,
         example="IN",
