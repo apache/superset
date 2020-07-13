@@ -708,6 +708,20 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         result = response_payload["result"][0]
         self.assertEqual(result["rowcount"], 5)
 
+    def test_chart_data_mixed_case_filter_op(self):
+        """
+        Chart data API: Ensure mixed case filter operator generates valid result
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["filters"][0]["op"] = "In"
+        request_payload["queries"][0]["row_limit"] = 10
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 10)
+
     def test_chart_data_with_invalid_datasource(self):
         """Chart data API: Test chart data query with invalid schema
         """

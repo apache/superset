@@ -27,6 +27,7 @@ from unittest.mock import Mock, patch
 import numpy
 from flask import Flask, g
 from flask_caching import Cache
+import marshmallow
 from sqlalchemy.exc import ArgumentError
 
 import tests.test_app
@@ -60,6 +61,7 @@ from superset.utils.core import (
     zlib_compress,
     zlib_decompress,
 )
+from superset.utils import schema
 from superset.views.utils import (
     build_extra_filters,
     get_form_data,
@@ -582,6 +584,8 @@ class TestUtils(SupersetTestCase):
         self.assertEqual(jsonObj.process_result_value(val, "dialect"), obj)
 
     def test_validate_json(self):
+        valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
+        self.assertIsNone(validate_json(valid))
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
         with self.assertRaises(SupersetException):
             validate_json(invalid)
@@ -1344,3 +1348,20 @@ class TestUtils(SupersetTestCase):
             json.loads(record.json)["form_data"]["viz_type"],
             slc.viz.form_data["viz_type"],
         )
+
+    def test_schema_validate_json(self):
+        valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
+        self.assertIsNone(schema.validate_json(valid))
+        invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
+        self.assertRaises(marshmallow.ValidationError, schema.validate_json, invalid)
+
+    def test_schema_one_of_case_insensitive(self):
+        validator = schema.OneOfCaseInsensitive(choices=[1, 2, 3, "FoO", "BAR", "baz"])
+        self.assertEqual(1, validator(1))
+        self.assertEqual(2, validator(2))
+        self.assertEqual("FoO", validator("FoO"))
+        self.assertEqual("FOO", validator("FOO"))
+        self.assertEqual("bar", validator("bar"))
+        self.assertEqual("BaZ", validator("BaZ"))
+        self.assertRaises(marshmallow.ValidationError, validator, "qwerty")
+        self.assertRaises(marshmallow.ValidationError, validator, 4)
