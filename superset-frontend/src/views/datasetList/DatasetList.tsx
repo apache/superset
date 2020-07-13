@@ -547,11 +547,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {datasetCurrentlyDeleting && (
         <DeleteModal
           description={t(
-            `The dataset ${datasetCurrentlyDeleting.table_name} is linked to 
-                ${datasetCurrentlyDeleting.chart_count} charts that appear on 
-                ${datasetCurrentlyDeleting.dashboard_count} dashboards. 
-                Are you sure you want to continue? Deleting the dataset will break 
-                those objects.`,
+            'The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+            datasetCurrentlyDeleting.table_name,
+            datasetCurrentlyDeleting.chart_count,
+            datasetCurrentlyDeleting.dashboard_count,
           )}
           onConfirm={() => handleDatasetDelete(datasetCurrentlyDeleting)}
           onHide={closeDatasetDeleteModal}
