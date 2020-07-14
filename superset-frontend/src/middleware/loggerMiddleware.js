@@ -86,7 +86,7 @@ const loggerMiddleware = store => next => action => {
     };
   } else if (explore) {
     logMetadata = {
-      source: 'slice',
+      source: 'explore',
       source_id: explore.slice ? explore.slice.slice_id : 0,
       ...logMetadata,
     };
