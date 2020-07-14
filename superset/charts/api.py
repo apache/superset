@@ -422,7 +422,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    def data(self) -> Response:
+    def data(self) -> Response:  # pylint: disable=too-many-return-statements
         """
         Takes a query context constructed in the client and returns payload
         data response for the given query.
@@ -494,7 +494,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
             return resp
 
-        raise self.response_400(message=f"Unsupported result_format: {result_format}")
+        return self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()
