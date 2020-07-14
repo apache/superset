@@ -102,6 +102,7 @@ class ExploreChartPanel extends React.PureComponent {
         addHistory={this.props.addHistory}
         can_overwrite={this.props.can_overwrite}
         can_download={this.props.can_download}
+        chartHeight={this.props.height}
         isStarred={this.props.isStarred}
         slice={this.props.slice}
         sliceName={this.props.sliceName}
