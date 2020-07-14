@@ -223,6 +223,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
                   <div className="divider" />
                   {bulkActions.map(action => (
                     <Button
+                      key={action.key}
                       className={`supersetButton ${action.type}`}
                       onClick={() =>
                         action.onSelect(selectedFlatRows.map(r => r.original))

@@ -22,13 +22,14 @@ import { act } from 'react-dom/test-utils';
 import { MenuItem } from 'react-bootstrap';
 import Select from 'src/components/Select';
 import { QueryParamProvider } from 'use-query-params';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
 import Pagination from 'src/components/Pagination';
+import Button from 'src/components/Button';
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
@@ -72,8 +73,15 @@ const mockedProps = {
   pageSize: 1,
   fetchData: jest.fn(() => []),
   loading: false,
+  bulkSelectEnabled: true,
+  disableBulkSelect: jest.fn(),
   bulkActions: [
-    { key: 'something', name: 'do something', onSelect: jest.fn() },
+    {
+      key: 'something',
+      name: 'do something',
+      style: 'danger',
+      onSelect: jest.fn(),
+    },
   ],
 };
 
@@ -227,13 +235,11 @@ Array [
       wrapper.find('input[id="0"]').at(0).prop('onChange')({
         target: { value: 'on' },
       });
+    });
+    wrapper.update();
 
-      wrapper
-        .find('.dropdown-toggle')
-        .children('button')
-        .at(1)
-        .props()
-        .onClick();
+    act(() => {
+      wrapper.find(Button).props().onClick();
     });
     wrapper.update();
     const bulkActionsProps = wrapper.find(MenuItem).last().props();
@@ -257,15 +263,14 @@ Array [
       wrapper.find('input[id="header-toggle-all"]').at(0).prop('onChange')({
         target: { value: 'on' },
       });
-
-      wrapper
-        .find('.dropdown-toggle')
-        .children('button')
-        .at(1)
-        .props()
-        .onClick();
     });
     wrapper.update();
+
+    act(() => {
+      wrapper.find(Button).props().onClick();
+    });
+    wrapper.update();
+
     const bulkActionsProps = wrapper.find(MenuItem).last().props();
 
     bulkActionsProps.onSelect(bulkActionsProps.eventKey);
