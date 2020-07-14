@@ -702,7 +702,7 @@ class ChartDataQueryObjectSchema(Schema):
     timeseries_limit = fields.Integer(
         description="Maximum row count for timeseries queries. Default: `0`",
     )
-    timeseries_limit_metric = fields.Integer(
+    timeseries_limit_metric = fields.Raw(
         description="Metric used to limit timeseries queries by.", allow_none=True,
     )
     row_limit = fields.Integer(
