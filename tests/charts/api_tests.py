@@ -730,6 +730,28 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 400)
 
+    def test_chart_data_query_result_type(self):
+        """
+        Chart data API: Test chart data with query result format
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_type"] = "query"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+
+    def test_chart_data_csv_result_format(self):
+        """
+        Chart data API: Test chart data with CSV result format
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_format"] = "csv"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+
     def test_chart_data_mixed_case_filter_op(self):
         """
         Chart data API: Ensure mixed case filter operator generates valid result
