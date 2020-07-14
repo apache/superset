@@ -26,10 +26,6 @@ from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
 
 
-def load_query_context(payload: Dict[str, Any]) -> Tuple[QueryContext, Dict[str, Any]]:
-    return ChartDataQueryContextSchema().load(payload)
-
-
 class TestSchema(SupersetTestCase):
     def test_query_context_limit_and_offset(self):
         self.login(username="admin")
@@ -40,7 +36,7 @@ class TestSchema(SupersetTestCase):
         # Use defaults
         payload["queries"][0].pop("row_limit", None)
         payload["queries"][0].pop("row_offset", None)
-        query_context = load_query_context(payload)
+        query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         self.assertEqual(query_object.row_limit, app.config["ROW_LIMIT"])
         self.assertEqual(query_object.row_offset, 0)
@@ -66,8 +62,30 @@ class TestSchema(SupersetTestCase):
         table_name = "birth_names"
         table = self.get_table_by_name(table_name)
         payload = get_query_context(table.name, table.id, table.type)
-
         payload["queries"][0]["extras"]["time_grain_sqla"] = None
+        _ = ChartDataQueryContextSchema().load(payload)
+
+    def test_query_context_series_limit(self):
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
+
+        payload["queries"][0]["timeseries_limit"] = 2
+        payload["queries"][0]["timeseries_limit_metric"] = {
+            "expressionType": "SIMPLE",
+            "column": {
+                "id": 334,
+                "column_name": "gender",
+                "filterable": True,
+                "groupby": True,
+                "is_dttm": False,
+                "type": "VARCHAR(16)",
+                "optionName": "_col_gender",
+            },
+            "aggregate": "COUNT_DISTINCT",
+            "label": "COUNT_DISTINCT(gender)",
+        }
         _ = ChartDataQueryContextSchema().load(payload)
 
     def test_query_context_null_post_processing_op(self):
