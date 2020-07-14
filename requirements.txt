@@ -29,7 +29,7 @@ decorator==4.4.2          # via retry
 defusedxml==0.6.0         # via python3-openid
 dnspython==1.16.0         # via email-validator
 email-validator==1.1.0    # via flask-appbuilder
-flask-appbuilder==3.0.0   # via apache-superset (setup.py)
+flask-appbuilder==3.0.1   # via apache-superset (setup.py)
 flask-babel==1.0.0        # via flask-appbuilder
 flask-caching==1.8.0      # via apache-superset (setup.py)
 flask-compress==1.5.0     # via apache-superset (setup.py)
