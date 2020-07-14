@@ -722,6 +722,36 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         result = response_payload["result"][0]
         self.assertEqual(result["rowcount"], 10)
 
+    def test_chart_data_no_data(self):
+        """
+        Chart data API: Test chart data with empty result
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["filters"] = [
+            {"col": "gender", "op": "==", "val": "foo"}
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 0)
+        self.assertEqual(result["data"], [])
+
+    def test_chart_data_incorrect_request(self):
+        """
+        Chart data API: Test chart data with invalid SQL
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["filters"] = []
+        # erroneus WHERE-clause
+        request_payload["queries"][0]["extras"]["where"] = "(gender abc def)"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 400)
+
     def test_chart_data_with_invalid_datasource(self):
         """Chart data API: Test chart data query with invalid schema
         """
