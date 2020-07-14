@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { Col, Row, Tabs, Tab, Panel } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
@@ -26,17 +25,18 @@ import UserInfo from './UserInfo';
 import Security from './Security';
 import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
+import { User } from '../types';
 
-const propTypes = {
-  user: PropTypes.object.isRequired,
-};
+interface AppProps {
+  user: User;
+}
 
-export default function App(props) {
+export default function App({ user }: AppProps) {
   return (
     <div className="container app">
       <Row>
         <Col md={3}>
-          <UserInfo user={props.user} />
+          <UserInfo user={user} />
         </Col>
         <Col md={9}>
           <Tabs id="options">
@@ -50,7 +50,7 @@ export default function App(props) {
             >
               <Panel>
                 <Panel.Body>
-                  <Favorites user={props.user} />
+                  <Favorites user={user} />
                 </Panel.Body>
               </Panel>
             </Tab>
@@ -64,7 +64,7 @@ export default function App(props) {
             >
               <Panel>
                 <Panel.Body>
-                  <CreatedContent user={props.user} />
+                  <CreatedContent user={user} />
                 </Panel.Body>
               </Panel>
             </Tab>
@@ -78,7 +78,7 @@ export default function App(props) {
             >
               <Panel>
                 <Panel.Body>
-                  <RecentActivity user={props.user} />
+                  <RecentActivity user={user} />
                 </Panel.Body>
               </Panel>
             </Tab>
@@ -92,7 +92,7 @@ export default function App(props) {
             >
               <Panel>
                 <Panel.Body>
-                  <Security user={props.user} />
+                  <Security user={user} />
                 </Panel.Body>
               </Panel>
             </Tab>
@@ -102,4 +102,3 @@ export default function App(props) {
     </div>
   );
 }
-App.propTypes = propTypes;
