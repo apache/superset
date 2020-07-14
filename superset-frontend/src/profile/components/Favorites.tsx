@@ -17,58 +17,50 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 
 import TableLoader from '../../components/TableLoader';
+import { User, Dashboard, Slice } from '../types';
 
-const propTypes = {
-  user: PropTypes.object.isRequired,
-};
+interface FavoritesProps {
+  user: User;
+}
 
-class CreatedContent extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      dashboardsLoading: true,
-      slicesLoading: true,
-      dashboards: [],
-      slices: [],
-    };
-  }
+export default class Favorites extends React.PureComponent<FavoritesProps> {
   renderSliceTable() {
-    const mutator = data =>
+    const mutator = (data: Slice[]) =>
       data.map(slice => ({
         slice: <a href={slice.url}>{slice.title}</a>,
+        creator: <a href={slice.creator_url}>{slice.creator}</a>,
         favorited: moment.utc(slice.dttm).fromNow(),
         _favorited: slice.dttm,
       }));
     return (
       <TableLoader
-        dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
+        dataEndpoint={`/superset/fave_slices/${this.props.user.userId}/`}
         className="table table-condensed"
-        columns={['slice', 'favorited']}
+        columns={['slice', 'creator', 'favorited']}
         mutator={mutator}
-        noDataText={t('No charts')}
+        noDataText={t('No favorite charts yet, go click on stars!')}
         sortable
       />
     );
   }
   renderDashboardTable() {
-    const mutator = data =>
+    const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
         dashboard: <a href={dash.url}>{dash.title}</a>,
+        creator: <a href={dash.creator_url}>{dash.creator}</a>,
         favorited: moment.utc(dash.dttm).fromNow(),
-        _favorited: dash.dttm,
       }));
     return (
       <TableLoader
         className="table table-condensed"
         mutator={mutator}
-        dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
-        noDataText={t('No dashboards')}
-        columns={['dashboard', 'favorited']}
+        dataEndpoint={`/superset/fave_dashboards/${this.props.user.userId}/`}
+        noDataText={t('No favorite dashboards yet, go click on stars!')}
+        columns={['dashboard', 'creator', 'favorited']}
         sortable
       />
     );
@@ -85,6 +77,3 @@ class CreatedContent extends React.PureComponent {
     );
   }
 }
-CreatedContent.propTypes = propTypes;
-
-export default CreatedContent;
