@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import domToImage from 'dom-to-image';
+import domToImage, { Options } from 'dom-to-image';
 import kebabCase from 'lodash/kebabCase';
 import { t } from '@superset-ui/translation';
 import { addWarningToast } from 'src/messageToasts/actions';
@@ -52,7 +52,7 @@ const generateFileStem = (description: string, date = new Date()) => {
 export default function downloadAsImage(
   selector: string,
   description: string,
-  backgroundColor = GRAY_BACKGROUND_COLOR,
+  domToImageOptions: Options = {},
 ) {
   return (event: SyntheticEvent) => {
     const elementToPrint = event.currentTarget.closest(selector);
@@ -63,7 +63,11 @@ export default function downloadAsImage(
       );
 
     return domToImage
-      .toJpeg(elementToPrint, { quality: 0.95, bgcolor: backgroundColor })
+      .toJpeg(elementToPrint, {
+        quality: 0.95,
+        bgcolor: GRAY_BACKGROUND_COLOR,
+        ...domToImageOptions,
+      })
       .then(dataUrl => {
         const link = document.createElement('a');
         link.download = `${generateFileStem(description)}.jpg`;
