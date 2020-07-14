@@ -1133,6 +1133,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         sql = query_str_ext.sql
         status = utils.QueryStatus.SUCCESS
         errors = None
+        error_message = None
 
         def mutator(df: pd.DataFrame) -> None:
             """
@@ -1163,6 +1164,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
             db_engine_spec = self.database.db_engine_spec
             errors = db_engine_spec.extract_errors(ex)
+            error_message = utils.error_msg_from_exception(ex)
 
         return QueryResult(
             status=status,
@@ -1170,6 +1172,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             duration=datetime.now() - qry_start_dttm,
             query=sql,
             errors=errors,
+            error_message=error_message,
         )
 
     def get_sqla_table_object(self) -> Table:
