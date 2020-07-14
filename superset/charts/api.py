@@ -474,7 +474,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         payload = query_context.get_payload()
         for query in payload:
             if query["error"]:
-                raise self.response_500(message=f"Error: {query['error']}")
+                return self.response_500(message=f"Error: {query['error']}")
         result_format = query_context.result_format
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
