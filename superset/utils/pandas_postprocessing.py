@@ -72,6 +72,25 @@ WHITELIST_CUMULATIVE_FUNCTIONS = (
     "cumsum",
 )
 
+PROPHET_TIME_GRAIN_MAP = {
+    "PT1S": "S",
+    "PT1M": "min",
+    "PT5M": "5min",
+    "PT10M": "10min",
+    "PT15M": "15min",
+    "PT0.5H": "30min",
+    "PT1H": "H",
+    "P1D": "D",
+    "P1W": "W",
+    "P1M": "M",
+    "P0.25Y": "Q",
+    "P1Y": "A",
+    "1969-12-28T00:00:00Z/P1W": "W",
+    "1969-12-29T00:00:00Z/P1W": "W",
+    "P1W/1970-01-03T00:00:00Z": "W",
+    "P1W/1970-01-04T00:00:00Z": "W",
+}
+
 
 def _flatten_column_after_pivot(
     column: Union[str, Tuple[str, ...]], aggregates: Dict[str, Dict[str, Any]]
@@ -544,3 +563,103 @@ def contribution(
     if temporal_series is not None:
         contribution_df.insert(0, DTTM_ALIAS, temporal_series)
     return contribution_df
+
+
+def prophet(
+    df: DataFrame,
+    time_grain: str,
+    periods: int,
+    confidence_interval: float,
+    yearly_seasonality: Optional[Union[bool, int]] = None,
+    weekly_seasonality: Optional[Union[bool, int]] = None,
+    daily_seasonality: Optional[Union[bool, int]] = None,
+):
+    """
+    Add forecasts to each series in a timeseries dataframe, along with confidence
+    intervals for the prediction. For each series, the operation creates three
+    new columns with the column name suffixed with the following values:
+
+    - `__yhat`: the forecast for the given date
+    - `__yhat_lower`: the lower bound of the forecast for the given date
+    - `__yhat_upper`: the upper bound of the forecast for the given date
+    - `__yhat_upper`: the upper bound of the forecast for the given date
+
+
+    :param df: DataFrame containing all-numeric data (temporal column ignored)
+    :param time_grain: Time grain used to specify time period increments in prediction
+    :param periods: Time periods (in units of `time_grain`) to predict into the future
+    :param confidence_interval: Width of predicted confidence interval
+    :param yearly_seasonality: Should yearly seasonality be applied.
+           An integer value will specify Fourier order of seasonality.
+    :param weekly_seasonality: Should weekly seasonality be applied.
+           An integer value will specify Fourier order of seasonality, `None` will
+           automatically detect seasonality.
+    :param daily_seasonality: Should daily seasonality be applied.
+           An integer value will specify Fourier order of seasonality, `None` will
+           automatically detect seasonality.
+    :return: DataFrame with contributions, with temporal column at beginning if present
+    """
+    # validate inputs
+    if not time_grain:
+        raise QueryObjectValidationError(_("Time grain missing"))
+    freq = PROPHET_TIME_GRAIN_MAP.get(time_grain)
+    if not freq:
+        raise QueryObjectValidationError(
+            _("Unsupported time grain: %(time_grain)s", time_grain=time_grain,)
+        )
+    if not periods or periods < 0:
+        raise QueryObjectValidationError(_("Periods must be a positive integer value"))
+    if not confidence_interval or confidence_interval <= 0 or confidence_interval >= 1:
+        raise QueryObjectValidationError(
+            _("Confidence interval must be between 0 and 1 (exclusive)")
+        )
+    if DTTM_ALIAS not in df.columns:
+        raise QueryObjectValidationError(_("DataFrame must include temporal column"))
+    if len(df.columns) < 2:
+        raise QueryObjectValidationError(_("DataFrame include at least one series"))
+
+    try:
+        from fbprophet import Prophet
+    except ModuleNotFoundError:
+        raise QueryObjectValidationError(_("`fbprophet` package not installed"))
+
+    def _parse_seasonality(
+        input_value: Optional[Union[bool, int]]
+    ) -> Union[bool, str, int]:
+        if input_value is None:
+            return "auto"
+        if isinstance(input_value, bool):
+            return input_value
+        try:
+            return int(input_value)
+        except ValueError:
+            return input_value
+
+    target_df: Optional[DataFrame] = None
+    for column in [column for column in df.columns if column != DTTM_ALIAS]:
+        df_fit = df[[DTTM_ALIAS, column]]
+        df_fit.columns = ["ds", "y"]
+        model = Prophet(
+            interval_width=confidence_interval,
+            yearly_seasonality=_parse_seasonality(yearly_seasonality),
+            weekly_seasonality=_parse_seasonality(weekly_seasonality),
+            daily_seasonality=_parse_seasonality(daily_seasonality),
+        )
+        model.fit(df_fit)
+        future = model.make_future_dataframe(periods=periods, freq=freq)
+        forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
+        joined = forecast.join(df_fit.set_index("ds"), on="ds").set_index(["ds"])
+        new_columns = [
+            f"{column}__yhat",
+            f"{column}__yhat_lower",
+            f"{column}__yhat_upper",
+            f"{column}",
+        ]
+        joined.columns = new_columns
+        if target_df is None:
+            target_df = joined
+        else:
+            for new_column in new_columns:
+                target_df = target_df.assign(**{new_column: joined[new_column]})
+    target_df.reset_index(level=0, inplace=True)
+    return target_df.rename(columns={"ds": DTTM_ALIAS})
