@@ -21,15 +21,15 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from superset import event_logger
+from superset.databases.decorators import check_datasource_access
 from superset.databases.schemas import (
-    TableMetadataResponseSchema,
     SelectStarResponseSchema,
+    TableMetadataResponseSchema,
 )
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi
-from superset.databases.decorators import check_datasource_access
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.validators import sqlalchemy_uri_validator
 
