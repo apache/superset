@@ -20,7 +20,7 @@ import React from 'react';
 import styled from '@superset-ui/style';
 import { Modal as BaseModal } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import Button from '../views/datasetList/Button';
+import Button from 'src/views/CRUD/dataset/Button';
 
 interface ModalProps {
   children: React.ReactNode;
