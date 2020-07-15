@@ -17,35 +17,45 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import moment from 'moment';
 import { debounce } from 'lodash';
 import ListView from 'src/components/ListView/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { Dashboard } from 'src/types/bootstrapTypes';
+import { FetchDataConfig } from 'src/components/ListView/types';
 
 const PAGE_SIZE = 25;
 
-class DashboardTable extends React.PureComponent {
-  static propTypes = {
-    addDangerToast: PropTypes.func.isRequired,
-    search: PropTypes.string,
-  };
+interface DashboardTableProps {
+  addDangerToast: (message: string) => void;
+  search?: string;
+}
 
+interface DashboardTableState {
+  dashboards: Dashboard[];
+  dashboard_count: number;
+  loading: boolean;
+}
+
+class DashboardTable extends React.PureComponent<
+  DashboardTableProps,
+  DashboardTableState
+> {
   state = {
     dashboards: [],
     dashboard_count: 0,
     loading: false,
   };
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: DashboardTableProps) {
     if (prevProps.search !== this.props.search) {
       this.fetchDataDebounced({
         pageSize: PAGE_SIZE,
         pageIndex: 0,
         sortBy: this.initialSort,
-        filters: {},
+        filters: [],
       });
     }
   }
@@ -58,6 +68,13 @@ class DashboardTable extends React.PureComponent {
         row: {
           original: { url, dashboard_title: dashboardTitle },
         },
+      }: {
+        row: {
+          original: {
+            url: string;
+            dashboard_title: string;
+          };
+        };
       }) => <a href={url}>{dashboardTitle}</a>,
     },
     {
@@ -67,6 +84,13 @@ class DashboardTable extends React.PureComponent {
         row: {
           original: { changed_by_name: changedByName, changedByUrl },
         },
+      }: {
+        row: {
+          original: {
+            changed_by_name: string;
+            changedByUrl: string;
+          };
+        };
       }) => <a href={changedByUrl}>{changedByName}</a>,
     },
     {
@@ -76,13 +100,19 @@ class DashboardTable extends React.PureComponent {
         row: {
           original: { changed_on: changedOn },
         },
+      }: {
+        row: {
+          original: {
+            changed_on: string;
+          };
+        };
       }) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
     },
   ];
 
   initialSort = [{ id: 'changed_on', desc: true }];
 
-  fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
+  fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
     this.setState({ loading: true });
     const filterExps = Object.keys(filters)
       .map(fk => ({

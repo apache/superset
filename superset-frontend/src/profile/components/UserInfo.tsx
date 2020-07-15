@@ -21,10 +21,10 @@ import Gravatar from 'react-gravatar';
 import moment from 'moment';
 import { Panel } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import { User } from '../types';
+import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface UserInfoProps {
-  user: User;
+  user: UserWithPermissionsAndRoles;
 }
 
 export default function UserInfo({ user }: UserInfoProps) {
