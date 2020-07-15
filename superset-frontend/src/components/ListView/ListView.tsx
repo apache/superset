@@ -207,7 +207,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
         <div className="body">
           {bulkSelectEnabled && (
             <BulkSelectWrapper bsStyle="info" onDismiss={disableBulkSelect}>
-              <div className="selectedCopy">
+              <div className="selectedCopy" data-test="bulk-select-copy">
                 {renderBulkSelectCopy(selectedFlatRows)}
               </div>
               {Boolean(selectedFlatRows.length) && (
