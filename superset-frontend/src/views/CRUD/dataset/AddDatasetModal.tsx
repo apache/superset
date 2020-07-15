@@ -24,7 +24,7 @@ import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
-import withToasts from '../../messageToasts/enhancers/withToasts';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 type DatasetAddObject = {
   id: number;
