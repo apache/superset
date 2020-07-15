@@ -177,11 +177,9 @@ div.Workspace {
 
   display: inline-block;
   background-color: @gray-light;
-  line-height: 8px; // set specifically for closing 'x'
   text-align: center;
   vertical-align: middle;
   font-size: @font-size-m;
-  margin-top: -3px;
   font-weight: @font-weight-bold;
 }
 
@@ -260,12 +258,8 @@ div.Workspace {
       background: none;
     }
 
-    .fa.fa-close {
-      color: @gray;
-
-      &:hover {
-        cursor: pointer;
-      }
+    svg {
+      vertical-align: middle;
     }
   }
 
