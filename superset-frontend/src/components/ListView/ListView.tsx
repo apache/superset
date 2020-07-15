@@ -206,13 +206,18 @@ const ListView: FunctionComponent<ListViewProps> = ({
         </div>
         <div className="body">
           {bulkSelectEnabled && (
-            <BulkSelectWrapper bsStyle="info" onDismiss={disableBulkSelect}>
+            <BulkSelectWrapper
+              data-test="bulk-select-controls"
+              bsStyle="info"
+              onDismiss={disableBulkSelect}
+            >
               <div className="selectedCopy" data-test="bulk-select-copy">
                 {renderBulkSelectCopy(selectedFlatRows)}
               </div>
               {Boolean(selectedFlatRows.length) && (
                 <>
                   <span
+                    data-test="bulk-select-deselect-all"
                     role="button"
                     tabIndex={0}
                     className="deselect-all"
@@ -223,6 +228,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
                   <div className="divider" />
                   {bulkActions.map(action => (
                     <Button
+                      data-test="bulk-select-action"
                       key={action.key}
                       className={`supersetButton ${action.type}`}
                       onClick={() =>

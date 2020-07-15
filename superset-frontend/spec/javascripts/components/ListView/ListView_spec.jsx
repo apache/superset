@@ -31,6 +31,9 @@ import Pagination from 'src/components/Pagination';
 import Button from 'src/components/Button';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+
 function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
   return {
@@ -97,7 +100,10 @@ const factory = (props = mockedProps) =>
   );
 
 describe('ListView', () => {
-  const wrapper = factory();
+  let wrapper = beforeAll(async () => {
+    wrapper = factory();
+    await waitForComponentToPaint(wrapper);
+  });
 
   afterEach(() => {
     mockedProps.fetchData.mockClear();
@@ -239,12 +245,13 @@ Array [
     wrapper.update();
 
     act(() => {
-      wrapper.find(Button).props().onClick();
+      wrapper
+        .find('[data-test="bulk-select-controls"]')
+        .find(Button)
+        .props()
+        .onClick();
     });
-    wrapper.update();
-    const bulkActionsProps = wrapper.find(MenuItem).last().props();
 
-    bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
                                     Array [
@@ -267,13 +274,13 @@ Array [
     wrapper.update();
 
     act(() => {
-      wrapper.find(Button).props().onClick();
+      wrapper
+        .find('[data-test="bulk-select-controls"]')
+        .find(Button)
+        .props()
+        .onClick();
     });
-    wrapper.update();
 
-    const bulkActionsProps = wrapper.find(MenuItem).last().props();
-
-    bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
                         Array [
@@ -289,6 +296,34 @@ Array [
                           ],
                         ]
                 `);
+  });
+
+  it('allows deselecting all', async () => {
+    act(() => {
+      wrapper.find('[data-test="bulk-select-deselect-all"]').props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    wrapper.update();
+    wrapper.find(IndeterminateCheckbox).forEach(input => {
+      expect(input.props().checked).toBe(false);
+    });
+  });
+
+  it('allows disabling bulkSelect', () => {
+    wrapper
+      .find('[data-test="bulk-select-controls"]')
+      .at(0)
+      .props()
+      .onDismiss();
+    expect(mockedProps.disableBulkSelect).toHaveBeenCalled();
+  });
+
+  it('disables bulk select based on prop', async () => {
+    const wrapper2 = factory({ ...mockedProps, bulkSelectEnabled: false });
+    await waitForComponentToPaint(wrapper2);
+    expect(wrapper2.find('[data-test="bulk-select-controls"]').exists()).toBe(
+      false,
+    );
   });
 
   it('Throws an exception if filter missing in columns', () => {
