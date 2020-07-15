@@ -19,7 +19,6 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import moment from 'moment';
 import { debounce } from 'lodash';
 import ListView from 'src/components/ListView/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -94,23 +93,23 @@ class DashboardTable extends React.PureComponent<
       }) => <a href={changedByUrl}>{changedByName}</a>,
     },
     {
-      accessor: 'changed_on',
+      accessor: 'changed_on_delta_humanized',
       Header: 'Modified',
       Cell: ({
         row: {
-          original: { changed_on: changedOn },
+          original: { changed_on_delta_humanized: changedOn },
         },
       }: {
         row: {
           original: {
-            changed_on: string;
+            changed_on_delta_humanized: string;
           };
         };
-      }) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
+      }) => <span className="no-wrap">{changedOn}</span>,
     },
   ];
 
-  initialSort = [{ id: 'changed_on', desc: true }];
+  initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
     this.setState({ loading: true });
