@@ -67,12 +67,15 @@ describe('plugin-chart-table', () => {
       wrap = mount(<TableChart {...transformProps(testData.basic)} sticky={false} />);
       tree = wrap.render(); // returns a CheerioWrapper with jQuery-like API
       const cells = tree.find('td');
-      expect(cells).toHaveLength(6);
+      expect(cells).toHaveLength(8);
       expect(cells.eq(0).text()).toEqual('2020-01-01 12:34:56');
       expect(cells.eq(1).text()).toEqual('Michael');
       // number is not in `metrics` list, so it should output raw value
       // (in real world Superset, this would mean the column is used in GROUP BY)
-      expect(cells.eq(5).text()).toEqual('2467');
+      expect(cells.eq(2).text()).toEqual('2467063');
+      // should not render column with `.` in name as `undefined`
+      expect(cells.eq(3).text()).toEqual('foo');
+      expect(cells.eq(6).text()).toEqual('2467');
     });
 
     it('render advanced data', () => {
