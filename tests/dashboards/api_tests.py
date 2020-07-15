@@ -152,6 +152,32 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_dashboards_changed_on(self):
+        """
+        Dashboard API: Test get dashboards changed on
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+
+        self.login(username="admin")
+
+        arguments = {
+            "filters": [{"col": "dashboard_title", "opr": "sw", "value": "ti"}]
+        }
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(
+            data["result"][0]["changed_on_delta_humanized"], "now"
+        )
+
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
     def test_get_dashboards_filter(self):
         """
         Dashboard API: Test get dashboards filter

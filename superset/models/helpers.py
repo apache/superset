@@ -20,12 +20,12 @@ import logging
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Union
-import pytz
 
 # isort and pylint disagree, isort should win
 # pylint: disable=ungrouped-imports
 import humanize
 import pandas as pd
+import pytz
 import sqlalchemy as sa
 import yaml
 from flask import escape, g, Markup
