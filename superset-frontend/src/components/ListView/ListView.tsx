@@ -20,6 +20,7 @@ import { t } from '@superset-ui/translation';
 import React, { FunctionComponent } from 'react';
 import { Col, Row, Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
+import cx from 'classnames';
 import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
@@ -59,7 +60,6 @@ const BulkSelectWrapper = styled(Alert)`
   margin-bottom: 0;
   padding-top: 0;
   padding-bottom: 0;
-  padding-right: 16px;
   padding-right: 36px;
   color: #3d3d3d;
   background-color: ${({ theme }) => theme.colors.primary.light4};
@@ -78,7 +78,6 @@ const BulkSelectWrapper = styled(Alert)`
     margin: -8px 0 -8px 16px;
     width: 1px;
     height: 32px;
-    background: rgba(0, 0, 0, 0.0001);
     box-shadow: inset -1px 0px 0px #dadada;
     display: inline-flex;
     vertical-align: middle;
@@ -226,7 +225,11 @@ const ListView: FunctionComponent<ListViewProps> = ({
                     <Button
                       data-test="bulk-select-action"
                       key={action.key}
-                      className={`supersetButton ${action.type}`}
+                      className={cx('supersetButton', {
+                        danger: action.type === 'danger',
+                        primary: action.type === 'primary',
+                        secondary: action.type === 'secondary',
+                      })}
                       onClick={() =>
                         action.onSelect(selectedFlatRows.map(r => r.original))
                       }

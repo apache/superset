@@ -28,9 +28,10 @@ const StyledHeader = styled.header`
   }
   .navbar-right {
     .supersetButton {
-      margin: ${({ theme }) => theme.gridUnit * 2}px
-        ${({ theme }) => theme.gridUnit * 4}px
-        ${({ theme }) => theme.gridUnit * 2}px 0;
+      margin: ${({ theme }) =>
+        `${theme.gridUnit * 2}px ${theme.gridUnit * 4}px ${
+          theme.gridUnit * 2
+        }px 0`};
     }
   }
   .navbar-nav {

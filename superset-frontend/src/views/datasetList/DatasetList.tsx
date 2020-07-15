@@ -603,19 +603,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   { virtualCount: 0, physicalCount: 0 },
                 );
 
-                if (!selected.length) return t('0 Selected');
-                else if (virtualCount && !physicalCount)
+                if (!selected.length) {
+                  return t('0 Selected');
+                } else if (virtualCount && !physicalCount) {
                   return t(
                     '%s Selected (Virtual)',
                     selected.length,
                     virtualCount,
                   );
-                else if (physicalCount && !virtualCount)
+                } else if (physicalCount && !virtualCount) {
                   return t(
                     '%s Selected (Physical)',
                     selected.length,
                     physicalCount,
                   );
+                }
 
                 return t(
                   '%s Selected (%s Physical, %s Virtual)',
