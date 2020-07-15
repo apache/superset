@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-world-map",
-  "version": "0.14.9",
+  "version": "0.14.11",
   "description": "Superset Legacy Chart - World Map",
   "sideEffects": [
     "*.css"
@@ -36,8 +36,8 @@
     "@superset-ui/chart": "^0.14.0",
     "@superset-ui/chart-controls": "^0.14.0",
     "@superset-ui/number-format": "^0.14.0",
-    "@superset-ui/translation": "^0.14.0",
     "@superset-ui/style": "^0.14.3",
+    "@superset-ui/translation": "^0.14.0",
     "react": "^16.13.1"
   }
 }
