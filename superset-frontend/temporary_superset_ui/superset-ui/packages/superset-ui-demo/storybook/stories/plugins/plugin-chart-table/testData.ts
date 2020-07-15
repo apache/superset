@@ -35,57 +35,67 @@ export const basicFormData = {
   timeseriesLimitMetric: null,
 };
 export const basicData = {
-  columns: ['name', 'sum__num', 'MAX(ds)'],
+  columns: ['name', 'sum__num', 'MAX(ds)', 'Abc.com'],
   records: [
     {
       name: 'Michael',
       sum__num: 2467063,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 110,
     },
     {
       name: 'Christopher',
       sum__num: 1725265,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 119,
     },
     {
       name: 'David',
       sum__num: 1570516,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 120,
     },
     {
       name: 'James',
       sum__num: 1506025,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 120,
     },
     {
       name: 'John',
       sum__num: 1426074,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 120,
     },
     {
       name: 'Matthew',
       sum__num: 1355803,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 120,
     },
     {
       name: 'Robert',
       sum__num: 1314800,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 120,
     },
     {
       name: 'Daniel',
       sum__num: 1159354,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 120,
     },
     {
       name: 'Joseph',
       sum__num: 1114098,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 120,
     },
     {
       name: 'William',
       sum__num: 1113701,
       'MAX(ds)': '2008-01-01T00:00:00',
+      'Abc.com': 120,
     },
   ],
 };
