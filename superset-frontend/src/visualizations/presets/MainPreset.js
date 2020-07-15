@@ -111,7 +111,7 @@ export default class MainPreset extends Preset {
         new EchartsTimeseriesChartPlugin().configure({
           key: 'echarts_timeseries',
         }),
-        new EchartsPieChartPlugin().configure({ key: 'echarts_timeseries' }),
+        new EchartsPieChartPlugin().configure({ key: 'echarts_pie' }),
       ],
     });
   }
