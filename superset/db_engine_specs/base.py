@@ -268,7 +268,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_time_grain_expressions(cls) -> Dict[Optional[str], str]:
         """
         Return a dict of all supported time grains including any potential added grains
-        but excluding any potentially blacklisted grains in the config file.
+        but excluding any potentially disabled grains in the config file.
 
         :return: All time grain expressions supported by the engine
         """
@@ -276,8 +276,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         time_grain_expressions = cls._time_grain_expressions.copy()
         grain_addon_expressions = config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        blacklist: List[str] = config["TIME_GRAIN_BLACKLIST"]
-        for key in blacklist:
+        denylist: List[str] = config["TIME_GRAIN_DENYLIST"]
+        for key in denylist:
             time_grain_expressions.pop(key)
         return time_grain_expressions
 
