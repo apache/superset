@@ -51,6 +51,11 @@ const SupersetButton = styled(BootstrapButton)`
     min-width: 144px;
     min-height: 32px;
     text-transform: uppercase;
+    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+    &:first-of-type {
+      margin-left: 0;
+    }
+
     i {
       padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
     }
