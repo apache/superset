@@ -170,9 +170,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 1)
-        self.assertEqual(
-            data["result"][0]["changed_on_delta_humanized"], "now"
-        )
+        self.assertEqual(data["result"][0]["changed_on_delta_humanized"], "now")
 
         # rollback changes
         db.session.delete(dashboard)
