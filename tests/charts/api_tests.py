@@ -18,9 +18,11 @@
 """Unit tests for Superset"""
 import json
 from typing import List, Optional
+from datetime import datetime
 from unittest import mock
 
 import prison
+import humanize
 from sqlalchemy.sql import func
 
 from tests.test_app import app
@@ -542,6 +544,34 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 33)
+
+    def test_get_charts_changed_on(self):
+        """
+        Dashboard API: Test get charts changed on
+        """
+        admin = self.get_user("admin")
+        start_changed_on = datetime.now()
+        chart = self.insert_chart("foo_a", [admin.id], 1, description="ZY_bar")
+
+        self.login(username="admin")
+
+        arguments = {
+            "order_column": "changed_on_delta_humanized",
+            "order_direction": "desc",
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"][0]["changed_on_delta_humanized"],
+            humanize.naturaltime(datetime.now() - start_changed_on),
+        )
+
+        # rollback changes
+        db.session.delete(chart)
+        db.session.commit()
 
     def test_get_charts_filter(self):
         """
