@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-choropleth-map",
-  "version": "0.14.9",
+  "version": "0.14.11",
   "description": "Superset Chart - Choropleth Map",
   "sideEffects": false,
   "private": true,
