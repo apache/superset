@@ -18,6 +18,7 @@
  */
 import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
+import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 
 export const mockedActions = sinon.stub({ ...actions });
 
@@ -68,7 +69,7 @@ export const table = {
       keys: [
         {
           column_names: ['id'],
-          type: 'pk',
+          type: 'pk' as ColumnKeyTypeType,
           name: null,
         },
       ],
@@ -84,14 +85,14 @@ export const table = {
           name: 'slices_ibfk_1',
           referred_columns: ['id'],
           referred_table: 'datasources',
-          type: 'fk',
+          type: 'fk' as ColumnKeyTypeType,
           referred_schema: 'carapal',
           options: {},
         },
         {
           unique: false,
           column_names: ['druid_datasource_id'],
-          type: 'index',
+          type: 'index' as ColumnKeyTypeType,
           name: 'druid_datasource_id',
         },
       ],
@@ -283,7 +284,7 @@ export const queries = [
 export const queryWithBadColumns = {
   ...queries[0],
   results: {
-    data: queries[0].results.data,
+    data: queries[0].results?.data,
     selected_columns: [
       {
         is_date: true,

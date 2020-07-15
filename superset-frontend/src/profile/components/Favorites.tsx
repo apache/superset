@@ -17,28 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 
 import TableLoader from '../../components/TableLoader';
+import { Slice } from '../types';
+import { User, Dashboard } from '../../types/bootstrapTypes';
 
-const propTypes = {
-  user: PropTypes.object.isRequired,
-};
+interface FavoritesProps {
+  user: User;
+}
 
-export default class Favorites extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      dashboardsLoading: true,
-      slicesLoading: true,
-      dashboards: [],
-      slices: [],
-    };
-  }
+export default class Favorites extends React.PureComponent<FavoritesProps> {
   renderSliceTable() {
-    const mutator = data =>
+    const mutator = (data: Slice[]) =>
       data.map(slice => ({
         slice: <a href={slice.url}>{slice.title}</a>,
         creator: <a href={slice.creator_url}>{slice.creator}</a>,
@@ -57,7 +49,7 @@ export default class Favorites extends React.PureComponent {
     );
   }
   renderDashboardTable() {
-    const mutator = data =>
+    const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
         dashboard: <a href={dash.url}>{dash.title}</a>,
         creator: <a href={dash.creator_url}>{dash.creator}</a>,
@@ -86,4 +78,3 @@ export default class Favorites extends React.PureComponent {
     );
   }
 }
-Favorites.propTypes = propTypes;

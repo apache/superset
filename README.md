@@ -35,14 +35,13 @@ Superset
 
 A modern, enterprise-ready business intelligence web application.
 
-[**Why Superset**](#why-superset) | 
+[**Why Superset**](#why-superset) |
 [**Database Support**](#database-support) |
 [**Installation and Configuration**](#installation-and-configuration) |
 [**Get Help**](#get-help) |
 [**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |
-[**Superset Users**](INTHEWILD.md) |
-[**License**](#license) |
+[**Superset Users**](INTHEWILD.md)
 
 
 ## Screenshots & Gifs
@@ -115,12 +114,12 @@ If you decide to join the [Community Slack](https://join.slack.com/t/apache-supe
 
 **1. Treat everyone in the community with respect.**
 
-- We strive to make this community a warm place for people from all industries, use cases, geographies, and backgrounds. Harassment of any kind is not acceptable and won’t be tolerated. 
+- We strive to make this community a warm place for people from all industries, use cases, geographies, and backgrounds. Harassment of any kind is not acceptable and won’t be tolerated.
 - Please follow the guidelines as outlined in the Superset Community [code of conduct here](https://github.com/apache/incubator-superset/blob/master/CODE_OF_CONDUCT.md).
 
-**2. Use the right channel.** 
+**2. Use the right channel.**
 
-- Channels are an effective way to organize and focus discussions while also empowering members to opt-in to the types of content they’re interested in. When questions are posted or discussions are started in the wrong channel, it dilutes the trust of the members in the channel and, more practically, makes it harder for your questions to be answered.  
+- Channels are an effective way to organize and focus discussions while also empowering members to opt-in to the types of content they’re interested in. When questions are posted or discussions are started in the wrong channel, it dilutes the trust of the members in the channel and, more practically, makes it harder for your questions to be answered.
 
 **3. Ask thoughtful questions.**
 
@@ -161,25 +160,3 @@ Interested in contributing? Check out
 * [Docker image](https://hub.docker.com/r/preset/superset/)
 * [Youtube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
   * [May 15, 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
-
-
-## License
-
-```
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
-```

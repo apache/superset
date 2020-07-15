@@ -33,7 +33,7 @@ setupApp();
 
 const profileViewContainer = document.getElementById('app');
 const bootstrap = JSON.parse(
-  profileViewContainer.getAttribute('data-bootstrap'),
+  profileViewContainer?.getAttribute('data-bootstrap') ?? '{}',
 );
 
 const store = createStore(

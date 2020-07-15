@@ -17,28 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 
 import TableLoader from '../../components/TableLoader';
+import { Slice } from '../types';
+import { User, Dashboard } from '../../types/bootstrapTypes';
 
-const propTypes = {
-  user: PropTypes.object.isRequired,
-};
+interface CreatedContentProps {
+  user: User;
+}
 
-class CreatedContent extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      dashboardsLoading: true,
-      slicesLoading: true,
-      dashboards: [],
-      slices: [],
-    };
-  }
+class CreatedContent extends React.PureComponent<CreatedContentProps> {
   renderSliceTable() {
-    const mutator = data =>
+    const mutator = (data: Slice[]) =>
       data.map(slice => ({
         slice: <a href={slice.url}>{slice.title}</a>,
         favorited: moment.utc(slice.dttm).fromNow(),
@@ -56,7 +48,7 @@ class CreatedContent extends React.PureComponent {
     );
   }
   renderDashboardTable() {
-    const mutator = data =>
+    const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
         dashboard: <a href={dash.url}>{dash.title}</a>,
         favorited: moment.utc(dash.dttm).fromNow(),
@@ -85,6 +77,5 @@ class CreatedContent extends React.PureComponent {
     );
   }
 }
-CreatedContent.propTypes = propTypes;
 
 export default CreatedContent;
