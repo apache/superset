@@ -29,8 +29,7 @@
     "@emotion/core": "^10.0.28",
     "@types/d3-array": "^2.0.0",
     "@types/match-sorter": "^4.0.0",
-    "@types/react": "^16.9.35",
-    "@types/react-dom": "^16.9.8",
+    "@types/react": "^16.9.43",
     "@types/react-table": "^7.0.19",
     "d3-array": "^2.4.0",
     "match-sorter": "^4.1.0",
@@ -49,7 +48,6 @@
     "@superset-ui/time-format": "^0.14.0",
     "@superset-ui/translation": "^0.14.0",
     "@superset-ui/validator": "^0.14.0",
-    "jquery": "^3.4.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   }
