@@ -1,5 +1,5 @@
 {
-   "name": "superset",
+  "name": "superset",
   "version": "0.999.0dev",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
