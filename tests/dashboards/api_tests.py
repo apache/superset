@@ -18,8 +18,10 @@
 """Unit tests for Superset"""
 import json
 from typing import List, Optional
+from datetime import datetime
 
 import prison
+import humanize
 from sqlalchemy.sql import func
 
 import tests.test_app
@@ -156,21 +158,28 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Dashboard API: Test get dashboards changed on
         """
+        from datetime import datetime
+        import humanize
+
         admin = self.get_user("admin")
+        start_changed_on = datetime.now()
         dashboard = self.insert_dashboard("title", "slug1", [admin.id])
 
         self.login(username="admin")
 
         arguments = {
-            "filters": [{"col": "dashboard_title", "opr": "sw", "value": "ti"}]
+            "order_column": "changed_on_delta_humanized",
+            "order_direction": "desc",
         }
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
 
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 1)
-        self.assertEqual(data["result"][0]["changed_on_delta_humanized"], "now")
+        self.assertEqual(
+            data["result"][0]["changed_on_delta_humanized"],
+            humanize.naturaltime(datetime.now() - start_changed_on),
+        )
 
         # rollback changes
         db.session.delete(dashboard)
@@ -238,9 +247,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(data["count"], 3)
 
         expected_response = [
-            {"slug": "ZY_bar", "dashboard_title": "foo_a",},
-            {"slug": "slug1zy_", "dashboard_title": "foo_b",},
-            {"slug": "slug1", "dashboard_title": "zy_foo",},
+            {"slug": "ZY_bar", "dashboard_title": "foo_a"},
+            {"slug": "slug1zy_", "dashboard_title": "foo_b"},
+            {"slug": "slug1", "dashboard_title": "zy_foo"},
         ]
         for index, item in enumerate(data["result"]):
             self.assertEqual(item["slug"], expected_response[index]["slug"])
