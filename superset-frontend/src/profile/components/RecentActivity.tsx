@@ -20,7 +20,8 @@ import React from 'react';
 import moment from 'moment';
 
 import TableLoader from '../../components/TableLoader';
-import { User, Activity } from '../types';
+import { Activity } from '../types';
+import { User } from '../../types/bootstrapTypes';
 
 interface RecentActivityProps {
   user: User;

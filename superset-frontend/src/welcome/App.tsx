@@ -44,7 +44,7 @@ setupApp();
 setupPlugins();
 
 const container = document.getElementById('app');
-const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));
+const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
 const user = { ...bootstrap.user };
 const menu = { ...bootstrap.common.menu_data };
 const common = { ...bootstrap.common };

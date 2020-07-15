@@ -23,11 +23,21 @@ import { shallow } from 'enzyme';
 import Welcome from 'src/welcome/Welcome';
 
 describe('Welcome', () => {
-  const mockedProps = {};
+  const mockedProps = {
+    user: {
+      username: 'alpha',
+      firstName: 'alpha',
+      lastName: 'alpha',
+      createdOn: '2016-11-11T12:34:17',
+      userId: 5,
+      email: 'alpha@alpha.com',
+      isActive: true,
+    },
+  };
   it('is valid', () => {
     expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
   });
-  it('renders 4 Tab, Panel, and Row components', () => {
+  it('renders 3 Tab, Panel, and Row components', () => {
     const wrapper = shallow(<Welcome {...mockedProps} />);
     expect(wrapper.find(Tab)).toHaveLength(3);
     expect(wrapper.find(Panel)).toHaveLength(3);
