@@ -70,17 +70,17 @@ class DashboardTable extends React.PureComponent {
       }) => <a href={changedByUrl}>{changedByName}</a>,
     },
     {
-      accessor: 'changed_on',
+      accessor: 'changed_on_delta_humanized',
       Header: 'Modified',
       Cell: ({
         row: {
-          original: { changed_on: changedOn },
+          original: { changed_on_delta_humanized: changedOn },
         },
-      }) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
+      }) => <span className="no-wrap">{changedOn}</span>,
     },
   ];
 
-  initialSort = [{ id: 'changed_on', desc: true }];
+  initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   fetchData = ({ pageIndex, pageSize, sortBy, filters }) => {
     this.setState({ loading: true });

@@ -20,6 +20,7 @@ import logging
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Union
+import pytz
 
 # isort and pylint disagree, isort should win
 # pylint: disable=ungrouped-imports
@@ -380,6 +381,15 @@ class AuditMixinNullable(AuditMixin):
     @renders("changed_on")
     def changed_on_(self) -> Markup:
         return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
+
+    @renders("changed_on")
+    def changed_on_delta_humanized(self) -> str:
+        return self.changed_on_humanized
+
+    @renders("changed_on")
+    def changed_on_utc(self) -> str:
+        # Convert naive datetime to UTC
+        return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     @property
     def changed_on_humanized(self) -> str:

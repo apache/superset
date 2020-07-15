@@ -233,19 +233,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.get_list.__name__, duration)
         return response
 
-    def pre_get_list(self, items):
-        for item in items["result"]:
-            if "changed_on" in item:
-                item["changed_on"] = item["changed_on"] + "+00:00"
-            if "created_on" in item:
-                item["created_on"] = item["created_on"] + "+00:00"
-
-    def pre_get(self, item):
-        if "changed_on" in item["result"]:
-            item["changed_on"] = item["changed_on"] + "+00:00"
-        if "created_on" in item["result"]:
-            item["created_on"] = item["created_on"] + "+00:00"
-
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
     @safe
