@@ -607,7 +607,9 @@ def prophet(
         raise QueryObjectValidationError(
             _("Unsupported time grain: %(time_grain)s", time_grain=time_grain,)
         )
-    if not periods or periods < 0:
+    # check type at runtime due to marhsmallow schema not being able to handle
+    # union types
+    if not periods or periods < 0 or not isinstance(periods, int):
         raise QueryObjectValidationError(_("Periods must be a positive integer value"))
     if not confidence_interval or confidence_interval <= 0 or confidence_interval >= 1:
         raise QueryObjectValidationError(
