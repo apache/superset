@@ -20,6 +20,7 @@ import math
 from typing import Any, List, Optional
 
 from pandas import DataFrame, Series
+import pytest
 
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import pandas_postprocessing as proc
@@ -508,3 +509,44 @@ class TestPostProcessing(SupersetTestCase):
         self.assertListEqual(df.columns.tolist(), ["a", "b"])
         self.assertListEqual(series_to_list(column_df["a"]), [0.25, 0.75])
         self.assertListEqual(series_to_list(column_df["b"]), [0.1, 0.9])
+
+    def test_prophet(self):
+        pytest.importorskip("fbprophet")
+        df_orig = DataFrame(
+            {
+                "__timestamp": [
+                    datetime(2018, 12, 31),
+                    datetime(2019, 12, 31),
+                    datetime(2020, 12, 31),
+                    datetime(2021, 12, 31),
+                ],
+                "a": [1.1, 1, 1.9, 3.15],
+                "b": [4, 3, 4.1, 3.95],
+            }
+        )
+
+        df = proc.prophet(
+            df=df_orig, time_grain="P1M", periods=3, confidence_interval=0.9
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            "__timestamp",
+            "a__yhat",
+            "a__yhat_upper",
+            "a__yhat_lower",
+            "a",
+            "b__yhat",
+            "b__yhat_upper",
+            "b__yhat_lower",
+            "b",
+        }
+        assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 3, 31)
+        assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 3, 31)
+        assert len(df) == 7
+
+        df = proc.prophet(
+            df=df_orig, time_grain="P1M", periods=5, confidence_interval=0.9
+        )
+        assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 3, 31)
+        assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2026, 12, 31)
+        assert len(df) == 9
