@@ -23,11 +23,12 @@ const propTypes = {
   checked: PropTypes.bool.isRequired,
   onChange: PropTypes.func.isRequired,
   style: PropTypes.object,
+  style: PropTypes.string,
 };
 
-export default function Checkbox({ checked, onChange, style }) {
+export default function Checkbox({ checked, onChange, style, className }) {
   return (
-    <span style={style}>
+    <span style={style} className={className}>
       <i
         role="button"
         tabIndex={0}
