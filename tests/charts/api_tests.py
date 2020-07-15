@@ -547,7 +547,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_get_charts_changed_on(self):
         """
-        Dashboard API: Test get dashboards changed on
+        Dashboard API: Test get charts changed on
         """
         admin = self.get_user("admin")
         start_changed_on = datetime.now()
