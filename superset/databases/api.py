@@ -239,7 +239,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             description: Table schema
           responses:
             200:
-              description: Query result
+              description: SQL statement for a select star for table
               content:
                 application/json:
                   schema:
