@@ -16,19 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type Slice = {
+export type User = {
+  createdOn: string;
+  email: string;
+  firstName: string;
+  isActive: boolean;
+  lastName: string;
+  userId: number;
+  username: string;
+};
+
+export interface UserWithPermissionsAndRoles extends User {
+  permissions: {
+    database_access?: string[];
+    datasource_access?: string[];
+  };
+  roles: Record<string, string[][]>;
+}
+
+export type Dashboard = {
   dttm: number;
   id: number;
   url: string;
   title: string;
   creator?: string;
   creator_url?: string;
-  viz_type: string;
-};
-
-export type Activity = {
-  action: string;
-  item_title: string;
-  item_url: string;
-  time: number;
 };

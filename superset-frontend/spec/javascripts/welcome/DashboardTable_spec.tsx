@@ -55,7 +55,7 @@ describe('DashboardTable', () => {
         expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(1);
         // there's a delay between response and updating state, so manually set it
         // rather than adding a timeout which could introduce flakiness
-        wrapper.setState({ dashaboards: mockDashboards });
+        wrapper.setState({ dashboards: mockDashboards });
         expect(wrapper.find(ListView)).toHaveLength(1);
         done();
       });
