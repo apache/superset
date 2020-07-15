@@ -109,11 +109,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "thumbnail_url": dashboard.thumbnail_url,
         }
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertIn("changed_on_delta_humanized", data["result"])
-        self.assertIn("changed_on_utc", data["result"])
+        self.assertIn("changed_on", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
-            if key not in ("changed_on_delta_humanized", "changed_on_utc"):
+            if key != "changed_on":
                 self.assertEqual(value, expected_result[key])
         # rollback changes
         db.session.delete(dashboard)
