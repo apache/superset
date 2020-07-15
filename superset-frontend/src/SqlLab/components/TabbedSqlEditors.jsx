@@ -29,6 +29,7 @@ import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import TabStatusIcon from './TabStatusIcon';
+import Icon from '../../components/Icon';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -289,9 +290,13 @@ class TabbedSqlEditors extends React.PureComponent {
       const title = (
         <>
           {qe.title} <TabStatusIcon tabState={state} />{' '}
-          <span className="close" onClick={() => this.removeQueryEditor(qe)}>
-            {'×'}
-          </span>
+          <Icon
+            role="button"
+            tabIndex={0}
+            cursor="pointer"
+            name="cancel-x"
+            onClick={() => this.removeQueryEditor(qe)}
+          />
         </>
       );
       const tabTitle = (
