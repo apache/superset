@@ -565,7 +565,7 @@ def contribution(
     return contribution_df
 
 
-def prophet(
+def prophet(  # pylint: disable=too-many-arguments,too-many-locals
     df: DataFrame,
     time_grain: str,
     periods: int,
@@ -573,7 +573,7 @@ def prophet(
     yearly_seasonality: Optional[Union[bool, int]] = None,
     weekly_seasonality: Optional[Union[bool, int]] = None,
     daily_seasonality: Optional[Union[bool, int]] = None,
-):
+) -> DataFrame:
     """
     Add forecasts to each series in a timeseries dataframe, along with confidence
     intervals for the prediction. For each series, the operation creates three
@@ -621,7 +621,7 @@ def prophet(
         raise QueryObjectValidationError(_("DataFrame include at least one series"))
 
     try:
-        from fbprophet import Prophet
+        from fbprophet import Prophet  # pylint: disable=import-error
     except ModuleNotFoundError:
         raise QueryObjectValidationError(_("`fbprophet` package not installed"))
 
@@ -637,7 +637,7 @@ def prophet(
         except ValueError:
             return input_value
 
-    target_df: Optional[DataFrame] = None
+    target_df = DataFrame()
     for column in [column for column in df.columns if column != DTTM_ALIAS]:
         df_fit = df[[DTTM_ALIAS, column]]
         df_fit.columns = ["ds", "y"]
@@ -658,7 +658,7 @@ def prophet(
             f"{column}",
         ]
         joined.columns = new_columns
-        if target_df is None:
+        if target_df.empty:
             target_df = joined
         else:
             for new_column in new_columns:
