@@ -40,6 +40,9 @@ const propTypes = {
   datasource: PropTypes.object,
 };
 
+// Session storage key for recent dashboard
+const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
+
 class SaveModal extends React.Component {
   constructor(props) {
     super(props);
@@ -59,9 +62,7 @@ class SaveModal extends React.Component {
       const dashboardIds = this.props.dashboards.map(
         dashboard => dashboard.value,
       );
-      let recentDashboard = sessionStorage.getItem(
-        'save_chart_recent_dashboard',
-      );
+      let recentDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
       recentDashboard = recentDashboard && parseInt(recentDashboard, 10);
       if (
         recentDashboard !== null &&
@@ -128,12 +129,9 @@ class SaveModal extends React.Component {
       .then(({ data }) => {
         console.log(data);
         if (data.dashboard_id === null) {
-          sessionStorage.removeItem('save_chart_recent_dashboard');
+          sessionStorage.removeItem(SK_DASHBOARD_ID);
         } else {
-          sessionStorage.setItem(
-            'save_chart_recent_dashboard',
-            data.dashboard_id,
-          );
+          sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
         }
         // Go to new slice url or dashboard url
         if (gotodash) {
