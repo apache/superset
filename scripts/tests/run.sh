@@ -126,7 +126,7 @@ echo DB_URI="${SUPERSET__SQLALCHEMY_DATABASE_URI}"
 echo Superset config module="${SUPERSET_CONFIG}"
 echo Run init procedures=$RUN_INIT
 echo Run reset DB=$RUN_RESET_DB
-echo Test to run:"${TEST_MODULE}" "${TEST_METHOD}"
+echo Test to run:"${TEST_MODULE}"
 echo ------------------------------------
 
 
