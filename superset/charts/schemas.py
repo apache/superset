@@ -207,7 +207,15 @@ class ChartDataAdhocMetricSchema(Schema):
     aggregate = fields.String(
         description="Aggregation operator. Only required for simple expression types.",
         validate=validate.OneOf(
-            choices=("AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM")
+            choices=(
+                "AVG",
+                "COUNT",
+                "COUNT_DISTINCT",
+                "MAX",
+                "MIN",
+                "SUM",
+                "APPX_MEDIAN",
+            )
         ),
     )
     column = fields.Nested(ChartDataColumnSchema)

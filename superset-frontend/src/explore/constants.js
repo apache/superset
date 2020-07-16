@@ -25,6 +25,7 @@ export const AGGREGATES = {
   MAX: 'MAX',
   MIN: 'MIN',
   SUM: 'SUM',
+  APPX_MEDIAN: 'APPX_MEDIAN'
 };
 export const AGGREGATES_OPTIONS = Object.values(AGGREGATES);
 

@@ -447,6 +447,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         "AVG": sa.func.AVG,
         "MIN": sa.func.MIN,
         "MAX": sa.func.MAX,
+        "APPX_MEDIAN": sa.func.APPX_MEDIAN,
     }
 
     def make_sqla_column_compatible(
