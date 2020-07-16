@@ -323,6 +323,11 @@ export const queryWithBadColumns = {
       },
       {
         is_date: true,
+        name: '__TIME',
+        type: 'TIMESTAMP',
+      },
+      {
+        is_date: true,
         name: '__TIMESTAMP',
         type: 'TIMESTAMP',
       },
