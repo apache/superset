@@ -106,8 +106,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "url",
         "description",
-        "changed_by_fk",
-        "created_by_fk",
         "changed_by_name",
         "changed_by_url",
         "changed_by.first_name",
@@ -124,12 +122,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
-    list_select_columns = list_columns + ["changed_on"]
+    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
         "slice_name",
         "viz_type",
         "datasource_name",
-        "changed_by_fk",
+        "changed_by.first_name",
         "changed_on_delta_humanized",
     ]
     search_columns = (
