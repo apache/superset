@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
+import styled from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from '../utils/getClientErrorObject';
@@ -40,7 +41,21 @@ import Field from '../CRUD/Field';
 
 import withToasts from '../messageToasts/enhancers/withToasts';
 
-import './main.less';
+const DatasourceContainer = styled.div`
+  .tab-content {
+    height: 600px;
+    overflow: auto;
+  }
+
+  .change-warning {
+    margin: 16px 10px 0;
+    color: ${({ theme }) => theme.colors.warning.base};
+  }
+
+  .change-warning .bold {
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+`;
 
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
@@ -648,7 +663,7 @@ export class DatasourceEditor extends React.PureComponent {
   render() {
     const { datasource, activeTabKey } = this.state;
     return (
-      <div className="Datasource">
+      <DatasourceContainer>
         {this.renderErrors()}
         <Tabs
           id="table-tabs"
@@ -750,7 +765,7 @@ export class DatasourceEditor extends React.PureComponent {
             )}
           </Tab>
         </Tabs>
-      </div>
+      </DatasourceContainer>
     );
   }
 }
