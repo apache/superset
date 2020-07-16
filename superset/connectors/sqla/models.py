@@ -854,7 +854,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 select_exprs += [timestamp]
                 groupby_exprs_with_timestamp[timestamp.name] = timestamp
 
-            if granularity in groupby:
+            if groupby and granularity in groupby:
                 timestamp = dttm_col.get_timestamp_expression(time_grain)
                 for i, select_expr in enumerate(select_exprs):
                     if select_expr.name == granularity:
