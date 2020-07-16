@@ -37,7 +37,7 @@ From the superset repo root directory:
 
 - Example run all tests:
 ```$bash
-scripts/tests/run.sh --module tests/charts/api_tests.py
+scripts/tests/run.sh
 ```
 
 - Example run a single test module:
