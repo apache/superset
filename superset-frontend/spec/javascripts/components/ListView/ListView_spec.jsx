@@ -22,13 +22,17 @@ import { act } from 'react-dom/test-utils';
 import { MenuItem } from 'react-bootstrap';
 import Select from 'src/components/Select';
 import { QueryParamProvider } from 'use-query-params';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
 import Pagination from 'src/components/Pagination';
+import Button from 'src/components/Button';
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 
 function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
@@ -72,8 +76,15 @@ const mockedProps = {
   pageSize: 1,
   fetchData: jest.fn(() => []),
   loading: false,
+  bulkSelectEnabled: true,
+  disableBulkSelect: jest.fn(),
   bulkActions: [
-    { key: 'something', name: 'do something', onSelect: jest.fn() },
+    {
+      key: 'something',
+      name: 'do something',
+      style: 'danger',
+      onSelect: jest.fn(),
+    },
   ],
 };
 
@@ -89,7 +100,10 @@ const factory = (props = mockedProps) =>
   );
 
 describe('ListView', () => {
-  const wrapper = factory();
+  let wrapper = beforeAll(async () => {
+    wrapper = factory();
+    await waitForComponentToPaint(wrapper);
+  });
 
   afterEach(() => {
     mockedProps.fetchData.mockClear();
@@ -227,18 +241,17 @@ Array [
       wrapper.find('input[id="0"]').at(0).prop('onChange')({
         target: { value: 'on' },
       });
+    });
+    wrapper.update();
 
+    act(() => {
       wrapper
-        .find('.dropdown-toggle')
-        .children('button')
-        .at(1)
+        .find('[data-test="bulk-select-controls"]')
+        .find(Button)
         .props()
         .onClick();
     });
-    wrapper.update();
-    const bulkActionsProps = wrapper.find(MenuItem).last().props();
 
-    bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
                                     Array [
@@ -257,18 +270,17 @@ Array [
       wrapper.find('input[id="header-toggle-all"]').at(0).prop('onChange')({
         target: { value: 'on' },
       });
+    });
+    wrapper.update();
 
+    act(() => {
       wrapper
-        .find('.dropdown-toggle')
-        .children('button')
-        .at(1)
+        .find('[data-test="bulk-select-controls"]')
+        .find(Button)
         .props()
         .onClick();
     });
-    wrapper.update();
-    const bulkActionsProps = wrapper.find(MenuItem).last().props();
 
-    bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
                         Array [
@@ -284,6 +296,34 @@ Array [
                           ],
                         ]
                 `);
+  });
+
+  it('allows deselecting all', async () => {
+    act(() => {
+      wrapper.find('[data-test="bulk-select-deselect-all"]').props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    wrapper.update();
+    wrapper.find(IndeterminateCheckbox).forEach(input => {
+      expect(input.props().checked).toBe(false);
+    });
+  });
+
+  it('allows disabling bulkSelect', () => {
+    wrapper
+      .find('[data-test="bulk-select-controls"]')
+      .at(0)
+      .props()
+      .onDismiss();
+    expect(mockedProps.disableBulkSelect).toHaveBeenCalled();
+  });
+
+  it('disables bulk select based on prop', async () => {
+    const wrapper2 = factory({ ...mockedProps, bulkSelectEnabled: false });
+    await waitForComponentToPaint(wrapper2);
+    expect(wrapper2.find('[data-test="bulk-select-controls"]').exists()).toBe(
+      false,
+    );
   });
 
   it('Throws an exception if filter missing in columns', () => {

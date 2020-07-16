@@ -214,6 +214,7 @@ const config = {
       'react-dom': '@hot-loader/react-dom',
       stylesheets: path.resolve(APP_DIR, './stylesheets'),
       images: path.resolve(APP_DIR, './images'),
+      spec: path.resolve(APP_DIR, './spec'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     symlinks: false,
