@@ -118,7 +118,7 @@ class SaveModal extends React.Component {
       if (this.state.saveToDashboardId) {
         sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
       } else {
-        sliceParams.new_dashboard_name = '[new dashboard]';
+        sliceParams.new_dashboard_name = t('Untitled dashboard');
       }
     }
     sliceParams.goto_dash = gotodash;
@@ -150,7 +150,7 @@ class SaveModal extends React.Component {
     const canNotSaveToDash =
       EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;
     return (
-      <Modal show onHide={this.props.onHide}>
+      <Modal show onHide={this.props.onHide} bsSize="medium">
         <Modal.Header closeButton>
           <Modal.Title>{t('Save A Chart')}</Modal.Title>
         </Modal.Header>
@@ -218,25 +218,34 @@ class SaveModal extends React.Component {
         </Modal.Body>
 
         <Modal.Footer>
-          <Button
-            type="button"
-            id="btn_modal_save"
-            bsSize="sm"
-            className="btn pull-left"
-            onClick={this.saveOrOverwrite.bind(this, false)}
-          >
-            {t('Save')}
-          </Button>
-          <Button
-            type="button"
-            id="btn_modal_save_goto_dash"
-            bsSize="sm"
-            className="btn btn-primary pull-left gotodash"
-            disabled={!this.state.addToDash || canNotSaveToDash}
-            onClick={this.saveOrOverwrite.bind(this, true)}
-          >
-            {t('Save & go to dashboard')}
-          </Button>
+          <div className="float-right">
+            <Button
+              type="button"
+              id="btn_cancel"
+              bsSize="sm"
+              onClick={this.props.onHide}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              type="button"
+              id="btn_modal_save_goto_dash"
+              bsSize="sm"
+              disabled={!this.state.addToDash || canNotSaveToDash}
+              onClick={this.saveOrOverwrite.bind(this, true)}
+            >
+              {t('Save & go to dashboard')}
+            </Button>
+            <Button
+              type="button"
+              id="btn_modal_save"
+              bsSize="sm"
+              bsStyle="primary"
+              onClick={this.saveOrOverwrite.bind(this, false)}
+            >
+              {t('Save')}
+            </Button>
+          </div>
         </Modal.Footer>
       </Modal>
     );

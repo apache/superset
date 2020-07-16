@@ -26,7 +26,13 @@ const propTypes = {
   label: PropTypes.node,
 };
 
-export default function Checkbox({ label, checked, onChange, style, className }) {
+export default function Checkbox({
+  label,
+  checked,
+  onChange,
+  style,
+  className,
+}) {
   return (
     <span style={style} className={className}>
       <i
@@ -44,7 +50,7 @@ export default function Checkbox({ label, checked, onChange, style, className })
           cursor: 'pointer',
         }}
       />
-      {label &&
+      {label && (
         <span
           className="m-l-5"
           onClick={() => onChange(!checked)}
@@ -52,7 +58,7 @@ export default function Checkbox({ label, checked, onChange, style, className })
         >
           {label}
         </span>
-      }
+      )}
     </span>
   );
 }
