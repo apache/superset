@@ -17,41 +17,76 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { kebabCase } from 'lodash';
 import {
   Button as BootstrapButton,
   Tooltip,
   OverlayTrigger,
 } from 'react-bootstrap';
+import styled from '@superset-ui/style';
 
-const propTypes = {
-  children: PropTypes.node,
-  className: PropTypes.string,
-  tooltip: PropTypes.node,
-  placement: PropTypes.string,
-  onClick: PropTypes.func,
-  disabled: PropTypes.bool,
-  bsSize: PropTypes.string,
-  bsStyle: PropTypes.string,
-  btnStyles: PropTypes.string,
-};
-const defaultProps = {
-  bsSize: 'sm',
-  placement: 'top',
-};
+export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
+
+export interface ButtonProps {
+  className?: string;
+  tooltip?: string;
+  placement?: string;
+  onClick?: OnClickHandler;
+  disabled?: boolean;
+  bsStyle?: string;
+  btnStyles?: string;
+  bsSize?: BootstrapButton.ButtonProps['bsSize'];
+  style?: BootstrapButton.ButtonProps['style'];
+  children?: React.ReactNode;
+}
 
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
 
-export default function Button(props) {
-  const buttonProps = { ...props };
+const SupersetButton = styled(BootstrapButton)`
+  &.supersetButton {
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+    border: none;
+    color: ${({ theme }) => theme.colors.secondary.light5};
+    font-size: ${({ theme }) => theme.typography.sizes.s};
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    min-width: ${({ theme }) => theme.gridUnit * 36}px;
+    min-height: ${({ theme }) => theme.gridUnit * 8}px;
+    text-transform: uppercase;
+    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+    &:first-of-type {
+      margin-left: 0;
+    }
+
+    i {
+      padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
+    }
+
+    &.primary {
+      background-color: ${({ theme }) => theme.colors.primary.base};
+    }
+    &.secondary {
+      color: ${({ theme }) => theme.colors.primary.base};
+      background-color: ${({ theme }) => theme.colors.primary.light4};
+    }
+    &.danger {
+      background-color: ${({ theme }) => theme.colors.error.base};
+    }
+  }
+`;
+
+export default function Button(props: ButtonProps) {
+  const buttonProps = {
+    ...props,
+    bsSize: props.bsSize || 'sm',
+    placement: props.placement || 'top',
+  };
   const tooltip = props.tooltip;
   const placement = props.placement;
   delete buttonProps.tooltip;
   delete buttonProps.placement;
 
   let button = (
-    <BootstrapButton {...buttonProps}>{props.children}</BootstrapButton>
+    <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
   );
   if (tooltip) {
     if (props.disabled) {
@@ -60,7 +95,7 @@ export default function Button(props) {
       buttonProps.style = { pointerEvents: 'none' };
       button = (
         <div style={BUTTON_WRAPPER_STYLE}>
-          <BootstrapButton {...buttonProps}>{props.children}</BootstrapButton>
+          <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
         </div>
       );
     }
@@ -77,6 +112,3 @@ export default function Button(props) {
   }
   return button;
 }
-
-Button.propTypes = propTypes;
-Button.defaultProps = defaultProps;

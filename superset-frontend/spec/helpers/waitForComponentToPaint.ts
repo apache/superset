@@ -16,24 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { ReactWrapper } from 'enzyme';
+import { act } from 'react-dom/test-utils';
 
-import CodeModal from 'src/dashboard/components/CodeModal';
-
-describe('CodeModal', () => {
-  const mockedProps = {
-    triggerNode: <i className="fa fa-edit" />,
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<CodeModal {...mockedProps} />)).toBe(true);
+// taken from: https://github.com/enzymejs/enzyme/issues/2073
+// There is currently and issue with enzyme and react-16's hooks
+// that results in a race condition between tests and react hook updates.
+// This function ensures tests run after all react updates are done.
+export default async function waitForComponentToPaint<P = {}>(
+  wrapper: ReactWrapper<P>,
+  amount = 0,
+) {
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, amount));
+    wrapper.update();
   });
-  it('renders the trigger node', () => {
-    const wrapper = mount(<CodeModal {...mockedProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
-    expect(wrapper.find('.fa-edit')).toHaveLength(1);
-  });
-});
+}

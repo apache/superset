@@ -26,7 +26,7 @@ import rison from 'rison';
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
-import ListView from 'src/components/ListView/ListView';
+import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import {
   FetchDataConfig,
   FilterOperatorMap,
@@ -45,12 +45,13 @@ interface Props {
 }
 
 interface State {
-  charts: any[];
+  bulkSelectEnabled: boolean;
   chartCount: number;
-  loading: boolean;
+  charts: any[];
   filterOperators: FilterOperatorMap;
   filters: Filters;
   lastFetchDataConfig: FetchDataConfig | null;
+  loading: boolean;
   permissions: string[];
   // for now we need to use the Slice type defined in PropertiesModal.
   // In future it would be better to have a unified Chart entity.
@@ -63,6 +64,7 @@ class ChartList extends React.PureComponent<Props, State> {
   };
 
   state: State = {
+    bulkSelectEnabled: false,
     chartCount: 0,
     charts: [],
     filterOperators: {},
@@ -174,7 +176,7 @@ class ChartList extends React.PureComponent<Props, State> {
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { state, original } }: any) => {
+      Cell: ({ row: { original } }: any) => {
         const handleDelete = () => this.handleChartDelete(original);
         const openEditModal = () => this.openChartEditModal(original);
         if (!this.canEdit && !this.canDelete) {
@@ -182,9 +184,7 @@ class ChartList extends React.PureComponent<Props, State> {
         }
 
         return (
-          <span
-            className={`actions ${state && state.hover ? '' : 'invisible'}`}
-          >
+          <span className="actions">
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
@@ -233,6 +233,10 @@ class ChartList extends React.PureComponent<Props, State> {
     }
 
     return this.state.permissions.some(p => p === perm);
+  };
+
+  toggleBulkSelect = () => {
+    this.setState({ bulkSelectEnabled: !this.state.bulkSelectEnabled });
   };
 
   openChartEditModal = (chart: Chart) => {
@@ -509,6 +513,7 @@ class ChartList extends React.PureComponent<Props, State> {
 
   render() {
     const {
+      bulkSelectEnabled,
       charts,
       chartCount,
       loading,
@@ -517,7 +522,17 @@ class ChartList extends React.PureComponent<Props, State> {
     } = this.state;
     return (
       <>
-        <SubMenu name={t('Charts')} />
+        <SubMenu
+          name={t('Charts')}
+          secondaryButton={
+            this.canDelete
+              ? {
+                  name: t('Bulk Select'),
+                  onClick: this.toggleBulkSelect,
+                }
+              : undefined
+          }
+        />
         {sliceCurrentlyEditing && (
           <PropertiesModal
             show
@@ -534,18 +549,17 @@ class ChartList extends React.PureComponent<Props, State> {
           onConfirm={this.handleBulkChartDelete}
         >
           {confirmDelete => {
-            const bulkActions = [];
-            if (this.canDelete) {
-              bulkActions.push({
-                key: 'delete',
-                name: (
-                  <>
-                    <i className="fa fa-trash" /> {t('Delete')}
-                  </>
-                ),
-                onSelect: confirmDelete,
-              });
-            }
+            const bulkActions: ListViewProps['bulkActions'] = this.canDelete
+              ? [
+                  {
+                    key: 'delete',
+                    name: t('Delete'),
+                    onSelect: confirmDelete,
+                    type: 'danger',
+                  },
+                ]
+              : [];
+
             return (
               <ListView
                 className="chart-list-view"
@@ -558,6 +572,8 @@ class ChartList extends React.PureComponent<Props, State> {
                 initialSort={this.initialSort}
                 filters={filters}
                 bulkActions={bulkActions}
+                bulkSelectEnabled={bulkSelectEnabled}
+                disableBulkSelect={this.toggleBulkSelect}
                 isSIP34FilterUIEnabled={this.isSIP34FilterUIEnabled}
               />
             );

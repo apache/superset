@@ -26,13 +26,11 @@ import React, {
   useState,
 } from 'react';
 import rison from 'rison';
-// @ts-ignore
-import { Panel } from 'react-bootstrap';
 import { SHORT_DATE, SHORT_TIME } from 'src/utils/common';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
-import ListView from 'src/components/ListView/ListView';
-import SubMenu from 'src/components/Menu/SubMenu';
+import ListView, { ListViewProps } from 'src/components/ListView/ListView';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
 import {
   FetchDataConfig,
@@ -42,6 +40,7 @@ import {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
+import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
 
@@ -52,15 +51,10 @@ type Owner = {
   username: string;
 };
 
-interface DatasetListProps {
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
-}
-
-interface Dataset {
-  changed_by: string;
+type Dataset = {
   changed_by_name: string;
   changed_by_url: string;
+  changed_by: string;
   changed_on: string;
   databse_name: string;
   explore_url: string;
@@ -68,6 +62,11 @@ interface Dataset {
   owners: Array<Owner>;
   schema: string;
   table_name: string;
+};
+
+interface DatasetListProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
 }
 
 const DatasetList: FunctionComponent<DatasetListProps> = ({
@@ -92,6 +91,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     { text: string; value: number }[]
   >([]);
   const [permissions, setPermissions] = useState<string[]>([]);
+
+  const [datasetAddModalOpen, setDatasetAddModalOpen] = useState<boolean>(
+    false,
+  );
+  const [bulkSelectEnabled, setBulkSelectEnabled] = useState<boolean>(false);
 
   const updateFilters = (filterOperators: FilterOperatorMap) => {
     const convertFilter = ({
@@ -187,9 +191,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     return Boolean(permissions.find(p => p === perm));
   };
 
-  const canEdit = () => hasPerm('can_edit');
-  const canDelete = () => hasPerm('can_delete');
-  const canCreate = () => hasPerm('can_add');
+  const canEdit = hasPerm('can_edit');
+  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_add');
 
   const initialSort = [{ id: 'changed_on', desc: true }];
 
@@ -349,16 +353,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { state, original } }: any) => {
+      Cell: ({ row: { original } }: any) => {
         const handleEdit = () => handleDatasetEdit(original);
         const handleDelete = () => openDatasetDeleteModal(original);
-        if (!canEdit() && !canDelete()) {
+        if (!canEdit && !canDelete) {
           return null;
         }
         return (
-          <span
-            className={`actions ${state && state.hover ? '' : 'invisible'}`}
-          >
+          <span className="actions">
             <TooltipWrapper
               label="explore-action"
               tooltip={t('Explore')}
@@ -390,7 +392,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               </TooltipWrapper>
             )}
 
-            {canEdit() && (
+            {canEdit && (
               <TooltipWrapper
                 label="edit-action"
                 tooltip={t('Edit')}
@@ -415,17 +417,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     },
   ];
 
-  const menu = {
+  const menuData: SubMenuProps = {
+    activeChild: 'Datasets',
     name: t('Data'),
-    createButton: {
-      name: t('Dataset'),
-      url: '/tablemodelview/add',
-    },
-    childs: [
+    children: [
       {
         name: 'Datasets',
         label: t('Datasets'),
-        url: '/tablemodelview/list/?_flt_1_is_sqllab_view=y',
+        url: '/tablemodelview/list/',
       },
       { name: 'Databases', label: t('Databases'), url: '/databaseview/list/' },
       {
@@ -435,6 +434,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
     ],
   };
+
+  if (canCreate) {
+    menuData.primaryButton = {
+      name: (
+        <>
+          {' '}
+          <i className="fa fa-plus" /> {t('Dataset')}{' '}
+        </>
+      ),
+      onClick: () => setDatasetAddModalOpen(true),
+    };
+  }
+
+  if (canDelete) {
+    menuData.secondaryButton = {
+      name: t('Bulk Select'),
+      onClick: () => setBulkSelectEnabled(!bulkSelectEnabled),
+    };
+  }
 
   const closeDatasetDeleteModal = () => {
     setDatasetCurrentlyDeleting(null);
@@ -519,11 +537,28 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   return (
     <>
-      <SubMenu
-        {...menu}
-        canCreate={canCreate()}
-        fetchData={() => lastFetchDataConfig && fetchData(lastFetchDataConfig)}
+      <SubMenu {...menuData} />
+      <AddDatasetModal
+        show={datasetAddModalOpen}
+        onHide={() => setDatasetAddModalOpen(false)}
+        onDatasetAdd={() => {
+          if (lastFetchDataConfig) fetchData(lastFetchDataConfig);
+        }}
       />
+      {datasetCurrentlyDeleting && (
+        <DeleteModal
+          description={t(
+            'The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+            datasetCurrentlyDeleting.table_name,
+            datasetCurrentlyDeleting.chart_count,
+            datasetCurrentlyDeleting.dashboard_count,
+          )}
+          onConfirm={() => handleDatasetDelete(datasetCurrentlyDeleting)}
+          onHide={closeDatasetDeleteModal}
+          open
+          title={t('Delete Dataset?')}
+        />
+      )}
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(
@@ -532,50 +567,66 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         onConfirm={handleBulkDatasetDelete}
       >
         {confirmDelete => {
-          const bulkActions = [];
-          if (canDelete()) {
-            bulkActions.push({
-              key: 'delete',
-              name: (
-                <>
-                  <i className="fa fa-trash" /> {t('Delete')}
-                </>
-              ),
-              onSelect: confirmDelete,
-            });
-          }
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
           return (
-            <>
-              {datasetCurrentlyDeleting && (
-                <DeleteModal
-                  description={t(
-                    `The dataset ${datasetCurrentlyDeleting.table_name} is linked to 
-                  ${datasetCurrentlyDeleting.chart_count} charts that appear on 
-                  ${datasetCurrentlyDeleting.dashboard_count} dashboards. 
-                  Are you sure you want to continue? Deleting the dataset will break 
-                  those objects.`,
-                  )}
-                  onConfirm={() =>
-                    handleDatasetDelete(datasetCurrentlyDeleting)
-                  }
-                  onHide={closeDatasetDeleteModal}
-                  open
-                  title={t('Delete Dataset?')}
-                />
-              )}
-              <ListView
-                className="dataset-list-view"
-                columns={columns}
-                data={datasets}
-                count={datasetCount}
-                pageSize={PAGE_SIZE}
-                fetchData={fetchData}
-                loading={loading}
-                initialSort={initialSort}
-                filters={currentFilters}
-                bulkActions={bulkActions}
-              />
-            </>
+            <ListView
+              className="dataset-list-view"
+              columns={columns}
+              data={datasets}
+              count={datasetCount}
+              pageSize={PAGE_SIZE}
+              fetchData={fetchData}
+              loading={loading}
+              initialSort={initialSort}
+              filters={currentFilters}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={() => setBulkSelectEnabled(false)}
+              renderBulkSelectCopy={selected => {
+                const { virtualCount, physicalCount } = selected.reduce(
+                  (acc, e) => {
+                    if (e.original.kind === 'physical') acc.physicalCount += 1;
+                    else if (e.original.kind === 'virtual')
+                      acc.virtualCount += 1;
+                    return acc;
+                  },
+                  { virtualCount: 0, physicalCount: 0 },
+                );
+
+                if (!selected.length) {
+                  return t('0 Selected');
+                } else if (virtualCount && !physicalCount) {
+                  return t(
+                    '%s Selected (Virtual)',
+                    selected.length,
+                    virtualCount,
+                  );
+                } else if (physicalCount && !virtualCount) {
+                  return t(
+                    '%s Selected (Physical)',
+                    selected.length,
+                    physicalCount,
+                  );
+                }
+
+                return t(
+                  '%s Selected (%s Physical, %s Virtual)',
+                  selected.length,
+                  physicalCount,
+                  virtualCount,
+                );
+              }}
+            />
           );
         }}
       </ConfirmStatusChange>
