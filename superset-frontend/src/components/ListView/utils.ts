@@ -165,6 +165,7 @@ export function useListViewState({
     gotoPage,
     setAllFilters,
     selectedFlatRows,
+    toggleAllRowsSelected,
     state: { pageIndex, pageSize, sortBy, filters },
   } = useTable(
     {
@@ -271,6 +272,7 @@ export function useListViewState({
     setAllFilters,
     setInternalFilters,
     state: { pageIndex, pageSize, sortBy, filters, internalFilters },
+    toggleAllRowsSelected,
     updateInternalFilter,
     applyFilterValue,
   };

@@ -19,7 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 
-import Button from '../../components/Button';
+import Button, { ButtonProps } from '../../components/Button';
 
 const NO_OP = () => undefined;
 
@@ -47,7 +47,7 @@ const RunQueryActionButton = ({
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
-  const commonBtnProps = {
+  const commonBtnProps: ButtonProps = {
     bsSize: 'small',
     bsStyle: btnStyle,
     disabled: !dbId,
