@@ -20,7 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { Modal, Alert, Button, Radio } from 'react-bootstrap';
+import { FormGroup, Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Checkbox from '../../components/Checkbox';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
@@ -167,33 +167,32 @@ class SaveModal extends React.Component {
               />
             </Alert>
           )}
-          {this.props.slice && (
+          <FormGroup>
             <Radio
               id="overwrite-radio"
-              disabled={!this.props.can_overwrite}
+              inline
+              disabled={!(this.props.can_overwrite && this.props.slice)}
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
             >
-              {t('Overwrite chart %s', this.props.slice.slice_name)}
+              {t('Save (Overwrite)')}
             </Radio>
-          )}
-
-          <Radio
-            id="saveas-radio"
-            inline
-            checked={this.state.action === 'saveas'}
-            onChange={this.changeAction.bind(this, 'saveas')}
-          >
-            {' '}
-            {t('Save as')} &nbsp;
-          </Radio>
+            <Radio
+              id="saveas-radio"
+              inline
+              checked={this.state.action === 'saveas'}
+              onChange={this.changeAction.bind(this, 'saveas')}
+            >
+              {' '}
+              {t('Save as')} &nbsp;
+            </Radio>
+          </FormGroup>
           <input
             name="new_slice_name"
             placeholder={this.state.newSliceName || t('[chart name]')}
             onChange={this.onChange.bind(this, 'newSliceName')}
             onFocus={this.changeAction.bind(this, 'saveas')}
           />
-
           <br />
           <hr />
           <Checkbox

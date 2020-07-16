@@ -51,13 +51,13 @@ export default function Checkbox({
         }}
       />
       {label && (
-        <span
+        <label
           className="m-l-5"
           onClick={() => onChange(!checked)}
           style={{ cursor: 'pointer' }}
         >
           {label}
-        </span>
+        </label>
       )}
     </span>
   );
