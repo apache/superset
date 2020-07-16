@@ -220,8 +220,11 @@ export class DatasourceEditor extends React.PureComponent {
     this.state = {
       datasource: props.datasource,
       errors: [],
-      isDruid: props.datasource.type === 'druid',
-      isSqla: props.datasource.type === 'table',
+      isDruid:
+        props.datasource.type === 'druid' || props.datasource.type === 'druid',
+      isSqla:
+        props.datasource.datasource_type === 'table' ||
+        props.datasource.type === 'table',
       databaseColumns: props.datasource.columns.filter(col => !col.expression),
       calculatedColumns: props.datasource.columns.filter(
         col => !!col.expression,

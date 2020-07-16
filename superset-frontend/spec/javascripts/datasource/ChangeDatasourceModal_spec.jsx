@@ -72,7 +72,9 @@ describe('ChangeDatasourceModal', () => {
 
   it('fetches datasources', () => {
     return new Promise(done => {
-      inst.onEnterModal();
+      const modalProps = wrapper.find(Modal).props();
+      const onEnterModal = modalProps.onEnter;
+      onEnterModal();
       setTimeout(() => {
         expect(fetchMock.calls(DATASOURCES_ENDPOINT)).toHaveLength(1);
         fetchMock.reset();

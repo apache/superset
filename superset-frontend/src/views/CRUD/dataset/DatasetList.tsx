@@ -27,6 +27,7 @@ import React, {
 import rison from 'rison';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import DatasourceModal from 'src/datasource/DatasourceModal';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -146,6 +147,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     (Dataset & { chart_count: number; dashboard_count: number }) | null
   >(null);
+  const [
+    datasetCurrentlyEditing,
+    setDatasetCurrentlyEditing,
+  ] = useState<Dataset | null>(null);
   const [datasets, setDatasets] = useState<any[]>([]);
   const [
     lastFetchDataConfig,
@@ -252,8 +257,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  const handleDatasetEdit = ({ id }: { id: number }) => {
-    window.location.assign(`/tablemodelview/edit/${id}`);
+  const openDatasetEditModal = ({ id }: Dataset) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${id}`,
+    })
+      .then(({ json = {} }) => {
+        const owners = json.result.owners.map((owner: any) => owner.id);
+        setDatasetCurrentlyEditing({ ...json.result, owners });
+      })
+      .catch(() => {
+        addDangerToast(
+          t('An error occurred while fetching dataset related data'),
+        );
+      });
   };
 
   const openDatasetDeleteModal = (dataset: Dataset) =>
@@ -395,8 +411,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       disableSortBy: true,
     },
     {
+<<<<<<< HEAD:superset-frontend/src/views/CRUD/dataset/DatasetList.tsx
       Cell: ({ row: { original } }: any) => {
         const handleEdit = () => handleDatasetEdit(original);
+=======
+      Cell: ({ row: { state, original } }: any) => {
+        const handleEdit = () => openDatasetEditModal(original);
+>>>>>>> 079b221af... install dataset editor modal to dataset list:superset-frontend/src/views/datasetList/DatasetList.tsx
         const handleDelete = () => openDatasetDeleteModal(original);
         if (!canEdit && !canDelete) {
           return null;
@@ -500,6 +521,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyDeleting(null);
   };
 
+  const closeDatasetEditModal = () => setDatasetCurrentlyEditing(null);
+
   const fetchData = useCallback(
     ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
       // set loading state, cache the last config for fetching data in this component.
@@ -583,6 +606,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
+  const handleUpdateDataset = (data: Dataset) => {
+    SupersetClient.put({
+      endpoint: `/api/v1/dataset/${data.id}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data }),
+    }).then(
+      () => {
+        if (lastFetchDataConfig) {
+          fetchData(lastFetchDataConfig);
+        }
+        setDatasetCurrentlyEditing(null);
+        addSuccessToast(t('Updated: %s', data.table_name));
+      },
+      (err: any) => {
+        console.error(err);
+        addDangerToast(t('There was an issue Updated %s', data.table_name));
+      },
+    );
+  };
+
   return (
     <>
       <SubMenu {...menuData} />
@@ -627,6 +670,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             : [];
 
           return (
+<<<<<<< HEAD:superset-frontend/src/views/CRUD/dataset/DatasetList.tsx
             <ListView
               className="dataset-list-view"
               columns={columns}
@@ -675,6 +719,47 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 );
               }}
             />
+=======
+            <>
+              {datasetCurrentlyDeleting && (
+                <DeleteModal
+                  description={t(
+                    `The dataset ${datasetCurrentlyDeleting.table_name} is linked to 
+                  ${datasetCurrentlyDeleting.chart_count} charts that appear on 
+                  ${datasetCurrentlyDeleting.dashboard_count} dashboards. 
+                  Are you sure you want to continue? Deleting the dataset will break 
+                  those objects.`,
+                  )}
+                  onConfirm={() =>
+                    handleDatasetDelete(datasetCurrentlyDeleting)
+                  }
+                  onHide={closeDatasetDeleteModal}
+                  open
+                  title={t('Delete Dataset?')}
+                />
+              )}
+              {datasetCurrentlyEditing && (
+                <DatasourceModal
+                  datasource={datasetCurrentlyEditing}
+                  onDatasourceSave={handleUpdateDataset}
+                  onHide={closeDatasetEditModal}
+                  show
+                />
+              )}
+              <ListView
+                className="dataset-list-view"
+                columns={columns}
+                data={datasets}
+                count={datasetCount}
+                pageSize={PAGE_SIZE}
+                fetchData={fetchData}
+                loading={loading}
+                initialSort={initialSort}
+                filters={currentFilters}
+                bulkActions={bulkActions}
+              />
+            </>
+>>>>>>> 079b221af... install dataset editor modal to dataset list:superset-frontend/src/views/datasetList/DatasetList.tsx
           );
         }}
       </ConfirmStatusChange>
