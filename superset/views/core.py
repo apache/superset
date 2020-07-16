@@ -813,7 +813,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Adding slice to a dashboard if requested
         dash: Optional[Dashboard] = None
 
-        add_to_dash = request.args.get("add_to_dash")
+        add_to_dash = request.args.get("add_to_dash") == "true"
         save_to_dashboard_id = request.args.get("save_to_dashboard_id")
         if add_to_dash and save_to_dashboard_id:
             # Adding the chart to an existing dashboard

@@ -23,10 +23,10 @@ const propTypes = {
   checked: PropTypes.bool.isRequired,
   onChange: PropTypes.func.isRequired,
   style: PropTypes.object,
-  style: PropTypes.string,
+  label: PropTypes.node,
 };
 
-export default function Checkbox({ checked, onChange, style, className }) {
+export default function Checkbox({ label, checked, onChange, style, className }) {
   return (
     <span style={style} className={className}>
       <i
@@ -44,6 +44,15 @@ export default function Checkbox({ checked, onChange, style, className }) {
           cursor: 'pointer',
         }}
       />
+      {label &&
+        <span
+          className="m-l-5"
+          onClick={() => onChange(!checked)}
+          style={{ cursor: 'pointer' }}
+        >
+          {label}
+        </span>
+      }
     </span>
   );
 }

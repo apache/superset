@@ -81,7 +81,7 @@ class SaveModal extends React.Component {
         this.setState({ newSliceName: event.target.value });
         break;
       case 'saveToDashboardId':
-        this.setState({ saveToDashboardId: event.value });
+        this.setState({ saveToDashboardId: event ? event.value : null });
         this.toggleDash(true);
         break;
       default:
@@ -113,21 +113,19 @@ class SaveModal extends React.Component {
     sliceParams.slice_name = this.state.newSliceName;
 
     const { addToDash } = this.state;
-    sliceParams.add_to_dash = addToDash;
     if (addToDash) {
+      sliceParams.add_to_dash = addToDash;
       if (this.state.saveToDashboardId) {
         sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
       } else {
         sliceParams.new_dashboard_name = '[new dashboard]';
       }
-    } else {
     }
     sliceParams.goto_dash = gotodash;
 
     this.props.actions
       .saveSlice(this.props.form_data, sliceParams)
       .then(({ data }) => {
-        console.log(data);
         if (data.dashboard_id === null) {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
         } else {
@@ -135,9 +133,9 @@ class SaveModal extends React.Component {
         }
         // Go to new slice url or dashboard url
         if (gotodash) {
-          //window.location.assign(supersetURL(data.dashboard));
+          window.location.assign(supersetURL(data.dashboard));
         } else {
-          //window.location.assign(data.slice.slice_url);
+          window.location.assign(data.slice.slice_url);
         }
       });
     this.props.onHide();
@@ -152,7 +150,7 @@ class SaveModal extends React.Component {
     const canNotSaveToDash =
       EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;
     return (
-      <Modal show onHide={this.props.onHide} bsStyle="large">
+      <Modal show onHide={this.props.onHide}>
         <Modal.Header closeButton>
           <Modal.Title>{t('Save A Chart')}</Modal.Title>
         </Modal.Header>
@@ -198,22 +196,21 @@ class SaveModal extends React.Component {
 
           <br />
           <hr />
-          <>
-            <Checkbox
-              inline
-              className="m-r-5"
-              disabled={canNotSaveToDash}
-              checked={this.state.addToDash}
-              onChange={this.toggleDash}
-              data-test="add-to-existing-dashboard"
-            />
-            {t('Add to dashboard')}
-          </>
+          <Checkbox
+            inline
+            className="m-r-5"
+            disabled={canNotSaveToDash}
+            checked={this.state.addToDash}
+            label={t('Add to dashboard')}
+            onChange={this.toggleDash}
+            data-test="add-to-existing-dashboard"
+          />
           <Select
             className="save-modal-selector"
-            disabled={canNotSaveToDash}
             options={this.props.dashboards}
+            clearable
             onChange={this.onChange.bind(this, 'saveToDashboardId')}
+            isDisabled={!this.state.addToDash}
             autoSize={false}
             value={this.state.saveToDashboardId}
             placeholder="Select a dashboard or leave empty to create a new one"
