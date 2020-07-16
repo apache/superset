@@ -161,8 +161,8 @@ class DashboardList extends React.PureComponent<Props, State> {
           },
         },
       }: any) => <a href={changedByUrl}>{changedByName}</a>,
-      Header: t('Creator'),
-      accessor: 'changed_by_fk',
+      Header: t('Modified By'),
+      accessor: 'changed_by.first_name',
     },
     {
       Cell: ({

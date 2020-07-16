@@ -77,8 +77,8 @@ class DashboardTable extends React.PureComponent<
       }) => <a href={url}>{dashboardTitle}</a>,
     },
     {
-      accessor: 'changed_by_fk',
-      Header: 'Creator',
+      accessor: 'changed_by.first_name',
+      Header: 'Modified By',
       Cell: ({
         row: {
           original: { changed_by_name: changedByName, changedByUrl },
