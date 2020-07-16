@@ -24,6 +24,8 @@ so prior to using this script make sure to launch the dev containers.
 
 You can use a different DB backend by defining `SUPERSET__SQLALCHEMY_DATABASE_URI` env var.
 
+This script will not install any dependencies for you, so you must be on an already set virtualenv
+
 ## Use:
 
 To show all supported switches:
@@ -32,6 +34,11 @@ scripts/tests/run.sh --help
 ```
 
 From the superset repo root directory:
+
+- Example run all tests:
+```$bash
+scripts/tests/run.sh --module tests/charts/api_tests.py
+```
 
 - Example run a single test module:
 ```$bash
