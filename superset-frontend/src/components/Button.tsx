@@ -37,19 +37,20 @@ export interface ButtonProps {
   btnStyles?: string;
   bsSize?: BootstrapButton.ButtonProps['bsSize'];
   style?: BootstrapButton.ButtonProps['style'];
+  children?: React.ReactNode;
 }
 
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
 
 const SupersetButton = styled(BootstrapButton)`
   &.supersetButton {
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
     border: none;
     color: ${({ theme }) => theme.colors.secondary.light5};
     font-size: ${({ theme }) => theme.typography.sizes.s};
     font-weight: ${({ theme }) => theme.typography.weights.bold};
-    min-width: 144px;
-    min-height: 32px;
+    min-width: ${({ theme }) => theme.gridUnit * 36}px;
+    min-height: ${({ theme }) => theme.gridUnit * 8}px;
     text-transform: uppercase;
     margin-left: ${({ theme }) => theme.gridUnit * 4}px;
     &:first-of-type {
@@ -73,7 +74,7 @@ const SupersetButton = styled(BootstrapButton)`
   }
 `;
 
-const Button: React.FunctionComponent<ButtonProps> = props => {
+export default function Button(props: ButtonProps) {
   const buttonProps = {
     ...props,
     bsSize: props.bsSize || 'sm',
@@ -110,6 +111,4 @@ const Button: React.FunctionComponent<ButtonProps> = props => {
     );
   }
   return button;
-};
-
-export default Button;
+}
