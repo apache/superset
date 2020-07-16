@@ -854,6 +854,18 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 select_exprs += [timestamp]
                 groupby_exprs_with_timestamp[timestamp.name] = timestamp
 
+            if granularity in groupby:
+                timestamp = dttm_col.get_timestamp_expression(time_grain)
+                for i, select_expr in enumerate(select_exprs):
+                    if select_expr.name == granularity:
+                        timestamp.name = select_expr.name
+                        timestamp.key = select_expr.name
+                        timestamp._df_label_expected = select_expr._df_label_expected
+                        select_exprs[i] = timestamp
+                        groupby_exprs_sans_timestamp[timestamp.name] = timestamp
+                        groupby_exprs_with_timestamp[timestamp.name] = timestamp
+                        break
+
             # Use main dttm column to support index with secondary dttm columns.
             if (
                 db_engine_spec.time_secondary_columns
