@@ -197,9 +197,53 @@ export async function getChartDataRequest({
     };
   }
 
-  if (shouldUseLegacyApi(formData)) {
+  // process customertags in extra flters
+  // eslint-disable-next-line camelcase
+  const { extra_filters } = formData;
+  const payload = { ...formData };
+  payload.extra_filters = [];
+  // eslint-disable-next-line camelcase
+  if (extra_filters) {
+    // eslint-disable-next-line array-callback-return
+    for (let i = 0; i < extra_filters.length; i++) {
+      const filter = extra_filters[i];
+      // eslint-disable-next-line camelcase
+      const actual_adhoc_filters = [];
+      if (filter.col === 'customertags' && filter.val) {
+        let wherestr = '';
+        // eslint-disable-next-line array-callback-return
+        filter.val.map(customertag => {
+          if (wherestr === '') {
+            wherestr += `contains(${filter.col}, '${customertag}') `;
+          } else {
+            wherestr += `OR contains(${filter.col}, '${customertag}') `;
+          }
+        });
+        // eslint-disable-next-line array-callback-return,camelcase
+        payload.adhoc_filters.map(ad_filter => {
+          if (ad_filter.subject !== filter.col) {
+            actual_adhoc_filters.push(ad_filter);
+          }
+        });
+        actual_adhoc_filters.push({
+          clause: 'WHERE',
+          comparator: '',
+          operator: '',
+          expressionType: 'SQL',
+          subject: `${filter.col}`,
+          sqlExpression: wherestr,
+        });
+        // eslint-disable-next-line camelcase
+        payload.adhoc_filters = actual_adhoc_filters;
+      } else {
+        payload.extra_filters.push(filter);
+      }
+    }
+  }
+
+  if (shouldUseLegacyApi(payload)) {
     return legacyChartDataRequest(
-      formData,
+      payload,
       resultFormat,
       resultType,
       force,
@@ -208,7 +252,7 @@ export async function getChartDataRequest({
     );
   }
   return v1ChartDataRequest(
-    formData,
+    payload,
     resultFormat,
     resultType,
     force,

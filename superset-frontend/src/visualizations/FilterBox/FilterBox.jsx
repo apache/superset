@@ -194,15 +194,54 @@ class FilterBox extends React.Component {
   /**
    * Transform select options, add bar background
    */
-  transformOptions(options, max) {
+  transformOptions(key, options, max) {
     const maxValue = max === undefined ? d3Max(options, x => x.metric) : max;
-    return options.map(opt => {
-      const perc = Math.round((opt.metric / maxValue) * 100);
+    const tags = [];
+    let transformedOptions = [];
+    // process customer tags select render
+    for (let i = 0; i < options.length; i++) {
+      const perc = Math.round((options[i].metric / maxValue) * 100);
       const color = 'lightgrey';
       const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
       const style = { backgroundImage };
-      return { value: opt.id, label: opt.id, style };
-    });
+      if (key === 'customertags' && options[i].id) {
+        let tagStr = options[i].id.replace('[', '');
+        tagStr = tagStr.replace(']', '');
+        tagStr = tagStr.trim();
+        let tagArr = tagStr.split(',');
+        tagArr = tagArr.sort();
+        for (let j = 0; j < tagArr.length; j++) {
+          if (tags.indexOf(tagArr[j].trim()) === -1 && tagArr[j] !== '') {
+            tags.push(tagArr[j].trim());
+            transformedOptions.push({
+              value: tagArr[j].trim(),
+              label: tagArr[j].trim(),
+              style,
+            });
+          }
+        }
+        // always sort options
+        transformedOptions = transformedOptions.sort((a, b) => {
+          let x = a.value;
+          let y = b.value;
+          if (typeof x === 'string') {
+            x = ('' + x).toLowerCase();
+          }
+          if (typeof y === 'string') {
+            y = ('' + y).toLowerCase();
+          }
+          // eslint-disable-next-line no-nested-ternary
+          return x < y ? -1 : x > y ? 1 : 0;
+        });
+      } else {
+        transformedOptions.push({
+          value: options[i].id,
+          label: options[i].id,
+          style,
+        });
+      }
+    }
+    return transformedOptions;
   }
 
   async loadOptions(key, inputValue = '') {
@@ -222,7 +261,6 @@ class FilterBox extends React.Component {
           ]
         : null,
     };
-
     const { json } = await SupersetClient.get({
       url: getExploreUrl({
         formData,
@@ -245,7 +283,7 @@ class FilterBox extends React.Component {
           : textOrder;
       });
     }
-    return this.transformOptions(options, this.getKnownMax(key, options));
+    return this.transformOptions(key, options, this.getKnownMax(key, options));
   }
 
   renderDateFilter() {
@@ -357,18 +395,17 @@ class FilterBox extends React.Component {
         value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
       }
     }
-
     return (
       <OnPasteSelect
         cacheOptions
         loadOptions={this.debounceLoadOptions(key)}
-        defaultOptions={this.transformOptions(data)}
+        defaultOptions={this.transformOptions(key, data)}
         key={key}
         placeholder={t('Type or Select [%s]', label)}
         isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
         isClearable={filterConfig[FILTER_CONFIG_ATTRIBUTES.CLEARABLE]}
         value={value}
-        options={this.transformOptions(data)}
+        options={this.transformOptions(key, data)}
         onChange={newValue => {
           // avoid excessive re-renders
           if (newValue !== value) {

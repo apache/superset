@@ -4107,3 +4107,57 @@ msgstr "周"
 
 #~ msgid "Line Width"
 #~ msgstr "线宽"
+
+#~ msgid "Time Range"
+#~ msgstr "创建日期"
+
+#~ msgid "No filter"
+#~ msgstr "未过滤"
+
+#~ msgid "Last"
+#~ msgstr "前"
+
+#~ msgid "Next"
+#~ msgstr "后"
+
+#~ msgid "defaults"
+#~ msgstr "快速设置"
+
+#~ msgid "custom"
+#~ msgstr "详细设置"
+
+#~ msgid "Relative to today"
+#~ msgstr "相对今天"
+
+#~ msgid "seconds"
+#~ msgstr "秒"
+
+#~ msgid "minutes"
+#~ msgstr "分"
+
+#~ msgid "hours"
+#~ msgstr "小时"
+
+#~ msgid "days"
+#~ msgstr "天"
+
+#~ msgid "weeks"
+#~ msgstr "周"
+
+#~ msgid "months"
+#~ msgstr "月"
+
+#~ msgid "years"
+#~ msgstr "年"
+
+#~ msgid "Defaults"
+#~ msgstr "快速过滤"
+
+#~ msgid "Custom"
+#~ msgstr "自定义"
+
+#~ msgid "Start / end"
+#~ msgstr "开始/结束时间"
+
+#~ msgid "Ok"
+#~ msgstr "应用"
