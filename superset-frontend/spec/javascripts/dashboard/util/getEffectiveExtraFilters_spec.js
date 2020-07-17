@@ -16,12 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecordFilters } from '@superset-ui/chart';
+import getEffectiveExtraFilters from 'src/dashboard/util/charts/getEffectiveExtraFilters';
 
-export default function getEffectiveExtraFilters(filters: DataRecordFilters) {
-  return Object.entries(filters).map(([column, values]) => ({
-    col: column,
-    op: Array.isArray(values) ? 'IN' : '=',
-    val: values,
-  }));
-}
+describe('getEffectiveExtraFilters', () => {
+  it('should create IN operator for arrays', () => {
+    const result = getEffectiveExtraFilters({
+      gender: ['girl'],
+      __time_range: ' : 2000-07-17T00:00:00',
+    });
+    expect(result).toMatchObject([
+      {
+        col: 'gender',
+        op: 'IN',
+        val: ['girl'],
+      },
+      {
+        col: '__time_range',
+        op: '=',
+        val: ' : 2020-07-17T00:00:00',
+      },
+    ]);
+  });
+});
