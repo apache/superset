@@ -94,6 +94,8 @@ const createFetchDatabases = (handleError: (err: Response) => void) => async (
 
   try {
     const queryParams = rison.encode({
+      columns: ['database_name', 'id'],
+      keys: ['none'],
       ...(pageIndex ? { page: pageIndex } : {}),
       ...(pageSize ? { page_ize: pageSize } : {}),
       ...(filterValue ? { filter: filterValue } : {}),
@@ -184,7 +186,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       Header: t('Datasource'),
       id: 'database',
       input: 'select',
-      operator: 'rel_m_m',
+      operator: 'rel_o_m',
       unfilteredLabel: 'All',
       fetchSelects: createFetchDatabases(e =>
         addDangerToast(

@@ -42,6 +42,7 @@ export interface Filter {
     | 'nct'
     | 'neq'
     | 'rel_m_m'
+    | 'rel_o_m'
     | 'title_or_slug'
     | 'name_or_description';
   input?: 'text' | 'textarea' | 'select' | 'checkbox' | 'search';
