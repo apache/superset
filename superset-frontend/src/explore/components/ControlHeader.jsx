@@ -86,6 +86,8 @@ export default class ControlHeader extends React.Component {
           <ControlLabel>
             {this.props.leftNode && <span>{this.props.leftNode}</span>}
             <span
+              role="button"
+              tabIndex={0}
               onClick={this.props.onClick}
               className={labelClass}
               style={{ cursor: this.props.onClick ? 'pointer' : '' }}

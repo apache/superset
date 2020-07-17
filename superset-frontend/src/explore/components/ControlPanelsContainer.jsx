@@ -176,6 +176,8 @@ class ControlPanelsContainer extends React.Component {
             <Alert bsStyle="warning">
               {this.props.alert}
               <i
+                role="button"
+                tabIndex={0}
                 className="fa fa-close pull-right"
                 onClick={this.removeAlert}
                 style={{ cursor: 'pointer' }}
