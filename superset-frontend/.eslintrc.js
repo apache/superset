@@ -34,7 +34,7 @@ module.exports = {
       rules: {
         'import/no-unresolved': 0,
         'global-require': 0,
-      }
+      },
     },
     {
       files: ['*.ts', '*.tsx'],
@@ -76,7 +76,6 @@ module.exports = {
         indent: 0,
         'jsx-a11y/anchor-has-content': 0,
         'jsx-a11y/href-no-hash': 0,
-        'jsx-a11y/no-static-element-interactions': 0,
         'new-cap': 0,
         'no-bitwise': 0,
         'no-confusing-arrow': 0,
@@ -138,7 +137,6 @@ module.exports = {
     indent: 0,
     'jsx-a11y/anchor-has-content': 0,
     'jsx-a11y/href-no-hash': 0,
-    'jsx-a11y/no-static-element-interactions': 0,
     'new-cap': 0,
     'no-bitwise': 0,
     'no-confusing-arrow': 0,

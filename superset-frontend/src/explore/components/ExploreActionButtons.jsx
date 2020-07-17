@@ -76,6 +76,8 @@ export default function ExploreActionButtons({
 
       {latestQueryFormData && (
         <a
+          role="button"
+          tabIndex={0}
           onClick={doExportChart}
           className="btn btn-default btn-sm"
           title={t('Export to .json')}
@@ -87,6 +89,8 @@ export default function ExploreActionButtons({
       )}
       {latestQueryFormData && (
         <a
+          role="button"
+          tabIndex={0}
           onClick={doExportCSV}
           className={exportToCSVClasses}
           title={t('Export to .csv format')}

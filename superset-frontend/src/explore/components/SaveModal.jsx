@@ -176,6 +176,8 @@ class SaveModal extends React.Component {
             <Alert>
               {this.state.alert ? this.state.alert : this.props.alert}
               <i
+                role="button"
+                tabIndex={0}
                 className="fa fa-close pull-right"
                 onClick={this.removeAlert.bind(this)}
                 style={{ cursor: 'pointer' }}

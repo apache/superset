@@ -177,6 +177,8 @@ class DatasourceControl extends React.PureComponent {
           >
             <a href="#">
               <i
+                role="button"
+                tabIndex={0}
                 className={`fa fa-${
                   this.state.showDatasource ? 'minus' : 'plus'
                 }-square m-r-5 m-l-5 m-t-4`}

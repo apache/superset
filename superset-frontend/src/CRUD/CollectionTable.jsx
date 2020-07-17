@@ -183,6 +183,8 @@ export default class CRUDCollection extends React.PureComponent {
       tds.push(
         <td key="__expand" className="expand">
           <i
+            role="button"
+            tabIndex={0}
             className={`fa fa-caret-${
               isExpanded ? 'down' : 'right'
             } text-primary pointer`}
@@ -200,6 +202,8 @@ export default class CRUDCollection extends React.PureComponent {
       tds.push(
         <td key="__actions">
           <i
+            role="button"
+            tabIndex={0}
             className="fa fa-close text-primary pointer"
             onClick={this.deleteItem.bind(this, record.id)}
           />
