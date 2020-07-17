@@ -17,10 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import {
-  formatSelectOptions,
-  formatSelectOptionsForRange,
-} from '../../modules/utils';
+import { formatSelectOptions } from '../../modules/utils';
 import {
   filterNulls,
   autozoom,

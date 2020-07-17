@@ -103,11 +103,11 @@ export default class TableSelector extends React.PureComponent {
     });
   }
 
-  onDatabaseChange(db, selectChangeMeta) {
-    return this.changeDataBase(db);
+  onDatabaseChange(db, force) {
+    return this.changeDataBase(db, force);
   }
 
-  onSchemaChange(schemaOpt, selectActionMeta) {
+  onSchemaChange(schemaOpt) {
     return this.changeSchema(schemaOpt);
   }
 

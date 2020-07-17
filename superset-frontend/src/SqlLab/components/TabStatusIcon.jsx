@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 export default function TabStatusIcon(props) {
-  return <div className={'circle ' + props.tabState} />;
+  return <div className={`circle ${props.tabState}`} />;
 }
 
 TabStatusIcon.propTypes = {

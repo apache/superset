@@ -129,7 +129,6 @@
     "d3-scale": "^2.1.2",
     "dnd-core": "^2.6.0",
     "dom-to-image": "^2.6.0",
-    "dompurify": "^2.0.7",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
     "interweave": "^11.2.0",

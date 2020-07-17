@@ -22,18 +22,9 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { ColumnOption, sharedControls } from '@superset-ui/chart-controls';
+import { sharedControls } from '@superset-ui/chart-controls';
 import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
 import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
-
-const timeColumnOption = {
-  verbose_name: 'Time',
-  column_name: '__timestamp',
-  description: t(
-    'A reference to the [Time] configuration, taking granularity into ' +
-      'account',
-  ),
-};
 
 const sandboxUrl =
   'https://github.com/apache/incubator-superset/' +
