@@ -213,7 +213,7 @@ export default class CRUDCollection extends React.PureComponent {
     ];
     if (isExpanded) {
       trs.push(
-        <tr className="exp" key={'exp__' + record.id}>
+        <tr className="exp" key={`exp__${record.id}`}>
           <td
             colSpan={this.effectiveTableColumns().length}
             className="expanded"

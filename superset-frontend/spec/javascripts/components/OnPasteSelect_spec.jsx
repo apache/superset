@@ -20,12 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import {
-  Select,
-  AsyncSelect,
-  OnPasteSelect,
-  CreatableSelect,
-} from 'src/components/Select';
+import { Select, OnPasteSelect, CreatableSelect } from 'src/components/Select';
 
 const defaultProps = {
   onChange: sinon.spy(),
