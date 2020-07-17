@@ -167,7 +167,7 @@ class Markdown extends React.PureComponent {
     }
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch() {
     if (this.state.editor && this.state.editorMode === 'preview') {
       this.props.addDangerToast(
         t(

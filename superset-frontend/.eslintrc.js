@@ -34,7 +34,7 @@ module.exports = {
       rules: {
         'import/no-unresolved': 0,
         'global-require': 0,
-      }
+      },
     },
     {
       files: ['*.ts', '*.tsx'],
@@ -88,10 +88,8 @@ module.exports = {
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-restricted-syntax': 0,
-        'no-unused-vars': 0,
         'padded-blocks': 0,
         'prefer-arrow-callback': 0,
-        'prefer-template': 0,
         'react/forbid-prop-types': 0,
         'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
         'react/jsx-no-bind': 0,
@@ -150,11 +148,9 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-syntax': 0,
-    'no-unused-vars': 0,
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
     'prefer-object-spread': 1,
-    'prefer-template': 0,
     'react/forbid-prop-types': 0,
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
     'react/jsx-no-bind': 0,
