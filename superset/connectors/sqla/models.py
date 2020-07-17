@@ -864,7 +864,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                             select_expr._df_label_expected  # pylint: disable=protected-access
                         )
                         select_exprs[i] = timestamp
-                        groupby_exprs_sans_timestamp[timestamp.name] = timestamp
+                        groupby_exprs_with_timestamp[timestamp.name] = timestamp
                         break
 
             # Use main dttm column to support index with secondary dttm columns.
