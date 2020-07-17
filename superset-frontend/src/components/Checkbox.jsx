@@ -29,6 +29,8 @@ export default function Checkbox({ checked, onChange, style }) {
   return (
     <span style={style}>
       <i
+        role="button"
+        tabIndex={0}
         className={`fa fa-check ${
           checked ? 'text-primary' : 'text-transparent'
         }`}
