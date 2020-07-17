@@ -18,7 +18,6 @@
  */
 /* eslint camelcase: 0 */
 import URI from 'urijs';
-import { SupersetClient } from '@superset-ui/connection';
 import { buildQueryContext } from '@superset-ui/query';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';

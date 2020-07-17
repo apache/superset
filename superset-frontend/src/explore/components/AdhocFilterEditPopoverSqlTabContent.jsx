@@ -144,7 +144,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             ref={this.handleAceEditorRef}
             mode="sql"
             theme="github"
-            height={height - 100 + 'px'}
+            height={`${height - 100}px`}
             onChange={this.onSqlExpressionChange}
             width="100%"
             showGutter={false}

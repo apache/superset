@@ -117,7 +117,7 @@ export function optionFromValue(opt) {
 export function prepareCopyToClipboardTabularData(data) {
   let result = '';
   for (let i = 0; i < data.length; ++i) {
-    result += Object.values(data[i]).join('\t') + '\n';
+    result += `${Object.values(data[i]).join('\t')}\n`;
   }
   return result;
 }

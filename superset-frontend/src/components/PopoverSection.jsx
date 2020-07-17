@@ -36,7 +36,7 @@ export default function PopoverSection({
   info,
 }) {
   return (
-    <div className={'PopoverSection ' + (!isSelected ? 'dimmed' : '')}>
+    <div className={`PopoverSection ${!isSelected ? 'dimmed' : ''}`}>
       <div role="button" tabIndex={0} onClick={onSelect} className="pointer">
         <strong>{title}</strong> &nbsp;
         {info && (

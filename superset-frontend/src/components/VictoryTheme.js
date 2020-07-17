@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const { assign } = Object;
-
 const A11Y_BABU = '#00A699';
 const AXIS_LINE_GRAY = '#484848';
 
