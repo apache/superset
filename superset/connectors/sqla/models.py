@@ -217,15 +217,16 @@ class TableColumn(Model, BaseColumn):
         return and_(*l)
 
     def get_timestamp_expression(
-        self, time_grain: Optional[str]
+        self, time_grain: Optional[str], label: Optional[str] = None
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
 
         :param time_grain: Optional time grain, e.g. P1Y
+        :param label: alias/label that column is expected to have
         :return: A TimeExpression object wrapped in a Label if supported by db
         """
-        label = utils.DTTM_ALIAS
+        label = label or utils.DTTM_ALIAS
 
         db_ = self.table.database
         pdf = self.python_date_format
@@ -816,6 +817,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         select_exprs: List[Column] = []
         groupby_exprs_sans_timestamp = OrderedDict()
 
+        assert extras is not None
         if (is_sip_38 and metrics and columns) or (not is_sip_38 and groupby):
             # dedup columns while preserving order
             columns_ = columns if is_sip_38 else groupby
@@ -824,7 +826,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
             select_exprs = []
             for selected in groupby:
-                if selected in columns_by_name:
+                # if groupby field/expr equals granularity field/expr
+                if selected == granularity:
+                    time_grain = extras.get("time_grain_sqla")
+                    sqla_col = columns_by_name[selected]
+                    outer = sqla_col.get_timestamp_expression(time_grain, selected)
+                # if groupby field equals a selected column
+                elif selected in columns_by_name:
                     outer = columns_by_name[selected].get_sqla_col()
                 else:
                     outer = literal_column(f"({selected})")
@@ -841,7 +849,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
             metrics_exprs = []
 
-        assert extras is not None
         time_range_endpoints = extras.get("time_range_endpoints")
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
         if granularity:
