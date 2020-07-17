@@ -308,10 +308,12 @@ export class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     // Handle carefully when the schema is empty
     const endpoint =
-      `/datasource/external_metadata/${datasource.type}/${datasource.id}/` +
+      `/datasource/external_metadata/${
+        datasource.type || datasource.datasource_type
+      }/${datasource.id}/` +
       `?db_id=${datasource.database.id}` +
       `&schema=${datasource.schema || ''}` +
-      `&table_name=${datasource.datasource_name}`;
+      `&table_name=${datasource.datasource_name || datasource.table_name}`;
     this.setState({ metadataLoading: true });
 
     SupersetClient.get({ endpoint })

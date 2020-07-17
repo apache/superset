@@ -41,13 +41,13 @@ def validate_python_date_format(value: str) -> None:
 class DatasetColumnsPutSchema(Schema):
     id = fields.Integer()
     column_name = fields.String(required=True, validate=Length(1, 255))
-    type = fields.String(validate=Length(1, 32))
+    type = fields.String(allow_none=True, validate=Length(1, 32))
     verbose_name = fields.String(allow_none=True, Length=(1, 1024))
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
     filterable = fields.Boolean()
     groupby = fields.Boolean()
-    is_active = fields.Boolean()
+    is_active = fields.Boolean(allow_none=True)
     is_dttm = fields.Boolean(default=False)
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
@@ -62,6 +62,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
     warning_text = fields.String(allow_none=True)
+    verbose_name = fields.String(allow_none=True, Length=(1, 1024))
 
 
 class DatasetPostSchema(Schema):

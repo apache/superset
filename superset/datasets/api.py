@@ -100,6 +100,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.database_name",
     ]
     show_columns = [
+        "id",
         "database.database_name",
         "database.id",
         "table_name",

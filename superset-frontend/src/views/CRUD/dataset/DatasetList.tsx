@@ -606,24 +606,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
-  const handleUpdateDataset = (data: Dataset) => {
-    SupersetClient.put({
-      endpoint: `/api/v1/dataset/${data.id}`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data }),
-    }).then(
-      () => {
-        if (lastFetchDataConfig) {
-          fetchData(lastFetchDataConfig);
-        }
-        setDatasetCurrentlyEditing(null);
-        addSuccessToast(t('Updated: %s', data.table_name));
-      },
-      (err: any) => {
-        console.error(err);
-        addDangerToast(t('There was an issue Updated %s', data.table_name));
-      },
-    );
+  const handleUpdateDataset = () => {
+    if (lastFetchDataConfig) {
+      fetchData(lastFetchDataConfig);
+    }
   };
 
   return (

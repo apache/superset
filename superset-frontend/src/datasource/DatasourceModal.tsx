@@ -48,28 +48,42 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const dialog = useRef<any>(null);
 
   const onConfirmSave = () => {
-    SupersetClient.post({
-      endpoint: '/datasource/save/',
-      postPayload: {
-        data: currentDatasource,
-      },
+    const datasetId = currentDatasource.id;
+    currentDatasource.columns.forEach((column: any) => {
+      delete column.__expanded;
+      delete column.changed_on;
+      delete column.created_on;
+    });
+    currentDatasource.metrics.forEach((column: any) => {
+      delete column.changed_on;
+      delete column.created_on;
+    });
+    delete currentDatasource.id;
+    delete currentDatasource.datasource_type;
+    delete currentDatasource.url;
+    // delete currentDatasource.database;
+    SupersetClient.put({
+      endpoint: `/api/v1/dataset/${datasetId}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...currentDatasource }),
     })
       .then(({ json }) => {
+        onHide();
         addSuccessToast(t('The datasource has been saved'));
         onDatasourceSave(json);
-        onHide();
       })
-      .catch(response =>
-        getClientErrorObject(response).then(({ error }: { error: any }) => {
+      .catch(response => {
+        return getClientErrorObject(response).then((error: any) => {
+          debugger;
           dialog.current.show({
             title: 'Error',
             bsSize: 'medium',
             bsStyle: 'danger',
             actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-            body: error || error.statusText || t('An error has occurred'),
+            body: error || error?.statusText || t('An error has occurred'),
           });
-        }),
-      );
+        });
+      });
   };
 
   const onDatasourceChange = (data: object, err: Array<any>) => {
