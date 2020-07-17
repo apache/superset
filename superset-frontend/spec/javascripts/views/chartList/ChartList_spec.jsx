@@ -105,7 +105,7 @@ describe('ChartList', () => {
     const callsD = fetchMock.calls(/chart\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/chart/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/chart/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 });

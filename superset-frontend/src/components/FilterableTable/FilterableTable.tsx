@@ -143,7 +143,7 @@ export default class FilterableTable extends PureComponent<
     this.complexColumns = props.orderedColumnKeys.reduce(
       (obj, key) => ({
         ...obj,
-        [key]: props.expandedColumns.some(name => name.startsWith(key + '.')),
+        [key]: props.expandedColumns.some(name => name.startsWith(`${key}.`)),
       }),
       {},
     );

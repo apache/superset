@@ -22,7 +22,7 @@ import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
-import downloadAsImage from '../util/downloadAsImage';
+import downloadAsImage from '../../utils/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 

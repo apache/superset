@@ -245,12 +245,12 @@ export default class AdhocFilterControl extends React.Component {
         } else if (option.column_name) {
           results.push({
             ...option,
-            filterOptionName: '_col_' + option.column_name,
+            filterOptionName: `_col_${option.column_name}`,
           });
         } else if (option instanceof AdhocMetric) {
           results.push({
             ...option,
-            filterOptionName: '_adhocmetric_' + option.label,
+            filterOptionName: `_adhocmetric_${option.label}`,
           });
         }
         return results;

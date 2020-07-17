@@ -26,7 +26,7 @@ from pandas import DataFrame, NamedAgg, Series
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
 
-WHITELIST_NUMPY_FUNCTIONS = (
+ALLOWLIST_NUMPY_FUNCTIONS = (
     "average",
     "argmin",
     "argmax",
@@ -49,7 +49,7 @@ WHITELIST_NUMPY_FUNCTIONS = (
     "var",
 )
 
-WHITELIST_ROLLING_FUNCTIONS = (
+DENYLIST_ROLLING_FUNCTIONS = (
     "count",
     "corr",
     "cov",
@@ -65,7 +65,7 @@ WHITELIST_ROLLING_FUNCTIONS = (
     "quantile",
 )
 
-WHITELIST_CUMULATIVE_FUNCTIONS = (
+ALLOWLIST_CUMULATIVE_FUNCTIONS = (
     "cummax",
     "cummin",
     "cumprod",
@@ -142,7 +142,7 @@ def _get_aggregate_funcs(
                 _("Operator undefined for aggregator: %(name)s", name=name,)
             )
         operator = agg_obj["operator"]
-        if operator not in WHITELIST_NUMPY_FUNCTIONS or not hasattr(np, operator):
+        if operator not in ALLOWLIST_NUMPY_FUNCTIONS or not hasattr(np, operator):
             raise QueryObjectValidationError(
                 _("Invalid numpy function: %(operator)s", operator=operator,)
             )
@@ -331,7 +331,7 @@ def rolling(  # pylint: disable=too-many-arguments
         kwargs["win_type"] = win_type
 
     df_rolling = df_rolling.rolling(**kwargs)
-    if rolling_type not in WHITELIST_ROLLING_FUNCTIONS or not hasattr(
+    if rolling_type not in DENYLIST_ROLLING_FUNCTIONS or not hasattr(
         df_rolling, rolling_type
     ):
         raise QueryObjectValidationError(
@@ -422,7 +422,7 @@ def cum(df: DataFrame, columns: Dict[str, str], operator: str) -> DataFrame:
     """
     df_cum = df[columns.keys()]
     operation = "cum" + operator
-    if operation not in WHITELIST_CUMULATIVE_FUNCTIONS or not hasattr(
+    if operation not in ALLOWLIST_CUMULATIVE_FUNCTIONS or not hasattr(
         df_cum, operation
     ):
         raise QueryObjectValidationError(
