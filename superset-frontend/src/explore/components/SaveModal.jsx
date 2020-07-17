@@ -20,7 +20,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { FormGroup, Modal, Alert, Button, Radio } from 'react-bootstrap';
+import {
+  Alert,
+  Button,
+  FormControl,
+  FormGroup,
+  Modal,
+  Radio,
+} from 'react-bootstrap';
 import Checkbox from '../../components/Checkbox';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
@@ -184,16 +191,19 @@ class SaveModal extends React.Component {
               onChange={this.changeAction.bind(this, 'saveas')}
             >
               {' '}
-              {t('Save as')} &nbsp;
+              {t('Save as ...')} &nbsp;
             </Radio>
           </FormGroup>
-          <input
-            name="new_slice_name"
-            placeholder={this.state.newSliceName || t('[chart name]')}
-            onChange={this.onChange.bind(this, 'newSliceName')}
-            onFocus={this.changeAction.bind(this, 'saveas')}
-          />
-          <br />
+          <FormGroup>
+            <FormControl
+              name="new_slice_name"
+              type="text"
+              bsSize="sm"
+              placeholder="Name"
+              value={this.state.newSliceName}
+              onChange={this.onChange.bind(this, 'newSliceName')}
+            />
+          </FormGroup>
           <hr />
           <Checkbox
             inline
