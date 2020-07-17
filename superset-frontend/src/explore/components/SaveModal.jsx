@@ -28,10 +28,10 @@ import {
   Modal,
   Radio,
 } from 'react-bootstrap';
-import Checkbox from '../../components/Checkbox';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/translation';
 
+import Checkbox from '../../components/Checkbox';
 import { supersetURL } from '../../utils/common';
 import { EXPLORE_ONLY_VIZ_TYPE } from '../constants';
 
@@ -206,13 +206,12 @@ class SaveModal extends React.Component {
           </FormGroup>
           <hr />
           <Checkbox
-            inline
             className="m-r-5"
             disabled={canNotSaveToDash}
             checked={this.state.addToDash}
             label={t('Add to dashboard')}
             onChange={this.toggleDash}
-            data-test="add-to-existing-dashboard"
+            dataTest="add-to-existing-dashboard"
           />
           <Select
             className="save-modal-selector"

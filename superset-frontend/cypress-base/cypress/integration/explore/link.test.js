@@ -125,8 +125,7 @@ describe('Test explore links', () => {
     cy.get('button[data-target="#save_modal"]').click();
     cy.get('.modal-content').within(() => {
       cy.get('input[name=new_slice_name]').type('New Growth Rate');
-      cy.get('input[data-test=add-to-new-dashboard]').check();
-      cy.get('input[placeholder="[dashboard name]"]').type(dashboardTitle);
+      cy.get('input[data-test=add-to-existing-dashboard]').click();
       cy.get('button#btn_modal_save').click();
     });
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
@@ -146,7 +145,7 @@ describe('Test explore links', () => {
     cy.get('button[data-target="#save_modal"]').click();
     cy.get('.modal-content').within(() => {
       cy.get('input[name=new_slice_name]').type(chartName);
-      cy.get('input[data-test=add-to-existing-dashboard]').check();
+      cy.get('input[data-test=add-to-existing-dashboard]').click();
       cy.get('.save-modal-selector')
         .click()
         .within(() => {

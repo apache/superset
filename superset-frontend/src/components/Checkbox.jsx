@@ -24,6 +24,7 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   style: PropTypes.object,
   label: PropTypes.node,
+  dataTest: PropTypes.string,
 };
 
 export default function Checkbox({
@@ -32,6 +33,7 @@ export default function Checkbox({
   onChange,
   style,
   className,
+  dataTest,
 }) {
   return (
     <span style={style} className={className}>
@@ -41,6 +43,9 @@ export default function Checkbox({
         className={`fa fa-check ${
           checked ? 'text-primary' : 'text-transparent'
         }`}
+        role="button"
+        dataTest={dataTest}
+        tabIndex={0}
         onClick={() => {
           onChange(!checked);
         }}
@@ -51,13 +56,15 @@ export default function Checkbox({
         }}
       />
       {label && (
-        <label
+        <span
           className="m-l-5"
+          role="button"
+          tabIndex={0}
           onClick={() => onChange(!checked)}
           style={{ cursor: 'pointer' }}
         >
           {label}
-        </label>
+        </span>
       )}
     </span>
   );
