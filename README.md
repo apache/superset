@@ -105,7 +105,7 @@ supported databases can be found
 ## Get Involved
 
 * Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset)
-* [Join our community's Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
+* [Join our community's Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ)
   and please read our [Slack Community Guidelines](CODE_OF_CONDUCT.md#slack-community-guidelines)
 * [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
 
