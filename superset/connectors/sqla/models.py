@@ -217,15 +217,16 @@ class TableColumn(Model, BaseColumn):
         return and_(*l)
 
     def get_timestamp_expression(
-        self, time_grain: Optional[str]
+        self, time_grain: Optional[str], label: Optional[str] = None
     ) -> Union[TimestampExpression, Label]:
         """
         Return a SQLAlchemy Core element representation of self to be used in a query.
 
         :param time_grain: Optional time grain, e.g. P1Y
+        :param label: alias/label that column is expected to have
         :return: A TimeExpression object wrapped in a Label if supported by db
         """
-        label = utils.DTTM_ALIAS
+        label = label or utils.DTTM_ALIAS
 
         db_ = self.table.database
         pdf = self.python_date_format
@@ -824,7 +825,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
             select_exprs = []
             for selected in groupby:
-                if selected in columns_by_name:
+                if selected == granularity:
+                    time_grain = extras.get("time_grain_sqla")
+                    sqla_col = columns_by_name[selected]
+                    outer = sqla_col.get_timestamp_expression(time_grain, selected)
+                elif selected in columns_by_name:
                     outer = columns_by_name[selected].get_sqla_col()
                 else:
                     outer = literal_column(f"({selected})")
@@ -853,21 +858,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 timestamp = dttm_col.get_timestamp_expression(time_grain)
                 select_exprs += [timestamp]
                 groupby_exprs_with_timestamp[timestamp.name] = timestamp
-
-            # if granularity is a fields on group by also, apply the same time grain
-            # on the group by field
-            if groupby and granularity in groupby:
-                timestamp = dttm_col.get_timestamp_expression(time_grain)
-                for i, select_expr in enumerate(select_exprs):
-                    if select_expr.name == granularity:
-                        timestamp.name = select_expr.name
-                        timestamp.key = select_expr.name
-                        timestamp._df_label_expected = (  # pylint: disable=protected-access
-                            select_expr._df_label_expected  # pylint: disable=protected-access
-                        )
-                        select_exprs[i] = timestamp
-                        groupby_exprs_with_timestamp[timestamp.name] = timestamp
-                        break
 
             # Use main dttm column to support index with secondary dttm columns.
             if (
