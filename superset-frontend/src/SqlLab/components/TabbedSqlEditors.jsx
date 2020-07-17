@@ -304,7 +304,7 @@ class TabbedSqlEditors extends React.PureComponent {
           {isSelected && (
             <DropdownButton
               bsSize="small"
-              id={'ddbtn-tab-' + i}
+              id={`ddbtn-tab-${i}`}
               title={' '}
               noCaret
             >

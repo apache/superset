@@ -20,7 +20,6 @@ import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { act } from 'react-dom/test-utils';
 import { MenuItem } from 'react-bootstrap';
-import Select from 'src/components/Select';
 import { QueryParamProvider } from 'use-query-params';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
@@ -29,7 +28,6 @@ import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
 import Pagination from 'src/components/Pagination';
 import Button from 'src/components/Button';
-import { areArraysShallowEqual } from 'src/reduxUtils';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';

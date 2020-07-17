@@ -60,7 +60,7 @@ class HighlightedSql extends React.Component {
     return lines
       .map(line => {
         if (line.length > this.props.maxWidth) {
-          return line.slice(0, this.props.maxWidth) + '{...}';
+          return `${line.slice(0, this.props.maxWidth)}{...}`;
         }
         return line;
       })

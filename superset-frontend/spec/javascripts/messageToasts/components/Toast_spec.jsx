@@ -19,7 +19,6 @@
 import { Alert } from 'react-bootstrap';
 import React from 'react';
 import { mount } from 'enzyme';
-import { act } from 'react-dom/test-utils';
 import Toast from 'src/messageToasts/components/Toast';
 
 import mockMessageToasts from '../mockMessageToasts';

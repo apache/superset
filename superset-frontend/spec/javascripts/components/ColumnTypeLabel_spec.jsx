@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { ColumnOption, ColumnTypeLabel } from '@superset-ui/chart-controls';
+import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 
 describe('ColumnOption', () => {
   const defaultProps = {

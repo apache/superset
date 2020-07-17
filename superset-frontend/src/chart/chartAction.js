@@ -18,7 +18,6 @@
  */
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
-import URI from 'urijs';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
@@ -26,7 +25,6 @@ import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
-  getHostName,
   getLegacyEndpointType,
   buildV1ChartDataPayload,
   postForm,
