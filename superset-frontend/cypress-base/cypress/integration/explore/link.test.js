@@ -87,6 +87,7 @@ describe('Test explore links', () => {
     cy.url().then(url => {
       cy.get('button[data-target="#save_modal"]').click();
       cy.get('.modal-content').within(() => {
+        cy.get('#saveas-radio').click();
         cy.get('input[name=new_slice_name]').type(newChartName);
         cy.get('button#btn_modal_save').click();
       });
@@ -121,11 +122,11 @@ describe('Test explore links', () => {
     cy.visitChartByName('Growth Rate');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    const dashboardTitle = 'Test dashboard';
+    const dashboardTitle = 'Test dashboard [new]';
     cy.get('button[data-target="#save_modal"]').click();
     cy.get('.modal-content').within(() => {
+      cy.get('#saveas-radio').click();
       cy.get('input[name=new_slice_name]').type('New Growth Rate');
-      cy.get('input[data-test=add-to-existing-dashboard]').click();
       cy.get('button#btn_modal_save').click();
     });
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
@@ -139,13 +140,12 @@ describe('Test explore links', () => {
   it('Test chart save as and add to existing dashboard', () => {
     cy.visitChartByName('Most Populated Countries');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    const chartName = 'New Most Populated Countries';
-    const dashboardTitle = 'Test dashboard';
+    const chartName = 'Most Populated Countries [new]';
+    const dashboardTitle = 'Test dashboard [existing]';
 
     cy.get('button[data-target="#save_modal"]').click();
     cy.get('.modal-content').within(() => {
       cy.get('input[name=new_slice_name]').type(chartName);
-      cy.get('input[data-test=add-to-existing-dashboard]').click();
       cy.get('.save-modal-selector')
         .click()
         .within(() => {

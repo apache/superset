@@ -813,9 +813,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Adding slice to a dashboard if requested
         dash: Optional[Dashboard] = None
 
-        add_to_dash = request.args.get("add_to_dash") == "true"
         save_to_dashboard_id = request.args.get("save_to_dashboard_id")
-        if add_to_dash and save_to_dashboard_id:
+        new_dashboard_name = request.args.get("new_dashboard_name")
+        if save_to_dashboard_id:
             # Adding the chart to an existing dashboard
             dash = cast(
                 Dashboard,
@@ -839,7 +839,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ),
                 "info",
             )
-        elif add_to_dash and not save_to_dashboard_id:
+        elif new_dashboard_name:
+            # Creating and adding to a new dashboard
             # check create dashboard permissions
             dash_add_perm = security_manager.can_access("can_add", "DashboardModelView")
             if not dash_add_perm:
@@ -871,7 +872,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "can_overwrite": is_owner(slc, g.user),
             "form_data": slc.form_data,
             "slice": slc.data,
-            "dashboard_id": dash.id if dash else None,
+            "dashboard_url": dash.url if dash else None,
         }
 
         if dash and request.args.get("goto_dash") == "true":

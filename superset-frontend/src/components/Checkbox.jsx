@@ -23,29 +23,17 @@ const propTypes = {
   checked: PropTypes.bool.isRequired,
   onChange: PropTypes.func.isRequired,
   style: PropTypes.object,
-  label: PropTypes.node,
-  dataTest: PropTypes.string,
 };
 
-export default function Checkbox({
-  label,
-  checked,
-  onChange,
-  style,
-  className,
-  dataTest,
-}) {
+export default function Checkbox({ checked, onChange, style }) {
   return (
-    <span style={style} className={className}>
+    <span style={style}>
       <i
         role="button"
         tabIndex={0}
         className={`fa fa-check ${
           checked ? 'text-primary' : 'text-transparent'
         }`}
-        role="button"
-        dataTest={dataTest}
-        tabIndex={0}
         onClick={() => {
           onChange(!checked);
         }}
@@ -55,17 +43,6 @@ export default function Checkbox({
           cursor: 'pointer',
         }}
       />
-      {label && (
-        <span
-          className="m-l-5"
-          role="button"
-          tabIndex={0}
-          onClick={() => onChange(!checked)}
-          style={{ cursor: 'pointer' }}
-        >
-          {label}
-        </span>
-      )}
     </span>
   );
 }
