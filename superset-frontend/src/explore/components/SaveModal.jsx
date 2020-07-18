@@ -184,6 +184,7 @@ class SaveModal extends React.Component {
           <hr />
           {t('Add to dashboard')}
           <CreatableSelect
+            id="dashboard-creatable-select"
             className="save-modal-selector"
             options={this.props.dashboards}
             clearable
