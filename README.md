@@ -1,7 +1,10 @@
 # A leaflet plugin for Superset
 
 
-#### Plotting some custom data
+This was an exercise on how to approach the problem of intgrating a Leaflet Map in Superset, as well as some basic plotting.
+
+
+### Plotting some custom data
 
 I had never heard of Superset before, so the first thing to do was head for the official docs and do some reading. Getting up and running was fairly painless, and I had a dashboard with Superset's sample datasets up and running in no time. I had a lat/lon dataset of global weather balloon station locations lying around on my local Postgres install, so I figured I'd try loading this in. The only "gotcha" at this stage was that I needed to download and include psycop2-binary in the SQL alchemy URI like so:
 
@@ -14,7 +17,7 @@ I also had an old mapbox API key from one the exercises during my Bootcamp. A qu
 <img src="https://github.com/johnckealy/incubator-superset/blob/leaflet/stations.png?raw=true" alt="" width="650px" height="300px">
 
 
-#### Editing the Superset source code
+### Editing the Superset source code
 
 I had originally just installed Superset in a Python virtualenv to get it to run, but now it seemed to prudent to fork the original repository on Github. Pretty much every resource online used Docker. I haven't learned Docker yet (though it's high on my wish-list), but thought it no harm to investigate. This was where my first bottleneck occurred. My lack of understanding of Docker quickly became troublesome. 
 
@@ -33,7 +36,7 @@ The `-e` flag allowed me to make changes to the package on the fly – problem s
 Time to tinker. 
 
 
-#### A few setbacks
+### A few setbacks
 
 Now for the tricky part. The next task was to find a way to integrate Leaflet into Superset. My hope was to figure out how Mapbox was implemented under the hood, and use this as a jumping off point. This hope fell apart fairly quicky. 
 
@@ -46,7 +49,7 @@ After quite some time searching for clues, I came to realize that Mapbox was com
 Time to rethink my strategy. 
 
 
-#### Superset plugins
+### Superset plugins
 
 Online, the creators of Superset had loosely described the possibility of plugins, with mentions of a [hello-world plugin](https://preset.io/blog/2020-07-02-hello-world/)... but even this looked quite complex and seemly assumed knowledge of Typescript. They even state in that article that such things were "impossible" until very recently, and that article only came out this month. All the same, I figured I might learn more about workings of Superset by following the blog post. 
 
@@ -77,7 +80,7 @@ I knew that the existing plugins weren't prepended with "legacy" for nothing, it
 When a problem becomes overwhelming, I tend to break it down into the smallest possible pieces and take baby steps. Get back to a place where things are working again, and inch forward. The simplest possible thing I could think of to do, now that I knew that there existed discrete "plugins" that could (in theory) create visualizations, was to copy one of the legacy plugins in the main `incubator-superset repo` and start tinkering with it.  
 
 
-#### Superset plugins continued..
+### Superset plugins continued..
 
 The simplest next step I could think to make was to choose a simple legacy visualization, and find where the HTML container element was being called. The sample plugin I chose was called `legacy-plugin-chart-treemap`, a simple tree map visualization.  All the javascript code was written with React, which I have no knowledge of, but I hoped I could understand enough to at least find where the element was referenced. 
 
@@ -109,7 +112,7 @@ The maptiles don't fit into the container, and are in the wrong positions relati
 I also came across a package called `react-leaflet`. I installed and tried running it, but to be honest, without React knowledge, I'm completely out of my depth. 
 
 
-## A sample npm plugin package
+### A sample npm plugin package
  
 Despite many hours of work, I hadn't actually written a single line of useful code. So I thought it prudent to at least create an npm package showing how a visualization *might* be implemented with Leaflet in Superset. 
 
@@ -126,17 +129,19 @@ Starting from the Treemap plugin, I added the ideas from the other sections. The
 My lack of knowledge in React was a major stumbling block, so I'd love to try a similar problem again someday after I've learned React. Without these fundamentals though, I could've been going for days with no progress. It was time to stop. 
 
 
-## What's been learned? 
+### What's been learned? 
 
-I think the idea behind this project might have been to see how I approached a problem that was far above my level. Even though this is exactly the kind of thing I would love to learn more about, I wasn't able to get very far with my current level of coding knowledge.
+I think the idea behind this project might have been to see how I approached a problem that was far above my level. Even though this is exactly the kind of thing I would love to learn more about, I wasn't able to get very far with my current ability.
 
 When it comes to implementing Leaflet in Superset, the following is my summary of the most important outcomes of the work I did over the past two days:
 
-1) Each visualization type in SuperSet (LineType, HeatMap, Scatterplot, etc) is drawn using independent plugins. Superset's authors are not currently accepting plugins from contributors, but hope to soon. They appear to be transitioning into a new way of creating these plugins, but right now, resources on how to make one are scarce.
+1) Each visualization type in SuperSet (LineType, HeatMap, Scatterplot, etc) is drawn using a plugin. These visualization plugins live in the `superset-ui` repository (which is [here](https://github.com/apache-superset/superset-ui)). Superset's authors are not currently accepting plugins from contributors, but hope to soon. They appear to be transitioning into a new way of creating these plugins, but right now, resources on how to make one are relatively scarce.
 
-2) In the meantime, it might be possible to hack together a custom visualization plugin using the 'legacy' plugins as a starting point. I've created an example of what a plugin might look like and published this to npm (link in the previous section), but this plugin does not function properly. Hopefully it is of some use as a starting point though. 
+2) Although it might be a better approach in the long term to persist with the new format of the plugins, I've created an example of what a plugin using the legacy format and published this to npm (link in the previous section). Unfortunately, this plugin does not function properly. Hopefully it could of some use as a starting point. 
 
-3) The plugins then integrate with Superset by way of the `SuperChart` React component. 
+3) When ready, plugins integrate with Superset by way of the `SuperChart` React component. 
 
-4) `react-leaflet` is an npm package that may help with the leaflet integration, tough I didn't end up using it myself.
+4) `react-leaflet` is an npm package that may help with the leaflet integration, though I didn't end up using it myself. 
+
+
 
