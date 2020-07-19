@@ -14,29 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
-
 import simplejson as json
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
-from flask_sqlalchemy import BaseQuery
 
-from superset import db, get_feature_flags, security_manager
+from superset import db, get_feature_flags
 from superset.constants import RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
-from .base import (
-    BaseFilter,
-    BaseSupersetView,
-    DeleteMixin,
-    json_success,
-    SupersetModelView,
-)
+from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
 
 
 class SavedQueryView(
