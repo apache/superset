@@ -1,131 +1,142 @@
-<!--
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
-Superset
-=========
-
-[![Build Status](https://travis-ci.org/apache/incubator-superset.svg?branch=master)](https://travis-ci.org/apache/incubator-superset)
-[![PyPI version](https://badge.fury.io/py/apache-superset.svg)](https://badge.fury.io/py/apache-superset)
-[![Coverage Status](https://codecov.io/github/apache/incubator-superset/coverage.svg?branch=master)](https://codecov.io/github/apache/incubator-superset)
-[![PyPI](https://img.shields.io/pypi/pyversions/apache-superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/apache-superset)
-[![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
-[![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.incubator.apache.org)
-[![dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/incubator-superset?path=superset-frontend)
-
-<img
-  src="https://cloud.githubusercontent.com/assets/130878/20946612/49a8a25c-bbc0-11e6-8314-10bef902af51.png"
-  alt="Superset"
-  width="500"
-/>
-
-A modern, enterprise-ready business intelligence web application.
-
-[**Why Superset**](#why-superset) |
-[**Database Support**](#database-support) |
-[**Installation and Configuration**](#installation-and-configuration) |
-[**Get Help**](#get-help) |
-[**Contributor Guide**](#contributor-guide) |
-[**Resources**](#resources) |
-[**Superset Users**](INTHEWILD.md)
+# A leaflet plugin for Superset
 
 
-## Screenshots & Gifs
+###### Plotting some custom data
 
-**View Dashboards**
+I had never heard of Superset before, so the first thing to do was head for the official docs and do some reading. Getting up and running was fairly painless, and I had a dashboard with Superset's sample datasets up and running in no time. I had a lat/lon dataset of global weather balloon station locations lying around on my local Postgres install, so I figured I'd try loading this in. The only "gotcha" at this stage was that I needed to download and include psycop2-binary in the SQL alchemy URI like so:
 
-<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/bank_dash.png"></kbd><br/>
+`postgresql+psycopg2://jokea:XXXXXXXXXX@localhost:5432/tephigrams-api-db`  
 
-**Slice & dice your data**
+and then I was good to go. 
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/explore.png"></kbd><br/>
+I also had an old mapbox API key from one the exercises during my Bootcamp. A quick search showed me where to place the key (you just create `~/.superset/superset_config.py` and set an environment variable there). And there we go, a lovely map of weather balloon stations in less than an hour:
 
-**Query and visualize your data with SQL Lab**
-
-<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/sqllab.png"></kbd><br/>
-
-**Visualize geospatial data with deck.gl**
-
-<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/deckgl_dash.png"></kbd><br/>
-
-**Choose from a wide array of visualizations**
-
-<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
-
-## Why Superset
-
-Superset provides:
-* An intuitive interface to explore and visualize datasets, and
-    create interactive dashboards.
-* A wide array of beautiful visualizations to showcase your data.
-* Easy, code-free, user flows to drill down and slice and dice the data
-    underlying exposed dashboards. The dashboards and charts act as a starting
-    point for deeper analysis.
-* A state of the art SQL editor/IDE exposing a rich metadata browser, and
-    an easy workflow to create visualizations out of any result set.
-* An extensible, high granularity security model allowing intricate rules
-    on who can access which product features and datasets.
-    Integration with major
-    authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, ...)
-* A lightweight semantic layer, allowing to control how data sources are
-    exposed to the user by defining dimensions and metrics
-* Out of the box support for most SQL-speaking databases
-* Deep integration with Druid allows for Superset to stay blazing fast while
-    slicing and dicing large, realtime datasets
-* Fast loading dashboards with configurable caching
+<img src="https://github.com/johnckealy/incubator-superset/blob/master/stations.png?raw=true" alt="" width="650px" height="300px">
 
 
-## Database Support
+###### Editing the Superset source code
 
-Superset speaks many SQL dialects through SQLAlchemy - a Python
-SQL toolkit that is compatible with most databases. A list of
-supported databases can be found
-[here](https://superset.incubator.apache.org/#databases).
+I had originally just installed Superset in a Python virtualenv to get it to run, but now it seemed to prudent to fork the original repository on Github. Pretty much every resource online used Docker. I haven't learned Docker yet (though it's high on my wish-list), but thought it no harm to investigate. This was where my first bottleneck occurred. My lack of understanding of Docker quickly became troublesome. 
 
+Even though I could run Superset using `docker-compose`, I had a lot of trouble figuring out how to import custom data into the container. I tried strategies like using `pg_dump` to grab a database copy from my local postgres, and then load this file into the Docker container using commands along the lines of 
 
-## Installation and Configuration
+`cat ../tephigrams.sql | sudo docker exec -i superset_db psql -U superset`,
 
-[See in the documentation](https://superset.incubator.apache.org/installation.html)
+but I was getting nowhere. I needed to find a non-docker solution, or spend days learning Docker inside and out from scratch. 
 
+After taking a pause, it occurred to me that maybe I could load up Superset into a virtual environment using the source code. I then rememebered the `pip` command
 
-## Get Involved
+`pip install -e .`
 
-* Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset)
-* [Join our community's Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
-  and please read our [Slack Community Guidelines](CODE_OF_CONDUCT.md#slack-community-guidelines)
-* [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
+The `-e` flag allowed me to make changes to the package on the fly – problem solved. I could now edit the source code of Superset, and import data from my local Postgres databases. 
+
+Time to tinker. 
 
 
-## Contributor Guide
+###### A few setbacks
 
-Interested in contributing? Check out our
-[CONTRIBUTING.md](https://github.com/apache/superset/blob/master/CONTRIBUTING.md)
-to find resources around contributing along with a detailed guide on
-how to set up a development environment.
+Now for the tricky part. The next task was to find a way to integrate Leaflet into Superset. My hope was to figure out how Mapbox was implemented under the hood, and use this as a jumping off point. This hope fell apart fairly quicky. 
+
+Google wasn't giving any hints this time, so I was on my own. After a little research, the best resource I could find to help out were a few pull requests in the Superset repository on Github (which were linked to from the official Superset docs). Unfortunately, they were a little old (referring to Caravel, an earlier version of Superset). Nonetheless, these pull requests helped to give me an idea of what might be necessary to create a custom visualization.
+
+First I set a few `breakpoint()`s (`breakpoint()` is just syntatic sugar for the Pdb debugger) to try to understand the control flow, and I also ran searches in Visual Studio Code (vscode is my latest crush in terms of IDEs) and grepped around for keywords like "Mapbox" to see where I might start.
+
+After quite some time searching for clues, I came to realize that Mapbox was completely baked into React, Deck-gl, Webpack.. everything really. It sources from npm libraries like `react-map-gl` and `mapbox-gl`. Since I have literally zero experience with React or DeckGL, I was quickly starting to realise that this project might be beyond my current skill level!
+
+Time to rethink my strategy. 
 
 
-## Resources
+###### Superset plugins
 
-* Superset 101 -- Getting Started Guide (From [Preset](https://preset.io) [Blog](https://preset.io/blog/))
-  * [Installing Apache Superset Locally](https://preset.io/blog/2020-05-11-getting-started-installing-superset/)
-  * [Installing Database Drivers](https://preset.io/blog/2020-05-18-install-db-drivers/)
-  * [Connect Superset To Google Sheets](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/)
-  * [Create Your First Chart](https://preset.io/blog/2020-06-08-first-chart/)
-  * [Create Time Series Charts](https://preset.io/blog/2020-06-26-timeseries-chart/)
-* [Docker image](https://hub.docker.com/r/preset/superset/)
-* [Youtube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
-  * [May 15, 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
+Online, the creators of Superset had loosely described the possibility of plugins, with mentions of a [hello-world plugin](https://preset.io/blog/2020-07-02-hello-world/)... but even this looked quite complex and seemly assumed knowledge of Typescript. They even state in that article that such things were "impossible" until very recently, and that article only came out this month. All the same, I figured I might learn more about workings of Superset by following the blog post. 
+
+The general idea I had was that if I could decouple the frontend UI from the backend, then I might just be able to implement a basic Leaflet map using Webpack. Once the map was running in the right place, I could then seek to load the json data from the backend into it. But first I needed to get a sample plugin to work.  
+
+There exists a separate repository for the superset user inferface at `https://github.com/preset-io/superset-ui`. I had to install the specialist tool Yeoman to create a superset-ui plugin generator, and use it to generate a new plugin template. So I went ahead and generated a "hello-world" plugin.
+
+It's necessary to use `npm link` to connect the `node_modules` folders between the main `superset` repo and this separate `superset-ui` repo. But there was a snag, and Webpack refused to compile. 
+
+Then I realised something. The structure of the sample plugins Preset's blog post/tutorial had provided were different to that of the plugins within the main `incubator-superset` repo. 
+
+My newly generated plugin was structured this way: 
+
+```
+jokea@leno ~/c/j/s/i/s/n/@/legacy-plugin-chart-treemap> ls  # this was inside the 'incubator-superset' repo                                                                                                
+esm  lib  LICENSE  package.json  README.md
+```
+
+yet the plugins that were being used by the app were structured this way:
+
+```
+jokea@leno ~/c/j/s/i/s/n/@/legacy-plugin-chart-treemap> ls   # this was inside the 'superset-ui' repo                                                                                                
+package.json  README.md  src  test  types
+```
+
+I knew that the existing plugins weren't prepended with "legacy" for nothing, it was obvious that the authors had updated their filestructures. But all the same, the plugins generated by Yeoman wouldn't compile with the current `incubator-superset` source code – they didn't seem compatible at all. On top of that, the generated plugin template (Preset's "newer" approach) was based on TypeScript, which I also haven't yet learned. 
+
+When a problem becomes overwhelming, I tend to break it down into the smallest possible pieces and take baby steps. Get back to a place where things are working again, and inch forward. The simplest possible thing I could think of to do, now that I knew that there existed discrete "plugins" that could (in theory) create visualizations, was to copy one of the legacy plugins in the main `incubator-superset repo` and start tinkering with it.  
+
+
+###### Superset plugins continued..
+
+The simplest next step I could think to make was to choose a simple legacy visualization, and find where the HTML container element was being called. The sample plugin I chose was called `legacy-plugin-chart-treemap`, a simple tree map visualization.  All the javascript code was written with React, which I have no knowledge of, but I hoped I could understand enough to at least find where the element was referenced. 
+
+Since React creates a virtual DOM (I may not be understanding that correctly), I was given few clues as to how to identify where the container element was (class and id names were not present in the plugin code), but after a little digging, I found a function within the labrynth of React code that seemed to be at the heart of things. 
+
+This function simply took two inputs, called `props` and `element`. On logging these, I found what I had hoped – props contained the data from the backend, and the element was the container I was looking for.
+
+At this point I installed Leaflet with npm, to see if I could get a sample map to appear in this container. It was simply 
+
+```
+function Treemap(element, props) {
+
+  const position = [51.505, -0.09]
+  const map = L.map(element).setView(position, 13)
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+  }).addTo(map)
+
+}
+``` 
+
+but it produced this monstrosity...
+
+<img src="https://github.com/johnckealy/incubator-superset/blob/master/badleaflet.png?raw=true" alt="" width="650px" height="300px">
+
+The maptiles don't fit into the container, and are in the wrong positions relative to each other. You can pan and zoom it, but it makes no sense. I tried stripping everything I could out of the plugin, but couldn't figure out why it was doing this. 
+
+I also came across a package called `react-leaflet`. I installed and tried running it, but to be honest, without React knowledge, I'm completely out of my depth. 
+
+
+#### A sample npm plugin package
+ 
+Despite many hours of work, I hadn't actually written a single line of useful code. So I thought it prudent to at least create an npm package showing how a visualization *might* be implemented with Leaflet in Superset. 
+
+The package is here: 
+
+[https://www.npmjs.com/package/plugin-chart-leaflet](https://www.npmjs.com/package/plugin-chart-leaflet)
+
+Starting from the Treemap plugin, I added the ideas from the other sections. The strange tiling issue turned out to be due to the omission of the leaflet CSS, but with it, the leaflet container now had no height. The map was there... but I couldn't get any further. Manually giving `.leaflet-container` in chrome devtools gave me something like this: 
+
+<img src="https://github.com/johnckealy/incubator-superset/blob/master/leafletmap.png?raw=true" alt="" width="650px" height="300px">
+
+...but I was still hammering a square peg into a round hole. 
+
+My lack of knowledge in React was a major stumbling block, so I'd love to try a similar problem again someday after I've learned React. Without these fundamentals though, I could've been going for days with no progress. It was time to stop. 
+
+
+#### What's been learned? 
+
+I think the idea behind this project might have been to see how I approached a problem that was far above my level. Even though this is exactly the kind of thing I would love to learn more about, I wasn't able to get very far with my current level of coding knowledge.
+
+When it comes to implementing Leaflet in Superset, the following is my summary of the most important outcomes of the work I did over the past two days:
+
+1) Each visualization type in SuperSet (LineType, HeatMap, Scatterplot, etc) is drawn using independent plugins. Superset's authors are not currently accepting plugins from contributors, but hope to soon. They appear to be transitioning into a new way of creating these plugins, but right now, resources on how to make one are scarce.
+
+2) In the meantime, it might be possible to hack together a custom visualization plugin using the 'legacy' plugins as a starting point. I've created an example of what a plugin might look like and published this to npm (link in the previous section), but this plugin does not function properly. Hopefully it is of some use as a starting point though. 
+
+3) The plugins then integrate with Superset by way of the `SuperChart` React component. 
+
+4) `react-leaflet` is an npm package that may help with the leaflet integration, tough I didn't end up using it myself.
+

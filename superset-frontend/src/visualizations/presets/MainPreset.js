@@ -17,6 +17,8 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
+import "leaflet/dist/leaflet.css";
+
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
@@ -27,7 +29,7 @@ import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map'
 import EventFlowChartPlugin from '@superset-ui/legacy-plugin-chart-event-flow';
 import ForceDirectedChartPlugin from '@superset-ui/legacy-plugin-chart-force-directed';
 import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
-import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
+// import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
 import IframeChartPlugin from '@superset-ui/legacy-plugin-chart-iframe';
 import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
@@ -40,7 +42,7 @@ import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
-import TreemapChartPlugin from '@superset-ui/legacy-plugin-chart-treemap';
+import LeafletChartPlugin from 'plugin-chart-leaflet';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import {
@@ -85,7 +87,7 @@ export default class MainPreset extends Preset {
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
         new ForceDirectedChartPlugin().configure({ key: 'directed_force' }),
         new HeatmapChartPlugin().configure({ key: 'heatmap' }),
-        new HistogramChartPlugin().configure({ key: 'histogram' }),
+        // new HistogramChartPlugin().configure({ key: 'histogram' }),
         new HorizonChartPlugin().configure({ key: 'horizon' }),
         new IframeChartPlugin().configure({ key: 'iframe' }),
         new LineChartPlugin().configure({ key: 'line' }),
@@ -104,7 +106,7 @@ export default class MainPreset extends Preset {
         new TableChartPlugin().configure({ key: 'table' }),
         new TimePivotChartPlugin().configure({ key: 'time_pivot' }),
         new TimeTableChartPlugin().configure({ key: 'time_table' }),
-        new TreemapChartPlugin().configure({ key: 'treemap' }),
+        new LeafletChartPlugin().configure({ key: 'treemap' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
         new WorldMapChartPlugin().configure({ key: 'world_map' }),
       ],
