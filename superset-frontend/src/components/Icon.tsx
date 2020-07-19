@@ -85,7 +85,7 @@ interface IconProps extends SVGProps<SVGSVGElement> {
 
 const Icon = ({ name, color = '#666666', ...rest }: IconProps) => {
   const Component = iconsRegistry[name];
-  return <Component color={color} {...rest} />;
+  return <Component color={color} data-test={name} {...rest} />;
 };
 
 export default Icon;
