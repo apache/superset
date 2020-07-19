@@ -1,7 +1,7 @@
 # A leaflet plugin for Superset
 
 
-###### Plotting some custom data
+#### Plotting some custom data
 
 I had never heard of Superset before, so the first thing to do was head for the official docs and do some reading. Getting up and running was fairly painless, and I had a dashboard with Superset's sample datasets up and running in no time. I had a lat/lon dataset of global weather balloon station locations lying around on my local Postgres install, so I figured I'd try loading this in. The only "gotcha" at this stage was that I needed to download and include psycop2-binary in the SQL alchemy URI like so:
 
@@ -11,10 +11,10 @@ and then I was good to go.
 
 I also had an old mapbox API key from one the exercises during my Bootcamp. A quick search showed me where to place the key (you just create `~/.superset/superset_config.py` and set an environment variable there). And there we go, a lovely map of weather balloon stations in less than an hour:
 
-<img src="https://github.com/johnckealy/incubator-superset/blob/master/stations.png?raw=true" alt="" width="650px" height="300px">
+<img src="https://github.com/johnckealy/incubator-superset/blob/leaflet/stations.png?raw=true" alt="" width="650px" height="300px">
 
 
-###### Editing the Superset source code
+#### Editing the Superset source code
 
 I had originally just installed Superset in a Python virtualenv to get it to run, but now it seemed to prudent to fork the original repository on Github. Pretty much every resource online used Docker. I haven't learned Docker yet (though it's high on my wish-list), but thought it no harm to investigate. This was where my first bottleneck occurred. My lack of understanding of Docker quickly became troublesome. 
 
@@ -33,7 +33,7 @@ The `-e` flag allowed me to make changes to the package on the fly – problem s
 Time to tinker. 
 
 
-###### A few setbacks
+#### A few setbacks
 
 Now for the tricky part. The next task was to find a way to integrate Leaflet into Superset. My hope was to figure out how Mapbox was implemented under the hood, and use this as a jumping off point. This hope fell apart fairly quicky. 
 
@@ -46,7 +46,7 @@ After quite some time searching for clues, I came to realize that Mapbox was com
 Time to rethink my strategy. 
 
 
-###### Superset plugins
+#### Superset plugins
 
 Online, the creators of Superset had loosely described the possibility of plugins, with mentions of a [hello-world plugin](https://preset.io/blog/2020-07-02-hello-world/)... but even this looked quite complex and seemly assumed knowledge of Typescript. They even state in that article that such things were "impossible" until very recently, and that article only came out this month. All the same, I figured I might learn more about workings of Superset by following the blog post. 
 
@@ -77,7 +77,7 @@ I knew that the existing plugins weren't prepended with "legacy" for nothing, it
 When a problem becomes overwhelming, I tend to break it down into the smallest possible pieces and take baby steps. Get back to a place where things are working again, and inch forward. The simplest possible thing I could think of to do, now that I knew that there existed discrete "plugins" that could (in theory) create visualizations, was to copy one of the legacy plugins in the main `incubator-superset repo` and start tinkering with it.  
 
 
-###### Superset plugins continued..
+#### Superset plugins continued..
 
 The simplest next step I could think to make was to choose a simple legacy visualization, and find where the HTML container element was being called. The sample plugin I chose was called `legacy-plugin-chart-treemap`, a simple tree map visualization.  All the javascript code was written with React, which I have no knowledge of, but I hoped I could understand enough to at least find where the element was referenced. 
 
@@ -102,14 +102,14 @@ function Treemap(element, props) {
 
 but it produced this monstrosity...
 
-<img src="https://github.com/johnckealy/incubator-superset/blob/master/badleaflet.png?raw=true" alt="" width="650px" height="300px">
+<img src="https://github.com/johnckealy/incubator-superset/blob/leaflet/badleaflet.png?raw=true" alt="" width="650px" height="300px">
 
 The maptiles don't fit into the container, and are in the wrong positions relative to each other. You can pan and zoom it, but it makes no sense. I tried stripping everything I could out of the plugin, but couldn't figure out why it was doing this. 
 
 I also came across a package called `react-leaflet`. I installed and tried running it, but to be honest, without React knowledge, I'm completely out of my depth. 
 
 
-#### A sample npm plugin package
+## A sample npm plugin package
  
 Despite many hours of work, I hadn't actually written a single line of useful code. So I thought it prudent to at least create an npm package showing how a visualization *might* be implemented with Leaflet in Superset. 
 
@@ -119,14 +119,14 @@ The package is here:
 
 Starting from the Treemap plugin, I added the ideas from the other sections. The strange tiling issue turned out to be due to the omission of the leaflet CSS, but with it, the leaflet container now had no height. The map was there... but I couldn't get any further. Manually giving `.leaflet-container` in chrome devtools gave me something like this: 
 
-<img src="https://github.com/johnckealy/incubator-superset/blob/master/leafletmap.png?raw=true" alt="" width="650px" height="300px">
+<img src="https://github.com/johnckealy/incubator-superset/blob/leaflet/leafletmap.png?raw=true" alt="" width="650px" height="300px">
 
 ...but I was still hammering a square peg into a round hole. 
 
 My lack of knowledge in React was a major stumbling block, so I'd love to try a similar problem again someday after I've learned React. Without these fundamentals though, I could've been going for days with no progress. It was time to stop. 
 
 
-#### What's been learned? 
+## What's been learned? 
 
 I think the idea behind this project might have been to see how I approached a problem that was far above my level. Even though this is exactly the kind of thing I would love to learn more about, I wasn't able to get very far with my current level of coding knowledge.
 
