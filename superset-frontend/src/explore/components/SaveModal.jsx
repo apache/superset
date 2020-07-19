@@ -25,11 +25,13 @@ import {
   Button,
   FormControl,
   FormGroup,
+  ControlLabel,
   Modal,
   Radio,
 } from 'react-bootstrap';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
 import { t } from '@superset-ui/translation';
+import ReactMarkdown from 'react-markdown';
 
 import { EXPLORE_ONLY_VIZ_TYPE } from '../constants';
 
@@ -47,6 +49,7 @@ const propTypes = {
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
+const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one')
 
 class SaveModal extends React.Component {
   constructor(props) {
@@ -136,7 +139,7 @@ class SaveModal extends React.Component {
     return (
       <Modal show onHide={this.props.onHide}>
         <Modal.Header closeButton>
-          <Modal.Title>{t('Save A Chart')}</Modal.Title>
+          <Modal.Title>{t('Save Chart')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {(this.state.alert || this.props.alert) && (
@@ -171,7 +174,9 @@ class SaveModal extends React.Component {
               {t('Save as ...')} &nbsp;
             </Radio>
           </FormGroup>
+          <hr />
           <FormGroup>
+            <ControlLabel>{t('Chart name')}</ControlLabel>
             <FormControl
               name="new_slice_name"
               type="text"
@@ -181,19 +186,28 @@ class SaveModal extends React.Component {
               onChange={this.onSliceNameChange}
             />
           </FormGroup>
-          <hr />
-          {t('Add to dashboard')}
-          <CreatableSelect
-            id="dashboard-creatable-select"
-            className="save-modal-selector"
-            options={this.props.dashboards}
-            clearable
-            creatable
-            onChange={this.onDashboardSelectChange}
-            autoSize={false}
-            value={this.state.saveToDashboardId || this.state.newDashboardName}
-            placeholder={t('Select a dashboard OR create a new one')}
-          />
+          <FormGroup>
+            <ControlLabel>
+              {t('Add to dashboard')}
+            </ControlLabel>
+            <CreatableSelect
+              id="dashboard-creatable-select"
+              className="save-modal-selector"
+              options={this.props.dashboards}
+              clearable
+              creatable
+              onChange={this.onDashboardSelectChange}
+              autoSize={false}
+              value={this.state.saveToDashboardId || this.state.newDashboardName}
+              placeholder={
+                // Using markdown to allow for good i18n
+                <ReactMarkdown
+                  source={SELECT_PLACEHOLDER}
+                  renderers={{ paragraph: 'span' }}
+                />
+              }
+            />
+          </FormGroup>
         </Modal.Body>
 
         <Modal.Footer>
