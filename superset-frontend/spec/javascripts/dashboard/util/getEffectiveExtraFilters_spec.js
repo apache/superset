@@ -22,7 +22,8 @@ describe('getEffectiveExtraFilters', () => {
   it('should create IN operator for arrays', () => {
     const result = getEffectiveExtraFilters({
       gender: ['girl'],
-      __time_range: ' : 2000-07-17T00:00:00',
+      name: null,
+      __time_range: ' : 2020-07-17T00:00:00',
     });
     expect(result).toMatchObject([
       {

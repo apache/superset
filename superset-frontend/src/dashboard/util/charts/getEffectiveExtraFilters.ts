@@ -19,9 +19,11 @@
 import { DataRecordFilters } from '@superset-ui/chart';
 
 export default function getEffectiveExtraFilters(filters: DataRecordFilters) {
-  return Object.entries(filters).map(([column, values]) => ({
-    col: column,
-    op: Array.isArray(values) ? 'IN' : '=',
-    val: values,
-  }));
+  return Object.entries(filters)
+    .map(([column, values]) => ({
+      col: column,
+      op: Array.isArray(values) ? 'IN' : '=',
+      val: values,
+    }))
+    .filter(filter => filter !== null);
 }
