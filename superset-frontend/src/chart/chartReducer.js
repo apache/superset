@@ -85,21 +85,6 @@ export default function chartReducer(charts = {}, action) {
         ),
       };
     },
-    [actions.CHART_UPDATE_TIMEOUT](state) {
-      return {
-        ...state,
-        chartStatus: 'failed',
-        chartAlert: `${t('Query timeout')} - ${t(
-          `visualization queries are set to timeout at ${action.timeout} seconds. `,
-        )}${t(
-          'Perhaps your data has grown, your database is under unusual load, ' +
-            'or you are simply querying a data source that is too large ' +
-            'to be processed within the timeout range. ' +
-            'If that is the case, we recommend that you summarize your data further.',
-        )}`,
-        chartUpdateEndTime: now(),
-      };
-    },
     [actions.CHART_UPDATE_FAILED](state) {
       return {
         ...state,
