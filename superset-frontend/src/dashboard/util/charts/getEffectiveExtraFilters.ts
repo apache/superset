@@ -25,5 +25,5 @@ export default function getEffectiveExtraFilters(filters: DataRecordFilters) {
       op: Array.isArray(values) ? 'IN' : '=',
       val: values,
     }))
-    .filter(filter => filter !== null);
+    .filter(filter => filter.val !== null);
 }
