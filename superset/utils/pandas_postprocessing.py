@@ -565,7 +565,48 @@ def contribution(
     return contribution_df
 
 
-def prophet(  # pylint: disable=too-many-arguments,too-many-locals
+def _prophet_parse_seasonality(
+    input_value: Optional[Union[bool, int]]
+) -> Union[bool, str, int]:
+    if input_value is None:
+        return "auto"
+    if isinstance(input_value, bool):
+        return input_value
+    try:
+        return int(input_value)
+    except ValueError:
+        return input_value
+
+
+def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
+    df: DataFrame,
+    confidence_interval: float,
+    yearly_seasonality: Union[bool, str, int],
+    weekly_seasonality: Union[bool, str, int],
+    daily_seasonality: Union[bool, str, int],
+    periods: int,
+    freq: str,
+) -> DataFrame:
+    """
+    Fit a prophet model and return a DataFrame with predicted results.
+    """
+    try:
+        from fbprophet import Prophet  # pylint: disable=import-error
+    except ModuleNotFoundError:
+        raise QueryObjectValidationError(_("`fbprophet` package not installed"))
+    model = Prophet(
+        interval_width=confidence_interval,
+        yearly_seasonality=yearly_seasonality,
+        weekly_seasonality=weekly_seasonality,
+        daily_seasonality=daily_seasonality,
+    )
+    model.fit(df)
+    future = model.make_future_dataframe(periods=periods, freq=freq)
+    forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
+    return forecast.join(df.set_index("ds"), on="ds").set_index(["ds"])
+
+
+def prophet(  # pylint: disable=too-many-arguments
     df: DataFrame,
     time_grain: str,
     periods: int,
@@ -602,11 +643,11 @@ def prophet(  # pylint: disable=too-many-arguments,too-many-locals
     # validate inputs
     if not time_grain:
         raise QueryObjectValidationError(_("Time grain missing"))
-    freq = PROPHET_TIME_GRAIN_MAP.get(time_grain)
-    if not freq:
+    if time_grain not in PROPHET_TIME_GRAIN_MAP:
         raise QueryObjectValidationError(
             _("Unsupported time grain: %(time_grain)s", time_grain=time_grain,)
         )
+    freq = PROPHET_TIME_GRAIN_MAP[time_grain]
     # check type at runtime due to marhsmallow schema not being able to handle
     # union types
     if not periods or periods < 0 or not isinstance(periods, int):
@@ -620,48 +661,28 @@ def prophet(  # pylint: disable=too-many-arguments,too-many-locals
     if len(df.columns) < 2:
         raise QueryObjectValidationError(_("DataFrame include at least one series"))
 
-    try:
-        from fbprophet import Prophet  # pylint: disable=import-error
-    except ModuleNotFoundError:
-        raise QueryObjectValidationError(_("`fbprophet` package not installed"))
-
-    def _parse_seasonality(
-        input_value: Optional[Union[bool, int]]
-    ) -> Union[bool, str, int]:
-        if input_value is None:
-            return "auto"
-        if isinstance(input_value, bool):
-            return input_value
-        try:
-            return int(input_value)
-        except ValueError:
-            return input_value
-
     target_df = DataFrame()
     for column in [column for column in df.columns if column != DTTM_ALIAS]:
-        df_fit = df[[DTTM_ALIAS, column]]
-        df_fit.columns = ["ds", "y"]
-        model = Prophet(
-            interval_width=confidence_interval,
-            yearly_seasonality=_parse_seasonality(yearly_seasonality),
-            weekly_seasonality=_parse_seasonality(weekly_seasonality),
-            daily_seasonality=_parse_seasonality(daily_seasonality),
+        fit_df = _prophet_fit_and_predict(
+            df=df[[DTTM_ALIAS, column]].rename(columns={DTTM_ALIAS: "ds", column: "y"}),
+            confidence_interval=confidence_interval,
+            yearly_seasonality=_prophet_parse_seasonality(yearly_seasonality),
+            weekly_seasonality=_prophet_parse_seasonality(weekly_seasonality),
+            daily_seasonality=_prophet_parse_seasonality(daily_seasonality),
+            periods=periods,
+            freq=freq,
         )
-        model.fit(df_fit)
-        future = model.make_future_dataframe(periods=periods, freq=freq)
-        forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
-        joined = forecast.join(df_fit.set_index("ds"), on="ds").set_index(["ds"])
         new_columns = [
             f"{column}__yhat",
             f"{column}__yhat_lower",
             f"{column}__yhat_upper",
             f"{column}",
         ]
-        joined.columns = new_columns
+        fit_df.columns = new_columns
         if target_df.empty:
-            target_df = joined
+            target_df = fit_df
         else:
             for new_column in new_columns:
-                target_df = target_df.assign(**{new_column: joined[new_column]})
+                target_df = target_df.assign(**{new_column: fit_df[new_column]})
     target_df.reset_index(level=0, inplace=True)
     return target_df.rename(columns={"ds": DTTM_ALIAS})
