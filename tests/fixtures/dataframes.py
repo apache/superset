@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import date
+from datetime import date, datetime
 
 from pandas import DataFrame, to_datetime
 
@@ -131,5 +131,18 @@ lonlat_df = DataFrame(
             "40.71277496, -74.00597306, 5.5km",
             "-33.85598011, 151.20666526, 12m",
         ],
+    }
+)
+
+prophet_df = DataFrame(
+    {
+        "__timestamp": [
+            datetime(2018, 12, 31),
+            datetime(2019, 12, 31),
+            datetime(2020, 12, 31),
+            datetime(2021, 12, 31),
+        ],
+        "a": [1.1, 1, 1.9, 3.15],
+        "b": [4, 3, 4.1, 3.95],
     }
 )
