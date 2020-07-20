@@ -16,22 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErrorMessageComponentRegistry';
-import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
-import TimeoutErrorMessage from 'src/components/ErrorMessage/TimeoutErrorMessage';
+import React from 'react';
 
-import setupErrorMessagesExtra from './setupErrorMessagesExtra';
+interface IssueCodeProps {
+  code: number;
+  message: string;
+}
 
-export default function setupErrorMessages() {
-  const errorMessageComponentRegistry = getErrorMessageComponentRegistry();
-
-  errorMessageComponentRegistry.registerValue(
-    ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
-    TimeoutErrorMessage,
+export default function IssueCode({ code, message }: IssueCodeProps) {
+  return (
+    <>
+      {message}{' '}
+      <a
+        href={`https://superset.apache.org/issue_code_reference.html#issue-${code}`}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <i className="fa fa-external-link" />
+      </a>
+    </>
   );
-  errorMessageComponentRegistry.registerValue(
-    ErrorTypeEnum.BACKEND_TIMEOUT_ERROR,
-    TimeoutErrorMessage,
-  );
-  setupErrorMessagesExtra();
 }

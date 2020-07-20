@@ -48,7 +48,11 @@ from superset import (
 )
 from superset.connectors.sqla import models
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import (
+    SupersetException,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.models.helpers import ImportMixin
 from superset.translations.utils import get_language_pack
 from superset.typing import FlaskResponse
@@ -176,6 +180,9 @@ def handle_api_exception(
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
+        except SupersetTimeoutException as ex:
+            logger.warning(ex)
+            return json_errors_response(errors=[ex.error], status=ex.status)
         except SupersetException as ex:
             logger.exception(ex)
             return json_error_response(

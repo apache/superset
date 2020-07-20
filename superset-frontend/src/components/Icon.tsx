@@ -17,12 +17,12 @@
  * under the License.
  */
 import React, { SVGProps } from 'react';
-import styled from '@superset-ui/style';
 import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
 import { ReactComponent as CheckIcon } from 'images/icons/check.svg';
 import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.svg';
 import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
 import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
+import { ReactComponent as CloseIcon } from 'images/icons/close.svg';
 import { ReactComponent as CompassIcon } from 'images/icons/compass.svg';
 import { ReactComponent as DatasetPhysicalIcon } from 'images/icons/dataset_physical.svg';
 import { ReactComponent as DatasetVirtualIcon } from 'images/icons/dataset_virtual.svg';
@@ -35,12 +35,13 @@ import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
 import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
 import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 
-type Icon =
+type IconName =
   | 'cancel-x'
   | 'check'
   | 'checkbox-half'
   | 'checkbox-off'
   | 'checkbox-on'
+  | 'close'
   | 'compass'
   | 'dataset-physical'
   | 'dataset-virtual'
@@ -53,7 +54,10 @@ type Icon =
   | 'trash'
   | 'warning';
 
-const iconsRegistry: { [key in Icon]: React.ComponentType } = {
+const iconsRegistry: Record<
+  IconName,
+  React.ComponentType<SVGProps<SVGSVGElement>>
+> = {
   'cancel-x': CancelXIcon,
   'checkbox-half': CheckboxHalfIcon,
   'checkbox-off': CheckboxOffIcon,
@@ -63,6 +67,7 @@ const iconsRegistry: { [key in Icon]: React.ComponentType } = {
   'sort-asc': SortAscIcon,
   'sort-desc': SortDescIcon,
   check: CheckIcon,
+  close: CloseIcon,
   compass: CompassIcon,
   error: ErrorIcon,
   pencil: PencilIcon,
@@ -72,14 +77,12 @@ const iconsRegistry: { [key in Icon]: React.ComponentType } = {
   warning: WarningIcon,
 };
 interface IconProps extends SVGProps<SVGSVGElement> {
-  name: Icon;
+  name: IconName;
 }
 
-const Icon = ({ name, ...rest }: IconProps) => {
+const Icon = ({ name, color = '#666666', ...rest }: IconProps) => {
   const Component = iconsRegistry[name];
-  return <Component {...rest} />;
+  return <Component color={color} {...rest} />;
 };
 
-export default styled(Icon)<{}>`
-  color: #666666;
-`;
+export default Icon;

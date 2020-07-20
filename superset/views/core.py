@@ -1906,7 +1906,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
         except SupersetTimeoutException as ex:
             logger.exception(ex)
-            return json_error_response(timeout_msg)
+            return json_errors_response([ex.error])
         except Exception as ex:  # pylint: disable=broad-except
             return json_error_response(utils.error_msg_from_exception(ex))
 
@@ -2151,6 +2151,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :param rendered_query: The rendered query (included templates)
         :param query: The query SQL (SQLAlchemy) object
         :return: A Flask Response
+        :raises: SupersetTimeoutException
         """
         try:
             timeout = config["SQLLAB_TIMEOUT"]
@@ -2177,6 +2178,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ignore_nan=True,
                 encoding=None,
             )
+        except SupersetTimeoutException as ex:
+            # re-raise exception for api exception handler
+            raise ex
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Query %i: %s", query.id, str(ex))
             return json_error_response(utils.error_msg_from_exception(ex))
@@ -2185,6 +2189,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(payload)
 
     @has_access_api
+    @handle_api_exception
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self) -> FlaskResponse:
