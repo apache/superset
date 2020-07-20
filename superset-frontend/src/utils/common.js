@@ -136,3 +136,5 @@ export function applyFormattingToTabularData(data) {
     /* eslint-enable no-underscore-dangle */
   }));
 }
+
+export const noOp = () => undefined;

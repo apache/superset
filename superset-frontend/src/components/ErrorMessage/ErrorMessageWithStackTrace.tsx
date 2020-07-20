@@ -22,13 +22,14 @@ import { Alert, Collapse } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
 import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
-import { SupersetError } from './types';
+import { SupersetError, ErrorSource } from './types';
 
 type Props = {
   error?: SupersetError;
   link?: string;
   message?: string;
   stackTrace?: string;
+  source?: ErrorSource;
 };
 
 export default function ErrorMessageWithStackTrace({
@@ -36,6 +37,7 @@ export default function ErrorMessageWithStackTrace({
   message,
   link,
   stackTrace,
+  source,
 }: Props) {
   const [showStackTrace, setShowStackTrace] = useState(false);
 
@@ -45,7 +47,7 @@ export default function ErrorMessageWithStackTrace({
       error.error_type,
     );
     if (ErrorMessageComponent) {
-      return <ErrorMessageComponent error={error} />;
+      return <ErrorMessageComponent error={error} source={source} />;
     }
   }
 
