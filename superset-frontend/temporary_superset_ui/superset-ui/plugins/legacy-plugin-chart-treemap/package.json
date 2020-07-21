@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-treemap",
-  "version": "0.14.9",
+  "version": "0.14.13",
   "description": "Superset Legacy Chart - Treemap",
   "sideEffects": [
     "*.css"
