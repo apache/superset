@@ -14,64 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
-
 import simplejson as json
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
-from flask_sqlalchemy import BaseQuery
 
-from superset import db, get_feature_flags, security_manager
+from superset import db, get_feature_flags
 from superset.constants import RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
-from .base import (
-    BaseFilter,
-    BaseSupersetView,
-    DeleteMixin,
-    json_success,
-    SupersetModelView,
-)
-
-
-class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
-        """
-        Filter queries to only those owned by current user. If
-        can_access_all_queries permission is set a user can list all queries
-
-        :returns: query
-        """
-        if not security_manager.can_access_all_queries():
-            query = query.filter(Query.user_id == g.user.get_user_id())
-        return query
-
-
-class QueryView(SupersetModelView):
-    datamodel = SQLAInterface(Query)
-    include_route_methods = {RouteMethod.SHOW, RouteMethod.LIST, RouteMethod.API_READ}
-
-    list_title = _("List Query")
-    show_title = _("Show Query")
-    add_title = _("Add Query")
-    edit_title = _("Edit Query")
-
-    list_columns = ["username", "database_name", "status", "start_time", "end_time"]
-    order_columns = ["status", "start_time", "end_time"]
-    base_filters = [["id", QueryFilter, lambda: []]]
-    label_columns = {
-        "user": _("User"),
-        "username": _("User"),
-        "database_name": _("Database"),
-        "status": _("Status"),
-        "start_time": _("Start Time"),
-        "end_time": _("End Time"),
-    }
+from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
 
 
 class SavedQueryView(
