@@ -285,6 +285,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       }: any) => <span className="no-wrap">{changedOn}</span>,
       Header: t('Modified'),
       accessor: 'changed_on_delta_humanized',
+      size: 'xl',
     },
     {
       Cell: ({
