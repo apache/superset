@@ -203,7 +203,6 @@ describe('SaveModal', () => {
           wrapper.instance().saveOrOverwrite(true);
           defaultProps.actions.saveSlice().then(() => {
             expect(window.location.assign.callCount).toEqual(1);
-            console.log(window.location.assign.getCall(0).args);
             expect(window.location.assign.getCall(0).args[0]).toEqual(
               'http://localhost/mock_dashboard/',
             );

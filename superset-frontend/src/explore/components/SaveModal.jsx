@@ -49,7 +49,7 @@ const propTypes = {
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
-const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one')
+const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
 class SaveModal extends React.Component {
   constructor(props) {
@@ -187,9 +187,7 @@ class SaveModal extends React.Component {
             />
           </FormGroup>
           <FormGroup>
-            <ControlLabel>
-              {t('Add to dashboard')}
-            </ControlLabel>
+            <ControlLabel>{t('Add to dashboard')}</ControlLabel>
             <CreatableSelect
               id="dashboard-creatable-select"
               className="save-modal-selector"
@@ -198,7 +196,9 @@ class SaveModal extends React.Component {
               creatable
               onChange={this.onDashboardSelectChange}
               autoSize={false}
-              value={this.state.saveToDashboardId || this.state.newDashboardName}
+              value={
+                this.state.saveToDashboardId || this.state.newDashboardName
+              }
               placeholder={
                 // Using markdown to allow for good i18n
                 <ReactMarkdown
