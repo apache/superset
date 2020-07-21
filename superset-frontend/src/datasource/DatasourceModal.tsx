@@ -20,6 +20,7 @@ import React, { FunctionComponent, useState, useRef } from 'react';
 import { Alert, Button, Modal } from 'react-bootstrap';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
+import { omit } from 'lodash';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -33,7 +34,7 @@ interface DatasourceModalProps {
   onChange: () => {};
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => {};
-  show: false;
+  show: boolean;
 }
 
 const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
@@ -49,23 +50,22 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 
   const onConfirmSave = () => {
     const datasetId = currentDatasource.id;
-    currentDatasource.columns.forEach((column: any) => {
-      delete column.__expanded;
-      delete column.changed_on;
-      delete column.created_on;
-    });
-    currentDatasource.metrics.forEach((column: any) => {
-      delete column.changed_on;
-      delete column.created_on;
-    });
-    delete currentDatasource.id;
-    delete currentDatasource.datasource_type;
-    delete currentDatasource.url;
-    // delete currentDatasource.database;
+    const columns = currentDatasource.columns.map((column: any) =>
+      omit(column, ['__expanded', 'changed_on', 'created_on']),
+    );
+    const metrics = currentDatasource.metrics.map((metric: any) =>
+      omit(metric, ['changed_on', 'created_on']),
+    );
+    const data = omit(currentDatasource, [
+      'id',
+      'datasource_type',
+      'url',
+      'database',
+    ]);
     SupersetClient.put({
       endpoint: `/api/v1/dataset/${datasetId}`,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...currentDatasource }),
+      body: JSON.stringify({ ...data, columns, metrics }),
     })
       .then(({ json }) => {
         onHide();
@@ -127,7 +127,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <div>
             <span className="float-left">
               {t('Datasource Editor for ')}
-              <strong>{datasource.name}</strong>
+              <strong>{currentDatasource.table_name}</strong>
             </span>
           </div>
         </Modal.Title>
@@ -135,7 +135,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       <Modal.Body>
         {show && (
           <DatasourceEditor
-            datasource={datasource}
+            datasource={currentDatasource}
             onChange={onDatasourceChange}
           />
         )}
@@ -146,7 +146,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             bsSize="sm"
             bsStyle="default"
             target="_blank"
-            href={datasource.edit_url || datasource.url}
+            href={currentDatasource.edit_url || currentDatasource.url}
           >
             {t('Use Legacy Datasource Editor')}
           </Button>
