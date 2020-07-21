@@ -19,7 +19,7 @@
 import getEffectiveExtraFilters from 'src/dashboard/util/charts/getEffectiveExtraFilters';
 
 describe('getEffectiveExtraFilters', () => {
-  it('should create IN operator for arrays', () => {
+  it('should create valid filters', () => {
     const result = getEffectiveExtraFilters({
       gender: ['girl'],
       name: null,
