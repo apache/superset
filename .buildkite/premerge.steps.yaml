@@ -26,4 +26,4 @@ steps:
     command: cd superset-frontend && npm t
     plugins:
       - docker#v3.5.0:
-          image: "node:12.16-buster"
+          image: "eu.gcr.io/windy-oxide-102215/superset-ci"
