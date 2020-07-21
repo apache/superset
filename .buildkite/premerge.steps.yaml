@@ -24,7 +24,10 @@ steps:
   - label: "frontend premerge"
     <<: *common
 #    command: cd superset-frontend && npm t
-    command: npm -v && npm list 2>/dev/null | grep jest-cli
+    commands:
+      - npm -v && npm list 2>/dev/null | grep jest-cli && npm -v
+      - npm install jest-cli
+      - npm -v && npm list 2>/dev/null | grep jest-cli && npm -v
     plugins:
       - docker#v3.5.0:
           image: "eu.gcr.io/windy-oxide-102215/superset-ci:20200721-1002-6672-feature-chinf-1637-984"
