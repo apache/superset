@@ -28,6 +28,7 @@ module.exports = {
     '@storybook/addon-links',
     '@storybook/preset-typescript',
     'storybook-addon-jsx',
+    '@storybook/addon-knobs/register',
   ],
   webpackFinal: config => {
     const finalConfig = {
@@ -44,9 +45,12 @@ module.exports = {
     //   ...customConfig,
     // };
 
-  console.warn(finalConfig, JSON.stringify(finalConfig.module.rules, null, 2));
-  return finalConfig;
-  }
+    console.warn(
+      finalConfig,
+      JSON.stringify(finalConfig.module.rules, null, 2),
+    );
+    return finalConfig;
+  },
 };
 
 
