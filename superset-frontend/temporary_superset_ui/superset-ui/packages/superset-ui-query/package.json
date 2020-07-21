@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/query",
-  "version": "0.14.9",
+  "version": "0.14.12",
   "description": "Superset UI query",
   "sideEffects": false,
   "main": "lib/index.js",
