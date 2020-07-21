@@ -23,4 +23,4 @@ common: &common
 steps:
   - label: "frontend test"
     <<: *common
-    command: cd superset-frontend && npm run test
+    command: docker run -v $PWD/superset-frontend:/tmp -w /tmp superset-ci npm t
