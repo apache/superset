@@ -12,7 +12,7 @@ module.exports = {
     'storybook-addon-jsx',
   ],
   webpackFinal: config => {
-    return {
+    const finalConfig = {
       ...config,
       // module: { ...config.module, rules: custom.module.rules },
       module: {
@@ -25,7 +25,10 @@ module.exports = {
     //   ...config,
     //   ...customConfig,
     // };
-  },
+
+  console.warn(finalConfig, JSON.stringify(finalConfig.module.rules, null, 2));
+  return finalConfig;
+  }
 };
 
 
