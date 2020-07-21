@@ -24,7 +24,7 @@
     "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
-    "storybook": "start-storybook -p 6006",
+    "storybook": "NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
     "build-storybook": "build-storybook"
   },
   "repository": {
@@ -209,6 +209,7 @@
     "@storybook/addon-actions": "^5.3.19",
     "@storybook/addon-links": "^5.3.19",
     "@storybook/addons": "^5.3.19",
+    "@storybook/preset-typescript": "^3.0.0",
     "@storybook/react": "^5.3.19",
     "@svgr/webpack": "^5.4.0",
     "@types/classnames": "^2.2.9",
@@ -230,6 +231,7 @@
     "babel-plugin-dynamic-import-node": "^2.3.0",
     "babel-plugin-emotion": "^10.0.29",
     "babel-plugin-lodash": "^3.3.4",
+    "babel-plugin-transform-react-jsx": "^6.24.1",
     "cache-loader": "^1.2.2",
     "clean-webpack-plugin": "^3.0.0",
     "copy-webpack-plugin": "^5.1.1",
@@ -268,6 +270,7 @@
     "sinon": "^9.0.2",
     "source-map-support": "^0.5.16",
     "speed-measure-webpack-plugin": "^1.2.3",
+    "storybook-addon-jsx": "^7.3.3",
     "style-loader": "^1.0.0",
     "terser-webpack-plugin": "^1.1.0",
     "thread-loader": "^1.2.0",
