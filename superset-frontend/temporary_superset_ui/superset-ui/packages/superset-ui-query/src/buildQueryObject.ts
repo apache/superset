@@ -1,17 +1,13 @@
 /* eslint-disable camelcase */
 import { QueryObject } from './types/Query';
-import { isSqlaFormData, QueryFormData } from './types/QueryFormData';
+import { QueryFormData } from './types/QueryFormData';
 import processGroupby from './processGroupby';
 import convertMetric from './convertMetric';
 import processFilters from './processFilters';
-import processExtras from './processExtras';
+import extractExtras from './extractExtras';
 import extractQueryFields from './extractQueryFields';
 
 export const DTTM_ALIAS = '__timestamp';
-
-function processGranularity(formData: QueryFormData): string {
-  return isSqlaFormData(formData) ? formData.granularity_sqla : formData.granularity;
-}
 
 /**
  * Build the common segments of all query objects (e.g. the granularity field derived from
@@ -31,6 +27,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     limit,
     timeseries_limit_metric,
     queryFields,
+    granularity,
     ...residualFormData
   } = formData;
 
@@ -39,9 +36,19 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
   const { metrics, groupby, columns } = extractQueryFields(residualFormData, queryFields);
   const groupbySet = new Set([...columns, ...groupby]);
 
+  const extraFilters = extractExtras(formData);
+  const extrasAndfilters = processFilters({
+    ...formData,
+    ...extraFilters,
+  });
+
   return {
-    extras: processExtras(formData),
-    granularity: processGranularity(formData),
+    time_range,
+    since,
+    until,
+    granularity,
+    ...extraFilters,
+    ...extrasAndfilters,
     groupby: processGroupby(Array.from(groupbySet)),
     is_timeseries: groupbySet.has(DTTM_ALIAS),
     metrics: metrics.map(convertMetric),
@@ -49,13 +56,9 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     orderby: [],
     row_limit: row_limit == null || Number.isNaN(numericRowLimit) ? undefined : numericRowLimit,
     row_offset: row_offset == null || Number.isNaN(numericRowOffset) ? undefined : numericRowOffset,
-    since,
-    time_range,
     timeseries_limit: limit ? Number(limit) : 0,
     timeseries_limit_metric: timeseries_limit_metric
       ? convertMetric(timeseries_limit_metric)
       : null,
-    until,
-    ...processFilters(formData),
   };
 }

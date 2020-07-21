@@ -14,6 +14,7 @@ describe('processFilters', () => {
   it('should handle an empty array', () => {
     expect(
       processFilters({
+        where: '1 = 1',
         granularity: 'something',
         viz_type: 'custom',
         datasource: 'boba',
@@ -21,9 +22,11 @@ describe('processFilters', () => {
       }),
     ).toEqual({
       filters: [],
-      having: '',
-      having_filters: [],
-      where: '',
+      extras: {
+        having: '',
+        having_druid: [],
+        where: '(1 = 1)',
+      },
     });
   });
 
@@ -84,6 +87,22 @@ describe('processFilters', () => {
         ],
       }),
     ).toEqual({
+      extras: {
+        having: '(ice = 25 OR ice = 50) AND (waitTime <= 180)',
+        having_druid: [
+          {
+            col: 'sweetness',
+            op: '>',
+            val: '0',
+          },
+          {
+            col: 'sweetness',
+            op: '<=',
+            val: '50',
+          },
+        ],
+        where: '(tea = "jasmine") AND (cup = "large")',
+      },
       filters: [
         {
           col: 'milk',
@@ -95,20 +114,6 @@ describe('processFilters', () => {
           val: 'almond',
         },
       ],
-      having: '(ice = 25 OR ice = 50) AND (waitTime <= 180)',
-      having_filters: [
-        {
-          col: 'sweetness',
-          op: '>',
-          val: '0',
-        },
-        {
-          col: 'sweetness',
-          op: '<=',
-          val: '50',
-        },
-      ],
-      where: '(tea = "jasmine") AND (cup = "large")',
     });
   });
 });
