@@ -70,6 +70,7 @@ export default function DeleteModal({
         <FormControl
           id="delete"
           type="text"
+          bsSize="sm"
           // @ts-ignore
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             setDisableChange(event.target.value !== 'DELETE')

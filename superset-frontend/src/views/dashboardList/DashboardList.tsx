@@ -174,7 +174,7 @@ class DashboardList extends React.PureComponent<Props, State> {
         },
       }: any) => (
         <span className="no-wrap">
-          {published ? <i className="fa fa-check text-muted" /> : ''}
+          {published ? <Icon name="check" /> : ''}
         </span>
       ),
       Header: t('Published'),

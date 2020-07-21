@@ -31,15 +31,7 @@ interface ModalProps {
   primaryButtonType?: 'primary' | 'danger';
   show: boolean;
   title: React.ReactNode;
-  bsSize?:
-    | 'xs'
-    | 'xsmall'
-    | 'sm'
-    | 'small'
-    | 'medium'
-    | 'lg'
-    | 'large'
-    | undefined;
+  bsSize?: 'xs' | 'xsmall' | 'sm' | 'small' | 'medium' | 'lg' | 'large';
 }
 
 const StyledModal = styled(BaseModal)`
