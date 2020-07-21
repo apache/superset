@@ -139,7 +139,7 @@ function Treemap(element, props) {
         d.data.name
           .slice(Math.max(0, d.data.name.lastIndexOf('.') + 1))
           .split(/(?=[A-Z][^A-Z])/g)
-          .concat(`\u00A0{formatNumber(d.value)}`),
+          .concat(`\u00A0${formatNumber(d.value)}`),
       )
       .enter()
       .append('tspan')
