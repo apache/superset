@@ -24,7 +24,7 @@ steps:
   - label: "frontend premerge"
     <<: *common
     commands:
-      - npm install --save-dev --global jest-cli
+      - npm install --save-prod --save-dev --global jest-cli jest
       - cd superset-frontend && npm t
     plugins:
       - docker#v3.5.0:
