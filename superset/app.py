@@ -176,7 +176,6 @@ class SupersetAppInitializer:
             AlertLogModelView,
         )
         from superset.views.sql_lab import (
-            QueryView,
             SavedQueryViewApi,
             SavedQueryView,
             TabStateView,
@@ -248,14 +247,6 @@ class SupersetAppInitializer:
             category="Manage",
             category_label=__("Manage"),
             category_icon="",
-        )
-        appbuilder.add_view(
-            QueryView,
-            "Queries",
-            label=__("Queries"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
         )
         if self.config["ENABLE_ROW_LEVEL_SECURITY"]:
             appbuilder.add_view(
