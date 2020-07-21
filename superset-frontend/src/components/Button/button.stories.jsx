@@ -19,7 +19,7 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
-import Button from './index'
+import Button from './index';
 
 export default {
   title: 'Button',
@@ -81,7 +81,7 @@ const typeKnob = {
     None: null,
   },
   defaultValue: null,
-}
+};
 const targetKnob = {
   label: 'Target',
   options: {
@@ -89,7 +89,7 @@ const targetKnob = {
     None: null,
   },
   defaultValue: null,
-}
+};
 const hrefKnob = {
   label: 'HREF',
   options: {
@@ -97,7 +97,7 @@ const hrefKnob = {
     None: null,
   },
   defaultValue: null,
-}
+};
 
 // TODO with tooltip
 /* <Button
@@ -109,16 +109,16 @@ const hrefKnob = {
   {t('Explore')}
 </Button>; */
 
-//AND this kinda tooltip
-/*<Button
+// AND this kinda tooltip
+/* <Button
   className="modal-trigger"
   tooltip={this.props.tooltip}
   onClick={this.open}
 >
   {this.props.triggerNode}
-</Button>;*/
+</Button>; */
 
-//AND with Icon
+// AND with Icon
 /*
 <Button style={{ position: 'absolute', right: 20 }}>
   <i className="fa fa-clipboard" /> Text
