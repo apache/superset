@@ -23,7 +23,8 @@ common: &common
 steps:
   - label: "frontend premerge"
     <<: *common
-    command: cd superset-frontend && npm t
+#    command: cd superset-frontend && npm t
+    command: npm -v && npm list 2>/dev/null | grep jest-cli
     plugins:
       - docker#v3.5.0:
           image: "eu.gcr.io/windy-oxide-102215/superset-ci"
