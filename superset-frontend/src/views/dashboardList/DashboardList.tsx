@@ -33,6 +33,7 @@ import {
   Filters,
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Icon from 'src/components/Icon';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
@@ -173,7 +174,7 @@ class DashboardList extends React.PureComponent<Props, State> {
         },
       }: any) => (
         <span className="no-wrap">
-          {published ? <i className="fa fa-check" /> : ''}
+          {published ? <Icon name="check" /> : ''}
         </span>
       ),
       Header: t('Published'),
@@ -221,7 +222,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                     className="action-button"
                     onClick={confirmDelete}
                   >
-                    <i className="fa fa-trash" />
+                    <Icon name="trash" />
                   </span>
                 )}
               </ConfirmStatusChange>
@@ -233,7 +234,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                 className="action-button"
                 onClick={handleExport}
               >
-                <i className="fa fa-database" />
+                <Icon name="share" />
               </span>
             )}
             {this.canEdit && (
@@ -243,7 +244,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                 className="action-button"
                 onClick={handleEdit}
               >
-                <i className="fa fa-pencil" />
+                <Icon name="pencil" />
               </span>
             )}
           </span>

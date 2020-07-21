@@ -19,6 +19,8 @@
 import React, { SVGProps } from 'react';
 import { ReactComponent as CancelXIcon } from 'images/icons/cancel-x.svg';
 import { ReactComponent as CheckIcon } from 'images/icons/check.svg';
+import { ReactComponent as CircleCheckIcon } from 'images/icons/circle-check.svg';
+import { ReactComponent as CircleCheckSolidIcon } from 'images/icons/circle-check-solid.svg';
 import { ReactComponent as CheckboxHalfIcon } from 'images/icons/checkbox-half.svg';
 import { ReactComponent as CheckboxOffIcon } from 'images/icons/checkbox-off.svg';
 import { ReactComponent as CheckboxOnIcon } from 'images/icons/checkbox-on.svg';
@@ -34,6 +36,7 @@ import { ReactComponent as SortDescIcon } from 'images/icons/sort-desc.svg';
 import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
 import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
 import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
+import { ReactComponent as ShareIcon } from 'images/icons/share.svg';
 
 type IconName =
   | 'cancel-x'
@@ -42,6 +45,8 @@ type IconName =
   | 'checkbox-off'
   | 'checkbox-on'
   | 'close'
+  | 'circle-check'
+  | 'circle-check-solid'
   | 'compass'
   | 'dataset-physical'
   | 'dataset-virtual'
@@ -52,6 +57,7 @@ type IconName =
   | 'sort-asc'
   | 'sort-desc'
   | 'trash'
+  | 'share'
   | 'warning';
 
 const iconsRegistry: Record<
@@ -62,6 +68,8 @@ const iconsRegistry: Record<
   'checkbox-half': CheckboxHalfIcon,
   'checkbox-off': CheckboxOffIcon,
   'checkbox-on': CheckboxOnIcon,
+  'circle-check': CircleCheckIcon,
+  'circle-check-solid': CircleCheckSolidIcon,
   'dataset-physical': DatasetPhysicalIcon,
   'dataset-virtual': DatasetVirtualIcon,
   'sort-asc': SortAscIcon,
@@ -75,6 +83,7 @@ const iconsRegistry: Record<
   sort: SortIcon,
   trash: TrashIcon,
   warning: WarningIcon,
+  share: ShareIcon,
 };
 interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
@@ -82,7 +91,7 @@ interface IconProps extends SVGProps<SVGSVGElement> {
 
 const Icon = ({ name, color = '#666666', ...rest }: IconProps) => {
   const Component = iconsRegistry[name];
-  return <Component color={color} {...rest} />;
+  return <Component color={color} data-test={name} {...rest} />;
 };
 
 export default Icon;

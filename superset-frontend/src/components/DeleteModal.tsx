@@ -62,6 +62,7 @@ export default function DeleteModal({
       primaryButtonType="danger"
       show={open}
       title={title}
+      bsSize="medium"
     >
       <DescriptionContainer>{description}</DescriptionContainer>
       <StyleFormGroup>
@@ -69,6 +70,7 @@ export default function DeleteModal({
         <FormControl
           id="delete"
           type="text"
+          bsSize="sm"
           // @ts-ignore
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             setDisableChange(event.target.value !== 'DELETE')
