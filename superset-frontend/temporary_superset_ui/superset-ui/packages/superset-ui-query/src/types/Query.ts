@@ -54,7 +54,7 @@ export type QueryObject = {
   extras?: QueryObjectExtras;
 
   /** Granularity (for steps in time series) */
-  granularity: string;
+  granularity?: string;
 
   /** Free-form WHERE SQL: multiple clauses are concatenated by AND */
   where?: string;

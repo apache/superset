@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { QueryFormData } from './types/QueryFormData';
 import { QueryObjectFilterClause } from './types/Query';
 import { isSimpleAdhocFilter } from './types/Filter';
@@ -5,24 +6,17 @@ import convertFilter from './convertFilter';
 
 /** Logic formerly in viz.py's process_query_filters */
 export default function processFilters(formData: QueryFormData) {
-  // TODO: Implement
-  // utils.convert_legacy_filters_into_adhoc(self.form_data)
-
-  // TODO: Implement
-  // merge_extra_filters(self.form_data)
-
   // Split adhoc_filters into four fields according to
   // (1) clause (WHERE or HAVING)
   // (2) expressionType
   //     2.1 SIMPLE (subject + operator + comparator)
   //     2.2 SQL (freeform SQL expression))
-
-  // eslint-disable-next-line camelcase
   const { adhoc_filters } = formData;
   if (Array.isArray(adhoc_filters)) {
-    const simpleWhere: QueryObjectFilterClause[] = [];
+    const simpleWhere: QueryObjectFilterClause[] = formData.filters || [];
     const simpleHaving: QueryObjectFilterClause[] = [];
     const freeformWhere: string[] = [];
+    if (formData.where) freeformWhere.push(formData.where);
     const freeformHaving: string[] = [];
 
     adhoc_filters.forEach(filter => {
@@ -44,11 +38,18 @@ export default function processFilters(formData: QueryFormData) {
       }
     });
 
-    return {
-      filters: simpleWhere,
+    // some filter-related fields need to go in `extras`
+    const extras = {
       having: freeformHaving.map(exp => `(${exp})`).join(' AND '),
-      having_filters: simpleHaving,
+      having_druid: simpleHaving,
       where: freeformWhere.map(exp => `(${exp})`).join(' AND '),
+      ...formData.extras,
+    };
+
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      filters: (formData.filters || []).concat(simpleWhere),
+      extras,
     };
   }
 
