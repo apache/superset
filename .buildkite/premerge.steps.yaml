@@ -12,9 +12,13 @@ common: &common
     - "environment=${CI_ENVIRONMENT:-cn-production}"
   retry:
     automatic:
-      - <<: *exit_bk_lost_connection
-      - <<: *exit_bk_error
-      - <<: *exit_docker_error
+      # These are designed to trap and retry failures because agent lost connection.     Agent exits with -1 in this case.
+      - exit_status: -1
+        limit: 3
+      - exit_status: 255
+        limit: 3
+      - exit_status: 240 # Within platform, we interpret this to be a Docker-related ex    it code
+        limit: 3
 
 steps:
   - label: "frontend test"
