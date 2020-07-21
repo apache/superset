@@ -19,6 +19,8 @@ under the License.
 ## Change Log
 
 ### 0.37.0 (2020/07/11 08:07 +00:00)
+- [#10359](https://github.com/apache/incubator-superset/pull/10359) fix: extra filters for chart data endpoint (#10359) (@villebro)
+- [#10345](https://github.com/apache/incubator-superset/pull/10345) Pin slack client, breaking change (#10345) (@bkyryliuk)
 - [#10336](https://github.com/apache/incubator-superset/pull/10336) fix: make __time an ok column name in SQL Lab (#10336) (@villebro)
 - [#10325](https://github.com/apache/incubator-superset/pull/10325) fix(table-viz): value "undefined" for column.name (#10325) (@ktmud)
 - [#10321](https://github.com/apache/incubator-superset/pull/10321) fix: humanised changed on UTC on dashboards and charts (#10321) (@dpgaspar)
