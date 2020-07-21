@@ -21,6 +21,9 @@ common: &common
         limit: 3
 
 steps:
-  - label: "frontend test"
+  - label: "frontend premerge"
     <<: *common
-    command: docker run -v $PWD/superset-frontend:/tmp -w /tmp superset-ci npm t
+    command: cd superset-frontend && npm t
+    plugins:
+      - docker#v3.5.0:
+          image: "node:12.16-buster"
