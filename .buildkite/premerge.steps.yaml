@@ -23,9 +23,8 @@ common: &common
 steps:
   - label: "frontend premerge"
     <<: *common
-    commands:
-      - npm install --save-prod --save-dev --global jest-cli jest
-      - cd superset-frontend && npm t
+    # must install jest in the same folder otherwise test will fail
+    command: cd superset-frontend && npm install jest-cli && npm t
     plugins:
       - docker#v3.5.0:
-          image: "eu.gcr.io/windy-oxide-102215/superset-ci:20200721-1002-6672-feature-chinf-1637-985"
+          image: "node:12.16-buster"
