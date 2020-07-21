@@ -54,23 +54,25 @@ const bsSizeKnob = {
   defaultValue: null,
 };
 // TODO remove the use of these in the codebase where they're not necessary
-const classKnob = {
-  label: 'Known Classes',
-  options: {
-    Refresh: 'refresh-btn',
-    Primary: 'btn-primary',
-    Reset: 'reset',
-    Fetch: 'fetch',
-    MR3: 'm-r-3',
-    cancelQuery: 'cancelQuery',
-    toggleSave: 'toggleSave',
-    toggleSchedule: 'toggleSchedule',
-    autocomplete: 'autocomplete',
-    OK: 'ok',
-    None: null,
-  },
-  defaultValue: null,
-};
+// const classKnob = {
+//   label: 'Known Classes',
+//   options: {
+//     Refresh: 'refresh-btn',
+//     Primary: 'btn-primary',
+//     Reset: 'reset',
+//     Fetch: 'fetch',
+//     Query: 'query',
+//     saveBtn: 'save-btn',
+//     MR3: 'm-r-3',
+//     cancelQuery: 'cancelQuery',
+//     toggleSave: 'toggleSave',
+//     toggleSchedule: 'toggleSchedule',
+//     autocomplete: 'autocomplete',
+//     OK: 'ok',
+//     None: null,
+//   },
+//   defaultValue: null,
+// };
 const typeKnob = {
   label: 'Type',
   options: {
@@ -139,12 +141,12 @@ export const SupersetButton = () => (
       bsSizeKnob.groupId,
     )}
     onClick={action('clicked')}
-    className={select(
-      classKnob.label,
-      classKnob.options,
-      classKnob.defaultValue,
-      classKnob.groupId,
-    )}
+    // className={select(
+    //   classKnob.label,
+    //   classKnob.options,
+    //   classKnob.defaultValue,
+    //   classKnob.groupId,
+    // )}
     type={select(
       typeKnob.label,
       typeKnob.options,
