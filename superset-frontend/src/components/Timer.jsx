@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { now, fDuration } from '../modules/dates';
+import { Label } from 'react-bootstrap';
 
 const propTypes = {
   endTime: PropTypes.number,
@@ -76,12 +77,13 @@ export default class Timer extends React.PureComponent {
     let timerSpan = null;
     if (this.props) {
       timerSpan = (
-        <span
-          className={`inlineBlock m-r-5 label label-${this.props.status}`}
+        <Label
+          className="m-r-5"
           style={this.props.style}
+          bsStyle={this.props.status}
         >
           {this.state.clockStr}
-        </span>
+        </Label>
       );
     }
     return timerSpan;
