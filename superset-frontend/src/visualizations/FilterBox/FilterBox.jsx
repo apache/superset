@@ -25,6 +25,8 @@ import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
+import FormLabel from 'src/components/FormLabel';
+
 import DateFilterControl from '../../explore/components/controls/DateFilterControl';
 import ControlRow from '../../explore/components/ControlRow';
 import Control from '../../explore/components/Control';
@@ -39,7 +41,6 @@ import {
   TIME_FILTER_LABELS,
 } from '../../explore/constants';
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
-import FormLabel from 'src/components/FormLabel';
 
 import './FilterBox.less';
 
