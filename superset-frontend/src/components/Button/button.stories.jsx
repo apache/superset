@@ -99,32 +99,6 @@ const hrefKnob = {
   defaultValue: null,
 };
 
-// TODO with tooltip
-/* <Button
-  bsSize="small"
-  onClick={this.onClick}
-  tooltip={t('Explore the result set in the data exploration view')}
->
-  <InfoTooltipWithTrigger icon="line-chart" placement="top" label="explore" />{' '}
-  {t('Explore')}
-</Button>; */
-
-// AND this kinda tooltip
-/* <Button
-  className="modal-trigger"
-  tooltip={this.props.tooltip}
-  onClick={this.open}
->
-  {this.props.triggerNode}
-</Button>; */
-
-// AND with Icon
-/*
-<Button style={{ position: 'absolute', right: 20 }}>
-  <i className="fa fa-clipboard" /> Text
-</Button>
-*/
-
 export const SupersetButton = () => (
   <Button
     disabled={boolean('Disabled', false)}
