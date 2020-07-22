@@ -23,6 +23,7 @@ from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 from superset import event_logger, security_manager
 from superset.databases.decorators import check_datasource_access
 from superset.databases.schemas import (
+    DatabaseSchemaResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
 )
@@ -158,7 +159,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
     openapi_spec_tag = "Database"
+    apispec_parameter_schemas = {
+        "get_schemas_schema": get_schemas_schema,
+    }
     openapi_spec_component_schemas = (
+        DatabaseSchemaResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
     )
@@ -291,31 +296,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    page_size:
-                      type: integer
-                    page:
-                      type: integer
-                    filter:
-                      type: string
+                  $ref: '#/components/schemas/get_schemas_schema'
           responses:
             200:
               description: Related column data
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      count:
-                        type: integer
-                      result:
-                        type: object
-                        properties:
-                          value:
-                            type: string
-                          text:
-                            type: string
+                    $ref: "#/components/schemas/DatabaseSchemaResponseSchema"
             400:
               $ref: '#/components/responses/400'
             401:
