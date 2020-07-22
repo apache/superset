@@ -23,7 +23,7 @@ import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
-
+import { ConfigProvider } from 'antd';
 import { initFeatureFlags } from 'src/featureFlags';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -39,9 +39,15 @@ import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import Welcome from './Welcome';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
+import '../../stylesheets/antd/index.less';
 
 setupApp();
 setupPlugins();
+
+const antdConfig = {
+  getPopupContainer: () =>
+    document.getElementById('antdContainer') || document.body,
+};
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
@@ -60,38 +66,40 @@ const store = createStore(
 
 const App = () => (
   <Provider store={store}>
-    <ThemeProvider theme={supersetTheme}>
-      <FlashProvider common={common}>
-        <Router>
-          <QueryParamProvider ReactRouterRoute={Route}>
-            <Menu data={menu} />
-            <Switch>
-              <Route path="/superset/welcome/">
-                <ErrorBoundary>
-                  <Welcome user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/dashboard/list/">
-                <ErrorBoundary>
-                  <DashboardList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/chart/list/">
-                <ErrorBoundary>
-                  <ChartList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/tablemodelview/list/">
-                <ErrorBoundary>
-                  <DatasetList user={user} />
-                </ErrorBoundary>
-              </Route>
-            </Switch>
-            <ToastPresenter />
-          </QueryParamProvider>
-        </Router>
-      </FlashProvider>
-    </ThemeProvider>
+    <ConfigProvider {...antdConfig}>
+      <ThemeProvider theme={supersetTheme}>
+        <FlashProvider common={common}>
+          <Router>
+            <QueryParamProvider ReactRouterRoute={Route}>
+              <Menu data={menu} />
+              <Switch>
+                <Route path="/superset/welcome/">
+                  <ErrorBoundary>
+                    <Welcome user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/dashboard/list/">
+                  <ErrorBoundary>
+                    <DashboardList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/chart/list/">
+                  <ErrorBoundary>
+                    <ChartList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/tablemodelview/list/">
+                  <ErrorBoundary>
+                    <DatasetList user={user} />
+                  </ErrorBoundary>
+                </Route>
+              </Switch>
+              <ToastPresenter />
+            </QueryParamProvider>
+          </Router>
+        </FlashProvider>
+      </ThemeProvider>
+    </ConfigProvider>
   </Provider>
 );
 
