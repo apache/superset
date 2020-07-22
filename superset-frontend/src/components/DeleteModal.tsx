@@ -21,6 +21,7 @@ import React, { useState } from 'react';
 import styled from '@superset-ui/style';
 import { FormGroup, FormControl } from 'react-bootstrap';
 import Modal from 'src/components/Modal';
+import FormLabel from 'src/components/FormLabel';
 
 const StyleFormGroup = styled(FormGroup)`
   padding-top: 8px;
@@ -66,14 +67,14 @@ export default function DeleteModal({
     >
       <DescriptionContainer>{description}</DescriptionContainer>
       <StyleFormGroup>
-        <label htmlFor="delete">{t('type delete to confirm')}</label>
+        <FormLabel htmlFor="delete">{t('type "delete" to confirm')}</FormLabel>
         <FormControl
           id="delete"
           type="text"
           bsSize="sm"
           // @ts-ignore
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-            setDisableChange(event.target.value !== 'DELETE')
+            setDisableChange(event.target.value.toUpperCase() !== 'DELETE')
           }
         />
       </StyleFormGroup>
