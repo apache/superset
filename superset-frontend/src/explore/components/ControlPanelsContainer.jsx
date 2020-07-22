@@ -23,8 +23,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import { sharedControls } from '@superset-ui/chart-controls';
 import styled from '@superset-ui/style';
 
 import ControlPanelSection from './ControlPanelSection';
