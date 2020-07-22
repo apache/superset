@@ -18,7 +18,7 @@
  */
 const path = require('path');
 
-// your app's webpack.config.js
+// Suerset's webpack.config.js
 const customConfig = require('../webpack.config.js');
 
 module.exports = {
@@ -33,17 +33,12 @@ module.exports = {
   webpackFinal: config => {
     const finalConfig = {
       ...config,
-      // module: { ...config.module, rules: custom.module.rules },
       module: {
         ...config.module,
         rules: customConfig.module.rules,
       },
       plugins: [...config.plugins, ...customConfig.plugins],
     };
-    // return {
-    //   ...config,
-    //   ...customConfig,
-    // };
 
     console.warn(
       finalConfig,
@@ -52,16 +47,3 @@ module.exports = {
     return finalConfig;
   },
 };
-
-
-// const customConfig = require('../../../../../webpack.config');
-
-// module.exports = async ({ config, mode }) => {
-//   return {
-//     ...config,
-//     module: {
-//       rules: customConfig.module.rules,
-//     },
-//     plugins: [...config.plugins, ...customConfig.plugins],
-//   };
-// };
