@@ -59,6 +59,28 @@ const StyledHeader = styled.header`
     flex-direction: column;
     justify-content: center;
   }
+
+  .navbar-nav > li > a {
+	&:after {
+		content: '';
+		position: absolute;
+		bottom: -3px;
+		left: 0;
+		width: 100%;
+		height: 3px;
+		background-color: #20a7c9;
+		opacity: 0;
+		transition: opacity 0.5s;
+	}
+
+	&:hover {
+		border-bottom: none;
+
+		&:after {
+			opacity: 1;
+		}
+	}
+  }
 `;
 
 export default function Menu({
