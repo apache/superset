@@ -1,0 +1,30 @@
+---
+common: &common
+  agents:
+    - "agent_count=1"
+    - "capable_of_building=platform"
+    - "machine_type=half"
+    - "queue=${CI_LINUX_BUILDER_QUEUE:-v4-20-06-23-173521-bk12705-2627bc3f-d}"
+    - "platform=linux"
+    - "permission_set=builder"
+    - "scaler_version=2"
+    - "environment=${CI_ENVIRONMENT:-cn-production}"
+    - "node_stability=${CI_NODE_STABILITY:-interruptible}"
+  retry:
+    automatic:
+      # These are designed to trap and retry failures because agent lost connection.     Agent exits with -1 in this case.
+      - exit_status: -1
+        limit: 3
+      - exit_status: 255
+        limit: 3
+      - exit_status: 240 # Within platform, we interpret this to be a Docker-related ex    it code
+        limit: 3
+
+steps:
+  - label: "frontend premerge"
+    <<: *common
+    # must install jest in the same folder otherwise test will fail
+    command: cd superset-frontend && npm install jest-cli && npm t
+    plugins:
+      - docker#v3.5.0:
+          image: "node:12.16-buster"

@@ -1,0 +1,9 @@
+agent_queue_id: trigger-pipelines
+description: Run BK job for each PR
+github:
+  default_branch: master
+teams:
+- name: Everyone
+  permission: BUILD_AND_READ
+- name: china-infra
+  permission: MANAGE_BUILD_AND_READ
