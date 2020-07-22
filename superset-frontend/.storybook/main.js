@@ -30,20 +30,12 @@ module.exports = {
     'storybook-addon-jsx',
     '@storybook/addon-knobs/register',
   ],
-  webpackFinal: config => {
-    const finalConfig = {
-      ...config,
-      module: {
-        ...config.module,
-        rules: customConfig.module.rules,
-      },
-      plugins: [...config.plugins, ...customConfig.plugins],
-    };
-
-    console.warn(
-      finalConfig,
-      JSON.stringify(finalConfig.module.rules, null, 2),
-    );
-    return finalConfig;
-  },
+  webpackFinal: config => ({
+    ...config,
+    module: {
+      ...config.module,
+      rules: customConfig.module.rules,
+    },
+    plugins: [...config.plugins, ...customConfig.plugins],
+  }),
 };
