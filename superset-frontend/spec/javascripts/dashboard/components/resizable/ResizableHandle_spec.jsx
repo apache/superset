@@ -21,7 +21,7 @@ import { shallow } from 'enzyme';
 
 import ResizableHandle from 'src/dashboard/components/resizable/ResizableHandle';
 
-// eslint-disable react/jsx-pascal-case
+/* eslint-disable react/jsx-pascal-case */
 describe('ResizableHandle', () => {
   it('should render a right resize handle', () => {
     const wrapper = shallow(<ResizableHandle.right />);
@@ -42,4 +42,4 @@ describe('ResizableHandle', () => {
     ).toHaveLength(1);
   });
 });
-// eslint-enable react/jsx-pascal-case
+/* eslint-enable react/jsx-pascal-case */
