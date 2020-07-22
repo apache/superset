@@ -19,7 +19,7 @@
 import React, { FunctionComponent, useState, useRef } from 'react';
 // @ts-ignore
 import { Table } from 'reactable-arc';
-import { FormControl, Modal } from 'react-bootstrap';
+import { Alert, FormControl, Modal } from 'react-bootstrap';
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 
@@ -125,6 +125,9 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         <Modal.Title>{t('Select a datasource')}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        <Alert bsStyle="warning">
+          <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
+        </Alert>
         <div>
           <FormControl
             inputRef={ref => {
