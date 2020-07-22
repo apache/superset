@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, select } from '@storybook/addon-knobs';
+import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
 import Button from './index';
 
 export default {
@@ -141,12 +141,6 @@ export const SupersetButton = () => (
       bsSizeKnob.groupId,
     )}
     onClick={action('clicked')}
-    // className={select(
-    //   classKnob.label,
-    //   classKnob.options,
-    //   classKnob.defaultValue,
-    //   classKnob.groupId,
-    // )}
     type={select(
       typeKnob.label,
       typeKnob.options,
@@ -165,7 +159,8 @@ export const SupersetButton = () => (
       hrefKnob.defaultValue,
       hrefKnob.groupId,
     )}
+    tooltip={boolean('Tooltip', false) === true ? 'This is a tooltip!' : null}
   >
-    Hello Button
+    {text('Label', "Button!")}
   </Button>
 );
