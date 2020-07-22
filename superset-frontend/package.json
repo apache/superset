@@ -23,7 +23,9 @@
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx . && npm run clean-css && npm run type",
     "clean-css": "prettier --write '{src,stylesheets}/**/*.{css,less,sass,scss}'",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
-    "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json"
+    "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
+    "storybook": "NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
+    "build-storybook": "build-storybook"
   },
   "repository": {
     "type": "git",
@@ -59,6 +61,8 @@
     "@babel/runtime-corejs3": "^7.8.4",
     "@data-ui/sparkline": "^0.0.54",
     "@emotion/core": "^10.0.28",
+    "@storybook/addon-actions": "^5.3.19",
+    "@storybook/addon-knobs": "^5.3.19",
     "@superset-ui/chart": "^0.14.9",
     "@superset-ui/chart-composition": "^0.14.9",
     "@superset-ui/chart-controls": "^0.14.9",
@@ -204,6 +208,10 @@
     "@emotion/babel-preset-css-prop": "^10.0.27",
     "@hot-loader/react-dom": "^16.13.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
+    "@storybook/addon-links": "^5.3.19",
+    "@storybook/addons": "^5.3.19",
+    "@storybook/preset-typescript": "^3.0.0",
+    "@storybook/react": "^5.3.19",
     "@svgr/webpack": "^5.4.0",
     "@types/classnames": "^2.2.9",
     "@types/dom-to-image": "^2.6.0",
@@ -262,6 +270,7 @@
     "sinon": "^9.0.2",
     "source-map-support": "^0.5.16",
     "speed-measure-webpack-plugin": "^1.2.3",
+    "storybook-addon-jsx": "^7.3.3",
     "style-loader": "^1.0.0",
     "terser-webpack-plugin": "^1.1.0",
     "thread-loader": "^1.2.0",
