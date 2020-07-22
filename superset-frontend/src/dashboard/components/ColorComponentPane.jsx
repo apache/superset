@@ -23,7 +23,6 @@ import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
 import ColorSchemeControl from '../../explore/components/controls/ColorSchemeControl';
-import { BUILDER_PANE_TYPE } from '../util/constants';
 
 const propTypes = {
   showBuilderPane: PropTypes.func.isRequired,
@@ -42,13 +41,6 @@ class ColorComponentPane extends React.PureComponent {
     this.categoricalSchemeRegistry = getCategoricalSchemeRegistry();
     this.getChoices = this.getChoices.bind(this);
     this.getSchemes = this.getSchemes.bind(this);
-    this.onCloseButtonClick = this.onCloseButtonClick.bind(this);
-    this.onMouseEnter = this.setHover.bind(this, true);
-    this.onMouseLeave = this.setHover.bind(this, false);
-  }
-
-  onCloseButtonClick() {
-    this.props.showBuilderPane(BUILDER_PANE_TYPE.NONE);
   }
 
   getChoices() {
@@ -67,35 +59,19 @@ class ColorComponentPane extends React.PureComponent {
     const { setColorSchemeAndUnsavedChanges, colorScheme } = this.props;
 
     return (
-      <div className="slider-container">
-        <div className="component-layer slide-content">
-          <div className="dashboard-builder-sidepane-header">
-            <span>{'Color Settings'}</span>
-            <i
-              className="fa fa-times trigger"
-              onClick={this.onCloseButtonClick}
-              role="none"
-            />
-          </div>
-          <div
-            className="panel-body"
-            onMouseEnter={this.onMouseEnter}
-            onMouseLeave={this.onMouseLeave}
-          >
-            <ColorSchemeControl
-              description={t(
-                "Any color palette selected here will override the colors applied to this dashboard's individual charts",
-              )}
-              label={t('Color Scheme')}
-              name="color_scheme"
-              onChange={setColorSchemeAndUnsavedChanges}
-              value={colorScheme}
-              choices={this.getChoices}
-              schemes={this.getSchemes}
-              hovered={this.state.hovered}
-            />
-          </div>
-        </div>
+      <div className="panel-body">
+        <ColorSchemeControl
+          description={t(
+            "Any color palette selected here will override the colors applied to this dashboard's individual charts",
+          )}
+          label={t('Color Scheme')}
+          name="color_scheme"
+          onChange={setColorSchemeAndUnsavedChanges}
+          value={colorScheme}
+          choices={this.getChoices}
+          schemes={this.getSchemes}
+          hovered={this.state.hovered}
+        />
       </div>
     );
   }

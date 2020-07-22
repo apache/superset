@@ -25,7 +25,7 @@ const propTypes = {
   datasourceLink: PropTypes.string,
   innerRef: PropTypes.func,
   isSelected: PropTypes.bool,
-  lastModified: PropTypes.string.isRequired,
+  lastModified: PropTypes.string,
   sliceName: PropTypes.string.isRequired,
   style: PropTypes.object,
   visType: PropTypes.string.isRequired,
@@ -36,6 +36,7 @@ const defaultProps = {
   innerRef: null,
   isSelected: false,
   style: null,
+  lastModified: null,
 };
 
 function AddSliceCard({

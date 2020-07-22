@@ -213,11 +213,13 @@ class SliceAdder extends React.Component {
   }
 
   render() {
+    console.log(this.state.filteredSlices);
     const slicesListHeight =
       this.props.height -
       SIDEPANE_HEADER_HEIGHT -
       SLICE_ADDER_CONTROL_HEIGHT -
       MARGIN_BOTTOM;
+    console.log('', slicesListHeight);
     return (
       <div className="slice-adder-container">
         <div className="controls">
@@ -227,7 +229,6 @@ class SliceAdder extends React.Component {
             onChange={this.searchUpdated}
             onKeyPress={this.handleKeyPress}
           />
-
           <DropdownButton
             title={`Sort by ${KEYS_TO_SORT[this.state.sortBy].label}`}
             onSelect={this.handleSelect}

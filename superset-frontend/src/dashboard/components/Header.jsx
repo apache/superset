@@ -34,7 +34,6 @@ import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
 import { chartPropShape } from '../util/propShapes';
 import {
-  BUILDER_PANE_TYPE,
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
@@ -75,7 +74,6 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
   showBuilderPane: PropTypes.func.isRequired,
-  builderPaneType: PropTypes.string.isRequired,
   updateCss: PropTypes.func.isRequired,
   logEvent: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
@@ -124,10 +122,6 @@ class Header extends React.PureComponent {
     this.handleChangeText = this.handleChangeText.bind(this);
     this.handleCtrlZ = this.handleCtrlZ.bind(this);
     this.handleCtrlY = this.handleCtrlY.bind(this);
-    this.onInsertComponentsButtonClick = this.onInsertComponentsButtonClick.bind(
-      this,
-    );
-    this.onColorsButtonClick = this.onColorsButtonClick.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
@@ -160,14 +154,6 @@ class Header extends React.PureComponent {
   componentWillUnmount() {
     clearTimeout(this.ctrlYTimeout);
     clearTimeout(this.ctrlZTimeout);
-  }
-
-  onInsertComponentsButtonClick() {
-    this.props.showBuilderPane(BUILDER_PANE_TYPE.ADD_COMPONENTS);
-  }
-
-  onColorsButtonClick() {
-    this.props.showBuilderPane(BUILDER_PANE_TYPE.COLORS);
   }
 
   handleChangeText(nextText) {
@@ -350,7 +336,6 @@ class Header extends React.PureComponent {
       updateCss,
       editMode,
       isPublished,
-      builderPaneType,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -417,26 +402,6 @@ class Header extends React.PureComponent {
                   bsStyle={this.state.emphasizeRedo ? 'primary' : undefined}
                 >
                   <div title="Redo" className="redo-action fa fa-share" />
-                </Button>
-              )}
-
-              {editMode && (
-                <Button
-                  active={builderPaneType === BUILDER_PANE_TYPE.ADD_COMPONENTS}
-                  bsSize="small"
-                  onClick={this.onInsertComponentsButtonClick}
-                >
-                  {t('Components')}
-                </Button>
-              )}
-
-              {editMode && (
-                <Button
-                  active={builderPaneType === BUILDER_PANE_TYPE.COLORS}
-                  bsSize="small"
-                  onClick={this.onColorsButtonClick}
-                >
-                  {t('Colors')}
                 </Button>
               )}
 

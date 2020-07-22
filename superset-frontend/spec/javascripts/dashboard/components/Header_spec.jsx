@@ -25,7 +25,6 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
 import Button from 'src/components/Button';
 import UndoRedoKeylisteners from 'src/dashboard/components/UndoRedoKeylisteners';
-import { BUILDER_PANE_TYPE } from 'src/dashboard/util/constants';
 
 describe('Header', () => {
   const props = {
@@ -59,7 +58,6 @@ describe('Header', () => {
     editMode: false,
     setEditMode: () => {},
     showBuilderPane: () => {},
-    builderPaneType: BUILDER_PANE_TYPE.NONE,
     updateCss: () => {},
     hasUnsavedChanges: false,
     maxUndoHistoryExceeded: false,

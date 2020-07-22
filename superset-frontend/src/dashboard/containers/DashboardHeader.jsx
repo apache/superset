@@ -83,7 +83,6 @@ function mapStateToProps({
     hasUnsavedChanges: !!dashboardState.hasUnsavedChanges,
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
     editMode: !!dashboardState.editMode,
-    builderPaneType: dashboardState.builderPaneType,
   };
 }
 
