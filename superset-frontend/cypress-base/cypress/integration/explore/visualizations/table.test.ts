@@ -35,6 +35,15 @@ describe('Visualization > Table', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
+  it('Use default time column', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      granularity_sqla: undefined,
+      metrics: ['count'],
+    });
+    cy.get('input[name="select-granularity_sqla"]').should('have.value', 'ds');
+  });
+
   it('Format non-numeric metrics correctly', () => {
     cy.visitChartByParams({
       ...VIZ_DEFAULTS,

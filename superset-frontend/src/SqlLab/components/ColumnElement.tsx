@@ -36,13 +36,22 @@ const tooltipTitleMap = {
   index: 'Index',
 };
 
-export default function ColumnElement(props) {
-  const col = props.column;
-  let name = col.name;
+export type ColumnKeyTypeType = keyof typeof tooltipTitleMap;
+
+interface ColumnElementProps {
+  column: {
+    name: string;
+    keys?: { type: ColumnKeyTypeType }[];
+    type: string;
+  };
+}
+
+export default function ColumnElement({ column }: ColumnElementProps) {
+  let name: React.ReactNode = column.name;
   let icons;
-  if (col.keys && col.keys.length > 0) {
-    name = <strong>{col.name}</strong>;
-    icons = col.keys.map((key, i) => (
+  if (column.keys && column.keys.length > 0) {
+    name = <strong>{column.name}</strong>;
+    icons = column.keys.map((key, i) => (
       <span key={i} className="ColumnElement">
         <OverlayTrigger
           placement="right"
@@ -68,7 +77,7 @@ export default function ColumnElement(props) {
         {icons}
       </div>
       <div className="pull-right text-muted">
-        <small> {col.type}</small>
+        <small> {column.type}</small>
       </div>
     </div>
   );

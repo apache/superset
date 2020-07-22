@@ -21,11 +21,60 @@
 // ***********************************************
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
-describe('Groupby', () => {
+describe('Datasource control', () => {
+  const newMetricName = `abc${Date.now()}`;
+
+  before(() => {
+    cy.server();
+    cy.login();
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
+  });
+
+  it('should allow edit datasource', () => {
+    cy.visitChartByName('Num Births Trend');
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.get('#datasource_menu').click();
+    cy.get('a').contains('Edit Datasource').click();
+    // create new metric
+    cy.get('button').contains('Add Item').click();
+    cy.get('input[value="<new metric>"]').click();
+    cy.get('input[value="<new metric>"]')
+      .focus()
+      .clear()
+      .type(`${newMetricName}{enter}`);
+    cy.get('.modal-footer button').contains('Save').click();
+    cy.get('.modal-footer button').contains('OK').click();
+    // select new metric
+    cy.get('.metrics-select:eq(0)').click();
+    cy.get('.metrics-select:eq(0) input[type="text"]')
+      .focus()
+      .type(newMetricName);
+    cy.get('.metrics-select:eq(0) .Select__menu .Select__option')
+      .contains(newMetricName)
+      .click();
+    cy.get('.metrics-select:eq(0) .Select__multi-value__label')
+      .contains(newMetricName)
+      .click();
+    // delete metric
+    cy.get('#datasource_menu').click();
+    cy.get('a').contains('Edit Datasource').click();
+    cy.get(`input[value="${newMetricName}"]`)
+      .closest('tr')
+      .find('.fa-close')
+      .click();
+    cy.get('.modal-footer button').contains('Save').click();
+    cy.get('.modal-footer button').contains('OK').click();
+    cy.get('.Select__multi-value__label')
+      .contains(newMetricName)
+      .should('not.exist');
+  });
+});
+
+describe('Groupby control', () => {
   it('Set groupby', () => {
     cy.server();
     cy.login();
-
     cy.route('GET', '/superset/explore_json/**').as('getJson');
     cy.route('POST', '/superset/explore_json/**').as('postJson');
     cy.visitChartByName('Num Births Trend');
@@ -71,5 +120,7 @@ describe('Time range filter', () => {
         });
       });
     });
+    cy.get('#filter-popover button').contains('Ok').click();
+    cy.get('#filter-popover').should('not.exist');
   });
 });

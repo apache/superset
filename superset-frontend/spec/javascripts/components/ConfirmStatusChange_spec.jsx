@@ -18,8 +18,10 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import { Modal, Button } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import Modal from 'src/components/Modal';
 
 describe('ConfirmStatusChange', () => {
   const mockedProps = {
@@ -35,6 +37,10 @@ describe('ConfirmStatusChange', () => {
         </>
       )}
     </ConfirmStatusChange>,
+    {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    },
   );
 
   it('opens a confirm modal', () => {

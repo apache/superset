@@ -99,6 +99,33 @@ class TestQueryContext(SupersetTestCase):
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
 
+    def test_cache_key_changes_when_post_processing_is_updated(self):
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(
+            table.name, table.id, table.type, add_postprocessing_operations=True
+        )
+
+        # construct baseline cache_key from query_context with post processing operation
+        query_context = QueryContext(**payload)
+        query_object = query_context.queries[0]
+        cache_key_original = query_context.cache_key(query_object)
+
+        # ensure added None post_processing operation doesn't change cache_key
+        payload["queries"][0]["post_processing"].append(None)
+        query_context = QueryContext(**payload)
+        query_object = query_context.queries[0]
+        cache_key_with_null = query_context.cache_key(query_object)
+        self.assertEqual(cache_key_original, cache_key_with_null)
+
+        # ensure query without post processing operation is different
+        payload["queries"][0].pop("post_processing")
+        query_context = QueryContext(**payload)
+        query_object = query_context.queries[0]
+        cache_key_without_post_processing = query_context.cache_key(query_object)
+        self.assertNotEqual(cache_key_original, cache_key_without_post_processing)
+
     def test_query_context_time_range_endpoints(self):
         """
         Ensure that time_range_endpoints are populated automatically when missing

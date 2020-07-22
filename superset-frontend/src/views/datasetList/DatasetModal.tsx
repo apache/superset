@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import styled from '@superset-ui/style';
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 import { isEmpty, isNil } from 'lodash';
 import Icon from 'src/components/Icon';
 import TableSelector from 'src/components/TableSelector';
-import Modal from './Modal';
+import Modal from 'src/components/Modal';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
 interface DatasetModalProps {
@@ -33,35 +33,29 @@ interface DatasetModalProps {
   show: boolean;
 }
 
-interface DatasetModalState {
-  datasourceId?: number;
-  disableSave: boolean;
-  schema: string;
-  tableName: string;
-}
-
 const StyledIcon = styled(Icon)`
   margin: auto 10px auto 0;
 `;
 
-class DatasetModal extends React.PureComponent<
-  DatasetModalProps,
-  DatasetModalState
-> {
-  constructor(props: DatasetModalProps) {
-    super(props);
-    this.onSave = this.onSave.bind(this);
-    this.onChange = this.onChange.bind(this);
+const TableSelectorContainer = styled.div`
+  .TableSelector {
+    padding-bottom: 340px;
+    width: 65%;
   }
+`;
 
-  state: DatasetModalState = {
-    datasourceId: undefined,
-    disableSave: true,
-    schema: '',
-    tableName: '',
-  };
+const DatasetModal: FunctionComponent<DatasetModalProps> = ({
+  addDangerToast,
+  addSuccessToast,
+  onHide,
+  show,
+}) => {
+  const [datasourceId, setDatasourceId] = useState<number | null>(null);
+  const [disableSave, setDisableSave] = useState(true);
+  const [currentSchema, setSchema] = useState('');
+  const [currentTableName, setTableName] = useState('');
 
-  onChange({
+  const onChange = ({
     dbId,
     schema,
     tableName,
@@ -69,61 +63,62 @@ class DatasetModal extends React.PureComponent<
     dbId: number;
     schema: string;
     tableName: string;
-  }) {
-    const disableSave = isNil(dbId) || isEmpty(schema) || isEmpty(tableName);
-    this.setState({
-      datasourceId: dbId,
-      disableSave,
-      schema,
-      tableName,
-    });
-  }
+  }) => {
+    setDatasourceId(dbId);
+    setDisableSave(isNil(dbId) || isEmpty(schema) || isEmpty(tableName));
+    setSchema(schema);
+    setTableName(tableName);
+  };
 
-  onSave() {
-    const { datasourceId, schema, tableName } = this.state;
-    const data = { database: datasourceId, schema, table_name: tableName };
+  const onSave = () => {
+    const data = {
+      database: datasourceId,
+      schema: currentSchema,
+      table_name: currentTableName,
+    };
     SupersetClient.post({
       endpoint: '/api/v1/dataset/',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' },
     })
       .then(() => {
-        this.props.addSuccessToast(t('The dataset has been saved'));
-        this.props.onHide();
+        addSuccessToast(t('The dataset has been saved'));
+        onHide();
       })
       .catch(e => {
-        this.props.addDangerToast(t('Error while saving dataset'));
+        addDangerToast(t('Error while saving dataset'));
         console.error(e);
       });
-  }
+  };
 
-  render() {
-    return (
-      <Modal
-        disableSave={this.state.disableSave}
-        onHide={this.props.onHide}
-        onSave={this.onSave}
-        show={this.props.show}
-        title={
-          <>
-            <StyledIcon name="warning" />
-            {t('Add Dataset')}
-          </>
-        }
-      >
+  return (
+    <Modal
+      disablePrimaryButton={disableSave}
+      onHandledPrimaryAction={onSave}
+      onHide={onHide}
+      primaryButtonName={t('Add')}
+      show={show}
+      title={
+        <>
+          <StyledIcon name="warning" />
+          {t('Add Dataset')}
+        </>
+      }
+    >
+      <TableSelectorContainer>
         <TableSelector
           clearable={false}
-          dbId={this.state.datasourceId}
+          dbId={datasourceId}
           formMode
-          handleError={this.props.addDangerToast}
-          onChange={this.onChange}
-          schema={this.state.schema}
+          handleError={addDangerToast}
+          onChange={onChange}
+          schema={currentSchema}
           sqlLabMode={false}
-          tableName={this.state.tableName}
+          tableName={currentTableName}
         />
-      </Modal>
-    );
-  }
-}
+      </TableSelectorContainer>
+    </Modal>
+  );
+};
 
 export default withToasts(DatasetModal);

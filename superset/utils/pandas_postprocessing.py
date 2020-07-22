@@ -15,15 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
 import geohash as geohash_lib
 import numpy as np
 from flask_babel import gettext as _
 from geopy.point import Point
-from pandas import DataFrame, NamedAgg
+from pandas import DataFrame, NamedAgg, Series
 
 from superset.exceptions import QueryObjectValidationError
+from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
 
 WHITELIST_NUMPY_FUNCTIONS = (
     "average",
@@ -517,3 +518,29 @@ def geodetic_parse(
         return _append_columns(df, geodetic_df, columns)
     except ValueError:
         raise QueryObjectValidationError(_("Invalid geodetic string"))
+
+
+def contribution(
+    df: DataFrame, orientation: PostProcessingContributionOrientation
+) -> DataFrame:
+    """
+    Calculate cell contibution to row/column total.
+
+    :param df: DataFrame containing all-numeric data (temporal column ignored)
+    :param orientation: calculate by dividing cell with row/column total
+    :return: DataFrame with contributions, with temporal column at beginning if present
+    """
+    temporal_series: Optional[Series] = None
+    contribution_df = df.copy()
+    if DTTM_ALIAS in df.columns:
+        temporal_series = cast(Series, contribution_df.pop(DTTM_ALIAS))
+
+    if orientation == PostProcessingContributionOrientation.ROW:
+        contribution_dft = contribution_df.T
+        contribution_df = (contribution_dft / contribution_dft.sum()).T
+    else:
+        contribution_df = contribution_df / contribution_df.sum()
+
+    if temporal_series is not None:
+        contribution_df.insert(0, DTTM_ALIAS, temporal_series)
+    return contribution_df

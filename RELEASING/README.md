@@ -63,44 +63,50 @@ final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
 the wrong files/using wrong names. There's a script to help you set correctly all the
 necessary environment variables. Change your current directory to `superset/RELEASING`
+and execute the `set_release_env.sh` script with the relevant parameters:
 
 ```bash
     # usage (BASH): . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
     # usage (ZSH): source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
     #
-    # example: source set_relese_env.sh 0.36.0rc3 myid@apache.org
+    # example: source set_release_env.sh 0.37.0rc1 myid@apache.org
 ```
 
-The script will output the exported variables. Here's example for 0.36.0rc3:
+The script will output the exported variables. Here's example for 0.37.0rc1:
 
 ```
-    -------------------------------
     Set Release env variables
-    SUPERSET_VERSION=0.36.0
-    SUPERSET_RC=3
-    SUPERSET_GITHUB_BRANCH=0.36
+    SUPERSET_VERSION=0.37.0
+    SUPERSET_RC=1
+    SUPERSET_GITHUB_BRANCH=0.37
     SUPERSET_PGP_FULLNAME=myid@apache.org
-    SUPERSET_VERSION_RC=0.36.0rc3
-    SUPERSET_RELEASE=apache-superset-incubating-0.36.0
-    SUPERSET_RELEASE_RC=apache-superset-incubating-0.36.0rc3
-    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.36.0-source.tar.gz
-    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.36.0rc3-source.tar.gz
-    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.36.0
-    -------------------------------
+    SUPERSET_VERSION_RC=0.37.0rc1
+    SUPERSET_RELEASE=apache-superset-incubating-0.37.0
+    SUPERSET_RELEASE_RC=apache-superset-incubating-0.37.0rc1
+    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.37.0-source.tar.gz
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.37.0rc1-source.tar.gz
+    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.37.0
 ```
 
 ## Crafting a source release
 
 When crafting a new minor or major release we create
-a branch named with the release MAJOR.MINOR version (on this example 0.35).
+a branch named with the release MAJOR.MINOR version (on this example 0.37).
 This new branch will hold all PATCH and release candidates
 that belong to the MAJOR.MINOR version.
 
 The MAJOR.MINOR branch is normally a "cut" from a specific point in time from the master branch.
-Then (if needed) apply all cherries that will make the PATCH
+Then (if needed) apply all cherries that will make the PATCH.
 
-Next update the `CHANGELOG.md` with all the changes that are included in the release. Make sure you have
-set your GITHUB_TOKEN environment variable.
+```bash
+git checkout -b $SUPERSET_GITHUB_BRANCH
+git push upstream $SUPERSET_GITHUB_BRANCH
+```
+
+Next, update the `CHANGELOG.md` with all the changes that are included in the release.
+Make sure the branch has been pushed to `upstream` to ensure the changelog generator
+can pick up changes since the previous release (otherwise `github-changes` will raise
+an `Error: Not Found` exception).
 
 ```bash
 # will overwrites the local CHANGELOG.md, somehow you need to merge it in
@@ -293,7 +299,7 @@ with the changes on `CHANGELOG.md` and `UPDATING.md`.
 ### Publishing a Convenience Release to PyPI
 
 Using the final release tarball, unpack it and run `./pypi_push.sh`.
-This script will build the Javascript bundle and echo the twine command 
+This script will build the Javascript bundle and echo the twine command
 allowing you to publish to PyPI. You may need to ask a fellow committer to grant
 you access to it if you don't have access already. Make sure to create
 an account first if you don't have one, and reference your username
