@@ -81,6 +81,7 @@ class TestDatasetApi(SupersetTestCase):
                 {"col": "table_name", "opr": "eq", "value": f"birth_names"},
             ]
         }
+        self.maxDiff = None
         uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
@@ -90,8 +91,8 @@ class TestDatasetApi(SupersetTestCase):
             "changed_by",
             "changed_by_name",
             "changed_by_url",
-            "changed_on_utc",
             "changed_on_delta_humanized",
+            "changed_on_utc",
             "database_id",
             "database_name",
             "default_endpoint",
