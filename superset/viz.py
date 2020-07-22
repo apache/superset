@@ -719,7 +719,10 @@ class TimeTableViz(BaseViz):
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = DTTM_ALIAS + columns
+        if columns:
+            filled_cols = [DTTM_ALIAS] + columns
+        else:
+            filled_cols = [DTTM_ALIAS]
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
@@ -783,15 +786,16 @@ class PivotTableViz(BaseViz):
         if aggfunc == "sum":
             aggfunc = lambda x: x.sum(min_count=1)
 
-        groupby = self.form_data.get("groupby")
-        columns = self.form_data.get("columns")
+        groupby = self.form_data.get("groupby") or []
+        columns = self.form_data.get("columns") or []
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
         metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = groupby + columns
+        filled_cols = columns + groupby
+
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         df = df.pivot_table(
@@ -1120,7 +1124,7 @@ class BigNumberViz(BaseViz):
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = DTTM_ALIAS
+        filled_cols = [DTTM_ALIAS]
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         df = df.pivot_table(
@@ -1240,7 +1244,9 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = DTTM_ALIAS + fd.get("groupby")
+        groups = fd.get("groupby") or []
+        filled_cols = [DTTM_ALIAS] + groups
+
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         if aggregate:
@@ -1459,7 +1465,7 @@ class NVD3DualLineViz(NVD3Viz):
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = DTTM_ALIAS
+        filled_cols = [DTTM_ALIAS]
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2])
@@ -1516,7 +1522,7 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = DTTM_ALIAS + ["series"]
+        filled_cols = [DTTM_ALIAS, "series"]
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         df = df.pivot_table(
@@ -2749,12 +2755,13 @@ class PairedTTestViz(BaseViz):
             return None
 
         fd = self.form_data
-        groups = fd.get("groupby")
+        groups = fd.get("groupby") or []
         metrics = self.metric_labels
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = DTTM_ALIAS + groups
+        filled_cols = [DTTM_ALIAS] + groups
+
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         df = df.pivot_table(index=DTTM_ALIAS, columns=groups, values=metrics)
