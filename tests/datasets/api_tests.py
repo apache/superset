@@ -81,7 +81,6 @@ class TestDatasetApi(SupersetTestCase):
                 {"col": "table_name", "opr": "eq", "value": f"birth_names"},
             ]
         }
-        self.maxDiff = None
         uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
