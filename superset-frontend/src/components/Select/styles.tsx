@@ -90,10 +90,7 @@ export type StylesConfig = {
 };
 export type PartialStylesConfig = Partial<StylesConfig>;
 
-export const DEFAULT_STYLES: PartialStylesConfig = {
-  container: (
-    provider,
-    {
+export const DEFAULT_STYLES: PartialStylesConfig = { container: ( provider, {
       theme: {
         spacing: { minWidth },
       },
@@ -130,7 +127,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   ],
   control: (
     provider,
-    { isFocused, menuIsOpen, theme: { borderRadius, colors } },
+    { isFocused, menuIsOpen, isMulti, theme: { borderRadius, colors } },
   ) => {
     const isPseudoFocused = isFocused && !menuIsOpen;
     let borderColor = '#ccc';
@@ -142,6 +139,8 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
     return [
       provider,
       css`
+        border-width: ${isMulti ? '1px' :  '0px'};
+        background-color: ${isMulti ? 'white' : '#F0F0F0'};
         border-color: ${borderColor};
         box-shadow: ${isPseudoFocused
           ? 'inset 0 1px 1px rgba(0,0,0,.075), 0 0 0 3px rgba(0,0,0,.1)'
