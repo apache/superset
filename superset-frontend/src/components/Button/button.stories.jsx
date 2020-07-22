@@ -161,6 +161,6 @@ export const SupersetButton = () => (
     )}
     tooltip={boolean('Tooltip', false) === true ? 'This is a tooltip!' : null}
   >
-    {text('Label', "Button!")}
+    {text('Label', 'Button!')}
   </Button>
 );
