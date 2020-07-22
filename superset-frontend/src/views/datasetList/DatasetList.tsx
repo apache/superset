@@ -18,7 +18,6 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import moment from 'moment';
 import React, {
   FunctionComponent,
   useCallback,
@@ -26,7 +25,6 @@ import React, {
   useState,
 } from 'react';
 import rison from 'rison';
-import { SHORT_DATE, SHORT_TIME } from 'src/utils/common';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
@@ -55,8 +53,8 @@ type Dataset = {
   changed_by_name: string;
   changed_by_url: string;
   changed_by: string;
-  changed_on: string;
-  databse_name: string;
+  changed_on_delta_humanized: string;
+  database_name: string;
   explore_url: string;
   id: number;
   owners: Array<Owner>;
@@ -195,7 +193,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');
 
-  const initialSort = [{ id: 'changed_on', desc: true }];
+  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const handleDatasetEdit = ({ id }: { id: number }) => {
     window.location.assign(`/tablemodelview/edit/${id}`);
@@ -277,30 +275,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     {
       Header: t('Schema'),
       accessor: 'schema',
-      disableSortBy: true,
       size: 'lg',
     },
     {
       Cell: ({
         row: {
-          original: { changed_on: changedOn },
+          original: { changed_on_delta_humanized: changedOn },
         },
-      }: any) => {
-        const momentTime = moment(changedOn);
-        const time = momentTime.format(SHORT_DATE);
-        const date = momentTime.format(SHORT_TIME);
-        return (
-          <TooltipWrapper
-            label="last-modified"
-            tooltip={time}
-            placement="right"
-          >
-            <span>{date}</span>
-          </TooltipWrapper>
-        );
-      },
-      Header: t('Last Modified'),
-      accessor: 'changed_on',
+      }: any) => <span className="no-wrap">{changedOn}</span>,
+      Header: t('Modified'),
+      accessor: 'changed_on_delta_humanized',
       size: 'xl',
     },
     {
@@ -310,8 +294,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
       }: any) => changedByName,
       Header: t('Modified By'),
-      accessor: 'changed_by_fk',
-      disableSortBy: true,
+      accessor: 'changed_by.first_name',
       size: 'xl',
     },
     {
