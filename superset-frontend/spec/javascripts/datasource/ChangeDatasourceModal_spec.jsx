@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import { Modal, Table } from 'react-bootstrap';
+import { Modal } from 'react-bootstrap';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
@@ -50,7 +50,6 @@ const datasourceData = {
 
 const DATASOURCES_ENDPOINT = 'glob:*/superset/datasources/';
 const DATASOURCE_ENDPOINT = `glob:*/datasource/get/${datasourceData.type}/${datasourceData.id}`;
-const DATASOURCES_PAYLOAD = { json: 'data' };
 const DATASOURCE_PAYLOAD = { new: 'data' };
 
 fetchMock.get(DATASOURCES_ENDPOINT, [mockDatasource['7__table']]);

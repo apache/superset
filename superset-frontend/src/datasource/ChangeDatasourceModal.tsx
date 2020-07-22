@@ -37,6 +37,10 @@ interface ChangeDatasourceModalProps {
 
 const TABLE_COLUMNS = ['name', 'type', 'schema', 'connection', 'creator'];
 const TABLE_FILTERABLE = ['rawName', 'type', 'schema', 'connection', 'creator'];
+const CHANGE_WARNING_MSG = t(
+  'Changing the datasource may break the chart if the chart relies ' +
+    'on columns or metadata that does not exist in the target datasource',
+);
 
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
