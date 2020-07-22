@@ -80,6 +80,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   >(null);
   const [datasets, setDatasets] = useState<any[]>([]);
   const [currentFilters, setCurrentFilters] = useState<Filters>([]);
+  const [filterOperators, setFilterOperators] = useState<FilterOperatorMap>();
   const [
     lastFetchDataConfig,
     setLastFetchDataConfig,
@@ -95,7 +96,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
   const [bulkSelectEnabled, setBulkSelectEnabled] = useState<boolean>(false);
 
-  const updateFilters = (filterOperators: FilterOperatorMap) => {
+  const updateFilters = () => {
     const convertFilter = ({
       name: label,
       operator,
@@ -103,47 +104,49 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       name: string;
       operator: string;
     }) => ({ label, value: operator });
-    setCurrentFilters([
-      {
-        Header: 'Database',
-        id: 'database',
-        input: 'select',
-        operators: filterOperators.database.map(convertFilter),
-        selects: databases.map(({ text: label, value }) => ({
-          label,
-          value,
-        })),
-      },
-      {
-        Header: 'Schema',
-        id: 'schema',
-        operators: filterOperators.schema.map(convertFilter),
-      },
-      {
-        Header: 'Table Name',
-        id: 'table_name',
-        operators: filterOperators.table_name.map(convertFilter),
-      },
-      {
-        Header: 'Owners',
-        id: 'owners',
-        input: 'select',
-        operators: filterOperators.owners.map(convertFilter),
-        selects: currentOwners.map(({ text: label, value }) => ({
-          label,
-          value,
-        })),
-      },
-      {
-        Header: 'SQL Lab View',
-        id: 'is_sqllab_view',
-        input: 'checkbox',
-        operators: filterOperators.is_sqllab_view.map(convertFilter),
-      },
-    ]);
+    if (filterOperators) {
+      setCurrentFilters([
+        {
+          Header: 'Database',
+          id: 'database',
+          input: 'select',
+          operators: filterOperators.database.map(convertFilter),
+          selects: databases.map(({ text: label, value }) => ({
+            label,
+            value,
+          })),
+        },
+        {
+          Header: 'Schema',
+          id: 'schema',
+          operators: filterOperators.schema.map(convertFilter),
+        },
+        {
+          Header: 'Table Name',
+          id: 'table_name',
+          operators: filterOperators.table_name.map(convertFilter),
+        },
+        {
+          Header: 'Owners',
+          id: 'owners',
+          input: 'select',
+          operators: filterOperators.owners.map(convertFilter),
+          selects: currentOwners.map(({ text: label, value }) => ({
+            label,
+            value,
+          })),
+        },
+        {
+          Header: 'SQL Lab View',
+          id: 'is_sqllab_view',
+          input: 'checkbox',
+          operators: filterOperators.is_sqllab_view.map(convertFilter),
+        },
+      ]);
+    }
   };
 
-  const fetchDataset = () => {
+  const fetchDataset = () =>
     Promise.all([
       SupersetClient.get({
         endpoint: `/api/v1/dataset/_info`,
@@ -154,18 +157,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       SupersetClient.get({
         endpoint: `/api/v1/dataset/related/database`,
       }),
-    ]).then(
-      ([
-        { json: infoJson = {} },
-        { json: ownersJson = {} },
-        { json: databasesJson = {} },
-      ]) => {
-        setCurrentOwners(ownersJson.result);
-        setDatabases(databasesJson.result);
-        setPermissions(infoJson.permissions);
-        updateFilters(infoJson.filters);
-      },
-      ([e1, e2]) => {
+    ])
+      .then(
+        ([
+          { json: infoJson = {} },
+          { json: ownersJson = {} },
+          { json: databasesJson = {} },
+        ]) => {
+          setCurrentOwners(ownersJson.result);
+          setDatabases(databasesJson.result);
+          setPermissions(infoJson.permissions);
+          setFilterOperators(infoJson.filters);
+        },
+      )
+      .catch(([e1, e2]) => {
         addDangerToast(t('An error occurred while fetching datasets'));
         if (e1) {
           console.error(e1);
@@ -173,13 +178,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         if (e2) {
           console.error(e2);
         }
-      },
-    );
-  };
+      });
 
   useEffect(() => {
     fetchDataset();
   }, []);
+
+  useEffect(() => {
+    updateFilters();
+  }, [databases, currentOwners, permissions, filterOperators]);
 
   const hasPerm = (perm: string) => {
     if (!permissions.length) {

@@ -274,12 +274,15 @@ export default class TableSelector extends React.PureComponent {
   }
 
   renderDatabaseSelect() {
+    const filters = this.props.formMode
+      ? ''
+      : 'filters:!((col:expose_in_sqllab,opr:eq,value:!t)),';
     return this.renderSelectRow(
       <SupersetAsyncSelect
         dataEndpoint={
           '/api/v1/database/?q=' +
           '(keys:!(none),' +
-          'filters:!((col:expose_in_sqllab,opr:eq,value:!t)),' +
+          `${filters}` +
           'order_columns:database_name,order_direction:asc,page:0,page_size:-1)'
         }
         onChange={this.onDatabaseChange}
