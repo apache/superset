@@ -88,10 +88,10 @@ class TestDatasetApi(SupersetTestCase):
         self.assertEqual(response["count"], 1)
         expected_columns = [
             "changed_by",
-            "changed_by_fk",
             "changed_by_name",
             "changed_by_url",
-            "changed_on",
+            "changed_on_delta_humanized",
+            "changed_on_utc",
             "database_id",
             "database_name",
             "default_endpoint",
