@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-pivot-table",
-  "version": "0.14.11",
+  "version": "0.14.14",
   "description": "Superset Legacy Chart - Pivot Table",
   "sideEffects": [
     "*.css"
