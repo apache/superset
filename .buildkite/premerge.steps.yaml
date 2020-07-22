@@ -2,7 +2,6 @@
 common: &common
   agents:
     - "agent_count=1"
-    - "boot_disk_size_gb=400"
     - "capable_of_building=platform"
     - "machine_type=half"
     - "queue=${CI_LINUX_BUILDER_QUEUE:-v4-20-06-23-173521-bk12705-2627bc3f-d}"
@@ -10,6 +9,7 @@ common: &common
     - "permission_set=builder"
     - "scaler_version=2"
     - "environment=${CI_ENVIRONMENT:-cn-production}"
+    - "node_stability=${CI_NODE_STABILITY:-interruptible}"
   retry:
     automatic:
       # These are designed to trap and retry failures because agent lost connection.     Agent exits with -1 in this case.
