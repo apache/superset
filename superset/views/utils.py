@@ -19,6 +19,7 @@ from collections import defaultdict
 from datetime import date
 from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
 from urllib import parse
+import xml.etree.ElementTree as ET
 
 import msgpack
 import pyarrow as pa
@@ -492,3 +493,67 @@ def get_cta_schema_name(
     if not func:
         return None
     return func(database, user, schema, sql)
+
+def format_pivot_table_html_2b_convenient(html_data):
+    """
+    This funciton can format an existing pivot table html text to be more convenient,
+    just as the change after from before.
+    before:
+        +---+---+-------+
+        |   |         T |
+        +---+---+---+---+
+        | A | B | C | D |
+        +---+---+---+---+
+        | E |   |   |   |
+        +---+---+---+---+
+        | F | 1 | 0 | 1 |
+        +---+---+---+---+
+        | G | 0 | 1 | 0 |
+        +---+---+---+---+
+    after:
+        +---+---+-----------+
+        |   |   |         T |
+        +---+---+---+---+---+
+        |   | A | B | C | D |
+        +---+---+   |   |   |
+        | E |   |   |   |   |
+        +---+---+---+---+---+
+        | F     | 1 | 0 | 1 |
+        +-------+---+---+---+
+        | G     | 0 | 1 | 1 |
+        +-------+---+---+---+
+    Generate by https://ozh.github.io/ascii-tables/
+    """
+    table = ET.fromstring(html_data)
+    thead_trs = table.findall("./thead/tr")
+    # if thead count is not 3 or the second line first elem is empty, directly return without format
+    if len(thead_trs) != 3 or thead_trs[1].find("th").text in ("", None):
+        return html_data
+
+    index = 0
+    for tr in table.findall("./thead/tr"):
+        tr.insert(1, ET.Element('th'))
+
+        ths = tr.findall("th")
+        if index == 1:
+            cell_text = ths[0].text
+            ths[1].text = cell_text
+            ths[0].text = ""
+            for th in ths[2:]:
+                th.set("rowspan", "2")
+
+        if index == 2:
+            for th in ths[2:]:
+                tr.remove(th)
+
+        index += 1
+
+    for tr in table.findall("./tbody/tr"):
+        # for using colspan in tbody, see
+        # https://www.gyrocode.com/articles/jquery-datatables-colspan-in-table-body-tbody/
+        td = ET.Element('td')
+        td.set("style", "display: none;")
+        tr.insert(1, td)
+        tr.find("th").set("colspan", "2")
+
+    return ET.tostring(table)
