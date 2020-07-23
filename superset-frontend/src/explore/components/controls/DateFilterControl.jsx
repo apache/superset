@@ -37,6 +37,7 @@ import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
+import { styled } from '@superset-ui/style';
 
 import './DateFilterControl.less';
 import ControlHeader from '../ControlHeader';
@@ -163,6 +164,12 @@ function getStateFromCustomRange(value) {
     until,
   };
 }
+
+const Styles = styled.div`
+  .radio {
+    margin: 4px 0;
+  }
+`;
 
 export default class DateFilterControl extends React.Component {
   constructor(props) {
@@ -373,7 +380,7 @@ export default class DateFilterControl extends React.Component {
       const endpoints = this.props.endpoints.map(endpoint => endpoint === 'inclusive' ? '≤' : '<');
 
       return (
-        <div style={{ padding: '0' }}>
+        <Styles>
           <OverlayTrigger
             key={timeFrame}
             alignLeft
@@ -387,7 +394,7 @@ export default class DateFilterControl extends React.Component {
               </Tooltip>
             }
           >
-            <div className={'inlineBlock'}>
+            <div style={{ display: 'inline-block' }}>
               <Radio
                 key={timeFrame.replace(' ', '').toLowerCase()}
                 checked={this.state.common === timeFrame}
@@ -397,7 +404,7 @@ export default class DateFilterControl extends React.Component {
               </Radio>
             </div>
           </OverlayTrigger>
-        </div>
+        </Styles>
       );
     });
     return (
