@@ -19,6 +19,7 @@
 import React from 'react';
 import { shallow, mount } from 'enzyme';
 import { Nav } from 'react-bootstrap';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import Menu from 'src/components/Menu/Menu';
 
@@ -156,7 +157,10 @@ describe('Menu', () => {
       ...overrideProps,
     };
 
-    const versionedWrapper = mount(<Menu {...props} />);
+    const versionedWrapper = mount(<Menu {...props} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
 
     expect(versionedWrapper.find('.version-info div')).toHaveLength(2);
   });
