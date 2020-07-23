@@ -2031,7 +2031,6 @@ class FilterBoxViz(BaseViz):
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     cache_type = "get_data"
-    filter_row_limit = 1000
 
     def query_obj(self) -> QueryObjectDict:
         return {}
@@ -2039,7 +2038,7 @@ class FilterBoxViz(BaseViz):
     def run_extra_queries(self) -> None:
         qry = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
-        qry["row_limit"] = self.filter_row_limit
+        qry["row_limit"] = self.form_data.get("row_limit")
         self.dataframes = {}
         for flt in filters:
             col = flt.get("column")
