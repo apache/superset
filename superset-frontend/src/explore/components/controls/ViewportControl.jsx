@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { Label, Popover, OverlayTrigger } from 'react-bootstrap';
 import { decimal2sexagesimal } from 'geolib';
 
+import FormLabel from 'src/components/FormLabel';
 import TextControl from './TextControl';
 import ControlHeader from '../ControlHeader';
 
@@ -67,7 +68,7 @@ export default class ViewportControl extends React.Component {
   renderTextControl(ctrl) {
     return (
       <div key={ctrl}>
-        {ctrl}
+        <FormLabel>{ctrl}</FormLabel>
         <TextControl
           value={this.props.value[ctrl]}
           onChange={this.onChange.bind(this, ctrl)}

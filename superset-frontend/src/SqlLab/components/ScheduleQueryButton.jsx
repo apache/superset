@@ -23,8 +23,9 @@ import chrono from 'chrono-node';
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
-import Button from '../../components/Button';
-import ModalTrigger from '../../components/ModalTrigger';
+import Button from 'src/components/Button';
+import ModalTrigger from 'src/components/ModalTrigger';
+import FormLabel from 'src/components/FormLabel';
 import './ScheduleQueryButton.less';
 
 const validators = {
@@ -134,9 +135,9 @@ class ScheduleQueryButton extends React.PureComponent {
       <FormGroup>
         <Row style={{ paddingBottom: '10px' }}>
           <Col md={12}>
-            <label className="control-label" htmlFor="embed-height">
+            <FormLabel className="control-label" htmlFor="embed-height">
               {t('Label')}
-            </label>
+            </FormLabel>
             <FormControl
               type="text"
               placeholder={t('Label for your query')}
@@ -147,9 +148,9 @@ class ScheduleQueryButton extends React.PureComponent {
         </Row>
         <Row style={{ paddingBottom: '10px' }}>
           <Col md={12}>
-            <label className="control-label" htmlFor="embed-height">
+            <FormLabel className="control-label" htmlFor="embed-height">
               {t('Description')}
-            </label>
+            </FormLabel>
             <FormControl
               componentClass="textarea"
               placeholder={t('Write a description for your query')}
