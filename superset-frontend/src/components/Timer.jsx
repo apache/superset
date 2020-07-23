@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { now, fDuration } from '../modules/dates';
 import { Label } from 'react-bootstrap';
+
+import { now, fDuration } from '../modules/dates';
 
 const propTypes = {
   endTime: PropTypes.number,
