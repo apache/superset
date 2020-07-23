@@ -105,6 +105,11 @@ export default {
         ['adhoc_filters'],
       ],
     },
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [['row_limit']],
+    },
   ],
   controlOverrides: {
     adhoc_filters: {
