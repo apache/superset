@@ -20,7 +20,13 @@
 // Tests for links in the explore UI
 // ***********************************************
 
+import rison from 'rison';
+import shortid from 'shortid';
 import { HEALTH_POP_FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
+
+const apiURL = (endpoint, queryObject) => {
+  return `${endpoint}?q=${rison.encode(queryObject)}`;
+};
 
 describe('Test explore links', () => {
   beforeEach(() => {
@@ -73,98 +79,120 @@ describe('Test explore links', () => {
     });
   });
 
-  xit('Test chart save as', () => {
+  it('Test chart save as AND overwrite', () => {
     const formData = {
       ...HEALTH_POP_FORM_DATA_DEFAULTS,
       viz_type: 'table',
       metrics: ['sum__SP_POP_TOTL'],
       groupby: ['country_name'],
     };
-    const newChartName = 'Test chart';
+    const newChartName = `Test chart [${shortid.generate()}]`;
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.url().then(url => {
       cy.get('button[data-target="#save_modal"]').click();
       cy.get('.modal-content').within(() => {
+        cy.get('#saveas-radio').check();
         cy.get('input[name=new_slice_name]').type(newChartName);
         cy.get('button#btn_modal_save').click();
       });
-      cy.url().should('eq', url);
-
-      cy.visitChartByName(newChartName);
       cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    });
-  });
+      cy.visitChartByName(newChartName);
 
-  xit('Test chart save', () => {
-    const chartName = 'Test chart';
-    cy.visitChartByName(chartName);
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
-
-    cy.get('[data-test=groupby]').within(() => {
-      cy.get('.Select__clear-indicator').click();
+      // Overwriting!
+      cy.get('button[data-target="#save_modal"]').click();
+      cy.get('.modal-content').within(() => {
+        cy.get('#overwrite-radio').check();
+        cy.get('button#btn_modal_save').click();
+      });
+      cy.verifySliceSuccess({ waitAlias: '@postJson' });
+      const query = {
+        filters: [
+          {
+            col: 'slice_name',
+            opr: 'eq',
+            value: newChartName,
+          },
+        ],
+      };
+      cy.request(apiURL('/api/v1/chart/', query)).then(response => {
+        expect(response.body.count).equals(1);
+        cy.request('DELETE', `/api/v1/chart/${response.body.ids[0]}`);
+      });
     });
-    cy.get('button[data-target="#save_modal"]').click();
-    cy.get('.modal-content').within(() => {
-      cy.get('button#btn_modal_save').click();
-    });
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then(
-      response => {
-        cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
-      },
-    );
   });
 
   it('Test chart save as and add to new dashboard', () => {
-    cy.visitChartByName('Growth Rate');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    const chartName = 'Growth Rate';
+    const newChartName = `${chartName} [${shortid.generate()}]`;
+    const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
 
-    const dashboardTitle = 'Test dashboard';
-    cy.get('button[data-target="#save_modal"]').click();
-    cy.get('.modal-content').within(() => {
-      cy.get('input[name=new_slice_name]').type('New Growth Rate');
-      cy.get('input[data-test=add-to-new-dashboard]').check();
-      cy.get('input[placeholder="[dashboard name]"]').type(dashboardTitle);
-      cy.get('button#btn_modal_save').click();
-    });
+    cy.visitChartByName(chartName);
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    cy.request(
-      `/dashboard/api/read?_flt_3_dashboard_title=${dashboardTitle}`,
-    ).then(response => {
-      expect(response.body.pks[0]).not.equals(null);
-    });
-  });
-
-  it('Test chart save as and add to existing dashboard', () => {
-    cy.visitChartByName('Most Populated Countries');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    const chartName = 'New Most Populated Countries';
-    const dashboardTitle = 'Test dashboard';
 
     cy.get('button[data-target="#save_modal"]').click();
     cy.get('.modal-content').within(() => {
-      cy.get('input[name=new_slice_name]').type(chartName);
-      cy.get('input[data-test=add-to-existing-dashboard]').check();
-      cy.get('.save-modal-selector')
-        .click()
-        .within(() => {
-          cy.get('input').type(dashboardTitle);
-          cy.get('.Select__option--is-focused').trigger('mousedown');
-        });
+      cy.get('#saveas-radio').check();
+      cy.get('input[name=new_slice_name]').click().clear().type(newChartName);
+      // Add a new option using the "CreatableSelect" feature
+      cy.get('#dashboard-creatable-select').type(
+        `${dashboardTitle}{enter}{enter}`,
+      );
       cy.get('button#btn_modal_save').click();
     });
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-    cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then(
-      response => {
-        cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
-      },
-    );
-    cy.request(
-      `/dashboard/api/read?_flt_3_dashboard_title=${dashboardTitle}`,
-    ).then(response => {
-      cy.request('DELETE', `/dashboard/api/delete/${response.body.pks[0]}`);
+    let query = {
+      filters: [
+        {
+          col: 'dashboard_title',
+          opr: 'eq',
+          value: dashboardTitle,
+        },
+      ],
+    };
+    cy.request(apiURL('/api/v1/dashboard/', query)).then(response => {
+      expect(response.body.count).equals(1);
+    });
+
+    cy.visitChartByName(newChartName);
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.get('button[data-target="#save_modal"]').click();
+    cy.get('.modal-content').within(() => {
+      cy.get('#overwrite-radio').check();
+      cy.get('input[name=new_slice_name]').click().clear().type(newChartName);
+      // This time around, typing the same dashboard name
+      // will select the existing one
+      cy.get('#dashboard-creatable-select').type(
+        `${dashboardTitle}{enter}{enter}`,
+      );
+      cy.get('button#btn_modal_save').click();
+    });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    query = {
+      filters: [
+        {
+          col: 'slice_name',
+          opr: 'eq',
+          value: chartName,
+        },
+      ],
+    };
+    cy.request(apiURL('/api/v1/chart/', query)).then(response => {
+      expect(response.body.count).equals(1);
+    });
+    query = {
+      filters: [
+        {
+          col: 'dashboard_title',
+          opr: 'eq',
+          value: dashboardTitle,
+        },
+      ],
+    };
+    cy.request(apiURL('/api/v1/dashboard/', query)).then(response => {
+      expect(response.body.count).equals(1);
     });
   });
 });

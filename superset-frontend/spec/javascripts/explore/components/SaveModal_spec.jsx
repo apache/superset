@@ -22,7 +22,7 @@ import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
 
 import { shallow, mount } from 'enzyme';
-import { Modal, Button, Radio } from 'react-bootstrap';
+import { FormControl, Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
@@ -65,7 +65,7 @@ describe('SaveModal', () => {
     target: {
       value: 'mock event target',
     },
-    value: 'mock value',
+    value: 10,
   };
 
   const getWrapper = () =>
@@ -73,19 +73,18 @@ describe('SaveModal', () => {
       context: { store },
     }).dive();
 
-  it('renders a Modal with 7 inputs and 2 buttons', () => {
+  it('renders a Modal with the right set of components', () => {
     const wrapper = getWrapper();
     expect(wrapper.find(Modal)).toHaveLength(1);
-    expect(wrapper.find('input')).toHaveLength(2);
-    expect(wrapper.find(Button)).toHaveLength(2);
-    expect(wrapper.find(Radio)).toHaveLength(5);
+    expect(wrapper.find(FormControl)).toHaveLength(1);
+    expect(wrapper.find(Button)).toHaveLength(3);
+    expect(wrapper.find(Radio)).toHaveLength(2);
   });
 
-  it('does not show overwrite option for new slice', () => {
-    const wrapperNewSlice = getWrapper();
-    wrapperNewSlice.setProps({ slice: null });
-    expect(wrapperNewSlice.find('#overwrite-radio')).toHaveLength(0);
-    expect(wrapperNewSlice.find('#saveas-radio')).toHaveLength(1);
+  it('overwrite radio button is disabled for new slice', () => {
+    const wrapper = getWrapper();
+    wrapper.setProps({ slice: null });
+    expect(wrapper.find('#overwrite-radio').prop('disabled')).toBe(true);
   });
 
   it('disable overwrite option for non-owner', () => {
@@ -128,14 +127,11 @@ describe('SaveModal', () => {
   it('onChange', () => {
     const wrapper = getWrapper();
 
-    wrapper.instance().onChange('newSliceName', mockEvent);
+    wrapper.instance().onSliceNameChange(mockEvent);
     expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
 
-    wrapper.instance().onChange('saveToDashboardId', mockEvent);
+    wrapper.instance().onDashboardSelectChange(mockEvent);
     expect(wrapper.state().saveToDashboardId).toBe(mockEvent.value);
-
-    wrapper.instance().onChange('newDashboardName', mockEvent);
-    expect(wrapper.state().newDashboardName).toBe(mockEvent.target.value);
   });
 
   describe('saveOrOverwrite', () => {
@@ -145,7 +141,7 @@ describe('SaveModal', () => {
       sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
         Promise.resolve({
           data: {
-            dashboard: '/mock_dashboard/',
+            dashboard_url: 'http://localhost/mock_dashboard/',
             slice: { slice_url: '/mock_slice/' },
           },
         }),
@@ -168,10 +164,6 @@ describe('SaveModal', () => {
       const wrapper = getWrapper();
       const saveToDashboardId = 100;
 
-      wrapper.setState({ addToDash: 'existing' });
-      wrapper.instance().saveOrOverwrite(true);
-      expect(wrapper.state().alert).toBe('Please select a dashboard');
-
       wrapper.setState({ saveToDashboardId });
       wrapper.instance().saveOrOverwrite(true);
       const args = defaultProps.actions.saveSlice.getCall(0).args;
@@ -181,10 +173,6 @@ describe('SaveModal', () => {
     it('new dashboard', () => {
       const wrapper = getWrapper();
       const newDashboardName = 'new dashboard name';
-
-      wrapper.setState({ addToDash: 'new' });
-      wrapper.instance().saveOrOverwrite(true);
-      expect(wrapper.state().alert).toBe('Please enter a dashboard name');
 
       wrapper.setState({ newDashboardName });
       wrapper.instance().saveOrOverwrite(true);
