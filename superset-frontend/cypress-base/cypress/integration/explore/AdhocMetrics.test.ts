@@ -44,7 +44,7 @@ describe('AdhocMetrics', () => {
       });
       cy.get('button').contains('Save').click();
     });
-    cy.get('.Select__multi-value__label').contains(metricName);
+    cy.get('.metrics-select .metric-option').contains(metricName);
 
     cy.get('button.query').click();
     cy.verifySliceSuccess({
