@@ -782,7 +782,7 @@ class PivotTableViz(BaseViz):
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
         metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
-        
+
         df[columns] = df[columns].fillna(value=NULL_STRING)
         df[groupby] = df[groupby].fillna(value=NULL_STRING)
         df = df.pivot_table(
