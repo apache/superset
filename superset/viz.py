@@ -1527,10 +1527,10 @@ class DistributionPieViz(NVD3Viz):
         if df.empty:
             return None
         metric = self.metric_labels[0]
-        df = df.pivot_table(index=self.groupby, values=[metric])
-        df.sort_values(by=metric, ascending=False, inplace=True)
-        df = df.reset_index()
-        df.columns = ["x", "y"]
+        df = pd.DataFrame(
+            {"x": df[self.groupby].agg(func=", ".join, axis=1), "y": df[metric]}
+        )
+        df.sort_values(by="y", ascending=False, inplace=True)
         return df.to_dict(orient="records")
 
 
