@@ -29,50 +29,50 @@
     {% set locale = 'en' %}
 {% endif %}
 
-{% if not current_user.is_anonymous %}
-    <li class="dropdown">
-        <button type="button" style="margin-top: 12px; margin-right: 30px;" data-toggle="dropdown" class="dropdown-toggle btn btn-sm btn-primary">
-          <i class="fa fa-plus"></i> {{ _("New") }}
-        </button>
-        <ul class="dropdown-menu">
-            <li><a href="/superset/sqllab"><span class="fa fa-fw fa-search"></span> {{_("SQL Query")}}</a></li>
-            <li><a href="/chart/add"><span class="fa fa-fw fa-bar-chart"></span> {{_("Chart")}}</a></li>
-            <li><a href="/dashboard/new/"><span class="fa fa-fw fa-dashboard"></span> {{_("Dashboard")}}</a></li>
-        </ul>
-    </li>
-{% endif %}
-{% if documentation_url %}
-<li>
-  <a
-    tabindex="-1"
-    href="{{ documentation_url }}"
-    title="{{ documentation_text }}"
-    target="_blank"
-  >
-  {% if documentation_icon %}
-    <img
-      width="100%"
-      src="{{ documentation_icon }}"
-      alt="{{ documentation_text }}"
-    />
-  {% else %}
-    <i class="fa fa-question"></i>&nbsp;
-  {% endif %}
-  </a>
-</li>
-{% endif %}
-{% if bug_report_url %}
-<li>
-  <a
-    tabindex="-1"
-    href="{{ bug_report_url }}"
-    target="_blank"
-    title="Report a bug"
-  >
-    <i class="fa fa-bug"></i>&nbsp;
-  </a>
-</li>
-{% endif %}
+{#{% if not current_user.is_anonymous %}#}
+{#    <li class="dropdown">#}
+{#        <button type="button" style="margin-top: 12px; margin-right: 30px;" data-toggle="dropdown" class="dropdown-toggle btn btn-sm btn-primary">#}
+{#          <i class="fa fa-plus"></i> {{ _("New") }}#}
+{#        </button>#}
+{#        <ul class="dropdown-menu">#}
+{#            <li><a href="/superset/sqllab"><span class="fa fa-fw fa-search"></span> {{_("SQL Query")}}</a></li>#}
+{#            <li><a href="/chart/add"><span class="fa fa-fw fa-bar-chart"></span> {{_("Chart")}}</a></li>#}
+{#            <li><a href="/dashboard/new/"><span class="fa fa-fw fa-dashboard"></span> {{_("Dashboard")}}</a></li>#}
+{#        </ul>#}
+{#    </li>#}
+{#{% endif %}#}
+{#{% if documentation_url %}#}
+{#<li>#}
+{#  <a#}
+{#    tabindex="-1"#}
+{#    href="{{ documentation_url }}"#}
+{#    title="{{ documentation_text }}"#}
+{#    target="_blank"#}
+{#  >#}
+{#  {% if documentation_icon %}#}
+{#    <img#}
+{#      width="100%"#}
+{#      src="{{ documentation_icon }}"#}
+{#      alt="{{ documentation_text }}"#}
+{#    />#}
+{#  {% else %}#}
+{#    <i class="fa fa-question"></i>&nbsp;#}
+{#  {% endif %}#}
+{#  </a>#}
+{#</li>#}
+{#{% endif %}#}
+{#{% if bug_report_url %}#}
+{#<li>#}
+{#  <a#}
+{#    tabindex="-1"#}
+{#    href="{{ bug_report_url }}"#}
+{#    target="_blank"#}
+{#    title="Report a bug"#}
+{#  >#}
+{#    <i class="fa fa-bug"></i>&nbsp;#}
+{#  </a>#}
+{#</li>#}
+{#{% endif %}#}
 {% if languages.keys()|length > 1 %}
 <li class="dropdown">
     <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
@@ -106,7 +106,7 @@
         <i class="fa fa-user"></i>&nbsp;<b class="caret"></b>
       </a>
         <ul class="dropdown-menu">
-            <li><a href="{{appbuilder.get_url_for_userinfo}}"><span class="fa fa-fw fa-user"></span>{{_("Profile")}}</a></li>
+{#            <li><a href="{{appbuilder.get_url_for_userinfo}}"><span class="fa fa-fw fa-user"></span>{{_("Profile")}}</a></li>#}
             <li><a href="{{appbuilder.get_url_for_logout}}"><span class="fa fa-fw fa-sign-out"></span>{{_("Logout")}}</a></li>
             {% if version_string or version_sha %}
               <li class="fineprint">
