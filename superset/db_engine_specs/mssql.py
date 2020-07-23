@@ -14,24 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
-from datetime import datetime
+import logging
 import re
-from typing import List, Optional, Tuple
+from datetime import datetime
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
-from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.utils import core as utils
+
+if TYPE_CHECKING:
+    from superset.models.core import Database  # pylint: disable=unused-import
+
+logger = logging.getLogger(__name__)
 
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
-    epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 128
 
-    time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATEADD(second, DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')",
         "PT1M": "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",
@@ -48,20 +52,30 @@ class MssqlEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
-        return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
+    def epoch_to_dttm(cls) -> str:
+        return "dateadd(S, {col}, '1970-01-01')"
 
     @classmethod
-    def fetch_data(cls, cursor, limit: int) -> List[Tuple]:
-        data = super().fetch_data(cursor, limit)
-        if data and type(data[0]).__name__ == "Row":
-            data = [[elem for elem in r] for r in data]
-        return data
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == utils.TemporalType.DATE:
+            return f"CONVERT(DATE, '{dttm.date().isoformat()}', 23)"
+        if tt == utils.TemporalType.DATETIME:
+            return f"""CONVERT(DATETIME, '{dttm.isoformat(timespec="milliseconds")}', 126)"""  # pylint: disable=line-too-long
+        if tt == utils.TemporalType.SMALLDATETIME:
+            return f"""CONVERT(SMALLDATETIME, '{dttm.isoformat(sep=" ", timespec="seconds")}', 20)"""  # pylint: disable=line-too-long
+        return None
 
-    column_types = [
+    @classmethod
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
+        data = super().fetch_data(cursor, limit)
+        # Lists of `pyodbc.Row` need to be unpacked further
+        return cls.pyodbc_rows_to_tuples(data)
+
+    column_types = (
         (String(), re.compile(r"^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)", re.IGNORECASE)),
         (UnicodeText(), re.compile(r"^N((VAR){0,1}CHAR|TEXT)", re.IGNORECASE)),
-    ]
+    )
 
     @classmethod
     def get_sqla_column_type(cls, type_: str) -> Optional[TypeEngine]:
@@ -71,14 +85,10 @@ class MssqlEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def column_datatype_to_string(
-        cls, sqla_column_type: TypeEngine, dialect: Dialect
-    ) -> str:
-        datatype = super().column_datatype_to_string(sqla_column_type, dialect)
-        # MSSQL returns long overflowing datatype
-        # as in 'VARCHAR(255) COLLATE SQL_LATIN1_GENERAL_CP1_CI_AS'
-        # and we don't need the verbose collation type
-        str_cutoff = " COLLATE "
-        if str_cutoff in datatype:
-            datatype = datatype.split(str_cutoff)[0]
-        return datatype
+    def extract_error_message(cls, ex: Exception) -> str:
+        if str(ex).startswith("(8155,"):
+            return (
+                f"{cls.engine} error: All your SQL functions need to "
+                "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
+            )
+        return f"{cls.engine} error: {cls._extract_error_message(ex)}"

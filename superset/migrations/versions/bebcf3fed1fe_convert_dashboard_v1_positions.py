@@ -24,10 +24,10 @@ Create Date: 2018-07-22 11:59:07.025119
 
 # revision identifiers, used by Alembic.
 import collections
-from functools import reduce
 import json
 import sys
 import uuid
+from functools import reduce
 
 from alembic import op
 from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text

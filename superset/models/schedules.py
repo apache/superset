@@ -14,34 +14,34 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 """Models for scheduled execution of jobs"""
-
 import enum
+from typing import Optional, Type
 
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, RelationshipProperty
 
 from superset import security_manager
+from superset.models.alerts import Alert
 from superset.models.helpers import AuditMixinNullable, ImportMixin
-
 
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-class ScheduleType(enum.Enum):
+class ScheduleType(str, enum.Enum):
     slice = "slice"
     dashboard = "dashboard"
+    alert = "alert"
 
 
-class EmailDeliveryType(enum.Enum):
+class EmailDeliveryType(str, enum.Enum):
     attachment = "Attachment"
     inline = "Inline"
 
 
-class SliceEmailReportFormat(enum.Enum):
+class SliceEmailReportFormat(str, enum.Enum):
     visualization = "Visualization"
     data = "Raw data"
 
@@ -57,11 +57,11 @@ class EmailSchedule:
     crontab = Column(String(50))
 
     @declared_attr
-    def user_id(self):
+    def user_id(self) -> int:
         return Column(Integer, ForeignKey("ab_user.id"))
 
     @declared_attr
-    def user(self):
+    def user(self) -> RelationshipProperty:
         return relationship(
             security_manager.user_model,
             backref=self.__tablename__,
@@ -69,6 +69,7 @@ class EmailSchedule:
         )
 
     recipients = Column(Text)
+    slack_channel = Column(Text)
     deliver_as_group = Column(Boolean, default=False)
     delivery_type = Column(Enum(EmailDeliveryType))
 
@@ -88,8 +89,11 @@ class SliceEmailSchedule(Model, AuditMixinNullable, ImportMixin, EmailSchedule):
     email_format = Column(Enum(SliceEmailReportFormat))
 
 
-def get_scheduler_model(report_type):
-    if report_type == ScheduleType.dashboard.value:
+def get_scheduler_model(report_type: str) -> Optional[Type[EmailSchedule]]:
+    if report_type == ScheduleType.dashboard:
         return DashboardEmailSchedule
-    elif report_type == ScheduleType.slice.value:
+    if report_type == ScheduleType.slice:
         return SliceEmailSchedule
+    if report_type == ScheduleType.alert:
+        return Alert
+    return None

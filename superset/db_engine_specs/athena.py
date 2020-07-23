@@ -14,16 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from datetime import datetime
+from typing import Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
 
-    time_grain_functions = {
+    _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
         "PT1M": "date_trunc('minute', CAST({col} AS TIMESTAMP))",
@@ -40,13 +41,13 @@ class AthenaEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> str:
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == "DATE":
-            return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
-        if tt == "TIMESTAMP":
-            return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
-        return "CAST ('{}' AS TIMESTAMP)".format(dttm.strftime("%Y-%m-%d %H:%M:%S"))
+        if tt == utils.TemporalType.DATE:
+            return f"from_iso8601_date('{dttm.date().isoformat()}')"
+        if tt == utils.TemporalType.TIMESTAMP:
+            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long
+        return None
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

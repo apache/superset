@@ -16,90 +16,104 @@
 # under the License.
 import unittest
 
-from superset import sql_parse
+import sqlparse
+
+from superset.sql_parse import ParsedQuery, Table
 
 
-class SupersetTestCase(unittest.TestCase):
+class TestSupersetSqlParse(unittest.TestCase):
     def extract_tables(self, query):
-        sq = sql_parse.ParsedQuery(query)
-        return sq.tables
+        return ParsedQuery(query).tables
+
+    def test_table(self):
+        self.assertEqual(str(Table("tbname")), "tbname")
+        self.assertEqual(str(Table("tbname", "schemaname")), "schemaname.tbname")
+
+        self.assertEqual(
+            str(Table("tbname", "schemaname", "catalogname")),
+            "catalogname.schemaname.tbname",
+        )
+
+        self.assertEqual(
+            str(Table("tb.name", "schema/name", "catalog\name")),
+            "catalog%0Aame.schema%2Fname.tb%2Ename",
+        )
 
     def test_simple_select(self):
         query = "SELECT * FROM tbname"
-        self.assertEquals({"tbname"}, self.extract_tables(query))
+        self.assertEqual({Table("tbname")}, self.extract_tables(query))
 
         query = "SELECT * FROM tbname foo"
-        self.assertEquals({"tbname"}, self.extract_tables(query))
+        self.assertEqual({Table("tbname")}, self.extract_tables(query))
 
         query = "SELECT * FROM tbname AS foo"
-        self.assertEquals({"tbname"}, self.extract_tables(query))
+        self.assertEqual({Table("tbname")}, self.extract_tables(query))
 
         # underscores
         query = "SELECT * FROM tb_name"
-        self.assertEquals({"tb_name"}, self.extract_tables(query))
+        self.assertEqual({Table("tb_name")}, self.extract_tables(query))
 
         # quotes
         query = 'SELECT * FROM "tbname"'
-        self.assertEquals({"tbname"}, self.extract_tables(query))
+        self.assertEqual({Table("tbname")}, self.extract_tables(query))
 
         # unicode encoding
         query = 'SELECT * FROM "tb_name" WHERE city = "Lübeck"'
-        self.assertEquals({"tb_name"}, self.extract_tables(query))
+        self.assertEqual({Table("tb_name")}, self.extract_tables(query))
 
         # schema
-        self.assertEquals(
-            {"schemaname.tbname"},
+        self.assertEqual(
+            {Table("tbname", "schemaname")},
             self.extract_tables("SELECT * FROM schemaname.tbname"),
         )
 
-        self.assertEquals(
-            {"schemaname.tbname"},
+        self.assertEqual(
+            {Table("tbname", "schemaname")},
             self.extract_tables('SELECT * FROM "schemaname"."tbname"'),
         )
 
-        self.assertEquals(
-            {"schemaname.tbname"},
+        self.assertEqual(
+            {Table("tbname", "schemaname")},
             self.extract_tables("SELECT * FROM schemaname.tbname foo"),
         )
 
-        self.assertEquals(
-            {"schemaname.tbname"},
+        self.assertEqual(
+            {Table("tbname", "schemaname")},
             self.extract_tables("SELECT * FROM schemaname.tbname AS foo"),
         )
 
-        # cluster
-        self.assertEquals(
-            {"clustername.schemaname.tbname"},
-            self.extract_tables("SELECT * FROM clustername.schemaname.tbname"),
+        self.assertEqual(
+            {Table("tbname", "schemaname", "catalogname")},
+            self.extract_tables("SELECT * FROM catalogname.schemaname.tbname"),
         )
 
         # Ill-defined cluster/schema/table.
-        self.assertEquals(set(), self.extract_tables("SELECT * FROM schemaname."))
+        self.assertEqual(set(), self.extract_tables("SELECT * FROM schemaname."))
 
-        self.assertEquals(
-            set(), self.extract_tables("SELECT * FROM clustername.schemaname.")
+        self.assertEqual(
+            set(), self.extract_tables("SELECT * FROM catalogname.schemaname.")
         )
 
-        self.assertEquals(set(), self.extract_tables("SELECT * FROM clustername.."))
+        self.assertEqual(set(), self.extract_tables("SELECT * FROM catalogname.."))
 
-        self.assertEquals(
-            set(), self.extract_tables("SELECT * FROM clustername..tbname")
+        self.assertEqual(
+            set(), self.extract_tables("SELECT * FROM catalogname..tbname")
         )
 
         # quotes
         query = "SELECT field1, field2 FROM tb_name"
-        self.assertEquals({"tb_name"}, self.extract_tables(query))
+        self.assertEqual({Table("tb_name")}, self.extract_tables(query))
 
         query = "SELECT t1.f1, t2.f2 FROM t1, t2"
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
     def test_select_named_table(self):
         query = "SELECT a.date, a.field FROM left_table a LIMIT 10"
-        self.assertEquals({"left_table"}, self.extract_tables(query))
+        self.assertEqual({Table("left_table")}, self.extract_tables(query))
 
     def test_reverse_select(self):
         query = "FROM t1 SELECT field"
-        self.assertEquals({"t1"}, self.extract_tables(query))
+        self.assertEqual({Table("t1")}, self.extract_tables(query))
 
     def test_subselect(self):
         query = """
@@ -111,7 +125,9 @@ class SupersetTestCase(unittest.TestCase):
                    ) sub, s2.t2
           WHERE sub.resolution = 'NONE'
         """
-        self.assertEquals({"s1.t1", "s2.t2"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("t1", "s1"), Table("t2", "s2")}, self.extract_tables(query)
+        )
 
         query = """
           SELECT sub.*
@@ -122,7 +138,7 @@ class SupersetTestCase(unittest.TestCase):
                    ) sub
           WHERE sub.resolution = 'NONE'
         """
-        self.assertEquals({"s1.t1"}, self.extract_tables(query))
+        self.assertEqual({Table("t1", "s1")}, self.extract_tables(query))
 
         query = """
             SELECT * FROM t1
@@ -133,21 +149,24 @@ class SupersetTestCase(unittest.TestCase):
                   WHERE ROW(5*t2.s1,77)=
                     (SELECT 50,11*s1 FROM t4)));
         """
-        self.assertEquals({"t1", "t2", "t3", "t4"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("t1"), Table("t2"), Table("t3"), Table("t4")},
+            self.extract_tables(query),
+        )
 
     def test_select_in_expression(self):
         query = "SELECT f1, (SELECT count(1) FROM t2) FROM t1"
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
     def test_union(self):
         query = "SELECT * FROM t1 UNION SELECT * FROM t2"
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
         query = "SELECT * FROM t1 UNION ALL SELECT * FROM t2"
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
         query = "SELECT * FROM t1 INTERSECT ALL SELECT * FROM t2"
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
     def test_select_from_values(self):
         query = "SELECT * FROM VALUES (13, 42)"
@@ -158,25 +177,28 @@ class SupersetTestCase(unittest.TestCase):
             SELECT ARRAY[1, 2, 3] AS my_array
             FROM t1 LIMIT 10
         """
-        self.assertEquals({"t1"}, self.extract_tables(query))
+        self.assertEqual({Table("t1")}, self.extract_tables(query))
 
     def test_select_if(self):
         query = """
             SELECT IF(CARDINALITY(my_array) >= 3, my_array[3], NULL)
             FROM t1 LIMIT 10
         """
-        self.assertEquals({"t1"}, self.extract_tables(query))
+        self.assertEqual({Table("t1")}, self.extract_tables(query))
 
     # SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?
     def test_show_tables(self):
         query = "SHOW TABLES FROM s1 like '%order%'"
         # TODO: figure out what should code do here
-        self.assertEquals({"s1"}, self.extract_tables(query))
+        self.assertEqual({Table("s1")}, self.extract_tables(query))
+        # Expected behavior is below, it is fixed in sqlparse>=3.1
+        # However sqlparse==3.1 breaks some sql formatting.
+        # self.assertEqual(set(), self.extract_tables(query))
 
     # SHOW COLUMNS (FROM | IN) qualifiedName
     def test_show_columns(self):
         query = "SHOW COLUMNS FROM t1"
-        self.assertEquals({"t1"}, self.extract_tables(query))
+        self.assertEqual({Table("t1")}, self.extract_tables(query))
 
     def test_where_subquery(self):
         query = """
@@ -184,25 +206,25 @@ class SupersetTestCase(unittest.TestCase):
             FROM t1
             WHERE regionkey = (SELECT max(regionkey) FROM t2)
         """
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
         query = """
           SELECT name
             FROM t1
             WHERE regionkey IN (SELECT regionkey FROM t2)
         """
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
         query = """
           SELECT name
             FROM t1
             WHERE regionkey EXISTS (SELECT regionkey FROM t2)
         """
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
     # DESCRIBE | DESC qualifiedName
     def test_describe(self):
-        self.assertEquals({"t1"}, self.extract_tables("DESCRIBE t1"))
+        self.assertEqual({Table("t1")}, self.extract_tables("DESCRIBE t1"))
 
     # SHOW PARTITIONS FROM qualifiedName (WHERE booleanExpression)?
     # (ORDER BY sortItem (',' sortItem)*)? (LIMIT limit=(INTEGER_VALUE | ALL))?
@@ -211,11 +233,11 @@ class SupersetTestCase(unittest.TestCase):
             SHOW PARTITIONS FROM orders
             WHERE ds >= '2013-01-01' ORDER BY ds DESC;
         """
-        self.assertEquals({"orders"}, self.extract_tables(query))
+        self.assertEqual({Table("orders")}, self.extract_tables(query))
 
     def test_join(self):
         query = "SELECT t1.*, t2.* FROM t1 JOIN t2 ON t1.a = t2.a;"
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
         # subquery + join
         query = """
@@ -229,7 +251,9 @@ class SupersetTestCase(unittest.TestCase):
                 ) b
                 ON a.date = b.date
         """
-        self.assertEquals({"left_table", "right_table"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("left_table"), Table("right_table")}, self.extract_tables(query)
+        )
 
         query = """
             SELECT a.date, b.name FROM
@@ -242,7 +266,9 @@ class SupersetTestCase(unittest.TestCase):
                 ) b
                 ON a.date = b.date
         """
-        self.assertEquals({"left_table", "right_table"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("left_table"), Table("right_table")}, self.extract_tables(query)
+        )
 
         query = """
             SELECT a.date, b.name FROM
@@ -255,7 +281,9 @@ class SupersetTestCase(unittest.TestCase):
                 ) b
                 ON a.date = b.date
         """
-        self.assertEquals({"left_table", "right_table"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("left_table"), Table("right_table")}, self.extract_tables(query)
+        )
 
         query = """
             SELECT a.date, b.name FROM
@@ -268,7 +296,9 @@ class SupersetTestCase(unittest.TestCase):
                 ) b
                 ON a.date = b.date
         """
-        self.assertEquals({"left_table", "right_table"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("left_table"), Table("right_table")}, self.extract_tables(query)
+        )
 
         # TODO: add SEMI join support, SQL Parse does not handle it.
         # query = """
@@ -282,7 +312,7 @@ class SupersetTestCase(unittest.TestCase):
         #         ) b
         #         ON a.date = b.date
         # """
-        # self.assertEquals({'left_table', 'right_table'},
+        # self.assertEqual({'left_table', 'right_table'},
         #                   sql_parse.extract_tables(query))
 
     def test_combinations(self):
@@ -296,13 +326,16 @@ class SupersetTestCase(unittest.TestCase):
                   WHERE ROW(5*t3.s1,77)=
                     (SELECT 50,11*s1 FROM t4)));
         """
-        self.assertEquals({"t1", "t3", "t4", "t6"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("t1"), Table("t3"), Table("t4"), Table("t6")},
+            self.extract_tables(query),
+        )
 
         query = """
         SELECT * FROM (SELECT * FROM (SELECT * FROM (SELECT * FROM EmployeeS)
             AS S1) AS S2) AS S3;
         """
-        self.assertEquals({"EmployeeS"}, self.extract_tables(query))
+        self.assertEqual({Table("EmployeeS")}, self.extract_tables(query))
 
     def test_with(self):
         query = """
@@ -312,7 +345,9 @@ class SupersetTestCase(unittest.TestCase):
               z AS (SELECT b AS c FROM t3)
             SELECT c FROM z;
         """
-        self.assertEquals({"t1", "t2", "t3"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("t1"), Table("t2"), Table("t3")}, self.extract_tables(query)
+        )
 
         query = """
             WITH
@@ -321,7 +356,7 @@ class SupersetTestCase(unittest.TestCase):
               z AS (SELECT b AS c FROM y)
             SELECT c FROM z;
         """
-        self.assertEquals({"t1"}, self.extract_tables(query))
+        self.assertEqual({Table("t1")}, self.extract_tables(query))
 
     def test_reusing_aliases(self):
         query = """
@@ -329,26 +364,26 @@ class SupersetTestCase(unittest.TestCase):
             q2 as ( select key from src where key = '5')
             select * from (select key from q1) a;
         """
-        self.assertEquals({"src"}, self.extract_tables(query))
+        self.assertEqual({Table("src")}, self.extract_tables(query))
 
     def test_multistatement(self):
         query = "SELECT * FROM t1; SELECT * FROM t2"
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
         query = "SELECT * FROM t1; SELECT * FROM t2;"
-        self.assertEquals({"t1", "t2"}, self.extract_tables(query))
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
     def test_update_not_select(self):
-        sql = sql_parse.ParsedQuery("UPDATE t1 SET col1 = NULL")
-        self.assertEquals(False, sql.is_select())
-        self.assertEquals(False, sql.is_readonly())
+        sql = ParsedQuery("UPDATE t1 SET col1 = NULL")
+        self.assertEqual(False, sql.is_select())
+        self.assertEqual(False, sql.is_readonly())
 
     def test_explain(self):
-        sql = sql_parse.ParsedQuery("EXPLAIN SELECT 1")
+        sql = ParsedQuery("EXPLAIN SELECT 1")
 
-        self.assertEquals(True, sql.is_explain())
-        self.assertEquals(False, sql.is_select())
-        self.assertEquals(True, sql.is_readonly())
+        self.assertEqual(True, sql.is_explain())
+        self.assertEqual(False, sql.is_select())
+        self.assertEqual(True, sql.is_readonly())
 
     def test_complex_extract_tables(self):
         query = """SELECT sum(m_examples) AS "sum__m_example"
@@ -366,8 +401,13 @@ class SupersetTestCase(unittest.TestCase):
                ORDER BY 2 ASC) AS "meh"
             ORDER BY "sum__m_example" DESC
             LIMIT 10;"""
-        self.assertEquals(
-            {"my_l_table", "my_b_table", "my_t_table", "inner_table"},
+        self.assertEqual(
+            {
+                Table("my_l_table"),
+                Table("my_b_table"),
+                Table("my_t_table"),
+                Table("inner_table"),
+            },
             self.extract_tables(query),
         )
 
@@ -375,13 +415,19 @@ class SupersetTestCase(unittest.TestCase):
         query = """SELECT *
             FROM table_a AS a, table_b AS b, table_c as c
             WHERE a.id = b.id and b.id = c.id"""
-        self.assertEquals({"table_a", "table_b", "table_c"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("table_a"), Table("table_b"), Table("table_c")},
+            self.extract_tables(query),
+        )
 
     def test_mixed_from_clause(self):
         query = """SELECT *
             FROM table_a AS a, (select * from table_b) AS b, table_c as c
             WHERE a.id = b.id and b.id = c.id"""
-        self.assertEquals({"table_a", "table_b", "table_c"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("table_a"), Table("table_b"), Table("table_c")},
+            self.extract_tables(query),
+        )
 
     def test_nested_selects(self):
         query = """
@@ -389,13 +435,17 @@ class SupersetTestCase(unittest.TestCase):
             from INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
         """
-        self.assertEquals({"INFORMATION_SCHEMA.COLUMNS"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("COLUMNS", "INFORMATION_SCHEMA")}, self.extract_tables(query)
+        )
         query = """
             select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(COLUMN_NAME)
             from INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME="bi_achivement_daily"),0x7e)));
         """
-        self.assertEquals({"INFORMATION_SCHEMA.COLUMNS"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("COLUMNS", "INFORMATION_SCHEMA")}, self.extract_tables(query)
+        )
 
     def test_complex_extract_tables3(self):
         query = """SELECT somecol AS somecol
@@ -431,7 +481,10 @@ class SupersetTestCase(unittest.TestCase):
             WHERE 2=2
             GROUP BY last_col
             LIMIT 50000;"""
-        self.assertEquals({"a", "b", "c", "d", "e", "f"}, self.extract_tables(query))
+        self.assertEqual(
+            {Table("a"), Table("b"), Table("c"), Table("d"), Table("e"), Table("f")},
+            self.extract_tables(query),
+        )
 
     def test_complex_cte_with_prefix(self):
         query = """
@@ -446,55 +499,64 @@ class SupersetTestCase(unittest.TestCase):
         GROUP BY SalesYear, SalesPersonID
         ORDER BY SalesPersonID, SalesYear;
         """
-        self.assertEquals({"SalesOrderHeader"}, self.extract_tables(query))
+        self.assertEqual({Table("SalesOrderHeader")}, self.extract_tables(query))
 
     def test_get_query_with_new_limit_comment(self):
-        sql = "SELECT * FROM ab_user -- SOME COMMENT"
-        parsed = sql_parse.ParsedQuery(sql)
-        newsql = parsed.get_query_with_new_limit(1000)
-        self.assertEquals(newsql, sql + "\nLIMIT 1000")
+        sql = "SELECT * FROM birth_names -- SOME COMMENT"
+        parsed = ParsedQuery(sql)
+        newsql = parsed.set_or_update_query_limit(1000)
+        self.assertEqual(newsql, sql + "\nLIMIT 1000")
 
     def test_get_query_with_new_limit_comment_with_limit(self):
-        sql = "SELECT * FROM ab_user -- SOME COMMENT WITH LIMIT 555"
-        parsed = sql_parse.ParsedQuery(sql)
-        newsql = parsed.get_query_with_new_limit(1000)
-        self.assertEquals(newsql, sql + "\nLIMIT 1000")
+        sql = "SELECT * FROM birth_names -- SOME COMMENT WITH LIMIT 555"
+        parsed = ParsedQuery(sql)
+        newsql = parsed.set_or_update_query_limit(1000)
+        self.assertEqual(newsql, sql + "\nLIMIT 1000")
 
-    def test_get_query_with_new_limit(self):
-        sql = "SELECT * FROM ab_user LIMIT 555"
-        parsed = sql_parse.ParsedQuery(sql)
-        newsql = parsed.get_query_with_new_limit(1000)
-        expected = "SELECT * FROM ab_user LIMIT 1000"
-        self.assertEquals(newsql, expected)
+    def test_get_query_with_new_limit_lower(self):
+        sql = "SELECT * FROM birth_names LIMIT 555"
+        parsed = ParsedQuery(sql)
+        newsql = parsed.set_or_update_query_limit(1000)
+        # not applied as new limit is higher
+        expected = "SELECT * FROM birth_names LIMIT 555"
+        self.assertEqual(newsql, expected)
+
+    def test_get_query_with_new_limit_upper(self):
+        sql = "SELECT * FROM birth_names LIMIT 1555"
+        parsed = ParsedQuery(sql)
+        newsql = parsed.set_or_update_query_limit(1000)
+        # applied as new limit is lower
+        expected = "SELECT * FROM birth_names LIMIT 1000"
+        self.assertEqual(newsql, expected)
 
     def test_basic_breakdown_statements(self):
         multi_sql = """
-        SELECT * FROM ab_user;
-        SELECT * FROM ab_user LIMIT 1;
+        SELECT * FROM birth_names;
+        SELECT * FROM birth_names LIMIT 1;
         """
-        parsed = sql_parse.ParsedQuery(multi_sql)
+        parsed = ParsedQuery(multi_sql)
         statements = parsed.get_statements()
-        self.assertEquals(len(statements), 2)
-        expected = ["SELECT * FROM ab_user", "SELECT * FROM ab_user LIMIT 1"]
-        self.assertEquals(statements, expected)
+        self.assertEqual(len(statements), 2)
+        expected = ["SELECT * FROM birth_names", "SELECT * FROM birth_names LIMIT 1"]
+        self.assertEqual(statements, expected)
 
     def test_messy_breakdown_statements(self):
         multi_sql = """
         SELECT 1;\t\n\n\n  \t
         \t\nSELECT 2;
-        SELECT * FROM ab_user;;;
-        SELECT * FROM ab_user LIMIT 1
+        SELECT * FROM birth_names;;;
+        SELECT * FROM birth_names LIMIT 1
         """
-        parsed = sql_parse.ParsedQuery(multi_sql)
+        parsed = ParsedQuery(multi_sql)
         statements = parsed.get_statements()
-        self.assertEquals(len(statements), 4)
+        self.assertEqual(len(statements), 4)
         expected = [
             "SELECT 1",
             "SELECT 2",
-            "SELECT * FROM ab_user",
-            "SELECT * FROM ab_user LIMIT 1",
+            "SELECT * FROM birth_names",
+            "SELECT * FROM birth_names LIMIT 1",
         ]
-        self.assertEquals(statements, expected)
+        self.assertEqual(statements, expected)
 
     def test_identifier_list_with_keyword_as_alias(self):
         query = """
@@ -503,4 +565,17 @@ class SupersetTestCase(unittest.TestCase):
             match AS (SELECT * FROM f)
         SELECT * FROM match
         """
-        self.assertEquals({"foo"}, self.extract_tables(query))
+        self.assertEqual({Table("foo")}, self.extract_tables(query))
+
+    def test_sqlparse_formatting(self):
+        # sqlparse 0.3.1 has a bug and removes space between from and from_unixtime while formatting:
+        # SELECT extract(HOUR\n               fromfrom_unixtime(hour_ts)
+        # AT TIME ZONE 'America/Los_Angeles')\nfrom table
+        self.assertEqual(
+            "SELECT extract(HOUR\n               from from_unixtime(hour_ts) "
+            "AT TIME ZONE 'America/Los_Angeles')\nfrom table",
+            sqlparse.format(
+                "SELECT extract(HOUR from from_unixtime(hour_ts) AT TIME ZONE 'America/Los_Angeles') from table",
+                reindent=True,
+            ),
+        )

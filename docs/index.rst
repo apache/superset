@@ -17,12 +17,12 @@
 
 |apache_img| |superset_img|
 
-.. |apache_img| image:: images/apache_feather.png
+.. |apache_img| image:: _static/images/apache_feather.png
    :width: 7%
    :target: http://www.apache.org/
    :alt: The Apache Software Foundation
 
-.. |superset_img| image:: images/s.png
+.. |superset_img| image:: _static/images/s.png
    :width: 25%
 
 Apache Superset (incubating)
@@ -53,6 +53,7 @@ intelligence web application
 
 Superset Resources
 ==================
+- Versioned versions of this documentation: https://readthedocs.org/projects/apache-superset/
 - `Superset's Github <https://github.com/apache/incubator-superset>`_, note
   that `we use Github for issue tracking <https://github.com/apache/incubator-superset/issues>`_
 - Superset's
@@ -62,7 +63,7 @@ Superset Resources
   on Github.
 - Our `mailing list archives <https://lists.apache.org/list.html?dev@superset.apache.org>`_.
   To subscribe, send an email to ``dev-subscribe@superset.apache.org``
-- `Join our Slack <https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LTc2Y2QwYjE4NGYwNzQyZWUwYTExZTdiZDMzMWQwZjc2YmJmM2QyMDkwMGVjZTA4N2I2MzUxZTk2YmE5MWRhZWE>`_
+- `Join our Slack <https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU>`_
 
 Apache Software Foundation Resources
 ====================================
@@ -96,7 +97,7 @@ Features
 Databases
 ---------
 
-The following RDBMS are currently suppored:
+The following RDBMS are currently supported:
 
 - `Amazon Athena <https://aws.amazon.com/athena/>`_
 - `Amazon Redshift <https://aws.amazon.com/redshift/>`_
@@ -108,7 +109,11 @@ The following RDBMS are currently suppored:
 - `Apache Pinot <https://pinot.incubator.apache.org/>`_
 - `Apache Spark SQL <https://spark.apache.org/sql/>`_
 - `BigQuery <https://cloud.google.com/bigquery/>`_
-- `ClickHouse <https://clickhouse.yandex/>`_
+- `ClickHouse <https://clickhouse.tech/>`_
+- `CockroachDB <https://www.cockroachlabs.com/>`_
+- `Dremio <https://dremio.com/>`_
+- `Elasticsearch <https://www.elastic.co/elasticsearch/>`_
+- `Exasol <https://www.exasol.com/>`_
 - `Google Sheets <https://www.google.com/sheets/about/>`_
 - `Greenplum <https://greenplum.org/>`_
 - `IBM Db2 <https://www.ibm.com/analytics/db2/>`_
@@ -121,6 +126,7 @@ The following RDBMS are currently suppored:
 - `SQL Server <https://www.microsoft.com/en-us/sql-server/>`_
 - `Teradata <https://www.teradata.com/>`_
 - `Vertica <https://www.vertica.com/>`_
+- `Hana <https://www.sap.com/products/hana.html>`_
 
 Other database engines with a proper DB-API driver and SQLAlchemy dialect should
 be supported as well.
@@ -128,19 +134,19 @@ be supported as well.
 Screenshots
 -----------
 
-.. image:: images/screenshots/bank_dash.png
+.. image:: _static/images/screenshots/bank_dash.png
 
 ------
 
-.. image:: images/screenshots/explore.png
+.. image:: _static/images/screenshots/explore.png
 
 ------
 
-.. image:: images/screenshots/sqllab.png
+.. image:: _static/images/screenshots/sqllab.png
 
 ------
 
-.. image:: images/screenshots/deckgl_dash.png
+.. image:: _static/images/screenshots/deckgl_dash.png
 
 ------
 
@@ -152,12 +158,13 @@ Contents
     :maxdepth: 2
 
     installation
-    tutorial
+    tutorials
     security
     sqllab
     gallery
     druid
     misc
+    issue_code_reference
     faq
 
 

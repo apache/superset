@@ -14,20 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 from flask import Markup
 
+from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import SupersetException
 from superset.views.base import SupersetModelView
 
 
 class DatasourceModelView(SupersetModelView):
-    def pre_delete(self, obj):
-        if obj.slices:
+    def pre_delete(self, item: BaseDatasource) -> None:
+        if item.slices:
             raise SupersetException(
                 Markup(
                     "Cannot delete a datasource that has slices attached to it."
                     "Here's the list of associated charts: "
-                    + "".join([o.slice_name for o in obj.slices])
+                    + "".join([i.slice_name for i in item.slices])
                 )
             )

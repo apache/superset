@@ -1,0 +1,58 @@
+{#
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-#}
+To: {{ receiver_email }}
+From: {{ sender_email }}
+Subject: [RESULT] [VOTE] Release Apache {{ project_name }} (incubating) version {{ version }}
+
+Thanks to everyone that participated. The vote to release
+Apache {{ project_name }} (incubating) version {{ version }} is now closed.
+
+{% if vote_negatives|length > 0 %}
+The vote did not PASS with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non binding +1 and {{vote_negatives|length}} -1 votes:
+{% elif vote_bindings|length > 2 %}
+The vote PASSED with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non binding +1 and {{vote_negatives|length}} -1 votes:
+{% else %}
+The vote is non conclusive with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non binding -1 and {{vote_negatives|length}} -1 votes:
+{% endif %}
+
+{% if vote_bindings|length > 0 -%}
+Binding votes:
+{% for voter in vote_bindings -%}
+- {{ voter }}
+{% endfor %}
+{%- endif %}
+
+{% if vote_nonbindings|length > 0 -%}
+Non binding votes:
+{% for voter in vote_nonbindings -%}
+- {{ voter }}
+{% endfor %}
+{%- endif %}
+
+{% if vote_negatives|length > 0 -%}
+Negative votes:
+{% for voter in vote_negatives -%}
+- {{ voter }}
+{% endfor %}
+{%- endif %}
+
+We will work to complete the release process.
+
+Thanks,
+The Apache {{ project_name }} (Incubating) Team

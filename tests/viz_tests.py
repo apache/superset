@@ -14,22 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
-from unittest.mock import Mock, patch
+# isort:skip_file
 import uuid
+from datetime import datetime
+import logging
+from math import nan
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pandas as pd
 
+import tests.test_app
+import superset.viz as viz
 from superset import app
+from superset.constants import NULL_STRING
 from superset.exceptions import SpatialException
 from superset.utils.core import DTTM_ALIAS
-import superset.viz as viz
+
 from .base_tests import SupersetTestCase
 from .utils import load_fixture
 
+logger = logging.getLogger(__name__)
 
-class BaseVizTestCase(SupersetTestCase):
+
+class TestBaseViz(SupersetTestCase):
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
@@ -97,7 +105,7 @@ class BaseVizTestCase(SupersetTestCase):
         datasource.type = "table"
         datasource.query = Mock(return_value=results)
         mock_dttm_col = Mock()
-        datasource.get_col = Mock(return_value=mock_dttm_col)
+        datasource.get_column = Mock(return_value=mock_dttm_col)
 
         test_viz = viz.BaseViz(datasource, form_data)
         test_viz.df_metrics_to_num = Mock()
@@ -106,12 +114,12 @@ class BaseVizTestCase(SupersetTestCase):
         results.df = pd.DataFrame(data={DTTM_ALIAS: ["1960-01-01 05:00:00"]})
         datasource.offset = 0
         mock_dttm_col = Mock()
-        datasource.get_col = Mock(return_value=mock_dttm_col)
+        datasource.get_column = Mock(return_value=mock_dttm_col)
         mock_dttm_col.python_date_format = "epoch_ms"
         result = test_viz.get_df(query_obj)
         import logging
 
-        logging.info(result)
+        logger.info(result)
         pd.testing.assert_series_equal(
             result[DTTM_ALIAS], pd.Series([datetime(1960, 1, 1, 5, 0)], name=DTTM_ALIAS)
         )
@@ -158,18 +166,10 @@ class BaseVizTestCase(SupersetTestCase):
         self.assertEqual(app.config["CACHE_DEFAULT_TIMEOUT"], test_viz.cache_timeout)
 
 
-class TableVizTestCase(SupersetTestCase):
+class TestTableViz(SupersetTestCase):
     def test_get_data_applies_percentage(self):
         form_data = {
-            "percent_metrics": [
-                {
-                    "expressionType": "SIMPLE",
-                    "aggregate": "SUM",
-                    "label": "SUM(value1)",
-                    "column": {"column_name": "value1", "type": "DOUBLE"},
-                },
-                "avg__B",
-            ],
+            "groupby": ["groupA", "groupB"],
             "metrics": [
                 {
                     "expressionType": "SIMPLE",
@@ -180,39 +180,50 @@ class TableVizTestCase(SupersetTestCase):
                 "count",
                 "avg__C",
             ],
+            "percent_metrics": [
+                {
+                    "expressionType": "SIMPLE",
+                    "aggregate": "SUM",
+                    "label": "SUM(value1)",
+                    "column": {"column_name": "value1", "type": "DOUBLE"},
+                },
+                "avg__B",
+            ],
         }
         datasource = self.get_datasource_mock()
-        raw = {}
-        raw["SUM(value1)"] = [15, 20, 25, 40]
-        raw["avg__B"] = [10, 20, 5, 15]
-        raw["avg__C"] = [11, 22, 33, 44]
-        raw["count"] = [6, 7, 8, 9]
-        raw["groupA"] = ["A", "B", "C", "C"]
-        raw["groupB"] = ["x", "x", "y", "z"]
-        df = pd.DataFrame(raw)
+
+        df = pd.DataFrame(
+            {
+                "SUM(value1)": [15, 20, 25, 40],
+                "avg__B": [10, 20, 5, 15],
+                "avg__C": [11, 22, 33, 44],
+                "count": [6, 7, 8, 9],
+                "groupA": ["A", "B", "C", "C"],
+                "groupB": ["x", "x", "y", "z"],
+            }
+        )
+
         test_viz = viz.TableViz(datasource, form_data)
         data = test_viz.get_data(df)
         # Check method correctly transforms data and computes percents
         self.assertEqual(
-            set(
-                [
-                    "groupA",
-                    "groupB",
-                    "count",
-                    "SUM(value1)",
-                    "avg__C",
-                    "%SUM(value1)",
-                    "%avg__B",
-                ]
-            ),
-            set(data["columns"]),
+            [
+                "groupA",
+                "groupB",
+                "SUM(value1)",
+                "count",
+                "avg__C",
+                "%SUM(value1)",
+                "%avg__B",
+            ],
+            list(data["columns"]),
         )
         expected = [
             {
                 "groupA": "A",
                 "groupB": "x",
-                "count": 6,
                 "SUM(value1)": 15,
+                "count": 6,
                 "avg__C": 11,
                 "%SUM(value1)": 0.15,
                 "%avg__B": 0.2,
@@ -220,8 +231,8 @@ class TableVizTestCase(SupersetTestCase):
             {
                 "groupA": "B",
                 "groupB": "x",
-                "count": 7,
                 "SUM(value1)": 20,
+                "count": 7,
                 "avg__C": 22,
                 "%SUM(value1)": 0.2,
                 "%avg__B": 0.4,
@@ -229,8 +240,8 @@ class TableVizTestCase(SupersetTestCase):
             {
                 "groupA": "C",
                 "groupB": "y",
-                "count": 8,
                 "SUM(value1)": 25,
+                "count": 8,
                 "avg__C": 33,
                 "%SUM(value1)": 0.25,
                 "%avg__B": 0.1,
@@ -238,10 +249,10 @@ class TableVizTestCase(SupersetTestCase):
             {
                 "groupA": "C",
                 "groupB": "z",
-                "count": 9,
                 "SUM(value1)": 40,
+                "count": 9,
                 "avg__C": 44,
-                "%SUM(value1)": 0.40,
+                "%SUM(value1)": 0.4,
                 "%avg__B": 0.3,
             },
         ]
@@ -333,33 +344,28 @@ class TableVizTestCase(SupersetTestCase):
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("", query_obj["extras"]["having"])
 
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_merges_percent_metrics(self, super_query_obj):
+    def test_query_obj_merges_percent_metrics(self):
         datasource = self.get_datasource_mock()
         form_data = {
-            "percent_metrics": ["sum__A", "avg__B", "max__Y"],
             "metrics": ["sum__A", "count", "avg__C"],
+            "percent_metrics": ["sum__A", "avg__B", "max__Y"],
         }
         test_viz = viz.TableViz(datasource, form_data)
-        f_query_obj = {"metrics": form_data["metrics"]}
-        super_query_obj.return_value = f_query_obj
         query_obj = test_viz.query_obj()
         self.assertEqual(
             ["sum__A", "count", "avg__C", "avg__B", "max__Y"], query_obj["metrics"]
         )
 
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_throws_columns_and_metrics(self, super_query_obj):
+    def test_query_obj_throws_columns_and_metrics(self):
         datasource = self.get_datasource_mock()
         form_data = {"all_columns": ["A", "B"], "metrics": ["x", "y"]}
-        super_query_obj.return_value = {}
-        test_viz = viz.TableViz(datasource, form_data)
         with self.assertRaises(Exception):
+            test_viz = viz.TableViz(datasource, form_data)
             test_viz.query_obj()
         del form_data["metrics"]
         form_data["groupby"] = ["B", "C"]
-        test_viz = viz.TableViz(datasource, form_data)
         with self.assertRaises(Exception):
+            test_viz = viz.TableViz(datasource, form_data)
             test_viz.query_obj()
 
     @patch("superset.viz.BaseViz.query_obj")
@@ -379,25 +385,141 @@ class TableVizTestCase(SupersetTestCase):
         self.assertEqual([], query_obj["groupby"])
         self.assertEqual([["colA", "colB"], ["colC"]], query_obj["orderby"])
 
-    @patch("superset.viz.BaseViz.query_obj")
-    def test_query_obj_uses_sortby(self, super_query_obj):
+    def test_query_obj_uses_sortby(self):
         datasource = self.get_datasource_mock()
-        form_data = {"timeseries_limit_metric": "__time__", "order_desc": False}
-        super_query_obj.return_value = {"metrics": ["colA", "colB"]}
-        test_viz = viz.TableViz(datasource, form_data)
-        query_obj = test_viz.query_obj()
-        self.assertEqual(["colA", "colB", "__time__"], query_obj["metrics"])
-        self.assertEqual([("__time__", True)], query_obj["orderby"])
+        form_data = {
+            "metrics": ["colA", "colB"],
+            "order_desc": False,
+        }
+
+        def run_test(metric):
+            form_data["timeseries_limit_metric"] = metric
+            test_viz = viz.TableViz(datasource, form_data)
+            query_obj = test_viz.query_obj()
+            self.assertEqual(["colA", "colB", metric], query_obj["metrics"])
+            self.assertEqual([(metric, True)], query_obj["orderby"])
+
+        run_test("simple_metric")
+        run_test(
+            {
+                "label": "adhoc_metric",
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "sort_column",},
+            }
+        )
 
     def test_should_be_timeseries_raises_when_no_granularity(self):
         datasource = self.get_datasource_mock()
         form_data = {"include_time": True}
-        test_viz = viz.TableViz(datasource, form_data)
         with self.assertRaises(Exception):
+            test_viz = viz.TableViz(datasource, form_data)
             test_viz.should_be_timeseries()
 
+    def test_adhoc_metric_with_sortby(self):
+        metrics = [
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "label": "sum_value",
+                "column": {"column_name": "value1", "type": "DOUBLE"},
+            }
+        ]
+        form_data = {
+            "metrics": metrics,
+            "timeseries_limit_metric": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "label": "SUM(value1)",
+                "column": {"column_name": "value1", "type": "DOUBLE"},
+            },
+            "order_desc": False,
+        }
 
-class PairedTTestTestCase(SupersetTestCase):
+        df = pd.DataFrame({"SUM(value1)": [15], "sum_value": [15]})
+        datasource = self.get_datasource_mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        self.assertEqual(["sum_value"], data["columns"])
+
+
+class TestDistBarViz(SupersetTestCase):
+    def test_groupby_nulls(self):
+        form_data = {
+            "metrics": ["votes"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": [],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "anchovies", None],
+                "votes": [3, 5, 1, 2],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)[0]
+        self.assertEqual("votes", data["key"])
+        expected_values = [
+            {"x": "pepperoni", "y": 5},
+            {"x": "cheese", "y": 3},
+            {"x": NULL_STRING, "y": 2},
+            {"x": "anchovies", "y": 1},
+        ]
+        self.assertEqual(expected_values, data["values"])
+
+    def test_groupby_nans(self):
+        form_data = {
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["beds"],
+            "columns": [],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame({"beds": [0, 1, nan, 2], "count": [30, 42, 3, 29]})
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)[0]
+        self.assertEqual("count", data["key"])
+        expected_values = [
+            {"x": "1.0", "y": 42},
+            {"x": "0.0", "y": 30},
+            {"x": "2.0", "y": 29},
+            {"x": NULL_STRING, "y": 3},
+        ]
+        self.assertEqual(expected_values, data["values"])
+
+    def test_column_nulls(self):
+        form_data = {
+            "metrics": ["votes"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": ["role"],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
+                "role": ["engineer", "engineer", None, None],
+                "votes": [3, 5, 1, 2],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        expected = [
+            {
+                "key": NULL_STRING,
+                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
+            },
+            {
+                "key": "engineer",
+                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
+            },
+        ]
+        self.assertEqual(expected, data)
+
+
+class TestPairedTTest(SupersetTestCase):
     def test_get_data_transforms_dataframe(self):
         form_data = {
             "groupby": ["groupA", "groupB", "groupC"],
@@ -537,7 +659,7 @@ class PairedTTestTestCase(SupersetTestCase):
         self.assertEqual(data, expected)
 
 
-class PartitionVizTestCase(SupersetTestCase):
+class TestPartitionViz(SupersetTestCase):
     @patch("superset.viz.BaseViz.query_obj")
     def test_query_obj_time_series_option(self, super_query_obj):
         datasource = self.get_datasource_mock()
@@ -703,8 +825,16 @@ class PartitionVizTestCase(SupersetTestCase):
         )
 
     def test_get_data_calls_correct_method(self):
+        raw = {}
+        raw[DTTM_ALIAS] = [100, 200, 300, 100, 200, 300, 100, 200, 300]
+        raw["groupA"] = ["a1", "a1", "a1", "b1", "b1", "b1", "c1", "c1", "c1"]
+        raw["groupB"] = ["a2", "a2", "a2", "b2", "b2", "b2", "c2", "c2", "c2"]
+        raw["groupC"] = ["a3", "a3", "a3", "b3", "b3", "b3", "c3", "c3", "c3"]
+        raw["metric1"] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        raw["metric2"] = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        raw["metric3"] = [100, 200, 300, 400, 500, 600, 700, 800, 900]
+        df = pd.DataFrame(raw)
         test_viz = viz.PartitionViz(Mock(), {})
-        df = Mock()
         with self.assertRaises(ValueError):
             test_viz.get_data(df)
         test_viz.levels_for = Mock(return_value=1)
@@ -741,7 +871,7 @@ class PartitionVizTestCase(SupersetTestCase):
         self.assertEqual(7, len(test_viz.nest_values.mock_calls))
 
 
-class RoseVisTestCase(SupersetTestCase):
+class TestRoseVis(SupersetTestCase):
     def test_rose_vis_get_data(self):
         raw = {}
         t1 = pd.Timestamp("2000")
@@ -777,7 +907,7 @@ class RoseVisTestCase(SupersetTestCase):
         self.assertEqual(expected, res)
 
 
-class TimeSeriesTableVizTestCase(SupersetTestCase):
+class TestTimeSeriesTableViz(SupersetTestCase):
     def test_get_data_metrics(self):
         form_data = {"metrics": ["sum__A", "count"], "groupby": []}
         datasource = self.get_datasource_mock()
@@ -834,7 +964,7 @@ class TimeSeriesTableVizTestCase(SupersetTestCase):
             test_viz.query_obj()
 
 
-class BaseDeckGLVizTestCase(SupersetTestCase):
+class TestBaseDeckGLViz(SupersetTestCase):
     def test_get_metrics(self):
         form_data = load_fixture("deck_path_form_data.json")
         datasource = self.get_datasource_mock()
@@ -861,7 +991,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
         test_viz_deckgl.point_radius_fixed = {}
         result = test_viz_deckgl.get_metrics()
-        assert result is None
+        assert result == []
 
     def test_get_js_columns(self):
         form_data = load_fixture("deck_path_form_data.json")
@@ -929,14 +1059,14 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         viz_instance = viz.BaseDeckGLViz(datasource, form_data)
 
         coord = viz_instance.parse_coordinates("1.23, 3.21")
-        self.assertEquals(coord, (1.23, 3.21))
+        self.assertEqual(coord, (1.23, 3.21))
 
         coord = viz_instance.parse_coordinates("1.23 3.21")
-        self.assertEquals(coord, (1.23, 3.21))
+        self.assertEqual(coord, (1.23, 3.21))
 
-        self.assertEquals(viz_instance.parse_coordinates(None), None)
+        self.assertEqual(viz_instance.parse_coordinates(None), None)
 
-        self.assertEquals(viz_instance.parse_coordinates(""), None)
+        self.assertEqual(viz_instance.parse_coordinates(""), None)
 
     def test_parse_coordinates_raises(self):
         form_data = load_fixture("deck_path_form_data.json")
@@ -968,6 +1098,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lat",
+                    "isExtra": False,
                 },
                 {
                     "clause": "WHERE",
@@ -976,6 +1107,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lon",
+                    "isExtra": False,
                 },
             ],
             "delimited_key": [
@@ -986,6 +1118,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lonlat",
+                    "isExtra": False,
                 }
             ],
             "geohash_key": [
@@ -996,6 +1129,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "geo",
+                    "isExtra": False,
                 }
             ],
         }
@@ -1007,7 +1141,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
             assert expected_results.get(mock_key) == adhoc_filters
 
 
-class TimeSeriesVizTestCase(SupersetTestCase):
+class TestTimeSeriesViz(SupersetTestCase):
     def test_timeseries_unicode_data(self):
         datasource = self.get_datasource_mock()
         form_data = {"groupby": ["name"], "metrics": ["sum__payout"]}
@@ -1079,3 +1213,82 @@ class TimeSeriesVizTestCase(SupersetTestCase):
             .tolist(),
             [1.0, 2.0, np.nan, np.nan, 5.0, np.nan, 7.0],
         )
+
+    def test_apply_rolling(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            index=pd.to_datetime(
+                ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+            ),
+            data={"y": [1.0, 2.0, 3.0, 4.0]},
+        )
+        self.assertEqual(
+            viz.BigNumberViz(
+                datasource,
+                {
+                    "metrics": ["y"],
+                    "rolling_type": "cumsum",
+                    "rolling_periods": 0,
+                    "min_periods": 0,
+                },
+            )
+            .apply_rolling(df)["y"]
+            .tolist(),
+            [1.0, 3.0, 6.0, 10.0],
+        )
+        self.assertEqual(
+            viz.BigNumberViz(
+                datasource,
+                {
+                    "metrics": ["y"],
+                    "rolling_type": "sum",
+                    "rolling_periods": 2,
+                    "min_periods": 0,
+                },
+            )
+            .apply_rolling(df)["y"]
+            .tolist(),
+            [1.0, 3.0, 5.0, 7.0],
+        )
+        self.assertEqual(
+            viz.BigNumberViz(
+                datasource,
+                {
+                    "metrics": ["y"],
+                    "rolling_type": "mean",
+                    "rolling_periods": 10,
+                    "min_periods": 0,
+                },
+            )
+            .apply_rolling(df)["y"]
+            .tolist(),
+            [1.0, 1.5, 2.0, 2.5],
+        )
+
+
+class TestBigNumberViz(SupersetTestCase):
+    def test_get_data(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            data={
+                DTTM_ALIAS: pd.to_datetime(
+                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+                ),
+                "y": [1.0, 2.0, 3.0, 4.0],
+            }
+        )
+        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
+        self.assertEqual(data[2], {DTTM_ALIAS: pd.Timestamp("2019-01-05"), "y": 3})
+
+    def test_get_data_with_none(self):
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            data={
+                DTTM_ALIAS: pd.to_datetime(
+                    ["2019-01-01", "2019-01-02", "2019-01-05", "2019-01-07"]
+                ),
+                "y": [1.0, 2.0, None, 4.0],
+            }
+        )
+        data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
+        assert np.isnan(data[2]["y"])

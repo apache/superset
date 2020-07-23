@@ -14,58 +14,114 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM python:3.6-jessie
 
-RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
+######################################################################
+# PY stage that simply does a pip install on our requirements
+######################################################################
+ARG PY_VER=3.6.9
+FROM python:${PY_VER} AS superset-py
 
-# Configure environment
+RUN mkdir /app \
+        && apt-get update -y \
+        && apt-get install -y --no-install-recommends \
+            build-essential \
+            default-libmysqlclient-dev \
+            libpq-dev \
+        && rm -rf /var/lib/apt/lists/*
+
+# First, we just wanna install requirements, which will allow us to utilize the cache
+# in order to only build if and only if requirements change
+COPY ./requirements.txt /app/
+RUN cd /app \
+        && pip install --no-cache -r requirements.txt
+
+
+######################################################################
+# Node stage to deal with static asset construction
+######################################################################
+FROM node:10-jessie AS superset-node
+
+ARG NPM_BUILD_CMD="build"
+ENV BUILD_CMD=${NPM_BUILD_CMD}
+
+# NPM ci first, as to NOT invalidate previous steps except for when package.json changes
+RUN mkdir -p /app/superset-frontend
+RUN mkdir -p /app/superset/assets
+COPY ./docker/frontend-mem-nag.sh /
+COPY ./superset-frontend/package* /app/superset-frontend/
+RUN /frontend-mem-nag.sh \
+        && cd /app/superset-frontend \
+        && npm ci
+
+# Next, copy in the rest and let webpack do its thing
+COPY ./superset-frontend /app/superset-frontend
+# This is BY FAR the most expensive step (thanks Terser!)
+RUN cd /app/superset-frontend \
+        && npm run ${BUILD_CMD} \
+        && rm -rf node_modules
+
+
+######################################################################
+# Final lean image...
+######################################################################
+ARG PY_VER=3.6.9
+FROM python:${PY_VER} AS lean
+
 ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+    LC_ALL=C.UTF-8 \
+    FLASK_ENV=production \
+    FLASK_APP="superset.app:create_app()" \
+    PYTHONPATH="/app/pythonpath" \
+    SUPERSET_HOME="/app/superset_home" \
+    SUPERSET_PORT=8080
 
-RUN apt-get update -y
+RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash superset \
+        && mkdir -p ${SUPERSET_HOME} ${PYTHONPATH} \
+        && apt-get update -y \
+        && apt-get install -y --no-install-recommends \
+            build-essential \
+            default-libmysqlclient-dev \
+            libpq-dev \
+        && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies to fix `curl https support error` and `elaying package configuration warning`
-RUN apt-get install -y apt-transport-https apt-utils
+COPY --from=superset-py /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/site-packages/
+# Copying site-packages doesn't move the CLIs, so let's copy them one by one
+COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
+COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
+COPY --from=superset-node /app/superset-frontend /app/superset-frontend
 
-# Install superset dependencies
-# https://superset.incubator.apache.org/installation.html#os-dependencies
-RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
+## Lastly, let's install superset itself
+COPY superset /app/superset
+COPY setup.py MANIFEST.in README.md /app/
+RUN cd /app \
+        && chown -R superset:superset * \
+        && pip install -e .
 
-# Install extra useful tool for development
-RUN apt-get install -y vim less postgresql-client redis-tools
+COPY ./docker/docker-entrypoint.sh /usr/bin/
 
-# Install nodejs for custom build
-# https://superset.incubator.apache.org/installation.html#making-your-own-build
-# https://nodejs.org/en/download/package-manager/
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
-    && apt-get install -y nodejs
-
-WORKDIR /home/superset
-
-COPY requirements.txt .
-COPY requirements-dev.txt .
-
-RUN pip install --upgrade setuptools pip \
-    && pip install -r requirements.txt -r requirements-dev.txt \
-    && rm -rf /root/.cache/pip
-
-COPY --chown=superset:superset superset superset
-
-ENV PATH=/home/superset/superset/bin:$PATH \
-    PYTHONPATH=/home/superset/superset/:$PYTHONPATH
+WORKDIR /app
 
 USER superset
 
-RUN cd superset/assets \
-    && npm ci \
-    && npm run build \
-    && rm -rf node_modules
-
-COPY contrib/docker/docker-init.sh .
-COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
-
 HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
 
-EXPOSE 8088
+EXPOSE ${SUPERSET_PORT}
+
+ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
+
+######################################################################
+# Dev image...
+######################################################################
+FROM lean AS dev
+
+COPY ./requirements* ./docker/requirements* /app/
+
+USER root
+# Cache everything for dev purposes...
+RUN cd /app \
+    && pip install --ignore-installed -e . \
+    && pip install --ignore-installed -r requirements.txt \
+    && pip install --ignore-installed -r requirements-dev.txt \
+    && pip install --ignore-installed -r requirements-extra.txt \
+    && pip install --ignore-installed -r requirements-local.txt || true
+USER superset

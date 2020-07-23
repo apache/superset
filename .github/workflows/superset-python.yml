@@ -1,0 +1,200 @@
+name: Python
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6]
+    env:
+      PYTHON_LINT_TARGET: setup.py superset tests
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@adc6f73
+    - name: black
+      run: black --check $(echo $PYTHON_LINT_TARGET)
+    - name: mypy
+      run: mypy $(echo $PYTHON_LINT_TARGET)
+    - name: isort
+      run: isort --check-only --recursive $(echo $PYTHON_LINT_TARGET)
+    - name: pylint
+      # `-j 0` run Pylint in parallel
+      run: pylint -j 0 superset
+
+  docs:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@adc6f73
+      with:
+        run: |
+          pip-install
+          pip install -r docs/requirements.txt
+    - name: Build documentation
+      run: sphinx-build -b html docs _build/html -W
+
+  babel-extract:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        uses: apache-superset/cached-dependencies@adc6f73
+        with:
+          run: |
+            pip-install
+            pip install -r docs/requirements.txt
+      - name: Test babel extraction
+        run: flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _,__,t,tn,tct
+
+  test-postgres:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        # run unit tests in multiple version just for fun
+        python-version: [3.6, 3.7, 3.8]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI:
+        postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+    services:
+      postgres:
+        image: postgres:10-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          # Use custom ports for services to avoid accidentally connecting to
+          # GitHub action runner's default installations
+          - 15432:5432
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@adc6f73
+      with:
+        run: |
+          pip-install
+          setup-postgres
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+    - name: Python unit tests (PostgreSQL)
+      run: |
+        ./scripts/python_tests.sh
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF python
+
+  test-mysql:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 13306:3306
+      redis:
+        image: redis:5-alpine
+        options: --entrypoint redis-server
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@adc6f73
+      with:
+        run: |
+          pip-install
+          setup-mysql
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+    - name: Python unit tests (MySQL)
+      run: |
+        ./scripts/python_tests.sh
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF python
+
+  test-sqlite:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        sqlite:///${{ github.workspace }}/.temp/unittest.db
+    services:
+      redis:
+        image: redis:5-alpine
+        ports:
+          - 16379:6379
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@adc6f73
+      with:
+        run: |
+          pip-install
+          mkdir ${{ github.workspace }}/.temp
+    - name: Run celery
+      run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+    - name: Python unit tests (SQLite)
+      run: |
+        ./scripts/python_tests.sh
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash) -cF python

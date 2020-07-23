@@ -14,12 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from alembic import op
-import sqlalchemy as sa
-from superset import db
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
-
 """update slice model
 
 Revision ID: 33d996bcc382
@@ -27,6 +21,12 @@ Revises: 41f6a59a61f2
 Create Date: 2016-09-07 23:50:59.366779
 
 """
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+
+from superset import db
 
 # revision identifiers, used by Alembic.
 revision = "33d996bcc382"
