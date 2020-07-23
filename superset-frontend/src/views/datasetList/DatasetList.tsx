@@ -54,7 +54,10 @@ type Dataset = {
   changed_by_url: string;
   changed_by: string;
   changed_on_delta_humanized: string;
-  database_name: string;
+  database: {
+    id: string;
+    database_name: string;
+  };
   explore_url: string;
   id: number;
   owners: Array<Owner>;
@@ -275,8 +278,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     },
     {
       Header: t('Source'),
-      accessor: 'database_name',
-      disableSortBy: true,
+      accessor: 'database.database_name',
       size: 'lg',
     },
     {
