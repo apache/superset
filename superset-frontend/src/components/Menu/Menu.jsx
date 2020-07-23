@@ -68,9 +68,9 @@ const StyledHeader = styled.header`
       left: 0;
       width: 100%;
       height: 3px;
-      background-color: #20a7c9;
+      background-color: ${({ theme }) => theme.colors.primary.base};
       opacity: 0;
-      transition: opacity 0.5s;
+      transition: opacity ${({ theme }) => theme.transitionTiming * 2}s;
     }
 
     &:hover {
