@@ -19,6 +19,7 @@
 import React from 'react';
 import styled from '@superset-ui/style';
 import PropTypes from 'prop-types';
+import rison from 'rison';
 import { Select, AsyncSelect } from 'src/components/Select';
 import { ControlLabel, Label } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
@@ -274,14 +275,27 @@ export default class TableSelector extends React.PureComponent {
   }
 
   renderDatabaseSelect() {
+    const queryParams = rison.encode({
+      order_columns: 'database_name',
+      order_direction: 'asc',
+      page: 0,
+      page_size: -1,
+      ...(this.props.formMode
+        ? {}
+        : {
+            filters: [
+              {
+                col: 'expose_in_sqllab',
+                opr: 'eq',
+                value: true,
+              },
+            ],
+          }),
+    });
+
     return this.renderSelectRow(
       <SupersetAsyncSelect
-        dataEndpoint={
-          '/api/v1/database/?q=' +
-          '(keys:!(none),' +
-          'filters:!((col:expose_in_sqllab,opr:eq,value:!t)),' +
-          'order_columns:database_name,order_direction:asc,page:0,page_size:-1)'
-        }
+        dataEndpoint={`/api/v1/database/?q=${queryParams}`}
         onChange={this.onDatabaseChange}
         onAsyncError={() =>
           this.props.handleError(t('Error while fetching database list'))
