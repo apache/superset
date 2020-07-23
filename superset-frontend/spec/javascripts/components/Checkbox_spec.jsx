@@ -17,15 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import Checkbox from 'src/components/Checkbox';
+import Checkbox from 'src/components/IndeterminateCheckbox';
 
 describe('Checkbox', () => {
   const defaultProps = {
+    title: 'check',
     checked: true,
-    onChange: sinon.spy(),
   };
 
   let wrapper;
@@ -40,16 +39,12 @@ describe('Checkbox', () => {
     expect(React.isValidElement(<Checkbox {...defaultProps} />)).toBe(true);
   });
   it('inits checked when checked', () => {
-    expect(wrapper.find('i.fa-check.text-primary')).toExist();
+    const icon = wrapper.find('Icon');
+    expect(icon.props()).toEqual({ name: 'checkbox-on' });
   });
   it('inits unchecked when not checked', () => {
     const el = factory({ checked: false });
-    expect(el.find('i.fa-check.text-primary')).toHaveLength(0);
-    expect(el.find('i.fa-check.text-transparent')).toHaveLength(1);
-  });
-  it('unchecks when clicked', () => {
-    expect(wrapper.find('i.fa-check.text-transparent')).not.toExist();
-    wrapper.find('i').first().simulate('click');
-    expect(defaultProps.onChange.calledOnce).toBe(true);
+    const icon = el.find('Icon');
+    expect(icon.props()).toEqual({ name: 'checkbox-off' });
   });
 });

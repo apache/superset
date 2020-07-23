@@ -31,15 +31,17 @@ export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
         role="button"
         tabIndex={0}
         className={`fa fa-check ${
-          checked ? 'text-primary' : 'text-transparent'
+          checked ? 'text-white' : 'text-transparent'
         }`}
         onClick={() => {
           onChange(!checked);
         }}
         style={{
-          border: '1px solid #aaa',
+          border: `${checked ? '1px solid #20A7C9' : '1px solid #aaa'}`,
           borderRadius: '2px',
           cursor: 'pointer',
+          boxShaddow: 'inset 1px 0px 0px #E0E0E0',
+          backgroundColor: `${checked ? '#20A7C9' : 'transparent'}` 
         }}
       />
     </span>
