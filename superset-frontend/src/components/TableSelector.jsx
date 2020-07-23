@@ -21,9 +21,11 @@ import styled from '@superset-ui/style';
 import PropTypes from 'prop-types';
 import rison from 'rison';
 import { Select, AsyncSelect } from 'src/components/Select';
-import { ControlLabel, Label } from 'react-bootstrap';
+import { Label } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+
+import FormLabel from 'src/components/FormLabel';
 
 import SupersetAsyncSelect from './AsyncSelect';
 import RefreshLabel from './RefreshLabel';
@@ -393,14 +395,14 @@ export default class TableSelector extends React.PureComponent {
   renderSeeTableLabel() {
     return (
       <div className="section">
-        <ControlLabel>
+        <FormLabel>
           {t('See table schema')}{' '}
           {this.props.schema && (
             <small>
               ({this.state.tableOptions.length} in <i>{this.props.schema}</i>)
             </small>
           )}
-        </ControlLabel>
+        </FormLabel>
       </div>
     );
   }
