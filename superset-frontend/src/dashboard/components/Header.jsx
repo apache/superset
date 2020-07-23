@@ -21,14 +21,16 @@ import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@superset-ui/style';
+import { ButtonGroup } from 'react-bootstrap';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
+
+import Icon from 'src/components/Icon';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
-import FilterScopeModal from './filterscope/FilterScopeModal';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
@@ -384,72 +386,64 @@ class Header extends React.PureComponent {
           {userCanSaveAs && (
             <div className="button-container">
               {editMode && (
-                <Button
-                  bsSize="small"
-                  onClick={onUndo}
-                  disabled={undoLength < 1}
-                  bsStyle={this.state.emphasizeUndo ? 'primary' : undefined}
-                >
-                  <div title="Undo" className="undo-action fa fa-reply" />
-                </Button>
-              )}
-
-              {editMode && (
-                <Button
-                  bsSize="small"
-                  onClick={onRedo}
-                  disabled={redoLength < 1}
-                  bsStyle={this.state.emphasizeRedo ? 'primary' : undefined}
-                >
-                  <div title="Redo" className="redo-action fa fa-share" />
-                </Button>
-              )}
-
-              {editMode && (
-                <FilterScopeModal
-                  triggerNode={<Button bsSize="small">{t('Filters')}</Button>}
-                />
-              )}
-
-              {editMode && hasUnsavedChanges && (
-                <Button
-                  bsSize="small"
-                  bsStyle={popButton ? 'primary' : undefined}
-                  onClick={this.overwriteDashboard}
-                >
-                  {t('Save changes')}
-                </Button>
-              )}
-
-              {editMode && !hasUnsavedChanges && (
-                <Button
-                  bsSize="small"
-                  onClick={this.toggleEditMode}
-                  bsStyle={undefined}
-                  disabled={!userCanEdit}
-                >
-                  {t('Switch to view mode')}
-                </Button>
-              )}
-
-              {editMode && (
-                <UndoRedoKeylisteners
-                  onUndo={this.handleCtrlZ}
-                  onRedo={this.handleCtrlY}
-                />
+                <>
+                  <ButtonGroup className="m-r-5">
+                    <Button
+                      bsSize="small"
+                      onClick={onUndo}
+                      disabled={undoLength < 1}
+                      bsStyle={this.state.emphasizeUndo ? 'primary' : undefined}
+                    >
+                      <i title="Undo" className="undo-action fa fa-reply" />
+                      &nbsp;
+                    </Button>
+                    <Button
+                      bsSize="small"
+                      onClick={onRedo}
+                      disabled={redoLength < 1}
+                      bsStyle={this.state.emphasizeRedo ? 'primary' : undefined}
+                    >
+                      &nbsp;
+                      <i title="Redo" className="redo-action fa fa-share" />
+                    </Button>
+                  </ButtonGroup>
+                  <Button
+                    bsSize="small"
+                    className="m-r-5"
+                    disabled={!hasUnsavedChanges}
+                    onClick={this.discardChanges}
+                    bsStyle="default"
+                  >
+                    {t('Discard Changes')}
+                  </Button>
+                  <Button
+                    bsSize="small"
+                    disabled={!hasUnsavedChanges}
+                    bsStyle="primary"
+                    onClick={this.overwriteDashboard}
+                  >
+                    {t('Save')}
+                  </Button>
+                </>
               )}
             </div>
           )}
+          {editMode && (
+            <UndoRedoKeylisteners
+              onUndo={this.handleCtrlZ}
+              onRedo={this.handleCtrlY}
+            />
+          )}
 
-          {!editMode && !hasUnsavedChanges && (
-            <Button
-              bsSize="small"
+          {!editMode && (
+            <span
+              role="button"
+              tabIndex={0}
+              className="action-button"
               onClick={this.toggleEditMode}
-              bsStyle={popButton ? 'primary' : undefined}
-              disabled={!userCanEdit}
             >
-              {t('Edit dashboard')}
-            </Button>
+              <Icon name="pencil" />
+            </span>
           )}
 
           {this.state.showingPropertiesModal && (
