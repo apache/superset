@@ -777,16 +777,14 @@ class PivotTableViz(BaseViz):
         if aggfunc == "sum":
             aggfunc = lambda x: x.sum(min_count=1)
 
-        groupby = self.form_data.get("groupby") or []
-        columns = self.form_data.get("columns") or []
+        groupby = self.form_data.get("groupby")
+        columns = self.form_data.get("columns")
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
         metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
         
-        # pandas will throw away nulls when grouping/pivoting,
-        # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = columns + groupby
-        df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
+        df[columns] = df[columns].fillna(value=NULL_STRING)
+        df[groupby] = df[groupby].fillna(value=NULL_STRING)
         df = df.pivot_table(
             index=groupby,
             columns=columns,
