@@ -20,17 +20,17 @@
 import React, { ReactNode } from 'react';
 import { ControlLabel } from 'react-bootstrap';
 
-interface Props {
+export type FormLabelProps = {
   children: ReactNode;
   htmlFor?: string;
   required?: boolean;
-}
+};
 
 export default function FormLabel({
   children,
   htmlFor,
   required = false,
-}: Props) {
+}: FormLabelProps) {
   return (
     <>
       <ControlLabel htmlFor={htmlFor}>
