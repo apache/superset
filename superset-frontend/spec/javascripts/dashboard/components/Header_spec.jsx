@@ -197,7 +197,7 @@ describe('Header', () => {
 
     it('should render five Buttons', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toHaveLength(5);
+      expect(wrapper.find(Button)).toHaveLength(3);
     });
 
     it('should set up undo/redo', () => {
