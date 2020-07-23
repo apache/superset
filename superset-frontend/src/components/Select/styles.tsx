@@ -90,7 +90,10 @@ export type StylesConfig = {
 };
 export type PartialStylesConfig = Partial<StylesConfig>;
 
-export const DEFAULT_STYLES: PartialStylesConfig = { container: ( provider, {
+export const DEFAULT_STYLES: PartialStylesConfig = {
+  container: (
+    provider,
+    {
       theme: {
         spacing: { minWidth },
       },
@@ -139,7 +142,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = { container: ( provider, {
     return [
       provider,
       css`
-        border-width: ${isMulti ? '1px' :  '0px'};
+        border-width: ${isMulti ? '1px' : '0px'};
         background-color: ${isMulti ? 'white' : '#F0F0F0'};
         border-color: ${borderColor};
         box-shadow: ${isPseudoFocused
