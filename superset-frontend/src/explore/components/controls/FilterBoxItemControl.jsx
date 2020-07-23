@@ -77,11 +77,13 @@ export default class FilterBoxItemControl extends React.Component {
       clearable,
       multiple,
       searchAllOptions,
+      label,
       defaultValue,
     } = props;
     const state = {
       column,
       metric,
+      label,
       asc,
       clearable,
       multiple,
