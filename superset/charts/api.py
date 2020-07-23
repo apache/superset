@@ -101,7 +101,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
     ]
     show_select_columns = show_columns + ["table.id"]
-
     list_columns = [
         "id",
         "slice_name",
@@ -113,7 +112,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_by_url",
         "changed_by.first_name",
         "changed_by.last_name",
-        "changed_on",
+        "changed_on_utc",
+        "changed_on_delta_humanized",
         "datasource_id",
         "datasource_type",
         "datasource_name_text",
@@ -124,13 +124,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
-
+    list_select_columns = list_columns + ["changed_on"]
     order_columns = [
         "slice_name",
         "viz_type",
         "datasource_name",
         "changed_by_fk",
-        "changed_on",
+        "changed_on_delta_humanized",
     ]
     search_columns = (
         "slice_name",
@@ -419,7 +419,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    def data(self) -> Response:
+    def data(self) -> Response:  # pylint: disable=too-many-return-statements
         """
         Takes a query context constructed in the client and returns payload
         data response for the given query.
@@ -462,13 +462,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Request is incorrect")
         except ValidationError as error:
             return self.response_400(
-                _("Request is incorrect: %(error)s", error=error.messages)
+                message=_("Request is incorrect: %(error)s", error=error.messages)
             )
         try:
             query_context.raise_for_access()
         except SupersetSecurityException:
             return self.response_401()
         payload = query_context.get_payload()
+        for query in payload:
+            if query.get("error"):
+                return self.response_400(message=f"Error: {query['error']}")
         result_format = query_context.result_format
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
@@ -488,7 +491,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
             return resp
 
-        raise self.response_400(message=f"Unsupported result_format: {result_format}")
+        return self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @expose("/<pk>/cache_screenshot/", methods=["GET"])
     @protect()

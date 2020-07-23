@@ -19,21 +19,19 @@
 import { Alert } from 'react-bootstrap';
 import React from 'react';
 import { mount } from 'enzyme';
+import { act } from 'react-dom/test-utils';
 import Toast from 'src/messageToasts/components/Toast';
 
 import mockMessageToasts from '../mockMessageToasts';
 
+const props = {
+  toast: mockMessageToasts[0],
+  onCloseToast() {},
+};
+
+const setup = overrideProps => mount(<Toast {...props} {...overrideProps} />);
+
 describe('Toast', () => {
-  const props = {
-    toast: mockMessageToasts[0],
-    onCloseToast() {},
-  };
-
-  function setup(overrideProps) {
-    const wrapper = mount(<Toast {...props} {...overrideProps} />);
-    return wrapper;
-  }
-
   it('should render an Alert', () => {
     const wrapper = setup();
     expect(wrapper.find(Alert)).toHaveLength(1);
@@ -52,9 +50,13 @@ describe('Toast', () => {
         expect(id).toBe(props.toast.id);
         done();
       };
+
       const wrapper = setup({ onCloseToast });
-      const handleClosePress = wrapper.instance().handleClosePress;
-      expect(wrapper.find(Alert).prop('onDismiss')).toBe(handleClosePress);
+      const handleClosePress = wrapper.find('[label="Close alert"]').props()
+        .onClick;
+
+      const alertProps = wrapper.find(Alert).props();
+      expect(alertProps.onDismiss).toBe(handleClosePress);
       handleClosePress(); // there is a timeout for onCloseToast to be called
     });
   });

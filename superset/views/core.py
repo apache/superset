@@ -2101,7 +2101,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         logger.info("Query %i: Running query on a Celery worker", query.id)
         # Ignore the celery future object and the request may time out.
         try:
-            sql_lab.get_sql_results.delay(
+            task = sql_lab.get_sql_results.delay(
                 query.id,
                 rendered_query,
                 return_results=False,
@@ -2111,6 +2111,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 expand_data=expand_data,
                 log_params=log_params,
             )
+
+            # Explicitly forget the task to ensure the task metadata is removed from the
+            # Celery results backend in a timely manner.
+            task.forget()
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Query %i: %s", query.id, str(ex))
             msg = _(

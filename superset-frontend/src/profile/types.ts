@@ -16,14 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecordFilters } from '@superset-ui/chart';
+export type Slice = {
+  dttm: number;
+  id: number;
+  url: string;
+  title: string;
+  creator?: string;
+  creator_url?: string;
+  viz_type: string;
+};
 
-export default function getEffectiveExtraFilters(filters: DataRecordFilters) {
-  return Object.entries(filters)
-    .map(([column, values]) => ({
-      col: column,
-      op: Array.isArray(values) ? 'in' : '=',
-      val: values,
-    }))
-    .filter(filter => filter.val !== null);
-}
+export type Activity = {
+  action: string;
+  item_title: string;
+  item_url: string;
+  time: number;
+};

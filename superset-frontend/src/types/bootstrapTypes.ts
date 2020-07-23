@@ -16,14 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecordFilters } from '@superset-ui/chart';
+export type User = {
+  createdOn: string;
+  email: string;
+  firstName: string;
+  isActive: boolean;
+  lastName: string;
+  userId: number;
+  username: string;
+};
 
-export default function getEffectiveExtraFilters(filters: DataRecordFilters) {
-  return Object.entries(filters)
-    .map(([column, values]) => ({
-      col: column,
-      op: Array.isArray(values) ? 'in' : '=',
-      val: values,
-    }))
-    .filter(filter => filter.val !== null);
+export interface UserWithPermissionsAndRoles extends User {
+  permissions: {
+    database_access?: string[];
+    datasource_access?: string[];
+  };
+  roles: Record<string, string[][]>;
 }
+
+export type Dashboard = {
+  dttm: number;
+  id: number;
+  url: string;
+  title: string;
+  creator?: string;
+  creator_url?: string;
+};
