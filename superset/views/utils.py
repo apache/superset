@@ -531,7 +531,7 @@ def format_pivot_table_html_2b_convenient(html_data):
         return html_data
 
     index = 0
-    for tr in table.findall("./thead/tr"):
+    for tr in thead_trs:
         tr.insert(1, ET.Element('th'))
 
         ths = tr.findall("th")
