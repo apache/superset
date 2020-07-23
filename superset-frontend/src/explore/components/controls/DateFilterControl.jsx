@@ -363,35 +363,41 @@ export default class DateFilterControl extends React.Component {
         key={grain}
         eventKey={grain}
         active={grain === this.state.grain}
+        fullWidth={false}
       >
         {grain}
       </MenuItem>
     ));
     const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
-      const endpoints = this.props.endpoints;
+      const endpoints = this.props.endpoints.map(endpoint => endpoint === 'inclusive' ? '≤' : '<');
+
       return (
-        <OverlayTrigger
-          key={timeFrame}
-          placement="left"
-          overlay={
-            <Tooltip id={`tooltip-${timeFrame}`}>
-              {nextState.since} {endpoints && `(${endpoints[0]})`}
-              <br />
-              {nextState.until} {endpoints && `(${endpoints[1]})`}
-            </Tooltip>
-          }
-        >
-          <div>
-            <Radio
-              key={timeFrame.replace(' ', '').toLowerCase()}
-              checked={this.state.common === timeFrame}
-              onChange={() => this.setState(nextState)}
-            >
-              {timeFrame}
-            </Radio>
-          </div>
-        </OverlayTrigger>
+        <div style={{ padding: '0' }}>
+          <OverlayTrigger
+            key={timeFrame}
+            alignLeft
+            placement="right"
+            overlay={
+              <Tooltip id={`tooltip-${timeFrame}`}>
+                {nextState.since.replace('T00:00:00', '')}{' '}
+                {endpoints && `${endpoints[0]}`} col{' '}
+                {endpoints && `${endpoints[1]}`}{' '}
+                {nextState.until.replace('T00:00:00', '')}
+              </Tooltip>
+            }
+          >
+            <div className={'inlineBlock'}>
+              <Radio
+                key={timeFrame.replace(' ', '').toLowerCase()}
+                checked={this.state.common === timeFrame}
+                onChange={() => this.setState(nextState)}
+              >
+                {timeFrame}
+              </Radio>
+            </div>
+          </OverlayTrigger>
+        </div>
       );
     });
     return (
@@ -558,6 +564,7 @@ export default class DateFilterControl extends React.Component {
   render() {
     let value = this.props.value || defaultProps.value;
     const endpoints = this.props.endpoints;
+    console.log('!!!', endpoints, value);
     value = value
       .split(SEPARATOR)
       .map(
