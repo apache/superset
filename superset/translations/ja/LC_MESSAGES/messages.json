@@ -1,2433 +1,999 @@
 {
-   "domain": "superset",
-   "locale_data": {
-      "superset": {
-         "": {
-            "domain": "superset",
-            "plural_forms": "nplurals=1; plural=0",
-            "lang": "ja"
-         },
-         "Time Column": [
-            "時間列"
-         ],
-         "second": [
-            "秒"
-         ],
-         "minute": [
-            "分"
-         ],
-         "hour": [
-            "時間"
-         ],
-         "day": [
-            "日"
-         ],
-         "week": [
-            "週"
-         ],
-         "month": [
-            "月"
-         ],
-         "quarter": [
-            "4半期"
-         ],
-         "year": [
-            "年"
-         ],
-         "week_start_monday": [
-            "月曜日を週初めに"
-         ],
-         "week_ending_saturday": [
-            "土曜日を週終わりに"
-         ],
-         "week_start_sunday": [
-            "日曜日を週初めに"
-         ],
-         "5 minute": [
-            "５分"
-         ],
-         "half hour": [
-            "半時間"
-         ],
-         "10 minute": [
-            "１０分"
-         ],
-         "[Superset] Access to the datasource %(name)s was granted": [
-            "[Superset]　データソース　%(name)s へのアクセスは許可されました"
-         ],
-         "Viz is missing a datasource": [
-            "データソースは見つかりません"
-         ],
-         "From date cannot be larger than to date": [
-            "開始日は終了日を超えてはいけません"
-         ],
-         "Table View": [
-            "テーブルビュー"
-         ],
-         "Pick a granularity in the Time section or uncheck 'Include Time'": [
-            "任意の時間精度を選択してください or uncheck ‘Include Time’"
-         ],
-         "Choose either fields to [Group By] and [Metrics] or [Columns], not both": [
-            "[Group By]と[Metrics]または[列]のいずれかを選択します"
-         ],
-         "Time Table View": [
-            ""
-         ],
-         "Pick at least one metric": [
-            "少なくとも1つの指標を選択してください"
-         ],
-         "When using 'Group By' you are limited to use a single metric": [
-            ""
-         ],
-         "Pivot Table": [
-            "ピボットテーブル"
-         ],
-         "Please choose at least one \"Group by\" field ": [
-            "少なくとも1つの[Group by]フィールドを選択してください "
-         ],
-         "Please choose at least one metric": [
-            "少なくとも1つの指標を選択してください"
-         ],
-         "'Group By' and 'Columns' can't overlap": [
-            "‘Group by’ と ‘Columns’ は重複できません"
-         ],
-         "Markup": [
-            "マークアップ"
-         ],
-         "Separator": [
-            "セパレータ"
-         ],
-         "Word Cloud": [
-            "単語の雲"
-         ],
-         "Treemap": [
-            "ツリーマップ"
-         ],
-         "Calendar Heatmap": [
-            "カレンダーヒートマップ"
-         ],
-         "Box Plot": [
-            "ボックスプロット"
-         ],
-         "Bubble Chart": [
-            "バブル図"
-         ],
-         "Pick a metric for x, y and size": [
-            ""
-         ],
-         "Bullet Chart": [
-            ""
-         ],
-         "Pick a metric to display": [
-            ""
-         ],
-         "Big Number with Trendline": [
-            "トレンド付き数字"
-         ],
-         "Pick a metric!": [
-            "指標を選んでください!"
-         ],
-         "Big Number": [
-            "数値"
-         ],
-         "Time Series - Line Chart": [
-            "時系列 - 折れ線グラフ"
-         ],
-         "Pick a time granularity for your time series": [
-            ""
-         ],
-         "Time Series - Dual Axis Line Chart": [
-            ""
-         ],
-         "Pick a metric for left axis!": [
-            ""
-         ],
-         "Pick a metric for right axis!": [
-            ""
-         ],
-         "Please choose different metrics on left and right axis": [
-            ""
-         ],
-         "Time Series - Bar Chart": [
-            "時系列 - 棒グラフ"
-         ],
-         "Time Series - Percent Change": [
-            "時系列 - 変化率"
-         ],
-         "Time Series - Stacked": [
-            "時系列 - 積み上げ線グラフ"
-         ],
-         "Distribution - NVD3 - Pie Chart": [
-            "円グラフ"
-         ],
-         "Histogram": [
-            "ヒストグラム"
-         ],
-         "Must have one numeric column specified": [
-            ""
-         ],
-         "Distribution - Bar Chart": [
-            "棒グラフ"
-         ],
-         "Can't have overlap between Series and Breakdowns": [
-            ""
-         ],
-         "Pick at least one field for [Series]": [
-            ""
-         ],
-         "Sunburst": [
-            ""
-         ],
-         "Sankey": [
-            ""
-         ],
-         "Pick exactly 2 columns as [Source / Target]": [
-            ""
-         ],
-         "There's a loop in your Sankey, please provide a tree. Here's a faulty link: {}": [
-            ""
-         ],
-         "Directed Force Layout": [
-            ""
-         ],
-         "Pick exactly 2 columns to 'Group By'": [
-            ""
-         ],
-         "Country Map": [
-            "国地図"
-         ],
-         "World Map": [
-            "世界地図"
-         ],
-         "Filters": [
-            "フィルター"
-         ],
-         "Pick at least one filter field": [
-            "少なくとも1つのフィルタフィールドを選択してください"
-         ],
-         "iFrame": [
-            ""
-         ],
-         "Parallel Coordinates": [
-            ""
-         ],
-         "Heatmap": [
-            "ヒートマップ"
-         ],
-         "Horizon Charts": [
-            ""
-         ],
-         "Mapbox": [
-            ""
-         ],
-         "Must have a [Group By] column to have 'count' as the [Label]": [
-            ""
-         ],
-         "Choice of [Label] must be present in [Group By]": [
-            ""
-         ],
-         "Choice of [Point Radius] must be present in [Group By]": [
-            ""
-         ],
-         "[Longitude] and [Latitude] columns must be present in [Group By]": [
-            ""
-         ],
-         "Event flow": [
-            ""
-         ],
-         "Time Series - Paired t-test": [
-            ""
-         ],
-         "Your query was saved": [
-            "クエリは保存されました"
-         ],
-         "Your query could not be saved": [
-            "クエリを保存できませんでした"
-         ],
-         "Failed at retrieving results from the results backend": [
-            ""
-         ],
-         "Could not connect to server": [
-            "サーバーに接続できませんでした"
-         ],
-         "Your session timed out, please refresh your page and try again.": [
-            ""
-         ],
-         "Query was stopped.": [
-            ""
-         ],
-         "Failed at stopping query.": [
-            ""
-         ],
-         "Error occurred while fetching table metadata": [
-            ""
-         ],
-         "shared query": [
-            ""
-         ],
-         "The query couldn't be loaded": [
-            ""
-         ],
-         "An error occurred while creating the data source": [
-            ""
-         ],
-         "Pick a chart type!": [
-            ""
-         ],
-         "To use this chart type you need at least one column flagged as a date": [
-            ""
-         ],
-         "To use this chart type you need at least one dimension": [
-            ""
-         ],
-         "To use this chart type you need at least one aggregation function": [
-            ""
-         ],
-         "Untitled Query": [
-            ""
-         ],
-         "Copy of %s": [
-            ""
-         ],
-         "share query": [
-            "クエリを共有"
-         ],
-         "copy URL to clipboard": [
-            "URL をクリップボードにコピー"
-         ],
-         "Raw SQL": [
-            ""
-         ],
-         "Source SQL": [
-            ""
-         ],
-         "SQL": [
-            ""
-         ],
-         "No query history yet...": [
-            ""
-         ],
-         "It seems you don't have access to any database": [
-            ""
-         ],
-         "Search Results": [
-            "検索結果"
-         ],
-         "[From]-": [
-            ""
-         ],
-         "[To]-": [
-            ""
-         ],
-         "[Query Status]": [
-            ""
-         ],
-         "Search": [
-            "検索"
-         ],
-         "Open in SQL Editor": [
-            "SQLエディタで開く"
-         ],
-         "view results": [
-            "結果を見る"
-         ],
-         "Data preview": [
-            "データプレビュー"
-         ],
-         "Visualize the data out of this query": [
-            "クエリの結果を可視化"
-         ],
-         "Overwrite text in editor with a query on this table": [
-            ""
-         ],
-         "Run query in a new tab": [
-            "新しいタブでクエリを実行"
-         ],
-         "Remove query from log": [
-            "ログからクエリを削除"
-         ],
-         ".CSV": [
-            ""
-         ],
-         "Visualize": [
-            "可視化する"
-         ],
-         "Table": [
-            "テーブル"
-         ],
-         "was created": [
-            "作成されました"
-         ],
-         "Query in a new tab": [
-            "新しいタブでクエリ"
-         ],
-         "Fetch data preview": [
-            "データプレビューを取得"
-         ],
-         "Track Job": [
-            "ジョブ履歴"
-         ],
-         "Loading...": [
-            "読み込み中..."
-         ],
-         "Run Selected Query": [
-            "選択したクエリを実行"
-         ],
-         "Run Query": [
-            "クエリ実行"
-         ],
-         "Run query asynchronously": [
-            "クエリを非同期で実行"
-         ],
-         "Stop": [
-            "中止"
-         ],
-         "Undefined": [
-            "未定義"
-         ],
-         "Label": [
-            ""
-         ],
-         "Label for your query": [
-            ""
-         ],
-         "Description": [
-            ""
-         ],
-         "Write a description for your query": [
-            ""
-         ],
-         "Save": [
-            "保存"
-         ],
-         "Cancel": [
-            "キャンセル"
-         ],
-         "Save Query": [
-            "クエリを保存"
-         ],
-         "Run a query to display results here": [
-            ""
-         ],
-         "Preview for %s": [
-            ""
-         ],
-         "Results": [
-            "クエリ結果"
-         ],
-         "Query History": [
-            "クエリ履歴"
-         ],
-         "Create table as with query results": [
-            ""
-         ],
-         "new table name": [
-            ""
-         ],
-         "Error while fetching table list": [
-            ""
-         ],
-         "Error while fetching schema list": [
-            ""
-         ],
-         "Error while fetching database list": [
-            ""
-         ],
-         "Database:": [
-            ""
-         ],
-         "Select a database": [
-            ""
-         ],
-         "Select a schema (%s)": [
-            ""
-         ],
-         "Schema:": [
-            ""
-         ],
-         "Add a table (%s)": [
-            ""
-         ],
-         "Type to search ...": [
-            ""
-         ],
-         "Reset State": [
-            ""
-         ],
-         "Enter a new title for the tab": [
-            ""
-         ],
-         "Untitled Query %s": [
-            ""
-         ],
-         "close tab": [
-            ""
-         ],
-         "rename tab": [
-            ""
-         ],
-         "expand tool bar": [
-            ""
-         ],
-         "hide tool bar": [
-            ""
-         ],
-         "Copy partition query to clipboard": [
-            ""
-         ],
-         "latest partition:": [
-            ""
-         ],
-         "Keys for table": [
-            ""
-         ],
-         "View keys & indexes (%s)": [
-            ""
-         ],
-         "Sort columns alphabetically": [
-            ""
-         ],
-         "Original table column order": [
-            ""
-         ],
-         "Copy SELECT statement to clipboard": [
-            ""
-         ],
-         "Remove table preview": [
-            ""
-         ],
-         "%s is not right as a column name, please alias it (as in SELECT count(*) ": [
-            ""
-         ],
-         "AS my_alias": [
-            ""
-         ],
-         "using only alphanumeric characters and underscores": [
-            ""
-         ],
-         "Creating a data source and popping a new tab": [
-            ""
-         ],
-         "No results available for this query": [
-            ""
-         ],
-         "Chart Type": [
-            "グラフ様式"
-         ],
-         "[Chart Type]": [
-            ""
-         ],
-         "Datasource Name": [
-            "データソース"
-         ],
-         "datasource name": [
-            ""
-         ],
-         "Select ...": [
-            ""
-         ],
-         "Loaded data cached": [
-            ""
-         ],
-         "Loaded from cache": [
-            ""
-         ],
-         "Click to force-refresh": [
-            ""
-         ],
-         "Copy to clipboard": [
-            ""
-         ],
-         "Not successful": [
-            ""
-         ],
-         "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!": [
-            ""
-         ],
-         "Copied!": [
-            ""
-         ],
-         "Title": [
-            "タイトル"
-         ],
-         "click to edit title": [
-            ""
-         ],
-         "You don't have the rights to alter this title.": [
-            ""
-         ],
-         "Click to favorite/unfavorite": [
-            ""
-         ],
-         "You have unsaved changes.": [
-            "未保存の変更があります."
-         ],
-         "Click the": [
-            ""
-         ],
-         "button on the top right to save your changes.": [
-            ""
-         ],
-         "Served from data cached %s . Click to force refresh.": [
-            ""
-         ],
-         "Click to force refresh": [
-            ""
-         ],
-         "Error": [
-            ""
-         ],
-         "Sorry, there was an error adding slices to this dashboard: %s": [
-            ""
-         ],
-         "Active Dashboard Filters": [
-            ""
-         ],
-         "Checkout this dashboard: %s": [
-            ""
-         ],
-         "Force refresh the whole dashboard": [
-            ""
-         ],
-         "Edit this dashboard's properties": [
-            ""
-         ],
-         "Load a template": [
-            ""
-         ],
-         "Load a CSS template": [
-            ""
-         ],
-         "CSS": [
-            ""
-         ],
-         "Live CSS Editor": [
-            ""
-         ],
-         "Don't refresh": [
-            ""
-         ],
-         "10 seconds": [
-            ""
-         ],
-         "30 seconds": [
-            ""
-         ],
-         "1 minute": [
-            ""
-         ],
-         "5 minutes": [
-            ""
-         ],
-         "Refresh Interval": [
-            ""
-         ],
-         "Choose the refresh frequency for this dashboard": [
-            ""
-         ],
-         "This dashboard was saved successfully.": [
-            ""
-         ],
-         "Sorry, there was an error saving this dashboard: ": [
-            ""
-         ],
-         "You must pick a name for the new dashboard": [
-            ""
-         ],
-         "Save Dashboard": [
-            "ダッシュボードを保存"
-         ],
-         "Overwrite Dashboard [%s]": [
-            "上書き ダッシュボード [%s]"
-         ],
-         "Save as:": [
-            ""
-         ],
-         "[dashboard name]": [
-            ""
-         ],
-         "Name": [
-            "名前"
-         ],
-         "Viz": [
-            ""
-         ],
-         "Modified": [
-            "最終更新日"
-         ],
-         "Add Slices": [
-            "スライスを追加"
-         ],
-         "Add a new slice to the dashboard": [
-            "ダッシュボードに新しいスライスを追加"
-         ],
-         "Add Slices to Dashboard": [
-            "ダッシュボードにスライスを追加"
-         ],
-         "Move chart": [
-            "チャートを移動"
-         ],
-         "Force refresh data": [
-            ""
-         ],
-         "Toggle chart description": [
-            "グラフの説明を切り替え"
-         ],
-         "Edit chart": [
-            "チャートを編集"
-         ],
-         "Export CSV": [
-            "CSVで出力"
-         ],
-         "Explore chart": [
-            "チャートを見る"
-         ],
-         "Remove chart from dashboard": [
-            "ダッシュボードからチャートを削除"
-         ],
-         "%s - untitled": [
-            ""
-         ],
-         "Edit slice properties": [
-            ""
-         ],
-         "description": [
-            ""
-         ],
-         "bolt": [
-            ""
-         ],
-         "Error...": [
-            ""
-         ],
-         "Query": [
-            "クエリ"
-         ],
-         "Height": [
-            "高さ"
-         ],
-         "Width": [
-            "幅"
-         ],
-         "Export to .json": [
-            "jsonで出力"
-         ],
-         "Export to .csv format": [
-            "csvで出力"
-         ],
-         "Please enter a slice name": [
-            "スライス名を入力してください"
-         ],
-         "Please select a dashboard": [
-            "ダッシュボードを選択してください"
-         ],
-         "Please enter a dashboard name": [
-            "ダッシュボード名を入力してください"
-         ],
-         "Save A Slice": [
-            "スライスを保存"
-         ],
-         "Overwrite slice %s": [
-            "上書き スライス [%s]"
-         ],
-         "Save as": [
-            "別名で保存"
-         ],
-         "[slice name]": [
-            ""
-         ],
-         "Do not add to a dashboard": [
-            "ダッシュボードに追加しない"
-         ],
-         "Add slice to existing dashboard": [
-            "既存のダッシュボードにスライスを追加"
-         ],
-         "Add to new dashboard": [
-            "新しいダッシュボードに追加"
-         ],
-         "Save & go to dashboard": [
-            "保存してダッシュボードに移動"
-         ],
-         "Check out this slice: %s": [
-            ""
-         ],
-         "`Min` value should be numeric or empty": [
-            ""
-         ],
-         "`Max` value should be numeric or empty": [
-            ""
-         ],
-         "Min": [
-            "最小値"
-         ],
-         "Max": [
-            "最大値"
-         ],
-         "Something went wrong while fetching the datasource list": [
-            "データソースリストを取得中に何か問題が発生しました"
-         ],
-         "Click to point to another datasource": [
-            ""
-         ],
-         "Edit the datasource's configuration": [
-            "データソースの設定を編集"
-         ],
-         "Select a datasource": [
-            "データソースを選択"
-         ],
-         "Search / Filter": [
-            "検索/フィルタ"
-         ],
-         "Filter value": [
-            "フィルタ値"
-         ],
-         "Select metric": [
-            "指標を選択"
-         ],
-         "Select column": [
-            "列を選択"
-         ],
-         "Select operator": [
-            "オペレータを選択"
-         ],
-         "Add Filter": [
-            "フィルターを追加"
-         ],
-         "Error while fetching data": [
-            "データの取得中にエラーが発生しました"
-         ],
-         "Select %s": [
-            ""
-         ],
-         "textarea": [
-            ""
-         ],
-         "Edit": [
-            ""
-         ],
-         "in modal": [
-            ""
-         ],
-         "Select a visualization type": [
-            "可視化タイプを選んでください"
-         ],
-         "Updating chart was stopped": [
-            ""
-         ],
-         "An error occurred while rendering the visualization: %s": [
-            ""
-         ],
-         "Perhaps your data has grown, your database is under unusual load, or you are simply querying a data source that is to large to be processed within the timeout range. If that is the case, we recommend that you summarize your data further.": [
-            ""
-         ],
-         "Network error.": [
-            ""
-         ],
-         "A reference to the [Time] configuration, taking granularity into account": [
-            ""
-         ],
-         "Group by": [
-            ""
-         ],
-         "One or many controls to group by": [
-            ""
-         ],
-         "Datasource": [
-            "データソース"
-         ],
-         "Visualization Type": [
-            "グラフ様式"
-         ],
-         "The type of visualization to display": [
-            ""
-         ],
-         "Metrics": [
-            "指標"
-         ],
-         "One or many metrics to display": [
-            ""
-         ],
-         "Y Axis Bounds": [
-            ""
-         ],
-         "Bounds for the Y axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
-            ""
-         ],
-         "Ordering": [
-            ""
-         ],
-         "Annotation Layers": [
-            ""
-         ],
-         "Annotation layers to overlay on the visualization": [
-            ""
-         ],
-         "Select a annotation layer": [
-            ""
-         ],
-         "Error while fetching annotation layers": [
-            ""
-         ],
-         "Metric": [
-            "指標"
-         ],
-         "Choose the metric": [
-            "指標を選んでください"
-         ],
-         "Right Axis Metric": [
-            ""
-         ],
-         "Choose a metric for right axis": [
-            ""
-         ],
-         "Stacked Style": [
-            ""
-         ],
-         "Linear Color Scheme": [
-            ""
-         ],
-         "Normalize Across": [
-            ""
-         ],
-         "Color will be rendered based on a ratio of the cell against the sum of across this criteria": [
-            ""
-         ],
-         "Horizon Color Scale": [
-            ""
-         ],
-         "Defines how the color are attributed.": [
-            ""
-         ],
-         "Rendering": [
-            ""
-         ],
-         "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
-            ""
-         ],
-         "XScale Interval": [
-            ""
-         ],
-         "Number of steps to take between ticks when displaying the X scale": [
-            ""
-         ],
-         "YScale Interval": [
-            ""
-         ],
-         "Number of steps to take between ticks when displaying the Y scale": [
-            ""
-         ],
-         "Include Time": [
-            ""
-         ],
-         "Whether to include the time granularity as defined in the time section": [
-            ""
-         ],
-         "Stacked Bars": [
-            ""
-         ],
-         "Show totals": [
-            ""
-         ],
-         "Display total row/column": [
-            ""
-         ],
-         "Show Markers": [
-            ""
-         ],
-         "Show data points as circle markers on the lines": [
-            ""
-         ],
-         "Bar Values": [
-            ""
-         ],
-         "Show the value on top of the bar": [
-            ""
-         ],
-         "Sort Bars": [
-            ""
-         ],
-         "Sort bars by x labels.": [
-            ""
-         ],
-         "Combine Metrics": [
-            ""
-         ],
-         "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": [
-            ""
-         ],
-         "Extra Controls": [
-            ""
-         ],
-         "Whether to show extra controls or not. Extra controls include things like making mulitBar charts stacked or side by side.": [
-            ""
-         ],
-         "Reduce X ticks": [
-            ""
-         ],
-         "Reduces the number of X axis ticks to be rendered. If true, the x axis wont overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into an horizontal scroll.": [
-            ""
-         ],
-         "Include Series": [
-            ""
-         ],
-         "Include series name as an axis": [
-            ""
-         ],
-         "Color Metric": [
-            ""
-         ],
-         "A metric to use for color": [
-            ""
-         ],
-         "Country Name": [
-            ""
-         ],
-         "The name of country that Superset should display": [
-            ""
-         ],
-         "Country Field Type": [
-            ""
-         ],
-         "The country code standard that Superset should expect to find in the [country] column": [
-            ""
-         ],
-         "Columns": [
-            ""
-         ],
-         "One or many controls to pivot as columns": [
-            ""
-         ],
-         "Columns to display": [
-            ""
-         ],
-         "Origin": [
-            ""
-         ],
-         "Defines the origin where time buckets start, accepts natural dates as in `now`, `sunday` or `1970-01-01`": [
-            ""
-         ],
-         "Bottom Margin": [
-            ""
-         ],
-         "Bottom margin, in pixels, allowing for more room for axis labels": [
-            ""
-         ],
-         "Left Margin": [
-            ""
-         ],
-         "Left margin, in pixels, allowing for more room for axis labels": [
-            ""
-         ],
-         "Time Granularity": [
-            "時間粒度"
-         ],
-         "The time granularity for the visualization. Note that you can type and use simple natural language as in `10 seconds`, `1 day` or `56 weeks`": [
-            ""
-         ],
-         "Domain": [
-            ""
-         ],
-         "The time unit used for the grouping of blocks": [
-            ""
-         ],
-         "Subdomain": [
-            ""
-         ],
-         "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or equal to Time Grain": [
-            ""
-         ],
-         "Link Length": [
-            ""
-         ],
-         "Link length in the force layout": [
-            ""
-         ],
-         "Charge": [
-            ""
-         ],
-         "Charge in the force layout": [
-            ""
-         ],
-         "The time column for the visualization. Note that you can define arbitrary expression that return a DATETIME column in the table or. Also note that the filter below is applied against this column or expression": [
-            ""
-         ],
-         "Time Grain": [
-            "時間単位"
-         ],
-         "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code.": [
-            ""
-         ],
-         "Resample Rule": [
-            ""
-         ],
-         "Pandas resample rule": [
-            ""
-         ],
-         "Resample How": [
-            ""
-         ],
-         "Pandas resample how": [
-            ""
-         ],
-         "Resample Fill Method": [
-            ""
-         ],
-         "Pandas resample fill method": [
-            ""
-         ],
-         "Since": [
-            "から"
-         ],
-         "7 days ago": [
-            ""
-         ],
-         "Until": [
-            "まで"
-         ],
-         "Max Bubble Size": [
-            ""
-         ],
-         "Whisker/outlier options": [
-            ""
-         ],
-         "Determines how whiskers and outliers are calculated.": [
-            ""
-         ],
-         "Ratio": [
-            "比率"
-         ],
-         "Target aspect ratio for treemap tiles.": [
-            ""
-         ],
-         "Number format": [
-            "数値の書式"
-         ],
-         "Row limit": [
-            "行数制限"
-         ],
-         "Series limit": [
-            ""
-         ],
-         "Limits the number of time series that get displayed": [
-            ""
-         ],
-         "Sort By": [
-            ""
-         ],
-         "Metric used to define the top series": [
-            ""
-         ],
-         "Rolling": [
-            ""
-         ],
-         "Defines a rolling window function to apply, works along with the [Periods] text box": [
-            ""
-         ],
-         "Periods": [
-            ""
-         ],
-         "Defines the size of the rolling window function, relative to the time granularity selected": [
-            ""
-         ],
-         "Min Periods": [
-            ""
-         ],
-         "The minimum number of rolling periods required to show a value. For instance if you do a cumulative sum on 7 days you may want your \"Min Period\" to be 7, so that all data points shown are the total of 7 periods. This will hide the \"ramp up\" taking place over the first 7 periods": [
-            ""
-         ],
-         "Series": [
-            ""
-         ],
-         "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
-            ""
-         ],
-         "Entity": [
-            ""
-         ],
-         "This defines the element to be plotted on the chart": [
-            ""
-         ],
-         "X Axis": [
-            "X軸"
-         ],
-         "Metric assigned to the [X] axis": [
-            ""
-         ],
-         "Y Axis": [
-            "Y軸"
-         ],
-         "Metric assigned to the [Y] axis": [
-            ""
-         ],
-         "Bubble Size": [
-            "バブルの大きさ"
-         ],
-         "URL": [
-            ""
-         ],
-         "The URL, this control is templated, so you can integrate {{ width }} and/or {{ height }} in your URL string.": [
-            ""
-         ],
-         "X Axis Label": [
-            "X軸ラベル"
-         ],
-         "Y Axis Label": [
-            "Y軸ラベル"
-         ],
-         "Custom WHERE clause": [
-            ""
-         ],
-         "The text in this box gets included in your query's WHERE clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards.": [
-            ""
-         ],
-         "Custom HAVING clause": [
-            ""
-         ],
-         "The text in this box gets included in your query's HAVING clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards.": [
-            ""
-         ],
-         "Comparison Period Lag": [
-            ""
-         ],
-         "Based on granularity, number of time periods to compare against": [
-            ""
-         ],
-         "Comparison suffix": [
-            ""
-         ],
-         "Suffix to apply after the percentage display": [
-            ""
-         ],
-         "Table Timestamp Format": [
-            ""
-         ],
-         "Timestamp Format": [
-            "タンムスダンプの様式"
-         ],
-         "Series Height": [
-            ""
-         ],
-         "Pixel height of each series": [
-            ""
-         ],
-         "Page Length": [
-            ""
-         ],
-         "Rows per page, 0 means no pagination": [
-            ""
-         ],
-         "X Axis Format": [
-            ""
-         ],
-         "Y Axis Format": [
-            ""
-         ],
-         "Right Axis Format": [
-            ""
-         ],
-         "Markup Type": [
-            ""
-         ],
-         "Pick your favorite markup language": [
-            ""
-         ],
-         "Rotation": [
-            "回転"
-         ],
-         "Rotation to apply to words in the cloud": [
-            ""
-         ],
-         "Line Style": [
-            ""
-         ],
-         "Line interpolation as defined by d3.js": [
-            ""
-         ],
-         "Label Type": [
-            ""
-         ],
-         "What should be shown on the label?": [
-            ""
-         ],
-         "Code": [
-            ""
-         ],
-         "Put your code here": [
-            ""
-         ],
-         "Aggregation function": [
-            ""
-         ],
-         "Aggregate function to apply when pivoting and computing the total rows and columns": [
-            ""
-         ],
-         "Font Size From": [
-            ""
-         ],
-         "Font size for the smallest value in the list": [
-            ""
-         ],
-         "Font Size To": [
-            ""
-         ],
-         "Font size for the biggest value in the list": [
-            ""
-         ],
-         "Instant Filtering": [
-            ""
-         ],
-         "Range Filter": [
-            ""
-         ],
-         "Whether to display the time range interactive selector": [
-            ""
-         ],
-         "Date Filter": [
-            ""
-         ],
-         "Whether to include a time filter": [
-            ""
-         ],
-         "Data Table": [
-            ""
-         ],
-         "Whether to display the interactive data table": [
-            ""
-         ],
-         "Search Box": [
-            ""
-         ],
-         "Whether to include a client side search box": [
-            ""
-         ],
-         "Table Filter": [
-            ""
-         ],
-         "Whether to apply filter when table cell is clicked": [
-            ""
-         ],
-         "Show Bubbles": [
-            ""
-         ],
-         "Whether to display bubbles on top of countries": [
-            ""
-         ],
-         "Legend": [
-            ""
-         ],
-         "Whether to display the legend (toggles)": [
-            ""
-         ],
-         "Show Values": [
-            ""
-         ],
-         "Whether to display the numerical values within the cells": [
-            ""
-         ],
-         "X bounds": [
-            ""
-         ],
-         "Whether to display the min and max values of the X axis": [
-            ""
-         ],
-         "Y bounds": [
-            ""
-         ],
-         "Whether to display the min and max values of the Y axis": [
-            ""
-         ],
-         "Rich Tooltip": [
-            ""
-         ],
-         "The rich tooltip shows a list of all series for that point in time": [
-            ""
-         ],
-         "Y Log Scale": [
-            ""
-         ],
-         "Use a log scale for the Y axis": [
-            ""
-         ],
-         "X Log Scale": [
-            ""
-         ],
-         "Use a log scale for the X axis": [
-            ""
-         ],
-         "Donut": [
-            ""
-         ],
-         "Do you want a donut or a pie?": [
-            ""
-         ],
-         "Put labels outside": [
-            ""
-         ],
-         "Put the labels outside the pie?": [
-            ""
-         ],
-         "Contribution": [
-            ""
-         ],
-         "Compute the contribution to the total": [
-            ""
-         ],
-         "Period Ratio": [
-            ""
-         ],
-         "[integer] Number of period to compare against, this is relative to the granularity selected": [
-            ""
-         ],
-         "Period Ratio Type": [
-            ""
-         ],
-         "`factor` means (new/previous), `growth` is ((new/previous) - 1), `value` is (new-previous)": [
-            ""
-         ],
-         "Time Shift": [
-            ""
-         ],
-         "Overlay a timeseries from a relative time period. Expects relative time delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days)": [
-            ""
-         ],
-         "Subheader": [
-            ""
-         ],
-         "Description text that shows up below your Big Number": [
-            ""
-         ],
-         "label": [
-            ""
-         ],
-         "`count` is COUNT(*) if a group by is used. Numerical columns will be aggregated with the aggregator. Non-numerical columns will be used to label points. Leave empty to get a count of points in each cluster.": [
-            ""
-         ],
-         "Map Style": [
-            ""
-         ],
-         "Base layer map style": [
-            ""
-         ],
-         "Clustering Radius": [
-            ""
-         ],
-         "The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to turn off clustering, but beware that a large number of points (>1000) will cause lag.": [
-            ""
-         ],
-         "Point Radius": [
-            ""
-         ],
-         "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
-            ""
-         ],
-         "Point Radius Unit": [
-            ""
-         ],
-         "The unit of measure for the specified point radius": [
-            ""
-         ],
-         "Opacity": [
-            ""
-         ],
-         "Opacity of all clusters, points, and labels. Between 0 and 1.": [
-            ""
-         ],
-         "Zoom": [
-            ""
-         ],
-         "Zoom level of the map": [
-            ""
-         ],
-         "Default latitude": [
-            ""
-         ],
-         "Latitude of default viewport": [
-            ""
-         ],
-         "Default longitude": [
-            ""
-         ],
-         "Longitude of default viewport": [
-            ""
-         ],
-         "Live render": [
-            ""
-         ],
-         "Points and clusters will update as viewport is being changed": [
-            ""
-         ],
-         "RGB Color": [
-            ""
-         ],
-         "The color for points and clusters in RGB": [
-            ""
-         ],
-         "Ranges": [
-            ""
-         ],
-         "Ranges to highlight with shading": [
-            ""
-         ],
-         "Range labels": [
-            ""
-         ],
-         "Labels for the ranges": [
-            ""
-         ],
-         "Markers": [
-            ""
-         ],
-         "List of values to mark with triangles": [
-            ""
-         ],
-         "Marker labels": [
-            ""
-         ],
-         "Labels for the markers": [
-            ""
-         ],
-         "Marker lines": [
-            ""
-         ],
-         "List of values to mark with lines": [
-            ""
-         ],
-         "Marker line labels": [
-            ""
-         ],
-         "Labels for the marker lines": [
-            ""
-         ],
-         "Slice ID": [
-            ""
-         ],
-         "The id of the active slice": [
-            ""
-         ],
-         "Cache Timeout (seconds)": [
-            ""
-         ],
-         "The number of seconds before expiring the cache": [
-            ""
-         ],
-         "Order by entity id": [
-            ""
-         ],
-         "Important! Select this if the table is not already sorted by entity id, else there is no guarantee that all events for each entity are returned.": [
-            ""
-         ],
-         "Minimum leaf node event count": [
-            ""
-         ],
-         "Leaf nodes that represent fewer than this number of events will be initially hidden in the visualization": [
-            ""
-         ],
-         "Color Scheme": [
-            ""
-         ],
-         "The color scheme for rendering chart": [
-            ""
-         ],
-         "Time Series Columns": [
-            ""
-         ],
-         "Time": [
-            ""
-         ],
-         "Time related form attributes": [
-            ""
-         ],
-         "Datasource & Chart Type": [
-            ""
-         ],
-         "This section exposes ways to include snippets of SQL in your query": [
-            ""
-         ],
-         "Annotations": [
-            ""
-         ],
-         "Advanced Analytics": [
-            ""
-         ],
-         "This section contains options that allow for advanced analytical post processing of query results": [
-            ""
-         ],
-         "Result Filters": [
-            ""
-         ],
-         "The filters to apply after post-aggregation.Leave the value control empty to filter empty strings or nulls": [
-            ""
-         ],
-         "Chart Options": [
-            ""
-         ],
-         "Breakdowns": [
-            ""
-         ],
-         "Defines how each series is broken down": [
-            ""
-         ],
-         "Pie Chart": [
-            ""
-         ],
-         "Dual Axis Line Chart": [
-            ""
-         ],
-         "Y Axis 1": [
-            ""
-         ],
-         "Y Axis 2": [
-            ""
-         ],
-         "Left Axis Metric": [
-            ""
-         ],
-         "Choose a metric for left axis": [
-            ""
-         ],
-         "Left Axis Format": [
-            ""
-         ],
-         "Axes": [
-            ""
-         ],
-         "GROUP BY": [
-            ""
-         ],
-         "Use this section if you want a query that aggregates": [
-            ""
-         ],
-         "NOT GROUPED BY": [
-            ""
-         ],
-         "Use this section if you want to query atomic rows": [
-            ""
-         ],
-         "Options": [
-            ""
-         ],
-         "Time Series Table": [
-            ""
-         ],
-         "Bubbles": [
-            ""
-         ],
-         "Numeric Column": [
-            ""
-         ],
-         "Select the numeric column to draw the histogram": [
-            ""
-         ],
-         "No of Bins": [
-            ""
-         ],
-         "Select number of bins for the histogram": [
-            ""
-         ],
-         "Primary Metric": [
-            ""
-         ],
-         "The primary metric is used to define the arc segment sizes": [
-            ""
-         ],
-         "Secondary Metric": [
-            ""
-         ],
-         "This secondary metric is used to define the color as a ratio against the primary metric. If the two metrics match, color is mapped level groups": [
-            ""
-         ],
-         "Hierarchy": [
-            ""
-         ],
-         "This defines the level of the hierarchy": [
-            ""
-         ],
-         "Source / Target": [
-            ""
-         ],
-         "Choose a source and a target": [
-            ""
-         ],
-         "Chord Diagram": [
-            ""
-         ],
-         "Choose a number format": [
-            ""
-         ],
-         "Source": [
-            "ソース"
-         ],
-         "Choose a source": [
-            "ソースを選択"
-         ],
-         "Target": [
-            "ターゲット"
-         ],
-         "Choose a target": [
-            "ターゲットを選択"
-         ],
-         "ISO 3166-1 codes of region/province/department": [
-            ""
-         ],
-         "It's ISO 3166-1 of your region/province/department in your table. (see documentation for list of ISO 3166-1)": [
-            ""
-         ],
-         "Country Control": [
-            ""
-         ],
-         "3 letter code of the country": [
-            ""
-         ],
-         "Metric for color": [
-            ""
-         ],
-         "Metric that defines the color of the country": [
-            ""
-         ],
-         "Bubble size": [
-            ""
-         ],
-         "Metric that defines the size of the bubble": [
-            ""
-         ],
-         "Filter Box": [
-            "フィルタボックス"
-         ],
-         "Filter controls": [
-            "フィルタ項目"
-         ],
-         "The controls you want to filter on. Note that only columns checked as \"filterable\" will show up on this list.": [
-            ""
-         ],
-         "Heatmap Options": [
-            ""
-         ],
-         "Horizon": [
-            ""
-         ],
-         "Points": [
-            ""
-         ],
-         "Labelling": [
-            ""
-         ],
-         "Visual Tweaks": [
-            ""
-         ],
-         "Viewport": [
-            ""
-         ],
-         "Longitude": [
-            ""
-         ],
-         "Column containing longitude data": [
-            ""
-         ],
-         "Latitude": [
-            ""
-         ],
-         "Column containing latitude data": [
-            ""
-         ],
-         "Cluster label aggregator": [
-            ""
-         ],
-         "Aggregate function applied to the list of points in each cluster to produce the cluster label.": [
-            ""
-         ],
-         "Tooltip": [
-            ""
-         ],
-         "Show a tooltip when hovering over points and clusters describing the label": [
-            ""
-         ],
-         "One or many controls to group by. If grouping, latitude and longitude columns must be present.": [
-            ""
-         ],
-         "Event definition": [
-            ""
-         ],
-         "Additional meta data": [
-            ""
-         ],
-         "Column containing entity ids": [
-            ""
-         ],
-         "e.g., a \"user id\" column": [
-            ""
-         ],
-         "Column containing event names": [
-            ""
-         ],
-         "Event count limit": [
-            ""
-         ],
-         "The maximum number of events to return, equivalent to number of rows": [
-            ""
-         ],
-         "Meta data": [
-            ""
-         ],
-         "Select any columns for meta data inspection": [
-            ""
-         ],
-         "The server could not be reached. You may want to verify your connection and try again.": [
-            ""
-         ],
-         "An unknown error occurred. (Status: %s )": [
-            ""
-         ],
-         "Favorites": [
-            "お気に入り"
-         ],
-         "Created Content": [
-            "作成したもの"
-         ],
-         "Recent Activity": [
-            "近況"
-         ],
-         "Security & Access": [
-            "セキュリティー"
-         ],
-         "No slices": [
-            ""
-         ],
-         "No dashboards": [
-            ""
-         ],
-         "Dashboards": [
-            "ダッシュボード"
-         ],
-         "Slices": [
-            "スライス"
-         ],
-         "No favorite slices yet, go click on stars!": [
-            ""
-         ],
-         "No favorite dashboards yet, go click on stars!": [
-            ""
-         ],
-         "Roles": [
-            ""
-         ],
-         "Databases": [
-            "データベース"
-         ],
-         "Datasources": [
-            ""
-         ],
-         "Profile picture provided by Gravatar": [
-            ""
-         ],
-         "joined": [
-            ""
-         ],
-         "id:": [
-            ""
-         ],
-         "Sorry, there appears to be no data": [
-            ""
-         ],
-         "Select [%s]": [
-            ""
-         ],
-         "No data was returned.": [
-            ""
-         ],
-         "List Druid Column": [
-            ""
-         ],
-         "Show Druid Column": [
-            ""
-         ],
-         "Add Druid Column": [
-            ""
-         ],
-         "Edit Druid Column": [
-            ""
-         ],
-         "Column": [
-            "列"
-         ],
-         "Type": [
-            "タイプ"
-         ],
-         "Groupable": [
-            "グループ分け可能"
-         ],
-         "Filterable": [
-            "フィルタ可能"
-         ],
-         "Count Distinct": [
-            ""
-         ],
-         "Sum": [
-            ""
-         ],
-         "Whether this column is exposed in the `Filters` section of the explore view.": [
-            ""
-         ],
-         "List Druid Metric": [
-            ""
-         ],
-         "Show Druid Metric": [
-            ""
-         ],
-         "Add Druid Metric": [
-            ""
-         ],
-         "Edit Druid Metric": [
-            ""
-         ],
-         "Whether the access to this metric is restricted to certain roles. Only roles with the permission 'metric access on XXX (the name of this metric)' are allowed to access this metric": [
-            ""
-         ],
-         "Verbose Name": [
-            ""
-         ],
-         "JSON": [
-            ""
-         ],
-         "Druid Datasource": [
-            ""
-         ],
-         "Warning Message": [
-            ""
-         ],
-         "List Druid Cluster": [
-            ""
-         ],
-         "Show Druid Cluster": [
-            ""
-         ],
-         "Add Druid Cluster": [
-            ""
-         ],
-         "Edit Druid Cluster": [
-            ""
-         ],
-         "Cluster": [
-            ""
-         ],
-         "Broker Host": [
-            ""
-         ],
-         "Broker Port": [
-            ""
-         ],
-         "Broker Endpoint": [
-            ""
-         ],
-         "Druid Clusters": [
-            ""
-         ],
-         "Sources": [
-            "ソース"
-         ],
-         "List Druid Datasource": [
-            ""
-         ],
-         "Show Druid Datasource": [
-            ""
-         ],
-         "Add Druid Datasource": [
-            ""
-         ],
-         "Edit Druid Datasource": [
-            ""
-         ],
-         "The list of slices associated with this table. By altering this datasource, you may change how these associated slices behave. Also note that slices need to point to a datasource, so this form will fail at saving if removing slices from a datasource. If you want to change the datasource for a slice, overwrite the slice from the 'explore view'": [
-            ""
-         ],
-         "Timezone offset (in hours) for this datasource": [
-            ""
-         ],
-         "Time expression to use as a predicate when retrieving distinct values to populate the filter component. Only applies when `Enable Filter Select` is on. If you enter `7 days ago`, the distinct list of values in the filter will be populated based on the distinct value over the past week": [
-            ""
-         ],
-         "Whether to populate the filter's dropdown in the explore view's filter section with a list of distinct values fetched from the backend on the fly": [
-            ""
-         ],
-         "Redirects to this endpoint when clicking on the datasource from the datasource list": [
-            ""
-         ],
-         "Associated Slices": [
-            ""
-         ],
-         "Data Source": [
-            ""
-         ],
-         "Owner": [
-            ""
-         ],
-         "Is Hidden": [
-            ""
-         ],
-         "Enable Filter Select": [
-            ""
-         ],
-         "Default Endpoint": [
-            ""
-         ],
-         "Time Offset": [
-            ""
-         ],
-         "Cache Timeout": [
-            ""
-         ],
-         "Druid Datasources": [
-            ""
-         ],
-         "Scan New Datasources": [
-            ""
-         ],
-         "Refresh Druid Metadata": [
-            ""
-         ],
-         "Datetime column not provided as part table configuration and is required by this type of chart": [
-            ""
-         ],
-         "Empty query?": [
-            ""
-         ],
-         "Metric '{}' is not valid": [
-            ""
-         ],
-         "Table [{}] doesn't seem to exist in the specified database, couldn't fetch column information": [
-            ""
-         ],
-         "List Columns": [
-            ""
-         ],
-         "Show Column": [
-            ""
-         ],
-         "Add Column": [
-            ""
-         ],
-         "Edit Column": [
-            ""
-         ],
-         "Whether to make this column available as a [Time Granularity] option, column has to be DATETIME or DATETIME-like": [
-            ""
-         ],
-         "The data type that was inferred by the database. It may be necessary to input a type manually for expression-defined columns in some cases. In most case users should not need to alter this.": [
-            ""
-         ],
-         "Expression": [
-            ""
-         ],
-         "Is temporal": [
-            ""
-         ],
-         "Datetime Format": [
-            ""
-         ],
-         "Database Expression": [
-            ""
-         ],
-         "List Metrics": [
-            ""
-         ],
-         "Show Metric": [
-            ""
-         ],
-         "Add Metric": [
-            ""
-         ],
-         "Edit Metric": [
-            ""
-         ],
-         "SQL Expression": [
-            ""
-         ],
-         "D3 Format": [
-            ""
-         ],
-         "Is Restricted": [
-            ""
-         ],
-         "List Tables": [
-            ""
-         ],
-         "Show Table": [
-            ""
-         ],
-         "Add Table": [
-            ""
-         ],
-         "Edit Table": [
-            ""
-         ],
-         "Name of the table that exists in the source database": [
-            ""
-         ],
-         "Schema, as used only in some databases like Postgres, Redshift and DB2": [
-            ""
-         ],
-         "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
-            ""
-         ],
-         "Predicate applied when fetching distinct value to populate the filter control component. Supports jinja template syntax. Applies only when `Enable Filter Select` is on.": [
-            ""
-         ],
-         "Redirects to this endpoint when clicking on the table from the table list": [
-            ""
-         ],
-         "Changed By": [
-            "更新者"
-         ],
-         "Database": [
-            ""
-         ],
-         "Last Changed": [
-            "最終更新日"
-         ],
-         "Schema": [
-            "スキーマ"
-         ],
-         "Offset": [
-            ""
-         ],
-         "Table Name": [
-            "テーブル名"
-         ],
-         "Fetch Values Predicate": [
-            ""
-         ],
-         "Main Datetime Column": [
-            ""
-         ],
-         "Table [{}] could not be found, please double check your database connection, schema, and table name": [
-            ""
-         ],
-         "The table was created. As part of this two phase configuration process, you should now click the edit button by the new table to configure it.": [
-            ""
-         ],
-         "Tables": [
-            "テーブル"
-         ],
-         "Profile": [
-            "プロファイル"
-         ],
-         "Logout": [
-            "ログアウト"
-         ],
-         "Login": [
-            "ログイン"
-         ],
-         "記録数": [
-            ""
-         ],
-         "No records found": [
-            ""
-         ],
-         "Import": [
-            ""
-         ],
-         "No Access!": [
-            ""
-         ],
-         "You do not have permissions to access the datasource(s): %(name)s.": [
-            ""
-         ],
-         "Request Permissions": [
-            ""
-         ],
-         "Welcome!": [
-            ""
-         ],
-         "Test Connection": [
-            ""
-         ],
-         "Manage": [
-            "管理"
-         ],
-         "Datasource %(name)s already exists": [
-            ""
-         ],
-         "json isn't valid": [
-            ""
-         ],
-         "Delete": [
-            "削除"
-         ],
-         "Delete all Really?": [
-            "本当に全部削除しますか？"
-         ],
-         "This endpoint requires the `all_datasource_access` permission": [
-            ""
-         ],
-         "The datasource seems to have been deleted": [
-            ""
-         ],
-         "The access requests seem to have been deleted": [
-            ""
-         ],
-         "The user seems to have been deleted": [
-            ""
-         ],
-         "You don't have access to this datasource": [
-            ""
-         ],
-         "This view requires the database %(name)s or `all_datasource_access` permission": [
-            ""
-         ],
-         "This endpoint requires the datasource %(name)s, database or `all_datasource_access` permission": [
-            ""
-         ],
-         "List Databases": [
-            "データベースリスト"
-         ],
-         "Show Database": [
-            "データベースを表示"
-         ],
-         "Add Database": [
-            "データベースを追加"
-         ],
-         "Edit Database": [
-            "データベースリンクを編集"
-         ],
-         "Expose this DB in SQL Lab": [
-            ""
-         ],
-         "Allow users to run synchronous queries, this is the default and should work well for queries that can be executed within a web request scope (<~1 minute)": [
-            ""
-         ],
-         "Allow users to run queries, against an async backend. This assumes that you have a Celery worker setup as well as a results backend.": [
-            ""
-         ],
-         "Allow CREATE TABLE AS option in SQL Lab": [
-            ""
-         ],
-         "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab": [
-            ""
-         ],
-         "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
-            ""
-         ],
-         "All the queries in Sql Lab are going to be executed on behalf of currently authorized user.": [
-            ""
-         ],
-         "Expose in SQL Lab": [
-            ""
-         ],
-         "Allow CREATE TABLE AS": [
-            ""
-         ],
-         "Allow DML": [
-            ""
-         ],
-         "CTAS Schema": [
-            ""
-         ],
-         "Creator": [
-            "作成者"
-         ],
-         "SQLAlchemy URI": [
-            ""
-         ],
-         "Extra": [
-            ""
-         ],
-         "Allow Run Sync": [
-            ""
-         ],
-         "Allow Run Async": [
-            ""
-         ],
-         "Impersonate queries to the database": [
-            ""
-         ],
-         "Import Dashboards": [
-            ""
-         ],
-         "User": [
-            "ユーザー"
-         ],
-         "User Roles": [
-            ""
-         ],
-         "Database URL": [
-            ""
-         ],
-         "Roles to grant": [
-            ""
-         ],
-         "Created On": [
-            "作成日"
-         ],
-         "Access requests": [
-            ""
-         ],
-         "Security": [
-            "セキュリティー"
-         ],
-         "List Slices": [
-            ""
-         ],
-         "Show Slice": [
-            ""
-         ],
-         "Add Slice": [
-            ""
-         ],
-         "Edit Slice": [
-            ""
-         ],
-         "These parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object is exposed here for reference and for power users who may want to alter specific parameters.": [
-            ""
-         ],
-         "Duration (in seconds) of the caching timeout for this slice.": [
-            ""
-         ],
-         "Last Modified": [
-            "最終更新日"
-         ],
-         "Owners": [
-            "所有者"
-         ],
-         "Parameters": [
-            "パラメータ"
-         ],
-         "Slice": [
-            "スライス"
-         ],
-         "List Dashboards": [
-            ""
-         ],
-         "Show Dashboard": [
-            ""
-         ],
-         "Add Dashboard": [
-            ""
-         ],
-         "Edit Dashboard": [
-            ""
-         ],
-         "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
-            ""
-         ],
-         "The css for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
-            ""
-         ],
-         "To get a readable URL for your dashboard": [
-            ""
-         ],
-         "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.": [
-            ""
-         ],
-         "Owners is a list of users who can alter the dashboard.": [
-            ""
-         ],
-         "Dashboard": [
-            "ダッシュボード"
-         ],
-         "Slug": [
-            ""
-         ],
-         "Position JSON": [
-            ""
-         ],
-         "JSON Metadata": [
-            ""
-         ],
-         "Underlying Tables": [
-            ""
-         ],
-         "Export": [
-            "エクスポート"
-         ],
-         "Export dashboards?": [
-            ""
-         ],
-         "Action": [
-            "アクション"
-         ],
-         "dttm": [
-            ""
-         ],
-         "Action Log": [
-            "アクション履歴"
-         ],
-         "Access was requested": [
-            ""
-         ],
-         "%(user)s was granted the role %(role)s that gives access to the %(datasource)s": [
-            ""
-         ],
-         "Role %(r)s was extended to provide the access to the datasource %(ds)s": [
-            ""
-         ],
-         "You have no permission to approve this request": [
-            ""
-         ],
-         "Malformed request. slice_id or table_name and db_name arguments are expected": [
-            ""
-         ],
-         "Slice %(id)s not found": [
-            "スライス %(id)s が見つかりません"
-         ],
-         "Table %(t)s wasn't found in the database %(d)s": [
-            "テーブル %(t)s はデータベース %(d)s　にありません"
-         ],
-         "Can't find User '%(name)s', please ask your admin to create one.": [
-            "ユーザー ‘%(name)s’ が見つかりません。管理者に作成を依頼してください。"
-         ],
-         "Can't find DruidCluster with cluster_name = '%(name)s'": [
-            ""
-         ],
-         "Query record was not created as expected.": [
-            ""
-         ],
-         "Template Name": [
-            "テンプレート名"
-         ],
-         "CSS Templates": [
-            "CSSテンプレート"
-         ],
-         "SQL Editor": [
-            "SQLエディタ"
-         ],
-         "SQL Lab": [
-            "SQLツール"
-         ],
-         "Query Search": [
-            "クエリを検索"
-         ],
-         "Status": [
-            "状態"
-         ],
-         "Start Time": [
-            "開始時間"
-         ],
-         "End Time": [
-            "終了時間"
-         ],
-         "Queries": [
-            "クエリ"
-         ],
-         "List Saved Query": [
-            "保存されたクエリのリスト"
-         ],
-         "Show Saved Query": [
-            "保存されたクエリを表示"
-         ],
-         "Add Saved Query": [
-            "保存されたクエリを追加"
-         ],
-         "Edit Saved Query": [
-            "保存されたクエリの編集"
-         ],
-         "Pop Tab Link": [
-            "新しいタブでクエリ"
-         ],
-         "Changed on": [
-            "変更日"
-         ],
-         "Saved Queries": [
-            "保存されたクエリ"
-         ]
-      }
-   }
+  "domain": "superset",
+  "locale_data": {
+    "superset": {
+      "": {
+        "domain": "superset",
+        "plural_forms": "nplurals=1; plural=0",
+        "lang": "ja"
+      },
+      "Time Column": ["時間列"],
+      "second": ["秒"],
+      "minute": ["分"],
+      "hour": ["時間"],
+      "day": ["日"],
+      "week": ["週"],
+      "month": ["月"],
+      "quarter": ["4半期"],
+      "year": ["年"],
+      "week_start_monday": ["月曜日を週初めに"],
+      "week_ending_saturday": ["土曜日を週終わりに"],
+      "week_start_sunday": ["日曜日を週初めに"],
+      "5 minute": ["５分"],
+      "half hour": ["半時間"],
+      "10 minute": ["１０分"],
+      "[Superset] Access to the datasource %(name)s was granted": [
+        "[Superset]　データソース　%(name)s へのアクセスは許可されました"
+      ],
+      "Viz is missing a datasource": ["データソースは見つかりません"],
+      "From date cannot be larger than to date": [
+        "開始日は終了日を超えてはいけません"
+      ],
+      "Table View": ["テーブルビュー"],
+      "Pick a granularity in the Time section or uncheck 'Include Time'": [
+        "任意の時間精度を選択してください or uncheck ‘Include Time’"
+      ],
+      "Choose either fields to [Group By] and [Metrics] or [Columns], not both": [
+        "[Group By]と[Metrics]または[列]のいずれかを選択します"
+      ],
+      "Time Table View": [""],
+      "Pick at least one metric": ["少なくとも1つの指標を選択してください"],
+      "When using 'Group By' you are limited to use a single metric": [""],
+      "Pivot Table": ["ピボットテーブル"],
+      "Please choose at least one \"Group by\" field ": [
+        "少なくとも1つの[Group by]フィールドを選択してください "
+      ],
+      "Please choose at least one metric": [
+        "少なくとも1つの指標を選択してください"
+      ],
+      "'Group By' and 'Columns' can't overlap": [
+        "‘Group by’ と ‘Columns’ は重複できません"
+      ],
+      "Markup": ["マークアップ"],
+      "Separator": ["セパレータ"],
+      "Word Cloud": ["単語の雲"],
+      "Treemap": ["ツリーマップ"],
+      "Calendar Heatmap": ["カレンダーヒートマップ"],
+      "Box Plot": ["ボックスプロット"],
+      "Bubble Chart": ["バブル図"],
+      "Pick a metric for x, y and size": [""],
+      "Bullet Chart": [""],
+      "Pick a metric to display": [""],
+      "Big Number with Trendline": ["トレンド付き数字"],
+      "Pick a metric!": ["指標を選んでください!"],
+      "Big Number": ["数値"],
+      "Time Series - Line Chart": ["時系列 - 折れ線グラフ"],
+      "Pick a time granularity for your time series": [""],
+      "Time Series - Dual Axis Line Chart": [""],
+      "Pick a metric for left axis!": [""],
+      "Pick a metric for right axis!": [""],
+      "Please choose different metrics on left and right axis": [""],
+      "Time Series - Bar Chart": ["時系列 - 棒グラフ"],
+      "Time Series - Percent Change": ["時系列 - 変化率"],
+      "Time Series - Stacked": ["時系列 - 積み上げ線グラフ"],
+      "Distribution - NVD3 - Pie Chart": ["円グラフ"],
+      "Histogram": ["ヒストグラム"],
+      "Must have one numeric column specified": [""],
+      "Distribution - Bar Chart": ["棒グラフ"],
+      "Can't have overlap between Series and Breakdowns": [""],
+      "Pick at least one field for [Series]": [""],
+      "Sunburst": [""],
+      "Sankey": [""],
+      "Pick exactly 2 columns as [Source / Target]": [""],
+      "There's a loop in your Sankey, please provide a tree. Here's a faulty link: {}": [
+        ""
+      ],
+      "Directed Force Layout": [""],
+      "Pick exactly 2 columns to 'Group By'": [""],
+      "Country Map": ["国地図"],
+      "World Map": ["世界地図"],
+      "Filters": ["フィルター"],
+      "Pick at least one filter field": [
+        "少なくとも1つのフィルタフィールドを選択してください"
+      ],
+      "iFrame": [""],
+      "Parallel Coordinates": [""],
+      "Heatmap": ["ヒートマップ"],
+      "Horizon Charts": [""],
+      "Mapbox": [""],
+      "Must have a [Group By] column to have 'count' as the [Label]": [""],
+      "Choice of [Label] must be present in [Group By]": [""],
+      "Choice of [Point Radius] must be present in [Group By]": [""],
+      "[Longitude] and [Latitude] columns must be present in [Group By]": [""],
+      "Event flow": [""],
+      "Time Series - Paired t-test": [""],
+      "Your query was saved": ["クエリは保存されました"],
+      "Your query could not be saved": ["クエリを保存できませんでした"],
+      "Failed at retrieving results from the results backend": [""],
+      "Could not connect to server": ["サーバーに接続できませんでした"],
+      "Your session timed out, please refresh your page and try again.": [""],
+      "Query was stopped.": [""],
+      "Failed at stopping query.": [""],
+      "Error occurred while fetching table metadata": [""],
+      "shared query": [""],
+      "The query couldn't be loaded": [""],
+      "An error occurred while creating the data source": [""],
+      "Pick a chart type!": [""],
+      "To use this chart type you need at least one column flagged as a date": [
+        ""
+      ],
+      "To use this chart type you need at least one dimension": [""],
+      "To use this chart type you need at least one aggregation function": [""],
+      "Untitled Query": [""],
+      "Copy of %s": [""],
+      "share query": ["クエリを共有"],
+      "copy URL to clipboard": ["URL をクリップボードにコピー"],
+      "Raw SQL": [""],
+      "Source SQL": [""],
+      "SQL": [""],
+      "No query history yet...": [""],
+      "It seems you don't have access to any database": [""],
+      "Search Results": ["検索結果"],
+      "[From]-": [""],
+      "[To]-": [""],
+      "[Query Status]": [""],
+      "Search": ["検索"],
+      "Open in SQL Editor": ["SQLエディタで開く"],
+      "view results": ["結果を見る"],
+      "Data preview": ["データプレビュー"],
+      "Visualize the data out of this query": ["クエリの結果を可視化"],
+      "Overwrite text in editor with a query on this table": [""],
+      "Run query in a new tab": ["新しいタブでクエリを実行"],
+      "Remove query from log": ["ログからクエリを削除"],
+      ".CSV": [""],
+      "Visualize": ["可視化する"],
+      "Table": ["テーブル"],
+      "was created": ["作成されました"],
+      "Query in a new tab": ["新しいタブでクエリ"],
+      "Fetch data preview": ["データプレビューを取得"],
+      "Track Job": ["ジョブ履歴"],
+      "Loading...": ["読み込み中..."],
+      "Run Selected Query": ["選択したクエリを実行"],
+      "Run Query": ["クエリ実行"],
+      "Run query asynchronously": ["クエリを非同期で実行"],
+      "Stop": ["中止"],
+      "Undefined": ["未定義"],
+      "Label": [""],
+      "Label for your query": [""],
+      "Description": [""],
+      "Write a description for your query": [""],
+      "Save": ["保存"],
+      "Cancel": ["キャンセル"],
+      "Save Query": ["クエリを保存"],
+      "Run a query to display results here": [""],
+      "Preview for %s": [""],
+      "Results": ["クエリ結果"],
+      "Query History": ["クエリ履歴"],
+      "Create table as with query results": [""],
+      "new table name": [""],
+      "Error while fetching table list": [""],
+      "Error while fetching schema list": [""],
+      "Error while fetching database list": [""],
+      "Database:": [""],
+      "Select a database": [""],
+      "Select a schema (%s)": [""],
+      "Schema:": [""],
+      "Add a table (%s)": [""],
+      "Type to search ...": [""],
+      "Reset State": [""],
+      "Enter a new title for the tab": [""],
+      "Untitled Query %s": [""],
+      "close tab": [""],
+      "rename tab": [""],
+      "expand tool bar": [""],
+      "hide tool bar": [""],
+      "Copy partition query to clipboard": [""],
+      "latest partition:": [""],
+      "Keys for table": [""],
+      "View keys & indexes (%s)": [""],
+      "Sort columns alphabetically": [""],
+      "Original table column order": [""],
+      "Copy SELECT statement to clipboard": [""],
+      "Remove table preview": [""],
+      "%s is not right as a column name, please alias it (as in SELECT count(*) ": [
+        ""
+      ],
+      "AS my_alias": [""],
+      "using only alphanumeric characters and underscores": [""],
+      "Creating a data source and popping a new tab": [""],
+      "No results available for this query": [""],
+      "Chart Type": ["グラフ様式"],
+      "[Chart Type]": [""],
+      "Datasource Name": ["データソース"],
+      "datasource name": [""],
+      "Select ...": [""],
+      "Loaded data cached": [""],
+      "Loaded from cache": [""],
+      "Click to force-refresh": [""],
+      "Copy to clipboard": [""],
+      "Not successful": [""],
+      "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!": [""],
+      "Copied!": [""],
+      "Title": ["タイトル"],
+      "click to edit title": [""],
+      "You don't have the rights to alter this title.": [""],
+      "Click to favorite/unfavorite": [""],
+      "You have unsaved changes.": ["未保存の変更があります."],
+      "Click the": [""],
+      "button on the top right to save your changes.": [""],
+      "Served from data cached %s . Click to force refresh.": [""],
+      "Click to force refresh": [""],
+      "Error": [""],
+      "Sorry, there was an error adding slices to this dashboard: %s": [""],
+      "Active Dashboard Filters": [""],
+      "Checkout this dashboard: %s": [""],
+      "Force refresh the whole dashboard": [""],
+      "Edit this dashboard's properties": [""],
+      "Load a template": [""],
+      "Load a CSS template": [""],
+      "CSS": [""],
+      "Live CSS Editor": [""],
+      "Don't refresh": [""],
+      "10 seconds": [""],
+      "30 seconds": [""],
+      "1 minute": [""],
+      "5 minutes": [""],
+      "Refresh Interval": [""],
+      "Choose the refresh frequency for this dashboard": [""],
+      "This dashboard was saved successfully.": [""],
+      "Sorry, there was an error saving this dashboard: ": [""],
+      "You must pick a name for the new dashboard": [""],
+      "Save Dashboard": ["ダッシュボードを保存"],
+      "Overwrite Dashboard [%s]": ["上書き ダッシュボード [%s]"],
+      "Save as:": [""],
+      "[dashboard name]": [""],
+      "Name": ["名前"],
+      "Viz": [""],
+      "Modified": ["最終更新日"],
+      "Add Slices": ["スライスを追加"],
+      "Add a new slice to the dashboard": [
+        "ダッシュボードに新しいスライスを追加"
+      ],
+      "Add Slices to Dashboard": ["ダッシュボードにスライスを追加"],
+      "Move chart": ["チャートを移動"],
+      "Force refresh data": [""],
+      "Toggle chart description": ["グラフの説明を切り替え"],
+      "Edit chart": ["チャートを編集"],
+      "Export CSV": ["CSVで出力"],
+      "Explore chart": ["チャートを見る"],
+      "Remove chart from dashboard": ["ダッシュボードからチャートを削除"],
+      "%s - untitled": [""],
+      "Edit slice properties": [""],
+      "description": [""],
+      "bolt": [""],
+      "Error...": [""],
+      "Query": ["クエリ"],
+      "Height": ["高さ"],
+      "Width": ["幅"],
+      "Export to .json": ["jsonで出力"],
+      "Export to .csv format": ["csvで出力"],
+      "Please enter a slice name": ["スライス名を入力してください"],
+      "Please select a dashboard": ["ダッシュボードを選択してください"],
+      "Please enter a dashboard name": ["ダッシュボード名を入力してください"],
+      "Save A Slice": ["スライスを保存"],
+      "Overwrite slice %s": ["上書き スライス [%s]"],
+      "Save as": ["別名で保存"],
+      "[slice name]": [""],
+      "Do not add to a dashboard": ["ダッシュボードに追加しない"],
+      "Add slice to existing dashboard": [
+        "既存のダッシュボードにスライスを追加"
+      ],
+      "Add to new dashboard": ["新しいダッシュボードに追加"],
+      "Save & go to dashboard": ["保存してダッシュボードに移動"],
+      "Check out this slice: %s": [""],
+      "`Min` value should be numeric or empty": [""],
+      "`Max` value should be numeric or empty": [""],
+      "Min": ["最小値"],
+      "Max": ["最大値"],
+      "Something went wrong while fetching the datasource list": [
+        "データソースリストを取得中に何か問題が発生しました"
+      ],
+      "Click to point to another datasource": [""],
+      "Edit the datasource's configuration": ["データソースの設定を編集"],
+      "Select a datasource": ["データソースを選択"],
+      "Search / Filter": ["検索/フィルタ"],
+      "Filter value": ["フィルタ値"],
+      "Select metric": ["指標を選択"],
+      "Select column": ["列を選択"],
+      "Select operator": ["オペレータを選択"],
+      "Add Filter": ["フィルターを追加"],
+      "Error while fetching data": ["データの取得中にエラーが発生しました"],
+      "Select %s": [""],
+      "textarea": [""],
+      "Edit": [""],
+      "in modal": [""],
+      "Select a visualization type": ["可視化タイプを選んでください"],
+      "Updating chart was stopped": [""],
+      "An error occurred while rendering the visualization: %s": [""],
+      "Perhaps your data has grown, your database is under unusual load, or you are simply querying a data source that is to large to be processed within the timeout range. If that is the case, we recommend that you summarize your data further.": [
+        ""
+      ],
+      "Network error.": [""],
+      "A reference to the [Time] configuration, taking granularity into account": [
+        ""
+      ],
+      "Group by": [""],
+      "One or many controls to group by": [""],
+      "Datasource": ["データソース"],
+      "Visualization Type": ["グラフ様式"],
+      "The type of visualization to display": [""],
+      "Metrics": ["指標"],
+      "One or many metrics to display": [""],
+      "Y Axis Bounds": [""],
+      "Bounds for the Y axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+        ""
+      ],
+      "Ordering": [""],
+      "Annotation Layers": [""],
+      "Annotation layers to overlay on the visualization": [""],
+      "Select a annotation layer": [""],
+      "Error while fetching annotation layers": [""],
+      "Metric": ["指標"],
+      "Choose the metric": ["指標を選んでください"],
+      "Right Axis Metric": [""],
+      "Choose a metric for right axis": [""],
+      "Stacked Style": [""],
+      "Linear Color Scheme": [""],
+      "Normalize Across": [""],
+      "Color will be rendered based on a ratio of the cell against the sum of across this criteria": [
+        ""
+      ],
+      "Horizon Color Scale": [""],
+      "Defines how the color are attributed.": [""],
+      "Rendering": [""],
+      "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
+        ""
+      ],
+      "XScale Interval": [""],
+      "Number of steps to take between ticks when displaying the X scale": [""],
+      "YScale Interval": [""],
+      "Number of steps to take between ticks when displaying the Y scale": [""],
+      "Include Time": [""],
+      "Whether to include the time granularity as defined in the time section": [
+        ""
+      ],
+      "Stacked Bars": [""],
+      "Show totals": [""],
+      "Display total row/column": [""],
+      "Show Markers": [""],
+      "Show data points as circle markers on the lines": [""],
+      "Bar Values": [""],
+      "Show the value on top of the bar": [""],
+      "Sort Bars": [""],
+      "Sort bars by x labels.": [""],
+      "Combine Metrics": [""],
+      "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": [
+        ""
+      ],
+      "Extra Controls": [""],
+      "Whether to show extra controls or not. Extra controls include things like making mulitBar charts stacked or side by side.": [
+        ""
+      ],
+      "Reduce X ticks": [""],
+      "Reduces the number of X axis ticks to be rendered. If true, the x axis wont overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into an horizontal scroll.": [
+        ""
+      ],
+      "Include Series": [""],
+      "Include series name as an axis": [""],
+      "Color Metric": [""],
+      "A metric to use for color": [""],
+      "Country Name": [""],
+      "The name of country that Superset should display": [""],
+      "Country Field Type": [""],
+      "The country code standard that Superset should expect to find in the [country] column": [
+        ""
+      ],
+      "Columns": [""],
+      "One or many controls to pivot as columns": [""],
+      "Columns to display": [""],
+      "Origin": [""],
+      "Defines the origin where time buckets start, accepts natural dates as in `now`, `sunday` or `1970-01-01`": [
+        ""
+      ],
+      "Bottom Margin": [""],
+      "Bottom margin, in pixels, allowing for more room for axis labels": [""],
+      "Left Margin": [""],
+      "Left margin, in pixels, allowing for more room for axis labels": [""],
+      "Time Granularity": ["時間粒度"],
+      "The time granularity for the visualization. Note that you can type and use simple natural language as in `10 seconds`, `1 day` or `56 weeks`": [
+        ""
+      ],
+      "Domain": [""],
+      "The time unit used for the grouping of blocks": [""],
+      "Subdomain": [""],
+      "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or equal to Time Grain": [
+        ""
+      ],
+      "Link Length": [""],
+      "Link length in the force layout": [""],
+      "Charge": [""],
+      "Charge in the force layout": [""],
+      "The time column for the visualization. Note that you can define arbitrary expression that return a DATETIME column in the table or. Also note that the filter below is applied against this column or expression": [
+        ""
+      ],
+      "Time Grain": ["時間単位"],
+      "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code.": [
+        ""
+      ],
+      "Resample Rule": [""],
+      "Pandas resample rule": [""],
+      "Resample How": [""],
+      "Pandas resample how": [""],
+      "Resample Fill Method": [""],
+      "Pandas resample fill method": [""],
+      "Since": ["から"],
+      "7 days ago": [""],
+      "Until": ["まで"],
+      "Max Bubble Size": [""],
+      "Whisker/outlier options": [""],
+      "Determines how whiskers and outliers are calculated.": [""],
+      "Ratio": ["比率"],
+      "Target aspect ratio for treemap tiles.": [""],
+      "Number format": ["数値の書式"],
+      "Row limit": ["行数制限"],
+      "Series limit": [""],
+      "Limits the number of time series that get displayed": [""],
+      "Sort By": [""],
+      "Metric used to define the top series": [""],
+      "Rolling": [""],
+      "Defines a rolling window function to apply, works along with the [Periods] text box": [
+        ""
+      ],
+      "Periods": [""],
+      "Defines the size of the rolling window function, relative to the time granularity selected": [
+        ""
+      ],
+      "Min Periods": [""],
+      "The minimum number of rolling periods required to show a value. For instance if you do a cumulative sum on 7 days you may want your \"Min Period\" to be 7, so that all data points shown are the total of 7 periods. This will hide the \"ramp up\" taking place over the first 7 periods": [
+        ""
+      ],
+      "Series": [""],
+      "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
+        ""
+      ],
+      "Entity": [""],
+      "This defines the element to be plotted on the chart": [""],
+      "X Axis": ["X軸"],
+      "Metric assigned to the [X] axis": [""],
+      "Y Axis": ["Y軸"],
+      "Metric assigned to the [Y] axis": [""],
+      "Bubble Size": ["バブルの大きさ"],
+      "URL": [""],
+      "The URL, this control is templated, so you can integrate {{ width }} and/or {{ height }} in your URL string.": [
+        ""
+      ],
+      "X Axis Label": ["X軸ラベル"],
+      "Y Axis Label": ["Y軸ラベル"],
+      "Custom WHERE clause": [""],
+      "The text in this box gets included in your query's WHERE clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards.": [
+        ""
+      ],
+      "Custom HAVING clause": [""],
+      "The text in this box gets included in your query's HAVING clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards.": [
+        ""
+      ],
+      "Comparison Period Lag": [""],
+      "Based on granularity, number of time periods to compare against": [""],
+      "Comparison suffix": [""],
+      "Suffix to apply after the percentage display": [""],
+      "Table Timestamp Format": [""],
+      "Timestamp Format": ["タンムスダンプの様式"],
+      "Series Height": [""],
+      "Pixel height of each series": [""],
+      "Page Length": [""],
+      "Rows per page, 0 means no pagination": [""],
+      "X Axis Format": [""],
+      "Y Axis Format": [""],
+      "Right Axis Format": [""],
+      "Markup Type": [""],
+      "Pick your favorite markup language": [""],
+      "Rotation": ["回転"],
+      "Rotation to apply to words in the cloud": [""],
+      "Line Style": [""],
+      "Line interpolation as defined by d3.js": [""],
+      "Label Type": [""],
+      "What should be shown on the label?": [""],
+      "Code": [""],
+      "Put your code here": [""],
+      "Aggregation function": [""],
+      "Aggregate function to apply when pivoting and computing the total rows and columns": [
+        ""
+      ],
+      "Font Size From": [""],
+      "Font size for the smallest value in the list": [""],
+      "Font Size To": [""],
+      "Font size for the biggest value in the list": [""],
+      "Instant Filtering": [""],
+      "Range Filter": [""],
+      "Whether to display the time range interactive selector": [""],
+      "Date Filter": [""],
+      "Whether to include a time filter": [""],
+      "Data Table": [""],
+      "Whether to display the interactive data table": [""],
+      "Search Box": [""],
+      "Whether to include a client side search box": [""],
+      "Table Filter": [""],
+      "Whether to apply filter when table cell is clicked": [""],
+      "Show Bubbles": [""],
+      "Whether to display bubbles on top of countries": [""],
+      "Legend": [""],
+      "Whether to display the legend (toggles)": [""],
+      "Show Values": [""],
+      "Whether to display the numerical values within the cells": [""],
+      "X bounds": [""],
+      "Whether to display the min and max values of the X axis": [""],
+      "Y bounds": [""],
+      "Whether to display the min and max values of the Y axis": [""],
+      "Rich Tooltip": [""],
+      "The rich tooltip shows a list of all series for that point in time": [
+        ""
+      ],
+      "Y Log Scale": [""],
+      "Use a log scale for the Y axis": [""],
+      "X Log Scale": [""],
+      "Use a log scale for the X axis": [""],
+      "Donut": [""],
+      "Do you want a donut or a pie?": [""],
+      "Put labels outside": [""],
+      "Put the labels outside the pie?": [""],
+      "Contribution": [""],
+      "Compute the contribution to the total": [""],
+      "Period Ratio": [""],
+      "[integer] Number of period to compare against, this is relative to the granularity selected": [
+        ""
+      ],
+      "Period Ratio Type": [""],
+      "`factor` means (new/previous), `growth` is ((new/previous) - 1), `value` is (new-previous)": [
+        ""
+      ],
+      "Time Shift": [""],
+      "Overlay a timeseries from a relative time period. Expects relative time delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days)": [
+        ""
+      ],
+      "Subheader": [""],
+      "Description text that shows up below your Big Number": [""],
+      "label": [""],
+      "`count` is COUNT(*) if a group by is used. Numerical columns will be aggregated with the aggregator. Non-numerical columns will be used to label points. Leave empty to get a count of points in each cluster.": [
+        ""
+      ],
+      "Map Style": [""],
+      "Base layer map style": [""],
+      "Clustering Radius": [""],
+      "The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to turn off clustering, but beware that a large number of points (>1000) will cause lag.": [
+        ""
+      ],
+      "Point Radius": [""],
+      "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
+        ""
+      ],
+      "Point Radius Unit": [""],
+      "The unit of measure for the specified point radius": [""],
+      "Opacity": [""],
+      "Opacity of all clusters, points, and labels. Between 0 and 1.": [""],
+      "Zoom": [""],
+      "Zoom level of the map": [""],
+      "Default latitude": [""],
+      "Latitude of default viewport": [""],
+      "Default longitude": [""],
+      "Longitude of default viewport": [""],
+      "Live render": [""],
+      "Points and clusters will update as viewport is being changed": [""],
+      "RGB Color": [""],
+      "The color for points and clusters in RGB": [""],
+      "Ranges": [""],
+      "Ranges to highlight with shading": [""],
+      "Range labels": [""],
+      "Labels for the ranges": [""],
+      "Markers": [""],
+      "List of values to mark with triangles": [""],
+      "Marker labels": [""],
+      "Labels for the markers": [""],
+      "Marker lines": [""],
+      "List of values to mark with lines": [""],
+      "Marker line labels": [""],
+      "Labels for the marker lines": [""],
+      "Slice ID": [""],
+      "The id of the active slice": [""],
+      "Cache Timeout (seconds)": [""],
+      "The number of seconds before expiring the cache": [""],
+      "Order by entity id": [""],
+      "Important! Select this if the table is not already sorted by entity id, else there is no guarantee that all events for each entity are returned.": [
+        ""
+      ],
+      "Minimum leaf node event count": [""],
+      "Leaf nodes that represent fewer than this number of events will be initially hidden in the visualization": [
+        ""
+      ],
+      "Color Scheme": [""],
+      "The color scheme for rendering chart": [""],
+      "Time Series Columns": [""],
+      "Time": [""],
+      "Time related form attributes": [""],
+      "Datasource & Chart Type": [""],
+      "This section exposes ways to include snippets of SQL in your query": [
+        ""
+      ],
+      "Annotations": [""],
+      "Advanced Analytics": [""],
+      "This section contains options that allow for advanced analytical post processing of query results": [
+        ""
+      ],
+      "Result Filters": [""],
+      "The filters to apply after post-aggregation.Leave the value control empty to filter empty strings or nulls": [
+        ""
+      ],
+      "Chart Options": [""],
+      "Breakdowns": [""],
+      "Defines how each series is broken down": [""],
+      "Pie Chart": [""],
+      "Dual Axis Line Chart": [""],
+      "Y Axis 1": [""],
+      "Y Axis 2": [""],
+      "Left Axis Metric": [""],
+      "Choose a metric for left axis": [""],
+      "Left Axis Format": [""],
+      "Axes": [""],
+      "GROUP BY": [""],
+      "Use this section if you want a query that aggregates": [""],
+      "NOT GROUPED BY": [""],
+      "Use this section if you want to query atomic rows": [""],
+      "Options": [""],
+      "Time Series Table": [""],
+      "Bubbles": [""],
+      "Numeric Column": [""],
+      "Select the numeric column to draw the histogram": [""],
+      "No of Bins": [""],
+      "Select number of bins for the histogram": [""],
+      "Primary Metric": [""],
+      "The primary metric is used to define the arc segment sizes": [""],
+      "Secondary Metric": [""],
+      "This secondary metric is used to define the color as a ratio against the primary metric. If the two metrics match, color is mapped level groups": [
+        ""
+      ],
+      "Hierarchy": [""],
+      "This defines the level of the hierarchy": [""],
+      "Source / Target": [""],
+      "Choose a source and a target": [""],
+      "Chord Diagram": [""],
+      "Choose a number format": [""],
+      "Source": ["ソース"],
+      "Choose a source": ["ソースを選択"],
+      "Target": ["ターゲット"],
+      "Choose a target": ["ターゲットを選択"],
+      "ISO 3166-1 codes of region/province/department": [""],
+      "It's ISO 3166-1 of your region/province/department in your table. (see documentation for list of ISO 3166-1)": [
+        ""
+      ],
+      "Country Control": [""],
+      "3 letter code of the country": [""],
+      "Metric for color": [""],
+      "Metric that defines the color of the country": [""],
+      "Bubble size": [""],
+      "Metric that defines the size of the bubble": [""],
+      "Filter Box": ["フィルタボックス"],
+      "Filter controls": ["フィルタ項目"],
+      "The controls you want to filter on. Note that only columns checked as \"filterable\" will show up on this list.": [
+        ""
+      ],
+      "Heatmap Options": [""],
+      "Horizon": [""],
+      "Points": [""],
+      "Labelling": [""],
+      "Visual Tweaks": [""],
+      "Viewport": [""],
+      "Longitude": [""],
+      "Column containing longitude data": [""],
+      "Latitude": [""],
+      "Column containing latitude data": [""],
+      "Cluster label aggregator": [""],
+      "Aggregate function applied to the list of points in each cluster to produce the cluster label.": [
+        ""
+      ],
+      "Tooltip": [""],
+      "Show a tooltip when hovering over points and clusters describing the label": [
+        ""
+      ],
+      "One or many controls to group by. If grouping, latitude and longitude columns must be present.": [
+        ""
+      ],
+      "Event definition": [""],
+      "Additional meta data": [""],
+      "Column containing entity ids": [""],
+      "e.g., a \"user id\" column": [""],
+      "Column containing event names": [""],
+      "Event count limit": [""],
+      "The maximum number of events to return, equivalent to number of rows": [
+        ""
+      ],
+      "Meta data": [""],
+      "Select any columns for meta data inspection": [""],
+      "The server could not be reached. You may want to verify your connection and try again.": [
+        ""
+      ],
+      "An unknown error occurred. (Status: %s )": [""],
+      "Favorites": ["お気に入り"],
+      "Created Content": ["作成したもの"],
+      "Recent Activity": ["近況"],
+      "Security & Access": ["セキュリティー"],
+      "No slices": [""],
+      "No dashboards": [""],
+      "Dashboards": ["ダッシュボード"],
+      "Slices": ["スライス"],
+      "No favorite slices yet, go click on stars!": [""],
+      "No favorite dashboards yet, go click on stars!": [""],
+      "Roles": [""],
+      "Databases": ["データベース"],
+      "Datasources": [""],
+      "Profile picture provided by Gravatar": [""],
+      "joined": [""],
+      "id:": [""],
+      "Sorry, there appears to be no data": [""],
+      "Select [%s]": [""],
+      "No data was returned.": [""],
+      "List Druid Column": [""],
+      "Show Druid Column": [""],
+      "Add Druid Column": [""],
+      "Edit Druid Column": [""],
+      "Column": ["列"],
+      "Type": ["タイプ"],
+      "Groupable": ["グループ分け可能"],
+      "Filterable": ["フィルタ可能"],
+      "Count Distinct": [""],
+      "Sum": [""],
+      "Whether this column is exposed in the `Filters` section of the explore view.": [
+        ""
+      ],
+      "List Druid Metric": [""],
+      "Show Druid Metric": [""],
+      "Add Druid Metric": [""],
+      "Edit Druid Metric": [""],
+      "Whether the access to this metric is restricted to certain roles. Only roles with the permission 'metric access on XXX (the name of this metric)' are allowed to access this metric": [
+        ""
+      ],
+      "Verbose Name": [""],
+      "JSON": [""],
+      "Druid Datasource": [""],
+      "Warning Message": [""],
+      "List Druid Cluster": [""],
+      "Show Druid Cluster": [""],
+      "Add Druid Cluster": [""],
+      "Edit Druid Cluster": [""],
+      "Cluster": [""],
+      "Broker Host": [""],
+      "Broker Port": [""],
+      "Broker Endpoint": [""],
+      "Druid Clusters": [""],
+      "Sources": ["ソース"],
+      "List Druid Datasource": [""],
+      "Show Druid Datasource": [""],
+      "Add Druid Datasource": [""],
+      "Edit Druid Datasource": [""],
+      "The list of slices associated with this table. By altering this datasource, you may change how these associated slices behave. Also note that slices need to point to a datasource, so this form will fail at saving if removing slices from a datasource. If you want to change the datasource for a slice, overwrite the slice from the 'explore view'": [
+        ""
+      ],
+      "Timezone offset (in hours) for this datasource": [""],
+      "Time expression to use as a predicate when retrieving distinct values to populate the filter component. Only applies when `Enable Filter Select` is on. If you enter `7 days ago`, the distinct list of values in the filter will be populated based on the distinct value over the past week": [
+        ""
+      ],
+      "Whether to populate the filter's dropdown in the explore view's filter section with a list of distinct values fetched from the backend on the fly": [
+        ""
+      ],
+      "Redirects to this endpoint when clicking on the datasource from the datasource list": [
+        ""
+      ],
+      "Associated Slices": [""],
+      "Data Source": [""],
+      "Owner": [""],
+      "Is Hidden": [""],
+      "Enable Filter Select": [""],
+      "Default Endpoint": [""],
+      "Time Offset": [""],
+      "Cache Timeout": [""],
+      "Druid Datasources": [""],
+      "Scan New Datasources": [""],
+      "Refresh Druid Metadata": [""],
+      "Datetime column not provided as part table configuration and is required by this type of chart": [
+        ""
+      ],
+      "Empty query?": [""],
+      "Metric '{}' is not valid": [""],
+      "Table [{}] doesn't seem to exist in the specified database, couldn't fetch column information": [
+        ""
+      ],
+      "List Columns": [""],
+      "Show Column": [""],
+      "Add Column": [""],
+      "Edit Column": [""],
+      "Whether to make this column available as a [Time Granularity] option, column has to be DATETIME or DATETIME-like": [
+        ""
+      ],
+      "The data type that was inferred by the database. It may be necessary to input a type manually for expression-defined columns in some cases. In most case users should not need to alter this.": [
+        ""
+      ],
+      "Expression": [""],
+      "Is temporal": [""],
+      "Datetime Format": [""],
+      "Database Expression": [""],
+      "List Metrics": [""],
+      "Show Metric": [""],
+      "Add Metric": [""],
+      "Edit Metric": [""],
+      "SQL Expression": [""],
+      "D3 Format": [""],
+      "Is Restricted": [""],
+      "List Tables": [""],
+      "Show Table": [""],
+      "Add Table": [""],
+      "Edit Table": [""],
+      "Name of the table that exists in the source database": [""],
+      "Schema, as used only in some databases like Postgres, Redshift and DB2": [
+        ""
+      ],
+      "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
+        ""
+      ],
+      "Predicate applied when fetching distinct value to populate the filter control component. Supports jinja template syntax. Applies only when `Enable Filter Select` is on.": [
+        ""
+      ],
+      "Redirects to this endpoint when clicking on the table from the table list": [
+        ""
+      ],
+      "Changed By": ["更新者"],
+      "Database": [""],
+      "Last Changed": ["最終更新日"],
+      "Schema": ["スキーマ"],
+      "Offset": [""],
+      "Table Name": ["テーブル名"],
+      "Fetch Values Predicate": [""],
+      "Main Datetime Column": [""],
+      "Table [{}] could not be found, please double check your database connection, schema, and table name": [
+        ""
+      ],
+      "The table was created. As part of this two phase configuration process, you should now click the edit button by the new table to configure it.": [
+        ""
+      ],
+      "Tables": ["テーブル"],
+      "Profile": ["プロファイル"],
+      "Logout": ["ログアウト"],
+      "Login": ["ログイン"],
+      "記録数": [""],
+      "No records found": [""],
+      "Import": [""],
+      "No Access!": [""],
+      "You do not have permissions to access the datasource(s): %(name)s.": [
+        ""
+      ],
+      "Request Permissions": [""],
+      "Welcome!": [""],
+      "Test Connection": [""],
+      "Manage": ["管理"],
+      "Datasource %(name)s already exists": [""],
+      "json isn't valid": [""],
+      "Delete": ["削除"],
+      "Delete all Really?": ["本当に全部削除しますか？"],
+      "This endpoint requires the `all_datasource_access` permission": [""],
+      "The datasource seems to have been deleted": [""],
+      "The access requests seem to have been deleted": [""],
+      "The user seems to have been deleted": [""],
+      "You don't have access to this datasource": [""],
+      "This view requires the database %(name)s or `all_datasource_access` permission": [
+        ""
+      ],
+      "This endpoint requires the datasource %(name)s, database or `all_datasource_access` permission": [
+        ""
+      ],
+      "List Databases": ["データベースリスト"],
+      "Show Database": ["データベースを表示"],
+      "Add Database": ["データベースを追加"],
+      "Edit Database": ["データベースリンクを編集"],
+      "Expose this DB in SQL Lab": [""],
+      "Allow users to run synchronous queries, this is the default and should work well for queries that can be executed within a web request scope (<~1 minute)": [
+        ""
+      ],
+      "Allow users to run queries, against an async backend. This assumes that you have a Celery worker setup as well as a results backend.": [
+        ""
+      ],
+      "Allow CREATE TABLE AS option in SQL Lab": [""],
+      "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab": [
+        ""
+      ],
+      "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
+        ""
+      ],
+      "All the queries in Sql Lab are going to be executed on behalf of currently authorized user.": [
+        ""
+      ],
+      "Expose in SQL Lab": [""],
+      "Allow CREATE TABLE AS": [""],
+      "Allow DML": [""],
+      "CTAS Schema": [""],
+      "Creator": ["作成者"],
+      "SQLAlchemy URI": [""],
+      "Extra": [""],
+      "Allow Run Sync": [""],
+      "Allow Run Async": [""],
+      "Impersonate queries to the database": [""],
+      "Import Dashboards": [""],
+      "User": ["ユーザー"],
+      "User Roles": [""],
+      "Database URL": [""],
+      "Roles to grant": [""],
+      "Created On": ["作成日"],
+      "Access requests": [""],
+      "Security": ["セキュリティー"],
+      "List Slices": [""],
+      "Show Slice": [""],
+      "Add Slice": [""],
+      "Edit Slice": [""],
+      "These parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object is exposed here for reference and for power users who may want to alter specific parameters.": [
+        ""
+      ],
+      "Duration (in seconds) of the caching timeout for this slice.": [""],
+      "Last Modified": ["最終更新日"],
+      "Owners": ["所有者"],
+      "Parameters": ["パラメータ"],
+      "Slice": ["スライス"],
+      "List Dashboards": [""],
+      "Show Dashboard": [""],
+      "Add Dashboard": [""],
+      "Edit Dashboard": [""],
+      "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
+        ""
+      ],
+      "The css for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
+        ""
+      ],
+      "To get a readable URL for your dashboard": [""],
+      "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.": [
+        ""
+      ],
+      "Owners is a list of users who can alter the dashboard.": [""],
+      "Dashboard": ["ダッシュボード"],
+      "Slug": [""],
+      "Position JSON": [""],
+      "JSON Metadata": [""],
+      "Underlying Tables": [""],
+      "Export": ["エクスポート"],
+      "Export dashboards?": [""],
+      "Action": ["アクション"],
+      "dttm": [""],
+      "Action Log": ["アクション履歴"],
+      "Access was requested": [""],
+      "%(user)s was granted the role %(role)s that gives access to the %(datasource)s": [
+        ""
+      ],
+      "Role %(r)s was extended to provide the access to the datasource %(ds)s": [
+        ""
+      ],
+      "You have no permission to approve this request": [""],
+      "Malformed request. slice_id or table_name and db_name arguments are expected": [
+        ""
+      ],
+      "Slice %(id)s not found": ["スライス %(id)s が見つかりません"],
+      "Table %(t)s wasn't found in the database %(d)s": [
+        "テーブル %(t)s はデータベース %(d)s　にありません"
+      ],
+      "Can't find User '%(name)s', please ask your admin to create one.": [
+        "ユーザー ‘%(name)s’ が見つかりません。管理者に作成を依頼してください。"
+      ],
+      "Can't find DruidCluster with cluster_name = '%(name)s'": [""],
+      "Query record was not created as expected.": [""],
+      "Template Name": ["テンプレート名"],
+      "CSS Templates": ["CSSテンプレート"],
+      "SQL Editor": ["SQLエディタ"],
+      "SQL Lab": ["SQLツール"],
+      "Query Search": ["クエリを検索"],
+      "Status": ["状態"],
+      "Start Time": ["開始時間"],
+      "End Time": ["終了時間"],
+      "Queries": ["クエリ"],
+      "List Saved Query": ["保存されたクエリのリスト"],
+      "Show Saved Query": ["保存されたクエリを表示"],
+      "Add Saved Query": ["保存されたクエリを追加"],
+      "Edit Saved Query": ["保存されたクエリの編集"],
+      "Pop Tab Link": ["新しいタブでクエリ"],
+      "Changed on": ["変更日"],
+      "Saved Queries": ["保存されたクエリ"]
+    }
+  }
 }

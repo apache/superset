@@ -22,7 +22,20 @@
 # you will still be required to type in your signing key password
 # or it needs to be available in your keychain
 
-NAME=${1}
 
-gpg --armor --output ${NAME}.asc --detach-sig ${NAME}
-gpg --print-md SHA512 ${NAME} > ${NAME}.sha512
+# The name of the file/artifact to sign ${RELEASE}-source.tar.gz
+
+if [ -z "${1}" ]; then
+    echo "Missing first parameter, usage: sign <FILE_NAME> <GPG KEY>"
+    exit 1
+fi
+NAME="${1}"
+if [ -z "${2}" ]; then
+  gpg --armor --output "${NAME}".asc --detach-sig "${NAME}"
+  gpg --print-md SHA512 "${NAME}" > "${NAME}".sha512
+else
+  # The GPG key name to use
+  GPG_LOCAL_USER="${2}"
+  gpg --local-user "${GPG_LOCAL_USER}" --armor --output "${NAME}".asc --detach-sig "${NAME}"
+  gpg --local-user "${GPG_LOCAL_USER}" --print-md SHA512 "${NAME}" > "${NAME}".sha512
+fi

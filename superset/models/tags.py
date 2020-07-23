@@ -14,21 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W,no-init
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import enum
+from typing import List, Optional, TYPE_CHECKING, Union
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.engine.base import Connection
+from sqlalchemy.orm import relationship, Session, sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.mapper import Mapper
 
 from superset.models.helpers import AuditMixinNullable
 
+if TYPE_CHECKING:
+    from superset.models.core import FavStar  # pylint: disable=unused-import
+    from superset.models.dashboard import Dashboard  # pylint: disable=unused-import
+    from superset.models.slice import Slice  # pylint: disable=unused-import
+    from superset.models.sql_lab import Query  # pylint: disable=unused-import
 
 Session = sessionmaker(autoflush=False)
 
@@ -65,8 +69,8 @@ class Tag(Model, AuditMixinNullable):
 
     """A tag attached to an object (query, chart or dashboard)."""
 
-    __tablename__ = 'tag'
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
+    __tablename__ = "tag"
+    id = Column(Integer, primary_key=True)
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
 
@@ -75,16 +79,16 @@ class TaggedObject(Model, AuditMixinNullable):
 
     """An association between an object and a tag."""
 
-    __tablename__ = 'tagged_object'
-    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
-    tag_id = Column(Integer, ForeignKey('tag.id'))
+    __tablename__ = "tagged_object"
+    id = Column(Integer, primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tag.id"))
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectTypes))
 
-    tag = relationship('Tag')
+    tag = relationship("Tag", backref="objects")
 
 
-def get_tag(name, session, type_):
+def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:
     try:
         tag = session.query(Tag).filter_by(name=name, type=type_).one()
     except NoResultFound:
@@ -95,40 +99,47 @@ def get_tag(name, session, type_):
     return tag
 
 
-def get_object_type(class_name):
+def get_object_type(class_name: str) -> ObjectTypes:
     mapping = {
-        'slice': ObjectTypes.chart,
-        'dashboard': ObjectTypes.dashboard,
-        'query': ObjectTypes.query,
+        "slice": ObjectTypes.chart,
+        "dashboard": ObjectTypes.dashboard,
+        "query": ObjectTypes.query,
     }
     try:
         return mapping[class_name.lower()]
     except KeyError:
-        raise Exception('No mapping found for {0}'.format(class_name))
+        raise Exception("No mapping found for {0}".format(class_name))
 
 
-class ObjectUpdater(object):
+class ObjectUpdater:
 
-    object_type = None
-
-    @classmethod
-    def get_owners_ids(cls, target):
-        raise NotImplementedError('Subclass should implement `get_owners_ids`')
+    object_type: Optional[str] = None
 
     @classmethod
-    def _add_owners(cls, session, target):
+    def get_owners_ids(
+        cls, target: Union["Dashboard", "FavStar", "Slice"]
+    ) -> List[int]:
+        raise NotImplementedError("Subclass should implement `get_owners_ids`")
+
+    @classmethod
+    def _add_owners(
+        cls, session: Session, target: Union["Dashboard", "FavStar", "Slice"]
+    ) -> None:
         for owner_id in cls.get_owners_ids(target):
-            name = 'owner:{0}'.format(owner_id)
+            name = "owner:{0}".format(owner_id)
             tag = get_tag(name, session, TagTypes.owner)
             tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=target.id,
-                object_type=cls.object_type,
+                tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
             session.add(tagged_object)
 
     @classmethod
-    def after_insert(cls, mapper, connection, target):
+    def after_insert(
+        cls,
+        mapper: Mapper,
+        connection: Connection,
+        target: Union["Dashboard", "FavStar", "Slice"],
+    ) -> None:
         # pylint: disable=unused-argument
         session = Session(bind=connection)
 
@@ -136,32 +147,38 @@ class ObjectUpdater(object):
         cls._add_owners(session, target)
 
         # add `type:` tags
-        tag = get_tag(
-            'type:{0}'.format(cls.object_type), session, TagTypes.type)
+        tag = get_tag("type:{0}".format(cls.object_type), session, TagTypes.type)
         tagged_object = TaggedObject(
-            tag_id=tag.id,
-            object_id=target.id,
-            object_type=cls.object_type,
+            tag_id=tag.id, object_id=target.id, object_type=cls.object_type
         )
         session.add(tagged_object)
 
         session.commit()
 
     @classmethod
-    def after_update(cls, mapper, connection, target):
+    def after_update(
+        cls,
+        mapper: Mapper,
+        connection: Connection,
+        target: Union["Dashboard", "FavStar", "Slice"],
+    ) -> None:
         # pylint: disable=unused-argument
         session = Session(bind=connection)
 
         # delete current `owner:` tags
-        query = session.query(TaggedObject.id).join(Tag).filter(
-            TaggedObject.object_type == cls.object_type,
-            TaggedObject.object_id == target.id,
-            Tag.type == TagTypes.owner,
+        query = (
+            session.query(TaggedObject.id)
+            .join(Tag)
+            .filter(
+                TaggedObject.object_type == cls.object_type,
+                TaggedObject.object_id == target.id,
+                Tag.type == TagTypes.owner,
+            )
         )
         ids = [row[0] for row in query]
-        session.query(TaggedObject).filter(
-            TaggedObject.id.in_(ids)).delete(
-                synchronize_session=False)
+        session.query(TaggedObject).filter(TaggedObject.id.in_(ids)).delete(
+            synchronize_session=False
+        )
 
         # add `owner:` tags
         cls._add_owners(session, target)
@@ -169,7 +186,12 @@ class ObjectUpdater(object):
         session.commit()
 
     @classmethod
-    def after_delete(cls, mapper, connection, target):
+    def after_delete(
+        cls,
+        mapper: Mapper,
+        connection: Connection,
+        target: Union["Dashboard", "FavStar", "Slice"],
+    ) -> None:
         # pylint: disable=unused-argument
         session = Session(bind=connection)
 
@@ -184,38 +206,39 @@ class ObjectUpdater(object):
 
 class ChartUpdater(ObjectUpdater):
 
-    object_type = 'chart'
+    object_type = "chart"
 
     @classmethod
-    def get_owners_ids(cls, target):
+    def get_owners_ids(cls, target: "Slice") -> List[int]:
         return [owner.id for owner in target.owners]
 
 
 class DashboardUpdater(ObjectUpdater):
 
-    object_type = 'dashboard'
+    object_type = "dashboard"
 
     @classmethod
-    def get_owners_ids(cls, target):
+    def get_owners_ids(cls, target: "Dashboard") -> List[int]:
         return [owner.id for owner in target.owners]
 
 
 class QueryUpdater(ObjectUpdater):
 
-    object_type = 'query'
+    object_type = "query"
 
     @classmethod
-    def get_owners_ids(cls, target):
+    def get_owners_ids(cls, target: "Query") -> List[int]:
         return [target.user_id]
 
 
-class FavStarUpdater(object):
-
+class FavStarUpdater:
     @classmethod
-    def after_insert(cls, mapper, connection, target):
+    def after_insert(
+        cls, mapper: Mapper, connection: Connection, target: "FavStar"
+    ) -> None:
         # pylint: disable=unused-argument
         session = Session(bind=connection)
-        name = 'favorited_by:{0}'.format(target.user_id)
+        name = "favorited_by:{0}".format(target.user_id)
         tag = get_tag(name, session, TagTypes.favorited_by)
         tagged_object = TaggedObject(
             tag_id=tag.id,
@@ -227,18 +250,24 @@ class FavStarUpdater(object):
         session.commit()
 
     @classmethod
-    def after_delete(cls, mapper, connection, target):
+    def after_delete(
+        cls, mapper: Mapper, connection: Connection, target: "FavStar"
+    ) -> None:
         # pylint: disable=unused-argument
         session = Session(bind=connection)
-        name = 'favorited_by:{0}'.format(target.user_id)
-        query = session.query(TaggedObject.id).join(Tag).filter(
-            TaggedObject.object_id == target.obj_id,
-            Tag.type == TagTypes.favorited_by,
-            Tag.name == name,
+        name = "favorited_by:{0}".format(target.user_id)
+        query = (
+            session.query(TaggedObject.id)
+            .join(Tag)
+            .filter(
+                TaggedObject.object_id == target.obj_id,
+                Tag.type == TagTypes.favorited_by,
+                Tag.name == name,
+            )
         )
         ids = [row[0] for row in query]
-        session.query(TaggedObject).filter(
-            TaggedObject.id.in_(ids)).delete(
-                synchronize_session=False)
+        session.query(TaggedObject).filter(TaggedObject.id.in_(ids)).delete(
+            synchronize_session=False
+        )
 
         session.commit()

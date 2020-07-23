@@ -186,8 +186,8 @@ by setting the ``stagger_refresh`` to ``false`` and modify the stagger period by
 Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of
 2.5 seconds is ignored.
 
-Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
-------------------------------------------------------------------------------------------------------------
+Why does 'flask fab' or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
+-------------------------------------------------------------------------------------------------------------
 By default, superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
 
 __ https://www.sqlite.org/lockingv3.html
@@ -315,3 +315,25 @@ and should be able to things that are typical in basic SQL:
 - apply HAVING-type filters
 - be schema-aware, expose columns and types
 
+
+Does Superset offer a public API?
+---------------------------------
+
+Yes, a public REST API, and the surface of that API formal
+is expanding steadily. Some of the original vision for the collection
+of endpoints under `/api/v1` was originally specified in
+[SIP-17](https://github.com/apache/incubator-superset/issues/7259) and
+constant progress has been made to cover more and more use cases.
+
+The API available is documented using [Swagger](https://swagger.io/)
+and the documentation
+can be made available under `/swagger/v1` by enabling
+the `FAB_API_SWAGGER_UI = True` configuration flag.
+
+There are other undocumented [private] ways to interact with Superset
+programmatically that offer no guarantees and are not recommended but
+may fit your use case temporarily:
+
+- using the ORM (SQLAlchemy) directly
+- using the internal FAB ModelView API (to be deprecated in Superset)
+- altering the source code in your fork

@@ -18,17 +18,10 @@ include NOTICE
 include LICENSE.txt
 graft licenses/
 include README.md
-recursive-include superset/data *
+include superset-frontend/package.json
+recursive-include superset/examples *
 recursive-include superset/migrations *
-recursive-include superset/static *
-recursive-exclude superset/static/assets/docs *
-recursive-exclude superset/static/assets/images/viz_thumbnails_large *
-recursive-exclude superset/static/docs *
-recursive-exclude superset/static/spec *
-recursive-exclude superset/static/assets/src *
-recursive-include superset/static/assets/src/visualizations/CountryMap/ *
-recursive-exclude superset/static/images/viz_thumbnails_large *
-recursive-exclude superset/static/assets/node_modules *
 recursive-include superset/templates *
 recursive-include superset/translations *
+recursive-include superset/static *
 recursive-exclude tests *

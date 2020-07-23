@@ -23,13 +23,14 @@ Create Date: 2017-01-24 12:31:06.541746
 """
 
 # revision identifiers, used by Alembic.
-revision = 'db0c65b146bd'
-down_revision = 'f18570e03440'
+revision = "db0c65b146bd"
+down_revision = "f18570e03440"
+
+import json
 
 from alembic import op
-import json
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 
@@ -38,7 +39,8 @@ Base = declarative_base()
 
 class Slice(Base):
     """Declarative class to do query in upgrade"""
-    __tablename__ = 'slices'
+
+    __tablename__ = "slices"
     id = Column(Integer, primary_key=True)
     datasource_type = Column(String(200))
     slice_name = Column(String(200))
@@ -53,13 +55,13 @@ def upgrade():
     slice_len = len(slices)
     for i, slc in enumerate(slices):
         try:
-            d = json.loads(slc.params or '{}')
+            d = json.loads(slc.params or "{}")
             slc.params = json.dumps(d, indent=2, sort_keys=True)
             session.merge(slc)
             session.commit()
-            print('Upgraded ({}/{}): {}'.format(i, slice_len, slc.slice_name))
-        except Exception as e:
-            print(slc.slice_name + ' error: ' + str(e))
+            print("Upgraded ({}/{}): {}".format(i, slice_len, slc.slice_name))
+        except Exception as ex:
+            print(slc.slice_name + " error: " + str(ex))
 
     session.close()
 

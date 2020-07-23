@@ -45,30 +45,31 @@
 </div>
 
 <script>
-(function($) {
-    function checkSearchButton() {
-        var hasFilter = $('.filters tr').length;
-        if (hasFilter) {
-            $('.filters a.remove-filter').off('click', checkSearchButton);
-            $('.filters a.remove-filter').on('click', checkSearchButton);
-            $('.filter-action').toggle(true);
-        } else {
-            $('.filter-action').toggle(false);
+    (function($) {
+        function checkSearchButton() {
+            var hasFilter = $('.filters tr').length;
+            if (hasFilter) {
+                $('.filters a.remove-filter').off('click', checkSearchButton);
+                $('.filters a.remove-filter').on('click', checkSearchButton);
+                $('.filter-action').toggle(true);
+            } else {
+                $('.filter-action').toggle(true);
+                $('.filter-action > button').html('Refresh&nbsp;&nbsp;<i class="fa fa-refresh"></i>');
+            }
         }
-    }
 
-    $('.list-search-container').on('hidden.bs.dropdown', checkSearchButton);
-    $(document).ready(function() {
-        checkSearchButton();
-    });
+        $('a.btn.remove-filter').on('click', checkSearchButton);
+        $(document).ready(function() {
+            checkSearchButton();
+        });
 
-    var filter = new AdminFilters(
-        '#filter_form',
-        {{ label_columns | tojson | safe }},
-        {{ form_fields | tojson | safe }},
-        {{ search_filters | tojson | safe }},
-        {{ active_filters | tojson | safe }}
-    );
-})(jQuery);
+        var filter = new AdminFilters(
+            '#filter_form',
+            {{ label_columns | tojson | safe }},
+            {{ form_fields | tojson | safe }},
+            {{ search_filters | tojson | safe }},
+            {{ active_filters | tojson | safe }}
+        );
+    })(jQuery);
 
 </script>

@@ -43,7 +43,7 @@ element corresponds to Druid aggregation definition. You can create your own
 aggregations manually from the ``List Druid Metric`` tab following Druid
 documentation.
 
-.. image:: images/druid_agg.png
+.. image:: _static/images/druid_agg.png
    :scale: 50 %
 
 Post-Aggregations

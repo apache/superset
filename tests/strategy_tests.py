@@ -14,94 +14,114 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset cache warmup"""
 import json
 from unittest.mock import MagicMock
 
+import tests.test_app
 from superset import db
 from superset.models.core import Log
-from superset.models.tags import (
-    get_tag,
-    ObjectTypes,
-    TaggedObject,
-    TagTypes,
-)
+from superset.models.tags import get_tag, ObjectTypes, TaggedObject, TagTypes
 from superset.tasks.cache import (
     DashboardTagsStrategy,
-    DummyStrategy,
     get_form_data,
     TopNDashboardsStrategy,
 )
+
 from .base_tests import SupersetTestCase
 
+URL_PREFIX = "http://0.0.0.0:8081"
 
-TEST_URL = 'http://0.0.0.0:8081/superset/explore_json'
+mock_positions = {
+    "DASHBOARD_VERSION_KEY": "v2",
+    "DASHBOARD_CHART_TYPE-1": {
+        "type": "CHART",
+        "id": "DASHBOARD_CHART_TYPE-1",
+        "children": [],
+        "meta": {"width": 4, "height": 50, "chartId": 1},
+    },
+    "DASHBOARD_CHART_TYPE-2": {
+        "type": "CHART",
+        "id": "DASHBOARD_CHART_TYPE-2",
+        "children": [],
+        "meta": {"width": 4, "height": 50, "chartId": 2},
+    },
+}
 
 
-class CacheWarmUpTests(SupersetTestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(CacheWarmUpTests, self).__init__(*args, **kwargs)
-
+class TestCacheWarmUp(SupersetTestCase):
     def test_get_form_data_chart_only(self):
         chart_id = 1
         result = get_form_data(chart_id, None)
-        expected = {'slice_id': chart_id}
+        expected = {"slice_id": chart_id}
         self.assertEqual(result, expected)
 
     def test_get_form_data_no_dashboard_metadata(self):
         chart_id = 1
         dashboard = MagicMock()
         dashboard.json_metadata = None
+        dashboard.position_json = json.dumps(mock_positions)
         result = get_form_data(chart_id, dashboard)
-        expected = {'slice_id': chart_id}
+        expected = {"slice_id": chart_id}
         self.assertEqual(result, expected)
 
     def test_get_form_data_immune_slice(self):
         chart_id = 1
         filter_box_id = 2
         dashboard = MagicMock()
-        dashboard.json_metadata = json.dumps({
-            'filter_immune_slices': [chart_id],
-            'default_filters': json.dumps({
-                str(filter_box_id): {'name': ['Alice', 'Bob']},
-            }),
-        })
+        dashboard.position_json = json.dumps(mock_positions)
+        dashboard.json_metadata = json.dumps(
+            {
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "name": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
+                },
+                "default_filters": json.dumps(
+                    {str(filter_box_id): {"name": ["Alice", "Bob"]}}
+                ),
+            }
+        )
         result = get_form_data(chart_id, dashboard)
-        expected = {'slice_id': chart_id}
+        expected = {"slice_id": chart_id}
         self.assertEqual(result, expected)
 
     def test_get_form_data_no_default_filters(self):
         chart_id = 1
         dashboard = MagicMock()
         dashboard.json_metadata = json.dumps({})
+        dashboard.position_json = json.dumps(mock_positions)
         result = get_form_data(chart_id, dashboard)
-        expected = {'slice_id': chart_id}
+        expected = {"slice_id": chart_id}
         self.assertEqual(result, expected)
 
     def test_get_form_data_immune_fields(self):
         chart_id = 1
         filter_box_id = 2
         dashboard = MagicMock()
-        dashboard.json_metadata = json.dumps({
-            'default_filters': json.dumps({
-                str(filter_box_id): {
-                    'name': ['Alice', 'Bob'],
-                    '__time_range': '100 years ago : today',
+        dashboard.position_json = json.dumps(mock_positions)
+        dashboard.json_metadata = json.dumps(
+            {
+                "default_filters": json.dumps(
+                    {
+                        str(filter_box_id): {
+                            "name": ["Alice", "Bob"],
+                            "__time_range": "100 years ago : today",
+                        }
+                    }
+                ),
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "__time_range": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
                 },
-            }),
-            'filter_immune_slice_fields': {chart_id: ['__time_range']},
-        })
+            }
+        )
         result = get_form_data(chart_id, dashboard)
         expected = {
-            'slice_id': chart_id,
-            'extra_filters': [
-                {
-                    'col': 'name',
-                    'op': 'in',
-                    'val': ['Alice', 'Bob'],
-                },
-            ],
+            "slice_id": chart_id,
+            "extra_filters": [{"col": "name", "op": "in", "val": ["Alice", "Bob"]}],
         }
         self.assertEqual(result, expected)
 
@@ -109,128 +129,116 @@ class CacheWarmUpTests(SupersetTestCase):
         chart_id = 1
         filter_box_id = 2
         dashboard = MagicMock()
-        dashboard.json_metadata = json.dumps({
-            'default_filters': json.dumps({
-                str(filter_box_id): {
-                    '__time_range': '100 years ago : today',
+        dashboard.position_json = json.dumps(mock_positions)
+        dashboard.json_metadata = json.dumps(
+            {
+                "default_filters": json.dumps(
+                    {str(filter_box_id): {"__time_range": "100 years ago : today"}}
+                ),
+                "filter_scopes": {
+                    str(filter_box_id): {
+                        "__time_range": {"scope": ["ROOT_ID"], "immune": [chart_id]}
+                    }
                 },
-            }),
-            'filter_immune_slice_fields': {chart_id: ['__time_range']},
-        })
+            }
+        )
         result = get_form_data(chart_id, dashboard)
-        expected = {'slice_id': chart_id}
+        expected = {"slice_id": chart_id}
         self.assertEqual(result, expected)
 
     def test_get_form_data(self):
         chart_id = 1
         filter_box_id = 2
         dashboard = MagicMock()
-        dashboard.json_metadata = json.dumps({
-            'default_filters': json.dumps({
-                str(filter_box_id): {
-                    'name': ['Alice', 'Bob'],
-                    '__time_range': '100 years ago : today',
-                },
-            }),
-        })
+        dashboard.position_json = json.dumps(mock_positions)
+        dashboard.json_metadata = json.dumps(
+            {
+                "default_filters": json.dumps(
+                    {
+                        str(filter_box_id): {
+                            "name": ["Alice", "Bob"],
+                            "__time_range": "100 years ago : today",
+                        }
+                    }
+                )
+            }
+        )
         result = get_form_data(chart_id, dashboard)
         expected = {
-            'slice_id': chart_id,
-            'extra_filters': [
-                {
-                    'col': 'name',
-                    'op': 'in',
-                    'val': ['Alice', 'Bob'],
-                },
-                {
-                    'col': '__time_range',
-                    'op': 'in',
-                    'val': '100 years ago : today',
-                },
+            "slice_id": chart_id,
+            "extra_filters": [
+                {"col": "name", "op": "in", "val": ["Alice", "Bob"]},
+                {"col": "__time_range", "op": "in", "val": "100 years ago : today"},
             ],
         }
-        self.assertEqual(result, expected)
-
-    def test_dummy_strategy(self):
-        strategy = DummyStrategy()
-        result = sorted(strategy.get_urls())
-        expected = [
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+1%7D',
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+17%7D',
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+18%7D',
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+19%7D',
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D',
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D',
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+8%7D',
-        ]
         self.assertEqual(result, expected)
 
     def test_top_n_dashboards_strategy(self):
         # create a top visited dashboard
         db.session.query(Log).delete()
-        self.login(username='admin')
+        self.login(username="admin")
+        dash = self.get_dash_by_slug("births")
         for _ in range(10):
-            self.client.get('/superset/dashboard/3/')
+            self.client.get(f"/superset/dashboard/{dash.id}/")
 
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())
-        expected = [
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D',
-        ]
+        expected = sorted([f"{URL_PREFIX}{slc.url}" for slc in dash.slices])
         self.assertEqual(result, expected)
+
+    def reset_tag(self, tag):
+        """Remove associated object from tag, used to reset tests"""
+        if tag.objects:
+            for o in tag.objects:
+                db.session.delete(o)
+            db.session.commit()
 
     def test_dashboard_tags(self):
-        strategy = DashboardTagsStrategy(['tag1'])
+        tag1 = get_tag("tag1", db.session, TagTypes.custom)
+        # delete first to make test idempotent
+        self.reset_tag(tag1)
+
+        strategy = DashboardTagsStrategy(["tag1"])
+        result = sorted(strategy.get_urls())
+        expected = []
+        self.assertEqual(result, expected)
+
+        # tag dashboard 'births' with `tag1`
+        tag1 = get_tag("tag1", db.session, TagTypes.custom)
+        dash = self.get_dash_by_slug("births")
+        tag1_urls = sorted([f"{URL_PREFIX}{slc.url}" for slc in dash.slices])
+        tagged_object = TaggedObject(
+            tag_id=tag1.id, object_id=dash.id, object_type=ObjectTypes.dashboard
+        )
+        db.session.add(tagged_object)
+        db.session.commit()
+
+        self.assertEqual(sorted(strategy.get_urls()), tag1_urls)
+
+        strategy = DashboardTagsStrategy(["tag2"])
+        tag2 = get_tag("tag2", db.session, TagTypes.custom)
+        self.reset_tag(tag2)
 
         result = sorted(strategy.get_urls())
         expected = []
         self.assertEqual(result, expected)
 
-        # tag dashboard 3 with `tag1`
-        tag1 = get_tag('tag1', db.session, TagTypes.custom)
-        object_id = 3
+        # tag first slice
+        dash = self.get_dash_by_slug("unicode-test")
+        slc = dash.slices[0]
+        tag2_urls = [f"{URL_PREFIX}{slc.url}"]
+        object_id = slc.id
         tagged_object = TaggedObject(
-            tag_id=tag1.id,
-            object_id=object_id,
-            object_type=ObjectTypes.dashboard,
+            tag_id=tag2.id, object_id=object_id, object_type=ObjectTypes.chart
         )
         db.session.add(tagged_object)
         db.session.commit()
 
         result = sorted(strategy.get_urls())
-        expected = [
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D',
-        ]
-        self.assertEqual(result, expected)
+        self.assertEqual(result, tag2_urls)
 
-        strategy = DashboardTagsStrategy(['tag2'])
+        strategy = DashboardTagsStrategy(["tag1", "tag2"])
 
         result = sorted(strategy.get_urls())
-        expected = []
-        self.assertEqual(result, expected)
-
-        # tag chart 30 with `tag2`
-        tag2 = get_tag('tag2', db.session, TagTypes.custom)
-        object_id = 30
-        tagged_object = TaggedObject(
-            tag_id=tag2.id,
-            object_id=object_id,
-            object_type=ObjectTypes.chart,
-        )
-        db.session.add(tagged_object)
-        db.session.commit()
-
-        result = sorted(strategy.get_urls())
-        expected = [
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D',
-        ]
-        self.assertEqual(result, expected)
-
-        strategy = DashboardTagsStrategy(['tag1', 'tag2'])
-
-        result = sorted(strategy.get_urls())
-        expected = [
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D',
-            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D',
-        ]
+        expected = sorted(tag1_urls + tag2_urls)
         self.assertEqual(result, expected)

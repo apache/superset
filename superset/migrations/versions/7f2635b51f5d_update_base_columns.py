@@ -26,8 +26,8 @@ Create Date: 2018-07-20 15:31:05.058050
 """
 
 # revision identifiers, used by Alembic.
-revision = '7f2635b51f5d'
-down_revision = '937d04c16b64'
+revision = "7f2635b51f5d"
+down_revision = "937d04c16b64"
 
 from alembic import op
 from sqlalchemy import Column, engine, Integer, String
@@ -38,9 +38,7 @@ from superset.utils.core import generic_find_uq_constraint_name
 
 Base = declarative_base()
 
-conv = {
-    'uq': 'uq_%(table_name)s_%(column_0_name)s',
-}
+conv = {"uq": "uq_%(table_name)s_%(column_0_name)s"}
 
 
 class BaseColumnMixin:
@@ -48,13 +46,13 @@ class BaseColumnMixin:
 
 
 class DruidColumn(BaseColumnMixin, Base):
-    __tablename__ = 'columns'
+    __tablename__ = "columns"
 
     datasource_id = Column(Integer)
 
 
 class TableColumn(BaseColumnMixin, Base):
-    __tablename__ = 'table_columns'
+    __tablename__ = "table_columns"
 
     table_id = Column(Integer)
 
@@ -71,12 +69,8 @@ def upgrade():
     session.commit()
 
     # Enforce that the columns.column_name column be non-nullable.
-    with op.batch_alter_table('columns') as batch_op:
-        batch_op.alter_column(
-            'column_name',
-            existing_type=String(255),
-            nullable=False,
-        )
+    with op.batch_alter_table("columns") as batch_op:
+        batch_op.alter_column("column_name", existing_type=String(255), nullable=False)
 
     # Delete the orphaned table_columns records.
     for record in session.query(TableColumn).all():
@@ -87,19 +81,15 @@ def upgrade():
 
     # Reduce the size of the table_columns.column_name column for constraint
     # viability and enforce that it be non-nullable.
-    with op.batch_alter_table('table_columns') as batch_op:
+    with op.batch_alter_table("table_columns") as batch_op:
         batch_op.alter_column(
-            'column_name',
-            existing_type=String(256),
-            nullable=False,
-            type_=String(255),
+            "column_name", existing_type=String(256), nullable=False, type_=String(255)
         )
 
     # Add the missing uniqueness constraint to the table_columns table.
-    with op.batch_alter_table('table_columns', naming_convention=conv) as batch_op:
+    with op.batch_alter_table("table_columns", naming_convention=conv) as batch_op:
         batch_op.create_unique_constraint(
-            'uq_table_columns_column_name',
-            ['column_name', 'table_id'],
+            "uq_table_columns_column_name", ["column_name", "table_id"]
         )
 
 
@@ -108,30 +98,22 @@ def downgrade():
     insp = engine.reflection.Inspector.from_engine(bind)
 
     # Remove the missing uniqueness constraint from the table_columns table.
-    with op.batch_alter_table('table_columns', naming_convention=conv) as batch_op:
+    with op.batch_alter_table("table_columns", naming_convention=conv) as batch_op:
         batch_op.drop_constraint(
             generic_find_uq_constraint_name(
-                'table_columns',
-                {'column_name', 'table_id'},
-                insp,
-            ) or 'uq_table_columns_column_name',
-            type_='unique',
+                "table_columns", {"column_name", "table_id"}, insp
+            )
+            or "uq_table_columns_column_name",
+            type_="unique",
         )
 
     # Restore the size of the table_columns.column_name column and forego that
     # it be non-nullable.
-    with op.batch_alter_table('table_columns') as batch_op:
+    with op.batch_alter_table("table_columns") as batch_op:
         batch_op.alter_column(
-            'column_name',
-            existing_type=String(255),
-            nullable=True,
-            type_=String(256),
+            "column_name", existing_type=String(255), nullable=True, type_=String(256)
         )
 
     # Forego that the columns.column_name be non-nullable.
-    with op.batch_alter_table('columns') as batch_op:
-        batch_op.alter_column(
-            'column_name',
-            existing_type=String(255),
-            nullable=True,
-        )
+    with op.batch_alter_table("columns") as batch_op:
+        batch_op.alter_column("column_name", existing_type=String(255), nullable=True)

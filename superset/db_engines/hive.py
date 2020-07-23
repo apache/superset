@@ -14,12 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
+from typing import Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from pyhive.hive import Cursor  # pylint: disable=unused-import
+    from TCLIService.ttypes import TFetchOrientation  # pylint: disable=unused-import
 
+# pylint: disable=protected-access
 # TODO: contribute back to pyhive.
-def fetch_logs(self, max_rows=1024,
-               orientation=None):
+def fetch_logs(
+    self: "Cursor",
+    max_rows: int = 1024,  # pylint: disable=unused-argument
+    orientation: Optional["TFetchOrientation"] = None,
+) -> str:  # pylint: disable=unused-argument
     """Mocked. Retrieve the logs produced by the execution of the query.
     Can be called multiple times to fetch the logs produced after
     the previous call.
@@ -30,17 +37,17 @@ def fetch_logs(self, max_rows=1024,
     """
     from pyhive import hive
     from TCLIService import ttypes
-    from thrift import Thrift
+    from thrift import Thrift  # pylint: disable=import-error
+
     orientation = orientation or ttypes.TFetchOrientation.FETCH_NEXT
     try:
         req = ttypes.TGetLogReq(operationHandle=self._operationHandle)
         logs = self._connection.client.GetLog(req).log
         return logs
     # raised if Hive is used
-    except (ttypes.TApplicationException,
-            Thrift.TApplicationException):
+    except (ttypes.TApplicationException, Thrift.TApplicationException):
         if self._state == self._STATE_NONE:
-            raise hive.ProgrammingError('No query yet')
+            raise hive.ProgrammingError("No query yet")
         logs = []
         while True:
             req = ttypes.TFetchResultsReq(
@@ -51,11 +58,10 @@ def fetch_logs(self, max_rows=1024,
             )
             response = self._connection.client.FetchResults(req)
             hive._check_status(response)
-            assert not response.results.rows, \
-                'expected data in columnar format'
+            assert not response.results.rows, "expected data in columnar format"
             assert len(response.results.columns) == 1, response.results.columns
             new_logs = hive._unwrap_column(response.results.columns[0])
             logs += new_logs
             if not new_logs:
                 break
-        return '\n'.join(logs)
+        return "\n".join(logs)
