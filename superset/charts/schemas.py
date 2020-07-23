@@ -31,13 +31,12 @@ get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 width_height_schema = {
     "type": "array",
-    "items": [{"type": "integer"}, {"type": "integer"}],
+    "items": {"type": "integer"},
 }
 thumbnail_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
 }
-
 screenshot_query_schema = {
     "type": "object",
     "properties": {
