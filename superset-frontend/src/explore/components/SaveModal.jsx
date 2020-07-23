@@ -20,11 +20,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { Modal, Alert, Button, Radio } from 'react-bootstrap';
-import Select from 'src/components/Select';
+import {
+  Alert,
+  Button,
+  FormControl,
+  FormGroup,
+  ControlLabel,
+  Modal,
+  Radio,
+} from 'react-bootstrap';
+import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
 import { t } from '@superset-ui/translation';
+import ReactMarkdown from 'react-markdown';
 
-import { supersetURL } from '../../utils/common';
 import { EXPLORE_ONLY_VIZ_TYPE } from '../constants';
 
 const propTypes = {
@@ -39,28 +47,30 @@ const propTypes = {
   datasource: PropTypes.object,
 };
 
+// Session storage key for recent dashboard
+const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
+const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
+
 class SaveModal extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       saveToDashboardId: null,
-      newDashboardName: '',
       newSliceName: props.sliceName,
       dashboards: [],
       alert: null,
       action: props.can_overwrite ? 'overwrite' : 'saveas',
-      addToDash: 'noSave',
       vizType: props.form_data.viz_type,
     };
+    this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
+    this.onSliceNameChange = this.onSliceNameChange.bind(this);
   }
   componentDidMount() {
     this.props.actions.fetchDashboards(this.props.userId).then(() => {
       const dashboardIds = this.props.dashboards.map(
         dashboard => dashboard.value,
       );
-      let recentDashboard = sessionStorage.getItem(
-        'save_chart_recent_dashboard',
-      );
+      let recentDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
       recentDashboard = recentDashboard && parseInt(recentDashboard, 10);
       if (
         recentDashboard !== null &&
@@ -68,32 +78,21 @@ class SaveModal extends React.Component {
       ) {
         this.setState({
           saveToDashboardId: recentDashboard,
-          addToDash: 'existing',
         });
       }
     });
   }
-  onChange(name, event) {
-    switch (name) {
-      case 'newSliceName':
-        this.setState({ newSliceName: event.target.value });
-        break;
-      case 'saveToDashboardId':
-        this.setState({ saveToDashboardId: event.value });
-        this.changeDash('existing');
-        break;
-      case 'newDashboardName':
-        this.setState({ newDashboardName: event.target.value });
-        break;
-      default:
-        break;
-    }
+  onSliceNameChange(event) {
+    this.setState({ newSliceName: event.target.value });
+  }
+  onDashboardSelectChange(event) {
+    const newDashboardName = event ? event.label : null;
+    const saveToDashboardId =
+      event && typeof event.value === 'number' ? event.value : null;
+    this.setState({ saveToDashboardId, newDashboardName });
   }
   changeAction(action) {
     this.setState({ action });
-  }
-  changeDash(dash) {
-    this.setState({ addToDash: dash });
   }
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
@@ -111,49 +110,20 @@ class SaveModal extends React.Component {
     }
     sliceParams.action = this.state.action;
     sliceParams.slice_name = this.state.newSliceName;
-
-    const addToDash = this.state.addToDash;
-    sliceParams.add_to_dash = addToDash;
-    let dashboard = null;
-    switch (addToDash) {
-      case 'existing':
-        dashboard = this.state.saveToDashboardId;
-        if (!dashboard) {
-          this.setState({ alert: t('Please select a dashboard') });
-          return;
-        }
-        sliceParams.save_to_dashboard_id = dashboard;
-        break;
-      case 'new':
-        dashboard = this.state.newDashboardName;
-        if (dashboard === '') {
-          this.setState({ alert: t('Please enter a dashboard name') });
-          return;
-        }
-        sliceParams.new_dashboard_name = dashboard;
-        break;
-      default:
-        dashboard = null;
-    }
-    sliceParams.goto_dash = gotodash;
+    sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
+    sliceParams.new_dashboard_name = this.state.newDashboardName;
 
     this.props.actions
       .saveSlice(this.props.form_data, sliceParams)
       .then(({ data }) => {
         if (data.dashboard_id === null) {
-          sessionStorage.removeItem('save_chart_recent_dashboard');
+          sessionStorage.removeItem(SK_DASHBOARD_ID);
         } else {
-          sessionStorage.setItem(
-            'save_chart_recent_dashboard',
-            data.dashboard_id,
-          );
+          sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
         }
         // Go to new slice url or dashboard url
-        if (gotodash) {
-          window.location.assign(supersetURL(data.dashboard));
-        } else {
-          window.location.assign(data.slice.slice_url);
-        }
+        const url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        window.location.assign(url);
       });
     this.props.onHide();
   }
@@ -167,9 +137,9 @@ class SaveModal extends React.Component {
     const canNotSaveToDash =
       EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;
     return (
-      <Modal show onHide={this.props.onHide} bsStyle="large">
+      <Modal show onHide={this.props.onHide}>
         <Modal.Header closeButton>
-          <Modal.Title>{t('Save A Chart')}</Modal.Title>
+          <Modal.Title>{t('Save Chart')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {(this.state.alert || this.props.alert) && (
@@ -184,97 +154,91 @@ class SaveModal extends React.Component {
               />
             </Alert>
           )}
-          {this.props.slice && (
+          <FormGroup>
             <Radio
               id="overwrite-radio"
-              disabled={!this.props.can_overwrite}
+              inline
+              disabled={!(this.props.can_overwrite && this.props.slice)}
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
             >
-              {t('Overwrite chart %s', this.props.slice.slice_name)}
+              {t('Save (Overwrite)')}
             </Radio>
-          )}
-
-          <Radio
-            id="saveas-radio"
-            inline
-            checked={this.state.action === 'saveas'}
-            onChange={this.changeAction.bind(this, 'saveas')}
-          >
-            {' '}
-            {t('Save as')} &nbsp;
-          </Radio>
-          <input
-            name="new_slice_name"
-            placeholder={this.state.newSliceName || t('[chart name]')}
-            onChange={this.onChange.bind(this, 'newSliceName')}
-            onFocus={this.changeAction.bind(this, 'saveas')}
-          />
-
-          <br />
+            <Radio
+              id="saveas-radio"
+              inline
+              checked={this.state.action === 'saveas'}
+              onChange={this.changeAction.bind(this, 'saveas')}
+            >
+              {' '}
+              {t('Save as ...')} &nbsp;
+            </Radio>
+          </FormGroup>
           <hr />
-
-          <Radio
-            checked={this.state.addToDash === 'noSave'}
-            onChange={this.changeDash.bind(this, 'noSave')}
-          >
-            {t('Do not add to a dashboard')}
-          </Radio>
-
-          <Radio
-            inline
-            disabled={canNotSaveToDash}
-            checked={this.state.addToDash === 'existing'}
-            onChange={this.changeDash.bind(this, 'existing')}
-            data-test="add-to-existing-dashboard"
-          >
-            {t('Add chart to existing dashboard')}
-          </Radio>
-          <Select
-            className="save-modal-selector"
-            disabled={canNotSaveToDash}
-            options={this.props.dashboards}
-            onChange={this.onChange.bind(this, 'saveToDashboardId')}
-            autoSize={false}
-            value={this.state.saveToDashboardId}
-            placeholder="Select Dashboard"
-          />
-
-          <Radio
-            inline
-            checked={this.state.addToDash === 'new'}
-            onChange={this.changeDash.bind(this, 'new')}
-            disabled={canNotSaveToDash}
-            data-test="add-to-new-dashboard"
-          >
-            {t('Add to new dashboard')} &nbsp;
-          </Radio>
-          <input
-            onChange={this.onChange.bind(this, 'newDashboardName')}
-            disabled={canNotSaveToDash}
-            onFocus={this.changeDash.bind(this, 'new')}
-            placeholder={t('[dashboard name]')}
-          />
+          <FormGroup>
+            <ControlLabel>{t('Chart name')}</ControlLabel>
+            <FormControl
+              name="new_slice_name"
+              type="text"
+              bsSize="sm"
+              placeholder="Name"
+              value={this.state.newSliceName}
+              onChange={this.onSliceNameChange}
+            />
+          </FormGroup>
+          <FormGroup>
+            <ControlLabel>{t('Add to dashboard')}</ControlLabel>
+            <CreatableSelect
+              id="dashboard-creatable-select"
+              className="save-modal-selector"
+              options={this.props.dashboards}
+              clearable
+              creatable
+              onChange={this.onDashboardSelectChange}
+              autoSize={false}
+              value={
+                this.state.saveToDashboardId || this.state.newDashboardName
+              }
+              placeholder={
+                // Using markdown to allow for good i18n
+                <ReactMarkdown
+                  source={SELECT_PLACEHOLDER}
+                  renderers={{ paragraph: 'span' }}
+                />
+              }
+            />
+          </FormGroup>
         </Modal.Body>
 
         <Modal.Footer>
-          <Button
-            type="button"
-            id="btn_modal_save"
-            className="btn pull-left"
-            onClick={this.saveOrOverwrite.bind(this, false)}
-          >
-            {t('Save')}
-          </Button>
-          <Button
-            type="button"
-            id="btn_modal_save_goto_dash"
-            className="btn btn-primary pull-left gotodash"
-            disabled={this.state.addToDash === 'noSave' || canNotSaveToDash}
-            onClick={this.saveOrOverwrite.bind(this, true)}
-          >
-            {t('Save & go to dashboard')}
-          </Button>
+          <div className="float-right">
+            <Button
+              type="button"
+              id="btn_cancel"
+              bsSize="sm"
+              onClick={this.props.onHide}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              type="button"
+              id="btn_modal_save_goto_dash"
+              bsSize="sm"
+              disabled={canNotSaveToDash || !this.state.newDashboardName}
+              onClick={this.saveOrOverwrite.bind(this, true)}
+            >
+              {t('Save & go to dashboard')}
+            </Button>
+            <Button
+              type="button"
+              id="btn_modal_save"
+              bsSize="sm"
+              bsStyle="primary"
+              onClick={this.saveOrOverwrite.bind(this, false)}
+            >
+              {t('Save')}
+            </Button>
+          </div>
         </Modal.Footer>
       </Modal>
     );
