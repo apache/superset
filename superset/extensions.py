@@ -29,6 +29,7 @@ from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
 from flask_migrate import Migrate
 from flask_talisman import Talisman
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
 from superset.utils.cache_manager import CacheManager
@@ -132,6 +133,7 @@ APP_DIR = os.path.dirname(__file__)
 appbuilder = AppBuilder(update_perms=False)
 cache_manager = CacheManager()
 celery_app = celery.Celery()
+csrf = CSRFProtect()
 db = SQLA()
 _event_logger: Dict[str, Any] = {}
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
