@@ -22,10 +22,9 @@ import React from 'react';
 import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
-import ColorSchemeControl from '../../explore/components/controls/ColorSchemeControl';
+import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 
 const propTypes = {
-  showBuilderPane: PropTypes.func.isRequired,
   setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   colorScheme: PropTypes.string,
 };
@@ -34,50 +33,38 @@ const defaultProps = {
   colorScheme: undefined,
 };
 
-class ColorComponentPane extends React.PureComponent {
+class ColorSchemeControlWrapper extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = { hovered: false };
     this.categoricalSchemeRegistry = getCategoricalSchemeRegistry();
-    this.getChoices = this.getChoices.bind(this);
-    this.getSchemes = this.getSchemes.bind(this);
+    this.choices = this.categoricalSchemeRegistry.keys().map(s => [s, s]);
+    this.schemes = this.categoricalSchemeRegistry.getMap();
   }
-
-  getChoices() {
-    return this.categoricalSchemeRegistry.keys().map(s => [s, s]);
-  }
-
-  getSchemes() {
-    return this.categoricalSchemeRegistry.getMap();
-  }
-
   setHover(hovered) {
     this.setState({ hovered });
   }
 
   render() {
     const { setColorSchemeAndUnsavedChanges, colorScheme } = this.props;
-
     return (
-      <div className="panel-body">
-        <ColorSchemeControl
-          description={t(
-            "Any color palette selected here will override the colors applied to this dashboard's individual charts",
-          )}
-          label={t('Color Scheme')}
-          name="color_scheme"
-          onChange={setColorSchemeAndUnsavedChanges}
-          value={colorScheme}
-          choices={this.getChoices}
-          schemes={this.getSchemes}
-          hovered={this.state.hovered}
-        />
-      </div>
+      <ColorSchemeControl
+        description={t(
+          "Any color palette selected here will override the colors applied to this dashboard's individual charts",
+        )}
+        label={t('Color Scheme')}
+        name="color_scheme"
+        onChange={setColorSchemeAndUnsavedChanges}
+        value={colorScheme}
+        choices={this.choices}
+        schemes={this.schemes}
+        hovered={this.state.hovered}
+      />
     );
   }
 }
 
-ColorComponentPane.propTypes = propTypes;
-ColorComponentPane.defaultProps = defaultProps;
+ColorSchemeControlWrapper.propTypes = propTypes;
+ColorSchemeControlWrapper.defaultProps = defaultProps;
 
-export default ColorComponentPane;
+export default ColorSchemeControlWrapper;

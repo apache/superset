@@ -70,6 +70,7 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
   fetchCharts: PropTypes.func.isRequired,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
   savePublished: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
@@ -109,10 +110,6 @@ const StyledDashboardHeader = styled.div`
 `;
 
 class Header extends React.PureComponent {
-  static discardChanges() {
-    window.location.reload();
-  }
-
   constructor(props) {
     super(props);
     this.state = {
@@ -130,6 +127,7 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.discardChanges = this.discardChanges.bind(this);
   }
 
   componentDidMount() {
@@ -320,6 +318,10 @@ class Header extends React.PureComponent {
   hidePropertiesModal() {
     this.setState({ showingPropertiesModal: false });
   }
+  discardChanges() {
+    window.location.reload();
+  }
+
 
   render() {
     const {
@@ -410,7 +412,6 @@ class Header extends React.PureComponent {
                   <Button
                     bsSize="small"
                     className="m-r-5"
-                    disabled={!hasUnsavedChanges}
                     onClick={this.discardChanges}
                     bsStyle="default"
                   >
@@ -451,6 +452,8 @@ class Header extends React.PureComponent {
               dashboardId={dashboardInfo.id}
               show={this.state.showingPropertiesModal}
               onHide={this.hidePropertiesModal}
+              colorScheme={this.props.colorScheme}
+              setColorSchemeAndUnsavedChanges={this.props.setColorSchemeAndUnsavedChanges}
               onDashboardSave={updates => {
                 this.props.dashboardInfoChanged({
                   slug: updates.slug,

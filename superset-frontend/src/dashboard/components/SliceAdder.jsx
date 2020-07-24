@@ -91,6 +91,7 @@ class SliceAdder extends React.Component {
       sortBy: KEYS_TO_SORT.findIndex(item => item.key === 'changed_on'),
       selectedSliceIdsSet: new Set(props.selectedSliceIds),
     };
+    console.log('state', this.state);
 
     this.rowRenderer = this.rowRenderer.bind(this);
     this.searchUpdated = this.searchUpdated.bind(this);
@@ -170,6 +171,7 @@ class SliceAdder extends React.Component {
       chartId: cellData.slice_id,
       sliceName: cellData.slice_name,
     };
+    console.log({ key, index, style, parent });
     return (
       <DragDroppable
         key={key}
@@ -213,13 +215,11 @@ class SliceAdder extends React.Component {
   }
 
   render() {
-    console.log(this.state.filteredSlices);
     const slicesListHeight =
       this.props.height -
       SIDEPANE_HEADER_HEIGHT -
       SLICE_ADDER_CONTROL_HEIGHT -
       MARGIN_BOTTOM;
-    console.log('', slicesListHeight);
     return (
       <div className="slice-adder-container">
         <div className="controls">

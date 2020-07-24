@@ -32,7 +32,6 @@ import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
 import NewMarkdown from './gridComponents/new/NewMarkdown';
 import SliceAdder from '../containers/SliceAdder';
-import ColorComponentPane from './ColorComponentPane';
 
 const propTypes = {
   topOffset: PropTypes.number,
@@ -69,13 +68,6 @@ class BuilderComponentPane extends React.PureComponent {
         <Tab eventKey={2} title={t('Charts')}>
           <SliceAdder
             height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
-          />
-        </Tab>
-        <Tab eventKey={3} title={t('Colors')}>
-          <ColorComponentPane
-            showBuilderPane={showBuilderPane}
-            setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
-            colorScheme={colorScheme}
           />
         </Tab>
       </Tabs>

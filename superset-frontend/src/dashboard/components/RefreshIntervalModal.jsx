@@ -97,9 +97,7 @@ class RefreshIntervalModal extends React.PureComponent {
         modalTitle={t('Refresh Interval')}
         modalBody={
           <div>
-            <FormLabel>
-              {t('Refresh frequency for this dashboard')}
-            </FormLabel>
+            <FormLabel>{t('Refresh frequency')}</FormLabel>
             <Select
               options={options}
               value={this.state.refreshFrequency}
@@ -121,7 +119,9 @@ class RefreshIntervalModal extends React.PureComponent {
             <Button bsStyle="primary" bsSize="sm" onClick={this.onSave}>
               {editMode ? t('Save') : t('Save for this session')}
             </Button>
-            <Button onClick={this.onCancel} bsSize="sm">{t('Cancel')}</Button>
+            <Button onClick={this.onCancel} bsSize="sm">
+              {t('Cancel')}
+            </Button>
           </>
         }
       />

@@ -22,6 +22,7 @@ import { isFunction } from 'lodash';
 import { CreatableSelect } from 'src/components/Select';
 import ControlHeader from '../ControlHeader';
 import TooltipWrapper from '../../../components/TooltipWrapper';
+import './ColorSchemeControl.less';
 
 const propTypes = {
   description: PropTypes.string,

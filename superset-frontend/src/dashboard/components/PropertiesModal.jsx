@@ -27,6 +27,7 @@ import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
 import FormLabel from 'src/components/FormLabel';
+import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 import '../stylesheets/buttons.less';
@@ -35,14 +36,18 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   show: PropTypes.bool.isRequired,
   onHide: PropTypes.func,
+  colorScheme: PropTypes.object,
+  setColorSchemeAndUnsavedChanges: PropTypes.func,
   onDashboardSave: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
   onHide: () => {},
+  setColorSchemeAndUnsavedChanges: () => {},
   onDashboardSave: () => {},
   show: false,
+  colorScheme: undefined,
 };
 
 class PropertiesModal extends React.PureComponent {
@@ -248,6 +253,13 @@ class PropertiesModal extends React.PureComponent {
                     'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
                   )}
                 </p>
+              </Col>
+              <Col md={6}>
+                <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
+                <ColorSchemeControlWrapper
+                  setColorSchemeAndUnsavedChanges={this.props.setColorSchemeAndUnsavedChanges}
+                  colorScheme={this.props.colorScheme}
+                />
               </Col>
             </Row>
             <Row>
