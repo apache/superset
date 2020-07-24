@@ -394,7 +394,6 @@ export default class DateFilterControl extends React.Component {
         <Styles>
           <OverlayTrigger
             key={timeFrame}
-            alignLeft
             placement="right"
             overlay={
               <Tooltip id={`tooltip-${timeFrame}`}>
@@ -577,7 +576,7 @@ export default class DateFilterControl extends React.Component {
     );
   }
   render() {
-    let timeRange = this.props.value || defaultProps.value;
+    const timeRange = this.props.value || defaultProps.value;
     return (
       <div>
         <ControlHeader {...this.props} />
