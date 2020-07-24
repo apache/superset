@@ -22,6 +22,7 @@ import {
   Button as BootstrapButton,
   Tooltip,
   OverlayTrigger,
+  MenuItem,
 } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 
@@ -86,13 +87,26 @@ export default function Button(props: ButtonProps) {
   delete buttonProps.tooltip;
   delete buttonProps.placement;
 
-  if ( dropdownItems ) {
-    console.log( 'dropdown items', dropdownItems );
-  }
-
   let button = (
     <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
   );
+
+  if (dropdownItems) {
+    button = (
+      <div style={BUTTON_WRAPPER_STYLE}>
+        <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
+        <ul className="dropdown-menu">
+          {dropdownItems.map((dropdownItem, index1) => (
+            <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
+              <i className={`fa ${dropdownItem.icon}`} />
+              &nbsp; {dropdownItem.label}
+            </MenuItem>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
   if (tooltip) {
     if (props.disabled) {
       // Working around the fact that tooltips don't get triggered when buttons are disabled
@@ -115,5 +129,6 @@ export default function Button(props: ButtonProps) {
       </OverlayTrigger>
     );
   }
+
   return button;
 }

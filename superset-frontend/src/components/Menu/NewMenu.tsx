@@ -41,45 +41,37 @@ const StyledButton = styled(Button)`
 `;
 
 const dropdownItems = [
-	'SQL Query',
-	'Chart',
-	'Dashboard',
+  {
+    label: t('SQL Query'),
+    url: '/superset/sqllab',
+    icon: 'fa-fw fa-search', // Might not need all of this, see what component already has
+  },
+  {
+    label: t('Chart'),
+    url: '/chart/add',
+    icon: 'fa-fw fa-bar-chart',
+  },
+  {
+    label: t('Dashboard'),
+    url: '/dashboard/new',
+    icon: 'fa-fw fa-dashboard',
+  },
 ];
 
 export default function NewMenu() {
   return (
     <li className="dropdown">
-	  <StyledButton
+      <StyledButton
         type="button"
         data-toggle="dropdown"
         className="dropdown-toggle btn btn-sm btn-primary"
-		dropdownItems={dropdownItems}
+        dropdownItems={dropdownItems}
       >
-		New
+        New
         <span className="caret-container">
-	      <span className="caret" />
-		</span>
+          <span className="caret" />
+        </span>
       </StyledButton>
-      <ul className="dropdown-menu">
-        <li>
-          <a href="/superset/sqllab">
-            <span className="fa fa-fw fa-search" />
-            {t('SQL Query')}
-          </a>
-        </li>
-        <li>
-          <a href="/chart/add">
-            <span className="fa fa-fw fa-bar-chart" />
-            {t('Chart')}
-          </a>
-        </li>
-        <li>
-          <a href="/dashboard/new/">
-            <span className="fa fa-fw fa-dashboard" />
-            {t('Dashboard')}
-          </a>
-        </li>
-      </ul>
     </li>
   );
 }
