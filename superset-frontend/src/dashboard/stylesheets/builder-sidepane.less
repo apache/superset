@@ -94,11 +94,13 @@
     .chart-card {
       border: 1px solid @gray-light;
       font-weight: @font-weight-light;
-      padding: 16px;
-      margin: 0 16px 16px 16px;
+      padding: 8px;
+      margin: 0 8px 8px 8px;
       position: relative;
       cursor: move;
       background: fade(@lightest, @opacity-medium-light);
+      white-space: nowrap;
+      overflow: hidden;
 
       &:hover {
         background: @gray-bg;
@@ -147,6 +149,7 @@
 
   .slice-adder-container {
     position: relative;
+    background-color: white;
     min-height: 200px; /* for loader positioning */
 
     .error-message {

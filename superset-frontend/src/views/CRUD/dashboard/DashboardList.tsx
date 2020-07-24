@@ -495,9 +495,8 @@ class DashboardList extends React.PureComponent<Props, State> {
                 {dashboardToEdit && (
                   <PropertiesModal
                     dashboardId={dashboardToEdit.id}
-                    onDashboardSave={this.handleDashboardEdit}
                     onHide={() => this.setState({ dashboardToEdit: null })}
-                    show
+                    onSubmit={this.handleDashboardEdit}
                   />
                 )}
                 <ListView

@@ -63,6 +63,7 @@ const propTypes = {
   customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
+  setColorScheme: PropTypes.func.isRequired,
   isStarred: PropTypes.bool.isRequired,
   isPublished: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
@@ -70,7 +71,6 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
   fetchCharts: PropTypes.func.isRequired,
-  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
   savePublished: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
@@ -127,7 +127,6 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
-    this.discardChanges = this.discardChanges.bind(this);
   }
 
   componentDidMount() {
@@ -318,10 +317,9 @@ class Header extends React.PureComponent {
   hidePropertiesModal() {
     this.setState({ showingPropertiesModal: false });
   }
-  discardChanges() {
+  static discardChanges() {
     window.location.reload();
   }
-
 
   render() {
     const {
@@ -330,6 +328,7 @@ class Header extends React.PureComponent {
       expandedSlices,
       customCss,
       colorNamespace,
+      setColorScheme,
       colorScheme,
       onUndo,
       onRedo,
@@ -355,7 +354,6 @@ class Header extends React.PureComponent {
     const refreshWarning =
       dashboardInfo.common.conf
         .SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
-    const popButton = hasUnsavedChanges;
 
     return (
       <StyledDashboardHeader className="dashboard-header">
@@ -412,7 +410,7 @@ class Header extends React.PureComponent {
                   <Button
                     bsSize="small"
                     className="m-r-5"
-                    onClick={this.discardChanges}
+                    onClick={this.constructor.discardChanges}
                     bsStyle="default"
                   >
                     {t('Discard Changes')}
@@ -453,13 +451,18 @@ class Header extends React.PureComponent {
               show={this.state.showingPropertiesModal}
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
-              setColorSchemeAndUnsavedChanges={this.props.setColorSchemeAndUnsavedChanges}
-              onDashboardSave={updates => {
-                this.props.dashboardInfoChanged({
+              onlyApply={true}
+              onSubmit={updates => {
+                const {
+                  dashboardInfoChanged,
+                  dashboardTitleChanged,
+                } = this.props;
+                dashboardInfoChanged({
                   slug: updates.slug,
                   metadata: JSON.parse(updates.jsonMetadata),
                 });
-                this.props.dashboardTitleChanged(updates.title);
+                setColorScheme(updates.colorScheme);
+                dashboardTitleChanged(updates.title);
                 if (updates.slug) {
                   history.pushState(
                     { event: 'dashboard_properties_changed' },

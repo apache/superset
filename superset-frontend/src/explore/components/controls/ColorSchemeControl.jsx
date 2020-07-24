@@ -30,6 +30,7 @@ const propTypes = {
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   value: PropTypes.string,
+  clearable: PropTypes.bool,
   default: PropTypes.string,
   choices: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.array),
@@ -42,6 +43,7 @@ const propTypes = {
 const defaultProps = {
   choices: [],
   schemes: {},
+  clearable: false,
   onChange: () => {},
 };
 
@@ -112,7 +114,7 @@ export default class ColorSchemeControl extends React.PureComponent {
       options,
       value: this.props.value,
       autosize: false,
-      clearable: false,
+      clearable: this.props.clearable,
       onChange: this.onChange,
       optionRenderer: this.renderOption,
       valueRenderer: this.renderOption,

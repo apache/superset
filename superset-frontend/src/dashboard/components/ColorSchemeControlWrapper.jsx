@@ -25,12 +25,13 @@ import { t } from '@superset-ui/translation';
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 
 const propTypes = {
-  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
+  onChange: PropTypes.func.isRequired,
   colorScheme: PropTypes.string,
 };
 
 const defaultProps = {
   colorScheme: undefined,
+  onChange: () => {},
 };
 
 class ColorSchemeControlWrapper extends React.PureComponent {
@@ -46,7 +47,7 @@ class ColorSchemeControlWrapper extends React.PureComponent {
   }
 
   render() {
-    const { setColorSchemeAndUnsavedChanges, colorScheme } = this.props;
+    const { colorScheme } = this.props;
     return (
       <ColorSchemeControl
         description={t(
@@ -54,9 +55,10 @@ class ColorSchemeControlWrapper extends React.PureComponent {
         )}
         label={t('Color Scheme')}
         name="color_scheme"
-        onChange={setColorSchemeAndUnsavedChanges}
+        onChange={this.props.onChange}
         value={colorScheme}
         choices={this.choices}
+        clearable={true}
         schemes={this.schemes}
         hovered={this.state.hovered}
       />

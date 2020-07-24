@@ -26,11 +26,11 @@ import { dashboardInfoChanged } from '../actions/dashboardInfo';
 
 import {
   setEditMode,
-  setColorSchemeAndUnsavedChanges,
   showBuilderPane,
   fetchFaveStar,
   saveFaveStar,
   savePublished,
+  setColorScheme,
   fetchCharts,
   updateCss,
   onChange,
@@ -96,8 +96,8 @@ function mapDispatchToProps(dispatch) {
       onUndo: undoLayoutAction,
       onRedo: redoLayoutAction,
       setEditMode,
-      setColorSchemeAndUnsavedChanges,
       showBuilderPane,
+      setColorScheme,
       fetchFaveStar,
       saveFaveStar,
       savePublished,

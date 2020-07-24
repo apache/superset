@@ -38,16 +38,18 @@ const propTypes = {
   onHide: PropTypes.func,
   colorScheme: PropTypes.object,
   setColorSchemeAndUnsavedChanges: PropTypes.func,
-  onDashboardSave: PropTypes.func,
+  onSubmit: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
+  onlyApply: PropTypes.bool,
 };
 
 const defaultProps = {
   onHide: () => {},
   setColorSchemeAndUnsavedChanges: () => {},
-  onDashboardSave: () => {},
+  onSubmit: () => {},
   show: false,
   colorScheme: undefined,
+  onlyApply: false,
 };
 
 class PropertiesModal extends React.PureComponent {
@@ -63,6 +65,7 @@ class PropertiesModal extends React.PureComponent {
       },
       isDashboardLoaded: false,
       isAdvancedOpen: false,
+      colorScheme: props.colorScheme,
     };
     this.onChange = this.onChange.bind(this);
     this.onMetadataChange = this.onMetadataChange.bind(this);
@@ -71,10 +74,14 @@ class PropertiesModal extends React.PureComponent {
     this.toggleAdvanced = this.toggleAdvanced.bind(this);
     this.loadOwnerOptions = this.loadOwnerOptions.bind(this);
     this.handleErrorResponse = this.handleErrorResponse.bind(this);
+    this.onColorSchemeChange = this.onColorSchemeChange.bind(this);
   }
 
   componentDidMount() {
     this.fetchDashboardDetails();
+  }
+  onColorSchemeChange(colorScheme) {
+    this.setState({ colorScheme });
   }
 
   onOwnersChange(value) {
@@ -160,39 +167,54 @@ class PropertiesModal extends React.PureComponent {
     });
   }
 
-  save(e) {
+  submit(e) {
     e.preventDefault();
     e.stopPropagation();
     const { values } = this.state;
+    const { onlyApply } = this.props;
     const owners = values.owners.map(o => o.value);
-
-    SupersetClient.put({
-      endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        dashboard_title: values.dashboard_title,
-        slug: values.slug || null,
-        json_metadata: values.json_metadata || null,
-        owners,
-      }),
-    }).then(({ json }) => {
-      this.props.addSuccessToast(t('The dashboard has been saved'));
-      this.props.onDashboardSave({
+    if (onlyApply) {
+      this.props.onSubmit({
         id: this.props.dashboardId,
         title: json.result.dashboard_title,
         slug: json.result.slug,
         jsonMetadata: json.result.json_metadata,
         ownerIds: json.result.owners,
+        colorScheme: this.state.colorScheme,
       });
-      this.props.onHide();
-    }, this.handleErrorResponse);
+    } else {
+      SupersetClient.put({
+        endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dashboard_title: values.dashboard_title,
+          slug: values.slug || null,
+          json_metadata: values.json_metadata || null,
+          owners,
+        }),
+      }).then(({ json }) => {
+        this.props.addSuccessToast(t('The dashboard has been saved'));
+        this.props.onSubmit({
+          id: this.props.dashboardId,
+          title: json.result.dashboard_title,
+          slug: json.result.slug,
+          jsonMetadata: json.result.json_metadata,
+          ownerIds: json.result.owners,
+          colorScheme: this.state.colorScheme,
+        });
+        this.props.onHide();
+      }, this.handleErrorResponse);
+    }
   }
 
   render() {
-    const { values, isDashboardLoaded, isAdvancedOpen } = this.state;
+    const { values, isDashboardLoaded, isAdvancedOpen, errors } = this.state;
+    const { onHide, onlyApply } = this.props;
+
+    const saveLabel = onlyApply ? t('Apply') : t('Save');
     return (
       <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
-        <form onSubmit={this.save}>
+        <form onSubmit={this.submit}>
           <Modal.Header closeButton>
             <Modal.Title>
               <div>
@@ -257,8 +279,8 @@ class PropertiesModal extends React.PureComponent {
               <Col md={6}>
                 <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
                 <ColorSchemeControlWrapper
-                  setColorSchemeAndUnsavedChanges={this.props.setColorSchemeAndUnsavedChanges}
-                  colorScheme={this.props.colorScheme}
+                  onChange={this.onColorSchemeChange}
+                  colorScheme={this.state.colorScheme}
                 />
               </Col>
             </Row>
@@ -312,11 +334,11 @@ class PropertiesModal extends React.PureComponent {
                 bsSize="sm"
                 bsStyle="primary"
                 className="m-r-5"
-                disabled={this.state.errors.length > 0}
+                disabled={errors.length > 0}
               >
-                {t('Save')}
+                {saveLabel}
               </Button>
-              <Button type="button" bsSize="sm" onClick={this.props.onHide}>
+              <Button type="button" bsSize="sm" onClick={onHide}>
                 {t('Cancel')}
               </Button>
               <Dialog

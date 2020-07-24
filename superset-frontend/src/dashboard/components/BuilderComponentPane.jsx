@@ -35,26 +35,17 @@ import SliceAdder from '../containers/SliceAdder';
 
 const propTypes = {
   topOffset: PropTypes.number,
-  showBuilderPane: PropTypes.func.isRequired,
-  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
-  colorScheme: PropTypes.string,
 };
 
 const defaultProps = {
   topOffset: 0,
-  colorScheme: undefined,
 };
 
 const SUPERSET_HEADER_HEIGHT = 59;
 
 class BuilderComponentPane extends React.PureComponent {
   renderTabs(height) {
-    const {
-      showBuilderPane,
-      setColorSchemeAndUnsavedChanges,
-      colorScheme,
-      isSticky,
-    } = this.props;
+    const { isSticky } = this.props;
     return (
       <Tabs className="m-t-10">
         <Tab eventKey={1} title={t('Components')}>
