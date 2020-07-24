@@ -17,6 +17,8 @@
  * under the License.
  */
 import React from 'react';
+import Button from '../Button';
+import styled from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
 
 const buttonStyle = {
@@ -24,17 +26,40 @@ const buttonStyle = {
   marginRight: '30px',
 };
 
+const StyledButton = styled(Button)`
+  margin-top: 12px;
+  margin-right: 30px;
+  padding: 5px 80px 5px 50px;
+
+  i:before {
+    content: ' ';
+  }
+
+  .caret {
+    color: ${({ theme }) => theme.colors.grayscale.light5};
+  }
+`;
+
+const dropdownItems = [
+	'SQL Query',
+	'Chart',
+	'Dashboard',
+];
+
 export default function NewMenu() {
   return (
     <li className="dropdown">
-      <button
+	  <StyledButton
         type="button"
-        style={buttonStyle}
         data-toggle="dropdown"
         className="dropdown-toggle btn btn-sm btn-primary"
+		dropdownItems={dropdownItems}
       >
-        <i className="fa fa-plus" /> New
-      </button>
+		New
+        <span className="caret-container">
+	      <span className="caret" />
+		</span>
+      </StyledButton>
       <ul className="dropdown-menu">
         <li>
           <a href="/superset/sqllab">

@@ -82,8 +82,13 @@ export default function Button(props: ButtonProps) {
   };
   const tooltip = props.tooltip;
   const placement = props.placement;
+  const dropdownItems = props.dropdownItems;
   delete buttonProps.tooltip;
   delete buttonProps.placement;
+
+  if ( dropdownItems ) {
+    console.log( 'dropdown items', dropdownItems );
+  }
 
   let button = (
     <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
