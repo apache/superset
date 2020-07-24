@@ -65,6 +65,10 @@ const StyledHeader = styled.header`
     justify-content: center;
   }
 
+  .nav > li > a {
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
   .navbar-nav > li > a {
     &:after {
       content: '';
@@ -77,10 +81,9 @@ const StyledHeader = styled.header`
       opacity: 0;
       transition: opacity ${({ theme }) => theme.transitionTiming * 2}s;
     }
+    border-bottom: none;
 
     &:hover {
-      border-bottom: none;
-
       &:after {
         opacity: 1;
       }
