@@ -121,6 +121,7 @@ from superset.views.utils import (
     get_form_data,
     get_viz,
     is_owner,
+    format_pivot_table_html_2b_convenient,
 )
 from superset.viz import BaseViz
 
@@ -431,6 +432,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.get_samples(viz_obj)
 
         payload = viz_obj.get_payload()
+        if viz_obj.viz_type == "pivot_table":
+            payload['data']['html'] = format_pivot_table_html_2b_convenient(payload['data']['html'])
+
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
     @event_logger.log_this
