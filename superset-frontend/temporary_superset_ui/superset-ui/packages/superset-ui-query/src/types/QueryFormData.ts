@@ -11,6 +11,8 @@ export type QueryFormResidualData = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
+export type TimeRangeEndpoint = 'unknown' | 'inclusive' | 'exclusive';
+export type TimeRangeEndpoints = [TimeRangeEndpoint, TimeRangeEndpoint];
 
 // Currently only Binary and Set filters are supported
 export type QueryFields = {
@@ -69,6 +71,7 @@ export type BaseFormData = {
   result_format?: string;
   result_type?: string;
   queryFields?: QueryFields;
+  time_range_endpoints?: TimeRangeEndpoints;
 } & TimeRange &
   QueryFormResidualData;
 
