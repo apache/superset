@@ -29,22 +29,13 @@ const buttonStyle = {
 const StyledButton = styled(Button)`
   margin-top: 12px;
   margin-right: 30px;
-  padding: 5px 80px 5px 50px;
-
-  i:before {
-    content: ' ';
-  }
-
-  .caret {
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-  }
 `;
 
 const dropdownItems = [
   {
     label: t('SQL Query'),
     url: '/superset/sqllab',
-    icon: 'fa-fw fa-search', // Might not need all of this, see what component already has
+    icon: 'fa-fw fa-search',
   },
   {
     label: t('Chart'),
@@ -63,14 +54,10 @@ export default function NewMenu() {
     <li className="dropdown">
       <StyledButton
         type="button"
-        data-toggle="dropdown"
         className="dropdown-toggle btn btn-sm btn-primary"
         dropdownItems={dropdownItems}
       >
-        New
-        <span className="caret-container">
-          <span className="caret" />
-        </span>
+        <i className="fa fa-plus" /> New
       </StyledButton>
     </li>
   );

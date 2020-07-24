@@ -39,6 +39,7 @@ export interface ButtonProps {
   bsSize?: BootstrapButton.ButtonProps['bsSize'];
   style?: BootstrapButton.ButtonProps['style'];
   children?: React.ReactNode;
+  dropdownItems?: Array;
 }
 
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
@@ -87,6 +88,12 @@ export default function Button(props: ButtonProps) {
   delete buttonProps.tooltip;
   delete buttonProps.placement;
 
+  if (tooltip && props.disabled) {
+    // Working around the fact that tooltips don't get triggered when buttons are disabled
+    // https://github.com/react-bootstrap/react-bootstrap/issues/1588
+    buttonProps.style = { pointerEvents: 'none' };
+  }
+
   let button = (
     <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
   );
@@ -94,7 +101,10 @@ export default function Button(props: ButtonProps) {
   if (dropdownItems) {
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
-        <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
+        <SupersetButton {...buttonProps} data-toggle="dropdown"
+        >
+          {props.children}
+        </SupersetButton>
         <ul className="dropdown-menu">
           {dropdownItems.map((dropdownItem, index1) => (
             <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
@@ -108,16 +118,6 @@ export default function Button(props: ButtonProps) {
   }
 
   if (tooltip) {
-    if (props.disabled) {
-      // Working around the fact that tooltips don't get triggered when buttons are disabled
-      // https://github.com/react-bootstrap/react-bootstrap/issues/1588
-      buttonProps.style = { pointerEvents: 'none' };
-      button = (
-        <div style={BUTTON_WRAPPER_STYLE}>
-          <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
-        </div>
-      );
-    }
     return (
       <OverlayTrigger
         placement={placement}
