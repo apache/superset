@@ -48,23 +48,24 @@ A modern, enterprise-ready business intelligence web application.
 
 ## Screenshots & Gifs
 
-**View Dashboards**
+**Create Beautiful and Flexible Dashboards**
 
 <kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/bank_dash.png"></kbd><br/>
 
-**Slice & dice your data**
+**Powerful Charts to Show Business Intelligence and Insights**
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/explore.png"></kbd><br/>
+<p float="left">
+  <img src="https://raw.githubusercontent.com/apache/incubator-superset/master/" alt="" border="0" width="106" height="41"/>
+  <img src="https://raw.githubusercontent.com/apache/incubator-superset/master/" alt="" border="0" width="114" height="43"/>
+  <img src="https://raw.githubusercontent.com/apache/incubator-superset/master/" alt="" border="0" width="152" height="46"/>
+  <img src="https://raw.githubusercontent.com/apache/incubator-superset/master/" alt="" border="0" width="152" height="46"/>
+</p>
 
-**Query and visualize your data with SQL Lab**
+**Query and Visualize with SQL Lab**
 
 <kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/sqllab.png"></kbd><br/>
 
-**Visualize geospatial data with deck.gl**
-
-<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/deckgl_dash.png"></kbd><br/>
-
-**Choose from a wide array of visualizations**
+**Choose from A Wide Array of Visualizations**
 
 <kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
 
