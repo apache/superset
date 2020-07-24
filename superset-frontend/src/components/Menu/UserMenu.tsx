@@ -43,11 +43,9 @@ export default function UserMenu({
       }
     >
       <MenuItem href={userInfoUrl}>
-        <span className="fa fa-fw fa-user" />
         {t('Profile')}
       </MenuItem>
       <MenuItem href={userLogoutUrl}>
-        <span className="fa fa-fw fa-sign-out" />
         {t('Logout')}
       </MenuItem>
       {(versionString || versionSha) && (

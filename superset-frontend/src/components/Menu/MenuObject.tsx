@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { NavItem, NavDropdown, MenuItem } from 'react-bootstrap';
+import { NavItem, MenuItem } from 'react-bootstrap';
+import NavDropdown from '../NavDropdown';
 
 interface MenuObjectChildProps {
   label: string;
@@ -44,17 +45,12 @@ export default function MenuObject({
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
-        <i className={`fa ${icon}`} /> &nbsp; {label}
+        {label}
       </NavItem>
     );
   }
 
-  const navTitle = (
-    <>
-      <i className={`fa ${icon}`} />
-      &nbsp; {label}
-    </>
-  );
+  const navTitle = <>{label}</>;
   return (
     <NavDropdown
       id={`menu-dropdown-${label}`}
@@ -71,7 +67,6 @@ export default function MenuObject({
               href={child.url}
               eventKey={parseFloat(`${index}.${index1}`)}
             >
-              <i className={`fa ${child.icon}`} />
               &nbsp; {child.label}
             </MenuItem>
           );

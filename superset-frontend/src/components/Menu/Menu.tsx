@@ -56,6 +56,9 @@ export interface MenuProps {
 }
 
 const StyledHeader = styled.header`
+  & > nav {
+    border: none;
+  }
   .navbar-brand {
     display: flex;
     flex-direction: column;
@@ -82,6 +85,10 @@ const StyledHeader = styled.header`
         opacity: 1;
       }
     }
+  }
+
+  .nav > li > a {
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
   }
 `;
 
