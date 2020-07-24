@@ -21,7 +21,7 @@ import { t } from '@superset-ui/translation';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-import { createFetchOwners } from 'src/views/CRUD/utils';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
@@ -83,15 +83,11 @@ class DashboardList extends React.PureComponent<Props, State> {
           permissions: infoJson.permissions,
         });
       },
-      e => {
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t(
-            'An error occurred while fetching Dashboards: %s, %s',
-            e.statusText,
-          ),
-        );
-        console.error(e);
-      },
+          t('An error occurred while fetching Dashboards: %s, %s', errMsg),
+        ),
+      ),
     );
   }
 
@@ -249,11 +245,15 @@ class DashboardList extends React.PureComponent<Props, State> {
       input: 'select',
       operator: 'rel_m_m',
       unfilteredLabel: 'All',
-      fetchSelects: createFetchOwners('dashboard', e =>
-        this.props.addDangerToast(
-          t(
-            'An error occurred while fetching chart owner values: %s',
-            e.statusText,
+      fetchSelects: createFetchRelated(
+        'dashboard',
+        'owners',
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t(
+              'An error occurred while fetching chart owner values: %s',
+              errMsg,
+            ),
           ),
         ),
       ),
@@ -296,8 +296,8 @@ class DashboardList extends React.PureComponent<Props, State> {
     this.setState({ loading: true });
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/${edits.id}`,
-    })
-      .then(({ json = {} }) => {
+    }).then(
+      ({ json = {} }) => {
         this.setState({
           dashboards: this.state.dashboards.map(dashboard => {
             if (dashboard.id === json.id) {
@@ -307,12 +307,13 @@ class DashboardList extends React.PureComponent<Props, State> {
           }),
           loading: false,
         });
-      })
-      .catch(e => {
+      },
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t('An error occurred while fetching dashboards: %s', e.statusText),
-        );
-      });
+          t('An error occurred while fetching dashboards: %s', errMsg),
+        ),
+      ),
+    );
   };
 
   handleDashboardDelete = ({
@@ -329,12 +330,11 @@ class DashboardList extends React.PureComponent<Props, State> {
         }
         this.props.addSuccessToast(t('Deleted: %s', dashboardTitle));
       },
-      (err: any) => {
-        console.error(err);
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t('There was an issue deleting %s', dashboardTitle),
-        );
-      },
+          t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
+        ),
+      ),
     );
 
   handleBulkDashboardDelete = (dashboards: Dashboard[]) => {
@@ -350,15 +350,11 @@ class DashboardList extends React.PureComponent<Props, State> {
         }
         this.props.addSuccessToast(json.message);
       },
-      (err: any) => {
-        console.error(err);
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t(
-            'There was an issue deleting the selected dashboards: ',
-            err.statusText,
-          ),
-        );
-      },
+          t('There was an issue deleting the selected dashboards: ', errMsg),
+        ),
+      ),
     );
   };
 
@@ -398,14 +394,19 @@ class DashboardList extends React.PureComponent<Props, State> {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
-      .then(({ json = {} }) => {
-        this.setState({ dashboards: json.result, dashboardCount: json.count });
-      })
-      .catch(e => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching dashboards: %s', e.statusText),
-        );
-      })
+      .then(
+        ({ json = {} }) => {
+          this.setState({
+            dashboards: json.result,
+            dashboardCount: json.count,
+          });
+        },
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t('An error occurred while fetching dashboards: %s', errMsg),
+          ),
+        ),
+      )
       .finally(() => {
         this.setState({ loading: false });
       });

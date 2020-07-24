@@ -16,14 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/connection';
+import {
+  SupersetClient,
+  SupersetClientResponse,
+} from '@superset-ui/connection';
 import rison from 'rison';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 
-export const createFetchOwners = (
+export const createFetchRelated = (
   resource: string,
+  relation: string,
   handleError: (error: Response) => void,
 ) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
-  const resourceEndpoint = `/api/v1/${resource}/related/owners`;
+  const resourceEndpoint = `/api/v1/${resource}/related/${relation}`;
 
   try {
     const queryParams = rison.encode({
@@ -42,8 +47,15 @@ export const createFetchOwners = (
       }),
     );
   } catch (e) {
-    console.error(e);
     handleError(e);
   }
   return [];
+};
+
+export const createErrorHandler = (
+  handleError: (errMsg?: string) => void,
+) => async (e: SupersetClientResponse | string) => {
+  const parsedError = await getClientErrorObject(e);
+  console.error(e); // eslint-disable-line no-console
+  handleError(parsedError.message);
 };

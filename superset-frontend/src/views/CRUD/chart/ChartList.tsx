@@ -22,7 +22,7 @@ import { getChartMetadataRegistry } from '@superset-ui/chart';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-import { createFetchOwners } from 'src/views/CRUD/utils';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import Icon from 'src/components/Icon';
@@ -53,10 +53,9 @@ interface State {
 const createFetchDatasets = (
   handleError: (err: Response) => void,
 ) => async () => {
-  const resource = '/api/v1/chart/datasources';
   try {
     const { json = {} } = await SupersetClient.get({
-      endpoint: `${resource}`,
+      endpoint: '/api/v1/chart/datasources',
     });
 
     return json?.result?.map((ds: { label: string; value: any }) => ({
@@ -92,12 +91,11 @@ class ChartList extends React.PureComponent<Props, State> {
           permissions: infoJson.permissions,
         });
       },
-      e => {
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t('An error occurred while fetching charts: %s', e.statusText),
-        );
-        console.error(e);
-      },
+          t('An error occurred while fetching chart info: %s', errMsg),
+        ),
+      ),
     );
   }
 
@@ -234,11 +232,15 @@ class ChartList extends React.PureComponent<Props, State> {
       input: 'select',
       operator: 'rel_m_m',
       unfilteredLabel: 'All',
-      fetchSelects: createFetchOwners('chart', e =>
-        this.props.addDangerToast(
-          t(
-            'An error occurred while fetching chart dataset values: %s',
-            e.statusText,
+      fetchSelects: createFetchRelated(
+        'chart',
+        'owners',
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t(
+              'An error occurred while fetching chart dataset values: %s',
+              errMsg,
+            ),
           ),
         ),
       ),
@@ -260,11 +262,13 @@ class ChartList extends React.PureComponent<Props, State> {
       input: 'select',
       operator: 'eq',
       unfilteredLabel: 'All',
-      fetchSelects: createFetchDatasets(e =>
-        this.props.addDangerToast(
-          t(
-            'An error occurred while fetching chart dataset values: %s',
-            e.statusText,
+      fetchSelects: createFetchDatasets(
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t(
+              'An error occurred while fetching chart dataset values: %s',
+              errMsg,
+            ),
           ),
         ),
       ),
@@ -345,15 +349,11 @@ class ChartList extends React.PureComponent<Props, State> {
         }
         this.props.addSuccessToast(json.message);
       },
-      (err: any) => {
-        console.error(err);
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t(
-            'There was an issue deleting the selected charts: %s',
-            err.statusText,
-          ),
-        );
-      },
+          t('There was an issue deleting the selected charts: %s', errMsg),
+        ),
+      ),
     );
   };
 
@@ -404,15 +404,16 @@ class ChartList extends React.PureComponent<Props, State> {
     return SupersetClient.get({
       endpoint: `/api/v1/chart/?q=${queryParams}`,
     })
-      .then(({ json = {} }) => {
-        this.setState({ charts: json.result, chartCount: json.count });
-      })
-      .catch(e => {
-        console.log(e.body);
-        this.props.addDangerToast(
-          t('An error occurred while fetching charts: %s', e.statusText),
-        );
-      })
+      .then(
+        ({ json = {} }) => {
+          this.setState({ charts: json.result, chartCount: json.count });
+        },
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t('An error occurred while fetching charts: %s', errMsg),
+          ),
+        ),
+      )
       .finally(() => {
         this.setState({ loading: false });
       });

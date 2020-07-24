@@ -25,7 +25,7 @@ import React, {
   useState,
 } from 'react';
 import rison from 'rison';
-import { createFetchOwners } from 'src/views/CRUD/utils';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
@@ -97,7 +97,7 @@ const createFetchDatabases = (handleError: (err: Response) => void) => async (
       columns: ['database_name', 'id'],
       keys: ['none'],
       ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_ize: pageSize } : {}),
+      ...(pageSize ? { page_size: pageSize } : {}),
       ...(filterValue ? { filter: filterValue } : {}),
     });
     const { json = {} } = await SupersetClient.get({
@@ -111,7 +111,6 @@ const createFetchDatabases = (handleError: (err: Response) => void) => async (
       }),
     );
   } catch (e) {
-    console.error(e);
     handleError(e);
   }
   return [];
@@ -120,16 +119,14 @@ const createFetchDatabases = (handleError: (err: Response) => void) => async (
 export const createFetchSchemas = (
   handleError: (error: Response) => void,
 ) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
-  const resourceEndpoint = `/api/v1/database/schemas/`;
-
   try {
     const queryParams = rison.encode({
       ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_ize: pageSize } : {}),
+      ...(pageSize ? { page_size: pageSize } : {}),
       ...(filterValue ? { filter: filterValue } : {}),
     });
     const { json = {} } = await SupersetClient.get({
-      endpoint: `${resourceEndpoint}?q=${queryParams}`,
+      endpoint: `/api/v1/database/schemas/?q=${queryParams}`,
     });
 
     return json?.result?.map(
@@ -139,7 +136,6 @@ export const createFetchSchemas = (
       }),
     );
   } catch (e) {
-    console.error(e);
     handleError(e);
   }
   return [];
@@ -172,11 +168,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       input: 'select',
       operator: 'rel_m_m',
       unfilteredLabel: 'All',
-      fetchSelects: createFetchOwners('dataset', e =>
-        addDangerToast(
+      fetchSelects: createFetchRelated(
+        'dataset',
+        'owners',
+        createErrorHandler(errMsg =>
           t(
-            'An error occurred while fetching databaser owner values: %s',
-            e.statusText,
+            'An error occurred while fetching dataset owner values: %s',
+            errMsg,
           ),
         ),
       ),
@@ -188,12 +186,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       input: 'select',
       operator: 'rel_o_m',
       unfilteredLabel: 'All',
-      fetchSelects: createFetchDatabases(e =>
-        addDangerToast(
-          t(
-            'An error occurred while fetching datasource database values: %s',
-            e.statusText,
-          ),
+      fetchSelects: createFetchDatabases(
+        createErrorHandler(errMsg =>
+          t('An error occurred while fetching datasource values: %s', errMsg),
         ),
       ),
       paginate: true,
@@ -204,10 +199,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       input: 'select',
       operator: 'eq',
       unfilteredLabel: 'All',
-      fetchSelects: createFetchSchemas(e =>
-        addDangerToast(
-          t('An error occurred while fetching schema values: %s', e.statusText),
-        ),
+      fetchSelects: createFetchSchemas(errMsg =>
+        t('An error occurred while fetching schema values: %s', errMsg),
       ),
       paginate: true,
     },
@@ -237,14 +230,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       ({ json: infoJson = {} }) => {
         setPermissions(infoJson.permissions);
       },
-      e => {
-        addDangerToast(
-          t('An error occurred while fetching datasets', e.statusText),
-        );
-        if (e) {
-          console.error(e);
-        }
-      },
+      createErrorHandler(errMsg =>
+        addDangerToast(t('An error occurred while fetching datasets', errMsg)),
+      ),
     );
   };
 
@@ -281,11 +269,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           dashboard_count: json.dashboards.count,
         });
       })
-      .catch(() => {
-        addDangerToast(
-          t('An error occurred while fetching dataset related data'),
-        );
-      });
+      .catch(
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching dataset related data: %s',
+            errMsg,
+          ),
+        ),
+      );
 
   const columns = [
     {
@@ -538,15 +529,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       return SupersetClient.get({
         endpoint: `/api/v1/dataset/?q=${queryParams}`,
       })
-        .then(({ json }) => {
-          setLoading(false);
-          setDatasets(json.result);
-          setDatasetCount(json.count);
-        })
-        .catch(() => {
-          addDangerToast(t('An error occurred while fetching datasets'));
-          setLoading(false);
-        });
+        .then(
+          ({ json }) => {
+            setLoading(false);
+            setDatasets(json.result);
+            setDatasetCount(json.count);
+          },
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching datasets: %s', errMsg),
+            ),
+          ),
+        )
+        .finally(() => setLoading(false));
     },
     [],
   );
@@ -562,10 +557,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         setDatasetCurrentlyDeleting(null);
         addSuccessToast(t('Deleted: %s', tableName));
       },
-      (err: any) => {
-        console.error(err);
-        addDangerToast(t('There was an issue deleting %s', tableName));
-      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', tableName, errMsg),
+        ),
+      ),
     );
   };
 
@@ -581,10 +577,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }
         addSuccessToast(json.message);
       },
-      (err: any) => {
-        console.error(err);
-        addDangerToast(t('There was an issue deleting the selected datasets'));
-      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting the selected datasets: %s', errMsg),
+        ),
+      ),
     );
   };
 
