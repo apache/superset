@@ -43,7 +43,7 @@ const mockedProps = {
 
 const datasource = mockDatasource['7__table'];
 const datasourceData = {
-  id: datasource.name,
+  id: datasource.id,
   type: datasource.type,
   uid: datasource.id,
 };
@@ -82,29 +82,14 @@ describe('ChangeDatasourceModal', () => {
   });
 
   it('fetches datasources', async () => {
-    const calls0 = fetchMock.calls(/superset\/datasources/);
-    act(() => {
-      wrapper.find(Modal).props().onEnter();
-    });
-    await waitForComponentToPaint(wrapper);
-    expect(calls0).toHaveLength(3);
+    expect(fetchMock.calls(/superset\/datasources/)).toHaveLength(3);
   });
 
   it('changes the datasource', async () => {
-    const calls1 = fetchMock.calls(/datasource\/get\/table\/7/);
     act(() => {
-      wrapper.find(Modal).props().onEnter();
+      wrapper.find('.datasource-link').at(0).props().onClick(datasourceData);
     });
     await waitForComponentToPaint(wrapper);
-    act(() => {
-      wrapper
-        .find('[className="datasource-link"]')
-        .at(0)
-        .props()
-        .onClick(datasourceData);
-    });
-    await waitForComponentToPaint(wrapper);
-
-    expect(calls1).toHaveLength(1);
+    expect(fetchMock.calls(/datasource\/get\/table\/7/)).toHaveLength(1);
   });
 });
