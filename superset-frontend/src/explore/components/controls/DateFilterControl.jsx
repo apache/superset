@@ -39,6 +39,10 @@ import moment from 'moment';
 import { t } from '@superset-ui/translation';
 import { styled } from '@superset-ui/style';
 
+import {
+  buildTimeRangeString,
+  formatTimeRange,
+} from 'src/explore/dateFilterUtils';
 import './DateFilterControl.less';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
@@ -129,12 +133,18 @@ function getStateFromCommonTimeFrame(value) {
     tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,
     common: value,
-    since: moment()
+    since:
+      value === 'No filter'
+        ? ''
+        : moment()
       .utc()
       .startOf('day')
       .subtract(1, units)
       .format(MOMENT_FORMAT),
-    until: moment().utc().startOf('day').format(MOMENT_FORMAT),
+    until:
+      value === 'No filter'
+        ? ''
+        : moment().utc().startOf('day').format(MOMENT_FORMAT),
   };
 }
 
@@ -377,7 +387,8 @@ export default class DateFilterControl extends React.Component {
     ));
     const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => {
       const nextState = getStateFromCommonTimeFrame(timeFrame);
-      const endpoints = this.props.endpoints.map(endpoint => endpoint === 'inclusive' ? '≤' : '<');
+
+      const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
       return (
         <Styles>
@@ -387,10 +398,7 @@ export default class DateFilterControl extends React.Component {
             placement="right"
             overlay={
               <Tooltip id={`tooltip-${timeFrame}`}>
-                {nextState.since.replace('T00:00:00', '')}{' '}
-                {endpoints && `${endpoints[0]}`} col{' '}
-                {endpoints && `${endpoints[1]}`}{' '}
-                {nextState.until.replace('T00:00:00', '')}
+                {formatTimeRange(timeRange, this.props.endpoints)}
               </Tooltip>
             }
           >
@@ -569,17 +577,7 @@ export default class DateFilterControl extends React.Component {
     );
   }
   render() {
-    let value = this.props.value || defaultProps.value;
-    const endpoints = this.props.endpoints;
-    console.log('!!!', endpoints, value);
-    value = value
-      .split(SEPARATOR)
-      .map(
-        (v, idx, values) =>
-          (v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')) +
-          (endpoints && values.length > 1 ? ` (${endpoints[idx]})` : ''),
-      )
-      .join(SEPARATOR);
+    let timeRange = this.props.value || defaultProps.value;
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -594,7 +592,7 @@ export default class DateFilterControl extends React.Component {
           onClick={this.handleClickTrigger}
         >
           <Label name="popover-trigger" style={{ cursor: 'pointer' }}>
-            {value}
+            {formatTimeRange(timeRange, this.props.endpoints)}
           </Label>
         </OverlayTrigger>
       </div>
