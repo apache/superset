@@ -21,12 +21,12 @@ describe('convertFilter', () => {
         expressionType: 'SIMPLE',
         clause: 'WHERE',
         subject: 'topping',
-        operator: '=',
+        operator: '==',
         comparator: 'grass jelly',
       }),
     ).toEqual({
       col: 'topping',
-      op: '=',
+      op: '==',
       val: 'grass jelly',
     });
   });
