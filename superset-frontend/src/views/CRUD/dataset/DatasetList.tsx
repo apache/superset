@@ -90,8 +90,6 @@ const createFetchDatabases = (handleError: (err: Response) => void) => async (
   pageIndex?: number,
   pageSize?: number,
 ) => {
-  const resourceEndpoint = `/api/v1/database/`;
-
   try {
     const queryParams = rison.encode({
       columns: ['database_name', 'id'],
@@ -101,7 +99,7 @@ const createFetchDatabases = (handleError: (err: Response) => void) => async (
       ...(filterValue ? { filter: filterValue } : {}),
     });
     const { json = {} } = await SupersetClient.get({
-      endpoint: `${resourceEndpoint}?q=${queryParams}`,
+      endpoint: `/api/v1/database/?q=${queryParams}`,
     });
 
     return json?.result?.map(
@@ -619,13 +617,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = canDelete
             ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
+              {
+                key: 'delete',
+                name: t('Delete'),
+                onSelect: confirmDelete,
+                type: 'danger',
+              },
+            ]
             : [];
 
           return (
