@@ -48,7 +48,7 @@ export default function processFilters(formData: QueryFormData) {
 
     return {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      filters: (formData.filters || []).concat(simpleWhere),
+      filters: simpleWhere,
       extras,
     };
   }

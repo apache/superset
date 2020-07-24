@@ -18,7 +18,7 @@ describe('Filter type guards', () => {
           expressionType: 'SIMPLE',
           clause: 'WHERE',
           subject: 'tea',
-          operator: '=',
+          operator: '==',
           comparator: 'matcha',
         }),
       ).toEqual(false);

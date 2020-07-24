@@ -9,30 +9,31 @@ describe('extractExtras', () => {
     filters: [
       {
         col: 'gender',
-        op: '=',
+        op: '==',
         val: 'girl',
       },
     ],
   };
 
-  it('should override formData with double underscored date options', () => {
+  it('should populate time range endpoints and override formData with double underscored date options', () => {
     expect(
       extractExtras({
         ...baseQueryFormData,
+        time_range_endpoints: ['inclusive', 'exclusive'],
         extra_filters: [
           {
             col: '__time_col',
-            op: '=',
+            op: '==',
             val: 'ds2',
           },
           {
             col: '__time_grain',
-            op: '=',
+            op: '==',
             val: 'PT5M',
           },
           {
             col: '__time_range',
-            op: '=',
+            op: '==',
             val: '2009-07-17T00:00:00 : 2020-07-17T00:00:00',
           },
         ],
@@ -40,11 +41,12 @@ describe('extractExtras', () => {
     ).toEqual({
       extras: {
         time_grain_sqla: 'PT5M',
+        time_range_endpoints: ['inclusive', 'exclusive'],
       },
       filters: [
         {
           col: 'gender',
-          op: '=',
+          op: '==',
           val: 'girl',
         },
       ],
@@ -72,7 +74,7 @@ describe('extractExtras', () => {
       filters: [
         {
           col: 'gender',
-          op: '=',
+          op: '==',
           val: 'girl',
         },
         {

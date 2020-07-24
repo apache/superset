@@ -43,5 +43,10 @@ export default function extractExtras(formData: QueryFormData): Partial<QueryObj
     delete partialQueryObject.granularity_sqla;
     delete partialQueryObject.time_grain_sqla;
   }
+
+  // map time range endpoints:
+  if (formData.time_range_endpoints)
+    partialQueryObject.extras.time_range_endpoints = formData.time_range_endpoints;
+
   return partialQueryObject;
 }

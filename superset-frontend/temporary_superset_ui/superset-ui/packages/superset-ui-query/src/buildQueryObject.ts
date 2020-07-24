@@ -36,10 +36,10 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
   const { metrics, groupby, columns } = extractQueryFields(residualFormData, queryFields);
   const groupbySet = new Set([...columns, ...groupby]);
 
-  const extraFilters = extractExtras(formData);
+  const extras = extractExtras(formData);
   const extrasAndfilters = processFilters({
     ...formData,
-    ...extraFilters,
+    ...extras,
   });
 
   return {
@@ -47,7 +47,7 @@ export default function buildQueryObject<T extends QueryFormData>(formData: T): 
     since,
     until,
     granularity,
-    ...extraFilters,
+    ...extras,
     ...extrasAndfilters,
     groupby: processGroupby(Array.from(groupbySet)),
     is_timeseries: groupbySet.has(DTTM_ALIAS),
