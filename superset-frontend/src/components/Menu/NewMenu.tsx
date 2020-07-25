@@ -19,8 +19,6 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 
-const propTypes = {};
-
 const buttonStyle = {
   marginTop: '12px',
   marginRight: '30px',
@@ -60,5 +58,3 @@ export default function NewMenu() {
     </li>
   );
 }
-
-NewMenu.propTypes = propTypes;
