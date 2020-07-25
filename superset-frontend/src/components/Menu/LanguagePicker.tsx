@@ -17,15 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { NavDropdown, MenuItem } from 'react-bootstrap';
 
-const propTypes = {
-  locale: PropTypes.string.isRequired,
-  languages: PropTypes.object.isRequired,
-};
+export interface LanguagePickerInterface {
+  locale: string;
+  languages: object;
+}
 
-export default function LanguagePicker({ locale, languages }) {
+export default function LanguagePicker({
+  locale,
+  languages,
+}: LanguagePickerInterface) {
   return (
     <NavDropdown
       id="locale-dropdown"
@@ -49,5 +51,3 @@ export default function LanguagePicker({ locale, languages }) {
     </NavDropdown>
   );
 }
-
-LanguagePicker.propTypes = propTypes;
