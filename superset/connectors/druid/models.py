@@ -45,7 +45,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import backref, relationship, Session
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import expression
 from sqlalchemy_utils import EncryptedType
 
@@ -223,9 +223,8 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         Fetches metadata for the specified datasources and
         merges to the Superset database
         """
-        session = db.session
         ds_list = (
-            session.query(DruidDatasource)
+            db.session.query(DruidDatasource)
             .filter(DruidDatasource.cluster_id == self.id)
             .filter(DruidDatasource.datasource_name.in_(datasource_names))
         )
@@ -234,8 +233,8 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
             datasource = ds_map.get(ds_name, None)
             if not datasource:
                 datasource = DruidDatasource(datasource_name=ds_name)
-                with session.no_autoflush:
-                    session.add(datasource)
+                with db.session.no_autoflush:
+                    db.session.add(datasource)
                 flasher(_("Adding new datasource [{}]").format(ds_name), "success")
                 ds_map[ds_name] = datasource
             elif refresh_all:
@@ -245,7 +244,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                 continue
             datasource.cluster = self
             datasource.merge_flag = merge_flag
-        session.flush()
+        db.session.flush()
 
         # Prepare multithreaded executation
         pool = ThreadPool()
@@ -259,7 +258,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
             cols = metadata[i]
             if cols:
                 col_objs_list = (
-                    session.query(DruidColumn)
+                    db.session.query(DruidColumn)
                     .filter(DruidColumn.datasource_id == datasource.id)
                     .filter(DruidColumn.column_name.in_(cols.keys()))
                 )
@@ -272,15 +271,15 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                         col_obj = DruidColumn(
                             datasource_id=datasource.id, column_name=col
                         )
-                        with session.no_autoflush:
-                            session.add(col_obj)
+                        with db.session.no_autoflush:
+                            db.session.add(col_obj)
                     col_obj.type = cols[col]["type"]
                     col_obj.datasource = datasource
                     if col_obj.type == "STRING":
                         col_obj.groupby = True
                         col_obj.filterable = True
                 datasource.refresh_metrics()
-        session.commit()
+        db.session.commit()
 
     @hybrid_property
     def perm(self) -> str:
@@ -390,7 +389,7 @@ class DruidColumn(Model, BaseColumn):
                 .first()
             )
 
-        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
+        return import_datasource.import_simple_obj(i_column, lookup_obj)
 
 
 class DruidMetric(Model, BaseMetric):
@@ -459,7 +458,7 @@ class DruidMetric(Model, BaseMetric):
                 .first()
             )
 
-        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
+        return import_datasource.import_simple_obj(i_metric, lookup_obj)
 
 
 druiddatasource_user = Table(
@@ -635,7 +634,7 @@ class DruidDatasource(Model, BaseDatasource):
             return db.session.query(DruidCluster).filter_by(id=d.cluster_id).first()
 
         return import_datasource.import_datasource(
-            db.session, i_datasource, lookup_cluster, lookup_datasource, import_time
+            i_datasource, lookup_cluster, lookup_datasource, import_time
         )
 
     def latest_metadata(self) -> Optional[Dict[str, Any]]:
@@ -705,9 +704,10 @@ class DruidDatasource(Model, BaseDatasource):
         refresh: bool = True,
     ) -> None:
         """Merges the ds config from druid_config into one stored in the db."""
-        session = db.session
         datasource = (
-            session.query(cls).filter_by(datasource_name=druid_config["name"]).first()
+            db.session.query(cls)
+            .filter_by(datasource_name=druid_config["name"])
+            .first()
         )
         # Create a new datasource.
         if not datasource:
@@ -718,13 +718,13 @@ class DruidDatasource(Model, BaseDatasource):
                 changed_by_fk=user.id,
                 created_by_fk=user.id,
             )
-            session.add(datasource)
+            db.session.add(datasource)
         elif not refresh:
             return
 
         dimensions = druid_config["dimensions"]
         col_objs = (
-            session.query(DruidColumn)
+            db.session.query(DruidColumn)
             .filter(DruidColumn.datasource_id == datasource.id)
             .filter(DruidColumn.column_name.in_(dimensions))
         )
@@ -741,10 +741,10 @@ class DruidDatasource(Model, BaseDatasource):
                     type="STRING",
                     datasource=datasource,
                 )
-                session.add(col_obj)
+                db.session.add(col_obj)
         # Import Druid metrics
         metric_objs = (
-            session.query(DruidMetric)
+            db.session.query(DruidMetric)
             .filter(DruidMetric.datasource_id == datasource.id)
             .filter(
                 DruidMetric.metric_name.in_(
@@ -777,8 +777,8 @@ class DruidDatasource(Model, BaseDatasource):
                         % druid_config["name"]
                     ),
                 )
-                session.add(metric_obj)
-        session.commit()
+                db.session.add(metric_obj)
+        db.session.commit()
 
     @staticmethod
     def time_offset(granularity: Granularity) -> int:
@@ -788,10 +788,10 @@ class DruidDatasource(Model, BaseDatasource):
 
     @classmethod
     def get_datasource_by_name(
-        cls, session: Session, datasource_name: str, schema: str, database_name: str
+        cls, datasource_name: str, schema: str, database_name: str
     ) -> Optional["DruidDatasource"]:
         query = (
-            session.query(cls)
+            db.session.query(cls)
             .join(DruidCluster)
             .filter(cls.datasource_name == datasource_name)
             .filter(DruidCluster.cluster_name == database_name)
@@ -1724,11 +1724,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     @classmethod
     def query_datasources_by_name(
-        cls,
-        session: Session,
-        database: Database,
-        datasource_name: str,
-        schema: Optional[str] = None,
+        cls, database: Database, datasource_name: str, schema: Optional[str] = None,
     ) -> List["DruidDatasource"]:
         return []
 

@@ -197,10 +197,9 @@ def set_database_uri(database_name: str, uri: str) -> None:
 )
 def refresh_druid(datasource: str, merge: bool) -> None:
     """Refresh druid datasources"""
-    session = db.session()
     from superset.connectors.druid.models import DruidCluster
 
-    for cluster in session.query(DruidCluster).all():
+    for cluster in db.session.query(DruidCluster).all():
         try:
             cluster.refresh_datasources(datasource_name=datasource, merge_flag=merge)
         except Exception as ex:  # pylint: disable=broad-except
@@ -208,7 +207,7 @@ def refresh_druid(datasource: str, merge: bool) -> None:
             logger.exception(ex)
         cluster.metadata_last_refreshed = datetime.now()
         print("Refreshed metadata from cluster " "[" + cluster.cluster_name + "]")
-    session.commit()
+    db.session.commit()
 
 
 @superset.command()
@@ -250,7 +249,7 @@ def import_dashboards(path: str, recursive: bool, username: str) -> None:
         logger.info("Importing dashboard from file %s", file_)
         try:
             with file_.open() as data_stream:
-                dashboard_import_export.import_dashboards(db.session, data_stream)
+                dashboard_import_export.import_dashboards(data_stream)
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Error when importing dashboard from file %s", file_)
             logger.error(ex)
@@ -268,7 +267,7 @@ def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
     """Export dashboards to JSON"""
     from superset.utils import dashboard_import_export
 
-    data = dashboard_import_export.export_dashboards(db.session)
+    data = dashboard_import_export.export_dashboards()
     if print_stdout or not dashboard_file:
         print(data)
     if dashboard_file:
@@ -321,7 +320,7 @@ def import_datasources(path: str, sync: str, recursive: bool) -> None:
         try:
             with file_.open() as data_stream:
                 dict_import_export.import_from_dict(
-                    db.session, yaml.safe_load(data_stream), sync=sync_array
+                    yaml.safe_load(data_stream), sync=sync_array
                 )
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Error when importing datasources from file %s", file_)
@@ -360,7 +359,6 @@ def export_datasources(
     from superset.utils import dict_import_export
 
     data = dict_import_export.export_to_dict(
-        session=db.session,
         recursive=True,
         back_references=back_references,
         include_defaults=include_defaults,
