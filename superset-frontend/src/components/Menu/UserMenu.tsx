@@ -17,23 +17,22 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { NavDropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
-const propTypes = {
-  userInfoUrl: PropTypes.string.isRequired,
-  userLogoutUrl: PropTypes.string.isRequired,
-  versionString: PropTypes.string,
-  versionSha: PropTypes.string,
-};
+export interface UserMenuProps {
+  userInfoUrl: string;
+  userLogoutUrl: string;
+  versionString?: string;
+  versionSha?: string;
+}
 
 export default function UserMenu({
   userInfoUrl,
   userLogoutUrl,
   versionString,
   versionSha,
-}) {
+}: UserMenuProps) {
   return (
     <NavDropdown
       id="user-menu-dropwn"
@@ -60,5 +59,3 @@ export default function UserMenu({
     </NavDropdown>
   );
 }
-
-UserMenu.propTypes = propTypes;
