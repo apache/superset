@@ -17,41 +17,41 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { Nav, Navbar, NavItem } from 'react-bootstrap';
 import styled from '@superset-ui/style';
-import MenuObject from './MenuObject';
+import MenuObject, { MenuObjectProps } from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
 import LanguagePicker from './LanguagePicker';
 import './Menu.less';
 
-const propTypes = {
-  data: PropTypes.shape({
-    menu: PropTypes.arrayOf(PropTypes.object).isRequired,
-    brand: PropTypes.shape({
-      path: PropTypes.string.isRequired,
-      icon: PropTypes.string.isRequired,
-      alt: PropTypes.string.isRequired,
-      width: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
-        .isRequired,
-    }).isRequired,
-    navbar_right: PropTypes.shape({
-      bug_report_url: PropTypes.string,
-      version_string: PropTypes.string,
-      version_sha: PropTypes.string,
-      documentation_url: PropTypes.string,
-      languages: PropTypes.object,
-      show_language_picker: PropTypes.bool.isRequired,
-      user_is_anonymous: PropTypes.bool.isRequired,
-      user_info_url: PropTypes.string.isRequired,
-      user_login_url: PropTypes.string.isRequired,
-      user_logout_url: PropTypes.string.isRequired,
-      locale: PropTypes.string.isRequired,
-    }).isRequired,
-  }).isRequired,
-};
+export interface BrandProps {
+  path: string;
+  icon: string;
+  alt: string;
+  width: string | number;
+}
+export interface NavBarProps {
+  bug_report_url?: string;
+  version_string?: string;
+  version_sha?: string;
+  documentation_url?: string;
+  languages: object;
+  show_language_picker: boolean;
+  user_is_anonymous: boolean;
+  user_info_url: string;
+  user_login_url: string;
+  user_logout_url: string;
+  locale: string;
+}
+export interface MenuProps {
+  data: {
+    menu: MenuObjectProps[];
+    brand: BrandProps;
+    navbar_right: NavBarProps;
+  };
+}
 
 const StyledHeader = styled.header`
   .navbar-brand {
@@ -63,7 +63,7 @@ const StyledHeader = styled.header`
 
 export default function Menu({
   data: { menu, brand, navbar_right: navbarRight },
-}) {
+}: MenuProps) {
   return (
     <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
@@ -127,5 +127,3 @@ export default function Menu({
     </StyledHeader>
   );
 }
-
-Menu.propTypes = propTypes;
