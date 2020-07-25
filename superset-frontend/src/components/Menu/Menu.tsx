@@ -59,6 +59,28 @@ const StyledHeader = styled.header`
     flex-direction: column;
     justify-content: center;
   }
+
+  .navbar-nav > li > a {
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: ${({ theme }) => theme.colors.primary.base};
+      opacity: 0;
+      transition: opacity ${({ theme }) => theme.transitionTiming * 2}s;
+    }
+
+    &:hover {
+      border-bottom: none;
+
+      &:after {
+        opacity: 1;
+      }
+    }
+  }
 `;
 
 export default function Menu({

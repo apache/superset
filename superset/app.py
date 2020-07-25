@@ -24,7 +24,6 @@ from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
-from flask_wtf import CSRFProtect
 
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
@@ -33,6 +32,7 @@ from superset.extensions import (
     appbuilder,
     cache_manager,
     celery_app,
+    csrf,
     db,
     feature_flag_manager,
     jinja_context_manager,
@@ -614,7 +614,7 @@ class SupersetAppInitializer:
 
     def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:
-            csrf = CSRFProtect(self.flask_app)
+            csrf.init_app(self.flask_app)
             csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)

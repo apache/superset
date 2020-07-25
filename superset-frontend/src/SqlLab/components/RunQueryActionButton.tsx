@@ -32,6 +32,9 @@ interface Props {
   stopQuery: () => void;
   sql: string;
 }
+const commonBtnStyle = {
+  width: '80px',
+};
 
 const RunQueryActionButton = ({
   allowAsync = false,
@@ -51,6 +54,7 @@ const RunQueryActionButton = ({
     bsSize: 'small',
     bsStyle: btnStyle,
     disabled: !dbId,
+    style: commonBtnStyle,
   };
 
   if (shouldShowStopBtn) {

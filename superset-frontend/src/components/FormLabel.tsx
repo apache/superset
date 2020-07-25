@@ -16,30 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
+// import styled from '@superset-ui/style';
+import React, { ReactNode } from 'react';
+import { ControlLabel } from 'react-bootstrap';
 
-import FormLabel from 'src/components/FormLabel';
-import FilterBadgeIcon from 'src/components/FilterBadgeIcon';
-
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  colorCode: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
+export type FormLabelProps = {
+  children: ReactNode;
+  htmlFor?: string;
+  required?: boolean;
 };
 
-export default function FilterFieldItem({ label, colorCode, isSelected }) {
+export default function FormLabel({
+  children,
+  htmlFor,
+  required = false,
+}: FormLabelProps) {
   return (
-    <a
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FilterBadgeIcon colorCode={colorCode} />
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </a>
+    <>
+      <ControlLabel htmlFor={htmlFor}>
+        {children}
+        {required && (
+          <span className="text-danger m-l-4">
+            <strong>*</strong>
+          </span>
+        )}
+      </ControlLabel>
+    </>
   );
 }
-
-FilterFieldItem.propTypes = propTypes;

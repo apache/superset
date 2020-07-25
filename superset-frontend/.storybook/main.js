@@ -16,30 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
+const path = require('path');
 
-import FormLabel from 'src/components/FormLabel';
-import FilterBadgeIcon from 'src/components/FilterBadgeIcon';
+// Suerset's webpack.config.js
+const customConfig = require('../webpack.config.js');
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  colorCode: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
+module.exports = {
+  stories: ['../src/components/**/*.stories.jsx'],
+  addons: [
+    '@storybook/addon-actions',
+    '@storybook/addon-links',
+    '@storybook/preset-typescript',
+    'storybook-addon-jsx',
+    '@storybook/addon-knobs/register',
+  ],
+  webpackFinal: config => ({
+    ...config,
+    module: {
+      ...config.module,
+      rules: customConfig.module.rules,
+    },
+    plugins: [...config.plugins, ...customConfig.plugins],
+  }),
 };
-
-export default function FilterFieldItem({ label, colorCode, isSelected }) {
-  return (
-    <a
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FilterBadgeIcon colorCode={colorCode} />
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </a>
-  );
-}
-
-FilterFieldItem.propTypes = propTypes;

@@ -21,7 +21,8 @@ import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
-import CopyToClipboard from './../../components/CopyToClipboard';
+import FormLabel from 'src/components/FormLabel';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getExploreLongUrl } from '../exploreUtils';
 
 const propTypes = {
@@ -97,9 +98,7 @@ export default class EmbedCodeButton extends React.Component {
             <div className="col-md-6 col-sm-12">
               <div className="form-group">
                 <small>
-                  <label className="control-label" htmlFor="embed-height">
-                    {t('Height')}
-                  </label>
+                  <FormLabel htmlFor="embed-height">{t('Height')}</FormLabel>
                 </small>
                 <input
                   className="form-control input-sm"
@@ -113,9 +112,7 @@ export default class EmbedCodeButton extends React.Component {
             <div className="col-md-6 col-sm-12">
               <div className="form-group">
                 <small>
-                  <label className="control-label" htmlFor="embed-width">
-                    {t('Width')}
-                  </label>
+                  <FormLabel htmlFor="embed-width">{t('Width')}</FormLabel>
                 </small>
                 <input
                   className="form-control input-sm"
