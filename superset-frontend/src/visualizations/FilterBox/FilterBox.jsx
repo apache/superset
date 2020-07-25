@@ -25,6 +25,8 @@ import { Button } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
+import FormLabel from 'src/components/FormLabel';
+
 import DateFilterControl from '../../explore/components/controls/DateFilterControl';
 import ControlRow from '../../explore/components/ControlRow';
 import Control from '../../explore/components/Control';
@@ -398,7 +400,7 @@ class FilterBox extends React.Component {
         <div key={key} className="m-b-5 filter-container">
           {this.renderFilterBadge(chartId, key, label)}
           <div>
-            <label htmlFor={`LABEL-${key}`}>{label}</label>
+            <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
             {this.renderSelect(filterConfig)}
           </div>
         </div>

@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { isEmpty } from 'lodash';
+import FormLabel from 'src/components/FormLabel';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
@@ -41,7 +42,7 @@ export default function FilterIndicatorTooltip({
   return (
     <div className="tooltip-item">
       <div className="filter-content">
-        <label htmlFor={`filter-tooltip-${label}`}>{label}:</label>
+        <FormLabel htmlFor={`filter-tooltip-${label}`}>{label}:</FormLabel>
         <span> {displayValue}</span>
       </div>
 

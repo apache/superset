@@ -645,7 +645,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
           responses:
             200:
               description: Chart thumbnail image
-              /content:
+              content:
                image/*:
                  schema:
                    type: string

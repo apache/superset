@@ -17,29 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
+import { addDecorator } from '@storybook/react';
+import { jsxDecorator } from 'storybook-addon-jsx';
 
-import FormLabel from 'src/components/FormLabel';
-import FilterBadgeIcon from 'src/components/FilterBadgeIcon';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  colorCode: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
-};
+import '../src/theme.ts';
 
-export default function FilterFieldItem({ label, colorCode, isSelected }) {
-  return (
-    <a
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FilterBadgeIcon colorCode={colorCode} />
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </a>
-  );
-}
+const themeDecorator = storyFn => (
+  <ThemeProvider theme={supersetTheme}>{storyFn()}</ThemeProvider>
+);
 
-FilterFieldItem.propTypes = propTypes;
+addDecorator(jsxDecorator);
+addDecorator(themeDecorator);
