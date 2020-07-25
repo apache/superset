@@ -163,7 +163,6 @@ export class ExploreChartHeader extends React.PureComponent {
             endTime={chartUpdateEndTime}
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
-            style={{ fontSize: '10px', marginRight: '5px' }}
           />
           <ExploreActionButtons
             actions={this.props.actions}

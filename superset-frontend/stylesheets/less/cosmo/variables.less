@@ -28,7 +28,7 @@
 @gray-darker: lighten(@gray-base, 13.5%);
 @gray-dark: lighten(@gray-base, 20%);
 @bs-gray: lighten(@gray-base, 33.5%);
-@bs-gray-light: lighten(@gray-base, 70%);
+@bs-gray-light: lighten(@gray-base, 60%);
 @gray-lighter: lighten(@gray-base, 95%);
 
 @brand-primary: @primary-color; // superset-var
@@ -568,7 +568,7 @@
 // ** Info label background color
 @label-info-bg: @brand-info;
 // ** Warning label background color
-@label-warning-bg: @brand-warning;
+@label-warning-bg: darken(@brand-warning, 6%);
 // ** Danger label background color
 @label-danger-bg: @brand-danger;
 
