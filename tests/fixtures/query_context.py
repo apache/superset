@@ -19,7 +19,7 @@ from typing import Any, Dict, List
 
 QUERY_OBJECTS = {
     "birth_names": {
-        "extras": {"where": "", "time_range_endpoints": ["INCLUSIVE", "EXCLUSIVE"],},
+        "extras": {"where": "", "time_range_endpoints": ["inclusive", "exclusive"]},
         "granularity": "ds",
         "groupby": ["name"],
         "is_timeseries": False,
