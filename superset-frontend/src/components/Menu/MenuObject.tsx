@@ -19,12 +19,13 @@
 import React from 'react';
 import { NavItem, NavDropdown, MenuItem } from 'react-bootstrap';
 
-export interface MenuObjectChildProps {
+interface MenuObjectChildProps {
   label: string;
   icon: string;
   index: number;
   url?: string;
 }
+
 export interface MenuObjectProps {
   label?: string;
   icon?: string;
@@ -61,7 +62,7 @@ export default function MenuObject({
       title={navTitle}
     >
       {childs?.map((child: MenuObjectChildProps | string, index1: number) =>
-        (child as string) === '-' ? (
+        typeof child === 'string' && child === '-' ? (
           <MenuItem key={`$${index1}`} divider />
         ) : (
           <MenuItem
