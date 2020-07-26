@@ -151,7 +151,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
 
     # default matching patterns for identifying column types
-    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern, ...]] = {
+    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern[Any], ...]] = {
         utils.DbColumnType.NUMERIC: (
             re.compile(r".*DOUBLE.*", re.IGNORECASE),
             re.compile(r".*FLOAT.*", re.IGNORECASE),
@@ -268,7 +268,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_time_grain_expressions(cls) -> Dict[Optional[str], str]:
         """
         Return a dict of all supported time grains including any potential added grains
-        but excluding any potentially blacklisted grains in the config file.
+        but excluding any potentially disabled grains in the config file.
 
         :return: All time grain expressions supported by the engine
         """
@@ -276,8 +276,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         time_grain_expressions = cls._time_grain_expressions.copy()
         grain_addon_expressions = config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        blacklist: List[str] = config["TIME_GRAIN_BLACKLIST"]
-        for key in blacklist:
+        denylist: List[str] = config["TIME_GRAIN_DENYLIST"]
+        for key in denylist:
             time_grain_expressions.pop(key)
         return time_grain_expressions
 
@@ -296,7 +296,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return select_exprs
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
         """
 
         :param cursor: Cursor instance
@@ -311,8 +311,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def expand_data(
-        cls, columns: List[dict], data: List[dict]
-    ) -> Tuple[List[dict], List[dict], List[dict]]:
+        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
+    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
         Some engines support expanding nested fields. See implementation in Presto
         spec for details.
@@ -332,7 +332,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         set to is_dttm=True. Note that this only gets called when new
         columns are detected/created"""
         # TODO: Fix circular import caused by importing TableColumn
-        pass
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -401,9 +400,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 .limit(limit)
             )
             return database.compile_sqla_query(qry)
-        elif LimitMethod.FORCE_LIMIT:
+
+        if LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.set_or_update_query_limit(limit)
+
         return sql
 
     @classmethod
@@ -428,6 +429,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.set_or_update_query_limit(limit)
+
+    @staticmethod
+    def excel_to_df(**kwargs: Any) -> pd.DataFrame:
+        """ Read excel into Pandas DataFrame
+           :param kwargs: params to be passed to DataFrame.read_excel
+           :return: Pandas DataFrame containing data from excel
+        """
+        kwargs["encoding"] = "utf-8"
+        kwargs["iterator"] = True
+        chunks = pd.io.excel.read_excel(
+            io=kwargs["filepath_or_buffer"], sheet_name=kwargs["sheet_name"]
+        )
+        df = pd.concat(chunk for chunk in chunks.values())
+        return df
 
     @staticmethod
     def csv_to_df(**kwargs: Any) -> pd.DataFrame:
@@ -465,7 +480,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Create table from contents of a csv. Note: this method does not create
         metadata for the table.
         """
-        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs,)
+        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs)
         engine = cls.get_engine(database)
         if table.schema:
             # only add schema when it is preset and non empty
@@ -484,6 +499,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: The SQL expression
         """
         return None
+
+    @classmethod
+    def create_table_from_excel(  # pylint: disable=too-many-arguments
+        cls,
+        filename: str,
+        table: Table,
+        database: "Database",
+        excel_to_df_kwargs: Dict[str, Any],
+        df_to_sql_kwargs: Dict[str, Any],
+    ) -> None:
+        """
+        Create table from contents of a excel. Note: this method does not create
+        metadata for the table.
+        """
+        df = cls.excel_to_df(filepath_or_buffer=filename, **excel_to_df_kwargs,)
+        engine = cls.get_engine(database)
+        if table.schema:
+            # only add schema when it is preset and non empty
+            df_to_sql_kwargs["schema"] = table.schema
+        if engine.dialect.supports_multivalues_insert:
+            df_to_sql_kwargs["method"] = "multi"
+        cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)
 
     @classmethod
     def get_all_datasource_names(
@@ -529,7 +566,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         for handling the cursor and updating progress information in the
         query object"""
         # TODO: Fix circular import error caused by importing sql_lab.Query
-        pass
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
@@ -573,14 +609,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Some database drivers like presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
-        pass
 
     @classmethod
     def patch(cls) -> None:
         """
         TODO: Improve docstring and refactor implementation in Hive
         """
-        pass
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> List[str]:
@@ -645,7 +679,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str],
         database: "Database",
         query: Select,
-        columns: Optional[List] = None,
+        columns: Optional[List[Dict[str, str]]] = None,
     ) -> Optional[Select]:
         """
         Add a where clause to a query to reference only the most recent partition
@@ -925,7 +959,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return []
 
     @staticmethod
-    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple]:
+    def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple[Any, ...]]:
         """
         Convert pyodbc.Row objects from `fetch_data` to tuples.
 

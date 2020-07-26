@@ -21,37 +21,48 @@ import logging
 import textwrap
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, cast, Type
+from typing import Any, Callable, cast, Optional, Type
 
 from flask import current_app, g, request
+from sqlalchemy.exc import SQLAlchemyError
+
+from superset.stats_logger import BaseStatsLogger
 
 
 class AbstractEventLogger(ABC):
     @abstractmethod
-    def log(self, user_id, action, *args, **kwargs):
+    def log(
+        self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
+    ) -> None:
         pass
 
-    def log_this(self, f):
+    def log_this(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        from superset.views.core import get_form_data
+
         @functools.wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
-            form_data = request.form.to_dict() or {}
+            payload = request.form.to_dict() or {}
 
             # request parameters can overwrite post body
             request_params = request.args.to_dict()
-            form_data.update(request_params)
-            form_data.update(kwargs)
+            payload.update(request_params)
+            payload.update(kwargs)
 
-            slice_id = form_data.get("slice_id")
-            dashboard_id = form_data.get("dashboard_id")
+            dashboard_id = payload.get("dashboard_id")
+
+            if "form_data" in payload:
+                form_data, _ = get_form_data()
+                payload["form_data"] = form_data
+                slice_id = form_data.get("slice_id")
+            else:
+                slice_id = payload.get("slice_id")
 
             try:
-                slice_id = int(
-                    slice_id or json.loads(form_data.get("form_data")).get("slice_id")
-                )
-            except (ValueError, TypeError):
+                slice_id = int(slice_id)  # type: ignore
+            except (TypeError, ValueError):
                 slice_id = 0
 
             self.stats_logger.incr(f.__name__)
@@ -61,10 +72,10 @@ class AbstractEventLogger(ABC):
 
             # bulk insert
             try:
-                explode_by = form_data.get("explode")
-                records = json.loads(form_data.get(explode_by))
+                explode_by = payload.get("explode")
+                records = json.loads(payload.get(explode_by))  # type: ignore
             except Exception:  # pylint: disable=broad-except
-                records = [form_data]
+                records = [payload]
 
             referrer = request.referrer[:1000] if request.referrer else None
 
@@ -82,11 +93,11 @@ class AbstractEventLogger(ABC):
         return wrapper
 
     @property
-    def stats_logger(self):
+    def stats_logger(self) -> BaseStatsLogger:
         return current_app.config["STATS_LOGGER"]
 
 
-def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
+def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
     """
     This function implements the deprecation of assignment
     of class objects to EVENT_LOGGER configuration, and validates
@@ -115,7 +126,7 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
             )
         )
 
-        event_logger_type = cast(Type, cfg_value)
+        event_logger_type = cast(Type[Any], cfg_value)
         result = event_logger_type()
 
     # Verify that we have a valid logger impl
@@ -125,12 +136,14 @@ def get_event_logger_from_cfg_value(cfg_value: object) -> AbstractEventLogger:
             "of superset.utils.log.AbstractEventLogger."
         )
 
-    logging.info(f"Configured event logger of type {type(result)}")
+    logging.info("Configured event logger of type %s", type(result))
     return cast(AbstractEventLogger, result)
 
 
 class DBEventLogger(AbstractEventLogger):
-    def log(self, user_id, action, *args, **kwargs):  # pylint: disable=too-many-locals
+    def log(  # pylint: disable=too-many-locals
+        self, user_id: Optional[int], action: str, *args: Any, **kwargs: Any
+    ) -> None:
         from superset.models.core import Log
 
         records = kwargs.get("records", list())
@@ -141,6 +154,7 @@ class DBEventLogger(AbstractEventLogger):
 
         logs = list()
         for record in records:
+            json_string: Optional[str]
             try:
                 json_string = json.dumps(record)
             except Exception:  # pylint: disable=broad-except
@@ -156,6 +170,10 @@ class DBEventLogger(AbstractEventLogger):
             )
             logs.append(log)
 
-        sesh = current_app.appbuilder.get_session
-        sesh.bulk_save_objects(logs)
-        sesh.commit()
+        try:
+            sesh = current_app.appbuilder.get_session
+            sesh.bulk_save_objects(logs)
+            sesh.commit()
+        except SQLAlchemyError as ex:
+            logging.error("DBEventLogger failed to log event(s)")
+            logging.exception(ex)

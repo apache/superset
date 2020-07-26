@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 
 from flask_babel import gettext as _
 
-from superset.errors import SupersetError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 
 class SupersetException(Exception):
@@ -32,12 +32,24 @@ class SupersetException(Exception):
         super().__init__(self.message)
 
     @property
-    def exception(self):
+    def exception(self) -> Optional[Exception]:
         return self._exception
 
 
 class SupersetTimeoutException(SupersetException):
-    pass
+    status = 408
+
+    def __init__(
+        self,
+        error_type: SupersetErrorType,
+        message: str,
+        level: ErrorLevel,
+        extra: Optional[Dict[str, Any]],
+    ) -> None:
+        super(SupersetTimeoutException, self).__init__(message)
+        self.error = SupersetError(
+            error_type=error_type, message=message, level=level, extra=extra
+        )
 
 
 class SupersetSecurityException(SupersetException):
@@ -81,3 +93,7 @@ class DatabaseNotFound(SupersetException):
 
 class QueryObjectValidationError(SupersetException):
     status = 400
+
+
+class DashboardImportException(SupersetException):
+    pass

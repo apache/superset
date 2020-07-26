@@ -18,13 +18,14 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
+import rison from 'rison';
 // @ts-ignore
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import ListView from 'src/components/ListView/ListView';
+import SubMenu from 'src/components/Menu/SubMenu';
+import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import ExpandableList from 'src/components/ExpandableList';
 import {
   FetchDataConfig,
@@ -32,6 +33,7 @@ import {
   Filters,
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Icon from 'src/components/Icon';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
@@ -43,24 +45,24 @@ interface Props {
 }
 
 interface State {
-  dashboards: any[];
+  bulkSelectEnabled: boolean;
   dashboardCount: number;
-  loading: boolean;
+  dashboards: any[];
+  dashboardToEdit: Dashboard | null;
   filterOperators: FilterOperatorMap;
   filters: Filters;
-  owners: Array<{ text: string; value: number }>;
-  permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
-  dashboardToEdit: Dashboard | null;
+  loading: boolean;
+  permissions: string[];
 }
 
 interface Dashboard {
-  id: number;
-  changed_by: string;
   changed_by_name: string;
   changed_by_url: string;
-  changed_on: string;
+  changed_on_delta_humanized: string;
+  changed_by: string;
   dashboard_title: string;
+  id: number;
   published: boolean;
   url: string;
 }
@@ -71,50 +73,38 @@ class DashboardList extends React.PureComponent<Props, State> {
   };
 
   state: State = {
+    bulkSelectEnabled: false,
     dashboardCount: 0,
     dashboards: [],
+    dashboardToEdit: null,
     filterOperators: {},
     filters: [],
     lastFetchDataConfig: null,
-    loading: false,
-    owners: [],
+    loading: true,
     permissions: [],
-    dashboardToEdit: null,
   };
 
   componentDidMount() {
-    Promise.all([
-      SupersetClient.get({
-        endpoint: `/api/v1/dashboard/_info`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dashboard/related/owners`,
-      }),
-    ]).then(
-      ([{ json: infoJson = {} }, { json: ownersJson = {} }]) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/_info`,
+    }).then(
+      ({ json: infoJson = {} }) => {
         this.setState(
           {
             filterOperators: infoJson.filters,
-            owners: ownersJson.result,
             permissions: infoJson.permissions,
           },
           this.updateFilters,
         );
       },
-      ([e1, e2]) => {
+      e => {
         this.props.addDangerToast(
           t(
             'An error occurred while fetching Dashboards: %s, %s',
-            e1.statusText,
-            e1.statusText,
+            e.statusText,
           ),
         );
-        if (e1) {
-          console.error(e1);
-        }
-        if (e2) {
-          console.error(e2);
-        }
+        console.error(e);
       },
     );
   }
@@ -131,11 +121,11 @@ class DashboardList extends React.PureComponent<Props, State> {
     return this.hasPerm('can_mulexport');
   }
 
-  get isNewUIEnabled() {
-    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_NEW_UI);
+  get isSIP34FilterUIEnabled() {
+    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
   }
 
-  initialSort = [{ id: 'changed_on', desc: true }];
+  initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   columns = [
     {
@@ -146,7 +136,6 @@ class DashboardList extends React.PureComponent<Props, State> {
       }: any) => <a href={url}>{dashboardTitle}</a>,
       Header: t('Title'),
       accessor: 'dashboard_title',
-      sortable: true,
     },
     {
       Cell: ({
@@ -164,6 +153,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       ),
       Header: t('Owners'),
       accessor: 'owners',
+      disableSortBy: true,
     },
     {
       Cell: ({
@@ -174,9 +164,8 @@ class DashboardList extends React.PureComponent<Props, State> {
           },
         },
       }: any) => <a href={changedByUrl}>{changedByName}</a>,
-      Header: t('Creator'),
-      accessor: 'changed_by_fk',
-      sortable: true,
+      Header: t('Modified By'),
+      accessor: 'changed_by.first_name',
     },
     {
       Cell: ({
@@ -185,29 +174,28 @@ class DashboardList extends React.PureComponent<Props, State> {
         },
       }: any) => (
         <span className="no-wrap">
-          {published ? <i className="fa fa-check" /> : ''}
+          {published ? <Icon name="check" /> : ''}
         </span>
       ),
       Header: t('Published'),
       accessor: 'published',
-      sortable: true,
     },
     {
       Cell: ({
         row: {
-          original: { changed_on: changedOn },
+          original: { changed_on_delta_humanized: changedOn },
         },
-      }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
+      }: any) => <span className="no-wrap">{changedOn}</span>,
       Header: t('Modified'),
-      accessor: 'changed_on',
-      sortable: true,
+      accessor: 'changed_on_delta_humanized',
     },
     {
       accessor: 'slug',
       hidden: true,
+      disableSortBy: true,
     },
     {
-      Cell: ({ row: { state, original } }: any) => {
+      Cell: ({ row: { original } }: any) => {
         const handleDelete = () => this.handleDashboardDelete(original);
         const handleEdit = () => this.openDashboardEditModal(original);
         const handleExport = () => this.handleBulkDashboardExport([original]);
@@ -215,9 +203,7 @@ class DashboardList extends React.PureComponent<Props, State> {
           return null;
         }
         return (
-          <span
-            className={`actions ${state && state.hover ? '' : 'invisible'}`}
-          >
+          <span className="actions">
             {this.canDelete && (
               <ConfirmStatusChange
                 title={t('Please Confirm')}
@@ -236,7 +222,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                     className="action-button"
                     onClick={confirmDelete}
                   >
-                    <i className="fa fa-trash" />
+                    <Icon name="trash" />
                   </span>
                 )}
               </ConfirmStatusChange>
@@ -248,7 +234,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                 className="action-button"
                 onClick={handleExport}
               >
-                <i className="fa fa-database" />
+                <Icon name="share" />
               </span>
             )}
             {this.canEdit && (
@@ -258,7 +244,7 @@ class DashboardList extends React.PureComponent<Props, State> {
                 className="action-button"
                 onClick={handleEdit}
               >
-                <i className="fa fa-pencil" />
+                <Icon name="pencil" />
               </span>
             )}
           </span>
@@ -266,8 +252,13 @@ class DashboardList extends React.PureComponent<Props, State> {
       },
       Header: t('Actions'),
       id: 'actions',
+      disableSortBy: true,
     },
   ];
+
+  toggleBulkSelect = () => {
+    this.setState({ bulkSelectEnabled: !this.state.bulkSelectEnabled });
+  };
 
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
@@ -330,9 +321,9 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   handleBulkDashboardDelete = (dashboards: Dashboard[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/dashboard/?q=!(${dashboards
-        .map(({ id }) => id)
-        .join(',')})`,
+      endpoint: `/api/v1/dashboard/?q=${rison.encode(
+        dashboards.map(({ id }) => id),
+      )}`,
     }).then(
       ({ json = {} }) => {
         const { lastFetchDataConfig } = this.state;
@@ -355,9 +346,9 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   handleBulkDashboardExport = (dashboards: Dashboard[]) => {
     return window.location.assign(
-      `/api/v1/dashboard/export/?q=!(${dashboards
-        .map(({ id }) => id)
-        .join(',')})`,
+      `/api/v1/dashboard/export/?q=${rison.encode(
+        dashboards.map(({ id }) => id),
+      )}`,
     );
   };
 
@@ -378,7 +369,7 @@ class DashboardList extends React.PureComponent<Props, State> {
       value,
     }));
 
-    const queryParams = JSON.stringify({
+    const queryParams = rison.encode({
       order_column: sortBy[0].id,
       order_direction: sortBy[0].desc ? 'desc' : 'asc',
       page: pageIndex,
@@ -402,10 +393,45 @@ class DashboardList extends React.PureComponent<Props, State> {
       });
   };
 
-  updateFilters = () => {
-    const { filterOperators, owners } = this.state;
+  fetchOwners = async (
+    filterValue = '',
+    pageIndex?: number,
+    pageSize?: number,
+  ) => {
+    const resource = '/api/v1/dashboard/related/owners';
 
-    if (this.isNewUIEnabled) {
+    try {
+      const queryParams = rison.encode({
+        ...(pageIndex ? { page: pageIndex } : {}),
+        ...(pageSize ? { page_ize: pageSize } : {}),
+        ...(filterValue ? { filter: filterValue } : {}),
+      });
+      const { json = {} } = await SupersetClient.get({
+        endpoint: `${resource}?q=${queryParams}`,
+      });
+
+      return json?.result?.map(
+        ({ text: label, value }: { text: string; value: any }) => ({
+          label,
+          value,
+        }),
+      );
+    } catch (e) {
+      console.error(e);
+      this.props.addDangerToast(
+        t(
+          'An error occurred while fetching chart owner values: %s',
+          e.statusText,
+        ),
+      );
+    }
+    return [];
+  };
+
+  updateFilters = async () => {
+    const { filterOperators } = this.state;
+
+    if (this.isSIP34FilterUIEnabled) {
       return this.setState({
         filters: [
           {
@@ -414,7 +440,8 @@ class DashboardList extends React.PureComponent<Props, State> {
             input: 'select',
             operator: 'rel_m_m',
             unfilteredLabel: 'All',
-            selects: owners.map(({ text: label, value }) => ({ label, value })),
+            fetchSelects: this.fetchOwners,
+            paginate: true,
           },
           {
             Header: 'Published',
@@ -445,6 +472,8 @@ class DashboardList extends React.PureComponent<Props, State> {
       operator: string;
     }) => ({ label, value: operator });
 
+    const owners = await this.fetchOwners();
+
     return this.setState({
       filters: [
         {
@@ -462,7 +491,7 @@ class DashboardList extends React.PureComponent<Props, State> {
           id: 'owners',
           input: 'select',
           operators: filterOperators.owners.map(convertFilter),
-          selects: owners.map(({ text: label, value }) => ({ label, value })),
+          selects: owners,
         },
         {
           Header: 'Published',
@@ -476,78 +505,81 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   render() {
     const {
-      dashboards,
+      bulkSelectEnabled,
       dashboardCount,
-      loading,
-      filters,
+      dashboards,
       dashboardToEdit,
+      filters,
+      loading,
     } = this.state;
     return (
-      <div className="container welcome">
-        <Panel>
-          <Panel.Body>
-            <ConfirmStatusChange
-              title={t('Please confirm')}
-              description={t(
-                'Are you sure you want to delete the selected dashboards?',
-              )}
-              onConfirm={this.handleBulkDashboardDelete}
-            >
-              {confirmDelete => {
-                const bulkActions = [];
-                if (this.canDelete) {
-                  bulkActions.push({
-                    key: 'delete',
-                    name: (
-                      <>
-                        <i className="fa fa-trash" /> Delete
-                      </>
-                    ),
-                    onSelect: confirmDelete,
-                  });
+      <>
+        <SubMenu
+          name={t('Dashboards')}
+          secondaryButton={
+            this.canDelete || this.canExport
+              ? {
+                  name: t('Bulk Select'),
+                  onClick: this.toggleBulkSelect,
                 }
-                if (this.canExport) {
-                  bulkActions.push({
-                    key: 'export',
-                    name: (
-                      <>
-                        <i className="fa fa-database" /> Export
-                      </>
-                    ),
-                    onSelect: this.handleBulkDashboardExport,
-                  });
-                }
-                return (
-                  <>
-                    {dashboardToEdit && (
-                      <PropertiesModal
-                        show
-                        dashboardId={dashboardToEdit.id}
-                        onHide={() => this.setState({ dashboardToEdit: null })}
-                        onDashboardSave={this.handleDashboardEdit}
-                      />
-                    )}
-                    <ListView
-                      className="dashboard-list-view"
-                      title={'Dashboards'}
-                      columns={this.columns}
-                      data={dashboards}
-                      count={dashboardCount}
-                      pageSize={PAGE_SIZE}
-                      fetchData={this.fetchData}
-                      loading={loading}
-                      initialSort={this.initialSort}
-                      filters={filters}
-                      bulkActions={bulkActions}
-                      useNewUIFilters={this.isNewUIEnabled}
-                    />
-                  </>
-                );
-              }}
-            </ConfirmStatusChange>
-          </Panel.Body>
-        </Panel>
-      </div>
+              : undefined
+          }
+        />
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={t(
+            'Are you sure you want to delete the selected dashboards?',
+          )}
+          onConfirm={this.handleBulkDashboardDelete}
+        >
+          {confirmDelete => {
+            const bulkActions: ListViewProps['bulkActions'] = [];
+            if (this.canDelete) {
+              bulkActions.push({
+                key: 'delete',
+                name: t('Delete'),
+                type: 'danger',
+                onSelect: confirmDelete,
+              });
+            }
+            if (this.canExport) {
+              bulkActions.push({
+                key: 'export',
+                name: t('Export'),
+                type: 'primary',
+                onSelect: this.handleBulkDashboardExport,
+              });
+            }
+            return (
+              <>
+                {dashboardToEdit && (
+                  <PropertiesModal
+                    show
+                    dashboardId={dashboardToEdit.id}
+                    onHide={() => this.setState({ dashboardToEdit: null })}
+                    onDashboardSave={this.handleDashboardEdit}
+                  />
+                )}
+                <ListView
+                  className="dashboard-list-view"
+                  columns={this.columns}
+                  data={dashboards}
+                  count={dashboardCount}
+                  pageSize={PAGE_SIZE}
+                  fetchData={this.fetchData}
+                  loading={loading}
+                  initialSort={this.initialSort}
+                  filters={filters}
+                  bulkActions={bulkActions}
+                  bulkSelectEnabled={bulkSelectEnabled}
+                  disableBulkSelect={this.toggleBulkSelect}
+                  isSIP34FilterUIEnabled={this.isSIP34FilterUIEnabled}
+                />
+              </>
+            );
+          }}
+        </ConfirmStatusChange>
+      </>
     );
   }
 }

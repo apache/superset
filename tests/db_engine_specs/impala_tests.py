@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.db_engine_specs.impala import ImpalaEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class ImpalaTestCase(DbEngineSpecTestCase):
+class TestImpalaDbEngineSpec(TestDbEngineSpec):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 

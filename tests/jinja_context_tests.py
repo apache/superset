@@ -22,14 +22,14 @@ from superset.jinja_context import ExtraCache, filter_values
 from tests.base_tests import SupersetTestCase
 
 
-class Jinja2ContextTests(SupersetTestCase):
+class TestJinja2Context(SupersetTestCase):
     def test_filter_values_default(self) -> None:
         with app.test_request_context():
-            self.assertEquals(filter_values("name", "foo"), ["foo"])
+            self.assertEqual(filter_values("name", "foo"), ["foo"])
 
     def test_filter_values_no_default(self) -> None:
         with app.test_request_context():
-            self.assertEquals(filter_values("name"), [])
+            self.assertEqual(filter_values("name"), [])
 
     def test_filter_values_adhoc_filters(self) -> None:
         with app.test_request_context(
@@ -49,7 +49,7 @@ class Jinja2ContextTests(SupersetTestCase):
                 )
             }
         ):
-            self.assertEquals(filter_values("name"), ["foo"])
+            self.assertEqual(filter_values("name"), ["foo"])
 
         with app.test_request_context(
             data={
@@ -68,7 +68,7 @@ class Jinja2ContextTests(SupersetTestCase):
                 )
             }
         ):
-            self.assertEquals(filter_values("name"), ["foo", "bar"])
+            self.assertEqual(filter_values("name"), ["foo", "bar"])
 
     def test_filter_values_extra_filters(self) -> None:
         with app.test_request_context(
@@ -78,22 +78,22 @@ class Jinja2ContextTests(SupersetTestCase):
                 )
             }
         ):
-            self.assertEquals(filter_values("name"), ["foo"])
+            self.assertEqual(filter_values("name"), ["foo"])
 
     def test_url_param_default(self) -> None:
         with app.test_request_context():
-            self.assertEquals(ExtraCache().url_param("foo", "bar"), "bar")
+            self.assertEqual(ExtraCache().url_param("foo", "bar"), "bar")
 
     def test_url_param_no_default(self) -> None:
         with app.test_request_context():
-            self.assertEquals(ExtraCache().url_param("foo"), None)
+            self.assertEqual(ExtraCache().url_param("foo"), None)
 
     def test_url_param_query(self) -> None:
         with app.test_request_context(query_string={"foo": "bar"}):
-            self.assertEquals(ExtraCache().url_param("foo"), "bar")
+            self.assertEqual(ExtraCache().url_param("foo"), "bar")
 
     def test_url_param_form_data(self) -> None:
         with app.test_request_context(
             query_string={"form_data": json.dumps({"url_params": {"foo": "bar"}})}
         ):
-            self.assertEquals(ExtraCache().url_param("foo"), "bar")
+            self.assertEqual(ExtraCache().url_param("foo"), "bar")

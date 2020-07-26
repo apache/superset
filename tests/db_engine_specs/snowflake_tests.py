@@ -18,10 +18,10 @@ import json
 
 from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.models.core import Database
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class SnowflakeTestCase(DbEngineSpecTestCase):
+class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 

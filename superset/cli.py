@@ -16,13 +16,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from subprocess import Popen
 from sys import stdout
-from typing import Type, Union
+from typing import Any, Dict, Type, Union
 
 import click
 import yaml
+from celery.utils.abstract import CallableTask
 from colorama import Fore, Style
 from flask import g
 from flask.cli import FlaskGroup, with_appcontext
@@ -33,6 +34,7 @@ from superset import app, appbuilder, security_manager
 from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
+from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
 
@@ -56,17 +58,17 @@ def normalize_token(token_name: str) -> str:
     context_settings={"token_normalize_func": normalize_token},
 )
 @with_appcontext
-def superset():
+def superset() -> None:
     """This is a management script for the Superset application."""
 
     @app.shell_context_processor
-    def make_shell_context():  # pylint: disable=unused-variable
+    def make_shell_context() -> Dict[str, Any]:  # pylint: disable=unused-variable
         return dict(app=app, db=db)
 
 
 @superset.command()
 @with_appcontext
-def init():
+def init() -> None:
     """Inits the Superset application"""
     appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
@@ -75,7 +77,7 @@ def init():
 @superset.command()
 @with_appcontext
 @click.option("--verbose", "-v", is_flag=True, help="Show extra information")
-def version(verbose):
+def version(verbose: bool) -> None:
     """Prints the current version number"""
     print(Fore.BLUE + "-=" * 15)
     print(
@@ -90,7 +92,9 @@ def version(verbose):
     print(Style.RESET_ALL)
 
 
-def load_examples_run(load_test_data, only_metadata=False, force=False):
+def load_examples_run(
+    load_test_data: bool, only_metadata: bool = False, force: bool = False
+) -> None:
     if only_metadata:
         print("Loading examples metadata")
     else:
@@ -160,7 +164,9 @@ def load_examples_run(load_test_data, only_metadata=False, force=False):
 @click.option(
     "--force", "-f", is_flag=True, help="Force load data even if table already exists"
 )
-def load_examples(load_test_data, only_metadata=False, force=False):
+def load_examples(
+    load_test_data: bool, only_metadata: bool = False, force: bool = False
+) -> None:
     """Loads a set of Slices and Dashboards and a supporting dataset """
     load_examples_run(load_test_data, only_metadata, force)
 
@@ -169,7 +175,7 @@ def load_examples(load_test_data, only_metadata=False, force=False):
 @superset.command()
 @click.option("--database_name", "-d", help="Database name to change")
 @click.option("--uri", "-u", help="Database URI to change")
-def set_database_uri(database_name, uri):
+def set_database_uri(database_name: str, uri: str) -> None:
     """Updates a database connection URI """
     utils.get_or_create_db(database_name, uri)
 
@@ -189,7 +195,7 @@ def set_database_uri(database_name, uri):
     default=False,
     help="Specify using 'merge' property during operation. " "Default value is False.",
 )
-def refresh_druid(datasource, merge):
+def refresh_druid(datasource: str, merge: bool) -> None:
     """Refresh druid datasources"""
     session = db.session()
     from superset.connectors.druid.models import DruidCluster
@@ -226,7 +232,7 @@ def refresh_druid(datasource, merge):
     default=None,
     help="Specify the user name to assign dashboards to",
 )
-def import_dashboards(path, recursive, username):
+def import_dashboards(path: str, recursive: bool, username: str) -> None:
     """Import dashboards from JSON"""
     from superset.utils import dashboard_import_export
 
@@ -258,7 +264,7 @@ def import_dashboards(path, recursive, username):
 @click.option(
     "--print_stdout", "-p", is_flag=True, default=False, help="Print JSON to stdout"
 )
-def export_dashboards(print_stdout, dashboard_file):
+def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
     """Export dashboards to JSON"""
     from superset.utils import dashboard_import_export
 
@@ -295,7 +301,7 @@ def export_dashboards(print_stdout, dashboard_file):
     default=False,
     help="recursively search the path for yaml files",
 )
-def import_datasources(path, sync, recursive):
+def import_datasources(path: str, sync: str, recursive: bool) -> None:
     """Import datasources from YAML"""
     from superset.utils import dict_import_export
 
@@ -345,8 +351,11 @@ def import_datasources(path, sync, recursive):
     help="Include fields containing defaults",
 )
 def export_datasources(
-    print_stdout, datasource_file, back_references, include_defaults
-):
+    print_stdout: bool,
+    datasource_file: str,
+    back_references: bool,
+    include_defaults: bool,
+) -> None:
     """Export datasources to YAML"""
     from superset.utils import dict_import_export
 
@@ -373,7 +382,7 @@ def export_datasources(
     default=False,
     help="Include parent back references",
 )
-def export_datasource_schema(back_references):
+def export_datasource_schema(back_references: bool) -> None:
     """Export datasource YAML schema to stdout"""
     from superset.utils import dict_import_export
 
@@ -383,7 +392,7 @@ def export_datasource_schema(back_references):
 
 @superset.command()
 @with_appcontext
-def update_datasources_cache():
+def update_datasources_cache() -> None:
     """Refresh sqllab datasources cache"""
     from superset.models.core import Database
 
@@ -406,7 +415,7 @@ def update_datasources_cache():
 @click.option(
     "--workers", "-w", type=int, help="Number of celery server workers to fire up"
 )
-def worker(workers):
+def worker(workers: int) -> None:
     """Starts a Superset worker for async SQL query execution."""
     logger.info(
         "The 'superset worker' command is deprecated. Please use the 'celery "
@@ -431,7 +440,7 @@ def worker(workers):
 @click.option(
     "-a", "--address", default="localhost", help="Address on which to run the service"
 )
-def flower(port, address):
+def flower(port: int, address: str) -> None:
     """Runs a Celery Flower web server
 
     Celery Flower is a UI to monitor the Celery operation on a given
@@ -487,7 +496,7 @@ def compute_thumbnails(
     charts_only: bool,
     force: bool,
     model_id: int,
-):
+) -> None:
     """Compute thumbnails"""
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -500,8 +509,8 @@ def compute_thumbnails(
         friendly_type: str,
         model_cls: Union[Type[Dashboard], Type[Slice]],
         model_id: int,
-        compute_func,
-    ):
+        compute_func: CallableTask,
+    ) -> None:
         query = db.session.query(model_cls)
         if model_id:
             query = query.filter(model_cls.id.in_(model_id))
@@ -516,7 +525,13 @@ def compute_thumbnails(
                 action = "Processing"
             msg = f'{action} {friendly_type} "{model}" ({i+1}/{count})'
             click.secho(msg, fg="green")
-            func(model.id, force=force)
+            if friendly_type == "chart":
+                url = get_url_path(
+                    "Superset.slice", slice_id=model.id, standalone="true"
+                )
+            else:
+                url = get_url_path("Superset.dashboard", dashboard_id_or_slug=model.id)
+            func(url, model.digest, force=force)
 
     if not charts_only:
         compute_generic_thumbnail(
@@ -528,7 +543,7 @@ def compute_thumbnails(
 
 @superset.command()
 @with_appcontext
-def load_test_users():
+def load_test_users() -> None:
     """
     Loads admin, alpha, and gamma user for testing purposes
 
@@ -538,7 +553,7 @@ def load_test_users():
     load_test_users_run()
 
 
-def load_test_users_run():
+def load_test_users_run() -> None:
     """
     Loads admin, alpha, and gamma user for testing purposes
 
@@ -583,7 +598,7 @@ def load_test_users_run():
 
 @superset.command()
 @with_appcontext
-def sync_tags():
+def sync_tags() -> None:
     """Rebuilds special tags (owner, type, favorited by)."""
     # pylint: disable=no-member
     metadata = Model.metadata
@@ -593,3 +608,17 @@ def sync_tags():
     add_types(db.engine, metadata)
     add_owners(db.engine, metadata)
     add_favorites(db.engine, metadata)
+
+
+@superset.command()
+@with_appcontext
+def alert() -> None:
+    """Run the alert scheduler loop"""
+    # this command is just for testing purposes
+    from superset.tasks.schedules import schedule_window
+    from superset.models.schedules import ScheduleType
+
+    click.secho("Processing one alert loop", fg="green")
+    schedule_window(
+        ScheduleType.alert, datetime.now() - timedelta(1000), datetime.now(), 6000
+    )

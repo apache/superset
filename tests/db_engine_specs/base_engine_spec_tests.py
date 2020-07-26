@@ -23,12 +23,12 @@ from superset.db_engine_specs import engines
 from superset.db_engine_specs.base import BaseEngineSpec, builtin_time_grains
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.utils.core import get_example_database
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 from ..fixtures.pyodbcRow import Row
 
 
-class DbEngineSpecsTests(DbEngineSpecTestCase):
+class TestDbEngineSpecs(TestDbEngineSpec):
     def test_extract_limit_from_query(self, engine_spec_class=BaseEngineSpec):
         q0 = "select * from table"
         q1 = "select * from mytable limit 10"
@@ -151,9 +151,9 @@ class DbEngineSpecsTests(DbEngineSpecTestCase):
             """SELECT 'LIMIT 777'""", """SELECT 'LIMIT 777'\nLIMIT 1000"""
         )
 
-    def test_time_grain_blacklist(self):
+    def test_time_grain_denylist(self):
         with app.app_context():
-            app.config["TIME_GRAIN_BLACKLIST"] = ["PT1M"]
+            app.config["TIME_GRAIN_DENYLIST"] = ["PT1M"]
             time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
             self.assertNotIn("PT1M", time_grain_functions)
 

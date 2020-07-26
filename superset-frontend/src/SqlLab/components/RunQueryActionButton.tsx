@@ -19,7 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 
-import Button from '../../components/Button';
+import Button, { ButtonProps } from '../../components/Button';
 
 const NO_OP = () => undefined;
 
@@ -32,6 +32,9 @@ interface Props {
   stopQuery: () => void;
   sql: string;
 }
+const commonBtnStyle = {
+  width: '80px',
+};
 
 const RunQueryActionButton = ({
   allowAsync = false,
@@ -40,17 +43,18 @@ const RunQueryActionButton = ({
   runQuery = NO_OP,
   selectedText,
   stopQuery = NO_OP,
-  sql,
+  sql = '',
 }: Props) => {
-  const runBtnText = selectedText ? t('Run Selected Query') : t('Run Query');
+  const runBtnText = selectedText ? t('Run Selected Query') : t('Run');
   const btnStyle = selectedText ? 'warning' : 'primary';
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
-  const commonBtnProps = {
+  const commonBtnProps: ButtonProps = {
     bsSize: 'small',
     bsStyle: btnStyle,
     disabled: !dbId,
+    style: commonBtnStyle,
   };
 
   if (shouldShowStopBtn) {
@@ -68,7 +72,7 @@ const RunQueryActionButton = ({
         tooltip={t('Run query asynchronously (Ctrl + ↵)')}
         disabled={!sql.trim()}
       >
-        <i className="fa fa-table" /> {runBtnText}
+        <i className="fa fa-bolt" /> {runBtnText}
       </Button>
     );
   }

@@ -144,7 +144,7 @@ export default class AdhocFilter {
 
   getDefaultLabel() {
     const label = this.translateToSql();
-    return label.length < 43 ? label : label.substring(0, 40) + '...';
+    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
   }
 
   translateToSql() {

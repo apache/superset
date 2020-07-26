@@ -16,11 +16,10 @@
 # under the License.
 import logging
 import time
-import urllib.parse
 from io import BytesIO
-from typing import Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
-from flask import current_app, request, Response, session, url_for
+from flask import current_app, request, Response, session
 from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -30,6 +29,9 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from werkzeug.http import parse_cookie
+
+from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.urls import headless_url
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,7 @@ SELENIUM_HEADSTART = 3
 WindowSize = Tuple[int, int]
 
 
-def get_auth_cookies(user: "User") -> List[Dict]:
+def get_auth_cookies(user: "User") -> List[Dict[Any, Any]]:
     # Login with the user specified to get the reports
     with current_app.test_request_context("/login"):
         login_user(user)
@@ -87,28 +89,19 @@ def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
     return driver
 
 
-def headless_url(path: str) -> str:
-    return urllib.parse.urljoin(current_app.config.get("WEBDRIVER_BASEURL", ""), path)
-
-
-def get_url_path(view: str, **kwargs) -> str:
-    with current_app.test_request_context():
-        return headless_url(url_for(view, **kwargs))
-
-
 class AuthWebDriverProxy:
     def __init__(
         self,
         driver_type: str,
         window: Optional[WindowSize] = None,
-        auth_func: Optional[Callable] = None,
+        auth_func: Optional[
+            Callable[..., Any]
+        ] = None,  # pylint: disable=bad-whitespace
     ):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-        config_auth_func: Callable = current_app.config.get(
-            "WEBDRIVER_AUTH_FUNC", auth_driver
-        )
-        self._auth_func: Callable = auth_func or config_auth_func
+        config_auth_func = current_app.config.get("WEBDRIVER_AUTH_FUNC", auth_driver)
+        self._auth_func = auth_func or config_auth_func
 
     def create(self) -> WebDriver:
         if self._driver_type == "firefox":
@@ -119,11 +112,14 @@ class AuthWebDriverProxy:
             options = chrome.options.Options()
             arg: str = f"--window-size={self._window[0]},{self._window[1]}"
             options.add_argument(arg)
+            # TODO: 2 lines attempting retina PPI don't seem to be working
+            options.add_argument("--force-device-scale-factor=2.0")
+            options.add_argument("--high-dpi-support=2.0")
         else:
             raise Exception(f"Webdriver name ({self._driver_type}) not supported")
         # Prepare args for the webdriver init
         options.add_argument("--headless")
-        kwargs: Dict = dict(options=options)
+        kwargs: Dict[Any, Any] = dict(options=options)
         kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
         logger.info("Init selenium driver")
         return driver_class(**kwargs)
@@ -135,7 +131,7 @@ class AuthWebDriverProxy:
         return self._auth_func(driver, user)
 
     @staticmethod
-    def destroy(driver: WebDriver, tries=2):
+    def destroy(driver: WebDriver, tries: int = 2) -> None:
         """Destroy a driver"""
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
@@ -149,20 +145,24 @@ class AuthWebDriverProxy:
             pass
 
     def get_screenshot(
-        self, url: str, element_name: str, user: "User", retries: int = SELENIUM_RETRIES
+        self,
+        url: str,
+        element_name: str,
+        user: "User",
+        retries: int = SELENIUM_RETRIES,
     ) -> Optional[bytes]:
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
         img: Optional[bytes] = None
-        logger.debug(f"Sleeping for {SELENIUM_HEADSTART} seconds")
+        logger.debug("Sleeping for %i seconds", SELENIUM_HEADSTART)
         time.sleep(SELENIUM_HEADSTART)
         try:
-            logger.debug(f"Wait for the presence of {element_name}")
+            logger.debug("Wait for the presence of %s", element_name)
             element = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CLASS_NAME, element_name))
             )
-            logger.debug(f"Wait for .loading to be done")
+            logger.debug("Wait for .loading to be done")
             WebDriverWait(driver, 60).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
@@ -187,21 +187,36 @@ class BaseScreenshot:
     window_size: WindowSize = (800, 600)
     thumb_size: WindowSize = (400, 300)
 
-    def __init__(self, model_id: int):
-        self.model_id: int = model_id
+    def __init__(self, url: str, digest: str):
+        self.digest: str = digest
+        self.url = url
         self.screenshot: Optional[bytes] = None
-        self._driver = AuthWebDriverProxy(self.driver_type, self.window_size)
 
-    @property
-    def cache_key(self) -> str:
-        return f"thumb__{self.thumbnail_type}__{self.model_id}"
+    def driver(self, window_size: Optional[WindowSize] = None) -> AuthWebDriverProxy:
+        window_size = window_size or self.window_size
+        return AuthWebDriverProxy(self.driver_type, window_size)
 
-    @property
-    def url(self) -> str:
-        raise NotImplementedError()
+    def cache_key(
+        self,
+        window_size: Optional[Union[bool, WindowSize]] = None,
+        thumb_size: Optional[Union[bool, WindowSize]] = None,
+    ) -> str:
+        window_size = window_size or self.window_size
+        thumb_size = thumb_size or self.thumb_size
+        args = {
+            "thumbnail_type": self.thumbnail_type,
+            "digest": self.digest,
+            "type": "thumb",
+            "window_size": window_size,
+            "thumb_size": thumb_size,
+        }
+        return md5_sha_from_dict(args)
 
-    def get_screenshot(self, user: "User") -> Optional[bytes]:
-        self.screenshot = self._driver.get_screenshot(self.url, self.element, user)
+    def get_screenshot(
+        self, user: "User", window_size: Optional[WindowSize] = None
+    ) -> Optional[bytes]:
+        driver = self.driver(window_size)
+        self.screenshot = driver.get_screenshot(self.url, self.element, user)
         return self.screenshot
 
     def get(
@@ -218,28 +233,41 @@ class BaseScreenshot:
         :param thumb_size: Override thumbnail site
         """
         payload: Optional[bytes] = None
-        thumb_size = thumb_size or self.thumb_size
+        cache_key = self.cache_key(self.window_size, thumb_size)
         if cache:
-            payload = cache.get(self.cache_key)
+            payload = cache.get(cache_key)
         if not payload:
             payload = self.compute_and_cache(
                 user=user, thumb_size=thumb_size, cache=cache
             )
         else:
-            logger.info(f"Loaded thumbnail from cache: {self.cache_key}")
+            logger.info("Loaded thumbnail from cache: %s", cache_key)
         if payload:
             return BytesIO(payload)
         return None
 
-    def get_from_cache(self, cache: "Cache") -> Optional[BytesIO]:
-        payload = cache.get(self.cache_key)
+    def get_from_cache(
+        self,
+        cache: "Cache",
+        window_size: Optional[WindowSize] = None,
+        thumb_size: Optional[WindowSize] = None,
+    ) -> Optional[BytesIO]:
+        cache_key = self.cache_key(window_size, thumb_size)
+        return self.get_from_cache_key(cache, cache_key)
+
+    @staticmethod
+    def get_from_cache_key(cache: "Cache", cache_key: str) -> Optional[BytesIO]:
+        logger.info("Attempting to get from cache: %s", cache_key)
+        payload = cache.get(cache_key)
         if payload:
             return BytesIO(payload)
+        logger.info("Failed at getting from cache: %s", cache_key)
         return None
 
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
         user: "User" = None,
+        window_size: Optional[WindowSize] = None,
         thumb_size: Optional[WindowSize] = None,
         cache: "Cache" = None,
         force: bool = True,
@@ -254,22 +282,23 @@ class BaseScreenshot:
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
-        cache_key = self.cache_key
+        cache_key = self.cache_key(window_size, thumb_size)
+        window_size = window_size or self.window_size
+        thumb_size = thumb_size or self.thumb_size
         if not force and cache and cache.get(cache_key):
             logger.info("Thumb already cached, skipping...")
             return None
-        thumb_size = thumb_size or self.thumb_size
-        logger.info(f"Processing url for thumbnail: {cache_key}")
+        logger.info("Processing url for thumbnail: %s", cache_key)
 
         payload = None
 
         # Assuming all sorts of things can go wrong with Selenium
         try:
-            payload = self.get_screenshot(user=user)
+            payload = self.get_screenshot(user=user, window_size=window_size)
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Failed at generating thumbnail %s", ex)
 
-        if payload and self.window_size != thumb_size:
+        if payload and window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, thumb_size=thumb_size)
             except Exception as ex:  # pylint: disable=broad-except
@@ -277,8 +306,9 @@ class BaseScreenshot:
                 payload = None
 
         if payload and cache:
-            logger.info(f"Caching thumbnail: {cache_key} {cache}")
+            logger.info("Caching thumbnail: %s", cache_key)
             cache.set(cache_key, payload)
+            logger.info("Done caching thumbnail")
         return payload
 
     @classmethod
@@ -291,13 +321,13 @@ class BaseScreenshot:
     ) -> bytes:
         thumb_size = thumb_size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
-        logger.debug(f"Selenium image size: {img.size}")
+        logger.debug("Selenium image size: %s", str(img.size))
         if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
-            logger.debug(f"Cropping to: {img.size[0]}*{desired_width}")
+            logger.debug("Cropping to: %s*%s", str(img.size[0]), str(desired_width))
             img = img.crop((0, 0, img.size[0], desired_width))
-        logger.debug(f"Resizing to {thumb_size}")
+        logger.debug("Resizing to %s", str(thumb_size))
         img = img.resize(thumb_size, Image.ANTIALIAS)
         new_img = BytesIO()
         if output != "png":
@@ -310,12 +340,8 @@ class BaseScreenshot:
 class ChartScreenshot(BaseScreenshot):
     thumbnail_type: str = "chart"
     element: str = "chart-container"
-    window_size: WindowSize = (600, int(600 * 0.75))
-    thumb_size: WindowSize = (300, int(300 * 0.75))
-
-    @property
-    def url(self) -> str:
-        return get_url_path("Superset.slice", slice_id=self.model_id, standalone="true")
+    window_size: WindowSize = (800, 600)
+    thumb_size: WindowSize = (800, 600)
 
 
 class DashboardScreenshot(BaseScreenshot):
@@ -323,7 +349,3 @@ class DashboardScreenshot(BaseScreenshot):
     element: str = "grid-container"
     window_size: WindowSize = (1600, int(1600 * 0.75))
     thumb_size: WindowSize = (400, int(400 * 0.75))
-
-    @property
-    def url(self) -> str:
-        return get_url_path("Superset.dashboard", dashboard_id=self.model_id)

@@ -18,8 +18,10 @@
 """Unit tests for Superset"""
 import json
 from typing import List, Optional
+from datetime import datetime
 
 import prison
+import humanize
 from sqlalchemy.sql import func
 
 import tests.test_app
@@ -32,7 +34,7 @@ from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
 
 
-class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
+class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "dashboard"
 
     dashboard_data = {
@@ -40,12 +42,9 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"a": "A"}',
+        "json_metadata": '{"refresh_frequency": 30}',
         "published": False,
     }
-
-    def __init__(self, *args, **kwargs):
-        super(DashboardApiTests, self).__init__(*args, **kwargs)
 
     def insert_dashboard(
         self,
@@ -114,7 +113,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         for key, value in data["result"].items():
-            # We can't assert timestamp
+            # We can't assert timestamp values
             if key != "changed_on":
                 self.assertEqual(value, expected_result[key])
         # rollback changes
@@ -151,6 +150,37 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboards_changed_on(self):
+        """
+        Dashboard API: Test get dashboards changed on
+        """
+        from datetime import datetime
+        import humanize
+
+        admin = self.get_user("admin")
+        start_changed_on = datetime.now()
+        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+
+        self.login(username="admin")
+
+        arguments = {
+            "order_column": "changed_on_delta_humanized",
+            "order_direction": "desc",
+        }
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"][0]["changed_on_delta_humanized"],
+            humanize.naturaltime(datetime.now() - start_changed_on),
+        )
+
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -217,9 +247,9 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(data["count"], 3)
 
         expected_response = [
-            {"slug": "ZY_bar", "dashboard_title": "foo_a",},
-            {"slug": "slug1zy_", "dashboard_title": "foo_b",},
-            {"slug": "slug1", "dashboard_title": "zy_foo",},
+            {"slug": "ZY_bar", "dashboard_title": "foo_a"},
+            {"slug": "slug1zy_", "dashboard_title": "foo_b"},
+            {"slug": "slug1", "dashboard_title": "zy_foo"},
         ]
         for index, item in enumerate(data["result"]):
             self.assertEqual(item["slug"], expected_response[index]["slug"])
@@ -476,7 +506,7 @@ class DashboardApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "owners": [admin_id],
             "position_json": '{"a": "A"}',
             "css": "css",
-            "json_metadata": '{"b": "B"}',
+            "json_metadata": '{"refresh_frequency": 30}',
             "published": True,
         }
         self.login(username="admin")

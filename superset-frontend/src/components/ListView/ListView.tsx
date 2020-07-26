@@ -18,8 +18,12 @@
  */
 import { t } from '@superset-ui/translation';
 import React, { FunctionComponent } from 'react';
-import { Col, DropdownButton, MenuItem, Row } from 'react-bootstrap';
-import IndeterminateCheckbox from '../IndeterminateCheckbox';
+import { Col, Row, Alert } from 'react-bootstrap';
+import styled from '@superset-ui/style';
+import cx from 'classnames';
+import Button from 'src/components/Button';
+import Loading from 'src/components/Loading';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import TableCollection from './TableCollection';
 import Pagination from './Pagination';
 import { FilterMenu, FilterInputs } from './LegacyFilters';
@@ -27,9 +31,158 @@ import FilterControls from './Filters';
 import { FetchDataConfig, Filters, SortColumn } from './types';
 import { ListViewError, useListViewState } from './utils';
 
-import './ListViewStyles.less';
+const ListViewStyles = styled.div`
+  text-align: center;
 
-interface Props {
+  .superset-list-view {
+    text-align: left;
+    background-color: white;
+    border-radius: 4px 0;
+    margin: 0 16px;
+    padding-bottom: 48px;
+
+    .body {
+      overflow: scroll;
+      max-height: 64vh;
+
+      table {
+        border-collapse: separate;
+
+        th {
+          background: white;
+          position: sticky;
+          top: 0;
+        }
+      }
+    }
+
+    .filter-dropdown {
+      margin-top: 20px;
+    }
+
+    .filter-column {
+      height: 30px;
+      padding: 5px;
+      font-size: 16px;
+    }
+
+    .filter-close {
+      height: 30px;
+      padding: 5px;
+
+      i {
+        font-size: 20px;
+      }
+    }
+
+    .table-cell-loader {
+      position: relative;
+
+      .loading-bar {
+        background-color: ${({ theme }) => theme.colors.secondary.light4};
+        border-radius: 7px;
+
+        span {
+          visibility: hidden;
+        }
+      }
+
+      &:after {
+        position: absolute;
+        transform: translateY(-50%);
+        top: 50%;
+        left: 0;
+        content: '';
+        display: block;
+        width: 100%;
+        height: 48px;
+        background-image: linear-gradient(
+          100deg,
+          rgba(255, 255, 255, 0),
+          rgba(255, 255, 255, 0.5) 60%,
+          rgba(255, 255, 255, 0) 80%
+        );
+        background-size: 200px 48px;
+        background-position: -100px 0;
+        background-repeat: no-repeat;
+        animation: loading-shimmer 1s infinite;
+      }
+    }
+
+    .actions {
+      white-space: nowrap;
+      font-size: 24px;
+      min-width: 100px;
+
+      svg,
+      i {
+        margin-right: 8px;
+
+        &:hover {
+          path {
+            fill: ${({ theme }) => theme.colors.primary.base};
+          }
+        }
+      }
+    }
+
+    .table-row {
+      .actions {
+        opacity: 0;
+      }
+
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.secondary.light5};
+
+        .actions {
+          opacity: 1;
+          transition: opacity ease-in ${({ theme }) => theme.transitionTiming}s;
+        }
+      }
+    }
+
+    .table-row-selected {
+      background-color: ${({ theme }) => theme.colors.secondary.light4};
+
+      &:hover {
+        background-color: ${({ theme }) => theme.colors.secondary.light4};
+      }
+    }
+
+    .table-cell {
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 300px;
+    }
+
+    .sort-icon {
+      position: absolute;
+    }
+
+    .form-actions-container {
+      position: absolute;
+      left: 28px;
+    }
+
+    .row-count-container {
+      float: right;
+      padding-right: 24px;
+    }
+  }
+
+  @keyframes loading-shimmer {
+    40% {
+      background-position: 100% 0;
+    }
+
+    100% {
+      background-position: 100% 0;
+    }
+  }
+`;
+
+export interface ListViewProps {
   columns: any[];
   data: any[];
   count: number;
@@ -37,32 +190,69 @@ interface Props {
   fetchData: (conf: FetchDataConfig) => any;
   loading: boolean;
   className?: string;
-  title?: string;
   initialSort?: SortColumn[];
   filters?: Filters;
   bulkActions?: Array<{
-    key?: string;
+    key: string;
     name: React.ReactNode;
     onSelect: (rows: any[]) => any;
+    type?: 'primary' | 'secondary' | 'danger';
   }>;
-  useNewUIFilters?: boolean;
+  isSIP34FilterUIEnabled?: boolean;
+  bulkSelectEnabled?: boolean;
+  disableBulkSelect?: () => void;
+  renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
 }
+
+const BulkSelectWrapper = styled(Alert)`
+  border-radius: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 36px;
+  color: #3d3d3d;
+  background-color: ${({ theme }) => theme.colors.primary.light4};
+
+  .selectedCopy {
+    display: inline-block;
+    padding: 16px 0;
+  }
+
+  .deselect-all {
+    color: #1985a0;
+    margin-left: 16px;
+  }
+
+  .divider {
+    margin: -8px 0 -8px 16px;
+    width: 1px;
+    height: 32px;
+    box-shadow: inset -1px 0px 0px #dadada;
+    display: inline-flex;
+    vertical-align: middle;
+    position: relative;
+  }
+
+  .close {
+    margin: 16px 0;
+  }
+`;
 
 const bulkSelectColumnConfig = {
   Cell: ({ row }: any) => (
-    <div>
-      <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} />
-    </div>
+    <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} id={row.id} />
   ),
   Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <div>
-      <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
-    </div>
+    <IndeterminateCheckbox
+      {...getToggleAllRowsSelectedProps()}
+      id={'header-toggle-all'}
+    />
   ),
   id: 'selection',
+  size: 'sm',
 };
 
-const ListView: FunctionComponent<Props> = ({
+const ListView: FunctionComponent<ListViewProps> = ({
   columns,
   data,
   count,
@@ -71,10 +261,12 @@ const ListView: FunctionComponent<Props> = ({
   loading,
   initialSort = [],
   className = '',
-  title = '',
   filters = [],
   bulkActions = [],
-  useNewUIFilters = false,
+  isSIP34FilterUIEnabled = false,
+  bulkSelectEnabled = false,
+  disableBulkSelect = () => {},
+  renderBulkSelectCopy = selected => t('%s Selected', selected.length),
 }) => {
   const {
     getTableProps,
@@ -91,17 +283,18 @@ const ListView: FunctionComponent<Props> = ({
     applyFilters,
     filtersApplied,
     selectedFlatRows,
+    toggleAllRowsSelected,
     state: { pageIndex, pageSize, internalFilters },
   } = useListViewState({
     bulkSelectColumnConfig,
-    bulkSelectMode: Boolean(bulkActions.length),
+    bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
     columns,
     count,
     data,
     fetchData,
     initialPageSize,
     initialSort,
-    initialFilters: useNewUIFilters ? filters : [],
+    initialFilters: isSIP34FilterUIEnabled ? filters : [],
   });
   const filterable = Boolean(filters.length);
   if (filterable) {
@@ -117,125 +310,117 @@ const ListView: FunctionComponent<Props> = ({
       }
     });
   }
-
+  if (loading && !data.length) {
+    return <Loading />;
+  }
   return (
-    <div className={`superset-list-view ${className}`}>
-      <div className="header">
-        {!useNewUIFilters && (
-          <>
-            {title && filterable && (
-              <>
-                <Row>
-                  <Col md={10}>
-                    <h2>{t(title)}</h2>
-                  </Col>
-                  {filterable && (
-                    <Col md={2}>
-                      <FilterMenu
-                        filters={filters}
-                        internalFilters={internalFilters}
-                        setInternalFilters={setInternalFilters}
-                      />
-                    </Col>
-                  )}
-                </Row>
-                <hr />
-                <FilterInputs
-                  internalFilters={internalFilters}
-                  filters={filters}
-                  updateInternalFilter={updateInternalFilter}
-                  removeFilterAndApply={removeFilterAndApply}
-                  filtersApplied={filtersApplied}
-                  applyFilters={applyFilters}
-                />
-              </>
-            )}
-          </>
-        )}
-        {useNewUIFilters && (
-          <>
-            <Row>
-              <Col md={10}>
-                <h2>{t(title)}</h2>
-              </Col>
-            </Row>
-            <hr />
+    <ListViewStyles>
+      <div className={`superset-list-view ${className}`}>
+        <div className="header">
+          {!isSIP34FilterUIEnabled && filterable && (
+            <>
+              <Row>
+                <Col md={10} />
+                <Col md={2}>
+                  <FilterMenu
+                    filters={filters}
+                    internalFilters={internalFilters}
+                    setInternalFilters={setInternalFilters}
+                  />
+                </Col>
+              </Row>
+              <hr />
+              <FilterInputs
+                internalFilters={internalFilters}
+                filters={filters}
+                updateInternalFilter={updateInternalFilter}
+                removeFilterAndApply={removeFilterAndApply}
+                filtersApplied={filtersApplied}
+                applyFilters={applyFilters}
+              />
+            </>
+          )}
+          {isSIP34FilterUIEnabled && filterable && (
             <FilterControls
               filters={filters}
               internalFilters={internalFilters}
               updateFilterValue={applyFilterValue}
             />
-          </>
-        )}
-      </div>
-      <div className="body">
-        <TableCollection
-          getTableProps={getTableProps}
-          getTableBodyProps={getTableBodyProps}
-          prepareRow={prepareRow}
-          headerGroups={headerGroups}
-          rows={rows}
-          loading={loading}
-        />
-      </div>
-      <div className="footer">
-        <Row>
-          <Col md={2}>
-            <div className="form-actions-container">
-              <div className="btn-group">
-                {bulkActions.length > 0 && (
-                  <DropdownButton
-                    id="bulk-actions"
-                    bsSize="small"
-                    bsStyle="default"
-                    noCaret
-                    title={
-                      <>
-                        {t('Actions')} <span className="caret" />
-                      </>
-                    }
-                  >
-                    {bulkActions.map(action => (
-                      // @ts-ignore
-                      <MenuItem
-                        key={action.key}
-                        eventKey={selectedFlatRows}
-                        // @ts-ignore
-                        onSelect={(selectedRows: typeof selectedFlatRows) => {
-                          action.onSelect(
-                            selectedRows.map((r: any) => r.original),
-                          );
-                        }}
-                      >
-                        {action.name}
-                      </MenuItem>
-                    ))}
-                  </DropdownButton>
-                )}
+          )}
+        </div>
+        <div className="body">
+          {bulkSelectEnabled && (
+            <BulkSelectWrapper
+              data-test="bulk-select-controls"
+              bsStyle="info"
+              onDismiss={disableBulkSelect}
+            >
+              <div className="selectedCopy" data-test="bulk-select-copy">
+                {renderBulkSelectCopy(selectedFlatRows)}
               </div>
-            </div>
-          </Col>
-          <Col md={8} className="text-center">
-            <Pagination
-              totalPages={pageCount || 0}
-              currentPage={pageCount ? pageIndex + 1 : 0}
-              onChange={(p: number) => gotoPage(p - 1)}
-              hideFirstAndLastPageLinks
-            />
-          </Col>
-          <Col md={2}>
-            <span className="pull-right">
-              {t('showing')}{' '}
-              <strong>
-                {pageSize * pageIndex + (rows.length && 1)}-
-                {pageSize * pageIndex + rows.length}
-              </strong>{' '}
-              {t('of')} <strong>{count}</strong>
-            </span>
-          </Col>
-        </Row>
+              {Boolean(selectedFlatRows.length) && (
+                <>
+                  <span
+                    data-test="bulk-select-deselect-all"
+                    role="button"
+                    tabIndex={0}
+                    className="deselect-all"
+                    onClick={() => toggleAllRowsSelected(false)}
+                  >
+                    {t('Deselect All')}
+                  </span>
+                  <div className="divider" />
+                  {bulkActions.map(action => (
+                    <Button
+                      data-test="bulk-select-action"
+                      key={action.key}
+                      className={cx('supersetButton', {
+                        danger: action.type === 'danger',
+                        primary: action.type === 'primary',
+                        secondary: action.type === 'secondary',
+                      })}
+                      onClick={() =>
+                        action.onSelect(selectedFlatRows.map(r => r.original))
+                      }
+                    >
+                      {action.name}
+                    </Button>
+                  ))}
+                </>
+              )}
+            </BulkSelectWrapper>
+          )}
+          <TableCollection
+            getTableProps={getTableProps}
+            getTableBodyProps={getTableBodyProps}
+            prepareRow={prepareRow}
+            headerGroups={headerGroups}
+            rows={rows}
+            loading={loading}
+          />
+        </div>
+        <div className="footer">
+          <Row>
+            <Col>
+              <span className="row-count-container">
+                showing{' '}
+                <strong>
+                  {pageSize * pageIndex + (rows.length && 1)}-
+                  {pageSize * pageIndex + rows.length}
+                </strong>{' '}
+                of <strong>{count}</strong>
+              </span>
+            </Col>
+          </Row>
+        </div>
       </div>
-    </div>
+      <Pagination
+        totalPages={pageCount || 0}
+        currentPage={pageCount ? pageIndex + 1 : 0}
+        onChange={(p: number) => gotoPage(p - 1)}
+        hideFirstAndLastPageLinks
+      />
+    </ListViewStyles>
   );
 };
 

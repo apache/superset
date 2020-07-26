@@ -66,6 +66,10 @@
 
 // Buttons ====================================================================
 
+.btn {
+  text-transform: uppercase;
+}
+
 .btn-default:hover {
   color: @gray-dark;
   background-color: @gray-bg;
@@ -276,11 +280,28 @@ table,
 }
 
 .label {
-  border-radius: @border-radius-normal;
+  border-radius: 21px;
+  padding: 0.35em 0.8em 0.35em;
+  font-weight: @font-weight-normal;
+  text-transform: uppercase;
+  font-size: @font-size-s;
+}
+.label-default:hover {
+  background-color: darken(@label-default-bg, 5%);
+}
+.label-warning:hover {
+  background-color: darken(@label-warning-bg, 5%);
+}
+.label-danger:hover {
+  background-color: darken(@label-danger-bg, 5%);
+}
+.label-primary:hover {
+  background-color: darken(@label-primary-bg, 5%);
 }
 
 label {
   font-weight: @font-weight-normal;
+  font-size: @font-size-s;
 }
 
 // Progress bars ==============================================================
@@ -292,7 +313,7 @@ label {
   .progress-bar {
     font-size: @font-size-s;
     line-height: @line-height-tight;
-    padding-top: 1px;
+    padding-top: 2px;
   }
 }
 
@@ -415,6 +436,7 @@ a.list-group-item {
 
 .nav-tabs > li > a {
   border-top: 3px solid transparent;
+  color: @text-color;
 }
 
 .nav-tabs > li.active > a,
@@ -461,4 +483,10 @@ hr {
 
 a {
   cursor: pointer;
+}
+
+.control-label {
+  text-transform: uppercase;
+  color: @gray;
+  font-size: @font-size-s;
 }

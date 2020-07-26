@@ -39,7 +39,7 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple]:
+    def fetch_data(cls, cursor: Any, limit: int) -> List[Tuple[Any, ...]]:
         data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)

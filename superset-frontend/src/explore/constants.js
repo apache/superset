@@ -84,4 +84,8 @@ export const TIME_FILTER_LABELS = {
 export const FILTER_CONFIG_ATTRIBUTES = {
   DEFAULT_VALUE: 'defaultValue',
   MULTIPLE: 'multiple',
+  SEARCH_ALL_OPTIONS: 'searchAllOptions',
+  CLEARABLE: 'clearable',
 };
+
+export const FILTER_OPTIONS_LIMIT = 1000;

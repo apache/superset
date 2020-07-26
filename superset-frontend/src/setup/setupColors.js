@@ -20,22 +20,24 @@ import airbnb from '@superset-ui/color/esm/colorSchemes/categorical/airbnb';
 import categoricalD3 from '@superset-ui/color/esm/colorSchemes/categorical/d3';
 import google from '@superset-ui/color/esm/colorSchemes/categorical/google';
 import lyft from '@superset-ui/color/esm/colorSchemes/categorical/lyft';
+import preset from '@superset-ui/color/esm/colorSchemes/categorical/preset';
 import sequentialCommon from '@superset-ui/color/esm/colorSchemes/sequential/common';
 import sequentialD3 from '@superset-ui/color/esm/colorSchemes/sequential/d3';
 import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
 } from '@superset-ui/color';
+import superset from '@superset-ui/color/esm/colorSchemes/categorical/superset';
 
 export default function setupColors() {
   // Register color schemes
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
-  [airbnb, categoricalD3, google, lyft].forEach(group => {
+  [superset, airbnb, categoricalD3, google, lyft, preset].forEach(group => {
     group.forEach(scheme => {
       categoricalSchemeRegistry.registerValue(scheme.id, scheme);
     });
   });
-  categoricalSchemeRegistry.setDefaultKey('bnbColors');
+  categoricalSchemeRegistry.setDefaultKey('supersetColors');
 
   const sequentialSchemeRegistry = getSequentialSchemeRegistry();
   [sequentialCommon, sequentialD3].forEach(group => {
@@ -43,5 +45,5 @@ export default function setupColors() {
       sequentialSchemeRegistry.registerValue(scheme.id, scheme);
     });
   });
-  sequentialSchemeRegistry.setDefaultKey('blue_white_yellow');
+  sequentialSchemeRegistry.setDefaultKey('superset_seq_1');
 }

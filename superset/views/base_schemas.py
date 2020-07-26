@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Union
 
 from flask import current_app, g
 from flask_appbuilder import Model
@@ -22,7 +22,7 @@ from marshmallow import post_load, pre_load, Schema, ValidationError
 from sqlalchemy.orm.exc import NoResultFound
 
 
-def validate_owner(value):
+def validate_owner(value: int) -> None:
     try:
         (
             current_app.appbuilder.get_session.query(
@@ -44,18 +44,29 @@ class BaseSupersetSchema(Schema):
 
     __class_model__: Model = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self.instance: Optional[Model] = None
         super().__init__(**kwargs)
 
-    def load(
-        self, data, many=None, partial=None, instance: Model = None, **kwargs
-    ):  # pylint: disable=arguments-differ
+    def load(  # pylint: disable=arguments-differ
+        self,
+        data: Union[Mapping[str, Any], Iterable[Mapping[str, Any]]],
+        many: Optional[bool] = None,
+        partial: Union[bool, Sequence[str], Set[str], None] = None,
+        instance: Optional[Model] = None,
+        **kwargs: Any,
+    ) -> Any:
         self.instance = instance
+        if many is None:
+            many = False
+        if partial is None:
+            partial = False
         return super().load(data, many=many, partial=partial, **kwargs)
 
     @post_load
-    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Model:
+    def make_object(
+        self, data: Dict[Any, Any], discard: Optional[List[str]] = None
+    ) -> Model:
         """
         Creates a Model object from POST or PUT requests. PUT will use self.instance
         previously fetched from the endpoint handler
@@ -81,7 +92,9 @@ class BaseOwnedSchema(BaseSupersetSchema):
     owners_field_name = "owners"
 
     @post_load
-    def make_object(self, data: Dict, discard: Optional[List[str]] = None) -> Model:
+    def make_object(
+        self, data: Dict[str, Any], discard: Optional[List[str]] = None
+    ) -> Model:
         discard = discard or []
         discard.append(self.owners_field_name)
         instance = super().make_object(data, discard)
@@ -92,13 +105,13 @@ class BaseOwnedSchema(BaseSupersetSchema):
         return instance
 
     @pre_load
-    def pre_load(self, data: Dict):
+    def pre_load(self, data: Dict[Any, Any]) -> None:
         # if PUT request don't set owners to empty list
         if not self.instance:
             data[self.owners_field_name] = data.get(self.owners_field_name, [])
 
     @staticmethod
-    def set_owners(instance: Model, owners: List[int]):
+    def set_owners(instance: Model, owners: List[int]) -> None:
         owner_objs = list()
         if g.user.id not in owners:
             owners.append(g.user.id)

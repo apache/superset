@@ -21,7 +21,7 @@ from unittest.mock import Mock, patch
 from superset.stats_logger import StatsdStatsLogger
 
 
-class StatsdStatsLoggerTest(TestCase):
+class TestStatsdStatsLogger(TestCase):
     def verify_client_calls(self, logger, client):
         logger.incr("foo1")
         client.incr.assert_called_once()

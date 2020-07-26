@@ -50,10 +50,7 @@ mock_positions = {
 }
 
 
-class CacheWarmUpTests(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super(CacheWarmUpTests, self).__init__(*args, **kwargs)
-
+class TestCacheWarmUp(SupersetTestCase):
     def test_get_form_data_chart_only(self):
         chart_id = 1
         result = get_form_data(chart_id, None)

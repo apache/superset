@@ -90,9 +90,9 @@ class TableLoader extends React.PureComponent {
         {this.state.data.map((row, i) => (
           <Tr key={i}>
             {columns.map(col => {
-              if (row.hasOwnProperty('_' + col)) {
+              if (row.hasOwnProperty(`_${col}`)) {
                 return (
-                  <Td key={col} column={col} value={row['_' + col]}>
+                  <Td key={col} column={col} value={row[`_${col}`]}>
                     {row[col]}
                   </Td>
                 );

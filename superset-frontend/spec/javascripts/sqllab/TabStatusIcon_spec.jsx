@@ -36,18 +36,4 @@ describe('TabStatusIcon', () => {
     expect(wrapper.find('div.circle')).toHaveLength(1);
     expect(wrapper.text()).toBe('');
   });
-
-  it('renders a circle with an x when hovered', () => {
-    const { wrapper } = setup();
-    wrapper.simulate('mouseOver');
-    expect(wrapper.find('div.circle')).toHaveLength(1);
-    expect(wrapper.text()).toBe('×');
-  });
-
-  it('calls onClose from props when clicked', () => {
-    const { wrapper, onClose } = setup();
-    wrapper.simulate('click');
-    // eslint-disable-next-line no-unused-expressions
-    expect(onClose.calledOnce).toBe(true);
-  });
 });

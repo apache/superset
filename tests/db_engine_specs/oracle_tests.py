@@ -19,10 +19,10 @@ from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
 
 from superset.db_engine_specs.oracle import OracleEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class OracleTestCase(DbEngineSpecTestCase):
+class TestOracleDbEngineSpec(TestDbEngineSpec):
     def test_oracle_sqla_column_name_length_exceeded(self):
         col = column("This_Is_32_Character_Column_Name")
         label = OracleEngineSpec.make_label_compatible(col.name)

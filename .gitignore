@@ -23,6 +23,7 @@
 .bento*
 .cache-loader
 .coverage
+cover
 .DS_Store
 .eggs
 .envrc

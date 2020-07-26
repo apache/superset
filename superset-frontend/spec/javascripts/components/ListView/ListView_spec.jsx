@@ -19,18 +19,20 @@
 import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { act } from 'react-dom/test-utils';
-import { MenuItem, Pagination } from 'react-bootstrap';
-import Select from 'src/components/Select';
+import { MenuItem } from 'react-bootstrap';
 import { QueryParamProvider } from 'use-query-params';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
 import ListViewPagination from 'src/components/ListView/Pagination';
-import { areArraysShallowEqual } from 'src/reduxUtils';
-import { ThemeProvider } from 'emotion-theming';
-import { supersetTheme } from '@superset-ui/style';
+import Pagination from 'src/components/Pagination';
+import Button from 'src/components/Button';
 
-export function makeMockLocation(query) {
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+
+function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
   return {
     protocol: 'http:',
@@ -72,7 +74,16 @@ const mockedProps = {
   pageSize: 1,
   fetchData: jest.fn(() => []),
   loading: false,
-  bulkActions: [{ name: 'do something', onSelect: jest.fn() }],
+  bulkSelectEnabled: true,
+  disableBulkSelect: jest.fn(),
+  bulkActions: [
+    {
+      key: 'something',
+      name: 'do something',
+      style: 'danger',
+      onSelect: jest.fn(),
+    },
+  ],
 };
 
 const factory = (props = mockedProps) =>
@@ -87,7 +98,10 @@ const factory = (props = mockedProps) =>
   );
 
 describe('ListView', () => {
-  const wrapper = factory();
+  let wrapper = beforeAll(async () => {
+    wrapper = factory();
+    await waitForComponentToPaint(wrapper);
+  });
 
   afterEach(() => {
     mockedProps.fetchData.mockClear();
@@ -222,22 +236,20 @@ Array [
 
   it('handles bulk actions on 1 row', () => {
     act(() => {
-      wrapper
-        .find('input[title="Toggle Row Selected"]')
-        .at(0)
-        .prop('onChange')({ target: { value: 'on' } });
+      wrapper.find('input[id="0"]').at(0).prop('onChange')({
+        target: { value: 'on' },
+      });
+    });
+    wrapper.update();
 
+    act(() => {
       wrapper
-        .find('.dropdown-toggle')
-        .children('button')
-        .at(1)
+        .find('[data-test="bulk-select-controls"]')
+        .find(Button)
         .props()
         .onClick();
     });
-    wrapper.update();
-    const bulkActionsProps = wrapper.find(MenuItem).last().props();
 
-    bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
                                     Array [
@@ -253,22 +265,20 @@ Array [
 
   it('handles bulk actions on all rows', () => {
     act(() => {
-      wrapper
-        .find('input[title="Toggle All Rows Selected"]')
-        .at(0)
-        .prop('onChange')({ target: { value: 'on' } });
+      wrapper.find('input[id="header-toggle-all"]').at(0).prop('onChange')({
+        target: { value: 'on' },
+      });
+    });
+    wrapper.update();
 
+    act(() => {
       wrapper
-        .find('.dropdown-toggle')
-        .children('button')
-        .at(1)
+        .find('[data-test="bulk-select-controls"]')
+        .find(Button)
         .props()
         .onClick();
     });
-    wrapper.update();
-    const bulkActionsProps = wrapper.find(MenuItem).last().props();
 
-    bulkActionsProps.onSelect(bulkActionsProps.eventKey);
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
                         Array [
@@ -286,22 +296,48 @@ Array [
                 `);
   });
 
+  it('allows deselecting all', async () => {
+    act(() => {
+      wrapper.find('[data-test="bulk-select-deselect-all"]').props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    wrapper.update();
+    wrapper.find(IndeterminateCheckbox).forEach(input => {
+      expect(input.props().checked).toBe(false);
+    });
+  });
+
+  it('allows disabling bulkSelect', () => {
+    wrapper
+      .find('[data-test="bulk-select-controls"]')
+      .at(0)
+      .props()
+      .onDismiss();
+    expect(mockedProps.disableBulkSelect).toHaveBeenCalled();
+  });
+
+  it('disables bulk select based on prop', async () => {
+    const wrapper2 = factory({ ...mockedProps, bulkSelectEnabled: false });
+    await waitForComponentToPaint(wrapper2);
+    expect(wrapper2.find('[data-test="bulk-select-controls"]').exists()).toBe(
+      false,
+    );
+  });
+
   it('Throws an exception if filter missing in columns', () => {
     expect.assertions(1);
     const props = {
       ...mockedProps,
       filters: [...mockedProps.filters, { id: 'some_column' }],
     };
-    try {
+    expect(() => {
       shallow(<ListView {...props} />, {
         wrappingComponent: ThemeProvider,
         wrappingComponentProps: { theme: supersetTheme },
       });
-    } catch (e) {
-      expect(e).toMatchInlineSnapshot(
-        `[ListViewError: Invalid filter config, some_column is not present in columns]`,
-      );
-    }
+    }).toThrowErrorMatchingInlineSnapshot(
+      '"Invalid filter config, some_column is not present in columns"',
+    );
   });
 });
 
@@ -309,7 +345,7 @@ describe('ListView with new UI filters', () => {
   const fetchSelectsMock = jest.fn(() => []);
   const newFiltersProps = {
     ...mockedProps,
-    useNewUIFilters: true,
+    isSIP34FilterUIEnabled: true,
     filters: [
       {
         Header: 'ID',
@@ -329,6 +365,7 @@ describe('ListView with new UI filters', () => {
         id: 'age',
         input: 'select',
         fetchSelects: fetchSelectsMock,
+        paginate: true,
         operator: 'eq',
       },
     ],
@@ -345,10 +382,6 @@ describe('ListView with new UI filters', () => {
 
   it('renders UI filters', () => {
     expect(wrapper.find(ListViewFilters)).toHaveLength(1);
-  });
-
-  it('fetched selects if function is provided', () => {
-    expect(fetchSelectsMock).toHaveBeenCalled();
   });
 
   it('calls fetchData on filter', () => {

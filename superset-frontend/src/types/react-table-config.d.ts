@@ -64,8 +64,10 @@ import {
   UseSortByOptions,
   UseSortByState,
 } from 'react-table';
+import { ColumnSizer } from 'react-virtualized';
 
 declare module 'react-table' {
+  type ColumnSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   export interface TableOptions<D extends object>
     extends UseExpandedOptions<D>,
       UseFiltersOptions<D>,
@@ -116,15 +118,19 @@ declare module 'react-table' {
       UseResizeColumnsColumnOptions<D>,
       UseSortByColumnOptions<D> {
     hidden?: boolean;
-    sortable?: boolean;
     cellProps?: any;
+    size?: ColumnSize;
   }
 
   export interface ColumnInstance<D extends object = {}>
     extends UseFiltersColumnProps<D>,
       UseGroupByColumnProps<D>,
       UseResizeColumnsColumnProps<D>,
-      UseSortByColumnProps<D> {}
+      UseSortByColumnProps<D> {
+    hidden?: boolean;
+    cellProps?: any;
+    size?: ColumnSize;
+  }
 
   export interface Cell<D extends object = {}>
     extends UseGroupByCellProps<D>,

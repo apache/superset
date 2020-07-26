@@ -27,7 +27,10 @@ const controlTypes = Object.keys(controlMap);
 const propTypes = {
   actions: PropTypes.object.isRequired,
   name: PropTypes.string.isRequired,
-  type: PropTypes.oneOf(controlTypes).isRequired,
+  type: PropTypes.oneOfType([
+    PropTypes.oneOf(controlTypes).isRequired,
+    PropTypes.func.isRequired,
+  ]),
   hidden: PropTypes.bool,
   label: PropTypes.string.isRequired,
   choices: PropTypes.oneOfType([
@@ -62,6 +65,8 @@ export default class Control extends React.PureComponent {
     super(props);
     this.state = { hovered: false };
     this.onChange = this.onChange.bind(this);
+    this.onMouseEnter = this.setHover.bind(this, true);
+    this.onMouseLeave = this.setHover.bind(this, false);
   }
   onChange(value, errors) {
     this.props.actions.setControlValue(this.props.name, value, errors);
@@ -70,18 +75,18 @@ export default class Control extends React.PureComponent {
     this.setState({ hovered });
   }
   render() {
-    if (!this.props.type) return null; // this catches things like <hr/> elements (not a control!) shoved into the control panel configs.
-    const ControlType = controlMap[this.props.type];
-    const divStyle = this.props.hidden ? { display: 'none' } : null;
+    const { type, hidden } = this.props;
+    if (!type) return null;
+    const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
     return (
       <div
         className="Control"
         data-test={this.props.name}
-        style={divStyle}
-        onMouseEnter={this.setHover.bind(this, true)}
-        onMouseLeave={this.setHover.bind(this, false)}
+        style={hidden ? { display: 'none' } : undefined}
+        onMouseEnter={this.onMouseEnter}
+        onMouseLeave={this.onMouseLeave}
       >
-        <ControlType
+        <ControlComponent
           onChange={this.onChange}
           hovered={this.state.hovered}
           {...this.props}

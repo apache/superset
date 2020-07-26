@@ -42,7 +42,7 @@ from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportMixin
-from superset.models.slice import Slice as Slice
+from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
@@ -51,6 +51,7 @@ from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
 )
+from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
     # pylint: disable=unused-import
@@ -240,14 +241,14 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         self.json_metadata = value
 
     @property
-    def position(self) -> Dict:
+    def position(self) -> Dict[str, Any]:
         if self.position_json:
             return json.loads(self.position_json)
         return {}
 
     @classmethod
     def import_obj(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-        cls, dashboard_to_import: "Dashboard", import_time: Optional[int] = None
+        cls, dashboard_to_import: "Dashboard", import_time: Optional[int] = None,
     ) -> int:
         """Imports the dashboard from the object to the database.
 
@@ -311,11 +312,15 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         # copy slices object as Slice.import_slice will mutate the slice
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
+
+        # Clearing the slug to avoid conflicts
+        dashboard_to_import.slug = None
+
         old_json_metadata = json.loads(dashboard_to_import.json_metadata or "{}")
         old_to_new_slc_id_dict: Dict[int, int] = {}
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
-        new_filter_scopes: Dict[str, Dict] = {}
+        new_filter_scopes = {}
         i_params_dict = dashboard_to_import.params_dict
         remote_id_slice_map = {
             slc.params_dict["remote_id"]: slc
@@ -332,8 +337,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             new_slc_id = Slice.import_obj(slc, remote_slc, import_time=import_time)
             old_to_new_slc_id_dict[slc.id] = new_slc_id
             # update json metadata that deals with slice ids
-            new_slc_id_str = "{}".format(new_slc_id)
-            old_slc_id_str = "{}".format(slc.id)
+            new_slc_id_str = str(new_slc_id)
+            old_slc_id_str = str(slc.id)
             if (
                 "timed_refresh_immune_slices" in i_params_dict
                 and old_slc_id_str in i_params_dict["timed_refresh_immune_slices"]
@@ -351,7 +356,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         # are converted to filter_scopes
         # but dashboard create from import may still have old dashboard filter metadata
         # here we convert them to new filter_scopes metadata first
-        filter_scopes: Dict = {}
+        filter_scopes = {}
         if (
             "filter_immune_slices" in i_params_dict
             or "filter_immune_slice_fields" in i_params_dict
@@ -415,7 +420,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @classmethod
     def export_dashboards(  # pylint: disable=too-many-locals
-        cls, dashboard_ids: List
+        cls, dashboard_ids: List[int]
     ) -> str:
         copied_dashboards = []
         datasource_ids = set()
@@ -476,7 +481,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 def event_after_dashboard_changed(  # pylint: disable=unused-argument
     mapper: Mapper, connection: Connection, target: Dashboard
 ) -> None:
-    cache_dashboard_thumbnail.delay(target.id, force=True)
+    url = get_url_path("Superset.dashboard", dashboard_id_or_slug=target.id)
+    cache_dashboard_thumbnail.delay(url, target.digest, force=True)
 
 
 # events for updating tags

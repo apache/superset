@@ -67,12 +67,8 @@ import {
   validateNonEmpty,
 } from '@superset-ui/validator';
 
-import { ColumnOption } from '@superset-ui/control-utils';
-import {
-  formatSelectOptionsForRange,
-  formatSelectOptions,
-  mainMetric,
-} from '../modules/utils';
+import { ColumnOption } from '@superset-ui/chart-controls';
+import { formatSelectOptions, mainMetric } from '../modules/utils';
 import { TIME_FILTER_LABELS } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -136,7 +132,7 @@ const groupByControl = {
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   allowAll: true,
-  filterOption: ({ label, value, data: opt }, text) =>
+  filterOption: ({ data: opt }, text) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&
@@ -204,9 +200,9 @@ export const controls = {
     label: t('Datasource'),
     default: null,
     description: null,
-    mapStateToProps: (state, control, actions) => ({
-      datasource: state.datasource,
-      onDatasourceSave: actions ? actions.setDatasource : () => {},
+    mapStateToProps: ({ datasource }) => ({
+      datasource,
+      isEditable: !!datasource,
     }),
   },
 
@@ -316,7 +312,6 @@ export const controls = {
         'filter below is applied against this column or ' +
         'expression',
     ),
-    default: control => control.default,
     clearable: false,
     optionRenderer: c => <ColumnOption column={c} showType />,
     valueRenderer: c => <ColumnOption column={c} />,

@@ -17,7 +17,7 @@
 import json
 from collections import Counter
 
-from flask import request, Response
+from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 from sqlalchemy.orm.exc import NoResultFound
@@ -25,6 +25,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.core import Database
+from superset.typing import FlaskResponse
 
 from .base import api, BaseSupersetView, handle_api_exception, json_error_response
 
@@ -36,7 +37,7 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
-    def save(self) -> Response:
+    def save(self) -> FlaskResponse:
         data = request.form.get("data")
         if not isinstance(data, str):
             return json_error_response("Request missing data field.", status=500)
@@ -78,7 +79,7 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
-    def get(self, datasource_type: str, datasource_id: int) -> Response:
+    def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         try:
             orm_datasource = ConnectorRegistry.get_datasource(
                 datasource_type, datasource_id, db.session
@@ -95,7 +96,9 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
-    def external_metadata(self, datasource_type: str, datasource_id: int) -> Response:
+    def external_metadata(
+        self, datasource_type: str, datasource_id: int
+    ) -> FlaskResponse:
         """Gets column info from the source system"""
         if datasource_type == "druid":
             datasource = ConnectorRegistry.get_datasource(

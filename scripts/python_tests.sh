@@ -23,5 +23,5 @@ echo "Superset config module: $SUPERSET_CONFIG"
 
 superset db upgrade
 superset init
-nosetests --stop tests/load_examples_test.py
-nosetests --stop --exclude=load_examples_test tests
+pytest --maxfail=1 tests/load_examples_test.py
+pytest --maxfail=1 --cov=superset --ignore=load_examples_test tests/*

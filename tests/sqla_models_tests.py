@@ -27,7 +27,7 @@ from superset.utils.core import DbColumnType, get_example_database, FilterOperat
 from .base_tests import SupersetTestCase
 
 
-class DatabaseModelTestCase(SupersetTestCase):
+class TestDatabaseModel(SupersetTestCase):
     def test_is_time_druid_time_col(self):
         """Druid has a special __time column"""
 

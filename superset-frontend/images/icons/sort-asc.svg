@@ -1,0 +1,24 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+ 
+    http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group">
+<path id="Shape" fill-rule="evenodd" clip-rule="evenodd" d="M10.4142 13C9.52331 13 9.07714 14.0771 9.70711 14.7071L11.2929 16.2929C11.6834 16.6834 12.3166 16.6834 12.7071 16.2929L14.2929 14.7071C14.9229 14.0771 14.4767 13 13.5858 13H10.4142Z" fill="#E0E0E0"/>
+<path id="Shape Copy" fill-rule="evenodd" clip-rule="evenodd" d="M10.4142 11C9.52331 11 9.07714 9.92286 9.70711 9.29289L11.2929 7.70711C11.6834 7.31658 12.3166 7.31658 12.7071 7.70711L14.2929 9.29289C14.9229 9.92286 14.4767 11 13.5858 11H10.4142Z" fill="currentColor"/>
+</g>
+</svg>

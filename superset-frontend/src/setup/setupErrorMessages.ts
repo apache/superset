@@ -16,9 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErrorMessageComponentRegistry';
+import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
+import TimeoutErrorMessage from 'src/components/ErrorMessage/TimeoutErrorMessage';
+
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 
 export default function setupErrorMessages() {
-  // TODO: Register error messages to the ErrorMessageComponentRegistry once implemented
+  const errorMessageComponentRegistry = getErrorMessageComponentRegistry();
+
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+    TimeoutErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.BACKEND_TIMEOUT_ERROR,
+    TimeoutErrorMessage,
+  );
   setupErrorMessagesExtra();
 }

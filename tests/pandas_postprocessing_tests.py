@@ -15,16 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+from datetime import datetime
 import math
 from typing import Any, List, Optional
 
-from pandas import Series
+from pandas import DataFrame, Series
+import pytest
 
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import pandas_postprocessing as proc
+from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
 
 from .base_tests import SupersetTestCase
-from .fixtures.dataframes import categories_df, lonlat_df, timeseries_df
+from .fixtures.dataframes import categories_df, lonlat_df, timeseries_df, prophet_df
+
+AGGREGATES_SINGLE = {"idx_nulls": {"operator": "sum"}}
+AGGREGATES_MULTIPLE = {
+    "idx_nulls": {"operator": "sum"},
+    "asc_idx": {"operator": "mean"},
+}
 
 
 def series_to_list(series: Series) -> List[Any]:
@@ -56,34 +65,100 @@ def round_floats(
     return [round(val, precision) if val else None for val in floats]
 
 
-class PostProcessingTestCase(SupersetTestCase):
-    def test_pivot(self):
-        aggregates = {"idx_nulls": {"operator": "sum"}}
+class TestPostProcessing(SupersetTestCase):
+    def test_flatten_column_after_pivot(self):
+        """
+        Test pivot column flattening function
+        """
+        # single aggregate cases
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column="idx_nulls",
+            ),
+            "idx_nulls",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1"),
+            ),
+            "col1",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1", "col2"),
+            ),
+            "col1, col2",
+        )
 
-        # regular pivot
+        # Multiple aggregate cases
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_MULTIPLE, column=("idx_nulls", "asc_idx", "col1"),
+            ),
+            "idx_nulls, asc_idx, col1",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_MULTIPLE,
+                column=("idx_nulls", "asc_idx", "col1", "col2"),
+            ),
+            "idx_nulls, asc_idx, col1, col2",
+        )
+
+    def test_pivot_without_columns(self):
+        """
+        Make sure pivot without columns returns correct DataFrame
+        """
+        df = proc.pivot(df=categories_df, index=["name"], aggregates=AGGREGATES_SINGLE,)
+        self.assertListEqual(
+            df.columns.tolist(), ["name", "idx_nulls"],
+        )
+        self.assertEqual(len(df), 101)
+        self.assertEqual(df.sum()[1], 1050)
+
+    def test_pivot_with_single_column(self):
+        """
+        Make sure pivot with single column returns correct DataFrame
+        """
         df = proc.pivot(
             df=categories_df,
             index=["name"],
             columns=["category"],
-            aggregates=aggregates,
+            aggregates=AGGREGATES_SINGLE,
         )
         self.assertListEqual(
-            df.columns.tolist(),
-            [("idx_nulls", "cat0"), ("idx_nulls", "cat1"), ("idx_nulls", "cat2")],
+            df.columns.tolist(), ["name", "cat0", "cat1", "cat2"],
         )
         self.assertEqual(len(df), 101)
-        self.assertEqual(df.sum()[0], 315)
+        self.assertEqual(df.sum()[1], 315)
 
-        # regular pivot
         df = proc.pivot(
             df=categories_df,
             index=["dept"],
             columns=["category"],
-            aggregates=aggregates,
+            aggregates=AGGREGATES_SINGLE,
+        )
+        self.assertListEqual(
+            df.columns.tolist(), ["dept", "cat0", "cat1", "cat2"],
         )
         self.assertEqual(len(df), 5)
 
-        # fill value
+    def test_pivot_with_multiple_columns(self):
+        """
+        Make sure pivot with multiple columns returns correct DataFrame
+        """
+        df = proc.pivot(
+            df=categories_df,
+            index=["name"],
+            columns=["category", "dept"],
+            aggregates=AGGREGATES_SINGLE,
+        )
+        self.assertEqual(len(df.columns), 1 + 3 * 5)  # index + possible permutations
+
+    def test_pivot_fill_values(self):
+        """
+        Make sure pivot with fill values returns correct DataFrame
+        """
         df = proc.pivot(
             df=categories_df,
             index=["name"],
@@ -91,7 +166,20 @@ class PostProcessingTestCase(SupersetTestCase):
             metric_fill_value=1,
             aggregates={"idx_nulls": {"operator": "sum"}},
         )
-        self.assertEqual(df.sum()[0], 382)
+        self.assertEqual(df.sum()[1], 382)
+
+    def test_pivot_exceptions(self):
+        """
+        Make sure pivot raises correct Exceptions
+        """
+        # Missing index
+        self.assertRaises(
+            TypeError,
+            proc.pivot,
+            df=categories_df,
+            columns=["dept"],
+            aggregates=AGGREGATES_SINGLE,
+        )
 
         # invalid index reference
         self.assertRaises(
@@ -100,7 +188,7 @@ class PostProcessingTestCase(SupersetTestCase):
             df=categories_df,
             index=["abc"],
             columns=["dept"],
-            aggregates=aggregates,
+            aggregates=AGGREGATES_SINGLE,
         )
 
         # invalid column reference
@@ -110,7 +198,7 @@ class PostProcessingTestCase(SupersetTestCase):
             df=categories_df,
             index=["dept"],
             columns=["abc"],
-            aggregates=aggregates,
+            aggregates=AGGREGATES_SINGLE,
         )
 
         # invalid aggregate options
@@ -395,4 +483,109 @@ class PostProcessingTestCase(SupersetTestCase):
         )
         self.assertListEqual(
             series_to_list(post_df["latitude"]), series_to_list(lonlat_df["latitude"]),
+        )
+
+    def test_contribution(self):
+        df = DataFrame(
+            {
+                DTTM_ALIAS: [
+                    datetime(2020, 7, 16, 14, 49),
+                    datetime(2020, 7, 16, 14, 50),
+                ],
+                "a": [1, 3],
+                "b": [1, 9],
+            }
+        )
+
+        # cell contribution across row
+        row_df = proc.contribution(df, PostProcessingContributionOrientation.ROW)
+        self.assertListEqual(df.columns.tolist(), [DTTM_ALIAS, "a", "b"])
+        self.assertListEqual(series_to_list(row_df["a"]), [0.5, 0.25])
+        self.assertListEqual(series_to_list(row_df["b"]), [0.5, 0.75])
+
+        # cell contribution across column without temporal column
+        df.pop(DTTM_ALIAS)
+        column_df = proc.contribution(df, PostProcessingContributionOrientation.COLUMN)
+        self.assertListEqual(df.columns.tolist(), ["a", "b"])
+        self.assertListEqual(series_to_list(column_df["a"]), [0.25, 0.75])
+        self.assertListEqual(series_to_list(column_df["b"]), [0.1, 0.9])
+
+    def test_prophet_valid(self):
+        pytest.importorskip("fbprophet")
+
+        df = proc.prophet(
+            df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.9
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            DTTM_ALIAS,
+            "a__yhat",
+            "a__yhat_upper",
+            "a__yhat_lower",
+            "a",
+            "b__yhat",
+            "b__yhat_upper",
+            "b__yhat_lower",
+            "b",
+        }
+        assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 12, 31)
+        assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 3, 31)
+        assert len(df) == 7
+
+        df = proc.prophet(
+            df=prophet_df, time_grain="P1M", periods=5, confidence_interval=0.9
+        )
+        assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 12, 31)
+        assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 5, 31)
+        assert len(df) == 9
+
+    def test_prophet_missing_temporal_column(self):
+        df = prophet_df.drop(DTTM_ALIAS, axis=1)
+
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.prophet,
+            df=df,
+            time_grain="P1M",
+            periods=3,
+            confidence_interval=0.9,
+        )
+
+    def test_prophet_incorrect_confidence_interval(self):
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.prophet,
+            df=prophet_df,
+            time_grain="P1M",
+            periods=3,
+            confidence_interval=0.0,
+        )
+
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.prophet,
+            df=prophet_df,
+            time_grain="P1M",
+            periods=3,
+            confidence_interval=1.0,
+        )
+
+    def test_prophet_incorrect_periods(self):
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.prophet,
+            df=prophet_df,
+            time_grain="P1M",
+            periods=0,
+            confidence_interval=0.8,
+        )
+
+    def test_prophet_incorrect_time_grain(self):
+        self.assertRaises(
+            QueryObjectValidationError,
+            proc.prophet,
+            df=prophet_df,
+            time_grain="yearly",
+            periods=10,
+            confidence_interval=0.8,
         )

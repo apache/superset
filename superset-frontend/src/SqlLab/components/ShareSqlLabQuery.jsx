@@ -77,10 +77,9 @@ class ShareSqlLabQuery extends React.Component {
     let savedQueryToastContent;
 
     if (this.props.queryEditor.remoteId) {
-      savedQueryToastContent =
-        window.location.origin +
-        window.location.pathname +
-        `?savedQueryId=${this.props.queryEditor.remoteId}`;
+      savedQueryToastContent = `${
+        window.location.origin + window.location.pathname
+      }?savedQueryId=${this.props.queryEditor.remoteId}`;
       this.setState({ shortUrl: savedQueryToastContent });
     } else {
       savedQueryToastContent = t('Please save the query to enable sharing');
@@ -112,7 +111,7 @@ class ShareSqlLabQuery extends React.Component {
         overlay={this.renderPopover()}
       >
         <Button bsSize="small" className="toggleSave">
-          <i className="fa fa-clipboard" /> {t('Share Query')}
+          <i className="fa fa-share" /> {t('Share')}
         </Button>
       </OverlayTrigger>
     );

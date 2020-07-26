@@ -68,7 +68,12 @@ const loggerMiddleware = store => next => action => {
     return next(action);
   }
 
-  const { dashboardInfo, explore, impressionId } = store.getState();
+  const {
+    dashboardInfo,
+    explore,
+    impressionId,
+    dashboardLayout,
+  } = store.getState();
   let logMetadata = {
     impression_id: impressionId,
     version: 'v2',
@@ -81,7 +86,7 @@ const loggerMiddleware = store => next => action => {
     };
   } else if (explore) {
     logMetadata = {
-      source: 'slice',
+      source: 'explore',
       source_id: explore.slice ? explore.slice.slice_id : 0,
       ...logMetadata,
     };
@@ -109,6 +114,12 @@ const loggerMiddleware = store => next => action => {
       event_id: lastEventId,
       visibility: document.visibilityState,
     };
+  }
+
+  if (eventData.target_id && dashboardLayout.present) {
+    const meta = dashboardLayout.present[eventData.target_id].meta;
+    // chart name or tab/header text
+    eventData.target_name = meta.chartId ? meta.sliceName : meta.text;
   }
 
   logMessageQueue.append(eventData);
