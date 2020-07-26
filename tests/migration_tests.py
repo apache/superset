@@ -24,7 +24,7 @@ from superset.migrations.versions.fb13d49b72f9_better_filters import (
 from .base_tests import SupersetTestCase
 
 
-class MigrationTestCase(SupersetTestCase):
+class TestMigration(SupersetTestCase):
     def test_upgrade_slice(self):
         slc = Slice(
             slice_name="FOO",

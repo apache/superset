@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import { Select, Creatable } from 'src/components/Select';
+import { Select } from 'src/components/Select';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -192,11 +192,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
 
   handleMultiComparatorInputHeightChange() {
     if (this.multiComparatorComponent) {
-      /* eslint-disable no-underscore-dangle */
-      const multiComparatorDOMNode =
-        this.multiComparatorComponent._selectRef &&
-        this.multiComparatorComponent._selectRef.select &&
-        this.multiComparatorComponent._selectRef.select.control;
+      const multiComparatorDOMNode = this.multiComparatorComponent?.select
+        ?.select.controlRef;
       if (multiComparatorDOMNode) {
         if (
           multiComparatorDOMNode.clientHeight !==
@@ -239,7 +236,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
             loading: false,
           }));
         })
-        .catch(error => {
+        .catch(() => {
           this.setState(() => ({
             suggestions: [],
             abortActiveRequest: null,

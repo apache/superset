@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=C,R,W
 import logging
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.orm import Session
 
 from superset.connectors.druid.models import DruidCluster
 from superset.models.core import Database
@@ -25,7 +27,7 @@ DRUID_CLUSTERS_KEY = "druid_clusters"
 logger = logging.getLogger(__name__)
 
 
-def export_schema_to_dict(back_references):
+def export_schema_to_dict(back_references: bool) -> Dict[str, Any]:
     """Exports the supported import/export schema to a dictionary"""
     databases = [
         Database.export_schema(recursive=True, include_parent_ref=back_references)
@@ -41,7 +43,9 @@ def export_schema_to_dict(back_references):
     return data
 
 
-def export_to_dict(session, recursive, back_references, include_defaults):
+def export_to_dict(
+    session: Session, recursive: bool, back_references: bool, include_defaults: bool
+) -> Dict[str, Any]:
     """Exports databases and druid clusters to a dictionary"""
     logger.info("Starting export")
     dbs = session.query(Database)
@@ -72,8 +76,12 @@ def export_to_dict(session, recursive, back_references, include_defaults):
     return data
 
 
-def import_from_dict(session, data, sync=[]):
+def import_from_dict(
+    session: Session, data: Dict[str, Any], sync: Optional[List[str]] = None
+) -> None:
     """Imports databases and druid clusters from dictionary"""
+    if not sync:
+        sync = []
     if isinstance(data, dict):
         logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
         for database in data.get(DATABASES_KEY, []):

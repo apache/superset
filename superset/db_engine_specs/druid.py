@@ -16,7 +16,8 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, TYPE_CHECKING
+from datetime import datetime
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
@@ -41,6 +42,10 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         None: "{col}",
         "PT1S": "FLOOR({col} TO SECOND)",
         "PT1M": "FLOOR({col} TO MINUTE)",
+        "PT5M": "TIME_FLOOR({col}, 'PT5M')",
+        "PT10M": "TIME_FLOOR({col}, 'PT10M')",
+        "PT15M": "TIME_FLOOR({col}, 'PT15M')",
+        "PT0.5H": "TIME_FLOOR({col}, 'PT30M')",
         "PT1H": "FLOOR({col} TO HOUR)",
         "P1D": "FLOOR({col} TO DAY)",
         "P1W": "FLOOR({col} TO WEEK)",
@@ -77,3 +82,12 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             engine_params["connect_args"] = connect_args
             extra["engine_params"] = engine_params
         return extra
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        tt = target_type.upper()
+        if tt == utils.TemporalType.DATE:
+            return f"CAST(TIME_PARSE('{dttm.date().isoformat()}') AS DATE)"
+        if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
+            return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
+        return None

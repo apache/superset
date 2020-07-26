@@ -17,11 +17,7 @@
 from .base_tests import SupersetTestCase
 
 
-class SupersetDataFrameTestCase(SupersetTestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.examples = None
-
+class TestSupersetDataFrame(SupersetTestCase):
     def setUp(self) -> None:
         # Late importing here as we need an app context to be pushed...
         from superset import examples

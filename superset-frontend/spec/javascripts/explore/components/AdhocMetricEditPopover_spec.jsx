@@ -127,9 +127,9 @@ describe('AdhocMetricEditPopover', () => {
     wrapper.instance().onDragDown = sinon.spy();
     wrapper.instance().forceUpdate();
 
-    expect(wrapper.find('i.glyphicon-resize-full')).toHaveLength(1);
+    expect(wrapper.find('i.fa-expand')).toHaveLength(1);
     expect(wrapper.instance().onDragDown.calledOnce).toBe(false);
-    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown');
+    wrapper.find('i.fa-expand').simulate('mouseDown');
     expect(wrapper.instance().onDragDown.calledOnce).toBe(true);
   });
 });

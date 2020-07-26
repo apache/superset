@@ -18,14 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  Button,
-  ControlLabel,
-  FormGroup,
-  Popover,
-  Tab,
-  Tabs,
-} from 'react-bootstrap';
+import { Button, FormGroup, Popover, Tab, Tabs } from 'react-bootstrap';
 import Select from 'src/components/Select';
 import ace from 'brace';
 import AceEditor from 'react-ace';
@@ -33,9 +26,11 @@ import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import { t } from '@superset-ui/translation';
-import { ColumnOption } from '@superset-ui/control-utils';
+import { ColumnOption } from '@superset-ui/chart-controls';
 
-import { AGGREGATES, AGGREGATES_OPTIONS } from '../constants';
+import FormLabel from 'src/components/FormLabel';
+
+import { AGGREGATES_OPTIONS } from '../constants';
 import AdhocMetricEditPopoverTitle from './AdhocMetricEditPopoverTitle';
 import columnType from '../propTypes/columnType';
 import AdhocMetric, { EXPRESSION_TYPES } from '../AdhocMetric';
@@ -251,9 +246,9 @@ export default class AdhocMetricEditPopover extends React.Component {
             title="Simple"
           >
             <FormGroup>
-              <ControlLabel>
+              <FormLabel>
                 <strong>column</strong>
-              </ControlLabel>
+              </FormLabel>
               <Select
                 name="select-column"
                 {...this.selectProps}
@@ -261,9 +256,9 @@ export default class AdhocMetricEditPopover extends React.Component {
               />
             </FormGroup>
             <FormGroup>
-              <ControlLabel>
+              <FormLabel>
                 <strong>aggregate</strong>
-              </ControlLabel>
+              </FormLabel>
               <Select
                 name="select-aggregate"
                 {...this.selectProps}
@@ -283,7 +278,7 @@ export default class AdhocMetricEditPopover extends React.Component {
                   ref={this.handleAceEditorRef}
                   mode="sql"
                   theme="github"
-                  height={this.state.height - 43 + 'px'}
+                  height={`${this.state.height - 43}px`}
                   onChange={this.onSqlExpressionChange}
                   width="100%"
                   showGutter={false}
@@ -317,8 +312,10 @@ export default class AdhocMetricEditPopover extends React.Component {
             Close
           </Button>
           <i
+            role="button"
+            tabIndex={0}
             onMouseDown={this.onDragDown}
-            className="glyphicon glyphicon-resize-full edit-popover-resize"
+            className="fa fa-expand edit-popover-resize text-muted"
           />
         </div>
       </Popover>

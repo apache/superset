@@ -22,8 +22,6 @@ class DAOException(SupersetException):
     Base DAO exception class
     """
 
-    pass
-
 
 class DAOCreateFailedError(DAOException):
     """

@@ -108,11 +108,13 @@ class ChartHolder extends React.Component {
       outlinedComponentId: null,
       outlinedColumnName: null,
       directPathLastUpdated: 0,
+      isFullSize: false,
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
+    this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
   }
 
   componentDidMount() {
@@ -160,9 +162,12 @@ class ChartHolder extends React.Component {
     });
   }
 
+  handleToggleFullSize() {
+    this.setState(() => ({ isFullSize: !this.state.isFullSize }));
+  }
+
   render() {
     const { isFocused } = this.state;
-
     const {
       component,
       parentComponent,
@@ -184,6 +189,23 @@ class ChartHolder extends React.Component {
       parentComponent.type === COLUMN_TYPE
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
+
+    let chartWidth = 0;
+    let chartHeight = 0;
+
+    if (this.state.isFullSize) {
+      chartWidth = document.body.clientWidth - CHART_MARGIN;
+      chartHeight = document.body.clientHeight - CHART_MARGIN;
+    } else {
+      chartWidth = Math.floor(
+        widthMultiple * columnWidth +
+          (widthMultiple - 1) * GRID_GUTTER_SIZE -
+          CHART_MARGIN,
+      );
+      chartHeight = Math.floor(
+        component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
+      );
+    }
 
     return (
       <DragDroppable
@@ -217,7 +239,7 @@ class ChartHolder extends React.Component {
               ref={dragSourceRef}
               className={`dashboard-component dashboard-component-chart-holder ${
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
-              }`}
+              } ${this.state.isFullSize ? 'full-size' : ''}`}
             >
               {!editMode && (
                 <AnchorLink
@@ -231,17 +253,13 @@ class ChartHolder extends React.Component {
                 componentId={component.id}
                 id={component.meta.chartId}
                 dashboardId={dashboardId}
-                width={Math.floor(
-                  widthMultiple * columnWidth +
-                    (widthMultiple - 1) * GRID_GUTTER_SIZE -
-                    CHART_MARGIN,
-                )}
-                height={Math.floor(
-                  component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
-                )}
+                width={chartWidth}
+                height={chartHeight}
                 sliceName={component.meta.sliceName || ''}
                 updateSliceName={this.handleUpdateSliceName}
                 isComponentVisible={isComponentVisible}
+                handleToggleFullSize={this.handleToggleFullSize}
+                isFullSize={this.state.isFullSize}
               />
               {!editMode && (
                 <FilterIndicators chartId={component.meta.chartId} />

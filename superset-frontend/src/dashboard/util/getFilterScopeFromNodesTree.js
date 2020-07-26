@@ -26,13 +26,14 @@ function getTabChildrenScope({
   tabScopes,
   parentNodeValue,
   forceAggregate = false,
-  hasChartSibilings = false,
+  hasChartSiblings = false,
+  immuneChartSiblings = [],
 }) {
   // if all sub-tabs are in scope, or forceAggregate =  true
   // aggregate scope to parentNodeValue
   if (
     forceAggregate ||
-    (!hasChartSibilings &&
+    (!hasChartSiblings &&
       Object.entries(tabScopes).every(
         ([key, { scope }]) => scope && scope.length && key === scope[0],
       ))
@@ -48,7 +49,11 @@ function getTabChildrenScope({
   );
   return {
     scope: flatMap(componentsInScope, ({ scope }) => scope),
-    immune: flatMap(componentsInScope, ({ immune }) => immune),
+    immune: componentsInScope.length
+      ? flatMap(componentsInScope, ({ immune }) => immune)
+      : flatMap(Object.values(tabScopes), ({ immune }) => immune).concat(
+          immuneChartSiblings,
+        ),
   };
 }
 
@@ -103,7 +108,8 @@ function traverse({ currentNode = {}, filterId, checkedChartIds = [] }) {
     return getTabChildrenScope({
       tabScopes,
       parentNodeValue: currentValue,
-      hasChartSibilings: !isEmpty(chartChildren),
+      hasChartSiblings: !isEmpty(chartChildren),
+      immuneChartSiblings: chartsImmune,
     });
   }
 

@@ -32,8 +32,9 @@ import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
 import { t } from '@superset-ui/translation';
-import { SupersetClient, Json } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/connection';
 import Chart from 'src/types/Chart';
+import FormLabel from 'src/components/FormLabel';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
 export type Slice = {
@@ -101,7 +102,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
       });
-      const chart = (response.json as Json).result;
+      const chart = response.json.result;
       setOwners(
         chart.owners.map((owner: any) => ({
           value: owner.id,
@@ -120,12 +121,14 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   }, []);
 
   const loadOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({
+      filter: input,
+    });
     return SupersetClient.get({
       endpoint: `/api/v1/chart/related/owners?q=${query}`,
     }).then(
       response => {
-        const { result } = response.json as Json;
+        const { result } = response.json;
         return result.map((item: any) => ({
           value: item.value,
           label: item.text,
@@ -158,7 +161,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
       });
       // update the redux state
       const updatedChart = {
-        ...(res.json as Json).result,
+        ...res.json.result,
         id: slice.slice_id,
       };
       onSave(updatedChart);
@@ -180,9 +183,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
           <Col md={6}>
             <h3>{t('Basic Information')}</h3>
             <FormGroup>
-              <label className="control-label" htmlFor="name">
+              <FormLabel htmlFor="name" required>
                 {t('Name')}
-              </label>
+              </FormLabel>
               <FormControl
                 name="name"
                 type="text"
@@ -195,9 +198,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
               />
             </FormGroup>
             <FormGroup>
-              <label className="control-label" htmlFor="description">
-                {t('Description')}
-              </label>
+              <FormLabel htmlFor="description">{t('Description')}</FormLabel>
               <FormControl
                 name="description"
                 type="text"
@@ -220,9 +221,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
           <Col md={6}>
             <h3>{t('Configuration')}</h3>
             <FormGroup>
-              <label className="control-label" htmlFor="cacheTimeout">
-                {t('Cache Timeout')}
-              </label>
+              <FormLabel htmlFor="cacheTimeout">{t('Cache Timeout')}</FormLabel>
               <FormControl
                 name="cacheTimeout"
                 type="text"
@@ -241,9 +240,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
             </FormGroup>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
             <FormGroup>
-              <label className="control-label" htmlFor="owners">
-                {t('Owners')}
-              </label>
+              <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
               <AsyncSelect
                 isMulti
                 name="owners"

@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.db_engine_specs.drill import DrillEngineSpec
-from tests.db_engine_specs.base_tests import DbEngineSpecTestCase
+from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
-class DrillTestCase(DbEngineSpecTestCase):
+class TestDrillDbEngineSpec(TestDbEngineSpec):
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 

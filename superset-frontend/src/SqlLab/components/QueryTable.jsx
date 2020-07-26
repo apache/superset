@@ -28,7 +28,6 @@ import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
 import { fDuration } from '../../modules/dates';
-import { storeQuery } from '../../utils/common';
 import QueryStateLabel from './QueryStateLabel';
 
 const propTypes = {
@@ -57,17 +56,9 @@ class QueryTable extends React.PureComponent {
       activeQuery: null,
     };
   }
-  callback(url) {
+  openQuery(id) {
+    const url = `/superset/sqllab?queryId=${id}`;
     window.open(url);
-  }
-  openQuery(dbId, schema, sql) {
-    const newQuery = {
-      dbId,
-      title: t('Untitled Query'),
-      schema,
-      sql,
-    };
-    storeQuery(newQuery).then(url => this.callback(url));
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
@@ -127,10 +118,10 @@ class QueryTable extends React.PureComponent {
           <div style={{ width: '100px' }}>
             <button
               className="btn btn-link btn-xs"
-              onClick={this.openQuery.bind(this, q.dbId, q.schema, q.sql)}
+              onClick={this.openQuery.bind(this, q.queryId)}
             >
-              <i className="fa fa-external-link" />
-              {t('Open in SQL Editor')}
+              <i className="fa fa-external-link m-r-3" />
+              {t('Edit')}
             </button>
           </div>
         );

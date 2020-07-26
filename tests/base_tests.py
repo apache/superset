@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 import imp
 import json
-from typing import Dict, Union, List
+from typing import Any, Dict, Union, List
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -27,7 +27,8 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.orm import Session
 
-from tests.test_app import app  # isort:skip
+from tests.test_app import app
+from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -51,9 +52,7 @@ class SupersetTestCase(TestCase):
         "postgresql": "public",
     }
 
-    def __init__(self, *args, **kwargs):
-        super(SupersetTestCase, self).__init__(*args, **kwargs)
-        self.maxDiff = None
+    maxDiff = -1
 
     def create_app(self):
         return app
@@ -148,9 +147,12 @@ class SupersetTestCase(TestCase):
         resp = self.get_resp("/login/", data=dict(username=username, password=password))
         self.assertNotIn("User confirmation needed", resp)
 
-    def get_slice(self, slice_name: str, session: Session) -> Slice:
+    def get_slice(
+        self, slice_name: str, session: Session, expunge_from_session: bool = True
+    ) -> Slice:
         slc = session.query(Slice).filter_by(slice_name=slice_name).one()
-        session.expunge_all()
+        if expunge_from_session:
+            session.expunge_all()
         return slc
 
     @staticmethod
@@ -259,6 +261,7 @@ class SupersetTestCase(TestCase):
         select_as_cta=False,
         tmp_table_name=None,
         schema=None,
+        ctas_method=CtasMethod.TABLE,
     ):
         if user_name:
             self.logout()
@@ -270,6 +273,7 @@ class SupersetTestCase(TestCase):
             "client_id": client_id,
             "queryLimit": query_limit,
             "sql_editor_id": sql_editor_id,
+            "ctas_method": ctas_method,
         }
         if tmp_table_name:
             json_payload["tmp_table_name"] = tmp_table_name
@@ -397,7 +401,9 @@ class SupersetTestCase(TestCase):
             mock_method.assert_called_once_with("error", func_name)
         return rv
 
-    def post_assert_metric(self, uri: str, data: Dict, func_name: str) -> Response:
+    def post_assert_metric(
+        self, uri: str, data: Dict[str, Any], func_name: str
+    ) -> Response:
         """
         Simple client post with an extra assertion for statsd metrics
 
@@ -417,7 +423,9 @@ class SupersetTestCase(TestCase):
             mock_method.assert_called_once_with("error", func_name)
         return rv
 
-    def put_assert_metric(self, uri: str, data: Dict, func_name: str) -> Response:
+    def put_assert_metric(
+        self, uri: str, data: Dict[str, Any], func_name: str
+    ) -> Response:
         """
         Simple client put with an extra assertion for statsd metrics
 

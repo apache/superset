@@ -33,7 +33,7 @@ class DashboardSlugExistsValidationError(ValidationError):
     """
 
     def __init__(self) -> None:
-        super().__init__(_("Must be unique"), field_names=["slug"])
+        super().__init__([_("Must be unique")], field_name="slug")
 
 
 class DashboardInvalidError(CommandInvalidError):

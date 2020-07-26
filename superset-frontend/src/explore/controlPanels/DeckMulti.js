@@ -21,7 +21,6 @@ import { validateNonEmpty } from '@superset-ui/validator';
 import { viewport, mapboxStyle } from './Shared_DeckGL';
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     {
       label: t('Map'),

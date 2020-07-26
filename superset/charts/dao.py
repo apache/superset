@@ -60,3 +60,15 @@ class ChartDAO(BaseDAO):
     @staticmethod
     def fetch_all_datasources() -> List["BaseDatasource"]:
         return ConnectorRegistry.get_all_datasources(db.session)
+
+    @staticmethod
+    def save(slc: Slice, commit: bool = True) -> None:
+        db.session.add(slc)
+        if commit:
+            db.session.commit()
+
+    @staticmethod
+    def overwrite(slc: Slice, commit: bool = True) -> None:
+        db.session.merge(slc)
+        if commit:
+            db.session.commit()

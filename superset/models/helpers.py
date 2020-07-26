@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional, Set, Union
 # pylint: disable=ungrouped-imports
 import humanize
 import pandas as pd
+import pytz
 import sqlalchemy as sa
 import yaml
 from flask import escape, g, Markup
@@ -81,7 +82,7 @@ class ImportMixin:
             for u in cls.__table_args__  # type: ignore
             if isinstance(u, UniqueConstraint)
         ]
-        unique.extend(  # type: ignore
+        unique.extend(
             {c.name} for c in cls.__table__.columns if c.unique  # type: ignore
         )
         return unique
@@ -363,9 +364,10 @@ class AuditMixinNullable(AuditMixin):
             nullable=True,
         )
 
+    @property
     def changed_by_name(self) -> str:
-        if self.created_by:
-            return escape("{}".format(self.created_by))
+        if self.changed_by:
+            return escape("{}".format(self.changed_by))
         return ""
 
     @renders("created_by")
@@ -379,6 +381,15 @@ class AuditMixinNullable(AuditMixin):
     @renders("changed_on")
     def changed_on_(self) -> Markup:
         return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
+
+    @renders("changed_on")
+    def changed_on_delta_humanized(self) -> str:
+        return self.changed_on_humanized
+
+    @renders("changed_on")
+    def changed_on_utc(self) -> str:
+        # Convert naive datetime to UTC
+        return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     @property
     def changed_on_humanized(self) -> str:

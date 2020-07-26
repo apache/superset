@@ -18,324 +18,88 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import moment from 'moment';
-import PropTypes from 'prop-types';
-import React from 'react';
-// @ts-ignore
-import { Panel } from 'react-bootstrap';
-import Link from 'src/components/Link';
+import React, {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
+import rison from 'rison';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import ListView from 'src/components/ListView/ListView';
+import DeleteModal from 'src/components/DeleteModal';
+import ListView, { ListViewProps } from 'src/components/ListView/ListView';
+import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import AvatarIcon from 'src/components/AvatarIcon';
 import {
   FetchDataConfig,
   FilterOperatorMap,
   Filters,
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import TooltipWrapper from 'src/components/TooltipWrapper';
+import Icon from 'src/components/Icon';
+import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
 
-interface Props {
+type Owner = {
+  first_name: string;
+  id: string;
+  last_name: string;
+  username: string;
+};
+
+type Dataset = {
+  changed_by_name: string;
+  changed_by_url: string;
+  changed_by: string;
+  changed_on_delta_humanized: string;
+  database: {
+    id: string;
+    database_name: string;
+  };
+  explore_url: string;
+  id: number;
+  owners: Array<Owner>;
+  schema: string;
+  table_name: string;
+};
+
+interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
 
-interface State {
-  datasets: any[];
-  datasetCount: number;
-  loading: boolean;
-  filterOperators: FilterOperatorMap;
-  filters: Filters;
-  owners: Array<{ text: string; value: number }>;
-  databases: Array<{ text: string; value: number }>;
-  permissions: string[];
-  lastFetchDataConfig: FetchDataConfig | null;
-}
+const DatasetList: FunctionComponent<DatasetListProps> = ({
+  addDangerToast,
+  addSuccessToast,
+}) => {
+  const [databases, setDatabases] = useState<{ text: string; value: number }[]>(
+    [],
+  );
+  const [datasetCount, setDatasetCount] = useState(0);
+  const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
+    (Dataset & { chart_count: number; dashboard_count: number }) | null
+  >(null);
+  const [datasets, setDatasets] = useState<any[]>([]);
+  const [currentFilters, setCurrentFilters] = useState<Filters>([]);
+  const [filterOperators, setFilterOperators] = useState<FilterOperatorMap>();
+  const [
+    lastFetchDataConfig,
+    setLastFetchDataConfig,
+  ] = useState<FetchDataConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentOwners, setCurrentOwners] = useState<
+    { text: string; value: number }[]
+  >([]);
+  const [permissions, setPermissions] = useState<string[]>([]);
 
-interface Dataset {
-  changed_by_name: string;
-  changed_by_url: string;
-  changed_by: string;
-  changed_on: string;
-  databse_name: string;
-  explore_url: string;
-  id: number;
-  schema: string;
-  table_name: string;
-}
+  const [datasetAddModalOpen, setDatasetAddModalOpen] = useState<boolean>(
+    false,
+  );
+  const [bulkSelectEnabled, setBulkSelectEnabled] = useState<boolean>(false);
 
-class DatasetList extends React.PureComponent<Props, State> {
-  static propTypes = {
-    addDangerToast: PropTypes.func.isRequired,
-  };
-
-  state: State = {
-    datasetCount: 0,
-    datasets: [],
-    filterOperators: {},
-    filters: [],
-    lastFetchDataConfig: null,
-    loading: false,
-    owners: [],
-    databases: [],
-    permissions: [],
-  };
-
-  componentDidMount() {
-    Promise.all([
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/_info`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/owners`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/database`,
-      }),
-    ]).then(
-      ([
-        { json: infoJson = {} },
-        { json: ownersJson = {} },
-        { json: databasesJson = {} },
-      ]) => {
-        this.setState(
-          {
-            filterOperators: infoJson.filters,
-            owners: ownersJson.result,
-            databases: databasesJson.result,
-            permissions: infoJson.permissions,
-          },
-          this.updateFilters,
-        );
-      },
-      ([e1, e2]) => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching datasets'),
-        );
-        if (e1) {
-          console.error(e1);
-        }
-        if (e2) {
-          console.error(e2);
-        }
-      },
-    );
-  }
-
-  get canEdit() {
-    return this.hasPerm('can_edit');
-  }
-
-  get canDelete() {
-    return this.hasPerm('can_delete');
-  }
-
-  get canCreate() {
-    return this.hasPerm('can_add');
-  }
-
-  initialSort = [{ id: 'changed_on', desc: true }];
-
-  columns = [
-    {
-      Cell: ({
-        row: {
-          original: { explore_url: exploreUrl, table_name: datasetTitle },
-        },
-      }: any) => <a href={exploreUrl}>{datasetTitle}</a>,
-      Header: t('Table'),
-      accessor: 'table_name',
-    },
-    {
-      Header: t('Database'),
-      accessor: 'database_name',
-    },
-    {
-      Cell: ({
-        row: {
-          original: {
-            changed_by_name: changedByName,
-            changed_by_url: changedByUrl,
-          },
-        },
-      }: any) => <a href={changedByUrl}>{changedByName}</a>,
-      Header: t('Changed By'),
-      accessor: 'changed_by_fk',
-    },
-    {
-      Cell: ({
-        row: {
-          original: { changed_on: changedOn },
-        },
-      }: any) => <span className="no-wrap">{moment(changedOn).fromNow()}</span>,
-      Header: t('Modified'),
-      accessor: 'changed_on',
-      sortable: true,
-    },
-    {
-      accessor: 'database',
-      hidden: true,
-    },
-    {
-      accessor: 'schema',
-      hidden: true,
-    },
-    {
-      accessor: 'owners',
-      hidden: true,
-    },
-    {
-      accessor: 'is_sqllab_view',
-      hidden: true,
-    },
-    {
-      Cell: ({ row: { state, original } }: any) => {
-        const handleDelete = () => this.handleDatasetDelete(original);
-        const handleEdit = () => this.handleDatasetEdit(original);
-        if (!this.canEdit && !this.canDelete) {
-          return null;
-        }
-        return (
-          <span
-            className={`actions ${state && state.hover ? '' : 'invisible'}`}
-          >
-            {this.canDelete && (
-              <ConfirmStatusChange
-                title={t('Please Confirm')}
-                description={
-                  <>
-                    {t('Are you sure you want to delete ')}{' '}
-                    <b>{original.table_name}</b>?
-                  </>
-                }
-                onConfirm={handleDelete}
-              >
-                {confirmDelete => (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={confirmDelete}
-                  >
-                    <i className="fa fa-trash" />
-                  </span>
-                )}
-              </ConfirmStatusChange>
-            )}
-            {this.canEdit && (
-              <span
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={handleEdit}
-              >
-                <i className="fa fa-pencil" />
-              </span>
-            )}
-          </span>
-        );
-      },
-      Header: t('Actions'),
-      id: 'actions',
-    },
-  ];
-
-  hasPerm = (perm: string) => {
-    if (!this.state.permissions.length) {
-      return false;
-    }
-
-    return Boolean(this.state.permissions.find(p => p === perm));
-  };
-
-  handleDatasetEdit = ({ id }: { id: number }) => {
-    window.location.assign(`/tablemodelview/edit/${id}`);
-  };
-
-  handleDatasetDelete = ({ id, table_name: tableName }: Dataset) =>
-    SupersetClient.delete({
-      endpoint: `/api/v1/dataset/${id}`,
-    }).then(
-      () => {
-        const { lastFetchDataConfig } = this.state;
-        if (lastFetchDataConfig) {
-          this.fetchData(lastFetchDataConfig);
-        }
-        this.props.addSuccessToast(t('Deleted: %s', tableName));
-      },
-      (err: any) => {
-        console.error(err);
-        this.props.addDangerToast(
-          t('There was an issue deleting %s', tableName),
-        );
-      },
-    );
-
-  handleBulkDatasetDelete = (datasets: Dataset[]) => {
-    SupersetClient.delete({
-      endpoint: `/api/v1/dataset/?q=!(${datasets
-        .map(({ id }) => id)
-        .join(',')})`,
-    }).then(
-      ({ json = {} }) => {
-        const { lastFetchDataConfig } = this.state;
-        if (lastFetchDataConfig) {
-          this.fetchData(lastFetchDataConfig);
-        }
-        this.props.addSuccessToast(json.message);
-      },
-      (err: any) => {
-        console.error(err);
-        this.props.addDangerToast(
-          t('There was an issue deleting the selected datasets'),
-        );
-      },
-    );
-  };
-
-  fetchData = ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
-    // set loading state, cache the last config for fetching data in this component.
-    this.setState({
-      lastFetchDataConfig: {
-        filters,
-        pageIndex,
-        pageSize,
-        sortBy,
-      },
-      loading: true,
-    });
-    const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
-      col,
-      opr,
-      value,
-    }));
-
-    const queryParams = JSON.stringify({
-      order_column: sortBy[0].id,
-      order_direction: sortBy[0].desc ? 'desc' : 'asc',
-      page: pageIndex,
-      page_size: pageSize,
-      ...(filterExps.length ? { filters: filterExps } : {}),
-    });
-
-    return SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${queryParams}`,
-    })
-      .then(({ json = {} }) => {
-        this.setState({ datasets: json.result, datasetCount: json.count });
-      })
-      .catch(() => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching datasets'),
-        );
-      })
-      .finally(() => {
-        this.setState({ loading: false });
-      });
-  };
-
-  updateFilters = () => {
-    const { filterOperators, owners, databases } = this.state;
+  const updateFilters = () => {
     const convertFilter = ({
       name: label,
       operator,
@@ -343,9 +107,8 @@ class DatasetList extends React.PureComponent<Props, State> {
       name: string;
       operator: string;
     }) => ({ label, value: operator });
-
-    this.setState({
-      filters: [
+    if (filterOperators) {
+      setCurrentFilters([
         {
           Header: 'Database',
           id: 'database',
@@ -371,7 +134,10 @@ class DatasetList extends React.PureComponent<Props, State> {
           id: 'owners',
           input: 'select',
           operators: filterOperators.owners.map(convertFilter),
-          selects: owners.map(({ text: label, value }) => ({ label, value })),
+          selects: currentOwners.map(({ text: label, value }) => ({
+            label,
+            value,
+          })),
         },
         {
           Header: 'SQL Lab View',
@@ -379,72 +145,485 @@ class DatasetList extends React.PureComponent<Props, State> {
           input: 'checkbox',
           operators: filterOperators.is_sqllab_view.map(convertFilter),
         },
-      ],
-    });
+      ]);
+    }
   };
 
-  render() {
-    const { datasets, datasetCount, loading, filters } = this.state;
+  const fetchDataset = () =>
+    Promise.all([
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/_info`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/related/owners`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/related/database`,
+      }),
+    ])
+      .then(
+        ([
+          { json: infoJson = {} },
+          { json: ownersJson = {} },
+          { json: databasesJson = {} },
+        ]) => {
+          setCurrentOwners(ownersJson.result);
+          setDatabases(databasesJson.result);
+          setPermissions(infoJson.permissions);
+          setFilterOperators(infoJson.filters);
+        },
+      )
+      .catch(([e1, e2]) => {
+        addDangerToast(t('An error occurred while fetching datasets'));
+        if (e1) {
+          console.error(e1);
+        }
+        if (e2) {
+          console.error(e2);
+        }
+      });
 
-    return (
-      <div className="container welcome">
-        <Panel>
-          <Panel.Body>
-            <ConfirmStatusChange
-              title={t('Please confirm')}
-              description={t(
-                'Are you sure you want to delete the selected datasets?',
-              )}
-              onConfirm={this.handleBulkDatasetDelete}
+  useEffect(() => {
+    fetchDataset();
+  }, []);
+
+  useEffect(() => {
+    updateFilters();
+  }, [databases, currentOwners, permissions, filterOperators]);
+
+  const hasPerm = (perm: string) => {
+    if (!permissions.length) {
+      return false;
+    }
+
+    return Boolean(permissions.find(p => p === perm));
+  };
+
+  const canEdit = hasPerm('can_edit');
+  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_add');
+
+  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+
+  const handleDatasetEdit = ({ id }: { id: number }) => {
+    window.location.assign(`/tablemodelview/edit/${id}`);
+  };
+
+  const openDatasetDeleteModal = (dataset: Dataset) =>
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${dataset.id}/related_objects`,
+    })
+      .then(({ json = {} }) => {
+        setDatasetCurrentlyDeleting({
+          ...dataset,
+          chart_count: json.charts.count,
+          dashboard_count: json.dashboards.count,
+        });
+      })
+      .catch(() => {
+        addDangerToast(
+          t('An error occurred while fetching dataset related data'),
+        );
+      });
+
+  const columns = [
+    {
+      Cell: ({
+        row: {
+          original: { kind },
+        },
+      }: any) => {
+        if (kind === 'physical')
+          return (
+            <TooltipWrapper
+              label="physical-dataset"
+              tooltip={t('Physical Dataset')}
             >
-              {confirmDelete => {
-                const bulkActions = [];
-                if (this.canDelete) {
-                  bulkActions.push({
-                    key: 'delete',
-                    name: (
-                      <>
-                        <i className="fa fa-trash" /> Delete
-                      </>
-                    ),
-                    onSelect: confirmDelete,
-                  });
+              <Icon name="dataset-physical" />
+            </TooltipWrapper>
+          );
+
+        return (
+          <TooltipWrapper
+            label="virtual-dataset"
+            tooltip={t('Virtual Dataset')}
+          >
+            <Icon name="dataset-virtual" />
+          </TooltipWrapper>
+        );
+      },
+      accessor: 'kind_icon',
+      disableSortBy: true,
+      size: 'xs',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { table_name: datasetTitle },
+        },
+      }: any) => datasetTitle,
+      Header: t('Name'),
+      accessor: 'table_name',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { kind },
+        },
+      }: any) => kind[0]?.toUpperCase() + kind.slice(1),
+      Header: t('Type'),
+      accessor: 'kind',
+      disableSortBy: true,
+      size: 'md',
+    },
+    {
+      Header: t('Source'),
+      accessor: 'database.database_name',
+      size: 'lg',
+    },
+    {
+      Header: t('Schema'),
+      accessor: 'schema',
+      size: 'lg',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { changed_on_delta_humanized: changedOn },
+        },
+      }: any) => <span className="no-wrap">{changedOn}</span>,
+      Header: t('Modified'),
+      accessor: 'changed_on_delta_humanized',
+      size: 'xl',
+    },
+    {
+      Cell: ({
+        row: {
+          original: { changed_by_name: changedByName },
+        },
+      }: any) => changedByName,
+      Header: t('Modified By'),
+      accessor: 'changed_by.first_name',
+      size: 'xl',
+    },
+    {
+      accessor: 'database',
+      disableSortBy: true,
+      hidden: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { owners, table_name: tableName },
+        },
+      }: any) => {
+        if (!owners) {
+          return null;
+        }
+        return owners
+          .slice(0, 5)
+          .map((owner: Owner) => (
+            <AvatarIcon
+              key={owner.id}
+              tableName={tableName}
+              firstName={owner.first_name}
+              lastName={owner.last_name}
+              userName={owner.username}
+              iconSize={24}
+              textSize={9}
+            />
+          ));
+      },
+      Header: t('Owners'),
+      id: 'owners',
+      disableSortBy: true,
+      size: 'lg',
+    },
+    {
+      accessor: 'is_sqllab_view',
+      hidden: true,
+      disableSortBy: true,
+    },
+    {
+      Cell: ({ row: { original } }: any) => {
+        const handleEdit = () => handleDatasetEdit(original);
+        const handleDelete = () => openDatasetDeleteModal(original);
+        if (!canEdit && !canDelete) {
+          return null;
+        }
+        return (
+          <span className="actions">
+            <TooltipWrapper
+              label="explore-action"
+              tooltip={t('Explore')}
+              placement="bottom"
+            >
+              <a
+                role="button"
+                tabIndex={0}
+                className="action-button"
+                href={original.explore_url}
+              >
+                <Icon name="compass" />
+              </a>
+            </TooltipWrapper>
+            {canDelete && (
+              <TooltipWrapper
+                label="delete-action"
+                tooltip={t('Delete')}
+                placement="bottom"
+              >
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handleDelete}
+                >
+                  <Icon name="trash" />
+                </span>
+              </TooltipWrapper>
+            )}
+
+            {canEdit && (
+              <TooltipWrapper
+                label="edit-action"
+                tooltip={t('Edit')}
+                placement="bottom"
+              >
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={handleEdit}
+                >
+                  <Icon name="pencil" />
+                </span>
+              </TooltipWrapper>
+            )}
+          </span>
+        );
+      },
+      Header: t('Actions'),
+      id: 'actions',
+      disableSortBy: true,
+    },
+  ];
+
+  const menuData: SubMenuProps = {
+    activeChild: 'Datasets',
+    name: t('Data'),
+    children: [
+      {
+        name: 'Datasets',
+        label: t('Datasets'),
+        url: '/tablemodelview/list/',
+      },
+      { name: 'Databases', label: t('Databases'), url: '/databaseview/list/' },
+      {
+        name: 'Saved Queries',
+        label: t('Saved Queries'),
+        url: '/sqllab/my_queries/',
+      },
+    ],
+  };
+
+  if (canCreate) {
+    menuData.primaryButton = {
+      name: (
+        <>
+          {' '}
+          <i className="fa fa-plus" /> {t('Dataset')}{' '}
+        </>
+      ),
+      onClick: () => setDatasetAddModalOpen(true),
+    };
+  }
+
+  if (canDelete) {
+    menuData.secondaryButton = {
+      name: t('Bulk Select'),
+      onClick: () => setBulkSelectEnabled(!bulkSelectEnabled),
+    };
+  }
+
+  const closeDatasetDeleteModal = () => {
+    setDatasetCurrentlyDeleting(null);
+  };
+
+  const fetchData = useCallback(
+    ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
+      // set loading state, cache the last config for fetching data in this component.
+      setLoading(true);
+      setLastFetchDataConfig({
+        filters,
+        pageIndex,
+        pageSize,
+        sortBy,
+      });
+      const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
+        col,
+        opr,
+        value,
+      }));
+
+      const queryParams = rison.encode({
+        order_column: sortBy[0].id,
+        order_direction: sortBy[0].desc ? 'desc' : 'asc',
+        page: pageIndex,
+        page_size: pageSize,
+        ...(filterExps.length ? { filters: filterExps } : {}),
+      });
+
+      return SupersetClient.get({
+        endpoint: `/api/v1/dataset/?q=${queryParams}`,
+      })
+        .then(({ json }) => {
+          setLoading(false);
+          setDatasets(json.result);
+          setDatasetCount(json.count);
+        })
+        .catch(() => {
+          addDangerToast(t('An error occurred while fetching datasets'));
+          setLoading(false);
+        });
+    },
+    [],
+  );
+
+  const handleDatasetDelete = ({ id, table_name: tableName }: Dataset) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/dataset/${id}`,
+    }).then(
+      () => {
+        if (lastFetchDataConfig) {
+          fetchData(lastFetchDataConfig);
+        }
+        setDatasetCurrentlyDeleting(null);
+        addSuccessToast(t('Deleted: %s', tableName));
+      },
+      (err: any) => {
+        console.error(err);
+        addDangerToast(t('There was an issue deleting %s', tableName));
+      },
+    );
+  };
+
+  const handleBulkDatasetDelete = () => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/dataset/?q=${rison.encode(
+        datasets.map(({ id }) => id),
+      )}`,
+    }).then(
+      ({ json = {} }) => {
+        if (lastFetchDataConfig) {
+          fetchData(lastFetchDataConfig);
+        }
+        addSuccessToast(json.message);
+      },
+      (err: any) => {
+        console.error(err);
+        addDangerToast(t('There was an issue deleting the selected datasets'));
+      },
+    );
+  };
+
+  return (
+    <>
+      <SubMenu {...menuData} />
+      <AddDatasetModal
+        show={datasetAddModalOpen}
+        onHide={() => setDatasetAddModalOpen(false)}
+        onDatasetAdd={() => {
+          if (lastFetchDataConfig) fetchData(lastFetchDataConfig);
+        }}
+      />
+      {datasetCurrentlyDeleting && (
+        <DeleteModal
+          description={t(
+            'The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+            datasetCurrentlyDeleting.table_name,
+            datasetCurrentlyDeleting.chart_count,
+            datasetCurrentlyDeleting.dashboard_count,
+          )}
+          onConfirm={() => handleDatasetDelete(datasetCurrentlyDeleting)}
+          onHide={closeDatasetDeleteModal}
+          open
+          title={t('Delete Dataset?')}
+        />
+      )}
+      <ConfirmStatusChange
+        title={t('Please confirm')}
+        description={t(
+          'Are you sure you want to delete the selected datasets?',
+        )}
+        onConfirm={handleBulkDatasetDelete}
+      >
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
+          return (
+            <ListView
+              className="dataset-list-view"
+              columns={columns}
+              data={datasets}
+              count={datasetCount}
+              pageSize={PAGE_SIZE}
+              fetchData={fetchData}
+              loading={loading}
+              initialSort={initialSort}
+              filters={currentFilters}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={() => setBulkSelectEnabled(false)}
+              renderBulkSelectCopy={selected => {
+                const { virtualCount, physicalCount } = selected.reduce(
+                  (acc, e) => {
+                    if (e.original.kind === 'physical') acc.physicalCount += 1;
+                    else if (e.original.kind === 'virtual')
+                      acc.virtualCount += 1;
+                    return acc;
+                  },
+                  { virtualCount: 0, physicalCount: 0 },
+                );
+
+                if (!selected.length) {
+                  return t('0 Selected');
+                } else if (virtualCount && !physicalCount) {
+                  return t(
+                    '%s Selected (Virtual)',
+                    selected.length,
+                    virtualCount,
+                  );
+                } else if (physicalCount && !virtualCount) {
+                  return t(
+                    '%s Selected (Physical)',
+                    selected.length,
+                    physicalCount,
+                  );
                 }
-                return (
-                  <>
-                    {this.canCreate && (
-                      <span className="list-add-action">
-                        <Link
-                          className="btn btn-sm btn-primary pull-right"
-                          href="/tablemodelview/add"
-                          tooltip="Add a new record"
-                        >
-                          <i className="fa fa-plus" />
-                        </Link>
-                      </span>
-                    )}
-                    <ListView
-                      className="dataset-list-view"
-                      title={'Datasets'}
-                      columns={this.columns}
-                      data={datasets}
-                      count={datasetCount}
-                      pageSize={PAGE_SIZE}
-                      fetchData={this.fetchData}
-                      loading={loading}
-                      initialSort={this.initialSort}
-                      filters={filters}
-                      bulkActions={bulkActions}
-                    />
-                  </>
+
+                return t(
+                  '%s Selected (%s Physical, %s Virtual)',
+                  selected.length,
+                  physicalCount,
+                  virtualCount,
                 );
               }}
-            </ConfirmStatusChange>
-          </Panel.Body>
-        </Panel>
-      </div>
-    );
-  }
-}
+            />
+          );
+        }}
+      </ConfirmStatusChange>
+    </>
+  );
+};
 
 export default withToasts(DatasetList);

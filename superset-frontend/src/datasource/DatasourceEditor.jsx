@@ -731,7 +731,7 @@ export class DatasourceEditor extends React.PureComponent {
               <div>
                 <div className="m-t-10">
                   <Alert bsStyle="warning">
-                    <span className="bold">{t('Be careful.')} </span>
+                    <strong>{t('Be careful.')} </strong>
                     {t(
                       'Changing these settings will affect all charts using this datasource, including charts owned by other people.',
                     )}

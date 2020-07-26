@@ -39,7 +39,6 @@ export function getControlsState(state, inputFormData) {
    * adds value keys coming from inputFormData passed here. This can't be an action creator
    * just yet because it's used in both the explore and dashboard views.
    * */
-
   // Getting a list of active control names for the current viz
   const formData = { ...inputFormData };
   const vizType = formData.viz_type || 'table';
@@ -67,16 +66,19 @@ export function applyDefaultFormData(inputFormData) {
   const controlsState = getAllControlsState(vizType, datasourceType, null, {
     ...inputFormData,
   });
-  const formData = {};
+  const controlFormData = getFormDataFromControls(controlsState);
 
+  const formData = {};
   Object.keys(controlsState).forEach(controlName => {
     if (inputFormData[controlName] === undefined) {
-      formData[controlName] = controlsState[controlName].value;
+      formData[controlName] = controlFormData[controlName];
     } else {
       formData[controlName] = inputFormData[controlName];
     }
   });
 
+  // always use dynamically generated queryFields
+  formData.queryFields = controlFormData.queryFields;
   return formData;
 }
 

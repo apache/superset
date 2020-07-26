@@ -37,7 +37,6 @@ import {
 } from './Shared_DeckGL';
 
 export default {
-  requiresTime: true,
   onInit: controlState => ({
     ...controlState,
     time_grain_sqla: {
@@ -135,15 +134,17 @@ export default {
         [null, legendFormat],
         [
           {
-            ...dimension,
-            label: t('Categorical Color'),
-            description: t(
-              'Pick a dimension from which categorical colors are defined',
-            ),
+            name: 'dimension',
+            config: {
+              ...dimension.config,
+              label: t('Categorical Color'),
+              description: t(
+                'Pick a dimension from which categorical colors are defined',
+              ),
+            },
           },
-          'color_scheme',
-          'label_colors',
         ],
+        ['color_scheme', 'label_colors'],
       ],
     },
     {

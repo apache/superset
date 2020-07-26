@@ -18,7 +18,11 @@
  */
 /* eslint camelcase: 0 */
 import { getControlsState } from '../store';
-import { getControlState, getFormDataFromControls } from '../controlUtils';
+import {
+  getControlConfig,
+  getFormDataFromControls,
+  getControlStateFromControlConfig,
+} from '../controlUtils';
 import * as actions from '../actions/exploreActions';
 
 export default function exploreReducer(state = {}, action) {
@@ -94,23 +98,35 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_FIELD_VALUE]() {
-      let new_form_data = state.form_data;
-      if (action.controlName === 'viz_type') {
-        new_form_data = JSON.parse(JSON.stringify(new_form_data));
-        // Update state's vizType if we are switching to a new visualization
-        new_form_data.viz_type = action.value;
-      }
+      const new_form_data = state.form_data;
+      const { controlName, value, validationErrors } = action;
+      new_form_data[controlName] = value;
 
-      // These errors are reported from the Control components
-      let errors = action.validationErrors || [];
       const vizType = new_form_data.viz_type;
+
+      // Use the processed control config (with overrides and everything)
+      // if `controlName` does not existing in current controls,
+      const controlConfig =
+        state.controls[action.controlName] ||
+        getControlConfig(action.controlName, vizType) ||
+        {};
+
+      // will call validators again
       const control = {
-        ...getControlState(action.controlName, vizType, state, action.value),
+        ...getControlStateFromControlConfig(controlConfig, state, action.value),
       };
 
-      // These errors are based on control config `validators`
-      errors = errors.concat(control.validationErrors || []);
+      // combine newly detected errors with errors from `onChange` event of
+      // each control component (passed via reducer action).
+      const errors = control.validationErrors || [];
+      (validationErrors || []).forEach(err => {
+        // skip duplicated errors
+        if (!errors.includes(err)) {
+          errors.push(err);
+        }
+      });
       const hasErrors = errors && errors.length > 0;
+
       return {
         ...state,
         form_data: new_form_data,

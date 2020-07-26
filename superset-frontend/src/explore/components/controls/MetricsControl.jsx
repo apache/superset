@@ -279,11 +279,11 @@ export default class MetricsControl extends React.PureComponent {
       if (option.metric_name) {
         results.push({ ...option, optionName: option.metric_name });
       } else if (option.column_name) {
-        results.push({ ...option, optionName: '_col_' + option.column_name });
+        results.push({ ...option, optionName: `_col_${option.column_name}` });
       } else if (option.aggregate_name) {
         results.push({
           ...option,
-          optionName: '_aggregate_' + option.aggregate_name,
+          optionName: `_aggregate_${option.aggregate_name}`,
         });
       }
       return results;

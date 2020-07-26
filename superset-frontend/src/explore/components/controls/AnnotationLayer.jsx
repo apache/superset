@@ -240,12 +240,16 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   handleAnnotationSourceType(sourceType) {
-    this.setState({
-      sourceType,
-      isLoadingOptions: true,
-      validationErrors: {},
-      value: null,
-    });
+    const { sourceType: prevSourceType } = this.state;
+
+    if (prevSourceType !== sourceType) {
+      this.setState({
+        sourceType,
+        isLoadingOptions: true,
+        validationErrors: {},
+        value: null,
+      });
+    }
   }
 
   handleValue(value) {

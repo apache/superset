@@ -22,49 +22,9 @@
 import React from 'react';
 import { t } from '@superset-ui/translation';
 import { validateNonEmpty } from '@superset-ui/validator';
-import { ColumnOption } from '@superset-ui/control-utils';
+import { sharedControls } from '@superset-ui/chart-controls';
 import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from '../controls';
 import { DEFAULT_VIEWPORT } from '../../explore/components/controls/ViewportControl';
-
-const timeColumnOption = {
-  verbose_name: 'Time',
-  column_name: '__timestamp',
-  description: t(
-    'A reference to the [Time] configuration, taking granularity into ' +
-      'account',
-  ),
-};
-
-const groupByControl = {
-  type: 'SelectControl',
-  multi: true,
-  freeForm: true,
-  label: t('Group by'),
-  default: [],
-  includeTime: false,
-  description: t('One or many controls to group by'),
-  optionRenderer: c => <ColumnOption column={c} showType />,
-  valueRenderer: c => <ColumnOption column={c} />,
-  valueKey: 'column_name',
-  allowAll: true,
-  filterOption: (opt, text) =>
-    (opt.column_name &&
-      opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
-    (opt.verbose_name &&
-      opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
-  promptTextCreator: label => label,
-  mapStateToProps: (state, control) => {
-    const newState = {};
-    if (state.datasource) {
-      newState.options = state.datasource.columns.filter(c => c.groupby);
-      if (control && control.includeTime) {
-        newState.options.push(timeColumnOption);
-      }
-    }
-    return newState;
-  },
-  commaChoosesOption: false,
-};
 
 const sandboxUrl =
   'https://github.com/apache/incubator-superset/' +
@@ -137,7 +97,7 @@ export const autozoom = {
 export const dimension = {
   name: 'dimension',
   config: {
-    ...groupByControl,
+    ...sharedControls.groupby,
     label: t('Dimension'),
     description: t('Select a dimension'),
     multi: false,
@@ -148,7 +108,7 @@ export const dimension = {
 export const jsColumns = {
   name: 'js_columns',
   config: {
-    ...groupByControl,
+    ...sharedControls.groupby,
     label: t('Extra data for JS'),
     default: [],
     description: t(

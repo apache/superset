@@ -176,7 +176,7 @@ describe('TableSelector', () => {
     });
 
     // Test needs to be fixed: Github issue #7768
-    xit('should dispatch a danger toast on error', () => {
+    it.skip('should dispatch a danger toast on error', () => {
       fetchMock.get(
         FETCH_TABLES_GLOB,
         { throws: 'error' },
@@ -218,7 +218,7 @@ describe('TableSelector', () => {
     });
 
     // Test needs to be fixed: Github issue #7768
-    xit('should dispatch a danger toast on error', () => {
+    it.skip('should dispatch a danger toast on error', () => {
       const handleErrors = sinon.stub();
       expect(handleErrors.callCount).toBe(0);
       wrapper.setProps({ handleErrors });

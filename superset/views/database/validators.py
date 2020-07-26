@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Type
+from typing import Optional, Type
 
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
@@ -23,6 +23,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
 from superset import security_manager
+from superset.models.core import Database
 
 
 def sqlalchemy_uri_validator(
@@ -43,13 +44,10 @@ def sqlalchemy_uri_validator(
         )
 
 
-def schema_allows_csv_upload(database, schema):
+def schema_allows_csv_upload(database: Database, schema: Optional[str]) -> bool:
     if not database.allow_csv_upload:
         return False
     schemas = database.get_schema_access_for_csv_upload()
     if schemas:
         return schema in schemas
-    return (
-        security_manager.database_access(database)
-        or security_manager.all_datasource_access()
-    )
+    return security_manager.can_access_database(database)

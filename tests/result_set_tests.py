@@ -25,7 +25,7 @@ from superset.result_set import dedup, SupersetResultSet
 from .base_tests import SupersetTestCase
 
 
-class SupersetResultSetTestCase(SupersetTestCase):
+class TestSupersetResultSet(SupersetTestCase):
     def test_dedup(self):
         self.assertEqual(dedup(["foo", "bar"]), ["foo", "bar"])
         self.assertEqual(

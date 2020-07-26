@@ -324,16 +324,14 @@ export default function sqlLabReducer(state = {}, action) {
       });
     },
     [actions.QUERY_SUCCESS]() {
-      let rows;
-      if (action.results.data) {
-        rows = action.results.data.length;
-      }
       const alts = {
         endDttm: now(),
         progress: 100,
         results: action.results,
-        rows,
+        rows: action?.results?.data?.length,
         state: 'success',
+        tempSchema: action?.results?.query?.tempSchema,
+        tempTable: action?.results?.query?.tempTable,
         errorMessage: null,
         cached: false,
       };
@@ -345,6 +343,7 @@ export default function sqlLabReducer(state = {}, action) {
       }
       const alts = {
         state: 'failed',
+        errors: action.errors,
         errorMessage: action.msg,
         endDttm: now(),
         link: action.link,

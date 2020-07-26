@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Callable
+from typing import Any
 
 from flask import g
 from flask_sqlalchemy import BaseQuery
@@ -25,7 +25,7 @@ from superset.views.base import BaseFilter
 
 
 class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query: BaseQuery, value: Callable) -> BaseQuery:
+    def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
         Filter queries to only those owned by current user. If
         can_access_all_queries permission is set a user can list all queries

@@ -180,7 +180,7 @@ class ExploreViewContainer extends React.Component {
 
   getHeight() {
     if (this.props.forcedHeight) {
-      return this.props.forcedHeight + 'px';
+      return `${this.props.forcedHeight}px`;
     }
     const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;
@@ -349,7 +349,7 @@ class ExploreViewContainer extends React.Component {
               }}
             >
               <QueryAndSaveBtns
-                canAdd="True"
+                canAdd={!!(this.props.can_add || this.props.can_overwrite)}
                 onQuery={this.onQuery}
                 onSave={this.toggleModal}
                 onStop={this.onStop}
@@ -389,6 +389,7 @@ function mapStateToProps(state) {
   const form_data = getFormDataFromControls(explore.controls);
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
+
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource: explore.datasource,
@@ -396,6 +397,7 @@ function mapStateToProps(state) {
     datasourceId: explore.datasource_id,
     controls: explore.controls,
     can_overwrite: !!explore.can_overwrite,
+    can_add: !!explore.can_add,
     can_download: !!explore.can_download,
     column_formats: explore.datasource
       ? explore.datasource.column_formats

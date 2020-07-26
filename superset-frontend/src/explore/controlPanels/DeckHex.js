@@ -17,10 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import {
-  formatSelectOptions,
-  formatSelectOptionsForRange,
-} from '../../modules/utils';
+import { formatSelectOptions } from '../../modules/utils';
 import {
   filterNulls,
   autozoom,
@@ -36,7 +33,6 @@ import {
 } from './Shared_DeckGL';
 
 export default {
-  requiresTime: true,
   controlPanelSections: [
     {
       label: t('Query'),

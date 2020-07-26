@@ -164,6 +164,7 @@ Contents
     gallery
     druid
     misc
+    issue_code_reference
     faq
 
 

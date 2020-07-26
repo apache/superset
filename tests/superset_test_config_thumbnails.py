@@ -20,7 +20,7 @@ from copy import copy
 from cachelib.redis import RedisCache
 from flask import Flask
 
-from superset.config import *  # type: ignore
+from superset.config import *
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")

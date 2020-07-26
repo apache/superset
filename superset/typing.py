@@ -28,10 +28,12 @@ DbapiDescription = Union[List[DbapiDescriptionRow], Tuple[DbapiDescriptionRow, .
 DbapiResult = List[Union[List[Any], Tuple[Any, ...]]]
 FilterValue = Union[float, int, str]
 FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
+FormData = Dict[str, Any]
 Granularity = Union[str, Dict[str, Union[str, float]]]
 Metric = Union[Dict[str, str], str]
 QueryObjectDict = Dict[str, Any]
 VizData = Optional[Union[List[Any], Dict[Any, Any]]]
+VizPayload = Dict[str, Any]
 
 # Flask response.
 Base = Union[bytes, str]

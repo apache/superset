@@ -96,6 +96,8 @@ export default class SelectControl extends React.PureComponent {
     }
   }
 
+  // Beware: This is acting like an on-click instead of an on-change
+  // (firing every time user chooses vs firing only if a new option is chosen).
   onChange(opt) {
     let optionValue = null;
     if (opt) {
@@ -137,7 +139,6 @@ export default class SelectControl extends React.PureComponent {
     } else if (props.choices) {
       // Accepts different formats of input
       options = props.choices.map(c => {
-        let option;
         if (Array.isArray(c)) {
           const [value, label] = c.length > 1 ? c : [c[0], c[0]];
           return { label, [props.valueKey]: value };

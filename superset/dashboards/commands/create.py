@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateDashboardCommand(BaseCommand):
-    def __init__(self, user: User, data: Dict):
+    def __init__(self, user: User, data: Dict[str, Any]):
         self._actor = user
         self._properties = data.copy()
 
@@ -50,7 +50,7 @@ class CreateDashboardCommand(BaseCommand):
         return dashboard
 
     def validate(self) -> None:
-        exceptions = list()
+        exceptions: List[ValidationError] = list()
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         slug: str = self._properties.get("slug", "")
 

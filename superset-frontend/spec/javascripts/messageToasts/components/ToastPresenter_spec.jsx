@@ -34,9 +34,9 @@ describe('ToastPresenter', () => {
     return wrapper;
   }
 
-  it('should render a div with class toast-presenter', () => {
+  it('should render a div with id toast-presenter', () => {
     const wrapper = setup();
-    expect(wrapper.find('.toast-presenter')).toHaveLength(1);
+    expect(wrapper.find('#toast-presenter')).toHaveLength(1);
   });
 
   it('should render a Toast for each toast object', () => {

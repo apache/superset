@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { MenuItem, SplitButton, Tab, Tabs } from 'react-bootstrap';
+import { MenuItem, DropdownButton, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
@@ -29,6 +29,7 @@ import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import TabStatusIcon from './TabStatusIcon';
+import Icon from '../../components/Icon';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -108,11 +109,19 @@ class TabbedSqlEditors extends React.PureComponent {
     };
 
     // Popping a new tab based on the querystring
-    if (query.id || query.sql || query.savedQueryId || query.datasourceKey) {
+    if (
+      query.id ||
+      query.sql ||
+      query.savedQueryId ||
+      query.datasourceKey ||
+      query.queryId
+    ) {
       if (query.id) {
         this.props.actions.popStoredQuery(query.id);
       } else if (query.savedQueryId) {
         this.props.actions.popSavedQuery(query.savedQueryId);
+      } else if (query.queryId) {
+        this.props.actions.popQuery(query.queryId);
       } else if (query.datasourceKey) {
         this.props.actions.popDatasourceQuery(query.datasourceKey, query.sql);
       } else if (query.sql) {
@@ -280,54 +289,71 @@ class TabbedSqlEditors extends React.PureComponent {
 
       const title = (
         <>
-          <TabStatusIcon
-            onClose={() => this.removeQueryEditor(qe)}
-            tabState={state}
-          />{' '}
-          {qe.title}{' '}
+          {qe.title} <TabStatusIcon tabState={state} />{' '}
+          <Icon
+            role="button"
+            tabIndex={0}
+            cursor="pointer"
+            name="cancel-x"
+            onClick={() => this.removeQueryEditor(qe)}
+          />
         </>
       );
       const tabTitle = (
-        <SplitButton
-          bsSize="small"
-          id={'ddbtn-tab-' + i}
-          className="ddbtn-tab"
-          title={title}
-        >
-          <MenuItem eventKey="1" onClick={() => this.removeQueryEditor(qe)}>
-            <div className="icon-container">
-              <i className="fa fa-close" />
-            </div>
-            {t('Close tab')}
-          </MenuItem>
-          <MenuItem eventKey="2" onClick={() => this.renameTab(qe)}>
-            <div className="icon-container">
-              <i className="fa fa-i-cursor" />
-            </div>
-            {t('Rename tab')}
-          </MenuItem>
-          <MenuItem eventKey="3" onClick={this.toggleLeftBar}>
-            <div className="icon-container">
-              <i className="fa fa-cogs" />
-            </div>
-            {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
-          </MenuItem>
-          <MenuItem
-            eventKey="4"
-            onClick={() => this.removeAllOtherQueryEditors(qe)}
-          >
-            <div className="icon-container">
-              <i className="fa fa-times-circle-o" />
-            </div>
-            {t('Close all other tabs')}
-          </MenuItem>
-          <MenuItem eventKey="5" onClick={() => this.duplicateQueryEditor(qe)}>
-            <div className="icon-container">
-              <i className="fa fa-files-o" />
-            </div>
-            {t('Duplicate tab')}
-          </MenuItem>
-        </SplitButton>
+        <>
+          {isSelected && (
+            <DropdownButton
+              bsSize="small"
+              id={`ddbtn-tab-${i}`}
+              title={' '}
+              noCaret
+            >
+              <MenuItem
+                className="close-btn"
+                eventKey="1"
+                onClick={() => this.removeQueryEditor(qe)}
+              >
+                <div className="icon-container">
+                  <i className="fa fa-close" />
+                </div>
+                {t('Close tab')}
+              </MenuItem>
+              <MenuItem eventKey="2" onClick={() => this.renameTab(qe)}>
+                <div className="icon-container">
+                  <i className="fa fa-i-cursor" />
+                </div>
+                {t('Rename tab')}
+              </MenuItem>
+              <MenuItem eventKey="3" onClick={this.toggleLeftBar}>
+                <div className="icon-container">
+                  <i className="fa fa-cogs" />
+                </div>
+                {this.state.hideLeftBar
+                  ? t('Expand tool bar')
+                  : t('Hide tool bar')}
+              </MenuItem>
+              <MenuItem
+                eventKey="4"
+                onClick={() => this.removeAllOtherQueryEditors(qe)}
+              >
+                <div className="icon-container">
+                  <i className="fa fa-times-circle-o" />
+                </div>
+                {t('Close all other tabs')}
+              </MenuItem>
+              <MenuItem
+                eventKey="5"
+                onClick={() => this.duplicateQueryEditor(qe)}
+              >
+                <div className="icon-container">
+                  <i className="fa fa-files-o" />
+                </div>
+                {t('Duplicate tab')}
+              </MenuItem>
+            </DropdownButton>
+          )}
+          <span className="ddbtn-tab">{title}</span>
+        </>
       );
       return (
         <Tab key={qe.id} title={tabTitle} eventKey={qe.id}>

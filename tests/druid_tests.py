@@ -102,7 +102,7 @@ GB_RESULT_SET = [
 DruidCluster.get_druid_version = lambda _: "0.9.1"  # type: ignore
 
 
-class DruidTests(SupersetTestCase):
+class TestDruid(SupersetTestCase):
 
     """Testing interactions with Druid"""
 

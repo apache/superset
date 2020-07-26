@@ -14,28 +14,33 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# isort:skip_file
 """Unit tests for Superset"""
 import json
 from typing import List, Optional
+from datetime import datetime
+from unittest import mock
 
+import humanize
 import prison
+import pytest
 from sqlalchemy.sql import func
 
-import tests.test_app
+from tests.test_app import app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import core as utils
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
 
+CHART_DATA_URI = "api/v1/chart/data"
 
-class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
+
+class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     resource_name = "chart"
-
-    def __init__(self, *args, **kwargs):
-        super(ChartApiTests, self).__init__(*args, **kwargs)
 
     def insert_chart(
         self,
@@ -336,7 +341,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_type": ["Not a valid choice."]}}
+            response,
+            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
         )
         chart_data = {
             "slice_name": "title1",
@@ -442,7 +448,8 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_type": ["Not a valid choice."]}}
+            response,
+            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
         )
         chart_data = {"datasource_id": 0, "datasource_type": "table"}
         uri = f"api/v1/chart/{chart.id}"
@@ -539,6 +546,34 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 33)
 
+    def test_get_charts_changed_on(self):
+        """
+        Dashboard API: Test get charts changed on
+        """
+        admin = self.get_user("admin")
+        start_changed_on = datetime.now()
+        chart = self.insert_chart("foo_a", [admin.id], 1, description="ZY_bar")
+
+        self.login(username="admin")
+
+        arguments = {
+            "order_column": "changed_on_delta_humanized",
+            "order_direction": "desc",
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            data["result"][0]["changed_on_delta_humanized"],
+            humanize.naturaltime(datetime.now() - start_changed_on),
+        )
+
+        # rollback changes
+        db.session.delete(chart)
+        db.session.commit()
+
     def test_get_charts_filter(self):
         """
         Chart API: Test get charts filter
@@ -634,32 +669,212 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 0)
 
-    def test_chart_data(self):
+    def test_chart_data_simple(self):
         """
-        Query API: Test chart data query
+        Chart data API: Test chart data query
         """
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
-        payload = get_query_context(table.name, table.id, table.type)
-        uri = "api/v1/chart/data"
-        rv = self.post_assert_metric(uri, payload, "data")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["result"][0]["rowcount"], 100)
 
+    def test_chart_data_limit_offset(self):
+        """
+        Chart data API: Test chart data query with limit and offset
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["row_limit"] = 5
+        request_payload["queries"][0]["row_offset"] = 0
+        request_payload["queries"][0]["orderby"] = [["name", True]]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 5)
+
+        # ensure that offset works properly
+        offset = 2
+        expected_name = result["data"][offset]["name"]
+        request_payload["queries"][0]["row_offset"] = offset
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 5)
+        self.assertEqual(result["data"][0]["name"], expected_name)
+
+    @mock.patch(
+        "superset.common.query_object.config", {**app.config, "ROW_LIMIT": 7},
+    )
+    def test_chart_data_default_row_limit(self):
+        """
+        Chart data API: Ensure row count doesn't exceed default limit
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        del request_payload["queries"][0]["row_limit"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 7)
+
+    @mock.patch(
+        "superset.common.query_context.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
+    )
+    def test_chart_data_default_sample_limit(self):
+        """
+        Chart data API: Ensure sample response row count doesn't exceed default limit
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_type"] = utils.ChartDataResultType.SAMPLES
+        request_payload["queries"][0]["row_limit"] = 10
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 5)
+
+    def test_chart_data_incorrect_result_type(self):
+        """
+        Chart data API: Test chart data with unsupported result type
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_type"] = "qwerty"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 400)
+
+    def test_chart_data_incorrect_result_format(self):
+        """
+        Chart data API: Test chart data with unsupported result format
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_format"] = "qwerty"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 400)
+
+    def test_chart_data_query_result_type(self):
+        """
+        Chart data API: Test chart data with query result format
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_type"] = "query"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+
+    def test_chart_data_csv_result_format(self):
+        """
+        Chart data API: Test chart data with CSV result format
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_format"] = "csv"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+
+    def test_chart_data_mixed_case_filter_op(self):
+        """
+        Chart data API: Ensure mixed case filter operator generates valid result
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["filters"][0]["op"] = "In"
+        request_payload["queries"][0]["row_limit"] = 10
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 10)
+
+    def test_chart_data_prophet(self):
+        """
+        Chart data API: Ensure prophet post transformation works
+        """
+        pytest.importorskip("fbprophet")
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        time_grain = "P1Y"
+        request_payload["queries"][0]["is_timeseries"] = True
+        request_payload["queries"][0]["groupby"] = []
+        request_payload["queries"][0]["extras"] = {"time_grain_sqla": time_grain}
+        request_payload["queries"][0]["granularity"] = "ds"
+        request_payload["queries"][0]["post_processing"] = [
+            {
+                "operation": "prophet",
+                "options": {
+                    "time_grain": time_grain,
+                    "periods": 3,
+                    "confidence_interval": 0.9,
+                },
+            }
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        print(rv.data)
+        self.assertEqual(rv.status_code, 200)
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        row = result["data"][0]
+        self.assertIn("__timestamp", row)
+        self.assertIn("sum__num", row)
+        self.assertIn("sum__num__yhat", row)
+        self.assertIn("sum__num__yhat_upper", row)
+        self.assertIn("sum__num__yhat_lower", row)
+        self.assertEqual(result["rowcount"], 47)
+
+    def test_chart_data_no_data(self):
+        """
+        Chart data API: Test chart data with empty result
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["filters"] = [
+            {"col": "gender", "op": "==", "val": "foo"}
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        self.assertEqual(result["rowcount"], 0)
+        self.assertEqual(result["data"], [])
+
+    def test_chart_data_incorrect_request(self):
+        """
+        Chart data API: Test chart data with invalid SQL
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["queries"][0]["filters"] = []
+        # erroneus WHERE-clause
+        request_payload["queries"][0]["extras"]["where"] = "(gender abc def)"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 400)
+
     def test_chart_data_with_invalid_datasource(self):
-        """Query API: Test chart data query with invalid schema
+        """Chart data API: Test chart data query with invalid schema
         """
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
         payload = get_query_context(table.name, table.id, table.type)
         payload["datasource"] = "abc"
-        uri = "api/v1/chart/data"
-        rv = self.post_assert_metric(uri, payload, "data")
+        rv = self.post_assert_metric(CHART_DATA_URI, payload, "data")
         self.assertEqual(rv.status_code, 400)
 
     def test_chart_data_with_invalid_enum_value(self):
-        """Query API: Test chart data query with invalid enum value
+        """Chart data API: Test chart data query with invalid enum value
         """
         self.login(username="admin")
         table = self.get_table_by_name("birth_names")
@@ -668,19 +883,17 @@ class ChartApiTests(SupersetTestCase, ApiOwnersTestCaseMixin):
             "abc",
             "EXCLUSIVE",
         ]
-        uri = "api/v1/chart/data"
-        rv = self.client.post(uri, json=payload)
+        rv = self.client.post(CHART_DATA_URI, json=payload)
         self.assertEqual(rv.status_code, 400)
 
     def test_query_exec_not_allowed(self):
         """
-        Query API: Test chart data query not allowed
+        Chart data API: Test chart data query not allowed
         """
         self.login(username="gamma")
         table = self.get_table_by_name("birth_names")
         payload = get_query_context(table.name, table.id, table.type)
-        uri = "api/v1/chart/data"
-        rv = self.post_assert_metric(uri, payload, "data")
+        rv = self.post_assert_metric(CHART_DATA_URI, payload, "data")
         self.assertEqual(rv.status_code, 401)
 
     def test_datasources(self):

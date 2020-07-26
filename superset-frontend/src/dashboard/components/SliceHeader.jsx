@@ -47,6 +47,7 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   filters: PropTypes.object.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  handleToggleFullSize: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -97,6 +98,8 @@ class SliceHeader extends React.PureComponent {
       componentId,
       dashboardId,
       addDangerToast,
+      handleToggleFullSize,
+      isFullSize,
     } = this.props;
 
     return (
@@ -149,6 +152,8 @@ class SliceHeader extends React.PureComponent {
               componentId={componentId}
               dashboardId={dashboardId}
               addDangerToast={addDangerToast}
+              handleToggleFullSize={handleToggleFullSize}
+              isFullSize={isFullSize}
             />
           )}
         </div>

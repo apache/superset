@@ -189,7 +189,7 @@ cypress-run-all() {
   nohup flask run --no-debugger -p $port > "$flasklog" 2>&1 < /dev/null &
   local flaskProcessId=$!
 
-  cypress-run "*/*"
+  cypress-run "*/**/*"
 
   # Upload code coverage separately so each page can have separate flags
   # -c will clean existing coverage reports, -F means add flags

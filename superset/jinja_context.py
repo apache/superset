@@ -17,7 +17,7 @@
 """Defines the templating context for SQL Lab"""
 import inspect
 import re
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, cast, List, Optional, Tuple, TYPE_CHECKING
 
 from flask import g, request
 from jinja2.sandbox import SandboxedEnvironment
@@ -207,7 +207,7 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
 
     def __init__(
         self,
-        database: Optional["Database"] = None,
+        database: "Database",
         query: Optional["Query"] = None,
         table: Optional["SqlaTable"] = None,
         extra_cache_keys: Optional[List[Any]] = None,
@@ -266,7 +266,7 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
             schema, table_name = table_name.split(".")
         return table_name, schema
 
-    def first_latest_partition(self, table_name: str) -> str:
+    def first_latest_partition(self, table_name: str) -> Optional[str]:
         """
         Gets the first value in the array of all latest partitions
 
@@ -275,9 +275,10 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         :raises IndexError: If no partition exists
         """
 
-        return self.latest_partitions(table_name)[0]
+        latest_partitions = self.latest_partitions(table_name)
+        return latest_partitions[0] if latest_partitions else None
 
-    def latest_partitions(self, table_name: str) -> List[str]:
+    def latest_partitions(self, table_name: str) -> Optional[List[str]]:
         """
         Gets the array of all latest partitions
 
@@ -285,16 +286,21 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         :return: the latest partition array
         """
 
+        from superset.db_engine_specs.presto import PrestoEngineSpec
+
         table_name, schema = self._schema_table(table_name, self.schema)
-        assert self.database
-        return self.database.db_engine_spec.latest_partition(  # type: ignore
+        return cast(PrestoEngineSpec, self.database.db_engine_spec).latest_partition(
             table_name, schema, self.database
         )[1]
 
-    def latest_sub_partition(self, table_name, **kwargs):
+    def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
         table_name, schema = self._schema_table(table_name, self.schema)
-        assert self.database
-        return self.database.db_engine_spec.latest_sub_partition(
+
+        from superset.db_engine_specs.presto import PrestoEngineSpec
+
+        return cast(
+            PrestoEngineSpec, self.database.db_engine_spec
+        ).latest_sub_partition(
             table_name=table_name, schema=schema, database=self.database, **kwargs
         )
 

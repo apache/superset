@@ -32,6 +32,7 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   dashboardId: PropTypes.number.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
+  dashboardInfo: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   saveType: PropTypes.oneOf([SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD]),
@@ -94,13 +95,15 @@ class SaveModal extends React.PureComponent {
     const { saveType, newDashName } = this.state;
     const {
       dashboardTitle,
+      dashboardInfo,
       layout: positions,
       customCss,
       colorNamespace,
       colorScheme,
       expandedSlices,
       dashboardId,
-      refreshFrequency,
+      refreshFrequency: currentRefreshFrequency,
+      shouldPersistRefreshFrequency,
     } = this.props;
 
     const scale = CategoricalColorNamespace.getScale(
@@ -108,6 +111,11 @@ class SaveModal extends React.PureComponent {
       colorNamespace,
     );
     const labelColors = colorScheme ? scale.getColorMap() : {};
+    // check refresh frequency is for current session or persist
+    const refreshFrequency = shouldPersistRefreshFrequency
+      ? currentRefreshFrequency
+      : dashboardInfo.metadata.refresh_frequency; // eslint-disable camelcase
+
     const data = {
       positions,
       css: customCss,

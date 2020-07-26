@@ -243,6 +243,7 @@ export const NVD3TimeSeries = [
         },
       ],
       [<h1 className="section-header">{t('Python Functions')}</h1>],
+      // eslint-disable-next-line jsx-a11y/heading-has-content
       [<h2 className="section-header">pandas.resample</h2>],
       [
         {
