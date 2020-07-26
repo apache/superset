@@ -981,6 +981,41 @@ class TestCore(SupersetTestCase):
             os.remove(f1)
             os.remove(f2)
 
+    def test_import_csv_filesize_limit(self):
+        max_bytes = app.config.get("UPLOAD_MAX_BYTES")
+        if not max_bytes:
+            return
+        self.login(username="admin", password='123456')
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+        f1 = "3.csv"
+        self.enable_csv_upload(utils.get_example_database())
+        repeat = max_bytes // 4
+        data = "a,b"
+        content = [data for _ in range(repeat)]
+        self.create_sample_csvfile(f1, content)
+        try:
+            success_msg_f1 = f'CSV file "{f1}" uploaded to table "{table_name}"'
+
+            # initial upload with fail mode
+            resp = self.upload_csv(f1, table_name)
+            self.assertIn(success_msg_f1, resp)
+
+            # upload again with fail mode; should fail
+            fail_msg = f'Unable to upload CSV file "{f1}" to table "{table_name}"'
+            fail_msg2 = f'Error message: Exceeded the upload maximum size of {max_bytes} bytes'
+            content.append(data)
+            self.create_sample_csvfile(f1, content)
+            resp = self.upload_csv(f1, table_name)
+            self.assertIn(fail_msg, resp)
+            self.assertIn(fail_msg2, resp)
+            # make sure that john and empty string are replaced with None
+            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            assert data[0] == ("a", "b")
+            assert len(data) == repeat - 1
+
+        finally:
+            os.remove(f1)
+
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)
         data = [

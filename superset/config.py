@@ -150,9 +150,9 @@ SECRET_KEY = (
 )
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
+# SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-# SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:password@localhost:5432/postgres'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -168,7 +168,7 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
+WTF_CSRF_ENABLED = False
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
@@ -344,7 +344,7 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
 # The file upload folder, when using models with files
 UPLOAD_FOLDER = BASE_DIR + "/app/static/uploads/"
 UPLOAD_CHUNK_SIZE = 4096
-UPLOAD_MAX_BYTES = 50 * 1024 * 1024
+UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 
 # The image upload folder, when using models with images
 IMG_UPLOAD_FOLDER = BASE_DIR + "/app/static/uploads/"
