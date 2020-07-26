@@ -33,7 +33,7 @@ describe('getEffectiveExtraFilters', () => {
       },
       {
         col: '__time_range',
-        op: '=',
+        op: '==',
         val: ' : 2020-07-17T00:00:00',
       },
     ]);
