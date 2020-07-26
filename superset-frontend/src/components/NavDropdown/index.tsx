@@ -19,7 +19,6 @@
 
 import styled from '@superset-ui/style';
 import { NavDropdown as RBNavDropdown } from 'react-bootstrap';
-import { ReactComponent as DropdownArrowIcon } from 'images/icons/dropdown-arrow.svg';
 
 const NavDropdown = styled(RBNavDropdown)`
   & > a.dropdown-toggle {
