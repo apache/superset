@@ -29,11 +29,13 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.7.2"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.14.0",
     "@superset-ui/color": "^0.14.0",
-    "@superset-ui/translation": "0.13.3"
+    "@superset-ui/style": "^0.14.3",
+    "@superset-ui/translation": "0.13.3",
+    "react": "^16.13.1"
   }
 }

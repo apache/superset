@@ -24,7 +24,6 @@ import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import parcoords from './vendor/parcoords/d3.parcoords';
 import divgrid from './vendor/parcoords/divgrid';
 import './vendor/parcoords/d3.parcoords.css';
-import './ParallelCoordinates.css';
 
 const propTypes = {
   // Standard tabular data [{ fieldName1: value1, fieldName2: value2 }]
