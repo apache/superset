@@ -985,7 +985,7 @@ class TestCore(SupersetTestCase):
         max_bytes = app.config.get("UPLOAD_MAX_BYTES")
         if not max_bytes:
             return
-        self.login(username="admin", password='123456')
+        self.login(username="admin")
         table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
         f1 = "testSize.csv"
         self.enable_csv_upload(utils.get_example_database())
@@ -1002,7 +1002,9 @@ class TestCore(SupersetTestCase):
 
             # upload again with fail mode; should fail
             fail_msg = f'Unable to upload CSV file "{f1}" to table "{table_name}"'
-            fail_msg2 = f'Error message: Exceeded the upload maximum size of {max_bytes} bytes'
+            fail_msg2 = (
+                f"Error message: Exceeded the upload maximum size of {max_bytes} bytes"
+            )
             content.append(data)
             self.create_sample_csvfile(f1, content)
             resp = self.upload_csv(f1, table_name)
