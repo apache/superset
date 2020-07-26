@@ -77,10 +77,9 @@ class ShareSqlLabQuery extends React.Component {
     let savedQueryToastContent;
 
     if (this.props.queryEditor.remoteId) {
-      savedQueryToastContent =
-        window.location.origin +
-        window.location.pathname +
-        `?savedQueryId=${this.props.queryEditor.remoteId}`;
+      savedQueryToastContent = `${
+        window.location.origin + window.location.pathname
+      }?savedQueryId=${this.props.queryEditor.remoteId}`;
       this.setState({ shortUrl: savedQueryToastContent });
     } else {
       savedQueryToastContent = t('Please save the query to enable sharing');

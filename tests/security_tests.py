@@ -784,9 +784,9 @@ class TestRolePermission(SupersetTestCase):
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
         # These FAB views are secured in their body as opposed to by decorators
-        method_whitelist = ("action", "action_post")
+        method_allowlist = ("action", "action_post")
         # List of redirect & other benign views
-        views_whitelist = [
+        views_allowlist = [
             ["MyIndexView", "index"],
             ["UtilView", "back"],
             ["LocaleView", "index"],
@@ -807,8 +807,8 @@ class TestRolePermission(SupersetTestCase):
                 view_class, predicate=inspect.ismethod
             ):
                 if (
-                    name not in method_whitelist
-                    and [class_name, name] not in views_whitelist
+                    name not in method_allowlist
+                    and [class_name, name] not in views_allowlist
                     and hasattr(value, "_urls")
                     and not hasattr(value, "_permission_name")
                 ):

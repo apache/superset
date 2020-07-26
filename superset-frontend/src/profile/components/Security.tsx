@@ -19,10 +19,10 @@
 import React from 'react';
 import { Badge, Label } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
-import { User } from '../types';
+import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface SecurityProps {
-  user: User;
+  user: UserWithPermissionsAndRoles;
 }
 
 export default function Security({ user }: SecurityProps) {

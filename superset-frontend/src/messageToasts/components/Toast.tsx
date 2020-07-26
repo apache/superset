@@ -83,7 +83,9 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       )}
     >
       <ToastContianer>
-        {toast.toastType === SUCCESS_TOAST && <Icon name="check" />}
+        {toast.toastType === SUCCESS_TOAST && (
+          <Icon name="circle-check-solid" />
+        )}
         {toast.toastType === WARNING_TOAST ||
           (toast.toastType === DANGER_TOAST && <Icon name="error" />)}
         <Interweave content={toast.text} />

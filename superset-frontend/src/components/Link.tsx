@@ -44,7 +44,7 @@ const Link = ({
       href={href}
       onClick={onClick}
       style={style}
-      className={'Link ' + className}
+      className={`Link ${className}`}
     >
       {children}
     </a>

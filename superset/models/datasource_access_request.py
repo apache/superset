@@ -42,7 +42,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
 
-    ROLES_BLACKLIST = set(config["ROBOT_PERMISSION_ROLES"])
+    ROLES_DENYLIST = set(config["ROBOT_PERMISSION_ROLES"])
 
     @property
     def cls_model(self) -> Type["BaseDatasource"]:
@@ -72,7 +72,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         perm = self.datasource.perm  # pylint: disable=no-member
         pv = security_manager.find_permission_view_menu("datasource_access", perm)
         for role in pv.role:
-            if role.name in self.ROLES_BLACKLIST:
+            if role.name in self.ROLES_DENYLIST:
                 continue
             # pylint: disable=no-member
             href = (
@@ -95,7 +95,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 f"created_by={self.created_by.username}&role_to_extend={role.name}"
             )
             link = '<a href="{}">Extend {} Role</a>'.format(href, role.name)
-            if role.name in self.ROLES_BLACKLIST:
+            if role.name in self.ROLES_DENYLIST:
                 link = "{} Role".format(role.name)
             action_list = action_list + "<li>" + link + "</li>"
         return "<ul>" + action_list + "</ul>"

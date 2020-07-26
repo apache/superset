@@ -136,7 +136,7 @@ class QuerySearch extends React.PureComponent {
     const validParams = params.filter(function (p) {
       return p !== '';
     });
-    return baseUrl + '?' + validParams.join('&');
+    return `${baseUrl}?${validParams.join('&')}`;
   }
 
   changeStatus(status) {
@@ -150,7 +150,7 @@ class QuerySearch extends React.PureComponent {
 
   userLabel(user) {
     if (user.first_name && user.last_name) {
-      return user.first_name + ' ' + user.last_name;
+      return `${user.first_name} ${user.last_name}`;
     }
     return user.username;
   }

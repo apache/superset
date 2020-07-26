@@ -25,10 +25,11 @@ import AceEditor from 'react-ace';
 import rison from 'rison';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-import '../stylesheets/buttons.less';
 
+import FormLabel from 'src/components/FormLabel';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
+import '../stylesheets/buttons.less';
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
@@ -202,9 +203,7 @@ class PropertiesModal extends React.PureComponent {
             </Row>
             <Row>
               <Col md={6}>
-                <label className="control-label" htmlFor="embed-height">
-                  {t('Title')}
-                </label>
+                <FormLabel htmlFor="embed-height">{t('Title')}</FormLabel>
                 <FormControl
                   name="dashboard_title"
                   type="text"
@@ -215,9 +214,7 @@ class PropertiesModal extends React.PureComponent {
                 />
               </Col>
               <Col md={6}>
-                <label className="control-label" htmlFor="embed-height">
-                  {t('URL Slug')}
-                </label>
+                <FormLabel htmlFor="embed-height">{t('URL Slug')}</FormLabel>
                 <FormControl
                   name="slug"
                   type="text"
@@ -234,9 +231,7 @@ class PropertiesModal extends React.PureComponent {
             <Row>
               <Col md={6}>
                 <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-                <label className="control-label" htmlFor="owners">
-                  {t('Owners')}
-                </label>
+                <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
                 <AsyncSelect
                   name="owners"
                   isMulti
@@ -274,9 +269,9 @@ class PropertiesModal extends React.PureComponent {
                 </h3>
                 {isAdvancedOpen && (
                   <>
-                    <label className="control-label" htmlFor="json_metadata">
+                    <FormLabel htmlFor="json_metadata">
                       {t('JSON Metadata')}
-                    </label>
+                    </FormLabel>
                     <AceEditor
                       mode="json"
                       name="json_metadata"

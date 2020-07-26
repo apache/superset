@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Checkbox } from 'react-bootstrap';
 import {
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,

@@ -25,10 +25,10 @@ import UserInfo from './UserInfo';
 import Security from './Security';
 import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
-import { User } from '../types';
+import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface AppProps {
-  user: User;
+  user: UserWithPermissionsAndRoles;
 }
 
 export default function App({ user }: AppProps) {

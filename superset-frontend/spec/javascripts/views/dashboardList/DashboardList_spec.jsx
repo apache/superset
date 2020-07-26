@@ -43,7 +43,8 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
   changed_by_url: 'changed_by_url',
   changed_by_fk: 1,
   published: true,
-  changed_on: new Date().toISOString(),
+  changed_on_utc: new Date().toISOString(),
+  changed_on_delta_humanized: '5 minutes ago',
   owners: [{ first_name: 'admin', last_name: 'admin_user' }],
 }));
 
@@ -95,13 +96,12 @@ describe('DashboardList', () => {
     const callsD = fetchMock.calls(/dashboard\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).toHaveLength(0);
-
-    wrapper.find('.fa-pencil').first().simulate('click');
+    wrapper.find('[data-test="pencil"]').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toHaveLength(1);
   });
 });

@@ -101,19 +101,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
     ]
     show_select_columns = show_columns + ["table.id"]
-
     list_columns = [
         "id",
         "slice_name",
         "url",
         "description",
-        "changed_by_fk",
-        "created_by_fk",
         "changed_by_name",
         "changed_by_url",
         "changed_by.first_name",
         "changed_by.last_name",
-        "changed_on",
+        "changed_on_utc",
+        "changed_on_delta_humanized",
         "datasource_id",
         "datasource_type",
         "datasource_name_text",
@@ -124,13 +122,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
-
+    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
         "slice_name",
         "viz_type",
         "datasource_name",
-        "changed_by_fk",
-        "changed_on",
+        "changed_by.first_name",
+        "changed_on_delta_humanized",
     ]
     search_columns = (
         "slice_name",
@@ -647,7 +645,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
           responses:
             200:
               description: Chart thumbnail image
-              /content:
+              content:
                image/*:
                  schema:
                    type: string

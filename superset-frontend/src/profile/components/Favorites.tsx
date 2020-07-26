@@ -21,7 +21,8 @@ import moment from 'moment';
 import { t } from '@superset-ui/translation';
 
 import TableLoader from '../../components/TableLoader';
-import { User, Dashboard, Slice } from '../types';
+import { Slice } from '../types';
+import { User, Dashboard } from '../../types/bootstrapTypes';
 
 interface FavoritesProps {
   user: User;
