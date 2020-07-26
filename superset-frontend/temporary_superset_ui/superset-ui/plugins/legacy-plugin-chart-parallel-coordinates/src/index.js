@@ -33,7 +33,7 @@ const metadata = new ChartMetadata({
 export default class ParallelCoordinatesChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactParallelCoordinates.js'),
+      loadChart: () => import('./ReactParallelCoordinates'),
       metadata,
       transformProps,
       controlPanel,
