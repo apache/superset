@@ -53,9 +53,6 @@ describe('FilterBoxItemControl', () => {
   it('renderForms does the job', () => {
     const popover = shallow(inst.renderForm());
     expect(popover.find(FormRow)).toHaveLength(8);
-    expect(popover.find(FormRow).get(1).props.control.props.value).toEqual(
-      TEST_LABEL,
-    );
   });
 
   it('convert type for single value filter_box', () => {
