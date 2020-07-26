@@ -987,7 +987,7 @@ class TestCore(SupersetTestCase):
             return
         self.login(username="admin", password='123456')
         table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-        f1 = "3.csv"
+        f1 = "testSize.csv"
         self.enable_csv_upload(utils.get_example_database())
         repeat = max_bytes // 4
         data = "a,b"
