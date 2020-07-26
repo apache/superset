@@ -19,15 +19,23 @@
 import React from 'react';
 import { NavDropdown, MenuItem } from 'react-bootstrap';
 
-export interface LanguagePickerInterface {
+export interface LanguageProps {
+  [key: string]: {
+    flag: string;
+    url: string;
+    name: string;
+  };
+}
+
+interface LanguagePickerProps {
   locale: string;
-  languages: object;
+  languages: LanguageProps;
 }
 
 export default function LanguagePicker({
   locale,
   languages,
-}: LanguagePickerInterface) {
+}: LanguagePickerProps) {
   return (
     <NavDropdown
       id="locale-dropdown"
