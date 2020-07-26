@@ -23,21 +23,22 @@ import styled from '@superset-ui/style';
 import MenuObject, { MenuObjectProps } from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
-import LanguagePicker from './LanguagePicker';
+import LanguagePicker, { LanguageProps } from './LanguagePicker';
 import './Menu.less';
 
-export interface BrandProps {
+interface BrandProps {
   path: string;
   icon: string;
   alt: string;
   width: string | number;
 }
-export interface NavBarProps {
+
+interface NavBarProps {
   bug_report_url?: string;
   version_string?: string;
   version_sha?: string;
   documentation_url?: string;
-  languages: object;
+  languages: LanguageProps;
   show_language_picker: boolean;
   user_is_anonymous: boolean;
   user_info_url: string;
@@ -45,6 +46,7 @@ export interface NavBarProps {
   user_logout_url: string;
   locale: string;
 }
+
 export interface MenuProps {
   data: {
     menu: MenuObjectProps[];
