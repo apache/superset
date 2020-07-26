@@ -16,7 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import styled from '@superset-ui/style';
 import { reactify } from '@superset-ui/chart';
+import PropTypes from 'prop-types';
 import Component from './ParallelCoordinates';
 
-export default reactify(Component);
+const ReactComponent = reactify(Component);
+
+const ParallelCoordianes = ({ className, ...otherProps }) => {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+};
+
+ParallelCoordianes.propTypes = {
+  className: PropTypes.string.isRequired,
+};
+
+export default styled(ParallelCoordianes)`
+  .superset-legacy-chart-parallel-coordinates {
+    div.grid {
+      overflow: auto;
+      div.row {
+        &:hover {
+          background-color: #ccc;
+        }
+      }
+    }
+  }
+`;
