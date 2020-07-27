@@ -47,7 +47,7 @@ class BuilderComponentPane extends React.PureComponent {
   renderTabs(height) {
     const { isSticky } = this.props;
     return (
-      <Tabs className="m-t-10">
+      <Tabs className="m-t-10 tabs-components">
         <Tab eventKey={1} title={t('Components')}>
           <NewTabs />
           <NewRow />
@@ -56,7 +56,7 @@ class BuilderComponentPane extends React.PureComponent {
           <NewMarkdown />
           <NewDivider />
         </Tab>
-        <Tab eventKey={2} title={t('Charts')}>
+        <Tab eventKey={2} title={t('Charts')} className="tab-charts">
           <SliceAdder
             height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
           />
