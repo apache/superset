@@ -73,7 +73,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     tableName: string;
   }) => {
     setDatasourceId(dbId);
-    setDisableSave(isNil(dbId) || isEmpty(schema) || isEmpty(tableName));
+    setDisableSave(isNil(dbId) || isEmpty(tableName));
     setSchema(schema);
     setTableName(tableName);
   };
@@ -83,7 +83,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       endpoint: '/api/v1/dataset/',
       body: JSON.stringify({
         database: datasourceId,
-        schema: currentSchema,
+        ...(currentSchema ? { schema: currentSchema } : {}),
         table_name: currentTableName,
       }),
       headers: { 'Content-Type': 'application/json' },

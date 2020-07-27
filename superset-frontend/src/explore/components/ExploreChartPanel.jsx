@@ -72,6 +72,7 @@ class ExploreChartPanel extends React.PureComponent {
               errorMessage={this.props.errorMessage}
               formData={this.props.form_data}
               onQuery={this.props.onQuery}
+              owners={this.props?.slice?.owners}
               queryResponse={chart.queryResponse}
               refreshOverlayVisible={this.props.refreshOverlayVisible}
               setControlValue={this.props.actions.setControlValue}

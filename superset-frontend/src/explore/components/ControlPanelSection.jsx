@@ -51,7 +51,9 @@ export default class ControlPanelSection extends React.Component {
       label && (
         <div>
           <span>
-            <span onClick={this.toggleExpand}>{label}</span>{' '}
+            <span role="button" tabIndex={0} onClick={this.toggleExpand}>
+              {label}
+            </span>{' '}
             {description && (
               <InfoTooltipWithTrigger label={label} tooltip={description} />
             )}
@@ -64,6 +66,8 @@ export default class ControlPanelSection extends React.Component {
             )}
           </span>
           <i
+            role="button"
+            tabIndex={0}
             className={`float-right fa-lg text-primary expander fa fa-angle-${
               this.state.expanded ? 'up' : 'down'
             }`}

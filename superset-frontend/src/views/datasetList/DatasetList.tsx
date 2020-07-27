@@ -18,7 +18,6 @@
  */
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import moment from 'moment';
 import React, {
   FunctionComponent,
   useCallback,
@@ -26,7 +25,6 @@ import React, {
   useState,
 } from 'react';
 import rison from 'rison';
-import { SHORT_DATE, SHORT_TIME } from 'src/utils/common';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
@@ -55,8 +53,11 @@ type Dataset = {
   changed_by_name: string;
   changed_by_url: string;
   changed_by: string;
-  changed_on: string;
-  databse_name: string;
+  changed_on_delta_humanized: string;
+  database: {
+    id: string;
+    database_name: string;
+  };
   explore_url: string;
   id: number;
   owners: Array<Owner>;
@@ -82,6 +83,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   >(null);
   const [datasets, setDatasets] = useState<any[]>([]);
   const [currentFilters, setCurrentFilters] = useState<Filters>([]);
+  const [filterOperators, setFilterOperators] = useState<FilterOperatorMap>();
   const [
     lastFetchDataConfig,
     setLastFetchDataConfig,
@@ -97,7 +99,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
   const [bulkSelectEnabled, setBulkSelectEnabled] = useState<boolean>(false);
 
-  const updateFilters = (filterOperators: FilterOperatorMap) => {
+  const updateFilters = () => {
     const convertFilter = ({
       name: label,
       operator,
@@ -105,47 +107,49 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       name: string;
       operator: string;
     }) => ({ label, value: operator });
-    setCurrentFilters([
-      {
-        Header: 'Database',
-        id: 'database',
-        input: 'select',
-        operators: filterOperators.database.map(convertFilter),
-        selects: databases.map(({ text: label, value }) => ({
-          label,
-          value,
-        })),
-      },
-      {
-        Header: 'Schema',
-        id: 'schema',
-        operators: filterOperators.schema.map(convertFilter),
-      },
-      {
-        Header: 'Table Name',
-        id: 'table_name',
-        operators: filterOperators.table_name.map(convertFilter),
-      },
-      {
-        Header: 'Owners',
-        id: 'owners',
-        input: 'select',
-        operators: filterOperators.owners.map(convertFilter),
-        selects: currentOwners.map(({ text: label, value }) => ({
-          label,
-          value,
-        })),
-      },
-      {
-        Header: 'SQL Lab View',
-        id: 'is_sqllab_view',
-        input: 'checkbox',
-        operators: filterOperators.is_sqllab_view.map(convertFilter),
-      },
-    ]);
+    if (filterOperators) {
+      setCurrentFilters([
+        {
+          Header: 'Database',
+          id: 'database',
+          input: 'select',
+          operators: filterOperators.database.map(convertFilter),
+          selects: databases.map(({ text: label, value }) => ({
+            label,
+            value,
+          })),
+        },
+        {
+          Header: 'Schema',
+          id: 'schema',
+          operators: filterOperators.schema.map(convertFilter),
+        },
+        {
+          Header: 'Table Name',
+          id: 'table_name',
+          operators: filterOperators.table_name.map(convertFilter),
+        },
+        {
+          Header: 'Owners',
+          id: 'owners',
+          input: 'select',
+          operators: filterOperators.owners.map(convertFilter),
+          selects: currentOwners.map(({ text: label, value }) => ({
+            label,
+            value,
+          })),
+        },
+        {
+          Header: 'SQL Lab View',
+          id: 'is_sqllab_view',
+          input: 'checkbox',
+          operators: filterOperators.is_sqllab_view.map(convertFilter),
+        },
+      ]);
+    }
   };
 
-  const fetchDataset = () => {
+  const fetchDataset = () =>
     Promise.all([
       SupersetClient.get({
         endpoint: `/api/v1/dataset/_info`,
@@ -156,18 +160,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       SupersetClient.get({
         endpoint: `/api/v1/dataset/related/database`,
       }),
-    ]).then(
-      ([
-        { json: infoJson = {} },
-        { json: ownersJson = {} },
-        { json: databasesJson = {} },
-      ]) => {
-        setCurrentOwners(ownersJson.result);
-        setDatabases(databasesJson.result);
-        setPermissions(infoJson.permissions);
-        updateFilters(infoJson.filters);
-      },
-      ([e1, e2]) => {
+    ])
+      .then(
+        ([
+          { json: infoJson = {} },
+          { json: ownersJson = {} },
+          { json: databasesJson = {} },
+        ]) => {
+          setCurrentOwners(ownersJson.result);
+          setDatabases(databasesJson.result);
+          setPermissions(infoJson.permissions);
+          setFilterOperators(infoJson.filters);
+        },
+      )
+      .catch(([e1, e2]) => {
         addDangerToast(t('An error occurred while fetching datasets'));
         if (e1) {
           console.error(e1);
@@ -175,13 +181,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         if (e2) {
           console.error(e2);
         }
-      },
-    );
-  };
+      });
 
   useEffect(() => {
     fetchDataset();
   }, []);
+
+  useEffect(() => {
+    updateFilters();
+  }, [databases, currentOwners, permissions, filterOperators]);
 
   const hasPerm = (perm: string) => {
     if (!permissions.length) {
@@ -195,7 +203,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');
 
-  const initialSort = [{ id: 'changed_on', desc: true }];
+  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const handleDatasetEdit = ({ id }: { id: number }) => {
     window.location.assign(`/tablemodelview/edit/${id}`);
@@ -270,37 +278,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     },
     {
       Header: t('Source'),
-      accessor: 'database_name',
-      disableSortBy: true,
+      accessor: 'database.database_name',
       size: 'lg',
     },
     {
       Header: t('Schema'),
       accessor: 'schema',
-      disableSortBy: true,
       size: 'lg',
     },
     {
       Cell: ({
         row: {
-          original: { changed_on: changedOn },
+          original: { changed_on_delta_humanized: changedOn },
         },
-      }: any) => {
-        const momentTime = moment(changedOn);
-        const time = momentTime.format(SHORT_DATE);
-        const date = momentTime.format(SHORT_TIME);
-        return (
-          <TooltipWrapper
-            label="last-modified"
-            tooltip={time}
-            placement="right"
-          >
-            <span>{date}</span>
-          </TooltipWrapper>
-        );
-      },
-      Header: t('Last Modified'),
-      accessor: 'changed_on',
+      }: any) => <span className="no-wrap">{changedOn}</span>,
+      Header: t('Modified'),
+      accessor: 'changed_on_delta_humanized',
       size: 'xl',
     },
     {
@@ -310,8 +303,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
       }: any) => changedByName,
       Header: t('Modified By'),
-      accessor: 'changed_by_fk',
-      disableSortBy: true,
+      accessor: 'changed_by.first_name',
       size: 'xl',
     },
     {

@@ -21,8 +21,9 @@ from typing import List, Optional
 from datetime import datetime
 from unittest import mock
 
-import prison
 import humanize
+import prison
+import pytest
 from sqlalchemy.sql import func
 
 from tests.test_app import app
@@ -795,6 +796,42 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         self.assertEqual(result["rowcount"], 10)
+
+    def test_chart_data_prophet(self):
+        """
+        Chart data API: Ensure prophet post transformation works
+        """
+        pytest.importorskip("fbprophet")
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        time_grain = "P1Y"
+        request_payload["queries"][0]["is_timeseries"] = True
+        request_payload["queries"][0]["groupby"] = []
+        request_payload["queries"][0]["extras"] = {"time_grain_sqla": time_grain}
+        request_payload["queries"][0]["granularity"] = "ds"
+        request_payload["queries"][0]["post_processing"] = [
+            {
+                "operation": "prophet",
+                "options": {
+                    "time_grain": time_grain,
+                    "periods": 3,
+                    "confidence_interval": 0.9,
+                },
+            }
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        print(rv.data)
+        self.assertEqual(rv.status_code, 200)
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        row = result["data"][0]
+        self.assertIn("__timestamp", row)
+        self.assertIn("sum__num", row)
+        self.assertIn("sum__num__yhat", row)
+        self.assertIn("sum__num__yhat_upper", row)
+        self.assertIn("sum__num__yhat_lower", row)
+        self.assertEqual(result["rowcount"], 47)
 
     def test_chart_data_no_data(self):
         """

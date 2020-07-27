@@ -95,7 +95,9 @@ export default class CopyToClipboard extends React.Component {
         throw new Error(t('Not successful'));
       }
     } catch (err) {
-      window.alert(t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!')); // eslint-disable-line
+      window.alert(
+        t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'),
+      ); // eslint-disable-line
     }
 
     document.body.removeChild(span);
@@ -164,7 +166,12 @@ export default class CopyToClipboard extends React.Component {
         trigger={['hover']}
       >
         <MenuItem>
-          <span onClick={this.onClick} onMouseOut={this.onMouseOut}>
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={this.onClick}
+            onMouseOut={this.onMouseOut}
+          >
             {this.props.copyNode}
           </span>
         </MenuItem>

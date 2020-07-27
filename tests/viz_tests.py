@@ -825,8 +825,16 @@ class TestPartitionViz(SupersetTestCase):
         )
 
     def test_get_data_calls_correct_method(self):
+        raw = {}
+        raw[DTTM_ALIAS] = [100, 200, 300, 100, 200, 300, 100, 200, 300]
+        raw["groupA"] = ["a1", "a1", "a1", "b1", "b1", "b1", "c1", "c1", "c1"]
+        raw["groupB"] = ["a2", "a2", "a2", "b2", "b2", "b2", "c2", "c2", "c2"]
+        raw["groupC"] = ["a3", "a3", "a3", "b3", "b3", "b3", "c3", "c3", "c3"]
+        raw["metric1"] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        raw["metric2"] = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        raw["metric3"] = [100, 200, 300, 400, 500, 600, 700, 800, 900]
+        df = pd.DataFrame(raw)
         test_viz = viz.PartitionViz(Mock(), {})
-        df = Mock()
         with self.assertRaises(ValueError):
             test_viz.get_data(df)
         test_viz.levels_for = Mock(return_value=1)

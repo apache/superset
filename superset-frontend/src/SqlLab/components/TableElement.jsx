@@ -212,6 +212,8 @@ class TableElement extends React.PureComponent {
             <Fade in={this.state.hovered}>{this.renderControls()}</Fade>
           )}
           <i
+            role="button"
+            tabIndex={0}
             onClick={e => {
               this.toggleTable(e);
             }}

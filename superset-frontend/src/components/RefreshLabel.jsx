@@ -32,6 +32,8 @@ class RefreshLabel extends React.PureComponent {
     return (
       <TooltipWrapper tooltip={this.props.tooltipContent} label="cache-desc">
         <i
+          role="button"
+          tabIndex={0}
           className="RefreshLabel fa fa-refresh pointer"
           onClick={this.props.onClick}
         />

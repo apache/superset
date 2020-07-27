@@ -26,6 +26,7 @@ import rison from 'rison';
 import { Panel } from 'react-bootstrap';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
+import Icon from 'src/components/Icon';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import {
   FetchDataConfig,
@@ -203,7 +204,7 @@ class ChartList extends React.PureComponent<Props, State> {
                     className="action-button"
                     onClick={confirmDelete}
                   >
-                    <i className="fa fa-trash" />
+                    <Icon name="trash" />
                   </span>
                 )}
               </ConfirmStatusChange>
@@ -215,7 +216,7 @@ class ChartList extends React.PureComponent<Props, State> {
                 className="action-button"
                 onClick={openEditModal}
               >
-                <i className="fa fa-pencil" />
+                <Icon name="pencil" />
               </span>
             )}
           </span>

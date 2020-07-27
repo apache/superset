@@ -79,6 +79,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
 
+from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
     SupersetException,
@@ -617,7 +618,12 @@ class timeout:  # pylint: disable=invalid-name
         self, signum: int, frame: Any
     ) -> None:
         logger.error("Process timed out")
-        raise SupersetTimeoutException(self.error_message)
+        raise SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message=self.error_message,
+            level=ErrorLevel.ERROR,
+            extra={"timeout": self.seconds},
+        )
 
     def __enter__(self) -> None:
         try:
