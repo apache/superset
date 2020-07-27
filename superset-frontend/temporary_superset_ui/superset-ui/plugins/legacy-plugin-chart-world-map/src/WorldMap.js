@@ -41,13 +41,10 @@ const propTypes = {
 const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
-  const { data, height, maxBubbleSize, showBubbles } = props;
+  const { data, width, height, maxBubbleSize, showBubbles } = props;
 
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
-
-  const container = element;
-  container.style.height = `${height}px`;
   div.selectAll('*').remove();
 
   // Ignore XXX's to get better normalization
@@ -76,6 +73,8 @@ function WorldMap(element, props) {
 
   const map = new Datamap({
     element,
+    width,
+    height,
     data: processedData,
     fills: {
       defaultFill: '#eee',
