@@ -17,20 +17,30 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { NavItem, NavDropdown, MenuItem } from 'react-bootstrap';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  icon: PropTypes.string.isRequired,
-  index: PropTypes.number.isRequired,
-  url: PropTypes.string,
-  childs: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-  ),
-};
+interface MenuObjectChildProps {
+  label: string;
+  icon: string;
+  index: number;
+  url?: string;
+}
 
-export default function MenuObject({ label, icon, childs, url, index }) {
+export interface MenuObjectProps {
+  label?: string;
+  icon?: string;
+  index: number;
+  url?: string;
+  childs?: (MenuObjectChildProps | string)[];
+}
+
+export default function MenuObject({
+  label,
+  icon,
+  childs,
+  url,
+  index,
+}: MenuObjectProps) {
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
@@ -51,22 +61,23 @@ export default function MenuObject({ label, icon, childs, url, index }) {
       eventKey={index}
       title={navTitle}
     >
-      {childs.map((child, index1) =>
-        child === '-' ? (
-          <MenuItem key={`$${index1}`} divider />
-        ) : (
-          <MenuItem
-            key={`${child.label}`}
-            href={child.url}
-            eventKey={parseFloat(`${index}.${index1}`)}
-          >
-            <i className={`fa ${child.icon}`} />
-            &nbsp; {child.label}
-          </MenuItem>
-        ),
-      )}
+      {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
+        if (typeof child === 'string' && child === '-') {
+          return <MenuItem key={`$${index1}`} divider />;
+        } else if (typeof child !== 'string') {
+          return (
+            <MenuItem
+              key={`${child.label}`}
+              href={child.url}
+              eventKey={parseFloat(`${index}.${index1}`)}
+            >
+              <i className={`fa ${child.icon}`} />
+              &nbsp; {child.label}
+            </MenuItem>
+          );
+        }
+        return null;
+      })}
     </NavDropdown>
   );
 }
-
-MenuObject.propTypes = propTypes;
