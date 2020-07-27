@@ -42,12 +42,8 @@ export default function UserMenu({
         </>
       }
     >
-      <MenuItem href={userInfoUrl}>
-        {t('Profile')}
-      </MenuItem>
-      <MenuItem href={userLogoutUrl}>
-        {t('Logout')}
-      </MenuItem>
+      <MenuItem href={userInfoUrl}>{t('Profile')}</MenuItem>
+      <MenuItem href={userLogoutUrl}>{t('Logout')}</MenuItem>
       {(versionString || versionSha) && (
         <li className="version-info">
           {versionString && <div>Version: {versionString}</div>}

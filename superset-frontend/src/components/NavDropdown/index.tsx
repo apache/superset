@@ -65,11 +65,11 @@ const NavDropdown = styled(RBNavDropdown)`
     & li a {
       padding: ${({ theme }) => theme.gridUnit}px
         ${({ theme }) => theme.gridUnit * 4}px;
-        transition: all ${({ theme }) => theme.transitionTiming}s;
-      &:hover{
+      transition: all ${({ theme }) => theme.transitionTiming}s;
+      &:hover {
         background: ${({ theme }) => theme.colors.primary.light3};
         color: black;
-      } 
+      }
     }
   }
 `;
