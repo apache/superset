@@ -26,7 +26,6 @@ import Loading from 'src/components/Loading';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import TableCollection from './TableCollection';
 import Pagination from './Pagination';
-import { FilterMenu, FilterInputs } from './LegacyFilters';
 import FilterControls from './Filters';
 import { FetchDataConfig, Filters, SortColumn } from './types';
 import { ListViewError, useListViewState } from './utils';
@@ -198,7 +197,6 @@ export interface ListViewProps {
     onSelect: (rows: any[]) => any;
     type?: 'primary' | 'secondary' | 'danger';
   }>;
-  isSIP34FilterUIEnabled?: boolean;
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
   renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
@@ -263,7 +261,6 @@ const ListView: FunctionComponent<ListViewProps> = ({
   className = '',
   filters = [],
   bulkActions = [],
-  isSIP34FilterUIEnabled = false,
   bulkSelectEnabled = false,
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
@@ -276,12 +273,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
     prepareRow,
     pageCount = 1,
     gotoPage,
-    removeFilterAndApply,
-    setInternalFilters,
-    updateInternalFilter,
     applyFilterValue,
-    applyFilters,
-    filtersApplied,
     selectedFlatRows,
     toggleAllRowsSelected,
     state: { pageIndex, pageSize, internalFilters },
@@ -294,7 +286,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
     fetchData,
     initialPageSize,
     initialSort,
-    initialFilters: isSIP34FilterUIEnabled ? filters : [],
+    initialFilters: filters,
   });
   const filterable = Boolean(filters.length);
   if (filterable) {
@@ -317,30 +309,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
     <ListViewStyles>
       <div className={`superset-list-view ${className}`}>
         <div className="header">
-          {!isSIP34FilterUIEnabled && filterable && (
-            <>
-              <Row>
-                <Col md={10} />
-                <Col md={2}>
-                  <FilterMenu
-                    filters={filters}
-                    internalFilters={internalFilters}
-                    setInternalFilters={setInternalFilters}
-                  />
-                </Col>
-              </Row>
-              <hr />
-              <FilterInputs
-                internalFilters={internalFilters}
-                filters={filters}
-                updateInternalFilter={updateInternalFilter}
-                removeFilterAndApply={removeFilterAndApply}
-                filtersApplied={filtersApplied}
-                applyFilters={applyFilters}
-              />
-            </>
-          )}
-          {isSIP34FilterUIEnabled && filterable && (
+          {filterable && (
             <FilterControls
               filters={filters}
               internalFilters={internalFilters}
