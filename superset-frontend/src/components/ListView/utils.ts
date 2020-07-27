@@ -178,6 +178,7 @@ export function useListViewState({
       manualFilters: true,
       manualPagination: true,
       manualSortBy: true,
+      autoResetFilters: false,
       pageCount: Math.ceil(count / initialPageSize),
     },
     useFilters,
