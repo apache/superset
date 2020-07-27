@@ -139,7 +139,6 @@ export default class SelectControl extends React.PureComponent {
     } else if (props.choices) {
       // Accepts different formats of input
       options = props.choices.map(c => {
-        let option;
         if (Array.isArray(c)) {
           const [value, label] = c.length > 1 ? c : [c[0], c[0]];
           return { label, [props.valueKey]: value };

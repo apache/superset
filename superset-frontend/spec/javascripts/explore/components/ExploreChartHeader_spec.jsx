@@ -66,7 +66,6 @@ describe('ExploreChartHeader', () => {
   });
 
   it('should update title but not save', () => {
-    const newTitle = 'New Chart Title';
     const editableTitle = wrapper.find(EditableTitle);
     expect(editableTitle.props().onSaveTitle).toBe(updateChartTitleStub);
   });

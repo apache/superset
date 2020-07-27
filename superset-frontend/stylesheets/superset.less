@@ -26,10 +26,6 @@
   color: @danger;
 }
 
-.label {
-  font-size: 100%;
-}
-
 .no-wrap {
   white-space: nowrap;
 }
@@ -326,6 +322,10 @@ table.table-no-hover tr:hover {
   margin-bottom: 10px;
 }
 
+.m-l-4 {
+  margin-left: 4px;
+}
+
 .m-l-5 {
   margin-left: 5px;
 }
@@ -559,4 +559,36 @@ td.filtered {
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+// Making native radio buttons use brand color
+input[type='radio']:after {
+  width: 15px;
+  height: 15px;
+  border-radius: 15px;
+  top: -2px;
+  left: -1px;
+  position: relative;
+  background-color: #fff;
+  content: '';
+  display: inline-block;
+  visibility: visible;
+  border: 2px solid @gray;
+}
+
+input[type='radio']:checked:after {
+  width: 15px;
+  height: 15px;
+  border-radius: 15px;
+  top: -2px;
+  left: -1px;
+  position: relative;
+  background-color: #fff;
+  content: '';
+  display: inline-block;
+  visibility: visible;
+  border: 5px solid @brand-primary;
+}
+hr {
+  border-top: 1px solid @gray-light;
 }

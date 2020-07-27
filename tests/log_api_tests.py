@@ -29,6 +29,19 @@ from superset.models.core import Log
 from .base_tests import SupersetTestCase
 
 
+EXPECTED_COLUMNS = [
+    "action",
+    "dashboard_id",
+    "dttm",
+    "duration_ms",
+    "json",
+    "referrer",
+    "slice_id",
+    "user",
+    "user_id",
+]
+
+
 class TestLogApi(SupersetTestCase):
     def insert_log(
         self,
@@ -63,8 +76,7 @@ class TestLogApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_columns = ["action", "dttm", "user"]
-        self.assertEqual(list(response["result"][0].keys()), expected_columns)
+        self.assertEqual(list(response["result"][0].keys()), EXPECTED_COLUMNS)
         self.assertEqual(response["result"][0]["action"], "some_action")
         self.assertEqual(response["result"][0]["user"], {"username": "admin"})
         db.session.delete(log)
@@ -96,8 +108,7 @@ class TestLogApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
 
-        expected_columns = ["action", "dttm", "user"]
-        self.assertEqual(list(response["result"].keys()), expected_columns)
+        self.assertEqual(list(response["result"].keys()), EXPECTED_COLUMNS)
         self.assertEqual(response["result"]["action"], "some_action")
         self.assertEqual(response["result"]["user"], {"username": "admin"})
         db.session.delete(log)

@@ -817,11 +817,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # Adding slice to a dashboard if requested
         dash: Optional[Dashboard] = None
 
-        if request.args.get("add_to_dash") == "existing":
+        save_to_dashboard_id = request.args.get("save_to_dashboard_id")
+        new_dashboard_name = request.args.get("new_dashboard_name")
+        if save_to_dashboard_id:
+            # Adding the chart to an existing dashboard
             dash = cast(
                 Dashboard,
                 db.session.query(Dashboard)
-                .filter_by(id=int(request.args["save_to_dashboard_id"]))
+                .filter_by(id=int(save_to_dashboard_id))
                 .one(),
             )
             # check edit dashboard permissions
@@ -840,7 +843,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ),
                 "info",
             )
-        elif request.args.get("add_to_dash") == "new":
+        elif new_dashboard_name:
+            # Creating and adding to a new dashboard
             # check create dashboard permissions
             dash_add_perm = security_manager.can_access("can_add", "DashboardModelView")
             if not dash_add_perm:
@@ -872,7 +876,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "can_overwrite": is_owner(slc, g.user),
             "form_data": slc.form_data,
             "slice": slc.data,
-            "dashboard_id": dash.id if dash else None,
+            "dashboard_url": dash.url if dash else None,
         }
 
         if dash and request.args.get("goto_dash") == "true":
@@ -1910,7 +1914,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
         except SupersetTimeoutException as ex:
             logger.exception(ex)
-            return json_error_response(timeout_msg)
+            return json_errors_response([ex.error])
         except Exception as ex:  # pylint: disable=broad-except
             return json_error_response(utils.error_msg_from_exception(ex))
 
@@ -2155,6 +2159,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :param rendered_query: The rendered query (included templates)
         :param query: The query SQL (SQLAlchemy) object
         :return: A Flask Response
+        :raises: SupersetTimeoutException
         """
         try:
             timeout = config["SQLLAB_TIMEOUT"]
@@ -2181,6 +2186,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ignore_nan=True,
                 encoding=None,
             )
+        except SupersetTimeoutException as ex:
+            # re-raise exception for api exception handler
+            raise ex
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Query %i: %s", query.id, str(ex))
             return json_error_response(utils.error_msg_from_exception(ex))
@@ -2189,6 +2197,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(payload)
 
     @has_access_api
+    @handle_api_exception
     @expose("/sql_json/", methods=["POST"])
     @event_logger.log_this
     def sql_json(self) -> FlaskResponse:

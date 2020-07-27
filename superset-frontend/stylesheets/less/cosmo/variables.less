@@ -28,7 +28,7 @@
 @gray-darker: lighten(@gray-base, 13.5%);
 @gray-dark: lighten(@gray-base, 20%);
 @bs-gray: lighten(@gray-base, 33.5%);
-@bs-gray-light: lighten(@gray-base, 70%);
+@bs-gray-light: lighten(@gray-base, 60%);
 @gray-lighter: lighten(@gray-base, 95%);
 
 @brand-primary: @primary-color; // superset-var
@@ -220,7 +220,7 @@
 );
 
 // ** `.form-group` margin
-@form-group-margin-bottom: 10px;
+@form-group-margin-bottom: 16px;
 
 @legend-color: @text-color;
 @legend-border-color: @gray-bg;
@@ -491,21 +491,21 @@
 //
 // ## Define colors for form feedback states and, by default, alerts.
 
-@state-success-text: darken(@brand-success, 20%);
-@state-success-bg: lighten(@brand-success, 35%);
-@state-success-border: darken(spin(@state-success-bg, -10), 5%);
+@state-success-text: @success-dark2;
+@state-success-bg: @success-light2;
+@state-success-border: @success-light2;
 
-@state-info-text: darken(@brand-info, 22%);
-@state-info-bg: lighten(@brand-info, 20%);
-@state-info-border: darken(spin(@state-info-bg, -10), 7%);
+@state-info-text: @info-dark2;
+@state-info-bg: @info-light2;
+@state-info-border: @info-light2;
 
-@state-warning-text: darken(@brand-warning, 30%);
-@state-warning-bg: lighten(@brand-warning, 20%);
-@state-warning-border: darken(spin(@state-warning-bg, -10), 3%);
+@state-warning-text: @warning-dark2;
+@state-warning-bg: @warning-light2;
+@state-warning-border: @warning-light2;
 
-@state-danger-text: darken(@brand-danger, 25%);
-@state-danger-bg: lighten(@brand-danger, 22%);
-@state-danger-border: darken(spin(@state-danger-bg, -10), 3%);
+@state-danger-text: @danger-dark2;
+@state-danger-bg: @danger-light2;
+@state-danger-border: @danger-light2;
 
 // == Tooltips
 //
@@ -568,7 +568,7 @@
 // ** Info label background color
 @label-info-bg: @brand-info;
 // ** Warning label background color
-@label-warning-bg: @brand-warning;
+@label-warning-bg: darken(@brand-warning, 6%);
 // ** Danger label background color
 @label-danger-bg: @brand-danger;
 

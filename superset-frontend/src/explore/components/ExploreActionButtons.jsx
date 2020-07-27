@@ -31,6 +31,7 @@ const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool])
     .isRequired,
   chartStatus: PropTypes.string,
+  chartHeight: PropTypes.string.isRequired,
   latestQueryFormData: PropTypes.object,
   queryResponse: PropTypes.object,
   slice: PropTypes.object,
@@ -39,6 +40,7 @@ const propTypes = {
 export default function ExploreActionButtons({
   actions,
   canDownload,
+  chartHeight,
   chartStatus,
   latestQueryFormData,
   queryResponse,
@@ -74,6 +76,8 @@ export default function ExploreActionButtons({
 
       {latestQueryFormData && (
         <a
+          role="button"
+          tabIndex={0}
           onClick={doExportChart}
           className="btn btn-default btn-sm"
           title={t('Export to .json')}
@@ -85,6 +89,8 @@ export default function ExploreActionButtons({
       )}
       {latestQueryFormData && (
         <a
+          role="button"
+          tabIndex={0}
           onClick={doExportCSV}
           className={exportToCSVClasses}
           title={t('Export to .csv format')}
@@ -95,6 +101,7 @@ export default function ExploreActionButtons({
         </a>
       )}
       <DisplayQueryButton
+        chartHeight={chartHeight}
         queryResponse={queryResponse}
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}

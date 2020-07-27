@@ -48,6 +48,22 @@ class Model1Api(BaseSupersetModelRestApi):
 appbuilder.add_api(Model1Api)
 
 
+class TestOpenApiSpec(SupersetTestCase):
+    def test_open_api_spec(self):
+        """
+        API: Test validate OpenAPI spec
+        :return:
+        """
+        from openapi_spec_validator import validate_spec
+
+        self.login(username="admin")
+        uri = "api/v1/_openapi"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        validate_spec(response)
+
+
 class TestBaseModelRestApi(SupersetTestCase):
     def test_default_missing_declaration_get(self):
         """

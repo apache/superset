@@ -134,6 +134,7 @@ export default function (bootstrapData) {
         datasource: slice.form_data.datasource,
         description: slice.description,
         description_markeddown: slice.description_markeddown,
+        owners: slice.owners,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
       };
