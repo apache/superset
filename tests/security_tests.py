@@ -605,6 +605,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("AnnotationLayerModelView", perm_set)
         self.assert_can_all("CssTemplateModelView", perm_set)
         self.assert_can_all("TableModelView", perm_set)
+        self.assert_can_read("QueryView", perm_set)
         self.assertIn(("can_import_dashboards", "Superset"), perm_set)
         self.assertIn(("can_this_form_post", "CsvToDatabaseView"), perm_set)
         self.assertIn(("can_this_form_get", "CsvToDatabaseView"), perm_set)

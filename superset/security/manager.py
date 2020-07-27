@@ -129,7 +129,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ADMIN_ONLY_VIEW_MENUS = {
         "AccessRequestsModelView",
         "SQL Lab",
-        "Queries",
         "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
