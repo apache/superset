@@ -51,6 +51,7 @@ export interface MenuProps {
     menu: MenuObjectProps[];
     brand: BrandProps;
     navbar_right: NavBarProps;
+    settings: MenuObjectProps[];
   };
 }
 
@@ -126,9 +127,9 @@ export default function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
 }: MenuProps) {
   // Flatten settings
-  const flatSettings = [];
+  const flatSettings: any[] = [];
 
-  settings.map((section, index) => {
+  settings.map((section: object, index: number) => {
     // Top Section
     section.isHeader = true;
 
@@ -136,7 +137,7 @@ export default function Menu({
 
     // Filter out '-'
     if (section.childs) {
-      section.childs.forEach(child => {
+      section.childs.forEach((child: any) => {
         if (child !== '-') {
           flatSettings.push(child);
         }
@@ -170,24 +171,24 @@ export default function Menu({
             <NavDropdown id={`settings-dropdown`} title="Settings">
               {flatSettings.map((section, index) =>
                 section === '-' ? (
-                  <NavItem
+                  <MenuItem
                     key={`$${index}`}
                     divider
                     disabled
                     className="settings-divider"
                   />
                 ) : section.isHeader ? (
-                  <NavItem key={`${section.label}`} disabled>
+                  <MenuItem key={`${section.label}`} disabled>
                     {section.label}
-                  </NavItem>
+                  </MenuItem>
                 ) : (
-                  <NavItem
+                  <MenuItem
                     key={`${section.label}`}
                     href={section.url}
                     eventKey={index}
                   >
                     {section.label}
-                  </NavItem>
+                  </MenuItem>
                 ),
               )}
             </NavDropdown>

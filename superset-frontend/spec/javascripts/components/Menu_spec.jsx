@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { shallow, mount } from 'enzyme';
-import { Nav, NavDropdown, NavItem } from 'react-bootstrap';
+import { Nav, NavDropdown, MenuItem } from 'react-bootstrap';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import Menu from 'src/components/Menu/Menu';
@@ -171,7 +171,7 @@ describe('Menu', () => {
     expect(wrapper.find(NavDropdown)).toHaveLength(1);
   });
 
-  it('renders NavItems in NavDropdown (settings)', () => {
-    expect(wrapper.find(NavDropdown).find(NavItem)).toHaveLength(2);
+  it('renders MenuItems in NavDropdown (settings)', () => {
+    expect(wrapper.find(NavDropdown).find(MenuItem)).toHaveLength(2);
   });
 });

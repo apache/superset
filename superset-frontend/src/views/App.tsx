@@ -70,19 +70,19 @@ const ignore = {
 };
 
 // Cycle through menu.menu to build out cleanedMenu and settings
-const cleanedMenu = [];
-const settings = [];
+const cleanedMenu: object[] = [];
+const settings: object[] = [];
 
-menu.menu.forEach(item => {
+menu.menu.forEach((item: any) => {
   if (!item) {
     return;
   }
 
-  const children = [];
+  const children: object[] = [];
 
   // Filter childs
   if (item.childs) {
-    item.childs.forEach(child => {
+    item.childs.forEach((child: object) => {
       if (!ignore.hasOwnProperty(child.name)) {
         children.push(child);
       }
