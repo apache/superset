@@ -16,12 +16,11 @@
 # under the License.
 from typing import Any, Dict, List, Optional
 
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError, OperationalError
+from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import event_logger
-from superset.extensions import security_manager
 from superset.databases.decorators import check_datasource_access
 from superset.databases.schemas import (
     database_schemas_query_schema,
@@ -29,6 +28,7 @@ from superset.databases.schemas import (
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
 )
+from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
@@ -165,8 +165,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/schemas/")
     @protect()
     @safe
+    @rison(database_schemas_query_schema)
     @statsd_metrics
-    def schemas(self, pk: int) -> FlaskResponse:  # pylint: disable=no-self-use
+    def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
         """ Get all schemas from a database
         ---
         get:
@@ -206,7 +207,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             schemas = database.get_all_schema_names(
                 cache=database.schema_cache_enabled,
                 cache_timeout=database.schema_cache_timeout,
-                force=True,
+                force=kwargs["rison"].get("force", False),
             )
             schemas = security_manager.get_schemas_accessible_by_user(database, schemas)
             return self.response(200, result=schemas)
