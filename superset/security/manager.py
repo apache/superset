@@ -128,9 +128,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ADMIN_ONLY_VIEW_MENUS = {
         "AccessRequestsModelView",
-        "Manage",
         "SQL Lab",
-        "Queries",
         "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
@@ -139,7 +137,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "RowLevelSecurityFiltersModelView",
     } | USER_MODEL_VIEWS
 
-    ALPHA_ONLY_VIEW_MENUS = {"Upload a CSV"}
+    ALPHA_ONLY_VIEW_MENUS = {
+        "Manage",
+        "CSS Templates",
+        "Queries",
+        "Import dashboards",
+        "Upload a CSV",
+    }
 
     ADMIN_ONLY_PERMISSIONS = {
         "can_sql_json",  # TODO: move can_sql_json to sql_lab role
