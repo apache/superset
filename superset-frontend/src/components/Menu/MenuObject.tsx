@@ -61,20 +61,20 @@ export default function MenuObject({
       eventKey={index}
       title={navTitle}
     >
-      {childs?.map((child: MenuObjectChildProps | string, index1: number) =>
-        typeof child === 'string' && child === '-' ? (
-          <MenuItem key={`$${index1}`} divider />
-        ) : (
+      {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
+        if (typeof child === 'string' && child === '-') {
+          <MenuItem key={`$${index1}`} divider />;
+        } else if (typeof child !== 'string') {
           <MenuItem
-            key={`${(child as MenuObjectChildProps).label}`}
-            href={(child as MenuObjectChildProps).url}
+            key={`${child.label}`}
+            href={child.url}
             eventKey={parseFloat(`${index}.${index1}`)}
           >
-            <i className={`fa ${(child as MenuObjectChildProps).icon}`} />
-            &nbsp; {(child as MenuObjectChildProps).label}
-          </MenuItem>
-        ),
-      )}
+            <i className={`fa ${child.icon}`} />
+            &nbsp; {child.label}
+          </MenuItem>;
+        }
+      })}
     </NavDropdown>
   );
 }
