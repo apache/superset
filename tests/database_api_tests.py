@@ -252,6 +252,24 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, len(response["result"]))
 
+    def test_database_schemas(self):
+        """
+            Database API: Test database schemas
+        """
+        self.login("admin")
+        database = db.session.query(Database).first()
+        schemas = database.get_all_schema_names()
+
+        rv = self.client.get(f"api/v1/database/{database.id}/schemas/")
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(schemas, response["result"])
+
+        rv = self.client.get(
+            f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': True})}"
+        )
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(schemas, response["result"])
+
     @mock.patch("superset.security_manager.get_schemas_accessible_by_user")
     def test_schemas_no_access(self, mock_get_schemas_accessible_by_user):
         mock_get_schemas_accessible_by_user.return_value = []

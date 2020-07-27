@@ -128,7 +128,13 @@ def get_table_metadata(
 class DatabaseRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    include_route_methods = {"get_list", "table_metadata", "select_star", "schemas"}
+    include_route_methods = {
+        "all_schemas",
+        "get_list",
+        "table_metadata",
+        "select_star",
+        "schemas",
+    }
     class_permission_name = "DatabaseView"
     method_permission_name = {
         "get_list": "list",
@@ -164,11 +170,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,
-    }
-    openapi_spec_tag = "Database"
-    apispec_parameter_schemas = {
         "get_schemas_schema": get_schemas_schema,
     }
+    openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         DatabaseSchemaResponseSchema,
         TableMetadataResponseSchema,
@@ -350,7 +354,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_schemas_schema)
-    def schemas(self, **kwargs: Any) -> FlaskResponse:
+    def all_schemas(self, **kwargs: Any) -> FlaskResponse:
         """Get all schemas
         ---
         get:
