@@ -29,9 +29,9 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
-import DashboardList from 'src/views/dashboardList/DashboardList';
-import ChartList from 'src/views/chartList/ChartList';
-import DatasetList from 'src/views/datasetList/DatasetList';
+import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
+import ChartList from 'src/views/CRUD/chart/ChartList';
+import DatasetList from 'src/views/CRUD/dataset/DatasetList';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';

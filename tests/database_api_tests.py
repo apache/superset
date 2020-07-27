@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+from unittest import mock
 
 import prison
 from sqlalchemy.sql import func
@@ -220,3 +221,41 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/select_star/table_does_not_exist/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_schemas(self):
+        self.login("admin")
+        dbs = db.session.query(Database).all()
+        schemas = []
+        for database in dbs:
+            schemas += database.get_all_schema_names()
+
+        rv = self.client.get("api/v1/database/schemas/")
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(len(schemas), response["count"])
+        self.assertEqual(schemas[0], response["result"][0]["value"])
+
+        rv = self.client.get(
+            f"api/v1/database/schemas/?q={prison.dumps({'filter': 'foo'})}"
+        )
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(0, len(response["result"]))
+
+        rv = self.client.get(
+            f"api/v1/database/schemas/?q={prison.dumps({'page': 0, 'page_size': 25})}"
+        )
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(len(schemas), len(response["result"]))
+
+        rv = self.client.get(
+            f"api/v1/database/schemas/?q={prison.dumps({'page': 1, 'page_size': 25})}"
+        )
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(0, len(response["result"]))
+
+    @mock.patch("superset.security_manager.get_schemas_accessible_by_user")
+    def test_schemas_no_access(self, mock_get_schemas_accessible_by_user):
+        mock_get_schemas_accessible_by_user.return_value = []
+        self.login("admin")
+        rv = self.client.get("api/v1/database/schemas/")
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(0, response["count"])
