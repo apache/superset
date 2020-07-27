@@ -23,7 +23,7 @@ import styled from '@superset-ui/style';
 import MenuObject, { MenuObjectProps } from './MenuObject';
 import NewMenu from './NewMenu';
 import UserMenu from './UserMenu';
-import LanguagePicker, { LanguageProps } from './LanguagePicker';
+import LanguagePicker, { Languages } from './LanguagePicker';
 import './Menu.less';
 
 interface BrandProps {
@@ -38,7 +38,7 @@ interface NavBarProps {
   version_string?: string;
   version_sha?: string;
   documentation_url?: string;
-  languages: LanguageProps;
+  languages: Languages;
   show_language_picker: boolean;
   user_is_anonymous: boolean;
   user_info_url: string;
