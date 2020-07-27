@@ -109,11 +109,6 @@ describe('Header', () => {
       expect(wrapper.find(HeaderActionsDropdown)).toExist();
     });
 
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toExist();
-    });
-
     it('should not set up undo/redo', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(UndoRedoKeylisteners)).not.toExist();
@@ -150,11 +145,6 @@ describe('Header', () => {
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(HeaderActionsDropdown)).toExist();
-    });
-
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toExist();
     });
 
     it('should not set up undo/redo', () => {
@@ -197,7 +187,7 @@ describe('Header', () => {
 
     it('should render five Buttons', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toHaveLength(3);
+      expect(wrapper.find(Button)).toHaveLength(4);
     });
 
     it('should set up undo/redo', () => {
@@ -235,11 +225,6 @@ describe('Header', () => {
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(HeaderActionsDropdown)).toExist();
-    });
-
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toExist();
     });
 
     it('should not set up undo/redo', () => {

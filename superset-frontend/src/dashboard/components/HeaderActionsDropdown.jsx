@@ -193,6 +193,14 @@ class HeaderActionsDropdown extends React.PureComponent {
           {t('Refresh dashboard')}
         </MenuItem>
         <MenuItem divider />
+        <RefreshIntervalModal
+          refreshFrequency={refreshFrequency}
+          refreshLimit={refreshLimit}
+          refreshWarning={refreshWarning}
+          onChange={this.changeRefreshInterval}
+          editMode={editMode}
+          triggerNode={<span>{t('Set auto-refresh interval')}</span>}
+        />
 
         {editMode && (
           <>
@@ -201,14 +209,6 @@ class HeaderActionsDropdown extends React.PureComponent {
               triggerNode={
                 <MenuItem bsSize="small">{t('Set filter mapping')}</MenuItem>
               }
-            />
-            <RefreshIntervalModal
-              refreshFrequency={refreshFrequency}
-              refreshLimit={refreshLimit}
-              refreshWarning={refreshWarning}
-              onChange={this.changeRefreshInterval}
-              editMode={editMode}
-              triggerNode={<span>{t('Set auto-refresh interval')}</span>}
             />
             <MenuItem onClick={this.props.showPropertiesModal}>
               {t('Edit dashboard properties')}
