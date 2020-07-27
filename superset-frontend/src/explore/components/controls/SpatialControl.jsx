@@ -31,7 +31,7 @@ import { t } from '@superset-ui/translation';
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
 import PopoverSection from '../../../components/PopoverSection';
-import Checkbox from '../../../components/Checkbox';
+import Checkbox from '../../../../src/components/IndeterminateCheckbox';
 
 const spatialTypes = {
   latlong: 'latlong',

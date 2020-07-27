@@ -23,7 +23,7 @@ import { shallow, mount } from 'enzyme';
 
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Checkbox from 'src/components/Checkbox';
+import Checkbox from 'src/components/IndeterminateCheckbox';
 
 const defaultProps = {
   name: 'show_legend',

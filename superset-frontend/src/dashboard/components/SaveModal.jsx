@@ -24,7 +24,7 @@ import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
 import ModalTrigger from '../../components/ModalTrigger';
-import Checkbox from '../../components/Checkbox';
+import Checkbox from '../../../src/components/IndeterminateCheckbox';
 import { SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 
 const propTypes = {
@@ -181,11 +181,11 @@ class SaveModal extends React.PureComponent {
               onChange={this.handleNameChange}
             />
             <div className="m-l-25 m-t-5">
-              <Checkbox
-                checked={this.state.duplicateSlices}
-                onChange={this.toggleDuplicateSlices}
-              />
-              <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
+                <Checkbox
+                  checked={this.state.duplicateSlices}
+                  onChange={this.toggleDuplicateSlices}
+                />
+              <span className="m-l-5 v-align">{t('also copy (duplicate) charts')}</span>
             </div>
           </FormGroup>
         }

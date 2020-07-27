@@ -34,7 +34,7 @@ import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 
 import Button from '../../components/Button';
-import Checkbox from '../../components/Checkbox';
+import Checkbox from '../../../src/components/IndeterminateCheckbox';
 import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
@@ -532,11 +532,16 @@ class SqlEditor extends React.PureComponent {
         </div>
         <div className="rightItems">
           <Button
-            className="autocomplete"
-            onClick={this.handleToggleAutocompleteEnabled}
+            className="autocomplete btn-with-checkbox"
+            onClick={(e)=>{
+              this.handleToggleAutocompleteEnabled();
+              e.preventDefault();
+            }}
           >
-            <Checkbox checked={this.state.autocompleteEnabled} />{' '}
-            {t('Autocomplete')}
+              <Checkbox checked={this.state.autocompleteEnabled} />{' '}
+              <span>
+                {t('Autocomplete')}
+              </span>
           </Button>{' '}
           <TemplateParamsEditor
             language="json"

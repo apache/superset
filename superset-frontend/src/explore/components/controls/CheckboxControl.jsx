@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ControlHeader from '../ControlHeader';
-import Checkbox from '../../../components/Checkbox';
+import Checkbox from '../../../../src/components/IndeterminateCheckbox';
 
 const propTypes = {
   value: PropTypes.bool,
