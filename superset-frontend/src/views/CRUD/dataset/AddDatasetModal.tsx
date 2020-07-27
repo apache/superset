@@ -24,7 +24,8 @@ import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
-import withToasts from '../../messageToasts/enhancers/withToasts';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 
 type DatasetAddObject = {
   id: number;
@@ -95,10 +96,11 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
         addSuccessToast(t('The dataset has been saved'));
         onHide();
       })
-      .catch(e => {
-        addDangerToast(t('Error while saving dataset'));
-        console.error(e);
-      });
+      .catch(
+        createErrorHandler(errMsg =>
+          addDangerToast(t('Error while saving dataset: %s', errMsg)),
+        ),
+      );
   };
 
   return (

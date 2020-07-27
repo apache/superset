@@ -23,7 +23,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-import DashboardList from 'src/views/dashboardList/DashboardList';
+import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ListView from 'src/components/ListView/ListView';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
@@ -50,12 +50,6 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(dashboardsInfoEndpoint, {
   permissions: ['can_list', 'can_edit'],
-  filters: {
-    dashboard_title: [],
-    slug: [],
-    owners: [],
-    published: [],
-  },
 });
 fetchMock.get(dashboardOwnersEndpoint, {
   result: [],
@@ -84,11 +78,6 @@ describe('DashboardList', () => {
   it('fetches info', () => {
     const callsI = fetchMock.calls(/dashboard\/_info/);
     expect(callsI).toHaveLength(1);
-  });
-
-  it('fetches owners', () => {
-    const callsO = fetchMock.calls(/dashboard\/related\/owners/);
-    expect(callsO).toHaveLength(1);
   });
 
   it('fetches data', () => {

@@ -23,7 +23,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-import ChartList from 'src/views/chartList/ChartList';
+import ChartList from 'src/views/CRUD/chart/ChartList';
 import ListView from 'src/components/ListView/ListView';
 
 // store needed for withToasts(ChartTable)
@@ -48,13 +48,6 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_list', 'can_edit'],
-  filters: {
-    slice_name: [],
-    description: [],
-    viz_type: [],
-    datasource_name: [],
-    owners: [],
-  },
 });
 fetchMock.get(chartssOwnersEndpoint, {
   result: [],
@@ -93,11 +86,6 @@ describe('ChartList', () => {
   it('fetches info', () => {
     const callsI = fetchMock.calls(/chart\/_info/);
     expect(callsI).toHaveLength(1);
-  });
-
-  it('fetches owners', () => {
-    const callsO = fetchMock.calls(/chart\/related\/owners/);
-    expect(callsO).toHaveLength(1);
   });
 
   it('fetches data', () => {

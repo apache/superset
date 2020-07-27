@@ -23,7 +23,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-import DatasetList from 'src/views/datasetList/DatasetList';
+import DatasetList from 'src/views/CRUD/dataset/DatasetList';
 import ListView from 'src/components/ListView/ListView';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
@@ -54,13 +54,6 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(datasetsInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_add', 'can_delete'],
-  filters: {
-    database: [],
-    schema: [],
-    table_name: [],
-    owners: [],
-    is_sqllab_view: [],
-  },
 });
 fetchMock.get(datasetsOwnersEndpoint, {
   result: [],
@@ -103,11 +96,6 @@ describe('DatasetList', () => {
   it('fetches info', () => {
     const callsI = fetchMock.calls(/dataset\/_info/);
     expect(callsI).toHaveLength(1);
-  });
-
-  it('fetches owners', () => {
-    const callsO = fetchMock.calls(/dataset\/related\/owners/);
-    expect(callsO).toHaveLength(1);
   });
 
   it('fetches data', () => {
