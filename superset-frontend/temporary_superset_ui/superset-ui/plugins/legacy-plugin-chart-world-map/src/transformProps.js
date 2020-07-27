@@ -17,11 +17,12 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { height, formData, queryData } = chartProps;
+  const { width, height, formData, queryData } = chartProps;
   const { maxBubbleSize, showBubbles } = formData;
 
   return {
     data: queryData.data,
+    width,
     height,
     maxBubbleSize: parseInt(maxBubbleSize, 10),
     showBubbles,
