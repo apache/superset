@@ -58,6 +58,49 @@ const store = createStore(
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
 
+// Menu items that should go into settings dropdown
+const settingsMenus = {
+  Security: true,
+  Manage: true,
+};
+
+// Menu items that should be ignored
+const ignore = {
+  'Import Dashboards': true,
+};
+
+// Cycle through menu.menu to build out cleanedMenu and settings
+const cleanedMenu = [];
+const settings = [];
+
+menu.menu.forEach(item => {
+  if (!item) {
+    return;
+  }
+
+  const children = [];
+
+  // Filter childs
+  if (item.childs) {
+    item.childs.forEach(child => {
+      if (!ignore.hasOwnProperty(child.name)) {
+        children.push(child);
+      }
+    });
+
+    item.childs = children;
+  }
+
+  if (!settingsMenus.hasOwnProperty(item.name)) {
+    cleanedMenu.push(item);
+  } else {
+    settings.push(item);
+  }
+});
+
+menu.menu = cleanedMenu;
+menu.settings = settings;
+
 const App = () => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>

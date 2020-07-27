@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
-import { Nav, Navbar, NavItem } from 'react-bootstrap';
+import { Nav, Navbar, NavDropdown, NavItem, MenuItem } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import MenuObject, { MenuObjectProps } from './MenuObject';
 import NewMenu from './NewMenu';
@@ -115,11 +115,39 @@ const StyledHeader = styled.header`
       margin: 0;
     }
   }
+
+  .settings-divider {
+    margin-bottom: 8px;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
 `;
 
 export default function Menu({
-  data: { menu, brand, navbar_right: navbarRight },
+  data: { menu, brand, navbar_right: navbarRight, settings },
 }: MenuProps) {
+  // Flatten settings
+  const flatSettings = [];
+
+  settings.map((section, index) => {
+    // Top Section
+    section.isHeader = true;
+
+    flatSettings.push(section);
+
+    // Filter out '-'
+    if (section.childs) {
+      section.childs.forEach(child => {
+        if (child !== '-') {
+          flatSettings.push(child);
+        }
+      });
+    }
+
+    if (index !== settings.length - 1) {
+      flatSettings.push('-');
+    }
+  });
+
   return (
     <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
@@ -138,6 +166,32 @@ export default function Menu({
         </Nav>
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
+          {settings && settings.length && (
+            <NavDropdown id={`settings-dropdown`} title="Settings">
+              {flatSettings.map((section, index) =>
+                section === '-' ? (
+                  <NavItem
+                    key={`$${index}`}
+                    divider
+                    disabled
+                    className="settings-divider"
+                  />
+                ) : section.isHeader ? (
+                  <NavItem key={`${section.label}`} disabled>
+                    {section.label}
+                  </NavItem>
+                ) : (
+                  <NavItem
+                    key={`${section.label}`}
+                    href={section.url}
+                    eventKey={index}
+                  >
+                    {section.label}
+                  </NavItem>
+                ),
+              )}
+            </NavDropdown>
+          )}
           {navbarRight.documentation_url && (
             <NavItem
               href={navbarRight.documentation_url}
