@@ -4252,17 +4252,17 @@
     classnames "^2.2.5"
     prop-types "^15.6.0"
 
-"@vx/axis@^0.0.197":
-  version "0.0.197"
-  resolved "https://registry.yarnpkg.com/@vx/axis/-/axis-0.0.197.tgz#ede362a4d05d594e23db3a1d081a26a8b3d5f5e0"
-  integrity sha512-AtGI7ogExmq/n5hlYIbCqdUe+hkUuOpBziCh3Fnc9eDcjFKqRBfizSrWfiv5lUR0xgGYI37TIrJlHLJ4PmSj5w==
+"@vx/axis@^0.0.198":
+  version "0.0.198"
+  resolved "https://registry.yarnpkg.com/@vx/axis/-/axis-0.0.198.tgz#a95826cf5e331936045197df1a4fa1b2d374fbcf"
+  integrity sha512-XqHzGOBgkJD8gR1g9F7uOhT4Sjlwpl/H3xLehtDooRmKf3J0hy8C7L5rCgh7n8ARi+vYg+3A1zUo0JBIO5k4PQ==
   dependencies:
     "@types/classnames" "^2.2.9"
     "@types/react" "*"
-    "@vx/group" "0.0.197"
-    "@vx/point" "0.0.197"
-    "@vx/shape" "0.0.197"
-    "@vx/text" "0.0.197"
+    "@vx/group" "0.0.198"
+    "@vx/point" "0.0.198"
+    "@vx/shape" "0.0.198"
+    "@vx/text" "0.0.198"
     classnames "^2.2.5"
     prop-types "^15.6.0"
 
@@ -4321,10 +4321,10 @@
   dependencies:
     d3-shape "^1.0.6"
 
-"@vx/curve@0.0.197":
-  version "0.0.197"
-  resolved "https://registry.yarnpkg.com/@vx/curve/-/curve-0.0.197.tgz#4ff4c095e4e86e112a5589ebb1d0ddcddcfbdb6a"
-  integrity sha512-NI8Uop3f2eDMkuNw8q252ofask98Uce2pb5Ioav5vseqVf47GpnLpThRXXI9V9oQtFJzdiEwlGG8DyGiazqbnw==
+"@vx/curve@0.0.198":
+  version "0.0.198"
+  resolved "https://registry.yarnpkg.com/@vx/curve/-/curve-0.0.198.tgz#3b9e19d39974507fb1b0e4c2f5fdeb0aaab12078"
+  integrity sha512-ZINtD0t5eLu3bEeaOWZxGXrHK5WCbGoxDdou7yPWD6xg8kpTD4/Vq0adRFNCxS1TZUlUjCJ2KqY2PmewO+Hdcw==
   dependencies:
     "@types/d3-shape" "^1.3.1"
     d3-shape "^1.0.6"
@@ -4451,16 +4451,6 @@
   integrity sha512-RnDdRoy0YI5hokk+YWXc8t39Kp51i4BdCpiwkDJU4YypGycTYnDFjicam6jigUmZ/6wyMirDf/aQboWviFLt2Q==
   dependencies:
     classnames "^2.2.5"
-
-"@vx/group@0.0.197":
-  version "0.0.197"
-  resolved "https://registry.yarnpkg.com/@vx/group/-/group-0.0.197.tgz#5dc06d21ccf1d519981545536f277b1c99faba46"
-  integrity sha512-7gzM0+WjwrGN5HzRzECm3xAKl5570ez30kx/jVYHX/M/ikHb6ytwkR2edZmQnmYNoZ0/6bdpSPi5ReGTP5jYPg==
-  dependencies:
-    "@types/classnames" "^2.2.9"
-    "@types/react" "*"
-    classnames "^2.2.5"
-    prop-types "^15.6.2"
 
 "@vx/group@0.0.198":
   version "0.0.198"
@@ -4654,17 +4644,17 @@
     d3-shape "^1.2.0"
     prop-types "^15.5.10"
 
-"@vx/shape@0.0.197":
-  version "0.0.197"
-  resolved "https://registry.yarnpkg.com/@vx/shape/-/shape-0.0.197.tgz#9c92a6e7165f58adc127c9ba96ab46a3d8d5f559"
-  integrity sha512-EA3KBFeDj/xOdfeCbQxKeqjxzc7ilIFMf6/59xhP1kg+CPWGNo8mXSOQ/ym9mQo1FK2l4SrEKxaVRdZvRixqiQ==
+"@vx/shape@0.0.198":
+  version "0.0.198"
+  resolved "https://registry.yarnpkg.com/@vx/shape/-/shape-0.0.198.tgz#b9b974302152dedd51864bf7a5c5c1164e6b7271"
+  integrity sha512-3Ky2PlSXYmh/Wt+tT4OBmsLpTe8Vu5pZ1EwbMQ0H/NNl6d4BsNqBUzr++0WC/kLsuNs5NENDvG77N9u2ztMrYA==
   dependencies:
     "@types/classnames" "^2.2.9"
     "@types/d3-path" "^1.0.8"
     "@types/d3-shape" "^1.3.1"
     "@types/react" "*"
-    "@vx/curve" "0.0.197"
-    "@vx/group" "0.0.197"
+    "@vx/curve" "0.0.198"
+    "@vx/group" "0.0.198"
     classnames "^2.2.5"
     d3-path "^1.0.5"
     d3-shape "^1.2.0"
@@ -4727,10 +4717,10 @@
     prop-types "^15.6.2"
     reduce-css-calc "^1.3.0"
 
-"@vx/text@0.0.197":
-  version "0.0.197"
-  resolved "https://registry.yarnpkg.com/@vx/text/-/text-0.0.197.tgz#1d7cd34f7facdc01ffec2083bf3c9a7b2e4ff502"
-  integrity sha512-NQon2tLuZuaulz69RCcQrW2AeEADE4g5RW9A1fZF0pPCTHy/px8i3v9GfpOnfCIr9cDHtOMIBcwfs4kqWLIXDg==
+"@vx/text@0.0.198":
+  version "0.0.198"
+  resolved "https://registry.yarnpkg.com/@vx/text/-/text-0.0.198.tgz#6c5aa9a27548f8e38803ef7d3e280db4e4880519"
+  integrity sha512-MZhLeIhjbPlAeq+heUFXzrAztkjpfhAjeg+RXDg1dTJTtkbBD0w1bwadSPHuC7Rzj6yNQChzVDYl51dO/k4ExQ==
   dependencies:
     "@types/classnames" "^2.2.9"
     "@types/lodash" "^4.14.146"
