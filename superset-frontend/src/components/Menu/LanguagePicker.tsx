@@ -17,48 +17,45 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { NavDropdown, MenuItem } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
 
-const propTypes = {
-  userInfoUrl: PropTypes.string.isRequired,
-  userLogoutUrl: PropTypes.string.isRequired,
-  versionString: PropTypes.string,
-  versionSha: PropTypes.string,
-};
+export interface Languages {
+  [key: string]: {
+    flag: string;
+    url: string;
+    name: string;
+  };
+}
 
-export default function UserMenu({
-  userInfoUrl,
-  userLogoutUrl,
-  versionString,
-  versionSha,
-}) {
+interface LanguagePickerProps {
+  locale: string;
+  languages: Languages;
+}
+
+export default function LanguagePicker({
+  locale,
+  languages,
+}: LanguagePickerProps) {
   return (
     <NavDropdown
-      id="user-menu-dropwn"
+      id="locale-dropdown"
       title={
-        <>
-          <i className="fa fa-user" />
-        </>
+        <span className="f16">
+          <i className={`flag ${languages[locale].flag}`} />
+        </span>
       }
     >
-      <MenuItem href={userInfoUrl}>
-        <span className="fa fa-fw fa-user" />
-        {t('Profile')}
-      </MenuItem>
-      <MenuItem href={userLogoutUrl}>
-        <span className="fa fa-fw fa-sign-out" />
-        {t('Logout')}
-      </MenuItem>
-      {(versionString || versionSha) && (
-        <li className="version-info">
-          {versionString && <div>Version: {versionString}</div>}
-          {versionSha && <div>SHA: {versionSha}</div>}
-        </li>
+      {Object.keys(languages).map(langKey =>
+        langKey === locale ? null : (
+          <MenuItem key={langKey} href={languages[langKey].url}>
+            {' '}
+            <div className="f16">
+              <i className={`flag ${languages[langKey].flag}`} /> -{' '}
+              {languages[langKey].name}
+            </div>
+          </MenuItem>
+        ),
       )}
     </NavDropdown>
   );
 }
-
-UserMenu.propTypes = propTypes;
