@@ -703,6 +703,17 @@ npm run cypress open
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset-frontend/cypress_build.sh).
 
+### Storybook
+
+Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:  
+
+```bash
+cd superset-frontend
+npm run storybool
+```
+
+When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.
+
 ## Translating
 
 We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.

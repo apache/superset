@@ -26,10 +26,16 @@ import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
+type DatasetAddObject = {
+  id: number;
+  databse: number;
+  schema: string;
+  table_name: string;
+};
 interface DatasetModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  fetchData?: () => void;
+  onDatasetAdd?: (dataset: DatasetAddObject) => void;
   onHide: () => void;
   show: boolean;
 }
@@ -48,7 +54,7 @@ const TableSelectorContainer = styled.div`
 const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   addDangerToast,
   addSuccessToast,
-  fetchData,
+  onDatasetAdd,
   onHide,
   show,
 }) => {
@@ -67,7 +73,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     tableName: string;
   }) => {
     setDatasourceId(dbId);
-    setDisableSave(isNil(dbId) || isEmpty(schema) || isEmpty(tableName));
+    setDisableSave(isNil(dbId) || isEmpty(tableName));
     setSchema(schema);
     setTableName(tableName);
   };
@@ -77,14 +83,14 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       endpoint: '/api/v1/dataset/',
       body: JSON.stringify({
         database: datasourceId,
-        schema: currentSchema,
+        ...(currentSchema ? { schema: currentSchema } : {}),
         table_name: currentTableName,
       }),
       headers: { 'Content-Type': 'application/json' },
     })
-      .then(() => {
-        if (fetchData) {
-          fetchData();
+      .then(({ json = {} }) => {
+        if (onDatasetAdd) {
+          onDatasetAdd({ id: json.id, ...json.result });
         }
         addSuccessToast(t('The dataset has been saved'));
         onHide();

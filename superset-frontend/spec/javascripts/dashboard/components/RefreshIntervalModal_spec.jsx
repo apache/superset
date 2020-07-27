@@ -21,7 +21,7 @@ import { mount, shallow } from 'enzyme';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import { Modal, Alert } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 
 describe('RefreshIntervalModal', () => {
   const mockedProps = {

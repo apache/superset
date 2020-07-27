@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table } from 'reactable-arc';
-import { FormControl, Modal } from 'react-bootstrap';
+import { Alert, FormControl, Modal } from 'react-bootstrap';
 import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 
@@ -43,6 +43,10 @@ const defaultProps = {
 
 const TABLE_COLUMNS = ['name', 'type', 'schema', 'connection', 'creator'];
 const TABLE_FILTERABLE = ['rawName', 'type', 'schema', 'connection', 'creator'];
+const CHANGE_WARNING_MSG = t(
+  'Changing the datasource may break the chart if the chart relies ' +
+    'on columns or metadata that does not exist in the target datasource',
+);
 
 class ChangeDatasourceModal extends React.PureComponent {
   constructor(props) {
@@ -136,6 +140,9 @@ class ChangeDatasourceModal extends React.PureComponent {
           <Modal.Title>{t('Select a datasource')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          <Alert bsStyle="warning" showIcon>
+            <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
+          </Alert>
           <div>
             <FormControl
               inputRef={ref => {

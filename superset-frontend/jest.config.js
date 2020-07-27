@@ -23,6 +23,7 @@ module.exports = {
     '\\.(gif|ttf|eot)$': '<rootDir>/spec/__mocks__/fileMock.js',
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.js',
     '^src/(.*)$': '<rootDir>/src/$1',
+    '^spec/(.*)$': '<rootDir>/spec/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/shim.js'],
   testURL: 'http://localhost',

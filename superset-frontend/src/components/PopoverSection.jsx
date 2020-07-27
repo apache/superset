@@ -36,8 +36,8 @@ export default function PopoverSection({
   info,
 }) {
   return (
-    <div className={'PopoverSection ' + (!isSelected ? 'dimmed' : '')}>
-      <div onClick={onSelect} className="pointer">
+    <div className={`PopoverSection ${!isSelected ? 'dimmed' : ''}`}>
+      <div role="button" tabIndex={0} onClick={onSelect} className="pointer">
         <strong>{title}</strong> &nbsp;
         {info && (
           <InfoTooltipWithTrigger tooltip={info} label="date-free-tooltip" />

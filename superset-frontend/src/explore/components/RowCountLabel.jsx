@@ -47,10 +47,7 @@ export default function RowCountLabel({ rowcount, limit, suffix }) {
   );
   return (
     <TooltipWrapper label="tt-rowcount" tooltip={tooltip}>
-      <Label
-        bsStyle={bsStyle}
-        style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
-      >
+      <Label bsStyle={bsStyle} className="m-r-5 pointer">
         {formattedRowCount} {suffix}
       </Label>
     </TooltipWrapper>

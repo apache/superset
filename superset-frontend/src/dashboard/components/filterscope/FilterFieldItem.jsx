@@ -20,7 +20,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 
-import FilterBadgeIcon from '../../../components/FilterBadgeIcon';
+import FormLabel from 'src/components/FormLabel';
+import FilterBadgeIcon from 'src/components/FilterBadgeIcon';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
@@ -36,7 +37,7 @@ export default function FilterFieldItem({ label, colorCode, isSelected }) {
       })}
     >
       <FilterBadgeIcon colorCode={colorCode} />
-      <label htmlFor={label}>{label}</label>
+      <FormLabel htmlFor={label}>{label}</FormLabel>
     </a>
   );
 }

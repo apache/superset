@@ -661,21 +661,19 @@ class TableViz(BaseViz):
         # Transform the data frame to adhere to the UI ordering of the columns and
         # metrics whilst simultaneously computing the percentages (via normalization)
         # for the percent metrics.
-        if not df.empty:
-            columns, percent_columns = self.columns, self.percent_columns
-            if DTTM_ALIAS in df and self.is_timeseries:
-                columns = [DTTM_ALIAS] + columns
-            df = pd.concat(
-                [
-                    df[columns],
-                    (
-                        df[percent_columns]
-                        .div(df[percent_columns].sum())
-                        .add_prefix("%")
-                    ),
-                ],
-                axis=1,
-            )
+        if df.empty:
+            return None
+
+        columns, percent_columns = self.columns, self.percent_columns
+        if DTTM_ALIAS in df and self.is_timeseries:
+            columns = [DTTM_ALIAS] + columns
+        df = pd.concat(
+            [
+                df[columns],
+                (df[percent_columns].div(df[percent_columns].sum()).add_prefix("%")),
+            ],
+            axis=1,
+        )
         return self.handle_js_int_overflow(
             dict(records=df.to_dict(orient="records"), columns=list(df.columns))
         )
@@ -852,6 +850,9 @@ class CalHeatmapViz(BaseViz):
     is_timeseries = True
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+
         form_data = self.form_data
 
         data = {}
@@ -1074,6 +1075,8 @@ class BulletViz(NVD3Viz):
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         df["metric"] = df[[utils.get_metric_name(self.metric)]]
         values = df["metric"].values
         return {
@@ -1524,10 +1527,10 @@ class DistributionPieViz(NVD3Viz):
         if df.empty:
             return None
         metric = self.metric_labels[0]
-        df = df.pivot_table(index=self.groupby, values=[metric])
-        df.sort_values(by=metric, ascending=False, inplace=True)
-        df = df.reset_index()
-        df.columns = ["x", "y"]
+        df = pd.DataFrame(
+            {"x": df[self.groupby].agg(func=", ".join, axis=1), "y": df[metric]}
+        )
+        df.sort_values(by="y", ascending=False, inplace=True)
         return df.to_dict(orient="records")
 
 
@@ -1665,6 +1668,8 @@ class SunburstViz(BaseViz):
     )
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         fd = self.form_data
         cols = fd.get("groupby") or []
         cols.extend(["m1", "m2"])
@@ -1715,6 +1720,8 @@ class SankeyViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         source, target = self.groupby
         (value,) = self.metric_labels
         df.rename(
@@ -1774,6 +1781,8 @@ class DirectedForceViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         df.columns = ["source", "target", "value"]
         return df.to_dict(orient="records")
 
@@ -1827,6 +1836,8 @@ class CountryMapViz(BaseViz):
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         fd = self.form_data
         cols = [fd.get("entity")]
         metric = self.metric_labels[0]
@@ -2915,6 +2926,8 @@ class PartitionViz(NVD3TimeSeriesViz):
         ]
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
         fd = self.form_data
         groups = fd.get("groupby", [])
         time_op = fd.get("time_series_option", "not_time")
@@ -2940,6 +2953,6 @@ viz_types = {
     if (
         inspect.isclass(o)
         and issubclass(o, BaseViz)
-        and o.viz_type not in config["VIZ_TYPE_BLACKLIST"]
+        and o.viz_type not in config["VIZ_TYPE_DENYLIST"]
     )
 }

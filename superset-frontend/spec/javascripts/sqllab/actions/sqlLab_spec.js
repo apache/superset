@@ -58,7 +58,7 @@ describe('async actions', () => {
   );
 
   const runQueryEndpoint = 'glob:*/superset/sql_json/*';
-  fetchMock.post(runQueryEndpoint, '{ "data": ' + mockBigNumber + ' }');
+  fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
 
   describe('saveQuery', () => {
     const saveQueryEndpoint = 'glob:*/savedqueryviewapi/api/create';

@@ -177,17 +177,20 @@ class Slice(
             data["error"] = str(ex)
         return {
             "cache_timeout": self.cache_timeout,
+            "changed_on": self.changed_on.isoformat(),
+            "changed_on_humanized": self.changed_on_humanized,
             "datasource": self.datasource_name,
             "description": self.description,
             "description_markeddown": self.description_markeddown,
             "edit_url": self.edit_url,
             "form_data": self.form_data,
+            "modified": self.modified(),
+            "owners": [
+                f"{owner.first_name} {owner.last_name}" for owner in self.owners
+            ],
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
-            "modified": self.modified(),
-            "changed_on_humanized": self.changed_on_humanized,
-            "changed_on": self.changed_on.isoformat(),
         }
 
     @property
@@ -266,7 +269,7 @@ class Slice(
 
     @property
     def changed_by_url(self) -> str:
-        return f"/superset/profile/{self.created_by.username}"  # type: ignore
+        return f"/superset/profile/{self.changed_by.username}"  # type: ignore
 
     @property
     def icons(self) -> str:

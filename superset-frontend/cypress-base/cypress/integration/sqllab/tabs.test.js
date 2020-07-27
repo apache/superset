@@ -45,7 +45,7 @@ describe('SqlLab query tabs', () => {
       });
 
       // first item is close
-      cy.get('.SqlEditorTabs .ddbtn-tab .close').first().click();
+      cy.get('.SqlEditorTabs .ddbtn-tab svg').first().click();
 
       cy.get('.SqlEditorTabs > ul > li').should(
         'have.length',

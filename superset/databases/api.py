@@ -21,13 +21,16 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from superset import event_logger
+from superset.databases.decorators import check_datasource_access
+from superset.databases.schemas import (
+    SelectStarResponseSchema,
+    TableMetadataResponseSchema,
+)
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi
-from superset.views.database.decorators import check_datasource_access
 from superset.views.database.filters import DatabaseFilter
-from superset.views.database.mixins import DatabaseMixin
 from superset.views.database.validators import sqlalchemy_uri_validator
 
 
@@ -63,9 +66,8 @@ def get_table_metadata(
     database: Database, table_name: str, schema_name: Optional[str]
 ) -> Dict[str, Any]:
     """
-        Get table metadata information, including type, pk, fks.
-        This function raises SQLAlchemyError when a schema is not found.
-
+    Get table metadata information, including type, pk, fks.
+    This function raises SQLAlchemyError when a schema is not found.
 
     :param database: The database model
     :param table_name: Table name
@@ -110,7 +112,7 @@ def get_table_metadata(
     }
 
 
-class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
+class DatabaseRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
     include_route_methods = {"get_list", "table_metadata", "select_star"}
@@ -141,13 +143,15 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
         "backend",
         "function_names",
     ]
-    show_columns = list_columns
-
     # Removes the local limit for the page size
     max_page_size = -1
     validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
     openapi_spec_tag = "Database"
+    openapi_spec_component_schemas = (
+        TableMetadataResponseSchema,
+        SelectStarResponseSchema,
+    )
 
     @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
@@ -179,87 +183,11 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             description: Table schema
           responses:
             200:
-              description: Table schema info
+              description: Table metadata information
               content:
-                text/plain:
+                application/json:
                   schema:
-                    type: object
-                    properties:
-                      columns:
-                        type: array
-                        description: Table columns info
-                        items:
-                          type: object
-                          properties:
-                            keys:
-                              type: array
-                              items:
-                                type: string
-                            longType:
-                              type: string
-                            name:
-                              type: string
-                            type:
-                              type: string
-                      foreignKeys:
-                        type: array
-                        description: Table list of foreign keys
-                        items:
-                          type: object
-                          properties:
-                            column_names:
-                              type: array
-                              items:
-                                type: string
-                            name:
-                              type: string
-                            options:
-                              type: object
-                            referred_columns:
-                              type: array
-                              items:
-                                type: string
-                            referred_schema:
-                              type: string
-                            referred_table:
-                              type: string
-                            type:
-                              type: string
-                      indexes:
-                        type: array
-                        description: Table list of indexes
-                        items:
-                          type: object
-                          properties:
-                            column_names:
-                              type: array
-                              items:
-                                type: string
-                            name:
-                              type: string
-                            options:
-                              type: object
-                            referred_columns:
-                              type: array
-                              items:
-                                type: string
-                            referred_schema:
-                              type: string
-                            referred_table:
-                              type: string
-                            type:
-                              type: string
-                      primaryKey:
-                        type: object
-                        properties:
-                          column_names:
-                            type: array
-                            items:
-                              type: string
-                          name:
-                            type: string
-                          type:
-                            type: string
+                    $ref: "#/components/schemas/TableMetadataResponseSchema"
             400:
               $ref: '#/components/responses/400'
             401:
@@ -311,15 +239,11 @@ class DatabaseRestApi(DatabaseMixin, BaseSupersetModelRestApi):
             description: Table schema
           responses:
             200:
-              description: select star for table
+              description: SQL statement for a select star for table
               content:
-                text/plain:
+                application/json:
                   schema:
-                    type: object
-                    properties:
-                      result:
-                        type: string
-                        description: SQL select star
+                    $ref: "#/components/schemas/SelectStarResponseSchema"
             400:
               $ref: '#/components/responses/400'
             401:

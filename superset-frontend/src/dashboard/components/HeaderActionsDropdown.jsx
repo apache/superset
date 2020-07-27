@@ -28,7 +28,7 @@ import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
-import downloadAsImage from '../util/downloadAsImage';
+import downloadAsImage from '../../utils/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import dompurify from 'dompurify';
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';

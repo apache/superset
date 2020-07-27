@@ -68,6 +68,7 @@ export const slicePropShape = PropTypes.shape({
   viz_type: PropTypes.string.isRequired,
   description: PropTypes.string,
   description_markeddown: PropTypes.string,
+  owners: PropTypes.arrayOf(PropTypes.string).isRequired,
 });
 
 export const filterIndicatorPropShape = PropTypes.shape({
