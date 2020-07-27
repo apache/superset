@@ -63,17 +63,20 @@ export default function MenuObject({
     >
       {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
         if (typeof child === 'string' && child === '-') {
-          <MenuItem key={`$${index1}`} divider />;
+          return <MenuItem key={`$${index1}`} divider />;
         } else if (typeof child !== 'string') {
-          <MenuItem
-            key={`${child.label}`}
-            href={child.url}
-            eventKey={parseFloat(`${index}.${index1}`)}
-          >
-            <i className={`fa ${child.icon}`} />
-            &nbsp; {child.label}
-          </MenuItem>;
+          return (
+            <MenuItem
+              key={`${child.label}`}
+              href={child.url}
+              eventKey={parseFloat(`${index}.${index1}`)}
+            >
+              <i className={`fa ${child.icon}`} />
+              &nbsp; {child.label}
+            </MenuItem>
+          );
         }
+        return null;
       })}
     </NavDropdown>
   );
