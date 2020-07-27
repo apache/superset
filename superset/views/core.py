@@ -887,6 +887,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def schemas(  # pylint: disable=no-self-use
         self, db_id: int, force_refresh: str = "false"
     ) -> FlaskResponse:
+        logger.warning(
+            "This API endpoint is deprecated and will be removed in version 1.0.0"
+        )
         db_id = int(db_id)
         database = db.session.query(models.Database).get(db_id)
         if database:

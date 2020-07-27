@@ -30,6 +30,7 @@ import FormLabel from 'src/components/FormLabel';
 import SupersetAsyncSelect from './AsyncSelect';
 import RefreshLabel from './RefreshLabel';
 import './TableSelector.less';
+import LimitControl from "../SqlLab/components/LimitControl";
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -187,11 +188,14 @@ export default class TableSelector extends React.PureComponent {
   fetchSchemas(dbId, forceRefresh = false) {
     const actualDbId = dbId || this.props.dbId;
     if (actualDbId) {
-      this.setState({ schemaLoading: true });
-      const endpoint = `/superset/schemas/${actualDbId}/${forceRefresh}/`;
+      this.setState({schemaLoading: true});
+      const queryParams = rison.encode({
+        force: Boolean(forceRefresh),
+      })
+      const endpoint = `/api/v1/database/${actualDbId}/schemas/?q=${queryParams}`;
       return SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const schemaOptions = json.schemas.map(s => ({
+          const schemaOptions = json.result.map(s => ({
             value: s,
             label: s,
             title: s,
