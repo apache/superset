@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { ReactNode } from 'react';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 import Button from '../components/Button';
@@ -25,47 +24,42 @@ import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import './crud.less';
 
-const propTypes = {
-  collection: PropTypes.arrayOf(PropTypes.object).isRequired,
-  itemGenerator: PropTypes.func,
-  columnLabels: PropTypes.object,
-  tableColumns: PropTypes.array.isRequired,
-  onChange: PropTypes.func,
-  itemRenderers: PropTypes.object,
-  allowDeletes: PropTypes.bool,
-  expandFieldset: PropTypes.node,
-  emptyMessage: PropTypes.node,
-  extraButtons: PropTypes.node,
-  allowAddItem: PropTypes.bool,
-};
-const defaultProps = {
-  onChange: () => {},
-  itemRenderers: {},
-  columnLabels: {},
-  allowDeletes: false,
-  emptyMessage: 'No entries',
-  allowAddItem: false,
-  itemGenerator: () => ({}),
-  expandFieldset: null,
-  extraButtons: null,
-};
-const Frame = props => <div className="frame">{props.children}</div>;
-Frame.propTypes = { children: PropTypes.node };
+interface CRUDCollectionProps {
+  allowAddItem: boolean;
+  allowDeletes: boolean;
+  collection: Array<object>;
+  columnLabels: object;
+  emptyMessage: ReactNode;
+  expandFieldset: ReactNode;
+  extraButtons: ReactNode;
+  itemGenerator: () => any;
+  itemRenderers: any;
+  onChange: (arg0: any) => void;
+  tableColumns: Array<any>;
+}
 
-function createKeyedCollection(arr) {
-  const newArr = arr.map(o => ({
+interface CRUDCollectionState {
+  collection: object;
+  expandedColumns: object;
+}
+
+function createKeyedCollection(arr: Array<object>) {
+  const newArr = arr.map((o: any) => ({
     ...o,
     id: o.id || shortid.generate(),
   }));
   const map = {};
-  newArr.forEach(o => {
+  newArr.forEach((o: any) => {
     map[o.id] = o;
   });
   return map;
 }
 
-export default class CRUDCollection extends React.PureComponent {
-  constructor(props) {
+export default class CRUDCollection extends React.PureComponent<
+  CRUDCollectionProps,
+  CRUDCollectionState
+> {
+  constructor(props: CRUDCollectionProps) {
     super(props);
     this.state = {
       expandedColumns: {},
@@ -79,14 +73,14 @@ export default class CRUDCollection extends React.PureComponent {
     this.renderTableBody = this.renderTableBody.bind(this);
     this.changeCollection = this.changeCollection.bind(this);
   }
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: CRUDCollectionProps) {
     if (nextProps.collection !== this.props.collection) {
       this.setState({
         collection: createKeyedCollection(nextProps.collection),
       });
     }
   }
-  onCellChange(id, col, val) {
+  onCellChange(id: number, col: string, val: boolean) {
     this.changeCollection({
       ...this.state.collection,
       [id]: {
@@ -105,13 +99,13 @@ export default class CRUDCollection extends React.PureComponent {
       [newItem.id]: newItem,
     });
   }
-  onFieldsetChange(item) {
+  onFieldsetChange(item: any) {
     this.changeCollection({
       ...this.state.collection,
       [item.id]: item,
     });
   }
-  getLabel(col) {
+  getLabel(col: any) {
     const { columnLabels } = this.props;
     let label = columnLabels[col] ? columnLabels[col] : col;
     if (label.startsWith('__')) {
@@ -120,11 +114,11 @@ export default class CRUDCollection extends React.PureComponent {
     }
     return label;
   }
-  changeCollection(collection) {
+  changeCollection(collection: any) {
     this.setState({ collection });
     this.props.onChange(Object.keys(collection).map(k => collection[k]));
   }
-  deleteItem(id) {
+  deleteItem(id: number) {
     const newColl = { ...this.state.collection };
     delete newColl[id];
     this.changeCollection(newColl);
@@ -136,7 +130,7 @@ export default class CRUDCollection extends React.PureComponent {
       : tableColumns;
     return expandFieldset ? ['__expand'].concat(cols) : cols;
   }
-  toggleExpand(id) {
+  toggleExpand(id: any) {
     this.onCellChange(id, '__expanded', false);
     this.setState({
       expandedColumns: {
@@ -173,7 +167,7 @@ export default class CRUDCollection extends React.PureComponent {
       </thead>
     );
   }
-  renderExpandableSection(item) {
+  renderExpandableSection(item: any) {
     const propsGenerator = () => ({ item, onChange: this.onFieldsetChange });
     return recurseReactClone(
       this.props.expandFieldset,
@@ -181,13 +175,13 @@ export default class CRUDCollection extends React.PureComponent {
       propsGenerator,
     );
   }
-  renderCell(record, col) {
+  renderCell(record: any, col: any) {
     const renderer = this.props.itemRenderers[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
     return renderer ? renderer(val, onChange, this.getLabel(col)) : val;
   }
-  renderItem(record) {
+  renderItem(record: any) {
     const {
       allowAddItem,
       allowDeletes,
@@ -217,11 +211,9 @@ export default class CRUDCollection extends React.PureComponent {
         <td key={col}>{this.renderCell(record, col)}</td>
       )),
     );
-
     if (allowAddItem) {
       tds.push(<td />);
     }
-
     if (allowDeletes) {
       tds.push(
         <td key="__actions">
@@ -280,5 +272,3 @@ export default class CRUDCollection extends React.PureComponent {
     );
   }
 }
-CRUDCollection.defaultProps = defaultProps;
-CRUDCollection.propTypes = propTypes;
