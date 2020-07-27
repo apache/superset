@@ -368,25 +368,6 @@ class Header extends React.PureComponent {
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
           />
-          <span className="publish">
-            <PublishedStatus
-              dashboardId={dashboardInfo.id}
-              isPublished={isPublished}
-              savePublished={this.props.savePublished}
-              canEdit={userCanEdit}
-              canSave={userCanSaveAs}
-            />
-          </span>
-          {dashboardInfo.userId && (
-            <span className="favstar">
-              <FaveStar
-                itemId={dashboardInfo.id}
-                fetchFaveStar={this.props.fetchFaveStar}
-                saveFaveStar={this.props.saveFaveStar}
-                isStarred={this.props.isStarred}
-              />
-            </span>
-          )}
         </div>
 
         <div className="button-container">
@@ -468,17 +449,6 @@ class Header extends React.PureComponent {
                 />
               )}
             </div>
-          )}
-
-          {!editMode && !hasUnsavedChanges && (
-            <Button
-              bsSize="small"
-              onClick={this.toggleEditMode}
-              bsStyle={popButton ? 'primary' : undefined}
-              disabled={!userCanEdit}
-            >
-              {t('Edit dashboard')}
-            </Button>
           )}
 
           {this.state.showingPropertiesModal && (
