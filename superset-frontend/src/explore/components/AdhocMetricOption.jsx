@@ -19,7 +19,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Label, OverlayTrigger } from 'react-bootstrap';
-import { thresholdScott } from 'd3-array';
 
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';

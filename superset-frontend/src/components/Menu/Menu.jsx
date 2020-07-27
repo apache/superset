@@ -34,7 +34,8 @@ const propTypes = {
       path: PropTypes.string.isRequired,
       icon: PropTypes.string.isRequired,
       alt: PropTypes.string.isRequired,
-      width: PropTypes.string.isRequired,
+      width: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+        .isRequired,
     }).isRequired,
     navbar_right: PropTypes.shape({
       bug_report_url: PropTypes.string,

@@ -158,7 +158,7 @@ class SupersetAppInitializer:
             Dashboard,
             DashboardModelViewAsync,
         )
-        from superset.views.database.api import DatabaseRestApi
+        from superset.databases.api import DatabaseRestApi
         from superset.views.database.views import (
             DatabaseView,
             CsvToDatabaseView,

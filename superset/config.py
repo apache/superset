@@ -381,8 +381,8 @@ CSV_EXPORT = {"encoding": "utf-8"}
 # List of time grains to disable in the application (see list of builtin
 # time grains in superset/db_engine_specs.builtin_time_grains).
 # For example: to disable 1 second time grain:
-# TIME_GRAIN_BLACKLIST = ['PT1S']
-TIME_GRAIN_BLACKLIST: List[str] = []
+# TIME_GRAIN_DENYLIST = ['PT1S']
+TIME_GRAIN_DENYLIST: List[str] = []
 
 # Additional time grains to be supported using similar definitions as in
 # superset/db_engine_specs.builtin_time_grains.
@@ -402,17 +402,17 @@ TIME_GRAIN_ADDON_EXPRESSIONS: Dict[str, Dict[str, str]] = {}
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
-# For example: Blacklist pivot table and treemap:
-#  VIZ_TYPE_BLACKLIST = ['pivot_table', 'treemap']
+# For example: Disable pivot table and treemap:
+#  VIZ_TYPE_DENYLIST = ['pivot_table', 'treemap']
 # ---------------------------------------------------
 
-VIZ_TYPE_BLACKLIST: List[str] = []
+VIZ_TYPE_DENYLIST: List[str] = []
 
 # ---------------------------------------------------
 # List of data sources not to be refreshed in druid cluster
 # ---------------------------------------------------
 
-DRUID_DATA_SOURCE_BLACKLIST: List[str] = []
+DRUID_DATA_SOURCE_DENYLIST: List[str] = []
 
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered

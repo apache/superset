@@ -96,7 +96,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "table_names",
         "thumbnail_url",
     ]
-    order_columns = ["dashboard_title", "changed_on", "published", "changed_by_fk"]
     list_columns = [
         "id",
         "published",
@@ -112,13 +111,22 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by.id",
         "changed_by_name",
         "changed_by_url",
-        "changed_on",
+        "changed_on_utc",
+        "changed_on_delta_humanized",
         "dashboard_title",
         "owners.id",
         "owners.username",
         "owners.first_name",
         "owners.last_name",
     ]
+    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
+    order_columns = [
+        "dashboard_title",
+        "changed_on_delta_humanized",
+        "published",
+        "changed_by.first_name",
+    ]
+
     add_columns = [
         "dashboard_title",
         "slug",
@@ -139,7 +147,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
-    openapi_spec_tag = "Dashboards"
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
@@ -149,6 +156,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     }
     allowed_rel_fields = {"owners"}
 
+    openapi_spec_tag = "Dashboards"
+    apispec_parameter_schemas = {
+        "get_delete_ids_schema": get_delete_ids_schema,
+        "get_export_ids_schema": get_export_ids_schema,
+        "thumbnail_query_schema": thumbnail_query_schema,
+    }
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
 
@@ -354,9 +367,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_delete_ids_schema'
           responses:
             200:
               description: Dashboard bulk delete
@@ -413,9 +424,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_export_ids_schema'
           responses:
             200:
               description: Dashboard export
@@ -475,11 +484,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    force:
-                      type: boolean
-                      default: false
+                  $ref: '#/components/schemas/thumbnail_query_schema'
           responses:
             200:
               description: Dashboard thumbnail image

@@ -162,6 +162,7 @@ class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
         "description",
         "sql",
         "extra_json",
+        "extra",
     ]
     add_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
     edit_columns = add_columns

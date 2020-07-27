@@ -428,7 +428,7 @@ export function postStopQuery(query) {
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
       .catch(() =>
         dispatch(
-          addDangerToast(t('Failed at stopping query. ') + `'${query.id}'`),
+          addDangerToast(`${t('Failed at stopping query. ')}'${query.id}'`),
         ),
       );
   };
@@ -1230,7 +1230,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            title: 'Query ' + json.name,
+            title: `Query ${json.name}`,
             dbId: json.database.id,
             schema: json.schema,
             autorun: sql !== undefined,

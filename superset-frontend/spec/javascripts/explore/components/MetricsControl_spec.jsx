@@ -85,7 +85,7 @@ describe('MetricsControl', () => {
         { optionName: '_col_value', type: 'DOUBLE', column_name: 'value' },
         ...Object.keys(AGGREGATES).map(aggregate => ({
           aggregate_name: aggregate,
-          optionName: '_aggregate_' + aggregate,
+          optionName: `_aggregate_${aggregate}`,
         })),
         {
           optionName: 'sum__value',

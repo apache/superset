@@ -19,8 +19,6 @@
 import memoizeOne from 'memoize-one';
 import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import { expandControlConfig } from '@superset-ui/chart-controls';
-import { controls as SHARED_CONTROLS } from './controls';
-import * as exploreActions from './actions/exploreActions';
 import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
@@ -37,18 +35,17 @@ export function getFormDataFromControls(controlsState) {
 
 export function validateControl(control, processedState) {
   const validators = control.validators;
+  const validationErrors = [];
   if (validators && validators.length > 0) {
-    const validatedControl = { ...control };
-    const validationErrors = [];
     validators.forEach(f => {
       const v = f.call(control, control.value, processedState);
       if (v) {
         validationErrors.push(v);
       }
     });
-    return { ...validatedControl, validationErrors };
   }
-  return control;
+  // always reset validation errors even when there is no validator
+  return { ...control, validationErrors };
 }
 
 /**
@@ -89,17 +86,6 @@ export const getControlConfig = memoizeOne(function getControlConfig(
   return control?.config || control;
 });
 
-export function applyMapStateToPropsToControl(controlState, controlPanelState) {
-  const { mapStateToProps } = controlState;
-  if (mapStateToProps && controlPanelState) {
-    return {
-      ...controlState,
-      ...mapStateToProps(controlPanelState, controlState, exploreActions),
-    };
-  }
-  return controlState;
-}
-
 function handleMissingChoice(control) {
   // If the value is not valid anymore based on choices, clear it
   const value = control.value;
@@ -122,6 +108,36 @@ function handleMissingChoice(control) {
   return control;
 }
 
+export function applyMapStateToPropsToControl(controlState, controlPanelState) {
+  const { mapStateToProps } = controlState;
+  let { value } = controlState;
+  let state = { ...controlState };
+  if (mapStateToProps && controlPanelState) {
+    state = {
+      ...controlState,
+      ...mapStateToProps(controlPanelState, controlState),
+    };
+  }
+  // If default is a function, evaluate it
+  if (typeof state.default === 'function') {
+    state.default = state.default(state, controlPanelState);
+    // if default is still a function, discard
+    if (typeof state.default === 'function') {
+      delete state.default;
+    }
+  }
+  // If no current value, set it as default
+  if (state.default && value === undefined) {
+    value = state.default;
+  }
+  // If a choice control went from multi=false to true, wrap value in array
+  if (value && state.multi && !Array.isArray(value)) {
+    value = [value];
+  }
+  state.value = value;
+  return validateControl(handleMissingChoice(state), state);
+}
+
 export function getControlStateFromControlConfig(
   controlConfig,
   controlPanelState,
@@ -131,38 +147,16 @@ export function getControlStateFromControlConfig(
   if (!controlConfig) {
     return null;
   }
-  let controlState = { ...controlConfig };
+  const controlState = { ...controlConfig, value };
   // only apply mapStateToProps when control states have been initialized
+  // or when explicitly didn't provide control panel state (mostly for testing)
   if (
-    controlPanelState &&
-    (controlPanelState.controls || !controlPanelState.isInitializing)
+    (controlPanelState && controlPanelState.controls) ||
+    controlPanelState === null
   ) {
-    controlState = applyMapStateToPropsToControl(
-      controlState,
-      controlPanelState,
-    );
+    return applyMapStateToPropsToControl(controlState, controlPanelState);
   }
-
-  // If default is a function, evaluate it
-  if (typeof controlState.default === 'function') {
-    controlState.default = controlState.default(
-      controlState,
-      controlPanelState,
-    );
-    // if default is still a function, discard
-    if (typeof controlState.default === 'function') {
-      delete controlState.default;
-    }
-  }
-
-  // If a choice control went from multi=false to true, wrap value in array
-  const controlValue =
-    controlConfig.multi && value && !Array.isArray(value) ? [value] : value;
-
-  controlState.value =
-    typeof controlValue === 'undefined' ? controlState.default : controlValue;
-
-  return validateControl(handleMissingChoice(controlState), controlState);
+  return controlState;
 }
 
 export function getControlState(controlKey, vizType, state, value) {

@@ -25,6 +25,7 @@ import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
 import ModalTrigger from '../../components/ModalTrigger';
+import './ScheduleQueryButton.less';
 
 const validators = {
   greater: (a, b) => a > b,
@@ -159,12 +160,14 @@ class ScheduleQueryButton extends React.PureComponent {
         </Row>
         <Row>
           <Col md={12}>
-            <Form
-              schema={getJSONSchema()}
-              uiSchema={getUISchema()}
-              onSubmit={this.onSchedule}
-              validate={getValidator()}
-            />
+            <div className="json-schema">
+              <Form
+                schema={getJSONSchema()}
+                uiSchema={getUISchema()}
+                onSubmit={this.onSchedule}
+                validate={getValidator()}
+              />
+            </div>
           </Col>
         </Row>
         {this.props.scheduleQueryWarning && (
@@ -194,7 +197,7 @@ class ScheduleQueryButton extends React.PureComponent {
               disabled={this.props.disabled}
               tooltip={this.props.tooltip}
             >
-              <i className="fa fa-calendar" /> {t('Schedule Query')}
+              <i className="fa fa-calendar" /> {t('Schedule')}
             </Button>
           }
           bsSize="medium"

@@ -151,9 +151,9 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             """SELECT 'LIMIT 777'""", """SELECT 'LIMIT 777'\nLIMIT 1000"""
         )
 
-    def test_time_grain_blacklist(self):
+    def test_time_grain_denylist(self):
         with app.app_context():
-            app.config["TIME_GRAIN_BLACKLIST"] = ["PT1M"]
+            app.config["TIME_GRAIN_DENYLIST"] = ["PT1M"]
             time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
             self.assertNotIn("PT1M", time_grain_functions)
 

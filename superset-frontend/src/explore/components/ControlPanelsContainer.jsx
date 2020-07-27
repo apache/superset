@@ -22,10 +22,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
-import { isPlainObject } from 'lodash';
 import { t } from '@superset-ui/translation';
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
-import { sharedControls } from '@superset-ui/chart-controls';
 
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
@@ -64,17 +61,16 @@ class ControlPanelsContainer extends React.Component {
   }
 
   renderControl({ name, config }) {
-    const { actions, controls, exploreState, form_data: formData } = this.props;
+    const { actions, controls, form_data: formData } = this.props;
     const { visibility } = config;
+
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
     // When it is an object we read control data straight from `config` instead
     const controlData = {
-      ...controls[name],
       ...config,
+      ...controls[name],
       name,
-      // apply current value in formData
-      value: formData[name],
     };
     const {
       validationErrors,

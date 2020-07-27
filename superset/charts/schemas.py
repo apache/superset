@@ -14,27 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 from flask_babel import gettext as _
-from marshmallow import fields, post_load, Schema, validate, ValidationError
+from marshmallow import fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 
 from superset.common.query_context import QueryContext
-from superset.exceptions import SupersetException
-from superset.utils import core as utils
+from superset.utils import schema as utils
+from superset.utils.core import FilterOperator
 
 #
 # RISON/JSON schemas for query parameters
 #
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
 width_height_schema = {
     "type": "array",
-    "items": [{"type": "integer"}, {"type": "integer"},],
+    "items": [{"type": "integer"}, {"type": "integer"}],
 }
 thumbnail_query_schema = {
     "type": "object",
-    "properties": {"force": {"type": "boolean"},},
+    "properties": {"force": {"type": "boolean"}},
 }
 
 screenshot_query_schema = {
@@ -100,13 +101,6 @@ openapi_spec_methods_override = {
 }
 
 
-def validate_json(value: Union[bytes, bytearray, str]) -> None:
-    try:
-        utils.validate_json(value)
-    except SupersetException:
-        raise ValidationError("JSON not valid")
-
-
 class ChartPostSchema(Schema):
     """
     Schema to add a new chart.
@@ -123,7 +117,7 @@ class ChartPostSchema(Schema):
     )
     owners = fields.List(fields.Integer(description=owners_description))
     params = fields.String(
-        description=params_description, allow_none=True, validate=validate_json
+        description=params_description, allow_none=True, validate=utils.validate_json
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -169,6 +163,27 @@ class ChartPutSchema(Schema):
         allow_none=True,
     )
     dashboards = fields.List(fields.Integer(description=dashboards_description))
+
+
+class ChartGetDatasourceObjectDataResponseSchema(Schema):
+    datasource_id = fields.Integer(description="The datasource identifier")
+    datasource_type = fields.Integer(description="The datasource type")
+
+
+class ChartGetDatasourceObjectResponseSchema(Schema):
+    label = fields.String(description="The name of the datasource")
+    value = fields.Nested(ChartGetDatasourceObjectDataResponseSchema)
+
+
+class ChartGetDatasourceResponseSchema(Schema):
+    count = fields.Integer(description="The total number of datasources")
+    result = fields.Nested(ChartGetDatasourceObjectResponseSchema)
+
+
+class ChartCacheScreenshotResponseSchema(Schema):
+    cache_key = fields.String(description="The cache key")
+    chart_url = fields.String(description="The url to render the chart")
+    image_url = fields.String(description="The url to fetch the screenshot")
 
 
 class ChartDataColumnSchema(Schema):
@@ -551,8 +566,8 @@ class ChartDataFilterSchema(Schema):
     )
     op = fields.String(  # pylint: disable=invalid-name
         description="The comparison operator.",
-        validate=validate.OneOf(
-            choices=[filter_op.value for filter_op in utils.FilterOperator]
+        validate=utils.OneOfCaseInsensitive(
+            choices=[filter_op.value for filter_op in FilterOperator]
         ),
         required=True,
         example="IN",
@@ -687,7 +702,7 @@ class ChartDataQueryObjectSchema(Schema):
     timeseries_limit = fields.Integer(
         description="Maximum row count for timeseries queries. Default: `0`",
     )
-    timeseries_limit_metric = fields.Integer(
+    timeseries_limit_metric = fields.Raw(
         description="Metric used to limit timeseries queries by.", allow_none=True,
     )
     row_limit = fields.Integer(
@@ -818,7 +833,7 @@ class ChartDataResponseSchema(Schema):
     )
 
 
-CHART_DATA_SCHEMAS = (
+CHART_SCHEMAS = (
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
@@ -834,4 +849,6 @@ CHART_DATA_SCHEMAS = (
     ChartDataGeohashDecodeOptionsSchema,
     ChartDataGeohashEncodeOptionsSchema,
     ChartDataGeodeticParseOptionsSchema,
+    ChartGetDatasourceResponseSchema,
+    ChartCacheScreenshotResponseSchema,
 )

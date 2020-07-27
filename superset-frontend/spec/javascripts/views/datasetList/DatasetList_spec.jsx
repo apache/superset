@@ -21,10 +21,14 @@ import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import DatasetList from 'src/views/datasetList/DatasetList';
 import ListView from 'src/components/ListView/ListView';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import Button from 'src/components/Button';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(datasetTable)
 const mockStore = configureStore([thunk]);
@@ -37,7 +41,7 @@ const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 
 const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by_name: 'user',
-  kind: ['physical', 'virtual'][Math.floor(Math.random() * 2)],
+  kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by_url: 'changed_by_url',
   changed_by: 'user',
   changed_on: new Date().toISOString(),
@@ -49,7 +53,7 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
 }));
 
 fetchMock.get(datasetsInfoEndpoint, {
-  permissions: ['can_list', 'can_edit'],
+  permissions: ['can_list', 'can_edit', 'can_add', 'can_delete'],
   filters: {
     database: [],
     schema: [],
@@ -69,12 +73,23 @@ fetchMock.get(databaseEndpoint, {
   result: [],
 });
 
-describe('DatasetList', () => {
-  const mockedProps = {};
-  const wrapper = mount(<DatasetList {...mockedProps} />, {
+async function mountAndWait(props) {
+  const mounted = mount(<DatasetList {...props} />, {
     context: { store },
     wrappingComponent: ThemeProvider,
     wrappingComponentProps: { theme: supersetTheme },
+  });
+  await waitForComponentToPaint(mounted);
+
+  return mounted;
+}
+
+describe('DatasetList', () => {
+  const mockedProps = {};
+  let wrapper;
+
+  beforeAll(async () => {
+    wrapper = await mountAndWait(mockedProps);
   });
 
   it('renders', () => {
@@ -96,11 +111,63 @@ describe('DatasetList', () => {
   });
 
   it('fetches data', () => {
-    // wrapper.update();
     const callsD = fetchMock.calls(/dataset\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/dataset/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+
+  it('shows/hides bulk actions when bulk actions is clicked', async () => {
+    await waitForComponentToPaint(wrapper);
+    const button = wrapper.find(Button).at(0);
+    act(() => {
+      button.props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+      mockdatasets.length + 1, // 1 for each row and 1 for select all
+    );
+  });
+
+  it('renders different bulk selected copy depending on type of row selected', async () => {
+    // None selected
+    const checkedEvent = { target: { checked: true } };
+    const uncheckedEvent = { target: { checked: false } };
+    expect(
+      wrapper.find('[data-test="bulk-select-copy"]').text(),
+    ).toMatchInlineSnapshot(`"0 Selected"`);
+
+    // Vitual Selected
+    act(() => {
+      wrapper.find(IndeterminateCheckbox).at(1).props().onChange(checkedEvent);
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="bulk-select-copy"]').text(),
+    ).toMatchInlineSnapshot(`"1 Selected (Virtual)"`);
+
+    // Physical Selected
+    act(() => {
+      wrapper
+        .find(IndeterminateCheckbox)
+        .at(1)
+        .props()
+        .onChange(uncheckedEvent);
+      wrapper.find(IndeterminateCheckbox).at(2).props().onChange(checkedEvent);
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="bulk-select-copy"]').text(),
+    ).toMatchInlineSnapshot(`"1 Selected (Physical)"`);
+
+    // All Selected
+    act(() => {
+      wrapper.find(IndeterminateCheckbox).at(0).props().onChange(checkedEvent);
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="bulk-select-copy"]').text(),
+    ).toMatchInlineSnapshot(`"3 Selected (2 Physical, 1 Virtual)"`);
   });
 });

@@ -267,7 +267,7 @@ class Header extends React.PureComponent {
       dashboardTitle,
       layout: positions,
       expandedSlices,
-      css,
+      customCss,
       colorNamespace,
       colorScheme,
       dashboardInfo,
@@ -288,7 +288,7 @@ class Header extends React.PureComponent {
     const data = {
       positions,
       expanded_slices: expandedSlices,
-      css,
+      css: customCss,
       color_namespace: colorNamespace,
       color_scheme: colorScheme,
       label_colors: labelColors,

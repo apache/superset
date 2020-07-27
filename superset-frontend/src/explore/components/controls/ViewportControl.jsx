@@ -85,11 +85,9 @@ export default class ViewportControl extends React.Component {
   }
   renderLabel() {
     if (this.props.value.longitude && this.props.value.latitude) {
-      return (
-        decimal2sexagesimal(this.props.value.longitude) +
-        ' | ' +
-        decimal2sexagesimal(this.props.value.latitude)
-      );
+      return `${decimal2sexagesimal(
+        this.props.value.longitude,
+      )} | ${decimal2sexagesimal(this.props.value.latitude)}`;
     }
     return 'N/A';
   }

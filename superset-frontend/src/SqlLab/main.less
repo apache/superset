@@ -177,11 +177,9 @@ div.Workspace {
 
   display: inline-block;
   background-color: @gray-light;
-  line-height: 8px; // set specifically for closing 'x'
   text-align: center;
   vertical-align: middle;
   font-size: @font-size-m;
-  margin-top: -3px;
   font-weight: @font-weight-bold;
 }
 
@@ -259,6 +257,10 @@ div.Workspace {
     &:active {
       background: none;
     }
+
+    svg {
+      vertical-align: middle;
+    }
   }
 
   .dropdown.btn-group.btn-group-sm {
@@ -302,14 +304,6 @@ div.Workspace {
 
   .dropdown-toggle {
     padding-top: 2px;
-  }
-
-  .close {
-    opacity: 1;
-    color: @almost-black;
-    position: relative;
-    top: -2px;
-    right: -4px;
   }
 }
 

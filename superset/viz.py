@@ -2940,6 +2940,6 @@ viz_types = {
     if (
         inspect.isclass(o)
         and issubclass(o, BaseViz)
-        and o.viz_type not in config["VIZ_TYPE_BLACKLIST"]
+        and o.viz_type not in config["VIZ_TYPE_DENYLIST"]
     )
 }

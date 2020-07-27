@@ -45,6 +45,7 @@ const propTypes = {
   addHistory: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
+  chartHeight: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
@@ -169,6 +170,7 @@ export class ExploreChartHeader extends React.PureComponent {
             slice={this.props.slice}
             canDownload={this.props.can_download}
             chartStatus={chartStatus}
+            chartHeight={this.props.chartHeight}
             latestQueryFormData={latestQueryFormData}
             queryResponse={queryResponse}
           />

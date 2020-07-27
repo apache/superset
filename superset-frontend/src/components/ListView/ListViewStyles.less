@@ -104,8 +104,17 @@
     }
 
     .table-row {
+      .actions {
+        opacity: 0;
+      }
+
       &:hover {
         background-color: @brand-secondary-light5;
+
+        .actions {
+          opacity: 1;
+          transition: opacity ease-in @timing-normal;
+        }
       }
     }
 
