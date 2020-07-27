@@ -58,7 +58,7 @@ class ColorSchemeControlWrapper extends React.PureComponent {
         onChange={this.props.onChange}
         value={colorScheme}
         choices={this.choices}
-        clearable={true}
+        clearable
         schemes={this.schemes}
         hovered={this.state.hovered}
       />

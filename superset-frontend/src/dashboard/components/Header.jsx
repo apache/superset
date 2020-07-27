@@ -63,7 +63,9 @@ const propTypes = {
   customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
-  setColorScheme: PropTypes.func.isRequired,
+  slug: PropTypes.string,
+  metadata: PropTypes.string,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   isStarred: PropTypes.bool.isRequired,
   isPublished: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
@@ -263,6 +265,8 @@ class Header extends React.PureComponent {
       expandedSlices,
       customCss,
       colorNamespace,
+      slug,
+      metadata,
       colorScheme,
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
@@ -281,6 +285,8 @@ class Header extends React.PureComponent {
 
     const data = {
       positions,
+      slug,
+      metadata,
       expanded_slices: expandedSlices,
       css: customCss,
       color_namespace: colorNamespace,
@@ -328,7 +334,7 @@ class Header extends React.PureComponent {
       expandedSlices,
       customCss,
       colorNamespace,
-      setColorScheme,
+      setColorSchemeAndUnsavedChanges,
       colorScheme,
       onUndo,
       onRedo,
@@ -451,7 +457,7 @@ class Header extends React.PureComponent {
               show={this.state.showingPropertiesModal}
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
-              onlyApply={true}
+              onlyApply
               onSubmit={updates => {
                 const {
                   dashboardInfoChanged,
@@ -461,7 +467,7 @@ class Header extends React.PureComponent {
                   slug: updates.slug,
                   metadata: JSON.parse(updates.jsonMetadata),
                 });
-                setColorScheme(updates.colorScheme);
+                setColorSchemeAndUnsavedChanges(updates.colorScheme);
                 dashboardTitleChanged(updates.title);
                 if (updates.slug) {
                   history.pushState(

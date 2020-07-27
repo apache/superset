@@ -62,15 +62,15 @@ class PropertiesModal extends React.PureComponent {
         slug: '',
         owners: [],
         json_metadata: '',
+        colorScheme: props.colorScheme,
       },
       isDashboardLoaded: false,
       isAdvancedOpen: false,
-      colorScheme: props.colorScheme,
     };
     this.onChange = this.onChange.bind(this);
     this.onMetadataChange = this.onMetadataChange.bind(this);
     this.onOwnersChange = this.onOwnersChange.bind(this);
-    this.save = this.save.bind(this);
+    this.submit = this.submit.bind(this);
     this.toggleAdvanced = this.toggleAdvanced.bind(this);
     this.loadOwnerOptions = this.loadOwnerOptions.bind(this);
     this.handleErrorResponse = this.handleErrorResponse.bind(this);
@@ -80,8 +80,8 @@ class PropertiesModal extends React.PureComponent {
   componentDidMount() {
     this.fetchDashboardDetails();
   }
-  onColorSchemeChange(colorScheme) {
-    this.setState({ colorScheme });
+  onColorSchemeChange(value) {
+    this.updateFormState('colorScheme', value);
   }
 
   onOwnersChange(value) {
@@ -176,12 +176,13 @@ class PropertiesModal extends React.PureComponent {
     if (onlyApply) {
       this.props.onSubmit({
         id: this.props.dashboardId,
-        title: json.result.dashboard_title,
-        slug: json.result.slug,
-        jsonMetadata: json.result.json_metadata,
-        ownerIds: json.result.owners,
-        colorScheme: this.state.colorScheme,
+        title: values.dashboard_title,
+        slug: values.slug,
+        jsonMetadata: values.json_metadata,
+        ownerIds: owners,
+        colorScheme: values.colorScheme,
       });
+      this.props.onHide();
     } else {
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
@@ -200,7 +201,7 @@ class PropertiesModal extends React.PureComponent {
           slug: json.result.slug,
           jsonMetadata: json.result.json_metadata,
           ownerIds: json.result.owners,
-          colorScheme: this.state.colorScheme,
+          colorScheme: json.colorScheme,
         });
         this.props.onHide();
       }, this.handleErrorResponse);
@@ -280,7 +281,7 @@ class PropertiesModal extends React.PureComponent {
                 <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
                 <ColorSchemeControlWrapper
                   onChange={this.onColorSchemeChange}
-                  colorScheme={this.state.colorScheme}
+                  colorScheme={values.colorScheme}
                 />
               </Col>
             </Row>
