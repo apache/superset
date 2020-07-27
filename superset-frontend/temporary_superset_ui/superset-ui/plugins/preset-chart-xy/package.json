@@ -32,7 +32,7 @@
     "@data-ui/theme": "^0.0.84",
     "@data-ui/xy-chart": "^0.0.84",
     "@vx/axis": "^0.0.197",
-    "@vx/legend": "^0.0.197",
+    "@vx/legend": "^0.0.198",
     "@vx/scale": "^0.0.197",
     "csstype": "^2.6.3",
     "encodable": "^0.3.4",
