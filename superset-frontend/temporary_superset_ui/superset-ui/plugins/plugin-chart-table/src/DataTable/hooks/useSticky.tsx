@@ -152,6 +152,9 @@ function StickyWrap({
     if (theadRef.current) {
       const bodyThead = theadRef.current;
       const theadHeight = bodyThead.clientHeight;
+      if (!theadHeight) {
+        return;
+      }
       const fullTableHeight = (bodyThead.parentNode as HTMLTableElement).clientHeight;
       const ths = bodyThead.childNodes[0].childNodes as NodeListOf<HTMLTableHeaderCellElement>;
       const widths = Array.from(ths).map(th => th.clientWidth);
