@@ -396,7 +396,7 @@ export default class DateFilterControl extends React.Component {
       );
     });
     return (
-      <Popover id="filter-popover" placement="top" positionTop={0}>
+      <Popover id="filter-popover" placement="left">
         <div
           style={DATE_FILTER_POPOVER_STYLE}
           ref={ref => {
@@ -576,7 +576,7 @@ export default class DateFilterControl extends React.Component {
           trigger="click"
           rootClose
           ref="trigger"
-          placement="right"
+          placement="left"
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >

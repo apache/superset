@@ -21,7 +21,7 @@
 {% set WARNING_MSG = appbuilder.app.config['WARNING_MSG'] %}
 {% set app_icon_width = appbuilder.app.config['APP_ICON_WIDTH'] %}
 {% set logo_target_path = appbuilder.app.config['LOGO_TARGET_PATH'] or '/profile/{}/'.format(current_user.username) %}
-{% set root_path = logo_target_path if not logo_target_path.startswith('/') else '/superset' + logo_target_path if current_user.username is defined else '#'  %}
+{% set root_path = appbuilder.app.config['CONSOLE_ROOT']  %}
 
 <div class="navbar navbar-static-top {{menu.extra_classes}}" role="navigation">
   <div class="container-fluid">
