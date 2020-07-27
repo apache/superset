@@ -217,7 +217,14 @@ const propTypes = {
   // 'pie' only
   isDonut: PropTypes.bool,
   isPieLabelOutside: PropTypes.bool,
-  pieLabelType: PropTypes.oneOf(['key', 'value', 'percent', 'key_value', 'key_percent']),
+  pieLabelType: PropTypes.oneOf([
+    'key',
+    'value',
+    'percent',
+    'key_value',
+    'key_percent',
+    'key_value_percent',
+  ]),
   showLabels: PropTypes.bool,
   // 'area' only
   areaStackedStyle: PropTypes.string,
@@ -418,10 +425,23 @@ function nvd3Vis(element, props) {
           chart.labelType(pieLabelType);
         } else if (pieLabelType === 'key_value') {
           chart.labelType(d => `${d.data.x}: ${numberFormatter(d.data.y)}`);
-        } else if (pieLabelType === 'key_percent') {
+        } else {
+          // pieLabelType in ['key_percent', 'key_value_percent']
           const total = d3.sum(data, d => d.y);
-          chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
-          chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
+          const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+          if (pieLabelType === 'key_percent') {
+            chart.tooltip.valueFormatter(d => percentFormatter(d));
+            chart.labelType(d => `${d.data.x}: ${percentFormatter(d.data.y / total)}`);
+          } else {
+            // pieLabelType === 'key_value_percent'
+            chart.tooltip.valueFormatter(
+              d => `${numberFormatter(d)} (${percentFormatter(d / total)})`,
+            );
+            chart.labelType(
+              d =>
+                `${d.data.x}: ${numberFormatter(d.data.y)} (${percentFormatter(d.data.y / total)})`,
+            );
+          }
         }
         // Pie chart does not need top margin
         chart.margin({ top: 0 });
