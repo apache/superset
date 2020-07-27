@@ -33,7 +33,7 @@
     "@types/topojson-client": "^3.0.0",
     "@types/topojson-specification": "^1.0.0",
     "@vx/clip-path": "^0.0.197",
-    "@vx/event": "^0.0.197",
+    "@vx/event": "^0.0.198",
     "@vx/pattern": "^0.0.197",
     "@vx/tooltip": "^0.0.197",
     "@vx/zoom": "^0.0.197",
