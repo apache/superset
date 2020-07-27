@@ -70,23 +70,33 @@ const StyledHeader = styled.header`
   }
 
   .navbar-nav > li > a {
+    border-bottom: none;
+    &:focus {
+      border-bottom: none;
+    }
     &:after {
       content: '';
       position: absolute;
       bottom: -3px;
-      left: 0;
-      width: 100%;
+      left: 50%;
+      width: 0;
       height: 3px;
       background-color: ${({ theme }) => theme.colors.primary.base};
       opacity: 0;
-      transition: opacity ${({ theme }) => theme.transitionTiming * 2}s;
+      transform: translateX(-50%);
+      transition: all ${({ theme }) => theme.transitionTiming}s !important;
     }
-    border-bottom: none;
 
     &:hover {
+      border-bottom: none;
       &:after {
         opacity: 1;
+        width: 100%;
       }
+    }
+    &:hover,
+    &:focus {
+      margin: 0;
     }
   }
 

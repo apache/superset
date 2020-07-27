@@ -28,10 +28,7 @@ const NavDropdown = styled(RBNavDropdown)`
     transition: background ${({ theme }) => theme.transitionTiming}s;
   }
   &.open > a {
-    background: linear-gradient(
-      ${({ theme }) => theme.colors.primary.light3},
-      ${({ theme }) => theme.colors.primary.light5}
-    ) !important;
+    background: ${({ theme }) => theme.colors.primary.light4} !important;
   }
   .caret {
     display: none;
@@ -67,8 +64,8 @@ const NavDropdown = styled(RBNavDropdown)`
         ${({ theme }) => theme.gridUnit * 4}px;
       transition: all ${({ theme }) => theme.transitionTiming}s;
       &:hover {
-        background: ${({ theme }) => theme.colors.primary.light3};
-        color: black;
+        background: ${({ theme }) => theme.colors.primary.light4};
+        color: ${({ theme }) => theme.colors.grayscale.dark1};
       }
     }
   }
