@@ -570,6 +570,9 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_read(view_menu, permissions_set)
         self.assert_can_write(view_menu, permissions_set)
 
+    def assert_can_menu(self, view_menu, permissions_set):
+        self.assertIn(("menu_access", view_menu), permissions_set)
+
     def assert_can_gamma(self, perm_set):
         self.assert_can_read("TableModelView", perm_set)
 
@@ -592,10 +595,24 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
+        self.assert_can_menu("Databases", perm_set)
+        self.assert_can_menu("Tables", perm_set)
+        self.assert_can_menu("Sources", perm_set)
+        self.assert_can_menu("Charts", perm_set)
+        self.assert_can_menu("Dashboards", perm_set)
 
     def assert_can_alpha(self, perm_set):
+        self.assert_can_all("AnnotationLayerModelView", perm_set)
+        self.assert_can_all("CssTemplateModelView", perm_set)
         self.assert_can_all("TableModelView", perm_set)
-
+        self.assert_can_read("QueryView", perm_set)
+        self.assertIn(("can_import_dashboards", "Superset"), perm_set)
+        self.assertIn(("can_this_form_post", "CsvToDatabaseView"), perm_set)
+        self.assertIn(("can_this_form_get", "CsvToDatabaseView"), perm_set)
+        self.assert_can_menu("Manage", perm_set)
+        self.assert_can_menu("Annotation Layers", perm_set)
+        self.assert_can_menu("CSS Templates", perm_set)
+        self.assert_can_menu("Upload a CSV", perm_set)
         self.assertIn(("all_datasource_access", "all_datasource_access"), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
@@ -616,6 +633,10 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_sync_druid_source", "Superset"), perm_set)
         self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
         self.assertIn(("can_approve", "Superset"), perm_set)
+
+        self.assert_can_menu("Security", perm_set)
+        self.assert_can_menu("List Users", perm_set)
+        self.assert_can_menu("List Roles", perm_set)
 
     def test_is_admin_only(self):
         self.assertFalse(
