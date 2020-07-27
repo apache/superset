@@ -457,7 +457,6 @@ class Header extends React.PureComponent {
               show={this.state.showingPropertiesModal}
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
-              onlyApply
               onSubmit={updates => {
                 const {
                   dashboardInfoChanged,

@@ -190,7 +190,8 @@ class SliceAdder extends React.Component {
             sliceName={cellData.slice_name}
             lastModified={cellData.changed_on_humanized}
             visType={cellData.viz_type}
-            datasourceLink={cellData.datasource_link}
+            datasourceUrl={cellData.datasource_url}
+            datasourceName={cellData.datasource_name}
             isSelected={isSelected}
           />
         )}

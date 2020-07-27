@@ -65,6 +65,7 @@ function AddSliceDragPreview({ dragItem, slices, isDragging, currentOffset }) {
     dragItem.parentType === NEW_COMPONENT_SOURCE_TYPE &&
     dragItem.type === CHART_TYPE;
 
+  console.log('slice', slice);
   return !shouldRender ? null : (
     <AddSliceCard
       style={{
@@ -72,9 +73,10 @@ function AddSliceDragPreview({ dragItem, slices, isDragging, currentOffset }) {
         transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
       }}
       sliceName={slice.slice_name}
-      lastModified={slice.modified}
+      lastModified={slice.changed_on_humanized}
       visType={slice.viz_type}
-      datasourceLink={slice.datasource_link}
+      datasourceUrl={slice.datasource_url}
+      datasourceName={slice.datasource_name}
     />
   );
 }
