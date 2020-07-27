@@ -63,8 +63,6 @@ const propTypes = {
   customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
-  slug: PropTypes.string,
-  metadata: PropTypes.string,
   setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   isStarred: PropTypes.bool.isRequired,
   isPublished: PropTypes.bool.isRequired,
@@ -112,6 +110,10 @@ const StyledDashboardHeader = styled.div`
 `;
 
 class Header extends React.PureComponent {
+  static discardChanges() {
+    window.location.reload();
+  }
+
   constructor(props) {
     super(props);
     this.state = {
@@ -265,8 +267,6 @@ class Header extends React.PureComponent {
       expandedSlices,
       customCss,
       colorNamespace,
-      slug,
-      metadata,
       colorScheme,
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
@@ -285,8 +285,6 @@ class Header extends React.PureComponent {
 
     const data = {
       positions,
-      slug,
-      metadata,
       expanded_slices: expandedSlices,
       css: customCss,
       color_namespace: colorNamespace,
@@ -322,9 +320,6 @@ class Header extends React.PureComponent {
 
   hidePropertiesModal() {
     this.setState({ showingPropertiesModal: false });
-  }
-  static discardChanges() {
-    window.location.reload();
   }
 
   render() {

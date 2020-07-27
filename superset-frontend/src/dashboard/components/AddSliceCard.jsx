@@ -66,7 +66,7 @@ function AddSliceCard({
           </div>
           <div className="item">
             <span>{t('Data source')} </span>
-            <a href="{datasourceUrl}">{datasourceName}</a>
+            <a href={datasourceUrl}>{datasourceName}</a>
           </div>
         </div>
       </div>

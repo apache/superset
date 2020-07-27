@@ -201,7 +201,7 @@ class PropertiesModal extends React.PureComponent {
           slug: json.result.slug,
           jsonMetadata: json.result.json_metadata,
           ownerIds: json.result.owners,
-          colorScheme: json.colorScheme,
+          colorScheme: values.colorScheme,
         });
         this.props.onHide();
       }, this.handleErrorResponse);

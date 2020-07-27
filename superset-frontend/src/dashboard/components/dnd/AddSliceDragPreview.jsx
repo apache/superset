@@ -65,7 +65,6 @@ function AddSliceDragPreview({ dragItem, slices, isDragging, currentOffset }) {
     dragItem.parentType === NEW_COMPONENT_SOURCE_TYPE &&
     dragItem.type === CHART_TYPE;
 
-  console.log('slice', slice);
   return !shouldRender ? null : (
     <AddSliceCard
       style={{
