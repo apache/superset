@@ -617,6 +617,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 current_array_level = level
 
             name = column["name"]
+            values: Optional[Union[str, List[Any]]]
 
             if column["type"].startswith("ARRAY("):
                 # keep processing array children; we append to the right so that
@@ -627,7 +628,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 i = 0
                 while i < len(data):
                     row = data[i]
-                    values: Union[str, List] = row.get(name)
+                    values = row.get(name)
                     if isinstance(values, str):
                         row[name] = values = destringify(values)
                     if values:
@@ -661,7 +662,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
                 # expand row objects into new columns
                 for row in data:
-                    values: Union[str, List] = row.get(name) or []
+                    values = row.get(name) or []
                     if isinstance(values, str):
                         row[name] = values = destringify(values)
                     for value, col in zip(values, expanded):
