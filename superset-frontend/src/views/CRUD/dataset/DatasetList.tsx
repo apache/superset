@@ -25,16 +25,13 @@ import React, {
   useState,
 } from 'react';
 import rison from 'rison';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
-import {
-  FetchDataConfig,
-  FilterOperatorMap,
-  Filters,
-} from 'src/components/ListView/types';
+import { FetchDataConfig, Filters } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
@@ -69,29 +66,92 @@ interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
+interface Database {
+  allow_csv_upload: boolean;
+  allow_ctas: boolean;
+  allow_cvas: null | boolean;
+  allow_dml: boolean;
+  allow_multi_schema_metadata_fetch: boolean;
+  allow_run_async: boolean;
+  allows_cost_estimate: boolean;
+  allows_subquery: boolean;
+  allows_virtual_table_explore: boolean;
+  backend: string;
+  database_name: string;
+  explore_database_id: number;
+  expose_in_sqllab: boolean;
+  force_ctas_schema: null | boolean;
+  function_names: string[];
+  id: number;
+}
 
+const createFetchDatabases = (handleError: (err: Response) => void) => async (
+  filterValue = '',
+  pageIndex?: number,
+  pageSize?: number,
+) => {
+  try {
+    const queryParams = rison.encode({
+      columns: ['database_name', 'id'],
+      keys: ['none'],
+      ...(pageIndex ? { page: pageIndex } : {}),
+      ...(pageSize ? { page_size: pageSize } : {}),
+      ...(filterValue ? { filter: filterValue } : {}),
+    });
+    const { json = {} } = await SupersetClient.get({
+      endpoint: `/api/v1/database/?q=${queryParams}`,
+    });
+
+    return json?.result?.map(
+      ({ database_name: label, id: value }: Database) => ({
+        label,
+        value,
+      }),
+    );
+  } catch (e) {
+    handleError(e);
+  }
+  return [];
+};
+
+export const createFetchSchemas = (
+  handleError: (error: Response) => void,
+) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
+  try {
+    const queryParams = rison.encode({
+      ...(pageIndex ? { page: pageIndex } : {}),
+      ...(pageSize ? { page_size: pageSize } : {}),
+      ...(filterValue ? { filter: filterValue } : {}),
+    });
+    const { json = {} } = await SupersetClient.get({
+      endpoint: `/api/v1/database/schemas/?q=${queryParams}`,
+    });
+
+    return json?.result?.map(
+      ({ text: label, value }: { text: string; value: any }) => ({
+        label,
+        value,
+      }),
+    );
+  } catch (e) {
+    handleError(e);
+  }
+  return [];
+};
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
-  const [databases, setDatabases] = useState<{ text: string; value: number }[]>(
-    [],
-  );
   const [datasetCount, setDatasetCount] = useState(0);
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     (Dataset & { chart_count: number; dashboard_count: number }) | null
   >(null);
   const [datasets, setDatasets] = useState<any[]>([]);
-  const [currentFilters, setCurrentFilters] = useState<Filters>([]);
-  const [filterOperators, setFilterOperators] = useState<FilterOperatorMap>();
   const [
     lastFetchDataConfig,
     setLastFetchDataConfig,
   ] = useState<FetchDataConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentOwners, setCurrentOwners] = useState<
-    { text: string; value: number }[]
-  >([]);
   const [permissions, setPermissions] = useState<string[]>([]);
 
   const [datasetAddModalOpen, setDatasetAddModalOpen] = useState<boolean>(
@@ -99,97 +159,84 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
   const [bulkSelectEnabled, setBulkSelectEnabled] = useState<boolean>(false);
 
-  const updateFilters = () => {
-    const convertFilter = ({
-      name: label,
-      operator,
-    }: {
-      name: string;
-      operator: string;
-    }) => ({ label, value: operator });
-    if (filterOperators) {
-      setCurrentFilters([
-        {
-          Header: 'Database',
-          id: 'database',
-          input: 'select',
-          operators: filterOperators.database.map(convertFilter),
-          selects: databases.map(({ text: label, value }) => ({
-            label,
-            value,
-          })),
-        },
-        {
-          Header: 'Schema',
-          id: 'schema',
-          operators: filterOperators.schema.map(convertFilter),
-        },
-        {
-          Header: 'Table Name',
-          id: 'table_name',
-          operators: filterOperators.table_name.map(convertFilter),
-        },
-        {
-          Header: 'Owners',
-          id: 'owners',
-          input: 'select',
-          operators: filterOperators.owners.map(convertFilter),
-          selects: currentOwners.map(({ text: label, value }) => ({
-            label,
-            value,
-          })),
-        },
-        {
-          Header: 'SQL Lab View',
-          id: 'is_sqllab_view',
-          input: 'checkbox',
-          operators: filterOperators.is_sqllab_view.map(convertFilter),
-        },
-      ]);
-    }
+  const filterTypes: Filters = [
+    {
+      Header: t('Owner'),
+      id: 'owners',
+      input: 'select',
+      operator: 'rel_m_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'dataset',
+        'owners',
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching dataset owner values: %s',
+            errMsg,
+          ),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Datasource'),
+      id: 'database',
+      input: 'select',
+      operator: 'rel_o_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchDatabases(
+        createErrorHandler(errMsg =>
+          t('An error occurred while fetching datasource values: %s', errMsg),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Schema'),
+      id: 'schema',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchSchemas(errMsg =>
+        t('An error occurred while fetching schema values: %s', errMsg),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Type'),
+      id: 'is_sqllab_view',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      selects: [
+        { label: 'Virtual', value: true },
+        { label: 'Physical', value: false },
+      ],
+    },
+    {
+      Header: t('Search'),
+      id: 'table_name',
+      input: 'search',
+      operator: 'ct',
+    },
+  ];
+
+  const fetchDatasetInfo = () => {
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/_info`,
+    }).then(
+      ({ json: infoJson = {} }) => {
+        setPermissions(infoJson.permissions);
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(t('An error occurred while fetching datasets', errMsg)),
+      ),
+    );
   };
 
-  const fetchDataset = () =>
-    Promise.all([
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/_info`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/owners`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/database`,
-      }),
-    ])
-      .then(
-        ([
-          { json: infoJson = {} },
-          { json: ownersJson = {} },
-          { json: databasesJson = {} },
-        ]) => {
-          setCurrentOwners(ownersJson.result);
-          setDatabases(databasesJson.result);
-          setPermissions(infoJson.permissions);
-          setFilterOperators(infoJson.filters);
-        },
-      )
-      .catch(([e1, e2]) => {
-        addDangerToast(t('An error occurred while fetching datasets'));
-        if (e1) {
-          console.error(e1);
-        }
-        if (e2) {
-          console.error(e2);
-        }
-      });
-
   useEffect(() => {
-    fetchDataset();
+    fetchDatasetInfo();
   }, []);
-
-  useEffect(() => {
-    updateFilters();
-  }, [databases, currentOwners, permissions, filterOperators]);
 
   const hasPerm = (perm: string) => {
     if (!permissions.length) {
@@ -220,11 +267,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           dashboard_count: json.dashboards.count,
         });
       })
-      .catch(() => {
-        addDangerToast(
-          t('An error occurred while fetching dataset related data'),
-        );
-      });
+      .catch(
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching dataset related data: %s',
+            errMsg,
+          ),
+        ),
+      );
 
   const columns = [
     {
@@ -477,15 +527,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       return SupersetClient.get({
         endpoint: `/api/v1/dataset/?q=${queryParams}`,
       })
-        .then(({ json }) => {
-          setLoading(false);
-          setDatasets(json.result);
-          setDatasetCount(json.count);
-        })
-        .catch(() => {
-          addDangerToast(t('An error occurred while fetching datasets'));
-          setLoading(false);
-        });
+        .then(
+          ({ json }) => {
+            setLoading(false);
+            setDatasets(json.result);
+            setDatasetCount(json.count);
+          },
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching datasets: %s', errMsg),
+            ),
+          ),
+        )
+        .finally(() => setLoading(false));
     },
     [],
   );
@@ -501,10 +555,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         setDatasetCurrentlyDeleting(null);
         addSuccessToast(t('Deleted: %s', tableName));
       },
-      (err: any) => {
-        console.error(err);
-        addDangerToast(t('There was an issue deleting %s', tableName));
-      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', tableName, errMsg),
+        ),
+      ),
     );
   };
 
@@ -520,10 +575,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }
         addSuccessToast(json.message);
       },
-      (err: any) => {
-        console.error(err);
-        addDangerToast(t('There was an issue deleting the selected datasets'));
-      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting the selected datasets: %s', errMsg),
+        ),
+      ),
     );
   };
 
@@ -578,9 +634,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               count={datasetCount}
               pageSize={PAGE_SIZE}
               fetchData={fetchData}
+              filters={filterTypes}
               loading={loading}
               initialSort={initialSort}
-              filters={currentFilters}
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={() => setBulkSelectEnabled(false)}

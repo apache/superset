@@ -22,8 +22,8 @@ import { styled, supersetTheme } from '@superset-ui/style';
 import { t, tn } from '@superset-ui/translation';
 
 import { noOp } from 'src/utils/common';
+import Button from 'src/views/CRUD/dataset/Button';
 import Icon from '../Icon';
-import Button from '../../views/datasetList/Button';
 import { ErrorMessageComponentProps } from './types';
 import CopyToClipboard from '../CopyToClipboard';
 import IssueCode from './IssueCode';
