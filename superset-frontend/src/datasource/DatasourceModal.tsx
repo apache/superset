@@ -89,9 +89,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         addSuccessToast(t('The datasource has been saved'));
         onDatasourceSave(json);
       })
-      .catch(response => {
-        return getClientErrorObject(response).then((error: any) => {
-          debugger;
+      .catch(response =>
+        getClientErrorObject(response).then((error: any) => {
           dialog.current.show({
             title: 'Error',
             bsSize: 'medium',
@@ -99,8 +98,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
             body: error || error?.statusText || t('An error has occurred'),
           });
-        });
-      });
+        }),
+      );
   };
 
   const onDatasourceChange = (data: object, err: Array<any>) => {
