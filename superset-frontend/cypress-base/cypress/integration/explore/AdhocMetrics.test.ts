@@ -26,7 +26,7 @@ describe('AdhocMetrics', () => {
 
   it('Clear metric and set simple adhoc metric', () => {
     const metric = 'sum(sum_girls)';
-    const metricName = 'SUM(sum_girls)';
+    const metricName = 'Sum Girls';
 
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
@@ -43,16 +43,9 @@ describe('AdhocMetrics', () => {
       .click();
 
     cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
-    cy.get('[data-test="AdhocMetricEditTitle#input"]').click();
+    cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
-    cy.get('#metrics-edit-popover').within(() => {
-      cy.get('.popover-title').within(() => {
-        cy.get('span').click();
-        cy.get('input').type(metricName);
-      });
-      cy.get('button').contains('Save').click();
-    });
     cy.get('.metrics-select .metric-option').contains(metricName);
 
     cy.get('button.query').click();
@@ -74,12 +67,10 @@ describe('AdhocMetrics', () => {
 
     cy.get('[data-test=metrics]').find('.Select__control input').type('num');
 
-    cy.get('[data-test=metrics]').find('.option-label').first().click();
+    cy.get('[data-test=metrics]').find('.option-label').last().click();
 
     // add custom SQL
-    cy.get('#metrics-edit-popover')
-      .find('#adhoc-metric-edit-tabs-tab-SQL')
-      .click();
+    cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
     cy.get('#metrics-edit-popover').find('.ace_content').click();
     cy.get('#metrics-edit-popover')
       .find('.ace_text-input')

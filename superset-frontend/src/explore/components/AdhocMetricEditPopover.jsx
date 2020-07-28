@@ -271,6 +271,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             className="adhoc-metric-edit-tab"
             eventKey={EXPRESSION_TYPES.SQL}
             title="Custom SQL"
+            data-test="adhoc-metric-edit-tab#custom"
           >
             {this.props.datasourceType !== 'druid' ? (
               <FormGroup>
