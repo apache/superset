@@ -776,6 +776,18 @@ class PivotTableViz(BaseViz):
             raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
         return d
 
+    @staticmethod
+    def get_aggfunc(
+        metric: str, df: pd.DataFrame, form_data: Dict[str, Any]
+    ) -> Union[str, Callable]:
+        aggfunc = form_data.get("pandas_aggfunc") or "sum"
+        if pd.api.types.is_numeric_dtype(df[metric]):
+            # Ensure that Pandas's sum function mimics that of SQL.
+            if aggfunc == "sum":
+                return lambda x: x.sum(min_count=1)
+        # only min and max work properly for non-numerics
+        return aggfunc if aggfunc in ("min", "max") else "max"
+
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
@@ -786,15 +798,7 @@ class PivotTableViz(BaseViz):
         metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
         aggfuncs: Dict[str, Union[str, Callable]] = {}
         for metric in metrics:
-            aggfunc = self.form_data.get("pandas_aggfunc") or "sum"
-            if pd.api.types.is_numeric_dtype(df[metric]):
-                # Ensure that Pandas's sum function mimics that of SQL.
-                if aggfunc == "sum":
-                    aggfunc = lambda x: x.sum(min_count=1)
-            else:
-                # only min and max work properly for non-numerics
-                aggfunc = aggfunc if aggfunc in ("min", "max") else "max"
-            aggfuncs[metric] = aggfunc
+            aggfuncs[metric] = self.get_aggfunc(metric, df, self.form_data)
 
         groupby = self.form_data.get("groupby")
         columns = self.form_data.get("columns")
