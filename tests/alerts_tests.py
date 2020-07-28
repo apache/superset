@@ -20,11 +20,11 @@ import unittest
 from unittest.mock import patch
 
 from superset import db
+from superset.models.alerts import Alert, AlertLog
+from superset.models.slice import Slice
+from superset.tasks.schedules import run_alert_query
 from superset.utils import core as utils
 from tests.base_tests import SupersetTestCase
-from superset.tasks.schedules import run_alert_query
-from superset.models.alerts import Alert
-from superset.models.slice import Slice
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,6 +73,7 @@ class TestAlerts(SupersetTestCase):
         db.session.commit()
 
     def tearDown(self):
+        db.session.query(AlertLog).delete()
         db.session.query(Alert).delete()
 
     @patch("superset.tasks.schedules.deliver_alert")
