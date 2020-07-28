@@ -17,15 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 
-const propTypes = {
-  checked: PropTypes.bool.isRequired,
-  onChange: PropTypes.func.isRequired,
-  style: PropTypes.object,
-};
+interface CheckboxProps {
+  checked: boolean;
+  onChange: (val?: boolean) => {};
+  style: object;
+}
 
-export default function Checkbox({ checked, onChange, style }) {
+export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
   return (
     <span style={style}>
       <i
@@ -46,4 +45,3 @@ export default function Checkbox({ checked, onChange, style }) {
     </span>
   );
 }
-Checkbox.propTypes = propTypes;
