@@ -76,11 +76,11 @@ describe('ChartList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(ChartList)).toHaveLength(1);
+    expect(wrapper.find(ChartList)).toExist();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toHaveLength(1);
+    expect(wrapper.find(ListView)).toExist();
   });
 
   it('fetches info', () => {

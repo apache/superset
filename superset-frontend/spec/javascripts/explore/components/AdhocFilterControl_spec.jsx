@@ -75,7 +75,7 @@ function setup(overrides) {
 describe('AdhocFilterControl', () => {
   it('renders an onPasteSelect', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OnPasteSelect)).toHaveLength(1);
+    expect(wrapper.find(OnPasteSelect)).toExist();
   });
 
   it('handles saved metrics being selected to filter on', () => {

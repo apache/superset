@@ -78,7 +78,7 @@ describe('ChangeDatasourceModal', () => {
   });
 
   it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toHaveLength(1);
+    expect(wrapper.find(Modal)).toExist();
   });
 
   it('fetches datasources', async () => {

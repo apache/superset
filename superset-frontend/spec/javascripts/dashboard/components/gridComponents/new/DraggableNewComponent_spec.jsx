@@ -49,7 +49,7 @@ describe('DraggableNewComponent', () => {
 
   it('should render a DragDroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).toHaveLength(1);
+    expect(wrapper.find(DragDroppable)).toExist();
   });
 
   it('should pass component={ type, id } to DragDroppable', () => {
@@ -78,6 +78,6 @@ describe('DraggableNewComponent', () => {
   it('should add the passed className', () => {
     const wrapper = setup();
     const className = `.new-component-placeholder.${props.className}`;
-    expect(wrapper.find(className)).toHaveLength(1);
+    expect(wrapper.find(className)).toExist();
   });
 });

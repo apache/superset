@@ -70,7 +70,7 @@ describe('DatasourceModal', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(DatasourceModal)).toHaveLength(1);
+    expect(wrapper.find(DatasourceModal)).toExist();
   });
 
   it('renders a Modal', () => {
@@ -78,7 +78,7 @@ describe('DatasourceModal', () => {
   });
 
   it('renders a DatasourceEditor', () => {
-    expect(wrapper.find(DatasourceEditor)).toHaveLength(1);
+    expect(wrapper.find(DatasourceEditor)).toExist();
   });
 
   it('saves on confirm', async () => {

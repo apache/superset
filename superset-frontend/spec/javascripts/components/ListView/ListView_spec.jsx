@@ -127,7 +127,7 @@ describe('ListView', () => {
   });
 
   it('calls fetchData on mount', () => {
-    expect(wrapper.find(ListView)).toHaveLength(1);
+    expect(wrapper.find(ListView)).toExist();
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
                                                       Array [
                                                         Object {
@@ -298,7 +298,7 @@ describe('ListView', () => {
   });
 
   it('renders UI filters', () => {
-    expect(wrapper.find(ListViewFilters)).toHaveLength(1);
+    expect(wrapper.find(ListViewFilters)).toExist();
   });
 
   it('calls fetchData on filter', () => {

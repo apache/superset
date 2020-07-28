@@ -44,8 +44,8 @@ describe('FilterTooltipWrapper', () => {
 
   it('should contain Overlay and Tooltip', () => {
     const wrapper = setup();
-    expect(wrapper.find(Overlay)).toHaveLength(1);
-    expect(wrapper.find(Tooltip)).toHaveLength(1);
+    expect(wrapper.find(Overlay)).toExist();
+    expect(wrapper.find(Tooltip)).toExist();
   });
 
   it('should show tooltip on hover', async () => {
