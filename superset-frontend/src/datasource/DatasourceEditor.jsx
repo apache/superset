@@ -236,7 +236,8 @@ export class DatasourceEditor extends React.PureComponent {
       datasource: props.datasource,
       errors: [],
       isDruid:
-        props.datasource.type === 'druid' || props.datasource.type === 'druid',
+        props.datasource.type === 'druid' ||
+        props.datasource.datasource_type === 'druid',
       isSqla:
         props.datasource.datasource_type === 'table' ||
         props.datasource.type === 'table',
