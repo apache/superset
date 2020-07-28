@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { styled, withTheme } from '@superset-ui/style';
+import { styled, withTheme, supersetTheme } from '@superset-ui/style';
 
 import {
   Select,
@@ -51,6 +51,7 @@ interface SelectFilterProps extends BaseFilter {
 const FilterContainer = styled.div`
   display: inline-flex;
   margin-right: 2em;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
 const FilterTitle = styled.label`
@@ -63,6 +64,7 @@ const filterSelectTheme: PartialThemeConfig = {
   spacing: {
     baseUnit: 2,
     minWidth: '5em',
+    fontSize: supersetTheme.typography.sizes.s,
   },
 };
 
@@ -79,6 +81,7 @@ const filterSelectStyles: PartialStylesConfig = {
     ...provider,
     borderWidth: 0,
     boxShadow: 'none',
+    cursor: 'pointer',
   }),
 };
 
