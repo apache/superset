@@ -26,16 +26,25 @@ describe('AdhocMetrics', () => {
 
   it('Clear metric and set simple adhoc metric', () => {
     const metric = 'sum(sum_girls)';
-    const metricName = 'Girl Births';
+    const metricName = 'SUM(sum_girls)';
 
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('[data-test=metrics]').within(() => {
-      cy.get('.Select__clear-indicator').click();
-      cy.get('.Select__control input').type('sum_girls');
-      cy.get('.Select__option--is-focused').trigger('mousedown').click();
-    });
+    cy.get('[data-test=metrics]').find('.Select__clear-indicator').click();
+
+    cy.get('[data-test=metrics]')
+      .find('.Select__control input')
+      .type('sum_girls', { force: true });
+
+    cy.get('[data-test=metrics]')
+      .find('.Select__option--is-focused')
+      .trigger('mousedown')
+      .click();
+
+    cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
+    cy.get('[data-test="AdhocMetricEditTitle#input"]').click();
+    cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
     cy.get('#metrics-edit-popover').within(() => {
       cy.get('.popover-title').within(() => {
@@ -59,20 +68,23 @@ describe('AdhocMetrics', () => {
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     // select column "num"
-    cy.get('[data-test=metrics]').within(() => {
-      cy.get('.Select__clear-indicator').click();
-      cy.get('.Select__control').click();
-      cy.get('.Select__control input').type('num');
-      cy.get('.option-label').contains(/^num$/).click();
-    });
+    cy.get('[data-test=metrics]').find('.Select__clear-indicator').click();
+
+    cy.get('[data-test=metrics]').find('.Select__control').click();
+
+    cy.get('[data-test=metrics]').find('.Select__control input').type('num');
+
+    cy.get('[data-test=metrics]').find('.option-label').first().click();
 
     // add custom SQL
-    cy.get('#metrics-edit-popover').within(() => {
-      cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
-      cy.get('.ace_content').click();
-      cy.get('.ace_text-input').type('/COUNT(DISTINCT name)', { force: true });
-      cy.get('button').contains('Save').click();
-    });
+    cy.get('#metrics-edit-popover')
+      .find('#adhoc-metric-edit-tabs-tab-SQL')
+      .click();
+    cy.get('#metrics-edit-popover').find('.ace_content').click();
+    cy.get('#metrics-edit-popover')
+      .find('.ace_text-input')
+      .type('/COUNT(DISTINCT name)', { force: true });
+    cy.get('#metrics-edit-popover').find('button').contains('Save').click();
 
     cy.get('button.query').click();
 
