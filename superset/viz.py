@@ -779,7 +779,7 @@ class PivotTableViz(BaseViz):
     @staticmethod
     def get_aggfunc(
         metric: str, df: pd.DataFrame, form_data: Dict[str, Any]
-    ) -> Union[str, Callable]:
+    ) -> Union[str, Callable[[Any], Any]]:
         aggfunc = form_data.get("pandas_aggfunc") or "sum"
         if pd.api.types.is_numeric_dtype(df[metric]):
             # Ensure that Pandas's sum function mimics that of SQL.
@@ -796,7 +796,7 @@ class PivotTableViz(BaseViz):
             del df[DTTM_ALIAS]
 
         metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
-        aggfuncs: Dict[str, Union[str, Callable]] = {}
+        aggfuncs: Dict[str, Union[str, Callable[[Any], Any]]] = {}
         for metric in metrics:
             aggfuncs[metric] = self.get_aggfunc(metric, df, self.form_data)
 
