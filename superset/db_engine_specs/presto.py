@@ -22,7 +22,7 @@ from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
-from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from urllib import parse
 
 import pandas as pd
@@ -653,12 +653,15 @@ class PrestoEngineSpec(BaseEngineSpec):
                 # expand columns; we append them to the left so they are added
                 # immediately after the parent
                 expanded = get_children(column)
-                to_process.extendleft((column, level) for column in expanded)
+                to_process.extendleft((column, level) for column in expanded[::-1])
                 expanded_columns.extend(expanded)
 
                 # expand row objects into new columns
                 for row in data:
-                    for value, col in zip(row.get(name) or [], expanded):
+                    row_data: Union[str, List] = row.get(name) or []
+                    if isinstance(row_data, str):
+                        row[name] = row_data = json.loads(row_data)
+                    for value, col in zip(row_data, expanded):
                         row[col["name"]] = value
 
         data = [
