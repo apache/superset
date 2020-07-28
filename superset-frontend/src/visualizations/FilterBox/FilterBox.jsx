@@ -227,10 +227,10 @@ class FilterBox extends React.Component {
           let x = a.value;
           let y = b.value;
           if (typeof x === 'string') {
-            x = `${x}`.toLowerCase();
+            x = ('' + x).toLowerCase();
           }
           if (typeof y === 'string') {
-            y = `${y}`.toLowerCase();
+            y = ('' + y).toLowerCase();
           }
           // eslint-disable-next-line no-nested-ternary
           return x < y ? -1 : x > y ? 1 : 0;
