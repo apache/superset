@@ -38,6 +38,18 @@ export default function Timer({
 }: TimerProps) {
   const [clockStr, setClockStr] = useState<string>('');
   const timer = useRef<NodeJS.Timeout>();
+  const stopwatch = () => {
+    if (startTime) {
+      const endDttm = endTime || now();
+      if (startTime < endDttm) {
+        setClockStr(fDuration(startTime, endDttm));
+      }
+      if (!isRunning) {
+        clearTimeout(timer.current!);
+      }
+    }
+  };
+
   useEffect(() => {
     if (isRunning) {
       timer.current = setInterval(stopwatch, 30);
@@ -46,19 +58,6 @@ export default function Timer({
       clearInterval(timer.current!);
     };
   });
-
-  const stopwatch = () => {
-    if (startTime) {
-      const endDttm = endTime || now();
-      if (startTime < endDttm) {
-        const clockStr = fDuration(startTime, endDttm);
-        setClockStr(clockStr);
-      }
-      if (!isRunning) {
-        clearTimeout(timer.current!);
-      }
-    }
-  };
 
   return (
     <Label className="m-r-5" style={style} bsStyle={status}>
