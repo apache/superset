@@ -20,7 +20,7 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import event_logger, security_manager
+from superset import event_logger
 from superset.databases.decorators import check_datasource_access
 from superset.databases.schemas import (
     database_schemas_query_schema,
