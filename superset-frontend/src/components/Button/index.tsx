@@ -28,6 +28,12 @@ import styled from '@superset-ui/style';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
 
+export interface DropdownItemProps {
+  label: string;
+  url: string;
+  icon?: string;
+}
+
 export interface ButtonProps {
   className?: string;
   tooltip?: string;
@@ -39,7 +45,7 @@ export interface ButtonProps {
   bsSize?: BootstrapButton.ButtonProps['bsSize'];
   style?: BootstrapButton.ButtonProps['style'];
   children?: React.ReactNode;
-  dropdownItems?: Array;
+  dropdownItems?: DropdownItemProps[];
 }
 
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
@@ -101,17 +107,18 @@ export default function Button(props: ButtonProps) {
   if (dropdownItems) {
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
-        <SupersetButton {...buttonProps} data-toggle="dropdown"
-        >
+        <SupersetButton {...buttonProps} data-toggle="dropdown">
           {props.children}
         </SupersetButton>
         <ul className="dropdown-menu">
-          {dropdownItems.map((dropdownItem, index1) => (
-            <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
-              <i className={`fa ${dropdownItem.icon}`} />
-              &nbsp; {dropdownItem.label}
-            </MenuItem>
-          ))}
+          {dropdownItems.map(
+            (dropdownItem: DropdownItemProps, index1: number) => (
+              <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
+                <i className={`fa ${dropdownItem.icon}`} />
+                &nbsp; {dropdownItem.label}
+              </MenuItem>
+            ),
+          )}
         </ul>
       </div>
     );
