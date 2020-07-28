@@ -411,13 +411,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       disableSortBy: true,
     },
     {
-<<<<<<< HEAD:superset-frontend/src/views/CRUD/dataset/DatasetList.tsx
-      Cell: ({ row: { original } }: any) => {
-        const handleEdit = () => handleDatasetEdit(original);
-=======
       Cell: ({ row: { state, original } }: any) => {
         const handleEdit = () => openDatasetEditModal(original);
->>>>>>> 079b221af... install dataset editor modal to dataset list:superset-frontend/src/views/datasetList/DatasetList.tsx
         const handleDelete = () => openDatasetDeleteModal(original);
         if (!canEdit && !canDelete) {
           return null;
@@ -656,56 +651,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             : [];
 
           return (
-<<<<<<< HEAD:superset-frontend/src/views/CRUD/dataset/DatasetList.tsx
-            <ListView
-              className="dataset-list-view"
-              columns={columns}
-              data={datasets}
-              count={datasetCount}
-              pageSize={PAGE_SIZE}
-              fetchData={fetchData}
-              filters={filterTypes}
-              loading={loading}
-              initialSort={initialSort}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={() => setBulkSelectEnabled(false)}
-              renderBulkSelectCopy={selected => {
-                const { virtualCount, physicalCount } = selected.reduce(
-                  (acc, e) => {
-                    if (e.original.kind === 'physical') acc.physicalCount += 1;
-                    else if (e.original.kind === 'virtual')
-                      acc.virtualCount += 1;
-                    return acc;
-                  },
-                  { virtualCount: 0, physicalCount: 0 },
-                );
-
-                if (!selected.length) {
-                  return t('0 Selected');
-                } else if (virtualCount && !physicalCount) {
-                  return t(
-                    '%s Selected (Virtual)',
-                    selected.length,
-                    virtualCount,
-                  );
-                } else if (physicalCount && !virtualCount) {
-                  return t(
-                    '%s Selected (Physical)',
-                    selected.length,
-                    physicalCount,
-                  );
-                }
-
-                return t(
-                  '%s Selected (%s Physical, %s Virtual)',
-                  selected.length,
-                  physicalCount,
-                  virtualCount,
-                );
-              }}
-            />
-=======
             <>
               {datasetCurrentlyDeleting && (
                 <DeleteModal
@@ -739,13 +684,49 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 count={datasetCount}
                 pageSize={PAGE_SIZE}
                 fetchData={fetchData}
+                filters={filterTypes}
                 loading={loading}
                 initialSort={initialSort}
-                filters={currentFilters}
                 bulkActions={bulkActions}
+                bulkSelectEnabled={bulkSelectEnabled}
+                disableBulkSelect={() => setBulkSelectEnabled(false)}
+                renderBulkSelectCopy={selected => {
+                  const { virtualCount, physicalCount } = selected.reduce(
+                    (acc, e) => {
+                      if (e.original.kind === 'physical')
+                        acc.physicalCount += 1;
+                      else if (e.original.kind === 'virtual')
+                        acc.virtualCount += 1;
+                      return acc;
+                    },
+                    { virtualCount: 0, physicalCount: 0 },
+                  );
+
+                  if (!selected.length) {
+                    return t('0 Selected');
+                  } else if (virtualCount && !physicalCount) {
+                    return t(
+                      '%s Selected (Virtual)',
+                      selected.length,
+                      virtualCount,
+                    );
+                  } else if (physicalCount && !virtualCount) {
+                    return t(
+                      '%s Selected (Physical)',
+                      selected.length,
+                      physicalCount,
+                    );
+                  }
+
+                  return t(
+                    '%s Selected (%s Physical, %s Virtual)',
+                    selected.length,
+                    physicalCount,
+                    virtualCount,
+                  );
+                }}
               />
             </>
->>>>>>> 079b221af... install dataset editor modal to dataset list:superset-frontend/src/views/datasetList/DatasetList.tsx
           );
         }}
       </ConfirmStatusChange>
