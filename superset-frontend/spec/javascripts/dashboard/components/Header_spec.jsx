@@ -96,24 +96,9 @@ describe('Header', () => {
       expect(wrapper.find(EditableTitle)).toHaveLength(1);
     });
 
-    it('should render the PublishedStatus', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(PublishedStatus)).toHaveLength(1);
-    });
-
-    it('should render the FaveStar', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(FaveStar)).toHaveLength(1);
-    });
-
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(HeaderActionsDropdown)).toHaveLength(1);
-    });
-
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toHaveLength(1);
     });
 
     it('should not set up undo/redo', () => {
@@ -139,24 +124,9 @@ describe('Header', () => {
       expect(wrapper.find(EditableTitle)).toHaveLength(1);
     });
 
-    it('should render the PublishedStatus', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(PublishedStatus)).toHaveLength(1);
-    });
-
-    it('should render the FaveStar', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(FaveStar)).toHaveLength(1);
-    });
-
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(HeaderActionsDropdown)).toHaveLength(1);
-    });
-
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toHaveLength(1);
     });
 
     it('should not set up undo/redo', () => {
@@ -182,24 +152,9 @@ describe('Header', () => {
       expect(wrapper.find(EditableTitle)).toHaveLength(1);
     });
 
-    it('should render the FaveStar', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(FaveStar)).toHaveLength(1);
-    });
-
-    it('should render the PublishedStatus', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(PublishedStatus)).toHaveLength(1);
-    });
-
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(HeaderActionsDropdown)).toHaveLength(1);
-    });
-
-    it('should render five Buttons', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toHaveLength(5);
     });
 
     it('should set up undo/redo', () => {
@@ -224,24 +179,9 @@ describe('Header', () => {
       expect(wrapper.find(EditableTitle)).toHaveLength(1);
     });
 
-    it('should render the PublishedStatus', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(PublishedStatus)).toHaveLength(1);
-    });
-
-    it('should not render the FaveStar', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(FaveStar)).toHaveLength(0);
-    });
-
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
       expect(wrapper.find(HeaderActionsDropdown)).toHaveLength(1);
-    });
-
-    it('should render one Button', () => {
-      const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).toHaveLength(1);
     });
 
     it('should not set up undo/redo', () => {
