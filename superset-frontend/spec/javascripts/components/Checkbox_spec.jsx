@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
+<<<<<<< HEAD
 import { shallow } from 'enzyme';
+=======
+import sinon from 'sinon';
+import { shallow, mount } from 'enzyme';
+>>>>>>> update tests lint errors
 
 import Checkbox from 'src/components/IndeterminateCheckbox';
 

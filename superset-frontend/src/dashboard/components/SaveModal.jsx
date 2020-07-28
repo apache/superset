@@ -181,11 +181,13 @@ class SaveModal extends React.PureComponent {
               onChange={this.handleNameChange}
             />
             <div className="m-l-25 m-t-5">
-                <Checkbox
-                  checked={this.state.duplicateSlices}
-                  onChange={this.toggleDuplicateSlices}
-                />
-              <span className="m-l-5 v-align">{t('also copy (duplicate) charts')}</span>
+              <Checkbox
+                checked={this.state.duplicateSlices}
+                onChange={this.toggleDuplicateSlices}
+              />
+              <span className="m-l-5 v-align">
+                {t('also copy (duplicate) charts')}
+              </span>
             </div>
           </FormGroup>
         }

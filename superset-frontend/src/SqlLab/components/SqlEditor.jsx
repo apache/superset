@@ -533,15 +533,13 @@ class SqlEditor extends React.PureComponent {
         <div className="rightItems">
           <Button
             className="autocomplete btn-with-checkbox"
-            onClick={(e)=>{
+            onClick={e => {
               this.handleToggleAutocompleteEnabled();
               e.preventDefault();
             }}
           >
-              <Checkbox checked={this.state.autocompleteEnabled} />{' '}
-              <span>
-                {t('Autocomplete')}
-              </span>
+            <Checkbox checked={this.state.autocompleteEnabled} />{' '}
+            <span>{t('Autocomplete')}</span>
           </Button>{' '}
           <TemplateParamsEditor
             language="json"

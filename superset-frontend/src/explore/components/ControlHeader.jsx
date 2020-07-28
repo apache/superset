@@ -85,7 +85,9 @@ export default class ControlHeader extends React.Component {
       <div className="ControlHeader" data-test={`${this.props.name}-header`}>
         <div className="pull-left">
           <FormLabel>
-            {this.props.leftNode && <span className="v-align">{this.props.leftNode}</span>}
+            {this.props.leftNode && (
+              <span className="v-align">{this.props.leftNode}</span>
+            )}
             <span
               role="button"
               tabIndex={0}
@@ -108,7 +110,7 @@ export default class ControlHeader extends React.Component {
               </span>
             )}
             {this.props.danger && (
-              <span> 
+              <span>
                 <OverlayTrigger
                   placement="top"
                   overlay={
