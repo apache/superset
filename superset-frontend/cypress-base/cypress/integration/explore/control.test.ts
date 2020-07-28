@@ -61,7 +61,7 @@ describe('Datasource control', () => {
     cy.get('a').contains('Edit Datasource').click();
     cy.get(`input[value="${newMetricName}"]`)
       .closest('tr')
-      .find('.fa-close')
+      .find('.fa-trash')
       .click();
     cy.get('.modal-footer button').contains('Save').click();
     cy.get('.modal-footer button').contains('OK').click();
