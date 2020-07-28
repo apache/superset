@@ -129,15 +129,18 @@ export default function Menu({
   // Flatten settings
   const flatSettings: any[] = [];
 
-  settings.map((section: object, index: number) => {
-    // Top Section
-    section.isHeader = true;
+  settings.forEach((section: object, index: number) => {
+    const newSection: MenuObjectProps = {
+      ...section,
+      index,
+      isHeader: true,
+    };
 
-    flatSettings.push(section);
+    flatSettings.push(newSection);
 
     // Filter out '-'
-    if (section.childs) {
-      section.childs.forEach((child: any) => {
+    if (newSection.childs) {
+      newSection.childs.forEach((child: any) => {
         if (child !== '-') {
           flatSettings.push(child);
         }
@@ -169,19 +172,25 @@ export default function Menu({
           {!navbarRight.user_is_anonymous && <NewMenu />}
           {settings && settings.length && (
             <NavDropdown id={`settings-dropdown`} title="Settings">
-              {flatSettings.map((section, index) =>
-                section === '-' ? (
-                  <MenuItem
-                    key={`$${index}`}
-                    divider
-                    disabled
-                    className="settings-divider"
-                  />
-                ) : section.isHeader ? (
-                  <MenuItem key={`${section.label}`} disabled>
-                    {section.label}
-                  </MenuItem>
-                ) : (
+              {flatSettings.map((section, index) => {
+                if (section === '-') {
+                  return (
+                    <MenuItem
+                      key={`$${index}`}
+                      divider
+                      disabled
+                      className="settings-divider"
+                    />
+                  );
+                } else if (section.isHeader) {
+                  return (
+                    <MenuItem key={`${section.label}`} disabled>
+                      {section.label}
+                    </MenuItem>
+                  );
+                }
+
+                return (
                   <MenuItem
                     key={`${section.label}`}
                     href={section.url}
@@ -189,8 +198,8 @@ export default function Menu({
                   >
                     {section.label}
                   </MenuItem>
-                ),
-              )}
+                );
+              })}
             </NavDropdown>
           )}
           {navbarRight.documentation_url && (

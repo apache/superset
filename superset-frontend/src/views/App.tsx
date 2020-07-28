@@ -33,12 +33,16 @@ import ChartList from 'src/views/CRUD/chart/ChartList';
 import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
 import DatasourceList from 'src/views/CRUD/data/database/DatabaseList';
 
-import messageToastReducer from 'src/messageToasts/reducers';
-import { initEnhancer } from 'src/reduxUtils';
-import setupApp from 'src/setup/setupApp';
-import setupPlugins from 'src/setup/setupPlugins';
-import Welcome from 'src/views/CRUD/welcome/Welcome';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import messageToastReducer from '../messageToasts/reducers';
+import { initEnhancer } from '../reduxUtils';
+import setupApp from '../setup/setupApp';
+import setupPlugins from '../setup/setupPlugins';
+import Welcome from './Welcome';
+import ToastPresenter from '../messageToasts/containers/ToastPresenter';
+import {
+  MenuObjectProps,
+  MenuObjectChildProps,
+} from '../components/Menu/MenuObject';
 
 setupApp();
 setupPlugins();
@@ -78,23 +82,26 @@ menu.menu.forEach((item: any) => {
     return;
   }
 
-  const children: object[] = [];
+  const children: (MenuObjectProps | string)[] = [];
+  const newItem = {
+    ...item,
+  };
 
   // Filter childs
   if (item.childs) {
-    item.childs.forEach((child: object) => {
-      if (!ignore.hasOwnProperty(child.name)) {
+    item.childs.forEach((child: MenuObjectChildProps | string) => {
+      if (child === '-' || !ignore.hasOwnProperty(child.name)) {
         children.push(child);
       }
     });
 
-    item.childs = children;
+    newItem.childs = children;
   }
 
   if (!settingsMenus.hasOwnProperty(item.name)) {
-    cleanedMenu.push(item);
+    cleanedMenu.push(newItem);
   } else {
-    settings.push(item);
+    settings.push(newItem);
   }
 });
 

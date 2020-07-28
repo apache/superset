@@ -20,8 +20,9 @@ import React from 'react';
 import { NavItem, MenuItem } from 'react-bootstrap';
 import NavDropdown from '../NavDropdown';
 
-interface MenuObjectChildProps {
+export interface MenuObjectChildProps {
   label: string;
+  name?: string;
   icon: string;
   index: number;
   url?: string;
@@ -33,6 +34,7 @@ export interface MenuObjectProps {
   index: number;
   url?: string;
   childs?: (MenuObjectChildProps | string)[];
+  isHeader?: boolean;
 }
 
 export default function MenuObject({
