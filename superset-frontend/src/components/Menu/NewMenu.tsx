@@ -17,44 +17,42 @@
  * under the License.
  */
 import React from 'react';
+import styled from '@superset-ui/style';
 import { t } from '@superset-ui/translation';
+import Button, { DropdownItemProps } from '../Button';
 
-const buttonStyle = {
-  marginTop: '12px',
-  marginRight: '30px',
-};
+const StyledButton = styled(Button)`
+  margin-top: 12px;
+  margin-right: 30px;
+`;
+
+const dropdownItems: DropdownItemProps[] = [
+  {
+    label: t('SQL Query'),
+    url: '/superset/sqllab',
+    icon: 'fa-fw fa-search',
+  },
+  {
+    label: t('Chart'),
+    url: '/chart/add',
+    icon: 'fa-fw fa-bar-chart',
+  },
+  {
+    label: t('Dashboard'),
+    url: '/dashboard/new',
+    icon: 'fa-fw fa-dashboard',
+  },
+];
 
 export default function NewMenu() {
   return (
     <li className="dropdown">
-      <button
-        type="button"
-        style={buttonStyle}
-        data-toggle="dropdown"
+      <StyledButton
         className="dropdown-toggle btn btn-sm btn-primary"
+        dropdownItems={dropdownItems}
       >
         <i className="fa fa-plus" /> New
-      </button>
-      <ul className="dropdown-menu">
-        <li>
-          <a href="/superset/sqllab">
-            <span className="fa fa-fw fa-search" />
-            {t('SQL Query')}
-          </a>
-        </li>
-        <li>
-          <a href="/chart/add">
-            <span className="fa fa-fw fa-bar-chart" />
-            {t('Chart')}
-          </a>
-        </li>
-        <li>
-          <a href="/dashboard/new/">
-            <span className="fa fa-fw fa-dashboard" />
-            {t('Dashboard')}
-          </a>
-        </li>
-      </ul>
+      </StyledButton>
     </li>
   );
 }
