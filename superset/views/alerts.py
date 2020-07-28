@@ -59,11 +59,13 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "crontab",
         "database",
         "sql",
-        "alert_type",
+        # TODO: implement different types of alerts
+        # "alert_type",
         "owners",
         "recipients",
         "slice",
-        "dashboard",
+        # TODO: implement dashboard screenshots with alerts
+        # "dashboard",
         "log_retention",
         "grace_period",
     )
