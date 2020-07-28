@@ -569,7 +569,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return datasource_names
 
     @classmethod
-    def expand_data(  # pylint: disable=too-many-locals
+    def expand_data(  # pylint: disable=too-many-locals,too-many-branches
         cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
     ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
