@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import sinon from 'sinon';
 
 import Timer from 'src/components/Timer';
 import { now } from 'src/modules/dates';
