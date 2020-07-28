@@ -205,7 +205,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/database_schemas_query_schema'
           responses:
             200:
-              description: Table metadata information
+              description: A List of all schemas from the database
               content:
                 application/json:
                   schema:
