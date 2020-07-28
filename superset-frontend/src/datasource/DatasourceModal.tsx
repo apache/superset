@@ -20,7 +20,6 @@ import React, { FunctionComponent, useState, useRef } from 'react';
 import { Alert, Button, Modal } from 'react-bootstrap';
 // @ts-ignore
 import Dialog from 'react-bootstrap-dialog';
-import { omit } from 'lodash';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -49,54 +48,28 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const dialog = useRef<any>(null);
 
   const onConfirmSave = () => {
-    const datasetId = currentDatasource.id;
-    const columns = currentDatasource.columns.map((column: any) =>
-      omit(column, ['__expanded', 'changed_on', 'created_on']),
-    );
-    const metrics = currentDatasource.metrics.map((metric: any) => {
-      const removeParams = Number.isInteger(metric.id)
-        ? ['changed_on', 'created_on']
-        : ['changed_on', 'created_on', 'id'];
-      return omit(metric, removeParams);
-    });
-
-    const data = omit(currentDatasource, [
-      'column_formats',
-      'database',
-      'datasource_name',
-      'datasource_type',
-      'edit_url',
-      'filter_select',
-      'granularity_sqla',
-      'id',
-      'name',
-      'order_by_choices',
-      'params',
-      'perm',
-      'select_star',
-      'time_grain_sqla',
-      'type',
-      'url',
-      'verbose_map',
-    ]);
-    SupersetClient.put({
-      endpoint: `/api/v1/dataset/${datasetId}`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, columns, metrics }),
+    SupersetClient.post({
+      endpoint: '/datasource/save/',
+      postPayload: {
+        data: {
+          ...currentDatasource,
+          type: currentDatasource.type || currentDatasource.datasource_type,
+        },
+      },
     })
       .then(({ json }) => {
-        onHide();
         addSuccessToast(t('The datasource has been saved'));
         onDatasourceSave(json);
+        onHide();
       })
       .catch(response =>
-        getClientErrorObject(response).then((error: any) => {
+        getClientErrorObject(response).then(({ error }) => {
           dialog.current.show({
             title: 'Error',
             bsSize: 'medium',
             bsStyle: 'danger',
             actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-            body: error || error?.statusText || t('An error has occurred'),
+            body: error || t('An error has occurred'),
           });
         }),
       );
