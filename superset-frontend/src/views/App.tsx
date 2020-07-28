@@ -90,7 +90,12 @@ menu.menu.forEach((item: any) => {
   // Filter childs
   if (item.childs) {
     item.childs.forEach((child: MenuObjectChildProps | string) => {
-      if (child === '-' || !ignore.hasOwnProperty(child.name)) {
+      if (typeof child === 'string') {
+        children.push(child);
+      } else if (
+        (child as MenuObjectChildProps).label &&
+        !ignore.hasOwnProperty(child.label)
+      ) {
         children.push(child);
       }
     });
