@@ -291,9 +291,10 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database schemas not found
         """
+        self.logout()
         self.login(username="gamma")
         example_db = get_example_database()
-        uri = f"api/v1/database/{example_db.id}/schemas"
+        uri = f"api/v1/database/{example_db.id}/schemas/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
