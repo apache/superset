@@ -29,7 +29,18 @@ import uuid
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 from itertools import product
-from typing import Any, cast, Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 import dataclasses
 import geohash
@@ -734,6 +745,7 @@ class PivotTableViz(BaseViz):
     verbose_name = _("Pivot Table")
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
+    enforce_numerical_metrics = False
 
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
@@ -764,6 +776,18 @@ class PivotTableViz(BaseViz):
             raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
         return d
 
+    @staticmethod
+    def get_aggfunc(
+        metric: str, df: pd.DataFrame, form_data: Dict[str, Any]
+    ) -> Union[str, Callable[[Any], Any]]:
+        aggfunc = form_data.get("pandas_aggfunc") or "sum"
+        if pd.api.types.is_numeric_dtype(df[metric]):
+            # Ensure that Pandas's sum function mimics that of SQL.
+            if aggfunc == "sum":
+                return lambda x: x.sum(min_count=1)
+        # only min and max work properly for non-numerics
+        return aggfunc if aggfunc in ("min", "max") else "max"
+
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
@@ -771,22 +795,21 @@ class PivotTableViz(BaseViz):
         if self.form_data.get("granularity") == "all" and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
 
-        aggfunc = self.form_data.get("pandas_aggfunc") or "sum"
-
-        # Ensure that Pandas's sum function mimics that of SQL.
-        if aggfunc == "sum":
-            aggfunc = lambda x: x.sum(min_count=1)
+        metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
+        aggfuncs: Dict[str, Union[str, Callable[[Any], Any]]] = {}
+        for metric in metrics:
+            aggfuncs[metric] = self.get_aggfunc(metric, df, self.form_data)
 
         groupby = self.form_data.get("groupby")
         columns = self.form_data.get("columns")
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
-        metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
+
         df = df.pivot_table(
             index=groupby,
             columns=columns,
             values=metrics,
-            aggfunc=aggfunc,
+            aggfunc=aggfuncs,
             margins=self.form_data.get("pivot_margins"),
         )
 
