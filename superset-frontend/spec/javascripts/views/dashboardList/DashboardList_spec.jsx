@@ -101,8 +101,7 @@ describe('DashboardList', () => {
   });
   it('edits', () => {
     expect(wrapper.find(PropertiesModal)).toHaveLength(0);
-
-    wrapper.find('.fa-pencil').first().simulate('click');
+    wrapper.find('[data-test="pencil"]').first().simulate('click');
     expect(wrapper.find(PropertiesModal)).toHaveLength(1);
   });
 });

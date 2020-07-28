@@ -34,7 +34,8 @@ const propTypes = {
       path: PropTypes.string.isRequired,
       icon: PropTypes.string.isRequired,
       alt: PropTypes.string.isRequired,
-      width: PropTypes.string.isRequired,
+      width: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+        .isRequired,
     }).isRequired,
     navbar_right: PropTypes.shape({
       bug_report_url: PropTypes.string,
@@ -57,6 +58,28 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+  }
+
+  .navbar-nav > li > a {
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: ${({ theme }) => theme.colors.primary.base};
+      opacity: 0;
+      transition: opacity ${({ theme }) => theme.transitionTiming * 2}s;
+    }
+
+    &:hover {
+      border-bottom: none;
+
+      &:after {
+        opacity: 1;
+      }
+    }
   }
 `;
 

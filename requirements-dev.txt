@@ -21,6 +21,7 @@ flask-testing==0.8.0
 ipdb==0.12
 isort==4.3.21
 mypy==0.770
+openapi-spec-validator==0.2.8
 pytest==5.4.3
 pytest-cov==2.10.0
 parameterized==0.7.4

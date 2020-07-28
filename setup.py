@@ -124,6 +124,7 @@ setup(
         "cockroachdb": ["cockroachdb==0.3.3"],
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
         "excel": ["xlrd>=1.2.0, <1.3"],
+        "prophet": ["fbprophet>=0.6, <0.7"],
     },
     python_requires="~=3.6",
     author="Apache Software Foundation",

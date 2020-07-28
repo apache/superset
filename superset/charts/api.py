@@ -44,7 +44,7 @@ from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartFilter, ChartNameOrDescriptionFilter
 from superset.charts.schemas import (
-    CHART_DATA_SCHEMAS,
+    CHART_SCHEMAS,
     ChartDataQueryContextSchema,
     ChartPostSchema,
     ChartPutSchema,
@@ -106,8 +106,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "url",
         "description",
-        "changed_by_fk",
-        "created_by_fk",
         "changed_by_name",
         "changed_by_url",
         "changed_by.first_name",
@@ -124,12 +122,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "cache_timeout",
     ]
-    list_select_columns = list_columns + ["changed_on"]
+    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
         "slice_name",
         "viz_type",
         "datasource_name",
-        "changed_by_fk",
+        "changed_by.first_name",
         "changed_on_delta_humanized",
     ]
     search_columns = (
@@ -154,7 +152,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_DATA_SCHEMAS
+    openapi_spec_component_schemas = CHART_SCHEMAS
+
+    apispec_parameter_schemas = {
+        "screenshot_query_schema": screenshot_query_schema,
+        "get_delete_ids_schema": get_delete_ids_schema,
+    }
     """ Add extra schemas to the OpenAPI components schema section """
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
@@ -374,9 +377,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: array
-                  items:
-                    type: integer
+                  $ref: '#/components/schemas/get_delete_ids_schema'
           responses:
             200:
               description: Charts bulk delete
@@ -499,33 +500,28 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     def cache_screenshot(self, pk: int, **kwargs: Dict[str, bool]) -> WerkzeugResponse:
-        """Get Chart screenshot
+        """
         ---
         get:
-          description: Compute or get already computed screenshot from cache.
+          description: Compute and cache a screenshot.
           parameters:
           - in: path
             schema:
               type: integer
             name: pk
-          - in: path
-            schema:
-              type: string
-            name: sha
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/screenshot_query_schema'
           responses:
             200:
-              description: Chart thumbnail image
+              description: Chart async result
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      cache_key:
-                        type: string
-                      chart_url:
-                        type: string
-                      image_url:
-                        type: string
+                    $ref: "#/components/schemas/ChartCacheScreenshotResponseSchema"
             302:
               description: Redirects to the current digest
             400:
@@ -649,7 +645,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
           responses:
             200:
               description: Chart thumbnail image
-              /content:
+              content:
                image/*:
                  schema:
                    type: string
@@ -708,26 +704,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
           description: Get available datasources.
           responses:
             200:
-              description: charts unique datasource data
+              description: Query result
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      count:
-                        type: integer
-                      result:
-                        type: object
-                        properties:
-                          label:
-                            type: string
-                          value:
-                            type: object
-                            properties:
-                              database_id:
-                                type: integer
-                              database_type:
-                                type: string
+                    $ref: "#/components/schemas/ChartGetDatasourceResponseSchema"
             400:
               $ref: '#/components/responses/400'
             401:

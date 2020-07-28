@@ -206,11 +206,11 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         If ``datasource_name`` is specified, only that datasource is updated
         """
         ds_list = self.get_datasources()
-        blacklist = conf.get("DRUID_DATA_SOURCE_BLACKLIST", [])
+        denylist = conf.get("DRUID_DATA_SOURCE_DENYLIST", [])
         ds_refresh: List[str] = []
         if not datasource_name:
-            ds_refresh = list(filter(lambda ds: ds not in blacklist, ds_list))
-        elif datasource_name not in blacklist and datasource_name in ds_list:
+            ds_refresh = list(filter(lambda ds: ds not in denylist, ds_list))
+        elif datasource_name not in denylist and datasource_name in ds_list:
             ds_refresh.append(datasource_name)
         else:
             return

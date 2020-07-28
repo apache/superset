@@ -18,7 +18,10 @@
  */
 import { SupersetClientResponse } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
-import { SupersetError } from 'src/components/ErrorMessage/types';
+import {
+  SupersetError,
+  ErrorTypeEnum,
+} from 'src/components/ErrorMessage/types';
 import COMMON_ERR_MESSAGES from './errorMessages';
 
 // The response always contains an error attribute, can contain anything from the
@@ -84,6 +87,38 @@ export default function getClientErrorObject(
               resolve({ ...responseObject, error: errorText });
             });
           });
+      } else if (
+        'statusText' in response &&
+        response.statusText === 'timeout'
+      ) {
+        resolve({
+          ...responseObject,
+          error: 'Request timed out',
+          errors: [
+            {
+              error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+              extra: {
+                timeout: 1,
+                issue_codes: [
+                  {
+                    code: 1000,
+                    message: t(
+                      'Issue 1000 - The datasource is too large to query.',
+                    ),
+                  },
+                  {
+                    code: 1001,
+                    message: t(
+                      'Issue 1001 - The database is under an unusual load.',
+                    ),
+                  },
+                ],
+              },
+              level: 'error',
+              message: 'Request timed out',
+            },
+          ],
+        });
       } else {
         // fall back to Response.statusText or generic error of we cannot read the response
         const error =

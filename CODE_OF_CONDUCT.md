@@ -17,9 +17,9 @@
     under the License.
 -->
 
-*The following is copied for your convenience from <https://www.apache.org/foundation/policies/conduct.html>. If there's a discrepancy between the two, let us know or submit a PR to fix it.*
-
 # CODE OF CONDUCT
+
+*The following is copied for your convenience from <https://www.apache.org/foundation/policies/conduct.html>. If there's a discrepancy between the two, let us know or submit a PR to fix it.*
 
 ## INTRODUCTION
 
@@ -55,9 +55,9 @@ We strive to:
 
 6. **Be concise.** Keep in mind that what you write once will be read by hundreds of persons. Writing a short email means people can understand the conversation as efficiently as possible. Short emails should always strive to be empathetic, welcoming, friendly and patient. When a long explanation is necessary, consider adding a summary.
 
-    Try to bring new ideas to a conversation so that each mail adds something unique to the thread, keeping in mind that the rest of the thread still contains the other messages with arguments that have already been made.  
+    Try to bring new ideas to a conversation so that each mail adds something unique to the thread, keeping in mind that the rest of the thread still contains the other messages with arguments that have already been made.
 
-    Try to stay on topic, especially in discussions that are already fairly large.  
+    Try to stay on topic, especially in discussions that are already fairly large.
 
 7. **Step down considerately.** Members of every project come and go. When somebody leaves or disengages from the project they should tell people they are leaving and take the proper steps to ensure that others can pick up where they left off. In doing so, they should remain respectful of those who continue to participate in the project and should not misrepresent the project's goals or achievements. Likewise, community members should respect any individual's choice to leave the project.
 
@@ -102,3 +102,37 @@ This statement thanks the following, on which it draws for content and inspirati
 * [Mozilla Code of Conduct/Draft](https://wiki.mozilla.org/Code_of_Conduct/Draft#Conflicts_of_Interest)
 * [Python Diversity Appendix](https://www.python.org/community/diversity/)
 * [Python Mentors Home Page](http://pythonmentors.com)
+
+
+# Slack Community Guidelines
+
+If you decide to join the [Community Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU), please adhere to the following rules:
+
+**1. Treat everyone in the community with respect.**
+
+- We strive to make this community a warm place for people from all industries, use cases, geographies, and backgrounds. Harassment of any kind is not acceptable and won’t be tolerated.
+- Please follow the guidelines as outlined in the Superset Community [code of conduct here](https://github.com/apache/incubator-superset/blob/master/CODE_OF_CONDUCT.md).
+
+**2. Use the right channel.**
+
+- Channels are an effective way to organize and focus discussions while also empowering members to opt-in to the types of content they’re interested in. When questions are posted or discussions are started in the wrong channel, it dilutes the trust of the members in the channel and, more practically, makes it harder for your questions to be answered.
+
+**3. Ask thoughtful questions.**
+
+- We’re all here to help each other out. The best way to get help is by investing effort into your questions. First check and see if your question is answered in [the Superset documentation](https://superset.incubator.apache.org/faq.html) or on [Stack Overflow](https://stackoverflow.com/search?q=apache+superset). You can also check [Github issues](https://github.com/apache/incubator-superset/issues) to see if your question or feature request has been submitted before. Then, use Slack search to see if your question has already been asked and answered in the past. If you still feel the need to ask a question, make sure you include:
+
+- The steps you’ve already taken
+- Relevant details presented cleanly (text stacktraces, formatted markdown, or screenshots. Please don’t paste large blocks of code unformatted or post photos of your screen from your phone)
+- The specific question you have or the specific type of help you're seeking
+
+**4. Avoid double posting**
+
+- This Slack community is not a customer support channel and all members are here voluntarily. If you aren’t getting a response to a question you have, make sure you look at rules 1, 2, and 3.  It’s also worth remembering that there may not be someone in the community who has the context to help you out.
+
+**5. Communicate openly**
+
+- Unless you have explicit permission from the person, please avoid sending direct messages to individuals. Communicating in public channels ensures that we’re all respecting each other’s attentions and we can scalably moderate our communication to mitigate harassment or discrimination. Do not use direct messages to pitch products and services. If you are receiving unwelcome direct messages, please notify an admin.
+
+**6. Practice good Slack hygiene by using threads for discussions and emojis for light reactions.**
+
+- The medium is the message. Slack can foster a warm, collaborative, and organized community when used effectively. We want to respect people’s attentions (thread notifications > channel notifications > DM notifications) and we want to improve information density (a member should be able to browse and explore many convo threads, not just see one thread discussed in a top level channel).

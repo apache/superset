@@ -180,7 +180,7 @@ class ExploreViewContainer extends React.Component {
 
   getHeight() {
     if (this.props.forcedHeight) {
-      return this.props.forcedHeight + 'px';
+      return `${this.props.forcedHeight}px`;
     }
     const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;

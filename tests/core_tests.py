@@ -315,10 +315,13 @@ class TestCore(SupersetTestCase):
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice(
+            slice_name="Girls", session=db.session, expunge_from_session=False
+        )
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
         assert "modified" in slc_data_attributes
+        assert "owners" in slc_data_attributes
 
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
