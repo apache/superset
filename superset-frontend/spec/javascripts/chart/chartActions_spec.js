@@ -156,7 +156,7 @@ describe('chart actions', () => {
       });
     });
 
-    it('should CHART_UPDATE_TIMEOUT action upon query timeout', () => {
+    it('should dispatch CHART_UPDATE_FAILED action upon query timeout', () => {
       const unresolvingPromise = new Promise(() => {});
       fetchMock.post(MOCK_URL, () => unresolvingPromise, {
         overwriteRoutes: true,
@@ -169,7 +169,7 @@ describe('chart actions', () => {
         // chart update, trigger query, update form data, fail
         expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
         expect(dispatch.callCount).toBe(5);
-        expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
+        expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_FAILED);
         setupDefaultFetchMock();
       });
     });

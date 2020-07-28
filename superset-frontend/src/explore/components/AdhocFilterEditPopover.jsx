@@ -183,6 +183,8 @@ export default class AdhocFilterEditPopover extends React.Component {
             Close
           </Button>
           <i
+            role="button"
+            tabIndex={0}
             onMouseDown={this.onDragDown}
             className="fa fa-expand edit-popover-resize text-muted"
           />

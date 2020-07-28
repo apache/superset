@@ -37,6 +37,9 @@ export const ErrorTypeEnum = {
   TABLE_SECURITY_ACCESS_ERROR: 'TABLE_SECURITY_ACCESS_ERROR',
   DATASOURCE_SECURITY_ACCESS_ERROR: 'DATASOURCE_SECURITY_ACCESS_ERROR',
   MISSING_OWNERSHIP_ERROR: 'MISSING_OWNERSHIP_ERROR',
+
+  // Other errors
+  BACKEND_TIMEOUT_ERROR: 'BACKEND_TIMEOUT_ERROR',
 } as const;
 
 type ValueOf<T> = T[keyof T];
@@ -46,15 +49,20 @@ export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 // Keep in sync with superset/views/errors.py
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
-export type SupersetError = {
+export type ErrorSource = 'dashboard' | 'explore' | 'sqllab';
+
+export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: ErrorType;
-  extra: Record<string, any> | null;
+  extra: ExtraType;
   level: ErrorLevel;
   message: string;
 };
 
-export type ErrorMessageComponentProps = {
-  error: SupersetError;
+export type ErrorMessageComponentProps<
+  ExtraType = Record<string, any> | null
+> = {
+  error: SupersetError<ExtraType>;
+  source?: ErrorSource;
 };
 
 export type ErrorMessageComponent = React.ComponentType<

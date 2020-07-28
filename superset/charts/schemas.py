@@ -28,15 +28,15 @@ from superset.utils.core import FilterOperator
 # RISON/JSON schemas for query parameters
 #
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
 width_height_schema = {
     "type": "array",
-    "items": [{"type": "integer"}, {"type": "integer"},],
+    "items": {"type": "integer"},
 }
 thumbnail_query_schema = {
     "type": "object",
-    "properties": {"force": {"type": "boolean"},},
+    "properties": {"force": {"type": "boolean"}},
 }
-
 screenshot_query_schema = {
     "type": "object",
     "properties": {
@@ -98,6 +98,26 @@ openapi_spec_methods_override = {
         "get": {"description": "Get a list of all possible owners for a chart."}
     },
 }
+
+
+TIME_GRAINS = (
+    "PT1S",
+    "PT1M",
+    "PT5M",
+    "PT10M",
+    "PT15M",
+    "PT0.5H",
+    "PT1H",
+    "P1D",
+    "P1W",
+    "P1M",
+    "P0.25Y",
+    "P1Y",
+    "1969-12-28T00:00:00Z/P1W",  # Week starting Sunday
+    "1969-12-29T00:00:00Z/P1W",  # Week starting Monday
+    "P1W/1970-01-03T00:00:00Z",  # Week ending Saturday
+    "P1W/1970-01-04T00:00:00Z",  # Week ending Sunday
+)
 
 
 class ChartPostSchema(Schema):
@@ -162,6 +182,27 @@ class ChartPutSchema(Schema):
         allow_none=True,
     )
     dashboards = fields.List(fields.Integer(description=dashboards_description))
+
+
+class ChartGetDatasourceObjectDataResponseSchema(Schema):
+    datasource_id = fields.Integer(description="The datasource identifier")
+    datasource_type = fields.Integer(description="The datasource type")
+
+
+class ChartGetDatasourceObjectResponseSchema(Schema):
+    label = fields.String(description="The name of the datasource")
+    value = fields.Nested(ChartGetDatasourceObjectDataResponseSchema)
+
+
+class ChartGetDatasourceResponseSchema(Schema):
+    count = fields.Integer(description="The total number of datasources")
+    result = fields.Nested(ChartGetDatasourceObjectResponseSchema)
+
+
+class ChartCacheScreenshotResponseSchema(Schema):
+    cache_key = fields.String(description="The cache key")
+    chart_url = fields.String(description="The url to render the chart")
+    image_url = fields.String(description="The url to fetch the screenshot")
 
 
 class ChartDataColumnSchema(Schema):
@@ -401,6 +442,62 @@ class ChartDataContributionOptionsSchema(ChartDataPostProcessingOperationOptions
     )
 
 
+class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
+    """
+    Prophet operation config.
+    """
+
+    time_grain = fields.String(
+        description="Time grain used to specify time period increments in prediction. "
+        "Supports [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) "
+        "durations.",
+        validate=validate.OneOf(choices=TIME_GRAINS),
+        example="P1D",
+        required=True,
+    )
+    periods = fields.Integer(
+        descrption="Time periods (in units of `time_grain`) to predict into the future",
+        min=1,
+        example=7,
+        required=True,
+    )
+    confidence_interval = fields.Float(
+        description="Width of predicted confidence interval",
+        validate=[
+            Range(
+                min=0,
+                max=1,
+                min_inclusive=False,
+                max_inclusive=False,
+                error=_("`confidence_interval` must be between 0 and 1 (exclusive)"),
+            )
+        ],
+        example=0.8,
+        required=True,
+    )
+    yearly_seasonality = fields.Raw(
+        # TODO: add correct union type once supported by Marshmallow
+        description="Should yearly seasonality be applied. "
+        "An integer value will specify Fourier order of seasonality, `None` will "
+        "automatically detect seasonality.",
+        example=False,
+    )
+    weekly_seasonality = fields.Raw(
+        # TODO: add correct union type once supported by Marshmallow
+        description="Should weekly seasonality be applied. "
+        "An integer value will specify Fourier order of seasonality, `None` will "
+        "automatically detect seasonality.",
+        example=False,
+    )
+    monthly_seasonality = fields.Raw(
+        # TODO: add correct union type once supported by Marshmallow
+        description="Should monthly seasonality be applied. "
+        "An integer value will specify Fourier order of seasonality, `None` will "
+        "automatically detect seasonality.",
+        example=False,
+    )
+
+
 class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
     Pivot operation config.
@@ -512,6 +609,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "geohash_decode",
                 "geohash_encode",
                 "pivot",
+                "prophet",
                 "rolling",
                 "select",
                 "sort",
@@ -561,7 +659,7 @@ class ChartDataExtrasSchema(Schema):
 
     time_range_endpoints = fields.List(
         fields.String(
-            validate=validate.OneOf(choices=("INCLUSIVE", "EXCLUSIVE")),
+            validate=validate.OneOf(choices=("unknown", "inclusive", "exclusive")),
             description="A list with two values, stating if start/end should be "
             "inclusive/exclusive.",
         )
@@ -591,26 +689,7 @@ class ChartDataExtrasSchema(Schema):
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
         "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
-        validate=validate.OneOf(
-            choices=(
-                "PT1S",
-                "PT1M",
-                "PT5M",
-                "PT10M",
-                "PT15M",
-                "PT0.5H",
-                "PT1H",
-                "P1D",
-                "P1W",
-                "P1M",
-                "P0.25Y",
-                "P1Y",
-                "1969-12-28T00:00:00Z/P1W",  # Week starting Sunday
-                "1969-12-29T00:00:00Z/P1W",  # Week starting Monday
-                "P1W/1970-01-03T00:00:00Z",  # Week ending Saturday
-                "P1W/1970-01-04T00:00:00Z",  # Week ending Sunday
-            ),
-        ),
+        validate=validate.OneOf(choices=TIME_GRAINS),
         example="P1D",
         allow_none=True,
     )
@@ -811,7 +890,7 @@ class ChartDataResponseSchema(Schema):
     )
 
 
-CHART_DATA_SCHEMAS = (
+CHART_SCHEMAS = (
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
@@ -827,4 +906,6 @@ CHART_DATA_SCHEMAS = (
     ChartDataGeohashDecodeOptionsSchema,
     ChartDataGeohashEncodeOptionsSchema,
     ChartDataGeodeticParseOptionsSchema,
+    ChartGetDatasourceResponseSchema,
+    ChartCacheScreenshotResponseSchema,
 )

@@ -167,7 +167,7 @@ export default class ResultSet extends React.PureComponent<
             {this.props.csv && (
               <Button
                 bsSize="small"
-                href={'/superset/csv/' + this.props.query.id}
+                href={`/superset/csv/${this.props.query.id}`}
               >
                 <i className="fa fa-file-text-o" /> {t('.CSV')}
               </Button>
@@ -217,11 +217,14 @@ export default class ResultSet extends React.PureComponent<
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     } else if (query.state === 'failed') {
       return (
-        <ErrorMessageWithStackTrace
-          error={query.errors?.[0]}
-          message={query.errorMessage || undefined}
-          link={query.link}
-        />
+        <div className="result-set-error-message">
+          <ErrorMessageWithStackTrace
+            error={query?.errors?.[0]}
+            message={query.errorMessage || undefined}
+            link={query.link}
+            source="sqllab"
+          />
+        </div>
       );
     } else if (query.state === 'success' && query.ctas) {
       const { tempSchema, tempTable } = query;

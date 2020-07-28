@@ -40,7 +40,21 @@ describe('chart reducers', () => {
   it('should update endtime on timeout', () => {
     const newState = chartReducer(
       charts,
-      actions.chartUpdateTimeout('timeout', 60, chartKey),
+      actions.chartUpdateFailed(
+        {
+          statusText: 'timeout',
+          error: 'Request timed out',
+          errors: [
+            {
+              error_type: 'FRONTEND_TIMEOUT_ERROR',
+              extra: { timeout: 1 },
+              level: 'error',
+              message: 'Request timed out',
+            },
+          ],
+        },
+        chartKey,
+      ),
     );
     expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
     expect(newState[chartKey].chartStatus).toEqual('failed');

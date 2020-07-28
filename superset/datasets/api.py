@@ -72,13 +72,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     list_columns = [
         "id",
-        "database_id",
-        "database_name",
-        "changed_by_fk",
+        "database.id",
+        "database.database_name",
         "changed_by_name",
         "changed_by_url",
+        "changed_by.first_name",
         "changed_by.username",
-        "changed_on",
+        "changed_on_utc",
+        "changed_on_delta_humanized",
         "default_endpoint",
         "explore_url",
         "kind",
@@ -89,6 +90,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "table_name",
+    ]
+    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
+    order_columns = [
+        "table_name",
+        "schema",
+        "changed_by.first_name",
+        "changed_on_delta_humanized",
+        "database.database_name",
     ]
     show_columns = [
         "database.database_name",

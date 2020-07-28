@@ -18,7 +18,6 @@
  */
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
-import URI from 'urijs';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
@@ -26,7 +25,6 @@ import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
-  getHostName,
   getLegacyEndpointType,
   buildV1ChartDataPayload,
   postForm,
@@ -62,11 +60,6 @@ export function chartUpdateSucceeded(queryResponse, key) {
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
 export function chartUpdateStopped(key) {
   return { type: CHART_UPDATE_STOPPED, key };
-}
-
-export const CHART_UPDATE_TIMEOUT = 'CHART_UPDATE_TIMEOUT';
-export function chartUpdateTimeout(statusText, timeout, key) {
-  return { type: CHART_UPDATE_TIMEOUT, statusText, timeout, key };
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
@@ -437,19 +430,16 @@ export function exploreJSON(
             }),
           );
         };
-
-        if (response.statusText === 'timeout') {
-          appendErrorLog('timeout');
-          return dispatch(
-            chartUpdateTimeout(response.statusText, timeout, key),
-          );
-        } else if (response.name === 'AbortError') {
+        if (response.name === 'AbortError') {
           appendErrorLog('abort');
           return dispatch(chartUpdateStopped(key));
         }
         return getClientErrorObject(response).then(parsedResponse => {
-          // query is processed, but error out.
-          appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
+          if (response.statusText === 'timeout') {
+            appendErrorLog('timeout');
+          } else {
+            appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
+          }
           return dispatch(chartUpdateFailed(parsedResponse, key));
         });
       });

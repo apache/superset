@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 
 from flask_babel import gettext as _
 
-from superset.errors import SupersetError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 
 class SupersetException(Exception):
@@ -37,7 +37,19 @@ class SupersetException(Exception):
 
 
 class SupersetTimeoutException(SupersetException):
-    pass
+    status = 408
+
+    def __init__(
+        self,
+        error_type: SupersetErrorType,
+        message: str,
+        level: ErrorLevel,
+        extra: Optional[Dict[str, Any]],
+    ) -> None:
+        super(SupersetTimeoutException, self).__init__(message)
+        self.error = SupersetError(
+            error_type=error_type, message=message, level=level, extra=extra
+        )
 
 
 class SupersetSecurityException(SupersetException):

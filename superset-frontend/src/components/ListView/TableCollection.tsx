@@ -126,13 +126,9 @@ export default function TableCollection({
           return (
             <tr
               {...row.getRowProps()}
-              className={cx({
+              className={cx('table-row', {
                 'table-row-selected': row.isSelected,
               })}
-              onMouseEnter={() => row.setState && row.setState({ hover: true })}
-              onMouseLeave={() =>
-                row.setState && row.setState({ hover: false })
-              }
             >
               {row.cells.map(cell => {
                 if (cell.column.hidden) return null;

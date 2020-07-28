@@ -23,7 +23,6 @@ import {
   DropdownButton,
   FormControl,
   FormGroup,
-  Glyphicon,
   InputGroup,
   Label,
   MenuItem,
@@ -124,7 +123,7 @@ function getStateFromSeparator(value) {
 }
 
 function getStateFromCommonTimeFrame(value) {
-  const units = value.split(' ')[1] + 's';
+  const units = `${value.split(' ')[1]}s`;
   return {
     tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,

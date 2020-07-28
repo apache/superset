@@ -31,6 +31,7 @@ interface ModalProps {
   primaryButtonType?: 'primary' | 'danger';
   show: boolean;
   title: React.ReactNode;
+  bsSize?: 'xs' | 'xsmall' | 'sm' | 'small' | 'medium' | 'lg' | 'large';
 }
 
 const StyledModal = styled(BaseModal)`
@@ -74,9 +75,10 @@ export default function Modal({
   primaryButtonType = 'primary',
   show,
   title,
+  bsSize = 'lg',
 }: ModalProps) {
   return (
-    <StyledModal show={show} onHide={onHide} bsSize="lg">
+    <StyledModal show={show} onHide={onHide} bsSize={bsSize}>
       <BaseModal.Header closeButton>
         <BaseModal.Title>
           <Title>{title}</Title>

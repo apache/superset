@@ -20,13 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {
   FormGroup,
-  ControlLabel,
   HelpBlock,
   FormControl,
   OverlayTrigger,
   Tooltip,
 } from 'react-bootstrap';
 
+import FormLabel from 'src/components/FormLabel';
 import './crud.less';
 
 const propTypes = {
@@ -61,7 +61,7 @@ export default class Field extends React.PureComponent {
     });
     return (
       <FormGroup controlId={fieldKey}>
-        <ControlLabel className="m-r-5">
+        <FormLabel className="m-r-5">
           {label || fieldKey}
           {compact && descr && (
             <OverlayTrigger
@@ -75,7 +75,7 @@ export default class Field extends React.PureComponent {
               <i className="fa fa-info-circle m-l-5" />
             </OverlayTrigger>
           )}
-        </ControlLabel>
+        </FormLabel>
         {hookedControl}
         <FormControl.Feedback />
         {!compact && descr && <HelpBlock>{descr}</HelpBlock>}

@@ -31,7 +31,7 @@ function showApiMessage(resp: ClientErrorObject) {
     'data-dismiss="alert">\xD7</button> </div>';
   const severity = resp.severity || 'info';
   $(template)
-    .addClass('alert-' + severity)
+    .addClass(`alert-${severity}`)
     .append(resp.message || '')
     .appendTo($('#alert-container'));
 }
@@ -58,7 +58,7 @@ export default function setupApp() {
       const $this = $(this);
       const prefix = $this.data('checkbox-api-prefix');
       const id = $this.attr('id');
-      toggleCheckbox(prefix, '#' + id);
+      toggleCheckbox(prefix, `#${id}`);
     });
 
     // for language picker dropdown
