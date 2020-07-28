@@ -21,21 +21,15 @@ import { t } from '@superset-ui/translation';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-// @ts-ignore
-import { Panel } from 'react-bootstrap';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import ExpandableList from 'src/components/ExpandableList';
-import {
-  FetchDataConfig,
-  FilterOperatorMap,
-  Filters,
-} from 'src/components/ListView/types';
+import { FetchDataConfig, Filters } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const PAGE_SIZE = 25;
 
@@ -49,8 +43,6 @@ interface State {
   dashboardCount: number;
   dashboards: any[];
   dashboardToEdit: Dashboard | null;
-  filterOperators: FilterOperatorMap;
-  filters: Filters;
   lastFetchDataConfig: FetchDataConfig | null;
   loading: boolean;
   permissions: string[];
@@ -77,8 +69,6 @@ class DashboardList extends React.PureComponent<Props, State> {
     dashboardCount: 0,
     dashboards: [],
     dashboardToEdit: null,
-    filterOperators: {},
-    filters: [],
     lastFetchDataConfig: null,
     loading: true,
     permissions: [],
@@ -89,23 +79,15 @@ class DashboardList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/dashboard/_info`,
     }).then(
       ({ json: infoJson = {} }) => {
-        this.setState(
-          {
-            filterOperators: infoJson.filters,
-            permissions: infoJson.permissions,
-          },
-          this.updateFilters,
-        );
+        this.setState({
+          permissions: infoJson.permissions,
+        });
       },
-      e => {
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t(
-            'An error occurred while fetching Dashboards: %s, %s',
-            e.statusText,
-          ),
-        );
-        console.error(e);
-      },
+          t('An error occurred while fetching Dashboards: %s, %s', errMsg),
+        ),
+      ),
     );
   }
 
@@ -119,10 +101,6 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   get canExport() {
     return this.hasPerm('can_mulexport');
-  }
-
-  get isSIP34FilterUIEnabled() {
-    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
   }
 
   initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -260,6 +238,46 @@ class DashboardList extends React.PureComponent<Props, State> {
     this.setState({ bulkSelectEnabled: !this.state.bulkSelectEnabled });
   };
 
+  filters: Filters = [
+    {
+      Header: 'Owner',
+      id: 'owners',
+      input: 'select',
+      operator: 'rel_m_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'dashboard',
+        'owners',
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t(
+              'An error occurred while fetching chart owner values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: 'Published',
+      id: 'published',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'Any',
+      selects: [
+        { label: 'Published', value: true },
+        { label: 'Unpublished', value: false },
+      ],
+    },
+    {
+      Header: 'Search',
+      id: 'dashboard_title',
+      input: 'search',
+      operator: 'title_or_slug',
+    },
+  ];
+
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
@@ -278,8 +296,8 @@ class DashboardList extends React.PureComponent<Props, State> {
     this.setState({ loading: true });
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/${edits.id}`,
-    })
-      .then(({ json = {} }) => {
+    }).then(
+      ({ json = {} }) => {
         this.setState({
           dashboards: this.state.dashboards.map(dashboard => {
             if (dashboard.id === json.id) {
@@ -289,12 +307,13 @@ class DashboardList extends React.PureComponent<Props, State> {
           }),
           loading: false,
         });
-      })
-      .catch(e => {
+      },
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t('An error occurred while fetching dashboards: %s', e.statusText),
-        );
-      });
+          t('An error occurred while fetching dashboards: %s', errMsg),
+        ),
+      ),
+    );
   };
 
   handleDashboardDelete = ({
@@ -311,12 +330,11 @@ class DashboardList extends React.PureComponent<Props, State> {
         }
         this.props.addSuccessToast(t('Deleted: %s', dashboardTitle));
       },
-      (err: any) => {
-        console.error(err);
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t('There was an issue deleting %s', dashboardTitle),
-        );
-      },
+          t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
+        ),
+      ),
     );
 
   handleBulkDashboardDelete = (dashboards: Dashboard[]) => {
@@ -332,15 +350,11 @@ class DashboardList extends React.PureComponent<Props, State> {
         }
         this.props.addSuccessToast(json.message);
       },
-      (err: any) => {
-        console.error(err);
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t(
-            'There was an issue deleting the selected dashboards: ',
-            err.statusText,
-          ),
-        );
-      },
+          t('There was an issue deleting the selected dashboards: ', errMsg),
+        ),
+      ),
     );
   };
 
@@ -380,137 +394,31 @@ class DashboardList extends React.PureComponent<Props, State> {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/?q=${queryParams}`,
     })
-      .then(({ json = {} }) => {
-        this.setState({ dashboards: json.result, dashboardCount: json.count });
-      })
-      .catch(e => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching dashboards: %s', e.statusText),
-        );
-      })
+      .then(
+        ({ json = {} }) => {
+          this.setState({
+            dashboards: json.result,
+            dashboardCount: json.count,
+          });
+        },
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t('An error occurred while fetching dashboards: %s', errMsg),
+          ),
+        ),
+      )
       .finally(() => {
         this.setState({ loading: false });
       });
   };
 
-  fetchOwners = async (
-    filterValue = '',
-    pageIndex?: number,
-    pageSize?: number,
-  ) => {
-    const resource = '/api/v1/dashboard/related/owners';
-
-    try {
-      const queryParams = rison.encode({
-        ...(pageIndex ? { page: pageIndex } : {}),
-        ...(pageSize ? { page_ize: pageSize } : {}),
-        ...(filterValue ? { filter: filterValue } : {}),
-      });
-      const { json = {} } = await SupersetClient.get({
-        endpoint: `${resource}?q=${queryParams}`,
-      });
-
-      return json?.result?.map(
-        ({ text: label, value }: { text: string; value: any }) => ({
-          label,
-          value,
-        }),
-      );
-    } catch (e) {
-      console.error(e);
-      this.props.addDangerToast(
-        t(
-          'An error occurred while fetching chart owner values: %s',
-          e.statusText,
-        ),
-      );
-    }
-    return [];
-  };
-
-  updateFilters = async () => {
-    const { filterOperators } = this.state;
-
-    if (this.isSIP34FilterUIEnabled) {
-      return this.setState({
-        filters: [
-          {
-            Header: 'Owner',
-            id: 'owners',
-            input: 'select',
-            operator: 'rel_m_m',
-            unfilteredLabel: 'All',
-            fetchSelects: this.fetchOwners,
-            paginate: true,
-          },
-          {
-            Header: 'Published',
-            id: 'published',
-            input: 'select',
-            operator: 'eq',
-            unfilteredLabel: 'Any',
-            selects: [
-              { label: 'Published', value: true },
-              { label: 'Unpublished', value: false },
-            ],
-          },
-          {
-            Header: 'Search',
-            id: 'dashboard_title',
-            input: 'search',
-            operator: 'title_or_slug',
-          },
-        ],
-      });
-    }
-
-    const convertFilter = ({
-      name: label,
-      operator,
-    }: {
-      name: string;
-      operator: string;
-    }) => ({ label, value: operator });
-
-    const owners = await this.fetchOwners();
-
-    return this.setState({
-      filters: [
-        {
-          Header: 'Dashboard',
-          id: 'dashboard_title',
-          operators: filterOperators.dashboard_title.map(convertFilter),
-        },
-        {
-          Header: 'Slug',
-          id: 'slug',
-          operators: filterOperators.slug.map(convertFilter),
-        },
-        {
-          Header: 'Owners',
-          id: 'owners',
-          input: 'select',
-          operators: filterOperators.owners.map(convertFilter),
-          selects: owners,
-        },
-        {
-          Header: 'Published',
-          id: 'published',
-          input: 'checkbox',
-          operators: filterOperators.published.map(convertFilter),
-        },
-      ],
-    });
-  };
-
   render() {
     const {
       bulkSelectEnabled,
-      dashboardCount,
       dashboards,
-      dashboardToEdit,
-      filters,
+      dashboardCount,
       loading,
+      dashboardToEdit,
     } = this.state;
     return (
       <>
@@ -554,26 +462,25 @@ class DashboardList extends React.PureComponent<Props, State> {
               <>
                 {dashboardToEdit && (
                   <PropertiesModal
-                    show
                     dashboardId={dashboardToEdit.id}
-                    onHide={() => this.setState({ dashboardToEdit: null })}
                     onDashboardSave={this.handleDashboardEdit}
+                    onHide={() => this.setState({ dashboardToEdit: null })}
+                    show
                   />
                 )}
                 <ListView
-                  className="dashboard-list-view"
-                  columns={this.columns}
-                  data={dashboards}
-                  count={dashboardCount}
-                  pageSize={PAGE_SIZE}
-                  fetchData={this.fetchData}
-                  loading={loading}
-                  initialSort={this.initialSort}
-                  filters={filters}
                   bulkActions={bulkActions}
                   bulkSelectEnabled={bulkSelectEnabled}
+                  className="dashboard-list-view"
+                  columns={this.columns}
+                  count={dashboardCount}
+                  data={dashboards}
                   disableBulkSelect={this.toggleBulkSelect}
-                  isSIP34FilterUIEnabled={this.isSIP34FilterUIEnabled}
+                  fetchData={this.fetchData}
+                  filters={this.filters}
+                  initialSort={this.initialSort}
+                  loading={loading}
+                  pageSize={PAGE_SIZE}
                 />
               </>
             );

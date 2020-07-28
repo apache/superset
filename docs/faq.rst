@@ -232,7 +232,7 @@ How can i configure OAuth authentication and authorization?
 -----------------------------------------------------------
 
 You can take a look at this Flask-AppBuilder `configuration example
-<https://github.com/dpgaspar/Flask-AppBuilder/blob/master/examples/oauth/config.py>`_.
+<https://github.com/dpgaspar/flask-appbuilder/blob/master/examples/oauth/config.py>`_.
 
 How can I set a default filter on my dashboard?
 -----------------------------------------------
@@ -321,14 +321,14 @@ Does Superset offer a public API?
 
 Yes, a public REST API, and the surface of that API formal
 is expanding steadily. Some of the original vision for the collection
-of endpoints under `/api/v1` was originally specified in
-[SIP-17](https://github.com/apache/incubator-superset/issues/7259) and
+of endpoints under ``/api/v1`` was originally specified in
+`SIP-17 <https://github.com/apache/incubator-superset/issues/7259>`_ and
 constant progress has been made to cover more and more use cases.
 
-The API available is documented using [Swagger](https://swagger.io/)
+The API available is documented using `Swagger <https://swagger.io/>`_
 and the documentation
-can be made available under `/swagger/v1` by enabling
-the `FAB_API_SWAGGER_UI = True` configuration flag.
+can be made available under ``/swagger/v1`` by enabling
+the ``FAB_API_SWAGGER_UI = True`` configuration flag.
 
 There are other undocumented [private] ways to interact with Superset
 programmatically that offer no guarantees and are not recommended but
@@ -337,3 +337,10 @@ may fit your use case temporarily:
 - using the ORM (SQLAlchemy) directly
 - using the internal FAB ModelView API (to be deprecated in Superset)
 - altering the source code in your fork
+
+
+How do I create a new visualization?
+------------------------------------
+
+The process has been documented in the
+`So, You Want to Build a Superset Viz Plugin... <https://preset.io/blog/2020-07-02-hello-world/>`_ blog post.

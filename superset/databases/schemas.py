@@ -77,3 +77,13 @@ class TableMetadataResponseSchema(Schema):
 
 class SelectStarResponseSchema(Schema):
     result = fields.String(description="SQL select star")
+
+
+class DatabaseSchemaObjectResponseSchema(Schema):
+    value = fields.String(description="Schema name")
+    text = fields.String(description="Schema display name")
+
+
+class DatabaseSchemaResponseSchema(Schema):
+    count = fields.Integer(description="The total number of schemas")
+    result = fields.Nested(DatabaseSchemaObjectResponseSchema)
