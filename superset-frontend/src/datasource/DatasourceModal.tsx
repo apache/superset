@@ -53,14 +53,31 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     const columns = currentDatasource.columns.map((column: any) =>
       omit(column, ['__expanded', 'changed_on', 'created_on']),
     );
-    const metrics = currentDatasource.metrics.map((metric: any) =>
-      omit(metric, ['changed_on', 'created_on']),
-    );
+    const metrics = currentDatasource.metrics.map((metric: any) => {
+      const removeParams = Number.isInteger(metric.id)
+        ? ['changed_on', 'created_on']
+        : ['changed_on', 'created_on', 'id'];
+      return omit(metric, removeParams);
+    });
+
     const data = omit(currentDatasource, [
-      'id',
-      'datasource_type',
-      'url',
+      'column_formats',
       'database',
+      'datasource_name',
+      'datasource_type',
+      'edit_url',
+      'filter_select',
+      'granularity_sqla',
+      'id',
+      'name',
+      'order_by_choices',
+      'params',
+      'perm',
+      'select_star',
+      'time_grain_sqla',
+      'type',
+      'url',
+      'verbose_map',
     ]);
     SupersetClient.put({
       endpoint: `/api/v1/dataset/${datasetId}`,
