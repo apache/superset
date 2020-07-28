@@ -16,26 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
+import React from 'react';
+import { Card as AntdCard } from 'antd';
+import styled from '@superset-ui/style';
+import 'antd/dist/antd.css';
 
-// Suerset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+export interface CardProps {
+  children?: React.ReactNode;
+}
 
-module.exports = {
-  stories: ['../src/components/**/*.stories.(j|t)sx'],
-  addons: [
-    '@storybook/addon-actions',
-    '@storybook/addon-links',
-    '@storybook/preset-typescript',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs/register',
-  ],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
-};
+export const Card = Object.assign(
+  styled(AntdCard)`
+      background: red !important;
+  `,
+  {
+    Grid: styled(AntdCard.Grid)`
+        background: blue !important;
+    `,
+    Meta: styled(AntdCard.Meta)`
+        background: green !important;
+    `,
+  },
+);
+
+export default Card;
