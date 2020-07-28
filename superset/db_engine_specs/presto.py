@@ -40,6 +40,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
+from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
@@ -626,7 +627,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 i = 0
                 while i < len(data):
                     row = data[i]
-                    values = row.get(name)
+                    values: Union[str, List] = row.get(name)
+                    if isinstance(values, str):
+                        row[name] = values = destringify(values)
                     if values:
                         # how many extra rows we need to unnest the data?
                         extra_rows = len(values) - 1
@@ -658,10 +661,10 @@ class PrestoEngineSpec(BaseEngineSpec):
 
                 # expand row objects into new columns
                 for row in data:
-                    row_data: Union[str, List] = row.get(name) or []
-                    if isinstance(row_data, str):
-                        row[name] = row_data = json.loads(row_data)
-                    for value, col in zip(row_data, expanded):
+                    values: Union[str, List] = row.get(name) or []
+                    if isinstance(values, str):
+                        row[name] = values = destringify(values)
+                    for value, col in zip(values, expanded):
                         row[col["name"]] = value
 
         data = [
