@@ -664,7 +664,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 for row in data:
                     values = row.get(name) or []
                     if isinstance(values, str):
-                        row[name] = values = destringify(values)
+                        row[name] = values = cast(List[Any], destringify(values))
                     for value, col in zip(values, expanded):
                         row[col["name"]] = value
 
