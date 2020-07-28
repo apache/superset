@@ -25,16 +25,16 @@ import { recurseReactClone } from './utils';
 import './crud.less';
 
 interface CRUDCollectionProps {
-  allowAddItem: boolean;
-  allowDeletes: boolean;
+  allowAddItem?: boolean;
+  allowDeletes?: boolean;
   collection: Array<object>;
-  columnLabels: object;
+  columnLabels?: object;
   emptyMessage: ReactNode;
   expandFieldset: ReactNode;
   extraButtons: ReactNode;
-  itemGenerator: () => any;
-  itemRenderers: any;
-  onChange: (arg0: any) => void;
+  itemGenerator?: () => any;
+  itemRenderers?: any;
+  onChange?: (arg0: any) => void;
   tableColumns: Array<any>;
 }
 
@@ -90,14 +90,16 @@ export default class CRUDCollection extends React.PureComponent<
     });
   }
   onAddItem() {
-    let newItem = this.props.itemGenerator();
-    if (!newItem.id) {
-      newItem = { ...newItem, id: shortid.generate() };
+    if (this.props.itemGenerator) {
+      let newItem = this.props.itemGenerator();
+      if (!newItem.id) {
+        newItem = { ...newItem, id: shortid.generate() };
+      }
+      this.changeCollection({
+        ...this.state.collection,
+        [newItem.id]: newItem,
+      });
     }
-    this.changeCollection({
-      ...this.state.collection,
-      [newItem.id]: newItem,
-    });
   }
   onFieldsetChange(item: any) {
     this.changeCollection({
@@ -107,7 +109,7 @@ export default class CRUDCollection extends React.PureComponent<
   }
   getLabel(col: any) {
     const { columnLabels } = this.props;
-    let label = columnLabels[col] ? columnLabels[col] : col;
+    let label = columnLabels && columnLabels[col] ? columnLabels[col] : col;
     if (label.startsWith('__')) {
       // special label-free columns (ie: caret for expand, delete cross)
       label = '';
@@ -116,7 +118,9 @@ export default class CRUDCollection extends React.PureComponent<
   }
   changeCollection(collection: any) {
     this.setState({ collection });
-    this.props.onChange(Object.keys(collection).map(k => collection[k]));
+    if (this.props.onChange) {
+      this.props.onChange(Object.keys(collection).map(k => collection[k]));
+    }
   }
   deleteItem(id: number) {
     const newColl = { ...this.state.collection };
@@ -176,7 +180,7 @@ export default class CRUDCollection extends React.PureComponent<
     );
   }
   renderCell(record: any, col: any) {
-    const renderer = this.props.itemRenderers[col];
+    const renderer = this.props.itemRenderers && this.props.itemRenderers[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
     return renderer ? renderer(val, onChange, this.getLabel(col)) : val;
