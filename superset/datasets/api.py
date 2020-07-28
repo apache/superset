@@ -100,6 +100,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "database.database_name",
     ]
     show_columns = [
+        "id",
         "database.database_name",
         "database.id",
         "table_name",
@@ -120,6 +121,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.last_name",
         "columns",
         "metrics",
+        "datasource_type",
+        "url",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()

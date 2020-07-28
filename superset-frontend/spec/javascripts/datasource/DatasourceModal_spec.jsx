@@ -17,66 +17,80 @@
  * under the License.
  */
 import React from 'react';
+import { act } from 'react-dom/test-utils';
 import { Modal } from 'react-bootstrap';
 import configureStore from 'redux-mock-store';
-import { shallow } from 'enzyme';
+import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import mockDatasource from '../../fixtures/mockDatasource';
 
-const props = {
-  datasource: mockDatasource['7__table'],
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+const datasource = mockDatasource['7__table'];
+
+const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
+const SAVE_PAYLOAD = { new: 'data' };
+
+const mockedProps = {
+  datasource,
   addSuccessToast: () => {},
   addDangerToast: () => {},
   onChange: () => {},
-  show: true,
   onHide: () => {},
+  show: true,
   onDatasourceSave: sinon.spy(),
 };
 
-const SAVE_ENDPOINT = 'glob:*/datasource/save/';
-const SAVE_PAYLOAD = { new: 'data' };
+async function mountAndWait(props = mockedProps) {
+  const mounted = mount(<DatasourceModal {...props} />, {
+    context: { store },
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
+  await waitForComponentToPaint(mounted);
+
+  return mounted;
+}
 
 describe('DatasourceModal', () => {
-  const mockStore = configureStore([thunk]);
-  const store = mockStore({});
   fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+  const callsP = fetchMock.put(SAVE_ENDPOINT, SAVE_PAYLOAD);
 
   let wrapper;
-  let el;
-  let inst;
 
-  beforeEach(() => {
-    el = <DatasourceModal {...props} />;
-    wrapper = shallow(el, { context: { store } }).dive();
-    inst = wrapper.instance();
+  beforeEach(async () => {
+    wrapper = await mountAndWait();
   });
 
-  it('is valid', () => {
-    expect(React.isValidElement(el)).toBe(true);
+  it('renders', () => {
+    expect(wrapper.find(DatasourceModal)).toHaveLength(1);
   });
 
   it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toHaveLength(1);
+    expect(wrapper.find(Modal)).toHaveLength(2);
   });
 
   it('renders a DatasourceEditor', () => {
     expect(wrapper.find(DatasourceEditor)).toHaveLength(1);
   });
 
-  it('saves on confirm', () => {
-    return new Promise(done => {
-      inst.onConfirmSave();
-      setTimeout(() => {
-        expect(fetchMock.calls(SAVE_ENDPOINT)).toHaveLength(1);
-        expect(props.onDatasourceSave.getCall(0).args[0]).toEqual(SAVE_PAYLOAD);
-        fetchMock.reset();
-        done();
-      }, 0);
+  it('saves on confirm', async () => {
+    act(() => {
+      wrapper.find('[className="m-r-5"]').props().onClick();
     });
+    await waitForComponentToPaint(wrapper);
+    act(() => {
+      const okButton = wrapper.find('[className="btn btn-sm btn-primary"]');
+      okButton.simulate('click');
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(callsP._calls).toHaveLength(2); /* eslint no-underscore-dangle: 0 */
   });
 });

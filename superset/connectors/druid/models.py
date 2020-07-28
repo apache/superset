@@ -541,6 +541,10 @@ class DruidDatasource(Model, BaseDatasource):
         return self.datasource_name
 
     @property
+    def datasource_type(self) -> str:
+        return self.type
+
+    @property
     def schema(self) -> Optional[str]:
         ds_name = self.datasource_name or ""
         name_pieces = ds_name.split(".")
