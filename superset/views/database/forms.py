@@ -180,20 +180,18 @@ class CsvToDatabaseForm(DynamicForm):
     )
     skip_blank_lines = BooleanField(
         _("Skip Blank Lines"),
-        description=_(
-            "Skip blank lines rather than interpreting them " "as NaN values."
-        ),
+        description=_("Skip blank lines rather than interpreting them as NaN values."),
     )
     parse_dates = CommaSeparatedListField(
         _("Parse Dates"),
         description=_(
-            "A comma separated list of columns that should be " "parsed as dates."
+            "A comma separated list of columns that should be parsed as dates."
         ),
         filters=[filter_not_empty_values],
     )
     infer_datetime_format = BooleanField(
         _("Infer Datetime Format"),
-        description=_("Use Pandas to interpret the datetime format " "automatically."),
+        description=_("Use Pandas to interpret the datetime format automatically."),
     )
     decimal = StringField(
         _("Decimal Character"),
@@ -373,7 +371,7 @@ class ExcelToDatabaseForm(DynamicForm):
     parse_dates = CommaSeparatedListField(
         _("Parse Dates"),
         description=_(
-            "A comma separated list of columns that should be " "parsed as dates."
+            "A comma separated list of columns that should be parsed as dates."
         ),
         filters=[filter_not_empty_values],
     )
