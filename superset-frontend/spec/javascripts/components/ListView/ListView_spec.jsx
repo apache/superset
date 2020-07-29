@@ -301,6 +301,10 @@ describe('ListView', () => {
     expect(wrapper.find(ListViewFilters)).toExist();
   });
 
+  it('fetched async filter values on mount', () => {
+    expect(fetchSelectsMock).toHaveBeenCalled();
+  });
+
   it('calls fetchData on filter', () => {
     act(() => {
       wrapper

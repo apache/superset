@@ -33,7 +33,7 @@ export const createFetchRelated = (
   try {
     const queryParams = rison.encode({
       ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_ize: pageSize } : {}),
+      ...(pageSize ? { page_size: pageSize } : {}),
       ...(filterValue ? { filter: filterValue } : {}),
     });
     const { json = {} } = await SupersetClient.get({
@@ -52,10 +52,10 @@ export const createFetchRelated = (
   return [];
 };
 
-export const createErrorHandler = (
-  handleError: (errMsg?: string) => void,
-) => async (e: SupersetClientResponse | string) => {
-  const parsedError = await getClientErrorObject(e);
-  console.error(e); // eslint-disable-line no-console
-  handleError(parsedError.message);
-};
+export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
+  return async (e: SupersetClientResponse | string) => {
+    const parsedError = await getClientErrorObject(e);
+    console.error(e); // eslint-disable-line no-console
+    handleErrorFunc(parsedError.message);
+  };
+}

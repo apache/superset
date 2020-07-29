@@ -108,6 +108,7 @@ function SelectFilter({
     );
     setSelectedOption(selected);
   };
+
   const fetchAndFormatSelects = async (
     inputValue: string,
     loadedOptions: SelectOption[],
@@ -119,14 +120,16 @@ function SelectFilter({
     if (fetchSelects) {
       const selectValues = await fetchSelects(inputValue, page);
       // update matching option at initial load
-      const matchingOption = result.find(x => x.value === initialValue);
-      if (matchingOption) {
-        setSelectedOption(matchingOption);
-      }
       if (!selectValues.length) {
         hasMore = false;
       }
       result = [...result, ...selectValues];
+
+      const matchingOption = result.find(x => x.value === initialValue);
+
+      if (matchingOption) {
+        setSelectedOption(matchingOption);
+      }
     }
     return {
       options: result,
@@ -143,13 +146,16 @@ function SelectFilter({
       {fetchSelects ? (
         <PaginatedSelect
           data-test="filters-select"
+          defaultOptions
           themeConfig={filterSelectTheme}
           stylesConfig={filterSelectStyles}
+          // @ts-ignore
           value={selectedOption}
+          // @ts-ignore
           onChange={onChange}
+          // @ts-ignore
           loadOptions={fetchAndFormatSelects}
           placeholder={emptyLabel}
-          loadingMessage={() => 'Loading...'}
           clearable={false}
           additional={{
             page: 0,

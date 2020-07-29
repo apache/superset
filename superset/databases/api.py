@@ -24,7 +24,6 @@ from superset import event_logger
 from superset.databases.decorators import check_datasource_access
 from superset.databases.schemas import (
     database_schemas_query_schema,
-    DatabaseSchemaResponseSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
@@ -36,15 +35,6 @@ from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 from superset.views.database.filters import DatabaseFilter
 from superset.views.database.validators import sqlalchemy_uri_validator
-
-get_schemas_schema = {
-    "type": "object",
-    "properties": {
-        "page_size": {"type": "integer"},
-        "page": {"type": "integer"},
-        "filter": {"type": "string"},
-    },
-}
 
 
 def get_foreign_keys_metadata(
@@ -129,7 +119,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
     include_route_methods = {
-        "all_schemas",
         "get_list",
         "table_metadata",
         "select_star",
@@ -137,7 +126,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     }
     class_permission_name = "DatabaseView"
     method_permission_name = {
-        "all_schemas": "list",
         "get_list": "list",
         "table_metadata": "list",
         "select_star": "list",
@@ -171,11 +159,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,
-        "get_schemas_schema": get_schemas_schema,
     }
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
-        DatabaseSchemaResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
@@ -349,70 +335,3 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(404, message="Table not found on the database")
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
-
-    @expose("/schemas/", methods=["GET"])
-    @protect()
-    @safe
-    @statsd_metrics
-    @rison(get_schemas_schema)
-    def all_schemas(self, **kwargs: Any) -> FlaskResponse:
-        """Get all schemas
-        ---
-        get:
-          parameters:
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/get_schemas_schema'
-          responses:
-            200:
-              description: Related column data
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/DatabaseSchemaResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        args = kwargs.get("rison", {})
-        # handle pagination
-        page, page_size = self._handle_page_args(args)
-        filter_ = args.get("filter", "")
-
-        _, databases = self.datamodel.query(page=page, page_size=page_size)
-        result = []
-        count = 0
-        if databases:
-            for database in databases:
-                try:
-                    schemas = database.get_all_schema_names(
-                        cache=database.schema_cache_enabled,
-                        cache_timeout=database.schema_cache_timeout,
-                        force=False,
-                    )
-                except SQLAlchemyError:
-                    self.incr_stats("error", self.schemas.__name__)
-                    continue
-
-                schemas = security_manager.get_schemas_accessible_by_user(
-                    database, schemas
-                )
-                count += len(schemas)
-                for schema in schemas:
-                    if filter_:
-                        if schema.startswith(filter_):
-                            result.append({"text": schema, "value": schema})
-                    else:
-                        result.append({"text": schema, "value": schema})
-
-        return self.response(200, count=count, result=result)
