@@ -50,6 +50,8 @@ const propTypes = {
 };
 
 const Styles = styled.div`
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
   height: 100%;
   display: flex;
   flex-direction: column;
