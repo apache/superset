@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Dict, Optional, Union
 
 from croniter import croniter
 from flask_appbuilder import CompactCRUDMixin
@@ -50,7 +51,10 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alert"
     include_route_methods = RouteMethod.CRUD_SET
-    _extra_data = {"test_alert": False, "test_email_recipients": None}
+    _extra_data: Dict[str, Union[bool, Optional[str]]] = {
+        "test_alert": False,
+        "test_email_recipients": None,
+    }
 
     list_columns = (
         "label",
@@ -130,7 +134,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
             email_recipients = get_email_address_str(form.test_email_recipients.data)
 
         self._extra_data["test_alert"] = form.test_alert.data
-        self._extra_data["test_email_recipients"] = email_recipients  # type: ignore
+        self._extra_data["test_email_recipients"] = email_recipients
 
     def pre_add(self, item: "AlertModelView") -> None:
         item.recipients = get_email_address_str(item.recipients)
