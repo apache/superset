@@ -58,7 +58,8 @@ const propTypes = {
 };
 
 const Styles = styled.div`
-  height: ${({ height }) => height}px;
+  height: ${({ height }) => height};
+  min-height: ${({ height }) => height};
   overflow: hidden;
   text-align: left;
   position: relative;
