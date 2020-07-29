@@ -16,6 +16,11 @@
 # under the License.
 from marshmallow import fields, Schema
 
+database_schemas_query_schema = {
+    "type": "object",
+    "properties": {"force": {"type": "boolean"}},
+}
+
 
 class TableMetadataOptionsResponseSchema(Schema):
     deferrable = fields.Bool()
@@ -77,6 +82,10 @@ class TableMetadataResponseSchema(Schema):
 
 class SelectStarResponseSchema(Schema):
     result = fields.String(description="SQL select star")
+
+
+class SchemasResponseSchema(Schema):
+    result = fields.List(fields.String(description="A database schema name"))
 
 
 class DatabaseSchemaObjectResponseSchema(Schema):

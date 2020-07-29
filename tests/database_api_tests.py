@@ -34,7 +34,7 @@ from .base_tests import SupersetTestCase
 class TestDatabaseApi(SupersetTestCase):
     def test_get_items(self):
         """
-            Database API: Test get items
+        Database API: Test get items
         """
         self.login(username="admin")
         uri = "api/v1/database/"
@@ -63,6 +63,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
     def test_get_items_filter(self):
+        """
+        Database API: Test get items with filter
+        """
         fake_db = (
             db.session.query(Database).filter_by(database_name="fake_db_100").one()
         )
@@ -92,7 +95,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_items_not_allowed(self):
         """
-            Database API: Test get items not allowed
+        Database API: Test get items not allowed
         """
         self.login(username="gamma")
         uri = f"api/v1/database/"
@@ -103,7 +106,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_table_metadata(self):
         """
-            Database API: Test get table metadata info
+        Database API: Test get table metadata info
         """
         example_db = get_example_database()
         self.login(username="admin")
@@ -117,7 +120,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_invalid_database_table_metadata(self):
         """
-            Database API: Test get invalid database from table metadata
+        Database API: Test get invalid database from table metadata
         """
         database_id = 1000
         self.login(username="admin")
@@ -131,7 +134,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_invalid_table_table_metadata(self):
         """
-            Database API: Test get invalid table from table metadata
+        Database API: Test get invalid table from table metadata
         """
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/wrong_table/null/"
@@ -141,7 +144,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_table_metadata_no_db_permission(self):
         """
-            Database API: Test get table metadata from not permitted db
+        Database API: Test get table metadata from not permitted db
         """
         self.login(username="gamma")
         example_db = get_example_database()
@@ -151,7 +154,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star(self):
         """
-            Database API: Test get select star
+        Database API: Test get select star
         """
         self.login(username="admin")
         example_db = get_example_database()
@@ -163,7 +166,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star_not_allowed(self):
         """
-            Database API: Test get select star not allowed
+        Database API: Test get select star not allowed
         """
         self.login(username="gamma")
         example_db = get_example_database()
@@ -173,7 +176,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star_datasource_access(self):
         """
-            Database API: Test get select star with datasource access
+        Database API: Test get select star with datasource access
         """
         session = db.session
         table = SqlaTable(
@@ -201,7 +204,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star_not_found_database(self):
         """
-            Database API: Test get select star not found database
+        Database API: Test get select star not found database
         """
         self.login(username="admin")
         max_id = db.session.query(func.max(Database.id)).scalar()
@@ -211,7 +214,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_select_star_not_found_table(self):
         """
-            Database API: Test get select star not found database
+        Database API: Test get select star not found database
         """
         self.login(username="admin")
         example_db = get_example_database()
@@ -223,6 +226,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 404)
 
     def test_schemas(self):
+        """
+        Database API: Test get select star not found database
+        """
         self.login("admin")
         dbs = db.session.query(Database).all()
         schemas = []
@@ -254,8 +260,51 @@ class TestDatabaseApi(SupersetTestCase):
 
     @mock.patch("superset.security_manager.get_schemas_accessible_by_user")
     def test_schemas_no_access(self, mock_get_schemas_accessible_by_user):
+        """
+        Database API: Test all schemas with no access
+        """
         mock_get_schemas_accessible_by_user.return_value = []
         self.login("admin")
         rv = self.client.get("api/v1/database/schemas/")
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, response["count"])
+
+    def test_database_schemas(self):
+        """
+        Database API: Test database schemas
+        """
+        self.login("admin")
+        database = db.session.query(Database).first()
+        schemas = database.get_all_schema_names()
+
+        rv = self.client.get(f"api/v1/database/{database.id}/schemas/")
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(schemas, response["result"])
+
+        rv = self.client.get(
+            f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': True})}"
+        )
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(schemas, response["result"])
+
+    def test_database_schemas_not_found(self):
+        """
+        Database API: Test database schemas not found
+        """
+        self.logout()
+        self.login(username="gamma")
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/schemas/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_database_schemas_invalid_query(self):
+        """
+        Database API: Test database schemas with invalid query
+        """
+        self.login("admin")
+        database = db.session.query(Database).first()
+        rv = self.client.get(
+            f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': 'nop'})}"
+        )
+        self.assertEqual(rv.status_code, 400)

@@ -188,10 +188,13 @@ export default class TableSelector extends React.PureComponent {
     const actualDbId = dbId || this.props.dbId;
     if (actualDbId) {
       this.setState({ schemaLoading: true });
-      const endpoint = `/superset/schemas/${actualDbId}/${forceRefresh}/`;
+      const queryParams = rison.encode({
+        force: Boolean(forceRefresh),
+      });
+      const endpoint = `/api/v1/database/${actualDbId}/schemas/?q=${queryParams}`;
       return SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const schemaOptions = json.schemas.map(s => ({
+          const schemaOptions = json.result.map(s => ({
             value: s,
             label: s,
             title: s,
