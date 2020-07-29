@@ -112,7 +112,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
             "Test Email Recipients",
             default=None,
             description="List of recipients to send test email to. "
-                        "If empty, email will be sent to original recipients.",
+            "If empty, email will be sent to original recipients.",
         ),
     }
     edit_form_extra_fields = add_form_extra_fields
@@ -132,7 +132,9 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         if self._extra_data["test_alert"]:
             recipients = self._extra_data["test_email_recipients"] or item.recipients
             args = (ScheduleType.alert, item.id)
-            schedule_alert_query.apply_async(args=args, kwargs=dict(recipients=recipients))
+            schedule_alert_query.apply_async(
+                args=args, kwargs=dict(recipients=recipients)
+            )
 
     def post_update(self, item: "AlertModelView") -> None:
         self.post_add(item)
