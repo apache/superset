@@ -126,10 +126,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     }
     class_permission_name = "DatabaseView"
     method_permission_name = {
-        "all_schemas": "list",
         "get_list": "list",
         "table_metadata": "list",
         "select_star": "list",
+        "schemas": "list",
     }
     resource_name = "database"
     allow_browser_login = True
