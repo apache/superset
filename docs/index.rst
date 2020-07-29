@@ -63,6 +63,7 @@ Superset Resources
   on Github.
 - Our `mailing list archives <https://lists.apache.org/list.html?dev@superset.apache.org>`_.
   To subscribe, send an email to ``dev-subscribe@superset.apache.org``
+- `Superset Users <https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md>`_
 - `Join our commmunity Slack channel <https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ>`_
 - `Awesome Apache Superset <https://github.com/apache-superset/awesome-apache-superset>`_ collection of learning resources from around the Internet.
 - `StackOverflow Q&A <https://stackoverflow.com/questions/tagged/apache-superset>`_
