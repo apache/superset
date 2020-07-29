@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Boletim Coronavírus - PB</title>
+	
+	<!-- TG Proposal Feature style -->
+	<link rel="stylesheet" href="/static/facilit/style/style.min.css">
+</head>
+
+<div class="content-wrapper">
+	{% if full %}
+	<div class="header">
+		<div class="boletim-coronavirus">
+			<div class="logo-boletim">
+				<img src="/static/facilit/img/logo-boletim-coronavirus.png" alt="Boletim Coronavírus">
+			</div>
+			<div>
+				<div class="title">
+					<span>Boletim</span>
+					<span>Coronavírus</span>
+					<span>{Covid-19}</span>
+				</div>
+				<div class="date-wrapper">
+					<img src="/static/facilit/img/icon-calendar.png" alt="Data">
+					<span id="date">{{data_atualizacao}}</span>
+				</div>
+			</div>
+		</div>
+		<div class="plantao-duvidas">
+			<span>Plantão de Dúvidas</span>
+			<span class="phone">(83) 99146-9790</span>
+		</div>
+		<div class="logo-govpb">
+			<img src="/static/facilit/img/logo-govpb.png" alt="Logo Governo da Paraíba">
+			<span>Secretaria do Estado <strong>da Saúde</strong></span>
+		</div>
+	</div>
+	<div class="casos">
+		<div class="box confirmados">
+			<span class="num" id="casosConfirmados">{{ casos_confirmados }}</span>
+			<span class="label">Casos confirmados</span>
+		</div>
+		<div class="box recuperados">
+			<span class="num" id="recuperados">{{ recuperados }}</span>
+			<span class="label">Recuperados</span>
+		</div>
+		<div class="box descartados">
+			<span class="num" id="casosDescartados">{{casos_descartados}}</span>
+			<span class="label">Casos descartados</span>
+		</div>
+		<div class="box obitos">
+			<span class="num" id="obitosConfirmados">{{obitos_confirmados}}</span>
+			<span class="label">Óbitos confirmados</span>
+		</div>
+	</div>
+	{% endif %}
+	<div class="table-leitos">
+		<div class="table-row table-header">
+			<div class="cell">
+				<img src="/static/facilit/img/icon-leito.png" alt="Ícone leito de hospital"> <span>Ocupação <br/> dos leitos</span>
+			</div>
+			<div class="cell">
+				<span>UTI</span>
+			</div>
+			<div class="cell">
+				<span>Enfermaria</span>
+			</div>
+		</div>
+
+		<div class="table-row table-content" id="linha">
+			<div class="cell">
+				<span id="cidade">PARAÍBA</span>
+			</div>
+			<div class="cell">
+				<span id="percentualUTI">{{uti_ocupacao_paraiba}}</span>
+			</div>
+			<div class="cell">
+				<span id="percentualEnfermaria">{{enfermaria_ocupacao_paraiba}}</span>
+			</div>
+		</div>
+
+		<div class="table-row table-content" id="linha">
+			<div class="cell">
+				<span id="cidade">GRANDE JOÃO PESSOA</span>
+			</div>
+			<div class="cell">
+				<span id="percentualUTI">{{uti_ocupacao_grandejp}}</span>
+			</div>
+			<div class="cell">
+				<span id="percentualEnfermaria">{{enfermaria_ocupacao_grandejp}}</span>
+			</div>
+		</div>		
+
+		<div class="table-row table-content" id="linha">
+			<div class="cell">
+				<span id="cidade">CAMPINA GRANDE</span>
+			</div>
+			<div class="cell">
+				<span id="percentualUTI">{{uti_ocupacao_campinagrande}}</span>
+			</div>
+			<div class="cell">
+				<span id="percentualEnfermaria">{{enfermaria_ocupacao_campinagrande}}</span>
+			</div>
+		</div>
+
+		<div class="table-row table-content" id="linha">
+			<div class="cell">
+				<span id="cidade">SERTÂO</span>
+			</div>
+			<div class="cell">
+				<span id="percentualUTI">{{uti_ocupacao_sertao}}</span>
+			</div>
+			<div class="cell">
+				<span id="percentualEnfermaria">{{enfermaria_ocupacao_sertao}}</span>
+			</div>
+		</div>				
+
+	</div>
+	{% if full %}
+	<div class="box confirmados-cidade">
+		<span class="num" id="numCidadesConfirmados">{{qtd_cidades}}</span>
+		<span class="label">Cidades com casos confirmados</span>
+	</div>
+	{% endif %}
+</div>
+</body>
+</html>
