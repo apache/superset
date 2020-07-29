@@ -18,15 +18,18 @@ from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
+from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import event_logger, security_manager
+from superset import event_logger
 from superset.databases.decorators import check_datasource_access
 from superset.databases.schemas import (
+    database_schemas_query_schema,
     DatabaseSchemaResponseSchema,
+    SchemasResponseSchema,
     SelectStarResponseSchema,
     TableMetadataResponseSchema,
 )
+from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
@@ -125,9 +128,16 @@ def get_table_metadata(
 class DatabaseRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
-    include_route_methods = {"get_list", "table_metadata", "select_star", "schemas"}
+    include_route_methods = {
+        "all_schemas",
+        "get_list",
+        "table_metadata",
+        "select_star",
+        "schemas",
+    }
     class_permission_name = "DatabaseView"
     method_permission_name = {
+        "all_schemas": "list",
         "get_list": "list",
         "table_metadata": "list",
         "select_star": "list",
@@ -154,25 +164,83 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "backend",
         "function_names",
     ]
+    list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     # Removes the local limit for the page size
     max_page_size = -1
     validators_columns = {"sqlalchemy_uri": sqlalchemy_uri_validator}
 
-    openapi_spec_tag = "Database"
     apispec_parameter_schemas = {
+        "database_schemas_query_schema": database_schemas_query_schema,
         "get_schemas_schema": get_schemas_schema,
     }
+    openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         DatabaseSchemaResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
+        SchemasResponseSchema,
     )
+
+    @expose("/<int:pk>/schemas/")
+    @protect()
+    @safe
+    @rison(database_schemas_query_schema)
+    @statsd_metrics
+    def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """ Get all schemas from a database
+        ---
+        get:
+          description: Get all schemas from a database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/database_schemas_query_schema'
+          responses:
+            200:
+              description: A List of all schemas from the database
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/SchemasResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = self.datamodel.get(pk, self._base_filters)
+        if not database:
+            return self.response_404()
+        try:
+            schemas = database.get_all_schema_names(
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout,
+                force=kwargs["rison"].get("force", False),
+            )
+            schemas = security_manager.get_schemas_accessible_by_user(database, schemas)
+            return self.response(200, result=schemas)
+        except OperationalError:
+            return self.response(
+                500, message="There was an error connecting to the database"
+            )
 
     @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
     @check_datasource_access
     @safe
     @event_logger.log_this
+    @statsd_metrics
     def table_metadata(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
@@ -229,6 +297,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @check_datasource_access
     @safe
     @event_logger.log_this
+    @statsd_metrics
     def select_star(
         self, database: Database, table_name: str, schema_name: Optional[str] = None
     ) -> FlaskResponse:
@@ -286,7 +355,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_schemas_schema)
-    def schemas(self, **kwargs: Any) -> FlaskResponse:
+    def all_schemas(self, **kwargs: Any) -> FlaskResponse:
         """Get all schemas
         ---
         get:
