@@ -102,6 +102,7 @@ describe('callApiAndParseWithTimeout()', () => {
         expect(error).toEqual({
           error: 'Request timed out',
           statusText: 'timeout',
+          timeout: 1,
         });
       }
     });
