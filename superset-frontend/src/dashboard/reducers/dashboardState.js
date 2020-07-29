@@ -33,6 +33,7 @@ import {
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
   SET_DIRECT_PATH,
+  SET_IS_TAB_MOUNTED,
   SET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
 
@@ -124,6 +125,12 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         directPathToChild: action.path,
         directPathLastUpdated: Date.now(),
+      };
+    },
+    [SET_IS_TAB_MOUNTED]() {
+      return {
+        ...state,
+        isTabMounted: action.isTabMounted,
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {

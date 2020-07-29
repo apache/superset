@@ -34,6 +34,8 @@ const propTypes = {
   setControlValue: PropTypes.func,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
+  // whether the parent container is animating
+  isParentMounted: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -55,6 +57,9 @@ const defaultProps = {
   initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,
+  // whether the chart has REALLY been mounted to DOM
+  // (they may not because when placed in tabs, the tab might still be animating)
+  isParentMounted: true,
 };
 
 class ChartRenderer extends React.Component {
@@ -86,18 +91,17 @@ class ChartRenderer extends React.Component {
     if (resultsReady) {
       this.hasQueryResponseChange =
         nextProps.queryResponse !== this.props.queryResponse;
-
-      if (
+      if (!nextProps.isParentMounted) return false;
+      return (
         this.hasQueryResponseChange ||
+        nextProps.isParentMounted !== this.props.isParentMounted ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
-      ) {
-        return true;
-      }
+      );
     }
     return false;
   }

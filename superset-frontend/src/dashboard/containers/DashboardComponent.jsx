@@ -33,7 +33,10 @@ import {
   updateComponents,
   handleComponentDrop,
 } from '../actions/dashboardLayout';
-import { setDirectPathToChild } from '../actions/dashboardState';
+import {
+  setDirectPathToChild,
+  setIsTabMounted,
+} from '../actions/dashboardState';
 import { logEvent } from '../../logger/actions';
 import { addDangerToast } from '../../messageToasts/actions';
 
@@ -106,6 +109,7 @@ function mapDispatchToProps(dispatch) {
       updateComponents,
       handleComponentDrop,
       setDirectPathToChild,
+      setIsTabMounted,
       logEvent,
     },
     dispatch,

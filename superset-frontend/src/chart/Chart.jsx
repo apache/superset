@@ -63,6 +63,7 @@ const propTypes = {
   onQuery: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  isParentMounted: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -74,6 +75,7 @@ const defaultProps = {
   initialValues: BLANK,
   setControlValue() {},
   triggerRender: false,
+  isParentMounted: true,
   dashboardId: null,
   chartStackTrace: null,
 };

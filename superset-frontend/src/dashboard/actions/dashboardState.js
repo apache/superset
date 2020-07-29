@@ -321,6 +321,14 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
+export const SET_IS_TAB_MOUNTED = 'SET_IS_TAB_MOUNTED';
+/**
+ * Set if tab switch animation is in progress
+ */
+export function setIsTabMounted(isTabMounted) {
+  return { type: SET_IS_TAB_MOUNTED, isTabMounted };
+}
+
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';
 export function setFocusedFilterField(chartId, column) {
   return { type: SET_FOCUSED_FILTER_FIELD, chartId, column };

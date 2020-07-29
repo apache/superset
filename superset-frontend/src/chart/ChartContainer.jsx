@@ -23,6 +23,11 @@ import * as actions from './chartAction';
 import { logEvent } from '../logger/actions';
 import Chart from './Chart';
 
+function mapStateToProps({ dashboardState }) {
+  // needed to prevent chart from rendering while animating
+  return { isParentMounted: dashboardState?.isTabMounted };
+}
+
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(
@@ -35,4 +40,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(null, mapDispatchToProps)(Chart);
+export default connect(mapStateToProps, mapDispatchToProps)(Chart);
