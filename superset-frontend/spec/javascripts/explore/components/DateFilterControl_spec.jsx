@@ -69,10 +69,10 @@ describe('DateFilterControl', () => {
     const label = wrapper.find(Label).first();
     label.simulate('click');
     setTimeout(() => {
-      expect(wrapper.find('.popover')).toHaveLength(1);
+      expect(wrapper.find('.popover')).toExist();
       expect(wrapper.find('.ok')).first().simulate('click');
       setTimeout(() => {
-        expect(wrapper.find('.popover')).toHaveLength(0);
+        expect(wrapper.find('.popover')).not.toExist();
       }, 10);
     }, 10);
   });

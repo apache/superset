@@ -40,6 +40,6 @@ describe('URLShortLinkModal', () => {
 
   it('renders ModalTrigger', () => {
     const wrapper = setup();
-    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
+    expect(wrapper.find(ModalTrigger)).toExist();
   });
 });

@@ -55,7 +55,7 @@ describe('AdhocFilterOption', () => {
     const overlay = wrapper.find(OverlayTrigger);
     expect(overlay).toHaveLength(1);
     expect(overlay.props().defaultOverlayShown).toBe(false);
-    expect(wrapper.find(Label)).toHaveLength(1);
+    expect(wrapper.find(Label)).toExist();
   });
   it('should open new filter popup by default', () => {
     const { wrapper } = setup({

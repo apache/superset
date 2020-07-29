@@ -201,7 +201,7 @@ describe('AlteredSliceTag', () => {
   });
 
   it('renders a ModalTrigger', () => {
-    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
+    expect(wrapper.find(ModalTrigger)).toExist();
   });
 
   describe('renderTriggerNode', () => {
