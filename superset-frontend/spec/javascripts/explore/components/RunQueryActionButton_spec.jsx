@@ -45,6 +45,6 @@ describe('RunQueryActionButton', () => {
   });
 
   it('renders a single Button', () => {
-    expect(wrapper.find(Button)).toHaveLength(1);
+    expect(wrapper.find(Button)).toExist();
   });
 });

@@ -34,6 +34,6 @@ describe('CodeModal', () => {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
     });
-    expect(wrapper.find('.fa-edit')).toHaveLength(1);
+    expect(wrapper.find('.fa-edit')).toExist();
   });
 });

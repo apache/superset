@@ -54,14 +54,14 @@ describe('AnchorLink', () => {
 
   it('should render anchor link with id', () => {
     const wrapper = shallow(<AnchorLink {...props} />);
-    expect(wrapper.find(`#${props.anchorLinkId}`)).toHaveLength(1);
-    expect(wrapper.find(URLShortLinkButton)).toHaveLength(0);
+    expect(wrapper.find(`#${props.anchorLinkId}`)).toExist();
+    expect(wrapper.find(URLShortLinkButton)).not.toExist();
   });
 
   it('should render URLShortLinkButton', () => {
     const wrapper = shallow(<AnchorLink {...props} showShortLinkButton />);
-    expect(wrapper.find(URLShortLinkButton)).toHaveLength(1);
-    expect(wrapper.find(URLShortLinkButton).prop('placement')).toBe('right');
+    expect(wrapper.find(URLShortLinkButton)).toExist();
+    expect(wrapper.find(URLShortLinkButton)).toHaveProp({ placement: 'right' });
 
     const targetUrl = wrapper.find(URLShortLinkButton).prop('url');
     const hash = targetUrl.slice(targetUrl.indexOf('#') + 1);

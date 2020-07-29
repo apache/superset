@@ -75,8 +75,8 @@ describe('SaveModal', () => {
 
   it('renders a Modal with the right set of components', () => {
     const wrapper = getWrapper();
-    expect(wrapper.find(Modal)).toHaveLength(1);
-    expect(wrapper.find(FormControl)).toHaveLength(1);
+    expect(wrapper.find(Modal)).toExist();
+    expect(wrapper.find(FormControl)).toExist();
     expect(wrapper.find(Button)).toHaveLength(3);
     expect(wrapper.find(Radio)).toHaveLength(2);
   });

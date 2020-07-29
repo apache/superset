@@ -42,7 +42,7 @@ describe('FilterIndicator', () => {
 
   it('should show indicator with badge', () => {
     const wrapper = setup();
-    expect(wrapper.find(FilterBadgeIcon)).toHaveLength(1);
+    expect(wrapper.find(FilterBadgeIcon)).toExist();
   });
 
   it('should call setDirectPathToChild prop', () => {

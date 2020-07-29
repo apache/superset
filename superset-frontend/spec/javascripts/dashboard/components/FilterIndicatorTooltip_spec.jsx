@@ -38,6 +38,6 @@ describe('FilterIndicatorTooltip', () => {
 
   it('should show label', () => {
     const wrapper = setup();
-    expect(wrapper.find(`[htmlFor="filter-tooltip-${label}"]`)).toHaveLength(1);
+    expect(wrapper.find(`[htmlFor="filter-tooltip-${label}"]`)).toExist();
   });
 });

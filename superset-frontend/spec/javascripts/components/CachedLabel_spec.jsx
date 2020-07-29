@@ -33,6 +33,6 @@ describe('CachedLabel', () => {
   });
   it('renders', () => {
     const wrapper = shallow(<CachedLabel {...defaultProps} />);
-    expect(wrapper.find(Label)).toHaveLength(1);
+    expect(wrapper.find(Label)).toExist();
   });
 });
