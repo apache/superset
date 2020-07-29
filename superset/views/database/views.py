@@ -265,7 +265,7 @@ class ExcelToDatabaseView(SimpleFormView):
         form.mangle_dupe_cols.data = True
         form.decimal.data = "."
         form.if_exists.data = "fail"
-        form.sheet_name.data = 0
+        form.sheet_name.data = "0"
 
     def form_post(self, form: ExcelToDatabaseForm) -> Response:
         database = form.con.data
@@ -316,7 +316,13 @@ class ExcelToDatabaseView(SimpleFormView):
                 "mangle_dupe_cols": form.mangle_dupe_cols.data,
                 "skiprows": form.skiprows.data,
                 "nrows": form.nrows.data,
-                "sheet_name": form.sheet_name.data if form.sheet_name.data else 0,
+                "sheet_name": (
+                    int(form.sheet_name.data)
+                    if form.sheet_name.data.isdigit()
+                    else form.sheet_name.data
+                )
+                if form.sheet_name.data
+                else 0,
                 "parse_dates": form.parse_dates.data,
             }
             if form.null_values.data:

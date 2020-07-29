@@ -300,10 +300,10 @@ class ExcelToDatabaseForm(DynamicForm):
         ],
     )
 
-    sheet_name = IntegerField(
+    sheet_name = StringField(
         _("Sheet Name"),
         description="Integers used in zero-indexed sheet positions (0 is first sheet).",
-        validators=[Optional(), NumberRange(min=0)],
+        validators=[Optional()],
         widget=BS3TextFieldWidget(),
     )
 
