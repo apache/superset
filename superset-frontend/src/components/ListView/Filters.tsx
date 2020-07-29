@@ -46,7 +46,7 @@ interface SelectFilterProps extends BaseFilter {
   emptyLabel?: string;
   fetchSelects?: Filter['fetchSelects'];
   paginate?: boolean;
-  theme: SupersetThemeProps["theme"];
+  theme: SupersetThemeProps['theme'];
 }
 
 const FilterContainer = styled.div`
@@ -80,8 +80,6 @@ const filterSelectStyles: PartialStylesConfig = {
 
 const CLEAR_SELECT_FILTER_VALUE = 'CLEAR_SELECT_FILTER_VALUE';
 
-const StyledSelectFilter = withTheme(SelectFilter);
-
 function SelectFilter({
   Header,
   selects = [],
@@ -92,7 +90,6 @@ function SelectFilter({
   paginate = false,
   theme,
 }: SelectFilterProps) {
-
   const filterSelectTheme: PartialThemeConfig = {
     spacing: {
       baseUnit: 2,
@@ -177,6 +174,7 @@ function SelectFilter({
     </FilterContainer>
   );
 }
+const StyledSelectFilter = withTheme(SelectFilter);
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
