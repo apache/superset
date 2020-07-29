@@ -17,9 +17,12 @@
 from flask_appbuilder import CompactCRUDMixin
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
+from wtforms import BooleanField, Form, StringField
 
 from superset.constants import RouteMethod
 from superset.models.alerts import Alert, AlertLog
+from superset.models.schedules import ScheduleType
+from superset.tasks.schedules import schedule_alert_query
 from superset.utils.core import markdown
 
 from .base import SupersetModelView
@@ -44,6 +47,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alert"
     include_route_methods = RouteMethod.CRUD_SET
+    _extra_data = {"test_alert": False, "test_email_recipients": None}
 
     list_columns = (
         "label",
@@ -68,6 +72,8 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         # "dashboard",
         "log_retention",
         "grace_period",
+        "test_alert",
+        "test_email_recipients",
     )
     label_columns = {
         "sql": "SQL",
@@ -95,5 +101,38 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
             "Superset nags you again."
         ),
     }
+
+    add_form_extra_fields = {
+        "test_alert": BooleanField(
+            "Send Test Alert",
+            default=False,
+            description="If enabled, a test alert will be sent on creation / update of active alerts",
+        ),
+        "test_email_recipients": StringField(
+            "Test Email Recipients",
+            default=None,
+            description="List of recipients to send test email to. "
+                        "If empty, email will be sent to original recipients.",
+        ),
+    }
+    edit_form_extra_fields = add_form_extra_fields
     edit_columns = add_columns
     related_views = [AlertLogModelView]
+
+    def process_form(self, form: Form, is_created: bool) -> None:
+        if form.test_email_recipients.data:
+            test_email_recipients = form.test_email_recipients.data.strip()
+        else:
+            test_email_recipients = None
+
+        self._extra_data["test_alert"] = form.test_alert.data
+        self._extra_data["test_email_recipients"] = test_email_recipients
+
+    def post_add(self, item: "AlertModelView") -> None:
+        if self._extra_data["test_alert"]:
+            recipients = self._extra_data["test_email_recipients"] or item.recipients
+            args = (ScheduleType.alert, item.id)
+            schedule_alert_query.apply_async(args=args, kwargs=dict(recipients=recipients))
+
+    def post_update(self, item: "AlertModelView") -> None:
+        self.post_add(item)
