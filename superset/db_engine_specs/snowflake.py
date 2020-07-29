@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = "snowflake"
+    engine_name = "Snowflake"
     force_column_alias_quotes = True
     max_column_name_length = 256
 

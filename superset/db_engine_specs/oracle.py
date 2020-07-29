@@ -23,6 +23,7 @@ from superset.utils import core as utils
 
 class OracleEngineSpec(BaseEngineSpec):
     engine = "oracle"
+    engine_name = "Oracle"
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30

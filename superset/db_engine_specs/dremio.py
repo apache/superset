@@ -20,6 +20,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 class DremioBaseEngineSpec(BaseEngineSpec):
 
     engine = "dremio"
+    engine_name = "Dremio"
 
     _time_grain_expressions = {
         None: "{col}",
