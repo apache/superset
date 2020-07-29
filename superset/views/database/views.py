@@ -395,7 +395,7 @@ class ExcelToDatabaseView(SimpleFormView):
         os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
-            'CSV file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
+            'Excel file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
             excel_filename=form.excel_file.data.filename,
             table_name=str(excel_table),
