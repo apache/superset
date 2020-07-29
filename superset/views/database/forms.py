@@ -300,9 +300,7 @@ class ExcelToDatabaseForm(DynamicForm):
 
     sheet_name = StringField(
         _("Sheet Name"),
-        description=_(
-            "Sheet name or zero-indexed sheet number. (default 0 is first sheet)."
-        ),
+        description=_("Strings used for sheet names (default is the first sheet)."),
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
     )
