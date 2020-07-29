@@ -540,6 +540,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     report_type: ScheduleType,
     schedule_id: int,
     recipients: Optional[str] = None,
+    is_test_alert: Optional[bool] = False,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
     dbsession = db.create_scoped_session()
@@ -551,12 +552,11 @@ def schedule_alert_query(  # pylint: disable=unused-argument
         return
 
     if report_type == ScheduleType.alert:
-        # recipients is only specified when task is called from view for a test email
-        if recipients:
+        if is_test_alert and recipients:
             deliver_alert(schedule, recipients)
             return
 
-        elif run_alert_query(schedule, dbsession):
+        if run_alert_query(schedule, dbsession):
             # deliver_dashboard OR deliver_slice
             return
     else:

@@ -132,11 +132,12 @@ def test_schedule_alert_query(mock_run_alert, mock_deliver_alert, setup_database
     assert mock_run_alert.call_count == 1
     assert mock_deliver_alert.call_count == 0
 
-    # Test that active alerts with recipients passed in are delivered immediately
+    # Test that active alerts sent as a test are delivered immediately
     schedule_alert_query(
         report_type=ScheduleType.alert,
         schedule_id=active_alert.id,
         recipients="testing@email.com",
+        is_test_alert=True,
     )
     assert mock_run_alert.call_count == 1
     assert mock_deliver_alert.call_count == 1
