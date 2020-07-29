@@ -29,11 +29,11 @@ describe('MissingChart', () => {
 
   it('renders a .missing-chart-container', () => {
     const wrapper = setup();
-    expect(wrapper.find('.missing-chart-container')).toHaveLength(1);
+    expect(wrapper.find('.missing-chart-container')).toExist();
   });
 
   it('renders a .missing-chart-body', () => {
     const wrapper = setup();
-    expect(wrapper.find('.missing-chart-body')).toHaveLength(1);
+    expect(wrapper.find('.missing-chart-body')).toExist();
   });
 });

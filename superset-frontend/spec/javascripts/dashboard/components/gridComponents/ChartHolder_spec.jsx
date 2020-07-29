@@ -67,12 +67,12 @@ describe('ChartHolder', () => {
 
   it('should render a DragDroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).toHaveLength(1);
+    expect(wrapper.find(DragDroppable)).toExist();
   });
 
   it('should render a ResizableContainer', () => {
     const wrapper = setup();
-    expect(wrapper.find(ResizableContainer)).toHaveLength(1);
+    expect(wrapper.find(ResizableContainer)).toExist();
   });
 
   it('should only have an adjustableWidth if its parent is a Row', () => {
@@ -98,23 +98,23 @@ describe('ChartHolder', () => {
 
   it('should render a div with class "dashboard-component-chart-holder"', () => {
     const wrapper = setup();
-    expect(wrapper.find('.dashboard-component-chart-holder')).toHaveLength(1);
+    expect(wrapper.find('.dashboard-component-chart-holder')).toExist();
   });
 
   it('should render a Chart', () => {
     const wrapper = setup();
-    expect(wrapper.find(Chart)).toHaveLength(1);
+    expect(wrapper.find(Chart)).toExist();
   });
 
   it('should render a HoverMenu with DeleteComponentButton in editMode', () => {
     let wrapper = setup();
-    expect(wrapper.find(HoverMenu)).toHaveLength(0);
-    expect(wrapper.find(DeleteComponentButton)).toHaveLength(0);
+    expect(wrapper.find(HoverMenu)).not.toExist();
+    expect(wrapper.find(DeleteComponentButton)).not.toExist();
 
     // we cannot set props on the Divider because of the WithDragDropContext wrapper
     wrapper = setup({ editMode: true });
-    expect(wrapper.find(HoverMenu)).toHaveLength(1);
-    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
+    expect(wrapper.find(HoverMenu)).toExist();
+    expect(wrapper.find(DeleteComponentButton)).toExist();
   });
 
   it('should call deleteComponent when deleted', () => {

@@ -56,17 +56,17 @@ describe('FilterIndicatorsContainer', () => {
 
   it('should not show indicator when chart is loading', () => {
     const wrapper = setup({ chartStatus: 'loading' });
-    expect(wrapper.find(FilterIndicator)).toHaveLength(0);
+    expect(wrapper.find(FilterIndicator)).not.toExist();
   });
 
   it('should not show indicator for filter_box itself', () => {
     const wrapper = setup({ chartId: filterId });
-    expect(wrapper.find(FilterIndicator)).toHaveLength(0);
+    expect(wrapper.find(FilterIndicator)).not.toExist();
   });
 
   it('should show indicator', () => {
     const wrapper = setup();
-    expect(wrapper.find(FilterIndicator)).toHaveLength(1);
+    expect(wrapper.find(FilterIndicator)).toExist();
   });
 
   it('should not show indicator when chart is immune', () => {
@@ -83,7 +83,7 @@ describe('FilterIndicatorsContainer', () => {
       },
     };
     const wrapper = setup({ dashboardFilters: overwriteDashboardFilters });
-    expect(wrapper.find(FilterIndicator)).toHaveLength(0);
+    expect(wrapper.find(FilterIndicator)).not.toExist();
   });
 
   it('should show single number type value', () => {
@@ -97,7 +97,7 @@ describe('FilterIndicatorsContainer', () => {
       },
     };
     const wrapper = setup({ dashboardFilters: overwriteDashboardFilters });
-    expect(wrapper.find(FilterIndicator)).toHaveLength(1);
+    expect(wrapper.find(FilterIndicator)).toExist();
 
     const indicatorProps = wrapper.find(FilterIndicator).first().props()
       .indicator;

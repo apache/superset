@@ -86,11 +86,11 @@ describe('DatasetList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(DatasetList)).toHaveLength(1);
+    expect(wrapper.find(DatasetList)).toExist();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toHaveLength(1);
+    expect(wrapper.find(ListView)).toExist();
   });
 
   it('fetches info', () => {

@@ -127,7 +127,7 @@ describe('ListView', () => {
   });
 
   it('calls fetchData on mount', () => {
-    expect(wrapper.find(ListView)).toHaveLength(1);
+    expect(wrapper.find(ListView)).toExist();
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
                                                       Array [
                                                         Object {
@@ -162,10 +162,10 @@ describe('ListView', () => {
   });
 
   it('renders pagination controls', () => {
-    expect(wrapper.find(Pagination).exists()).toBe(true);
-    expect(wrapper.find(Pagination.Prev).exists()).toBe(true);
-    expect(wrapper.find(Pagination.Item).exists()).toBe(true);
-    expect(wrapper.find(Pagination.Next).exists()).toBe(true);
+    expect(wrapper.find(Pagination)).toExist();
+    expect(wrapper.find(Pagination.Prev)).toExist();
+    expect(wrapper.find(Pagination.Item)).toExist();
+    expect(wrapper.find(Pagination.Next)).toExist();
   });
 
   it('calls fetchData on page change', () => {
@@ -298,7 +298,7 @@ describe('ListView', () => {
   });
 
   it('renders UI filters', () => {
-    expect(wrapper.find(ListViewFilters)).toHaveLength(1);
+    expect(wrapper.find(ListViewFilters)).toExist();
   });
 
   it('calls fetchData on filter', () => {

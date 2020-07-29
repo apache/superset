@@ -35,6 +35,6 @@ describe('SavedQuery', () => {
   });
   it('has an Overlay and a Popover', () => {
     const wrapper = shallow(<QueryStateLabel {...mockedProps} />);
-    expect(wrapper.find(Label)).toHaveLength(1);
+    expect(wrapper.find(Label)).toExist();
   });
 });

@@ -37,7 +37,7 @@ describe('EmbedCodeButton', () => {
 
   it('renders overlay trigger', () => {
     const wrapper = shallow(<EmbedCodeButton {...defaultProps} />);
-    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
+    expect(wrapper.find(OverlayTrigger)).toExist();
   });
 
   it('returns correct embed code', () => {

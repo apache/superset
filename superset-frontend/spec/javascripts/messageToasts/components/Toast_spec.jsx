@@ -33,7 +33,7 @@ const setup = overrideProps => mount(<Toast {...props} {...overrideProps} />);
 describe('Toast', () => {
   it('should render an Alert', () => {
     const wrapper = setup();
-    expect(wrapper.find(Alert)).toHaveLength(1);
+    expect(wrapper.find(Alert)).toExist();
   });
 
   it('should render toastText within the alert', () => {

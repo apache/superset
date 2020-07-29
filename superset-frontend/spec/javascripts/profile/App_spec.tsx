@@ -33,7 +33,7 @@ describe('App', () => {
 
   it('renders 2 Col', () => {
     const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Row)).toHaveLength(1);
+    expect(wrapper.find(Row)).toExist();
     expect(wrapper.find(Col)).toHaveLength(2);
   });
 

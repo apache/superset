@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint no-native-reassign: 0 */
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
+import 'jest-enzyme';
+import jQuery from 'jquery';
 import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import { configure as configureTranslation } from '@superset-ui/translation';
@@ -30,16 +31,23 @@ configure({ adapter: new Adapter() });
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
-Object.keys(document.defaultView).forEach(property => {
-  if (typeof global[property] === 'undefined') {
-    exposedProperties.push(property);
-    global[property] = document.defaultView[property];
-  }
-});
+const defaultView = document.defaultView;
+if (defaultView != null) {
+  Object.keys(defaultView).forEach(property => {
+    if (typeof global[property] === 'undefined') {
+      exposedProperties.push(property);
+      global[property] = defaultView[property];
+    }
+  });
+}
 
-global.window.location = { href: 'about:blank' };
-global.window.performance = { now: () => new Date().getTime() };
-global.$ = require('jquery')(global.window);
+const g = global as any;
+
+g.window = g.window || {};
+g.window.location = { href: 'about:blank' };
+g.window.performance = { now: () => new Date().getTime() };
+
+g.$ = jQuery(g.window);
 
 configureTranslation();
 setupSupersetClient();
