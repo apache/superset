@@ -895,14 +895,3 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         payload = get_query_context(table.name, table.id, table.type)
         rv = self.post_assert_metric(CHART_DATA_URI, payload, "data")
         self.assertEqual(rv.status_code, 401)
-
-    def test_datasources(self):
-        """
-            Chart API: Test get datasources
-        """
-        self.login(username="admin")
-        uri = "api/v1/chart/datasources"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 6)

@@ -22,12 +22,17 @@ import { getChartMetadataRegistry } from '@superset-ui/chart';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
+import { uniqBy } from 'lodash';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import Icon from 'src/components/Icon';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
-import { FetchDataConfig, Filters } from 'src/components/ListView/types';
+import {
+  FetchDataConfig,
+  Filters,
+  SelectOption,
+} from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
@@ -50,18 +55,37 @@ interface State {
   // In future it would be better to have a unified Chart entity.
   sliceCurrentlyEditing: Slice | null;
 }
-const createFetchDatasets = (
-  handleError: (err: Response) => void,
-) => async () => {
+const createFetchDatasets = (handleError: (err: Response) => void) => async (
+  filterValue = '',
+  pageIndex?: number,
+  pageSize?: number,
+) => {
+  // add filters if filterValue
+  const filters = filterValue
+    ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
+    : {};
   try {
-    const { json = {} } = await SupersetClient.get({
-      endpoint: '/api/v1/chart/datasources',
+    const queryParams = rison.encode({
+      columns: ['datasource_name', 'datasource_id'],
+      keys: ['none'],
+      order_by: 'datasource_name',
+      ...(pageIndex ? { page: pageIndex } : {}),
+      ...(pageSize ? { page_size: pageSize } : {}),
+      ...filters,
     });
 
-    return json?.result?.map((ds: { label: string; value: any }) => ({
-      ...ds,
-      value: JSON.stringify(ds.value),
-    }));
+    const { json = {} } = await SupersetClient.get({
+      endpoint: `/api/v1/dataset/?q=${queryParams}`,
+    });
+
+    const datasets = json?.result?.map(
+      ({ table_name: tableName, id }: { table_name: string; id: number }) => ({
+        label: tableName,
+        value: id,
+      }),
+    );
+
+    return uniqBy<SelectOption>(datasets, 'value');
   } catch (e) {
     handleError(e);
   }
@@ -135,7 +159,7 @@ class ChartList extends React.PureComponent<Props, State> {
         },
       }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
       Header: t('Datasource'),
-      accessor: 'datasource_name',
+      accessor: 'datasource_id',
     },
     {
       Cell: ({
@@ -257,8 +281,8 @@ class ChartList extends React.PureComponent<Props, State> {
         .map(k => ({ label: k, value: k })),
     },
     {
-      Header: t('Dataset'),
-      id: 'datasource',
+      Header: t('Datasource'),
+      id: 'datasource_id',
       input: 'select',
       operator: 'eq',
       unfilteredLabel: 'All',
@@ -369,29 +393,11 @@ class ChartList extends React.PureComponent<Props, State> {
       loading: true,
     });
 
-    const filterExps = filters
-      .map(({ id: col, operator: opr, value }) => ({
-        col,
-        opr,
-        value,
-      }))
-      .reduce((acc, fltr) => {
-        if (
-          fltr.col === 'datasource' &&
-          fltr.value &&
-          typeof fltr.value === 'string'
-        ) {
-          const { datasource_id: dsId, datasource_type: dsType } = JSON.parse(
-            fltr.value,
-          );
-          return [
-            ...acc,
-            { ...fltr, col: 'datasource_id', value: dsId },
-            { ...fltr, col: 'datasource_type', value: dsType },
-          ];
-        }
-        return [...acc, fltr];
-      }, []);
+    const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
+      col,
+      opr,
+      value,
+    }));
 
     const queryParams = rison.encode({
       order_column: sortBy[0].id,

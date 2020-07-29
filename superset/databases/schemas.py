@@ -86,13 +86,3 @@ class SelectStarResponseSchema(Schema):
 
 class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
-
-
-class DatabaseSchemaObjectResponseSchema(Schema):
-    value = fields.String(description="Schema name")
-    text = fields.String(description="Schema display name")
-
-
-class DatabaseSchemaResponseSchema(Schema):
-    count = fields.Integer(description="The total number of schemas")
-    result = fields.Nested(DatabaseSchemaObjectResponseSchema)
