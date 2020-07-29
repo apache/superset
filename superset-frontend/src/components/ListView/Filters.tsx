@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { styled, withTheme, supersetTheme } from '@superset-ui/style';
+import { styled, withTheme, SupersetThemeProps } from '@superset-ui/style';
 
 import {
   Select,
@@ -46,6 +46,7 @@ interface SelectFilterProps extends BaseFilter {
   emptyLabel?: string;
   fetchSelects?: Filter['fetchSelects'];
   paginate?: boolean;
+  theme: SupersetThemeProps["theme"];
 }
 
 const FilterContainer = styled.div`
@@ -59,14 +60,6 @@ const FilterTitle = styled.label`
   line-height: 27px;
   margin: 0 0.4em 0 0;
 `;
-
-const filterSelectTheme: PartialThemeConfig = {
-  spacing: {
-    baseUnit: 2,
-    minWidth: '5em',
-    fontSize: supersetTheme.typography.sizes.s,
-  },
-};
 
 const filterSelectStyles: PartialStylesConfig = {
   container: (provider, { getValue }) => ({
@@ -87,6 +80,8 @@ const filterSelectStyles: PartialStylesConfig = {
 
 const CLEAR_SELECT_FILTER_VALUE = 'CLEAR_SELECT_FILTER_VALUE';
 
+const StyledSelectFilter = withTheme(SelectFilter);
+
 function SelectFilter({
   Header,
   selects = [],
@@ -95,7 +90,17 @@ function SelectFilter({
   onSelect,
   fetchSelects,
   paginate = false,
+  theme,
 }: SelectFilterProps) {
+
+  const filterSelectTheme: PartialThemeConfig = {
+    spacing: {
+      baseUnit: 2,
+      minWidth: '5em',
+      fontSize: theme.typography.sizes.s,
+    },
+  };
+
   const clearFilterSelect = {
     label: emptyLabel,
     value: CLEAR_SELECT_FILTER_VALUE,
@@ -236,7 +241,7 @@ function UIFilters({
             internalFilters[index] && internalFilters[index].value;
           if (input === 'select') {
             return (
-              <SelectFilter
+              <StyledSelectFilter
                 key={id}
                 name={id}
                 Header={Header}
