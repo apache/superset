@@ -180,20 +180,18 @@ class CsvToDatabaseForm(DynamicForm):
     )
     skip_blank_lines = BooleanField(
         _("Skip Blank Lines"),
-        description=_(
-            "Skip blank lines rather than interpreting them " "as NaN values."
-        ),
+        description=_("Skip blank lines rather than interpreting them as NaN values."),
     )
     parse_dates = CommaSeparatedListField(
         _("Parse Dates"),
         description=_(
-            "A comma separated list of columns that should be " "parsed as dates."
+            "A comma separated list of columns that should be parsed as dates."
         ),
         filters=[filter_not_empty_values],
     )
     infer_datetime_format = BooleanField(
         _("Infer Datetime Format"),
-        description=_("Use Pandas to interpret the datetime format " "automatically."),
+        description=_("Use Pandas to interpret the datetime format automatically."),
     )
     decimal = StringField(
         _("Decimal Character"),
@@ -228,16 +226,16 @@ class CsvToDatabaseForm(DynamicForm):
 
 class ExcelToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
-    def excel_allowed_dbs():  # type: ignore
-        excel_allowed_dbs = []
+    def excel_allowed_dbs() -> List[Database]:  # type: ignore
         # TODO: change allow_csv_upload to allow_file_upload
         excel_enabled_dbs = (
             db.session.query(Database).filter_by(allow_csv_upload=True).all()
         )
-        for excel_enabled_db in excel_enabled_dbs:
-            if ExcelToDatabaseForm.at_least_one_schema_is_allowed(excel_enabled_db):
-                excel_allowed_dbs.append(excel_enabled_db)
-        return excel_allowed_dbs
+        return [
+            excel_enabled_db
+            for excel_enabled_db in excel_enabled_dbs
+            if ExcelToDatabaseForm.at_least_one_schema_is_allowed(excel_enabled_db)
+        ]
 
     @staticmethod
     def at_least_one_schema_is_allowed(database: Database) -> bool:
@@ -265,10 +263,7 @@ class ExcelToDatabaseForm(DynamicForm):
                 b) if database supports schema
                     user is able to upload to schema in schemas_allowed_for_csv_upload
         """
-        if (
-            security_manager.database_access(database)
-            or security_manager.all_datasource_access()
-        ):
+        if security_manager.can_access_database(database):
             return True
         schemas = database.get_schema_access_for_csv_upload()
         if schemas and security_manager.schemas_accessible_by_user(
@@ -304,7 +299,10 @@ class ExcelToDatabaseForm(DynamicForm):
     )
 
     sheet_name = StringField(
-        _("Sheet Name"), description="Sheet Name", validators=[Optional()]
+        _("Sheet Name"),
+        description=_("Strings used for sheet names (default is the first sheet)."),
+        validators=[Optional()],
+        widget=BS3TextFieldWidget(),
     )
 
     con = QuerySelectField(
@@ -356,9 +354,6 @@ class ExcelToDatabaseForm(DynamicForm):
         _("Mangle Duplicate Columns"),
         description=_('Specify duplicate columns as "X.0, X.1".'),
     )
-    skipinitialspace = BooleanField(
-        _("Skip Initial Space"), description=_("Skip spaces after delimiter.")
-    )
     skiprows = IntegerField(
         _("Skip Rows"),
         description=_("Number of rows to skip at start of file."),
@@ -370,6 +365,13 @@ class ExcelToDatabaseForm(DynamicForm):
         description=_("Number of rows of file to read."),
         validators=[Optional(), NumberRange(min=0)],
         widget=BS3TextFieldWidget(),
+    )
+    parse_dates = CommaSeparatedListField(
+        _("Parse Dates"),
+        description=_(
+            "A comma separated list of columns that should be parsed as dates."
+        ),
+        filters=[filter_not_empty_values],
     )
     decimal = StringField(
         _("Decimal Character"),
