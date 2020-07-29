@@ -36,7 +36,7 @@ export type ClientErrorObject = {
 } & Partial<SupersetClientResponse>;
 
 export default function getClientErrorObject(
-  response: SupersetClientResponse | string,
+  response: SupersetClientResponse | (Response & { timeout: number }) | string,
 ): Promise<ClientErrorObject> {
   // takes a SupersetClientResponse as input, attempts to read response as Json if possible,
   // and returns a Promise that resolves to a plain object with error key and text value.
@@ -89,7 +89,8 @@ export default function getClientErrorObject(
           });
       } else if (
         'statusText' in response &&
-        response.statusText === 'timeout'
+        response.statusText === 'timeout' &&
+        'timeout' in response
       ) {
         resolve({
           ...responseObject,
@@ -98,7 +99,7 @@ export default function getClientErrorObject(
             {
               error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
               extra: {
-                timeout: 1,
+                timeout: response.timeout / 1000,
                 issue_codes: [
                   {
                     code: 1000,
