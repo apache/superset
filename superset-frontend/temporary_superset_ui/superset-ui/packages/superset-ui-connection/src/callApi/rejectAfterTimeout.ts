@@ -6,6 +6,7 @@ export default function rejectAfterTimeout<T>(timeout: number) {
         reject({
           error: 'Request timed out',
           statusText: 'timeout',
+          timeout,
         }),
       timeout,
     );
