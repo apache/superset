@@ -106,13 +106,13 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         "test_alert": BooleanField(
             "Send Test Alert",
             default=False,
-            description="If enabled, a test alert will be sent on creation / update of active alerts",
+            description="If enabled, a test alert will be sent on the creation / update of active alerts.",
         ),
         "test_email_recipients": StringField(
             "Test Email Recipients",
             default=None,
             description="List of recipients to send test email to. "
-            "If empty, email will be sent to original recipients.",
+            "If empty, an email will be sent to the original recipients.",
         ),
     }
     edit_form_extra_fields = add_form_extra_fields
