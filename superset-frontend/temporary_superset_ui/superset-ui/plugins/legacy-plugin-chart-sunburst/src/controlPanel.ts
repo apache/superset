@@ -34,7 +34,7 @@ export default {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme', 'label_colors']],
+      controlSetRows: [['color_scheme', 'linear_color_scheme']],
     },
   ],
   controlOverrides: {
@@ -50,6 +50,12 @@ export default {
           'define the color as a ratio against the primary metric. ' +
           'When omitted, the color is categorical and based on labels',
       ),
+    },
+    color_scheme: {
+      description: t('When only a primary metric is provided, a categorical color scale is used.'),
+    },
+    linear_color_scheme: {
+      description: t('When a secondary metric is provided, a linear color scale is used.'),
     },
     groupby: {
       label: t('Hierarchy'),

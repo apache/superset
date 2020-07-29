@@ -19,7 +19,7 @@
 /* eslint-disable no-param-reassign, react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { CategoricalColorNamespace } from '@superset-ui/color';
+import { CategoricalColorNamespace, getSequentialSchemeRegistry } from '@superset-ui/color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import wrapSvgText from './utils/wrapSvgText';
 import './Sunburst.css';
@@ -31,6 +31,7 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
+  linearColorScheme: PropTypes.string,
   numberFormat: PropTypes.string,
   metrics: PropTypes.arrayOf(
     PropTypes.oneOfType([
@@ -130,7 +131,7 @@ function buildHierarchy(rows) {
 function Sunburst(element, props) {
   const container = d3.select(element);
   container.classed('superset-legacy-chart-sunburst', true);
-  const { data, width, height, colorScheme, metrics, numberFormat } = props;
+  const { data, width, height, colorScheme, linearColorScheme, metrics, numberFormat } = props;
 
   // vars with shared scope within this function
   const margin = { top: 10, right: 5, bottom: 10, left: 5 };
@@ -145,13 +146,13 @@ function Sunburst(element, props) {
   let maxBreadcrumbs;
   let breadcrumbDims; // set based on data
   let totalSize; // total size of all segments; set after loading the data.
-  let colorScale;
   let breadcrumbs;
   let vis;
   let arcs;
   let gMiddleText; // dom handles
 
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
+  const categoricalColorScale = CategoricalColorNamespace.getScale(colorScheme);
+  let linearColorScale;
 
   // Helper + path gen functions
   const partition = d3.layout
@@ -221,7 +222,9 @@ function Sunburst(element, props) {
     entering
       .append('svg:polygon')
       .attr('points', breadcrumbPoints)
-      .style('fill', d => (colorByCategory ? colorFn(d.name) : colorScale(d.m2 / d.m1)));
+      .style('fill', d =>
+        colorByCategory ? categoricalColorScale(d.name) : linearColorScale(d.m2 / d.m1),
+      );
 
     entering
       .append('svg:text')
@@ -230,7 +233,9 @@ function Sunburst(element, props) {
       .attr('dy', '0.85em')
       .style('fill', d => {
         // Make text white or black based on the lightness of the background
-        const col = d3.hsl(colorByCategory ? colorFn(d.name) : colorScale(d.m2 / d.m1));
+        const col = d3.hsl(
+          colorByCategory ? categoricalColorScale(d.name) : linearColorScale(d.m2 / d.m1),
+        );
 
         return col.l < 0.5 ? 'white' : 'black';
       })
@@ -376,15 +381,12 @@ function Sunburst(element, props) {
     // For efficiency, filter nodes to keep only those large enough to see.
     const nodes = partition.nodes(root).filter(d => d.dx > 0.005); // 0.005 radians = 0.29 degrees
 
-    let ext;
-
     if (metrics[0] !== metrics[1] && metrics[1]) {
       colorByCategory = false;
-      ext = d3.extent(nodes, d => d.m2 / d.m1);
-      colorScale = d3.scale
-        .linear()
-        .domain([ext[0], ext[0] + (ext[1] - ext[0]) / 2, ext[1]])
-        .range(['#00D1C1', 'white', '#FFB400']);
+      const ext = d3.extent(nodes, d => d.m2 / d.m1);
+      linearColorScale = getSequentialSchemeRegistry()
+        .get(linearColorScheme)
+        .createLinearScale(ext);
     }
 
     arcs
@@ -395,7 +397,9 @@ function Sunburst(element, props) {
       .attr('display', d => (d.depth ? null : 'none'))
       .attr('d', arc)
       .attr('fill-rule', 'evenodd')
-      .style('fill', d => (colorByCategory ? colorFn(d.name) : colorScale(d.m2 / d.m1)))
+      .style('fill', d =>
+        colorByCategory ? categoricalColorScale(d.name) : linearColorScale(d.m2 / d.m1),
+      )
       .style('opacity', 1)
       .on('mouseenter', mouseenter);
 
