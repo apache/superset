@@ -811,6 +811,9 @@ class TestCore(SupersetTestCase):
             for l in content:
                 test_file.write(f"{l}\n")
 
+    def create_sample_excelfile(self, filename: str, content: Dict[str, str]) -> None:
+        pd.DataFrame(content).to_excel(filename)
+
     def enable_csv_upload(self, database: models.Database) -> None:
         """Enables csv upload in the given database."""
         database.allow_csv_upload = True
@@ -836,6 +839,22 @@ class TestCore(SupersetTestCase):
         if extra:
             form_data.update(extra)
         return self.get_resp("/csvtodatabaseview/form", data=form_data)
+
+    def upload_excel(
+        self, filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    ):
+        form_data = {
+            "excel_file": open(filename, "rb"),
+            "name": table_name,
+            "con": utils.get_example_database().id,
+            "sheet_name": "Sheet1",
+            "if_exists": "fail",
+            "index_label": "test_label",
+            "mangle_dupe_cols": False,
+        }
+        if extra:
+            form_data.update(extra)
+        return self.get_resp("/exceltodatabaseview/form", data=form_data)
 
     @mock.patch(
         "superset.models.core.config",
@@ -980,6 +999,39 @@ class TestCore(SupersetTestCase):
         finally:
             os.remove(f1)
             os.remove(f2)
+
+    def test_import_excel(self):
+        self.login(username="admin")
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+        f1 = "testExcel.xlsx"
+        self.create_sample_excelfile(f1, {"a": ["john", "paul"], "b": [1, 2]})
+        self.enable_csv_upload(utils.get_example_database())
+
+        try:
+            success_msg_f1 = f'Excel file "{f1}" uploaded to table "{table_name}"'
+
+            # initial upload with fail mode
+            resp = self.upload_excel(f1, table_name)
+            self.assertIn(success_msg_f1, resp)
+
+            # upload again with fail mode; should fail
+            fail_msg = f'Unable to upload Excel file "{f1}" to table "{table_name}"'
+            resp = self.upload_excel(f1, table_name)
+            self.assertIn(fail_msg, resp)
+
+            # upload again with append mode
+            resp = self.upload_excel(f1, table_name, extra={"if_exists": "append"})
+            self.assertIn(success_msg_f1, resp)
+
+            # upload again with replace mode
+            resp = self.upload_excel(f1, table_name, extra={"if_exists": "replace"})
+            self.assertIn(success_msg_f1, resp)
+
+            # make sure that john and empty string are replaced with None
+            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            assert data == [(0, "john", 1), (1, "paul", 2)]
+        finally:
+            os.remove(f1)
 
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)
