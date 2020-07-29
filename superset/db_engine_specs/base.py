@@ -438,10 +438,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         kwargs["encoding"] = "utf-8"
         kwargs["iterator"] = True
-        chunks = pd.io.excel.read_excel(
-            io=kwargs["filepath_or_buffer"], sheet_name=kwargs["sheet_name"]
-        )
-        df = pd.concat(chunk for chunk in chunks.values())
+        df = pd.read_excel(**kwargs)
         return df
 
     @staticmethod
@@ -513,7 +510,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Create table from contents of a excel. Note: this method does not create
         metadata for the table.
         """
-        df = cls.excel_to_df(filepath_or_buffer=filename, **excel_to_df_kwargs,)
+        df = cls.excel_to_df(io=filename, **excel_to_df_kwargs,)
         engine = cls.get_engine(database)
         if table.schema:
             # only add schema when it is preset and non empty
