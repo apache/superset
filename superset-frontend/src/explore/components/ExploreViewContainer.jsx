@@ -72,6 +72,7 @@ const Styles = styled.div`
     display: flex;
     flex-direction: column;
     padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
+    max-height: 100%;
   }
 `;
 

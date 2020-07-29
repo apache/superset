@@ -42,9 +42,21 @@ const propTypes = {
 };
 
 const Styles = styled.div`
-  overflow: auto;
+  max-height: 100%;
   .remove-alert {
     cursor: 'pointer';
+  }
+  #controlSections {
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+  }
+  .nav-tabs {
+    flex: 0 0 1;
+  }
+  .tab-content {
+    overflow: auto;
+    flex: 1 1 100%;
   }
 `;
 
