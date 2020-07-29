@@ -57,6 +57,23 @@ const propTypes = {
   impressionId: PropTypes.string,
 };
 
+const Styles = styled.div`
+  height: ${({ height }) => height}px;
+  overflow: hidden;
+  text-align: left;
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  .control-pane {
+    display: flex;
+    flex-direction: column;
+    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
+  }
+`;
+
 class ExploreViewContainer extends React.Component {
   constructor(props) {
     super(props);
@@ -313,25 +330,8 @@ class ExploreViewContainer extends React.Component {
       return this.renderChartContainer();
     }
 
-    const Styles = styled.div`
-      height: ${this.state.height};
-      overflow: hidden;
-      text-align: left;
-      position: relative;
-      width: 100%;
-      display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      align-items: stretch;
-      .control-pane {
-        display: flex;
-        flex-direction: column;
-        padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
-      }
-    `;
-
     return (
-      <>
+      <Styles id="explore-container" height={this.state.height}>
         {this.state.showModal && (
           <SaveModal
             onHide={this.toggleModal}
@@ -340,29 +340,27 @@ class ExploreViewContainer extends React.Component {
             sliceName={this.props.sliceName}
           />
         )}
-        <Styles id="explore-container">
-          <div className="col-sm-4 control-pane">
-            <QueryAndSaveBtns
-              canAdd={!!(this.props.can_add || this.props.can_overwrite)}
-              onQuery={this.onQuery}
-              onSave={this.toggleModal}
-              onStop={this.onStop}
-              loading={this.props.chart.chartStatus === 'loading'}
-              chartIsStale={this.state.chartIsStale}
-              errorMessage={this.renderErrorMessage()}
-              datasourceType={this.props.datasource_type}
-            />
-            <ControlPanelsContainer
-              actions={this.props.actions}
-              form_data={this.props.form_data}
-              controls={this.props.controls}
-              datasource_type={this.props.datasource_type}
-              isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
-            />
-          </div>
-          <div className="col-sm-8">{this.renderChartContainer()}</div>
-        </Styles>
-      </>
+        <div className="col-sm-4 control-pane">
+          <QueryAndSaveBtns
+            canAdd={!!(this.props.can_add || this.props.can_overwrite)}
+            onQuery={this.onQuery}
+            onSave={this.toggleModal}
+            onStop={this.onStop}
+            loading={this.props.chart.chartStatus === 'loading'}
+            chartIsStale={this.state.chartIsStale}
+            errorMessage={this.renderErrorMessage()}
+            datasourceType={this.props.datasource_type}
+          />
+          <ControlPanelsContainer
+            actions={this.props.actions}
+            form_data={this.props.form_data}
+            controls={this.props.controls}
+            datasource_type={this.props.datasource_type}
+            isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
+          />
+        </div>
+        <div className="col-sm-8">{this.renderChartContainer()}</div>
+      </Styles>
     );
   }
 }
