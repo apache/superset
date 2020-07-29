@@ -22,7 +22,6 @@ import { Col, Row, Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import Loading from 'src/components/Loading';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import TableCollection from './TableCollection';
 import Pagination from './Pagination';
@@ -302,9 +301,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
       }
     });
   }
-  if (loading && !data.length) {
-    return <Loading />;
-  }
+
   return (
     <ListViewStyles>
       <div className={`superset-list-view ${className}`}>

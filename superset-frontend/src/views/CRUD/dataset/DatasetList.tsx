@@ -67,78 +67,41 @@ interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
-interface Database {
-  allow_csv_upload: boolean;
-  allow_ctas: boolean;
-  allow_cvas: null | boolean;
-  allow_dml: boolean;
-  allow_multi_schema_metadata_fetch: boolean;
-  allow_run_async: boolean;
-  allows_cost_estimate: boolean;
-  allows_subquery: boolean;
-  allows_virtual_table_explore: boolean;
-  backend: string;
-  database_name: string;
-  explore_database_id: number;
-  expose_in_sqllab: boolean;
-  force_ctas_schema: null | boolean;
-  function_names: string[];
-  id: number;
-}
-
-const createFetchDatabases = (handleError: (err: Response) => void) => async (
-  filterValue = '',
-  pageIndex?: number,
-  pageSize?: number,
-) => {
-  try {
-    const queryParams = rison.encode({
-      columns: ['database_name', 'id'],
-      keys: ['none'],
-      ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_size: pageSize } : {}),
-      ...(filterValue ? { filter: filterValue } : {}),
-    });
-    const { json = {} } = await SupersetClient.get({
-      endpoint: `/api/v1/database/?q=${queryParams}`,
-    });
-
-    return json?.result?.map(
-      ({ database_name: label, id: value }: Database) => ({
-        label,
-        value,
-      }),
-    );
-  } catch (e) {
-    handleError(e);
-  }
-  return [];
-};
 
 export const createFetchSchemas = (
   handleError: (error: Response) => void,
 ) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
+  // add filters if filterValue
+  const filters = filterValue
+    ? { filters: [{ col: 'schema', opr: 'sw', value: filterValue }] }
+    : {};
   try {
     const queryParams = rison.encode({
+      columns: ['schema'],
+      keys: ['none'],
+      order_by: 'schema',
       ...(pageIndex ? { page: pageIndex } : {}),
       ...(pageSize ? { page_size: pageSize } : {}),
-      ...(filterValue ? { filter: filterValue } : {}),
+      ...filters,
     });
     const { json = {} } = await SupersetClient.get({
-      endpoint: `/api/v1/database/schemas/?q=${queryParams}`,
+      endpoint: `/api/v1/dataset/?q=${queryParams}`,
     });
 
-    return json?.result?.map(
-      ({ text: label, value }: { text: string; value: any }) => ({
-        label,
-        value,
-      }),
+    const schemas: string[] = json?.result?.map(
+      ({ schema }: { schema: string }) => schema,
     );
+
+    // uniqueify schema values and create options
+    return [...new Set(schemas)]
+      .filter(schema => Boolean(schema))
+      .map(schema => ({ label: schema, value: schema }));
   } catch (e) {
     handleError(e);
   }
   return [];
 };
+
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -189,9 +152,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       input: 'select',
       operator: 'rel_o_m',
       unfilteredLabel: 'All',
-      fetchSelects: createFetchDatabases(
+      fetchSelects: createFetchRelated(
+        'dataset',
+        'database',
         createErrorHandler(errMsg =>
-          t('An error occurred while fetching datasource values: %s', errMsg),
+          t(
+            'An error occurred while fetching dataset datasource values: %s',
+            errMsg,
+          ),
         ),
       ),
       paginate: true,
