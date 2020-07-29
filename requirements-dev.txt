@@ -34,3 +34,4 @@ requests==2.23.0
 statsd==3.3.0
 tox==3.11.1
 pillow==7.0.0
+plotly==4.9.0

@@ -66,6 +66,7 @@ packaging==20.3           # via bleach
 pandas==1.0.3             # via apache-superset (setup.py)
 parsedatetime==2.5        # via apache-superset (setup.py)
 pathlib2==2.3.5           # via apache-superset (setup.py)
+plotly==4.9.0             # adicionado manualmente  
 polyline==1.4.0           # via apache-superset (setup.py)
 prison==0.1.3             # via flask-appbuilder
 py==1.8.1                 # via retry
