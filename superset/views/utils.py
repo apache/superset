@@ -511,49 +511,54 @@ def format_pivot_table_html_2b_convenient(html_data):
         | G | 0 | 1 | 0 |
         +---+---+---+---+
     after:
-        +---+---+-----------+
-        |   |   |         T |
-        +---+---+---+---+---+
-        |   | A | B | C | D |
-        +---+---+   |   |   |
-        | E |   |   |   |   |
-        +---+---+---+---+---+
-        | F     | 1 | 0 | 1 |
-        +-------+---+---+---+
-        | G     | 0 | 1 | 1 |
-        +-------+---+---+---+
+
+        +---+---+---+---+
+        | E | B | C | D |
+        +---+---+---+---+
+        | F | 1 | 0 | 1 |
+        +-------+---+---+
+        | G | 0 | 1 | 1 |
+        +-------+---+---+
     Generate by https://ozh.github.io/ascii-tables/
     """
     table = ET.fromstring(html_data)
-    thead_trs = table.findall("./thead/tr")
-    # if thead count is not 3 or the second line first elem is empty, directly return without format
-    if len(thead_trs) != 3 or thead_trs[1].find("th").text in ("", None):
+    thead = table.find("./thead")
+    thead_trs = thead.findall("tr")
+    thead_len = len(thead_trs)
+    # if thead count is bigger than 3 or the second line first elem is empty, directly return without format
+    if thead_len not in (2, 3):
         return html_data
 
-    index = 0
-    for tr in thead_trs:
-        tr.insert(1, ET.Element('th'))
+    tr_1 = thead_trs[0]
+    tr_2 = thead_trs[1]
+    index = len(tr_1.findall("th")) - 1
+    if thead_len == 2:
+        th_text = tr_1.findall("th")[index].text
+        tr_2.findall("th")[index].text = th_text
 
-        ths = tr.findall("th")
-        if index == 1:
-            cell_text = ths[0].text
-            ths[1].text = cell_text
-            ths[0].text = ""
-            for th in ths[2:]:
-                th.set("rowspan", "2")
+    if thead_len == 3:
+        if tr_2.find("th").text in ("", None):
+            return html_data
 
-        if index == 2:
-            for th in ths[2:]:
-                tr.remove(th)
+        tr_3 = thead_trs[2]
+        tr2_ths = tr_2.findall("th")
+        tr2_th_len = len(tr2_ths)
+        for th in tr2_ths[index:]:
+            th_text = "%s%s" % (th.text, "费用（元）")
+            if index == tr2_th_len - 1:
+                th_text = th.text
+            tr_3.findall("th")[index].text = th_text
+            index += 1
 
-        index += 1
+        # move tbody last tr to tfoot
+        tbody = table.find("./tbody")
+        tbody_last_tr = tbody.findall("tr")[-1]
+        tfoot = ET.SubElement(table, "tfoot")
+        tfoot.insert(0, tbody_last_tr)
 
-    for tr in table.findall("./tbody/tr"):
-        # for using colspan in tbody, see
-        # https://www.gyrocode.com/articles/jquery-datatables-colspan-in-table-body-tbody/
-        td = ET.Element('td')
-        td.set("style", "display: none;")
-        tr.insert(1, td)
-        tr.find("th").set("colspan", "2")
+        tbody.remove(tbody_last_tr)
+        thead.remove(tr_2)
 
-    return ET.tostring(table)
+    thead.remove(tr_1)
+    ss = ET.tostring(table)
+    return ss.replace(b"All", bytes("合计（元）", 'utf8'))
