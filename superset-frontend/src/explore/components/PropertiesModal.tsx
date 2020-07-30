@@ -262,6 +262,9 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
         </Row>
       </Modal.Body>
       <Modal.Footer>
+        <Button type="button" bsSize="sm" onClick={onHide}>
+          {t('Cancel')}
+        </Button>
         <Button
           type="submit"
           bsSize="sm"
@@ -270,9 +273,6 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
           disabled={!owners || submitting || !name}
         >
           {t('Save')}
-        </Button>
-        <Button type="button" bsSize="sm" onClick={onHide}>
-          {t('Cancel')}
         </Button>
         <Dialog ref={errorDialog} />
       </Modal.Footer>
