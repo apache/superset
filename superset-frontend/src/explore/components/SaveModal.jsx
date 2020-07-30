@@ -176,9 +176,7 @@ class SaveModal extends React.Component {
           </FormGroup>
           <hr />
           <FormGroup>
-            <FormLabel required>
-              {t('Chart name')}
-            </FormLabel>
+            <FormLabel required>{t('Chart name')}</FormLabel>
             <FormControl
               name="new_slice_name"
               type="text"
