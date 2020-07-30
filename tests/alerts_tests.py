@@ -22,8 +22,9 @@ import pytest
 
 from superset import db
 from superset.models.alerts import Alert, AlertLog
+from superset.models.schedules import ScheduleType
 from superset.models.slice import Slice
-from superset.tasks.schedules import run_alert_query
+from superset.tasks.schedules import run_alert_query, schedule_alert_query
 from superset.utils import core as utils
 from tests.test_app import app
 
@@ -112,3 +113,31 @@ def test_run_alert_query(mock_error, mock_deliver, setup_database):
     run_alert_query(database.query(Alert).filter_by(id=5).one(), database)
     assert mock_deliver.call_count == 1
     assert mock_error.call_count == 4
+
+
+@patch("superset.tasks.schedules.deliver_alert")
+@patch("superset.tasks.schedules.run_alert_query")
+def test_schedule_alert_query(mock_run_alert, mock_deliver_alert, setup_database):
+    database = setup_database
+    active_alert = database.query(Alert).filter_by(id=1).one()
+    inactive_alert = database.query(Alert).filter_by(id=3).one()
+
+    # Test that inactive alerts are no processed
+    schedule_alert_query(report_type=ScheduleType.alert, schedule_id=inactive_alert.id)
+    assert mock_run_alert.call_count == 0
+    assert mock_deliver_alert.call_count == 0
+
+    # Test that active alerts with no recipients passed in are processed regularly
+    schedule_alert_query(report_type=ScheduleType.alert, schedule_id=active_alert.id)
+    assert mock_run_alert.call_count == 1
+    assert mock_deliver_alert.call_count == 0
+
+    # Test that active alerts sent as a test are delivered immediately
+    schedule_alert_query(
+        report_type=ScheduleType.alert,
+        schedule_id=active_alert.id,
+        recipients="testing@email.com",
+        is_test_alert=True,
+    )
+    assert mock_run_alert.call_count == 1
+    assert mock_deliver_alert.call_count == 1

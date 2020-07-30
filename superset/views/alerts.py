@@ -14,14 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Dict, Optional, Union
+
+from croniter import croniter
 from flask_appbuilder import CompactCRUDMixin
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
+from wtforms import BooleanField, Form, StringField
 
 from superset.constants import RouteMethod
 from superset.models.alerts import Alert, AlertLog
-from superset.utils.core import markdown
+from superset.models.schedules import ScheduleType
+from superset.tasks.schedules import schedule_alert_query
+from superset.utils.core import get_email_address_str, markdown
 
+from ..exceptions import SupersetException
 from .base import SupersetModelView
 
 # TODO: access control rules for this module
@@ -44,6 +51,10 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alert"
     include_route_methods = RouteMethod.CRUD_SET
+    _extra_data: Dict[str, Union[bool, Optional[str]]] = {
+        "test_alert": False,
+        "test_email_recipients": None,
+    }
 
     list_columns = (
         "label",
@@ -68,6 +79,8 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         # "dashboard",
         "log_retention",
         "grace_period",
+        "test_alert",
+        "test_email_recipients",
     )
     label_columns = {
         "sql": "SQL",
@@ -95,5 +108,46 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
             "Superset nags you again."
         ),
     }
+
+    add_form_extra_fields = {
+        "test_alert": BooleanField(
+            "Send Test Alert",
+            default=False,
+            description="If enabled, a test alert will be sent on the creation / update"
+            " of an active alert. All alerts after will be sent only if the SQL "
+            "statement defined above returns True.",
+        ),
+        "test_email_recipients": StringField(
+            "Test Email Recipients",
+            default=None,
+            description="List of recipients to send test email to. "
+            "If empty, an email will be sent to the original recipients.",
+        ),
+    }
+    edit_form_extra_fields = add_form_extra_fields
     edit_columns = add_columns
     related_views = [AlertLogModelView]
+
+    def process_form(self, form: Form, is_created: bool) -> None:
+        email_recipients = None
+        if form.test_email_recipients.data:
+            email_recipients = get_email_address_str(form.test_email_recipients.data)
+
+        self._extra_data["test_alert"] = form.test_alert.data
+        self._extra_data["test_email_recipients"] = email_recipients
+
+    def pre_add(self, item: "AlertModelView") -> None:
+        item.recipients = get_email_address_str(item.recipients)
+
+        if not croniter.is_valid(item.crontab):
+            raise SupersetException("Invalid crontab format")
+
+    def post_add(self, item: "AlertModelView") -> None:
+        if self._extra_data["test_alert"]:
+            recipients = self._extra_data["test_email_recipients"] or item.recipients
+            args = (ScheduleType.alert, item.id)
+            kwargs = dict(recipients=recipients, is_test_alert=True)
+            schedule_alert_query.apply_async(args=args, kwargs=kwargs)
+
+    def post_update(self, item: "AlertModelView") -> None:
+        self.post_add(item)
