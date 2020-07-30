@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Label } from 'react-bootstrap';
 
 import { now, fDuration } from '../modules/dates';
@@ -26,7 +26,7 @@ interface TimerProps {
   isRunning: boolean;
   startTime?: number;
   status?: string;
-  style?: object;
+  style?: React.CSSProperties;
 }
 
 export default function Timer({
@@ -36,8 +36,7 @@ export default function Timer({
   status = 'success',
   style,
 }: TimerProps) {
-  const [clockStr, setClockStr] = useState<string>('');
-  const timer = useRef<NodeJS.Timeout>();
+  const [clockStr, setClockStr] = useState('');
 
   const stopwatch = () => {
     if (startTime) {
@@ -46,18 +45,20 @@ export default function Timer({
         setClockStr(fDuration(startTime, endDttm));
       }
       if (!isRunning) {
-        clearTimeout(timer.current!);
+        if (timer) clearTimeout(timer);
       }
     }
   };
 
-  function stopTimer() {
-    clearInterval(timer.current!);
-  }
+  const [timer, setTimer] = useState<NodeJS.Timeout>();
 
-  function startTimer() {
-    timer.current = setInterval(stopwatch, 30);
-  }
+  const stopTimer = () => {
+    if (timer) clearInterval(timer);
+  };
+
+  const startTimer = () => {
+    setTimer(setInterval(stopwatch, 30));
+  };
 
   useEffect(() => {
     if (isRunning) {
