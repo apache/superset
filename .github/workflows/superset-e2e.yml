@@ -10,7 +10,6 @@ jobs:
       fail-fast: true
       matrix:
         browser: ['chrome']
-        containers: [1, 2, 3]
     env:
       FLASK_ENV: development
       SUPERSET_CONFIG: tests.superset_test_config
