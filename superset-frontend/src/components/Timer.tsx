@@ -37,6 +37,11 @@ export default function Timer({
   style,
 }: TimerProps) {
   const [clockStr, setClockStr] = useState('');
+  const [timer, setTimer] = useState<NodeJS.Timeout>();
+
+  const stopTimer = () => {
+    if (timer) clearInterval(timer);
+  };
 
   const stopwatch = () => {
     if (startTime) {
@@ -48,12 +53,6 @@ export default function Timer({
         stopTimer();
       }
     }
-  };
-
-  const [timer, setTimer] = useState<NodeJS.Timeout>();
-
-  const stopTimer = () => {
-    if (timer) clearInterval(timer);
   };
 
   const startTimer = () => {
