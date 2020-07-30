@@ -130,7 +130,7 @@ codecov() {
   local codecovScript="${HOME}/codecov.sh"
   # download bash script if needed
   if [[ ! -f "$codecovScript" ]]; then
-    curl -s https://codecov.io/bash > "$codecovScript"
+    curl -s https://codecov.io/bash >"$codecovScript"
   fi
   bash "$codecovScript" "$@"
   say "::endgroup::"
@@ -151,11 +151,16 @@ cypress-install() {
 # Run Cypress and upload coverage reports
 cypress-run() {
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-  
+
   local page=$1
   local group=${2:-Default}
   local cypress="./node_modules/.bin/cypress run"
   local browser=${CYPRESS_BROWSER:-chrome}
+
+  # Assign a rounded timestamp to build id so we can manually
+  # rerun a job after 5 minutes
+  local nonce
+  nonce=$(echo "$(date "+%Y%m%d%H%M") - ($(date +%M)%5)" | bc)
 
   export TERM="xterm"
   export CYPRESS_CACHE_FOLDER="${HOME}/.cache/Cypress"
@@ -168,7 +173,7 @@ cypress-run() {
     # additional flags for Cypress dashboard recording
     $cypress --spec "cypress/integration/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
-      --parallel --ci-build-id "${GITHUB_WORKFLOW}-${GITHUB_SHA}/${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
+      --parallel --ci-build-id "${GITHUB_SHA:0:5}-${nonce}"
   fi
 
   # don't add quotes to $record because we do want word splitting
@@ -182,7 +187,7 @@ cypress-run-all() {
   local flasklog="${HOME}/flask.log"
   local port=8081
 
-  nohup flask run --no-debugger -p $port > "$flasklog" 2>&1 < /dev/null &
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
   cypress-run "*/**/*"
@@ -201,7 +206,7 @@ cypress-run-all() {
 
   # Restart Flask with new configs
   kill $flaskProcessId
-  nohup flask run --no-debugger -p $port > "$flasklog" 2>&1 < /dev/null &
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
   cypress-run "sqllab/*" "Backend persist"
