@@ -40,7 +40,7 @@ default-setup-command() {
 pip-install() {
   cd "$GITHUB_WORKSPACE"
 
-  # Pip cache saves at about 20s on a good day
+  # Pip cache saves at most about 20s on a good day
   # cache-restore pip
 
   say "::group::Install Python pacakges"
@@ -162,8 +162,6 @@ cypress-run() {
   local browser=${CYPRESS_BROWSER:-chrome}
 
   export TERM="xterm"
-  export CYPRESS_CACHE_FOLDER="${HOME}/.cache/Cypress"
-  export CI="1"
 
   say "::group::Run Cypress for [$page]"
   if [[ -z $CYPRESS_RECORD_KEY ]]; then
