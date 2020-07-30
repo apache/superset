@@ -158,9 +158,9 @@ cypress-run() {
   local browser=${CYPRESS_BROWSER:-chrome}
 
   # Assign a rounded timestamp to build id so we can manually
-  # rerun a job after 5 minutes
+  # rerun a job after 20 minutes
   local nonce
-  nonce=$(echo "$(date "+%Y%m%d%H%M") - ($(date +%M)%5)" | bc)
+  nonce=$(echo "$(date "+%Y%m%d%H%M") - ($(date +%M)%20)" | bc)
 
   export TERM="xterm"
   export CYPRESS_CACHE_FOLDER="${HOME}/.cache/Cypress"
