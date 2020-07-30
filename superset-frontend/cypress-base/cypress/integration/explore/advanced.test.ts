@@ -35,7 +35,6 @@ describe('Advanced analytics', () => {
       .find('input[type=text]')
       .type('28 days{enter}');
 
-    cy.get('.panel-title').contains('Advanced Analytics').click();
     cy.get('[data-test=time_compare]').find('.Select__control').click();
     cy.get('[data-test=time_compare]')
       .find('input[type=text]')
