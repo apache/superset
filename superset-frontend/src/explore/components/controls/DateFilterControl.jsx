@@ -37,7 +37,7 @@ import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
 import { t } from '@superset-ui/translation';
-import { styled } from '@superset-ui/style';
+import { styled, withTheme } from '@superset-ui/style';
 
 import {
   buildTimeRangeString,
@@ -177,11 +177,11 @@ function getStateFromCustomRange(value) {
 
 const Styles = styled.div`
   .radio {
-    margin: 4px 0;
+    margin: ${({ theme }) => theme.gridUnit}px 0;
   }
 `;
 
-export default class DateFilterControl extends React.Component {
+class DateFilterControl extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -374,6 +374,11 @@ export default class DateFilterControl extends React.Component {
     );
   }
   renderPopover() {
+
+    const DeleteMe = styled.div`
+      background-color: ${({ theme }) => theme.colors.primary.base};
+    `;
+
     const grainOptions = TIME_GRAIN_OPTIONS.map(grain => (
       <MenuItem
         onSelect={value => this.setCustomRange('grain', value)}
@@ -391,7 +396,7 @@ export default class DateFilterControl extends React.Component {
       const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
       return (
-        <Styles>
+        <Styles theme={this.props.theme}>
           <OverlayTrigger
             key={timeFrame}
             placement="right"
@@ -598,6 +603,8 @@ export default class DateFilterControl extends React.Component {
     );
   }
 }
+
+export default withTheme(DateFilterControl)
 
 DateFilterControl.propTypes = propTypes;
 DateFilterControl.defaultProps = defaultProps;
