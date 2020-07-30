@@ -45,7 +45,7 @@ export default function Timer({
         setClockStr(fDuration(startTime, endDttm));
       }
       if (!isRunning) {
-        if (timer) clearInterval(timer);
+        stopTimer();
       }
     }
   };
