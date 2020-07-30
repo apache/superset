@@ -40,7 +40,9 @@ export default function Timer({
   const [timer, setTimer] = useState<NodeJS.Timeout>();
 
   const stopTimer = () => {
-    if (timer) clearInterval(timer);
+    if (timer) {
+      clearInterval(timer);
+      setTimer(undefined);
   };
 
   const stopwatch = () => {
