@@ -407,24 +407,12 @@ class ChartList extends React.PureComponent<Props, State> {
       ...(filterExps.length ? { filters: filterExps } : {}),
     });
 
-    const replaceEmptyChartName = (data: Chart[]): Chart[] => {
-      return data.map(chart => {
-        return {
-          ...chart,
-          slice_name: chart.slice_name !== '' ? chart.slice_name : '<empty>',
-        };
-      });
-    };
-
     return SupersetClient.get({
       endpoint: `/api/v1/chart/?q=${queryParams}`,
     })
       .then(
         ({ json = {} }) => {
-          this.setState({
-            charts: replaceEmptyChartName(json.result),
-            chartCount: json.count,
-          });
+          this.setState({ charts: json.result, chartCount: json.count });
         },
         createErrorHandler(errMsg =>
           this.props.addDangerToast(

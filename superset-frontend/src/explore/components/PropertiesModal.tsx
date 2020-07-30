@@ -267,7 +267,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
           bsSize="sm"
           bsStyle="primary"
           className="m-r-5"
-          disabled={!owners || submitting}
+          disabled={!owners || submitting || !name}
         >
           {t('Save')}
         </Button>
