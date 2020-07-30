@@ -99,34 +99,34 @@ Databases
 
 The following RDBMS are currently supported:
 
-- `Amazon Athena <https://superset.incubator.apache.org/installation.html#aws-athena>`_
-- `Amazon Redshift <https://aws.amazon.com/redshift/>`_
-- `Apache Drill <https://superset.incubator.apache.org/installation.html#apache-drill>`_
-- `Apache Druid <https://superset.incubator.apache.org/installation.html#druid>`_
-- `Apache Hive <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `Apache Impala <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `Apache Kylin <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `Apache Pinot <https://superset.incubator.apache.org/installation.html#database-dependencies/>`_
-- `Apache Spark SQL <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `BigQuery <https://superset.incubator.apache.org/installation.html#google-bigquery>`_
-- `ClickHouse <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `CockroachDB <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `Dremio <https://superset.incubator.apache.org/installation.html#dremio>`_
-- `Elasticsearch <https://superset.incubator.apache.org/installation.html#elasticsearch>`_
-- `Exasol <https://superset.incubator.apache.org/installation.html#exasol>`_
-- `Google Sheets <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `Greenplum <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `IBM Db2 <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `MySQL <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `Oracle <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `PostgreSQL <https://superset.incubator.apache.org/installation.html#postgresql>`_
-- `Presto <https://superset.incubator.apache.org/installation.html#presto>`_
-- `Snowflake <https://superset.incubator.apache.org/installation.html#snowflake>`_
-- `SQLite <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `SQL Server <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `Teradata <https://superset.incubator.apache.org/installation.html#teradata>`_
-- `Vertica <https://superset.incubator.apache.org/installation.html#database-dependencies>`_
-- `Hana <https://superset.incubator.apache.org/installation.html#hana>`_
+- `Amazon Athena </installation.html#aws-athena>`_
+- `Amazon Redshift </installation.html#database-dependencies>`_
+- `Apache Drill </installation.html#apache-drill>`_
+- `Apache Druid </installation.html#druid>`_
+- `Apache Hive </installation.html#database-dependencies>`_
+- `Apache Impala </installation.html#database-dependencies>`_
+- `Apache Kylin </installation.html#database-dependencies>`_
+- `Apache Pinot </installation.html#database-dependencies/>`_
+- `Apache Spark SQL </installation.html#database-dependencies>`_
+- `BigQuery </installation.html#google-bigquery>`_
+- `ClickHouse </installation.html#database-dependencies>`_
+- `CockroachDB </installation.html#database-dependencies>`_
+- `Dremio </installation.html#dremio>`_
+- `Elasticsearch </installation.html#elasticsearch>`_
+- `Exasol </installation.html#exasol>`_
+- `Google Sheets </installation.html#database-dependencies>`_
+- `Greenplum </installation.html#database-dependencies>`_
+- `IBM Db2 </installation.html#database-dependencies>`_
+- `MySQL </installation.html#database-dependencies>`_
+- `Oracle </installation.html#database-dependencies>`_
+- `PostgreSQL </installation.html#postgresql>`_
+- `Presto </installation.html#presto>`_
+- `Snowflake </installation.html#snowflake>`_
+- `SQLite </installation.html#database-dependencies>`_
+- `SQL Server </installation.html#database-dependencies>`_
+- `Teradata </installation.html#teradata>`_
+- `Vertica </installation.html#database-dependencies>`_
+- `Hana </installation.html#hana>`_
 
 Other database engines with a proper DB-API driver and SQLAlchemy dialect should
 be supported as well.
