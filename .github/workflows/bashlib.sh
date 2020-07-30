@@ -20,6 +20,10 @@ set -e
 GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-.}
 ASSETS_MANIFEST="$GITHUB_WORKSPACE/superset/static/assets/manifest.json"
 
+# Rounded job start time, used to create a unique Cypress build id for
+# parallelization so we can manually rerun a job after 20 minutes
+NONCE=$(echo "$(date "+%Y%m%d%H%M") - ($(date +%M)%20)" | bc)
+
 # Echo only when not in parallel mode
 say() {
   if [[ $(echo "$INPUT_PARALLEL" | tr '[:lower:]' '[:upper:]') != 'TRUE' ]]; then
@@ -157,11 +161,6 @@ cypress-run() {
   local cypress="./node_modules/.bin/cypress run"
   local browser=${CYPRESS_BROWSER:-chrome}
 
-  # Assign a rounded timestamp to build id so we can manually
-  # rerun a job after 20 minutes
-  local nonce
-  nonce=$(echo "$(date "+%Y%m%d%H%M") - ($(date +%M)%20)" | bc)
-
   export TERM="xterm"
   export CYPRESS_CACHE_FOLDER="${HOME}/.cache/Cypress"
   export CI="1"
@@ -173,7 +172,7 @@ cypress-run() {
     # additional flags for Cypress dashboard recording
     $cypress --spec "cypress/integration/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
-      --parallel --ci-build-id "${GITHUB_SHA:0:8}-${nonce}"
+      --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
   fi
 
   # don't add quotes to $record because we do want word splitting
