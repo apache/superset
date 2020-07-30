@@ -70,6 +70,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
         value={adhocMetric.hasCustomLabel ? adhocMetric.label : ''}
         autoFocus
         onChange={onChange}
+        data-test="AdhocMetricEditTitle#input"
       />
     ) : (
       <OverlayTrigger
@@ -81,7 +82,10 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
         onBlur={this.onBlur}
         className="AdhocMetricEditPopoverTitle"
       >
-        <span className="inline-editable">
+        <span
+          className="inline-editable"
+          data-test="AdhocMetricEditTitle#trigger"
+        >
           {adhocMetric.hasCustomLabel ? adhocMetric.label : 'My Metric'}
           &nbsp;
           <i

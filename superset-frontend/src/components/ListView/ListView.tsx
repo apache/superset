@@ -50,6 +50,9 @@ const ListViewStyles = styled.div`
           background: white;
           position: sticky;
           top: 0;
+          &:first-of-type {
+            padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+          }
         }
       }
     }
@@ -152,6 +155,11 @@ const ListViewStyles = styled.div`
       overflow: hidden;
       white-space: nowrap;
       max-width: 300px;
+      line-height: 1;
+      vertical-align: middle;
+      &:first-of-type {
+        padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+      }
     }
 
     .sort-icon {
