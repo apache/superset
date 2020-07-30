@@ -46,8 +46,9 @@ other users and altering other people's slices and dashboards.
 
 Alpha
 """""
-Alpha users have access to all data sources, but they cannot grant or revoke access
-from other users. They are also limited to altering the objects that they
+Alpha users have access to all data sources, and all features except SQLLab and
+security, so they cannot grant or revoke access from other users.
+They are also limited to altering the objects that they
 own. Alpha users can add and alter data sources.
 
 Gamma

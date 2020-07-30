@@ -35,6 +35,6 @@ describe('RecentActivity', () => {
 
   it('renders a TableLoader', () => {
     const wrapper = shallow(<RecentActivity {...mockedProps} />);
-    expect(wrapper.find(TableLoader)).toHaveLength(1);
+    expect(wrapper.find(TableLoader)).toExist();
   });
 });

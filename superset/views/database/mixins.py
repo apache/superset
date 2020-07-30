@@ -37,10 +37,8 @@ class DatabaseMixin:
     list_columns = [
         "database_name",
         "backend",
-        "allow_run_async",
-        "allow_dml",
-        "allow_csv_upload",
         "expose_in_sqllab",
+        "allow_run_async",
         "creator",
         "modified",
     ]
@@ -197,7 +195,7 @@ class DatabaseMixin:
         "extra": _("Extra"),
         "encrypted_extra": _("Secure Extra"),
         "server_cert": _("Root certificate"),
-        "allow_run_async": _("Asynchronous Query Execution"),
+        "allow_run_async": _("Async Execution"),
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_csv_upload": _("Allow Csv Upload"),
         "modified": _("Modified"),

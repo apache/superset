@@ -94,7 +94,7 @@ describe('SouthPane', () => {
   });
   it('should pass latest query down to ResultSet component', () => {
     wrapper = getWrapper();
-    expect(wrapper.find(ResultSet)).toHaveLength(1);
+    expect(wrapper.find(ResultSet)).toExist();
     expect(wrapper.find(ResultSet).props().query.id).toEqual(
       mockedProps.latestQueryId,
     );

@@ -196,13 +196,13 @@ describe('TableSelector', () => {
   });
 
   describe('fetchSchemas', () => {
-    const FETCH_SCHEMAS_GLOB = 'glob:*/superset/schemas/*/*/';
+    const FETCH_SCHEMAS_GLOB = 'glob:*/api/v1/database/*/schemas/?q=(force:!*)';
     afterEach(fetchMock.resetHistory);
     afterAll(fetchMock.reset);
 
     it('should fetch schema options', () => {
       const schemaOptions = {
-        schemas: ['main', 'erf', 'superset'],
+        result: ['main', 'erf', 'superset'],
       };
       fetchMock.get(FETCH_SCHEMAS_GLOB, schemaOptions, {
         overwriteRoutes: true,

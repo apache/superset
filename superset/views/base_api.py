@@ -82,7 +82,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
         "refresh": "edit",
         "data": "list",
         "viz_types": "list",
-        "datasources": "list",
         "related_objects": "list",
     }
 

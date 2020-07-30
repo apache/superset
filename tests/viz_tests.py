@@ -1292,3 +1292,41 @@ class TestBigNumberViz(SupersetTestCase):
         )
         data = viz.BigNumberViz(datasource, {"metrics": ["y"]}).get_data(df)
         assert np.isnan(data[2]["y"])
+
+
+class TestPivotTableViz(SupersetTestCase):
+    df = pd.DataFrame(
+        data={
+            "intcol": [1, 2, 3, None],
+            "floatcol": [0.1, 0.2, 0.3, None],
+            "strcol": ["a", "b", "c", None],
+        }
+    )
+
+    def test_get_aggfunc_numeric(self):
+        # is a sum function
+        func = viz.PivotTableViz.get_aggfunc("intcol", self.df, {})
+        assert hasattr(func, "__call__")
+        assert func(self.df["intcol"]) == 6
+
+        assert (
+            viz.PivotTableViz.get_aggfunc("intcol", self.df, {"pandas_aggfunc": "min"})
+            == "min"
+        )
+        assert (
+            viz.PivotTableViz.get_aggfunc(
+                "floatcol", self.df, {"pandas_aggfunc": "max"}
+            )
+            == "max"
+        )
+
+    def test_get_aggfunc_non_numeric(self):
+        assert viz.PivotTableViz.get_aggfunc("strcol", self.df, {}) == "max"
+        assert (
+            viz.PivotTableViz.get_aggfunc("strcol", self.df, {"pandas_aggfunc": "sum"})
+            == "max"
+        )
+        assert (
+            viz.PivotTableViz.get_aggfunc("strcol", self.df, {"pandas_aggfunc": "min"})
+            == "min"
+        )

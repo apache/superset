@@ -72,36 +72,36 @@ describe('Row', () => {
   it('should render a DragDroppable', () => {
     // don't count child DragDroppables
     const wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(DragDroppable)).toHaveLength(1);
+    expect(wrapper.find(DragDroppable)).toExist();
   });
 
   it('should render a WithPopoverMenu', () => {
     // don't count child DragDroppables
     const wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(WithPopoverMenu)).toHaveLength(1);
+    expect(wrapper.find(WithPopoverMenu)).toExist();
   });
 
   it('should render a HoverMenu in editMode', () => {
     let wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(HoverMenu)).toHaveLength(0);
+    expect(wrapper.find(HoverMenu)).not.toExist();
 
     // we cannot set props on the Row because of the WithDragDropContext wrapper
     wrapper = setup({ component: rowWithoutChildren, editMode: true });
-    expect(wrapper.find(HoverMenu)).toHaveLength(1);
+    expect(wrapper.find(HoverMenu)).toExist();
   });
 
   it('should render a DeleteComponentButton in editMode', () => {
     let wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(DeleteComponentButton)).toHaveLength(0);
+    expect(wrapper.find(DeleteComponentButton)).not.toExist();
 
     // we cannot set props on the Row because of the WithDragDropContext wrapper
     wrapper = setup({ component: rowWithoutChildren, editMode: true });
-    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
+    expect(wrapper.find(DeleteComponentButton)).toExist();
   });
 
   it('should render a BackgroundStyleDropdown when focused', () => {
     let wrapper = setup({ component: rowWithoutChildren });
-    expect(wrapper.find(BackgroundStyleDropdown)).toHaveLength(0);
+    expect(wrapper.find(BackgroundStyleDropdown)).not.toExist();
 
     // we cannot set props on the Row because of the WithDragDropContext wrapper
     wrapper = setup({ component: rowWithoutChildren, editMode: true });
@@ -110,7 +110,7 @@ describe('Row', () => {
       .at(1) // first one is delete button
       .simulate('click');
 
-    expect(wrapper.find(BackgroundStyleDropdown)).toHaveLength(1);
+    expect(wrapper.find(BackgroundStyleDropdown)).toExist();
   });
 
   it('should call deleteComponent when deleted', () => {

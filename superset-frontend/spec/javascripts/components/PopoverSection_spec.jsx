@@ -44,7 +44,7 @@ describe('PopoverSection', () => {
     );
   });
   it('is show an icon when selected', () => {
-    expect(wrapper.find('.fa-check')).toHaveLength(1);
+    expect(wrapper.find('.fa-check')).toExist();
   });
   it('is show no icon when not selected', () => {
     expect(factory({ isSelected: false }).find('.fa-check')).toHaveLength(0);

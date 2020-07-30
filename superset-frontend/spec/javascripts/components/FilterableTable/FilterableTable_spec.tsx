@@ -42,7 +42,7 @@ describe('FilterableTable', () => {
     );
   });
   it('renders a grid with 2 Table rows', () => {
-    expect(wrapper.find('.ReactVirtualized__Grid')).toHaveLength(1);
+    expect(wrapper.find('.ReactVirtualized__Grid')).toExist();
     expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(3);
   });
   it('renders a grid with 2 Grid rows for wide tables', () => {
@@ -72,7 +72,7 @@ describe('FilterableTable', () => {
       filterText: 'b1',
     };
     wrapper = mount(<FilterableTable {...props} />);
-    expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(1);
+    expect(wrapper.find('.ReactVirtualized__Table__row')).toExist();
   });
   it('filters on a number', () => {
     const props = {
@@ -80,6 +80,6 @@ describe('FilterableTable', () => {
       filterText: '100',
     };
     wrapper = mount(<FilterableTable {...props} />);
-    expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(1);
+    expect(wrapper.find('.ReactVirtualized__Table__row')).toExist();
   });
 });

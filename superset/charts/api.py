@@ -41,7 +41,6 @@ from superset.charts.commands.exceptions import (
     ChartUpdateFailedError,
 )
 from superset.charts.commands.update import UpdateChartCommand
-from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartFilter, ChartNameOrDescriptionFilter
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -84,7 +83,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "bulk_delete",  # not using RouteMethod since locally defined
         "data",
         "viz_types",
-        "datasources",
     }
     class_permission_name = "SliceModelView"
     show_columns = [
@@ -693,42 +691,3 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
-
-    @expose("/datasources", methods=["GET"])
-    @protect()
-    @safe
-    def datasources(self) -> Response:
-        """Get available datasources
-        ---
-        get:
-          description: Get available datasources.
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/ChartGetDatasourceResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        datasources = ChartDAO.fetch_all_datasources()
-        if not datasources:
-            return self.response(200, count=0, result=[])
-
-        result = [
-            {
-                "label": str(ds),
-                "value": {"datasource_id": ds.id, "datasource_type": ds.type},
-            }
-            for ds in datasources
-        ]
-        return self.response(200, count=len(result), result=result)

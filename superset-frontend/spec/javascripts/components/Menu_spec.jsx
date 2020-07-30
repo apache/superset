@@ -119,7 +119,7 @@ describe('Menu', () => {
   });
 
   it('renders the brand', () => {
-    expect(wrapper.find('.navbar-brand')).toHaveLength(1);
+    expect(wrapper.find('.navbar-brand')).toExist();
   });
 
   it('renders 2 navs', () => {

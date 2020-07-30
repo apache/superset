@@ -705,17 +705,18 @@ def schedule_window(
     for schedule in schedules:
         logging.info("Processing schedule %s", schedule)
         args = (report_type, schedule.id)
+        schedule_start_at = start_at
 
         if (
             hasattr(schedule, "last_eval_dttm")
             and schedule.last_eval_dttm
             and schedule.last_eval_dttm > start_at
         ):
-            # start_at = schedule.last_eval_dttm + timedelta(seconds=1)
-            pass
+            schedule_start_at = schedule.last_eval_dttm + timedelta(seconds=1)
+
         # Schedule the job for the specified time window
         for eta in next_schedules(
-            schedule.crontab, start_at, stop_at, resolution=resolution
+            schedule.crontab, schedule_start_at, stop_at, resolution=resolution
         ):
             get_scheduler_action(report_type).apply_async(args, eta=eta)  # type: ignore
             break
