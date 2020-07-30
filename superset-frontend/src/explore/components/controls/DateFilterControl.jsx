@@ -137,10 +137,10 @@ function getStateFromCommonTimeFrame(value) {
       value === 'No filter'
         ? ''
         : moment()
-      .utc()
-      .startOf('day')
-      .subtract(1, units)
-      .format(MOMENT_FORMAT),
+            .utc()
+            .startOf('day')
+            .subtract(1, units)
+            .format(MOMENT_FORMAT),
     until:
       value === 'No filter'
         ? ''
