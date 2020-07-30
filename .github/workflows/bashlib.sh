@@ -40,6 +40,7 @@ pip-install() {
   # cache-restore pip
 
   say "::group::Install Python pacakges"
+  pip install --upgrade pip
   pip install -r requirements.txt
   pip install -r requirements-dev.txt
   pip install -e ".[postgres,mysql]"
