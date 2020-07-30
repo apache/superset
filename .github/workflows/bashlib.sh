@@ -37,7 +37,7 @@ pip-install() {
   cd "$GITHUB_WORKSPACE"
 
   # Don't use pip cache as it doesn't seem to help much.
-  # cache-restore pip
+  cache-restore pip
 
   say "::group::Install Python pacakges"
   pip install --upgrade pip
@@ -46,14 +46,14 @@ pip-install() {
   pip install -e ".[postgres,mysql]"
   say "::endgroup::"
 
-  # cache-save pip
+  cache-save pip
 }
 
 # prepare (lint and build) frontend code
 npm-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
-  # cache-restore npm
+  cache-restore npm
 
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
@@ -61,7 +61,7 @@ npm-install() {
   npm ci
   say "::endgroup::"
 
-  # cache-save npm
+  cache-save npm
 }
 
 build-assets() {
@@ -72,26 +72,16 @@ build-assets() {
   say "::endgroup::"
 }
 
-build-assets-cached() {
-  # cache-restore assets
-  if [[ -f "$ASSETS_MANIFEST" ]]; then
-    echo 'Skip frontend build because static assets already exist.'
-  else
-    build-assets
-    # cache-save assets
-  fi
-}
-
 build-instrumented-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Build static assets with JS instrumented for test coverage"
-  # cache-restore instrumented-assets
+  cache-restore instrumented-assets
   if [[ -f "$ASSETS_MANIFEST" ]]; then
     echo 'Skip frontend build because instrumented static assets already exist.'
   else
     npm run build-instrumented -- --no-progress
-    # cache-save instrumented-assets
+    cache-save instrumented-assets
   fi
   say "::endgroup::"
 }
@@ -149,13 +139,13 @@ codecov() {
 cypress-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
-  # cache-restore cypress
+  cache-restore cypress
 
   say "::group::Install Cypress"
   npm ci
   say "::endgroup::"
 
-  # cache-save cypress
+  cache-save cypress
 }
 
 # Run Cypress and upload coverage reports
