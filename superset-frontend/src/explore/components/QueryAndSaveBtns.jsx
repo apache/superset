@@ -21,9 +21,10 @@ import PropTypes from 'prop-types';
 import { ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import classnames from 'classnames';
 import { t } from '@superset-ui/translation';
+import styled from '@superset-ui/style';
 
 import Button from '../../components/Button';
-import './QueryAndSaveBtns.css';
+import Hotkeys from '../../components/Hotkeys';
 
 const propTypes = {
   canAdd: PropTypes.bool.isRequired,
@@ -40,6 +41,30 @@ const defaultProps = {
   onSave: () => {},
   disabled: false,
 };
+
+// Prolly need to move this to a global context
+const keymap = {
+  RUN: 'ctrl + r, ctrl + enter',
+  SAVE: 'ctrl + s',
+};
+
+const getHotKeys = () =>
+  Object.keys(keymap).map(k => ({
+    name: k,
+    descr: keymap[k],
+    key: k,
+  }));
+
+const Styles = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
+
+  .save-btn {
+    width: 100px;
+  }
+`;
 
 export default function QueryAndSaveBtns({
   canAdd,
@@ -79,33 +104,42 @@ export default function QueryAndSaveBtns({
   );
 
   return (
-    <div>
-      <ButtonGroup className="query-and-save">
-        {qryOrStopButton}
-        <Button
-          className={saveClasses}
-          data-target="#save_modal"
-          data-toggle="modal"
-          disabled={saveButtonDisabled}
-          onClick={onSave}
-        >
-          <i className="fa fa-plus-circle" /> Save
-        </Button>
-      </ButtonGroup>
-      {errorMessage && (
-        <span>
-          {' '}
-          <OverlayTrigger
-            placement="right"
-            overlay={
-              <Tooltip id={'query-error-tooltip'}>{errorMessage}</Tooltip>
-            }
+    <Styles>
+      <div>
+        <ButtonGroup className="query-and-save">
+          {qryOrStopButton}
+          <Button
+            className={saveClasses}
+            data-target="#save_modal"
+            data-toggle="modal"
+            disabled={saveButtonDisabled}
+            onClick={onSave}
           >
-            <i className="fa fa-exclamation-circle text-danger fa-lg" />
-          </OverlayTrigger>
-        </span>
-      )}
-    </div>
+            <i className="fa fa-plus-circle" /> Save
+          </Button>
+        </ButtonGroup>
+        {errorMessage && (
+          <span>
+            {' '}
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip id={'query-error-tooltip'}>{errorMessage}</Tooltip>
+              }
+            >
+              <i className="fa fa-exclamation-circle text-danger fa-lg" />
+            </OverlayTrigger>
+          </span>
+        )}
+      </div>
+      <div className="m-l-5 text-muted">
+        <Hotkeys
+          header="Keyboard shortcuts"
+          hotkeys={getHotKeys()}
+          placement="right"
+        />
+      </div>
+    </Styles>
   );
 }
 
