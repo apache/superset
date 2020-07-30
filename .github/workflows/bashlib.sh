@@ -168,7 +168,7 @@ cypress-run() {
     # additional flags for Cypress dashboard recording
     $cypress --spec "cypress/integration/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
-      --parallel --ci-build-id "${GITHUB_ACTION}"
+      --parallel --ci-build-id "${GITHUB_WORKFLOW}-${GITHUB_SHA}/${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
   fi
 
   # don't add quotes to $record because we do want word splitting
