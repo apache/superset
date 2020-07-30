@@ -511,7 +511,6 @@ def format_pivot_table_html_2b_convenient(html_data):
         | G | 0 | 1 | 0 |
         +---+---+---+---+
     after:
-
         +---+---+---+---+
         | E | B | C | D |
         +---+---+---+---+
@@ -525,7 +524,7 @@ def format_pivot_table_html_2b_convenient(html_data):
     thead = table.find("./thead")
     thead_trs = thead.findall("tr")
     thead_len = len(thead_trs)
-    # if thead count is bigger than 3 or the second line first elem is empty, directly return without format
+    # if thead count is not equal 2 and 3, directly return without format
     if thead_len not in (2, 3):
         return html_data
 
@@ -537,28 +536,25 @@ def format_pivot_table_html_2b_convenient(html_data):
         tr_2.findall("th")[index].text = th_text
 
     if thead_len == 3:
-        if tr_2.find("th").text in ("", None):
-            return html_data
-
         tr_3 = thead_trs[2]
         tr2_ths = tr_2.findall("th")
-        tr2_th_len = len(tr2_ths)
         for th in tr2_ths[index:]:
-            th_text = "%s%s" % (th.text, "费用（元）")
-            if index == tr2_th_len - 1:
-                th_text = th.text
+            th_text = th.text
             tr_3.findall("th")[index].text = th_text
             index += 1
 
-        # move tbody last tr to tfoot
-        tbody = table.find("./tbody")
-        tbody_last_tr = tbody.findall("tr")[-1]
-        tfoot = ET.SubElement(table, "tfoot")
-        tfoot.insert(0, tbody_last_tr)
-
-        tbody.remove(tbody_last_tr)
         thead.remove(tr_2)
 
+    # move tbody last tr to tfoot
+    tbody = table.find("./tbody")
+    tbody_last_tr = tbody.findall("tr")[-1]
+
+    tfoot = ET.SubElement(table, "tfoot")
+    tfoot.insert(0, tbody_last_tr)
+
+    tbody.remove(tbody_last_tr)
     thead.remove(tr_1)
     ss = ET.tostring(table)
-    return ss.replace(b"All", bytes("合计（元）", 'utf8'))
+
+    from flask_babel import gettext as _
+    return ss.replace(b"All", bytes(_("All"), "utf-8"))
