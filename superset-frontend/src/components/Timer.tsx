@@ -43,6 +43,7 @@ export default function Timer({
     if (timer) {
       clearInterval(timer);
       setTimer(undefined);
+    }
   };
 
   const stopwatch = () => {
