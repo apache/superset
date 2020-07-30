@@ -832,6 +832,13 @@ def get_email_address_list(address_string: str) -> List[str]:
     return [x.strip() for x in address_string_list if x.strip()]
 
 
+def get_email_address_str(address_string: str) -> str:
+    address_list = get_email_address_list(address_string)
+    address_list_str = ", ".join(address_list)
+
+    return address_list_str
+
+
 def choicify(values: Iterable[Any]) -> List[Tuple[Any, Any]]:
     """Takes an iterable and makes an iterable of tuples with it"""
     return [(v, v) for v in values]
