@@ -157,6 +157,10 @@ cypress-run() {
   local cypress="./node_modules/.bin/cypress run"
   local browser=${CYPRESS_BROWSER:-chrome}
 
+  export TERM="xterm"
+  export CYPRESS_CACHE_FOLDER="${HOME}/.cache/Cypress"
+  export CI="1"
+
   say "::group::Run Cypress for [$page]"
   if [[ -z $CYPRESS_RECORD_KEY ]]; then
     $cypress --spec "cypress/integration/$page" --browser "$browser"
