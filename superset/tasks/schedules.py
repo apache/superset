@@ -540,6 +540,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     report_type: ScheduleType,
     schedule_id: int,
     recipients: Optional[str] = None,
+    is_test_alert: Optional[bool] = False,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
     dbsession = db.create_scoped_session()
@@ -551,6 +552,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
         return
 
     if report_type == ScheduleType.alert:
+        if is_test_alert and recipients:
+            deliver_alert(schedule, recipients)
+            return
+
         if run_alert_query(schedule, dbsession):
             # deliver_dashboard OR deliver_slice
             return
@@ -564,10 +569,12 @@ class AlertState:
     PASS = "pass"
 
 
-def deliver_alert(alert: Alert) -> None:
+def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
     logging.info("Triggering alert: %s", alert)
     img_data = None
     images = {}
+    recipients = recipients or alert.recipients
+
     if alert.slice:
 
         chart_url = get_url_path(
@@ -604,7 +611,7 @@ def deliver_alert(alert: Alert) -> None:
         image_url=image_url,
     )
 
-    _deliver_email(alert.recipients, deliver_as_group, subject, body, data, images)
+    _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
 
 def run_alert_query(alert: Alert, dbsession: Session) -> Optional[bool]:
