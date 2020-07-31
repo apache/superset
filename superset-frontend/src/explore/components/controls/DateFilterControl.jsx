@@ -374,11 +374,6 @@ class DateFilterControl extends React.Component {
     );
   }
   renderPopover() {
-
-    const DeleteMe = styled.div`
-      background-color: ${({ theme }) => theme.colors.primary.base};
-    `;
-
     const grainOptions = TIME_GRAIN_OPTIONS.map(grain => (
       <MenuItem
         onSelect={value => this.setCustomRange('grain', value)}
@@ -604,7 +599,7 @@ class DateFilterControl extends React.Component {
   }
 }
 
-export default withTheme(DateFilterControl)
+export default withTheme(DateFilterControl);
 
 DateFilterControl.propTypes = propTypes;
 DateFilterControl.defaultProps = defaultProps;
