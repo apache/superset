@@ -194,7 +194,7 @@ class TestCacheWarmUp(SupersetTestCase):
             db.session.commit()
 
     def test_dashboard_tags(self):
-        tag1 = get_tag("tag1", db.session, TagTypes.custom)
+        tag1 = get_tag("tag1", TagTypes.custom)
         # delete first to make test idempotent
         self.reset_tag(tag1)
 
@@ -204,7 +204,7 @@ class TestCacheWarmUp(SupersetTestCase):
         self.assertEqual(result, expected)
 
         # tag dashboard 'births' with `tag1`
-        tag1 = get_tag("tag1", db.session, TagTypes.custom)
+        tag1 = get_tag("tag1", TagTypes.custom)
         dash = self.get_dash_by_slug("births")
         tag1_urls = sorted([f"{URL_PREFIX}{slc.url}" for slc in dash.slices])
         tagged_object = TaggedObject(
@@ -216,7 +216,7 @@ class TestCacheWarmUp(SupersetTestCase):
         self.assertEqual(sorted(strategy.get_urls()), tag1_urls)
 
         strategy = DashboardTagsStrategy(["tag2"])
-        tag2 = get_tag("tag2", db.session, TagTypes.custom)
+        tag2 = get_tag("tag2", TagTypes.custom)
         self.reset_tag(tag2)
 
         result = sorted(strategy.get_urls())
