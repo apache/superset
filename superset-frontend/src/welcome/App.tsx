@@ -75,6 +75,9 @@ const App = () => (
               <Switch>
                 <Route path="/superset/welcome/">
                   <ErrorBoundary>
+                    <div class="antd">
+                      <Button>Test</Button>
+                    </div>
                     <Welcome user={user} />
                   </ErrorBoundary>
                 </Route>
