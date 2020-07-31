@@ -4161,3 +4161,6 @@ msgstr "周"
 
 #~ msgid "Ok"
 #~ msgstr "应用"
+
+#~ msgid "All"
+#~ msgstr "全部"
