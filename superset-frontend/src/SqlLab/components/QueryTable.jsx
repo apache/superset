@@ -20,7 +20,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Table } from 'reactable-arc';
-import { Label, ProgressBar, Well } from 'react-bootstrap';
+import { ProgressBar, Well } from 'react-bootstrap';
+import Label from 'src/components/Label';
 import { t } from '@superset-ui/translation';
 
 import Link from '../../components/Link';
@@ -141,7 +142,7 @@ class QueryTable extends React.PureComponent {
               bsSize="large"
               className="ResultsModal"
               triggerNode={
-                <Label bsStyle="info" style={{ cursor: 'pointer' }}>
+                <Label bsStyle="info" className="pointer">
                   {t('view results')}
                 </Label>
               }

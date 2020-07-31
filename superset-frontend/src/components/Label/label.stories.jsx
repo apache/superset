@@ -17,21 +17,40 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import Label from 'src/components/Label';
+import { action } from '@storybook/addon-actions';
+import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
+import Label from './index';
 
-import { STATE_BSSTYLE_MAP } from '../constants';
-
-const propTypes = {
-  query: PropTypes.object.isRequired,
+export default {
+  title: 'Label',
+  component: Label,
+  decorators: [withKnobs],
 };
 
-export default function QueryStateLabel({ query }) {
-  const bsStyle = STATE_BSSTYLE_MAP[query.state];
-  return (
-    <Label className="m-r-3" bsStyle={bsStyle}>
-      {query.state}
+const bsStyleKnob = {
+  label: 'Types',
+  options: {
+    Danger: 'danger',
+    Warning: 'warning',
+    Success: 'success',
+    Default: 'default',
+  },
+  defaultValue: 'default',
+};
+
+export const SupersetLabel = () => (
+  <div style={{ padding: '10px' }}>
+    <Label
+      bsStyle={select(
+        bsStyleKnob.label,
+        bsStyleKnob.options,
+        bsStyleKnob.defaultValue,
+        bsStyleKnob.groupId,
+      )}
+      onClick={action('clicked')}
+      tooltip={boolean('Tooltip', false) === true ? 'This is a tooltip!' : null}
+    >
+      {text('Label', 'Label!')}
     </Label>
-  );
-}
-QueryStateLabel.propTypes = propTypes;
+  </div>
+);
