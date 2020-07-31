@@ -313,9 +313,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
 
-        # Clearing the slug to avoid conflicts
-        dashboard_to_import.slug = None
-
         old_json_metadata = json.loads(dashboard_to_import.json_metadata or "{}")
         old_to_new_slc_id_dict: Dict[int, int] = {}
         new_timed_refresh_immune_slices = []
