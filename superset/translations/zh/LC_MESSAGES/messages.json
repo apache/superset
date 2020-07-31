@@ -1560,7 +1560,9 @@
       "Edit Saved Query": ["编辑保存的查询"],
       "Pop Tab Link": ["弹出标签链接"],
       "Changed on": ["改变为"],
-      "Saved Queries": ["已保存查询"]
+      "Saved Queries": ["已保存查询"],
+      "Show": ["每页显示"],
+      "entries": ["条"]
     }
   }
 }
