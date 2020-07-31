@@ -41,7 +41,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.exc import CompileError
-from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
@@ -255,7 +255,7 @@ class TableColumn(Model, BaseColumn):
                 .first()
             )
 
-        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
+        return import_datasource.import_simple_obj(i_column, lookup_obj)
 
     def dttm_sql_literal(
         self,
@@ -375,7 +375,7 @@ class SqlMetric(Model, BaseMetric):
                 .first()
             )
 
-        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
+        return import_datasource.import_simple_obj(i_metric, lookup_obj)
 
 
 sqlatable_user = Table(
@@ -503,15 +503,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     @classmethod
     def get_datasource_by_name(
-        cls,
-        session: Session,
-        datasource_name: str,
-        schema: Optional[str],
-        database_name: str,
+        cls, datasource_name: str, schema: Optional[str], database_name: str,
     ) -> Optional["SqlaTable"]:
         schema = schema or None
         query = (
-            session.query(cls)
+            db.session.query(cls)
             .join(Database)
             .filter(cls.table_name == datasource_name)
             .filter(Database.database_name == database_name)
@@ -1296,24 +1292,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
 
         return import_datasource.import_datasource(
-            db.session,
-            i_datasource,
-            lookup_database,
-            lookup_sqlatable,
-            import_time,
-            database_id,
+            i_datasource, lookup_database, lookup_sqlatable, import_time, database_id,
         )
 
     @classmethod
     def query_datasources_by_name(
-        cls,
-        session: Session,
-        database: Database,
-        datasource_name: str,
-        schema: Optional[str] = None,
+        cls, database: Database, datasource_name: str, schema: Optional[str] = None,
     ) -> List["SqlaTable"]:
         query = (
-            session.query(cls)
+            db.session.query(cls)
             .filter_by(database_id=database.id)
             .filter_by(table_name=datasource_name)
         )

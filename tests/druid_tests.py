@@ -212,9 +212,7 @@ class TestDruid(SupersetTestCase):
     def test_druid_sync_from_config(self):
         CLUSTER_NAME = "new_druid"
         self.login()
-        cluster = self.get_or_create(
-            DruidCluster, {"cluster_name": CLUSTER_NAME}, db.session
-        )
+        cluster = self.get_or_create(DruidCluster, {"cluster_name": CLUSTER_NAME})
 
         db.session.merge(cluster)
         db.session.commit()
@@ -302,15 +300,12 @@ class TestDruid(SupersetTestCase):
     @unittest.skipUnless(app.config["DRUID_IS_ACTIVE"], "DRUID_IS_ACTIVE is false")
     def test_filter_druid_datasource(self):
         CLUSTER_NAME = "new_druid"
-        cluster = self.get_or_create(
-            DruidCluster, {"cluster_name": CLUSTER_NAME}, db.session
-        )
+        cluster = self.get_or_create(DruidCluster, {"cluster_name": CLUSTER_NAME})
         db.session.merge(cluster)
 
         gamma_ds = self.get_or_create(
             DruidDatasource,
             {"datasource_name": "datasource_for_gamma", "cluster": cluster},
-            db.session,
         )
         gamma_ds.cluster = cluster
         db.session.merge(gamma_ds)
@@ -318,7 +313,6 @@ class TestDruid(SupersetTestCase):
         no_gamma_ds = self.get_or_create(
             DruidDatasource,
             {"datasource_name": "datasource_not_for_gamma", "cluster": cluster},
-            db.session,
         )
         no_gamma_ds.cluster = cluster
         db.session.merge(no_gamma_ds)
