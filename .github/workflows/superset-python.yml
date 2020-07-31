@@ -14,11 +14,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Setup Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2.1.1
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@adc6f73
+      uses: apache-superset/cached-dependencies@b90713b
     - name: black
       run: black --check $(echo $PYTHON_LINT_TARGET)
     - name: mypy
@@ -38,11 +38,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Setup Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2.1.1
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@adc6f73
+      uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
           pip-install
@@ -59,11 +59,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2.1.1
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@adc6f73
+        uses: apache-superset/cached-dependencies@b90713b
         with:
           run: |
             pip-install
@@ -100,11 +100,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2.1.1
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@adc6f73
+      uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
           pip-install
@@ -144,11 +144,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2.1.1
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@adc6f73
+      uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
           pip-install
@@ -181,11 +181,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2.1.1
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@adc6f73
+      uses: apache-superset/cached-dependencies@b90713b
       with:
         run: |
           pip-install
