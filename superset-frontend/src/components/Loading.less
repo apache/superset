@@ -16,16 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
-import './Loading.less';
+@import '../../stylesheets/less/variables.less';
 
-interface Props {
-  position?: string;
-}
-
-const LoaderImg = styled.img`
+.loading_img{
   z-index: 1000;
   width: 50px;
   position: relative;
@@ -39,19 +32,7 @@ const LoaderImg = styled.img`
     margin: 0;
     position: absolute;
     left: 50%;
-    top: 50%;
+    top: 65%;
     transform: translate(-50%, -50%);
   }
-`;
-export default function Loading({ position = 'floating' }: Props) {
-  return (
-    <div>
-      <LoaderImg
-        className={`loading ${position}`}
-        alt="Loading..."
-        src="/static/assets/images/loading.gif"
-      />
-      <span className={`loading_img ${position}`}>{t('loading')}...</span>
-    </div>
-  );
 }
