@@ -20,8 +20,9 @@
 import React from 'react';
 import sinon from 'sinon';
 import { mount } from 'enzyme';
-import { Button, Label } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 

@@ -20,8 +20,9 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Label, OverlayTrigger } from 'react-bootstrap';
+import { OverlayTrigger } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
 import { AGGREGATES } from 'src/explore/constants';

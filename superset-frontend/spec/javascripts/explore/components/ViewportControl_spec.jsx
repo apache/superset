@@ -19,8 +19,9 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { OverlayTrigger, Label } from 'react-bootstrap';
+import { OverlayTrigger } from 'react-bootstrap';
 
+import Label from 'src/components/Label';
 import ViewportControl from 'src/explore/components/controls/ViewportControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import ControlHeader from 'src/explore/components/ControlHeader';

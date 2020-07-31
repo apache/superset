@@ -18,10 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label, OverlayTrigger } from 'react-bootstrap';
+import { OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
+import Label from 'src/components/Label';
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
 import columnType from '../propTypes/columnType';
