@@ -4164,3 +4164,6 @@ msgstr "周"
 
 #~ msgid "All"
 #~ msgstr "全部"
+
+#~ msgid "loading"
+#~ msgstr "加载中"
