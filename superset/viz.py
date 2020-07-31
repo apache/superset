@@ -1559,12 +1559,25 @@ class DistributionPieViz(NVD3Viz):
             '1'
             >>> _label_aggfunc(pd.Series(["abc", "def"]))
             'abc, def'
+            >>> # note: integer floats are stripped of decimal digits
+            >>> _label_aggfunc(pd.Series([0.1, 2.0, 0.3]))
+            '0.1, 2, 0.3'
             >>> _label_aggfunc(pd.Series([1, None, "abc", 0.8], dtype="object"))
             '1, <NULL>, abc, 0.8'
             """
-            return ", ".join(
-                [NULL_STRING if label is None else str(label) for label in labels]
-            )
+            label_list: List[str] = []
+            for label in labels:
+                if isinstance(label, str):
+                    label_recast = label
+                elif label is None or isinstance(label, float) and math.isnan(label):
+                    label_recast = NULL_STRING
+                elif isinstance(label, float) and label.is_integer():
+                    label_recast = str(int(label))
+                else:
+                    label_recast = str(label)
+                label_list.append(label_recast)
+
+            return ", ".join(label_list)
 
         if df.empty:
             return None
