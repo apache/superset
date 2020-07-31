@@ -27,14 +27,18 @@ export interface CardProps {
 
 export const Card = Object.assign(
   styled(AntdCard)`
-      background: red !important;
+    border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
+    font-family: ${({ theme }) => theme.typography.families.sansSerif};
   `,
   {
     Grid: styled(AntdCard.Grid)`
-        background: blue !important;
+      font-family: ${({ theme }) => theme.typography.families.sansSerif};
+      border-collapse: collapse;
+      display: table-cell;
     `,
     Meta: styled(AntdCard.Meta)`
-        background: green !important;
+      font-family: ${({ theme }) => theme.typography.families.sansSerif};
     `,
   },
 );
