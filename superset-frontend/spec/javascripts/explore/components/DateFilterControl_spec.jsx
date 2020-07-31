@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import { mount } from 'enzyme';
 import { Button, Label } from 'react-bootstrap';
 
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
@@ -37,7 +37,7 @@ describe('DateFilterControl', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = shallow(<DateFilterControl {...defaultProps} />);
+    wrapper = mount(<DateFilterControl {...defaultProps} />);
   });
 
   it('renders a ControlHeader', () => {
