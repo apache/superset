@@ -178,12 +178,11 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star with datasource access
         """
-        session = db.session
         table = SqlaTable(
             schema="main", table_name="ab_permission", database=get_example_database()
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         tmp_table_perm = security_manager.find_permission_view_menu(
             "datasource_access", table.get_perm()

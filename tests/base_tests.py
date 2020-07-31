@@ -25,7 +25,6 @@ import pandas as pd
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
-from sqlalchemy.orm import Session
 
 from tests.test_app import app
 from superset.sql_parse import CtasMethod
@@ -103,24 +102,25 @@ class SupersetTestCase(TestCase):
         # create druid cluster and druid datasources
 
         with app.app_context():
-            session = db.session
             cluster = (
-                session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
+                db.session.query(DruidCluster)
+                .filter_by(cluster_name="druid_test")
+                .first()
             )
             if not cluster:
                 cluster = DruidCluster(cluster_name="druid_test")
-                session.add(cluster)
-                session.commit()
+                db.session.add(cluster)
+                db.session.commit()
 
                 druid_datasource1 = DruidDatasource(
                     datasource_name="druid_ds_1", cluster=cluster
                 )
-                session.add(druid_datasource1)
+                db.session.add(druid_datasource1)
                 druid_datasource2 = DruidDatasource(
                     datasource_name="druid_ds_2", cluster=cluster
                 )
-                session.add(druid_datasource2)
-                session.commit()
+                db.session.add(druid_datasource2)
+                db.session.commit()
 
     @staticmethod
     def get_table_by_id(table_id: int) -> SqlaTable:
@@ -134,25 +134,23 @@ class SupersetTestCase(TestCase):
         except ImportError:
             return False
 
-    def get_or_create(self, cls, criteria, session, **kwargs):
-        obj = session.query(cls).filter_by(**criteria).first()
+    def get_or_create(self, cls, criteria, **kwargs):
+        obj = db.session.query(cls).filter_by(**criteria).first()
         if not obj:
             obj = cls(**criteria)
         obj.__dict__.update(**kwargs)
-        session.add(obj)
-        session.commit()
+        db.session.add(obj)
+        db.session.commit()
         return obj
 
     def login(self, username="admin", password="general"):
         resp = self.get_resp("/login/", data=dict(username=username, password=password))
         self.assertNotIn("User confirmation needed", resp)
 
-    def get_slice(
-        self, slice_name: str, session: Session, expunge_from_session: bool = True
-    ) -> Slice:
-        slc = session.query(Slice).filter_by(slice_name=slice_name).one()
+    def get_slice(self, slice_name: str, expunge_from_session: bool = True) -> Slice:
+        slc = db.session.query(Slice).filter_by(slice_name=slice_name).one()
         if expunge_from_session:
-            session.expunge_all()
+            db.session.expunge_all()
         return slc
 
     @staticmethod
@@ -301,7 +299,6 @@ class SupersetTestCase(TestCase):
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
-            session=db.session,
             sqlalchemy_uri="sqlite:///:memory:",
             id=db_id,
             extra=extra,
@@ -323,7 +320,6 @@ class SupersetTestCase(TestCase):
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
-            session=db.session,
             sqlalchemy_uri="presto://user@host:8080/hive",
             id=db_id,
         )

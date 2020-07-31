@@ -99,7 +99,7 @@ class TestCore(SupersetTestCase):
 
     def test_slice_endpoint(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
         resp = self.get_resp("/superset/slice/{}/".format(slc.id))
         assert "Time Column" in resp
         assert "List Roles" in resp
@@ -113,7 +113,7 @@ class TestCore(SupersetTestCase):
 
     def test_viz_cache_key(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -229,7 +229,7 @@ class TestCore(SupersetTestCase):
     def test_save_slice(self):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
+        slice_id = self.get_slice(slice_name).id
         copy_name_prefix = "Test Sankey"
         copy_name = f"{copy_name_prefix}[save]{random.random()}"
         tbl_id = self.table_ids.get("energy_usage")
@@ -295,7 +295,7 @@ class TestCore(SupersetTestCase):
     def test_filter_endpoint(self):
         self.login(username="admin")
         slice_name = "Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
+        slice_id = self.get_slice(slice_name).id
         db.session.commit()
         tbl_id = self.table_ids.get("energy_usage")
         table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
@@ -315,9 +315,7 @@ class TestCore(SupersetTestCase):
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(username="admin")
-        slc = self.get_slice(
-            slice_name="Girls", session=db.session, expunge_from_session=False
-        )
+        slc = self.get_slice(slice_name="Girls", expunge_from_session=False)
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
         assert "modified" in slc_data_attributes
@@ -368,9 +366,7 @@ class TestCore(SupersetTestCase):
         self.assertEqual(data, [])
 
         # make user owner of slice and verify that endpoint returns said slice
-        slc = self.get_slice(
-            slice_name=slice_name, session=db.session, expunge_from_session=False
-        )
+        slc = self.get_slice(slice_name=slice_name, expunge_from_session=False)
         slc.owners = [user]
         db.session.merge(slc)
         db.session.commit()
@@ -381,9 +377,7 @@ class TestCore(SupersetTestCase):
         self.assertEqual(data[0]["title"], slice_name)
 
         # remove ownership and ensure user no longer gets slice
-        slc = self.get_slice(
-            slice_name=slice_name, session=db.session, expunge_from_session=False
-        )
+        slc = self.get_slice(slice_name=slice_name, expunge_from_session=False)
         slc.owners = []
         db.session.merge(slc)
         db.session.commit()
@@ -561,7 +555,7 @@ class TestCore(SupersetTestCase):
         db.session.commit()
 
     def test_warm_up_cache(self):
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
@@ -769,7 +763,7 @@ class TestCore(SupersetTestCase):
 
     def test_user_profile(self, username="admin"):
         self.login(username=username)
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
 
         # Setting some faves
         url = f"/superset/favstar/Slice/{slc.id}/select/"

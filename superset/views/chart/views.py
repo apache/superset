@@ -20,7 +20,7 @@ from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
-from superset import app, db
+from superset import app
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.models.slice import Slice
@@ -56,7 +56,7 @@ class SliceModelView(
     def add(self) -> FlaskResponse:
         datasources = [
             {"value": str(d.id) + "__" + d.type, "label": repr(d)}
-            for d in ConnectorRegistry.get_all_datasources(db.session)
+            for d in ConnectorRegistry.get_all_datasources()
         ]
         return self.render_template(
             "superset/add_slice.html",

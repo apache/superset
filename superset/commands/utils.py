@@ -25,7 +25,7 @@ from superset.commands.exceptions import (
 )
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.extensions import db, security_manager
+from superset.extensions import security_manager
 
 
 def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[User]:
@@ -50,8 +50,6 @@ def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[
 
 def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
     try:
-        return ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
-        )
+        return ConnectorRegistry.get_datasource(datasource_type, datasource_id)
     except (NoResultFound, KeyError):
         raise DatasourceNotFoundValidationError()
