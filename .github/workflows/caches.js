@@ -40,7 +40,7 @@ module.exports = {
   },
   npm: {
     path: [`${homeDirectory}/.npm`],
-    hashFiles: ['superset-frontend/package-lock.json'],
+    hashFiles: [`${workspaceDirectory}/superset-frontend/package-lock.json`],
   },
   assets: assetsConfig,
   // use separate cache for instrumented JS files and regular assets
