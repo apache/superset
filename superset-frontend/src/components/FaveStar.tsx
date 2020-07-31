@@ -17,15 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import cx from 'classnames';
 import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
+import Icon from './Icon';
 
 interface FaveStarProps {
   itemId: number;
   fetchFaveStar(id: number): any;
   saveFaveStar(id: number, isStarred: boolean): any;
   isStarred: boolean;
+  width?: number;
 }
 
 export default class FaveStar extends React.PureComponent<FaveStarProps> {
@@ -39,11 +40,6 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
   }
 
   render() {
-    const iconClassNames = cx('fa', {
-      'fa-star': this.props.isStarred,
-      'fa-star-o': !this.props.isStarred,
-    });
-
     return (
       <TooltipWrapper
         label="fave-unfave"
@@ -54,7 +50,14 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
           onClick={this.onClick.bind(this)}
           className="fave-unfave-icon"
         >
-          <i className={iconClassNames} />
+          <Icon
+            name={
+              this.props.isStarred ? 'favorite-selected' : 'favorite-unselected'
+            }
+            viewBox="0 0 16 15"
+            width={this.props.width || 20}
+            height="auto"
+          />
         </a>
       </TooltipWrapper>
     );
