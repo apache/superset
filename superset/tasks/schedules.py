@@ -48,7 +48,6 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
-from sqlalchemy.orm import Session
 from werkzeug.http import parse_cookie
 
 from superset import app, db, security_manager, thumbnail_cache
@@ -543,8 +542,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     is_test_alert: Optional[bool] = False,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
-    dbsession = db.create_scoped_session()
-    schedule = dbsession.query(model_cls).get(schedule_id)
+    schedule = db.session.query(model_cls).get(schedule_id)
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:
@@ -556,7 +554,7 @@ def schedule_alert_query(  # pylint: disable=unused-argument
             deliver_alert(schedule, recipients)
             return
 
-        if run_alert_query(schedule, dbsession):
+        if run_alert_query(schedule):
             # deliver_dashboard OR deliver_slice
             return
     else:
@@ -614,7 +612,7 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
 
-def run_alert_query(alert: Alert, dbsession: Session) -> Optional[bool]:
+def run_alert_query(alert: Alert) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
     """
@@ -666,7 +664,7 @@ def run_alert_query(alert: Alert, dbsession: Session) -> Optional[bool]:
             state=state,
         )
     )
-    dbsession.commit()
+    db.session.commit()
 
     return None
 
@@ -706,8 +704,7 @@ def schedule_window(
     if not model_cls:
         return None
 
-    dbsession = db.create_scoped_session()
-    schedules = dbsession.query(model_cls).filter(model_cls.active.is_(True))
+    schedules = db.session.query(model_cls).filter(model_cls.active.is_(True))
 
     for schedule in schedules:
         logging.info("Processing schedule %s", schedule)

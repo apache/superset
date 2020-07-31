@@ -23,7 +23,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from superset import app, cache, db, security_manager
+from superset import app, cache, security_manager
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -64,7 +64,7 @@ class QueryContext:
         result_format: Optional[utils.ChartDataResultFormat] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
-            str(datasource["type"]), int(datasource["id"]), db.session
+            str(datasource["type"]), int(datasource["id"])
         )
         self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
