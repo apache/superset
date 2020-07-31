@@ -28,17 +28,13 @@ export default {
 };
 
 export const SupersetCard = () => (
-  <Card title="Here's a title!">
-    Here's some text!
-  </Card>
+  <Card title="Here's a title!">Here's some text!</Card>
 );
 
 export const SupersetCardGrid = () => (
   <Card title="Card Title">
     <Card.Grid>Content</Card.Grid>
-    <Card.Grid hoverable={false}>
-      Content
-    </Card.Grid>
+    <Card.Grid hoverable={false}>Content</Card.Grid>
     <Card.Grid>Content</Card.Grid>
     <Card.Grid>Content</Card.Grid>
     <Card.Grid>Content</Card.Grid>
@@ -55,5 +51,3 @@ export const SupersetCardMeta = () => (
     />
   </Card>
 );
-
-

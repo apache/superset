@@ -21,37 +21,28 @@ import { mount } from 'enzyme';
 
 import Card from './';
 import {
-  SupersetCard, 
+  SupersetCard,
   SupersetCardGrid,
   SupersetCardMeta,
 } from './Card.stories';
-import { debug } from 'webpack';
 
 describe('PopoverSection', () => {
-  const defaultProps = {
-    title: 'Card Title',
-  };
-
   let wrapper;
 
   // test the basic component
   it('renders with no children', () => {
-    expect(React.isValidElement(<Card></Card>)).toBe(true);
+    expect(React.isValidElement(<Card />)).toBe(true);
   });
 
-  //test the stories from the storybook!
+  // test the stories from the storybook!
   it('renders a title', () => {
     wrapper = mount(<SupersetCard />);
-    expect(
-      wrapper
-        .find('.ant-card-head-title')
-        .text(),
-    ).toEqual('Here\'s a title!');
+    expect(wrapper.find('.ant-card-head-title').text()).toEqual(
+      "Here's a title!",
+    );
   });
   it('renders a child', () => {
-    wrapper = mount(
-      <SupersetCardGrid/>,
-    );
+    wrapper = mount(<SupersetCardGrid />);
     expect(wrapper.find(Card.Grid).length).toEqual(7);
     expect(wrapper.find('.ant-card-grid').first().text()).toEqual('Content');
   });
@@ -67,7 +58,7 @@ describe('PopoverSection', () => {
   it('renders a child', () => {
     wrapper = mount(
       <Card>
-        <img />
+        <img alt="foo" />
       </Card>,
     );
     expect(wrapper.find('img').length).toEqual(1);
