@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import Card from './';
 import {
@@ -25,6 +26,13 @@ import {
   SupersetCardGrid,
   SupersetCardMeta,
 } from './Card.stories';
+
+function mountThemed(jsxStuff) {
+  return mount(jsxStuff, {
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
+}
 
 describe('PopoverSection', () => {
   let wrapper;
@@ -36,18 +44,18 @@ describe('PopoverSection', () => {
 
   // test the stories from the storybook!
   it('renders a title', () => {
-    wrapper = mount(<SupersetCard />);
+    wrapper = mountThemed(<SupersetCard />);
     expect(wrapper.find('.ant-card-head-title').text()).toEqual(
       "Here's a title!",
     );
   });
   it('renders a child', () => {
-    wrapper = mount(<SupersetCardGrid />);
+    wrapper = mountThemed(<SupersetCardGrid />);
     expect(wrapper.find(Card.Grid).length).toEqual(7);
     expect(wrapper.find('.ant-card-grid').first().text()).toEqual('Content');
   });
   it('renders a child', () => {
-    wrapper = mount(<SupersetCardMeta />);
+    wrapper = mountThemed(<SupersetCardMeta />);
     expect(wrapper.find(Card.Meta).length).toEqual(1);
     expect(wrapper.find('.ant-card-meta-title').text()).toEqual(
       'Superset Rules',
@@ -56,7 +64,7 @@ describe('PopoverSection', () => {
 
   // test some things that are NOT covered in the stories!
   it('renders a child', () => {
-    wrapper = mount(
+    wrapper = mountThemed(
       <Card>
         <img alt="foo" />
       </Card>,
