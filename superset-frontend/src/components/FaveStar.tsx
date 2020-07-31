@@ -17,19 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 
 interface FaveStarProps {
   itemId: number;
-  fetchFaveStar(): any;
-  saveFaveStar(): any;
+  fetchFaveStar(id: number): any;
+  saveFaveStar(id: number, isStarred: boolean): any;
   isStarred: boolean;
 }
 
-export class FaveStar extends React.PureComponent<FaveStarProps> {
+export default class FaveStar extends React.PureComponent<FaveStarProps> {
   componentDidMount() {
     this.props.fetchFaveStar(this.props.itemId);
   }
