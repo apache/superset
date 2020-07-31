@@ -1547,11 +1547,30 @@ class DistributionPieViz(NVD3Viz):
     is_timeseries = False
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        def _label_aggfunc(labels: pd.Series) -> str:
+            """
+            Convert a single or multi column label into a single label, replacing
+            null values with `NULL_STRING` and joining multiple columns together
+            with a comma. Examples:
+
+            >>> _label_aggfunc(pd.Series(["abc"]))
+            'abc'
+            >>> _label_aggfunc(pd.Series([1]))
+            '1'
+            >>> _label_aggfunc(pd.Series(["abc", "def"]))
+            'abc, def'
+            >>> _label_aggfunc(pd.Series([1, None, "abc", 0.8], dtype="object"))
+            '1, <NULL>, abc, 0.8'
+            """
+            return ", ".join(
+                [NULL_STRING if label is None else str(label) for label in labels]
+            )
+
         if df.empty:
             return None
         metric = self.metric_labels[0]
         df = pd.DataFrame(
-            {"x": df[self.groupby].agg(func=", ".join, axis=1), "y": df[metric]}
+            {"x": df[self.groupby].agg(func=_label_aggfunc, axis=1), "y": df[metric]}
         )
         df.sort_values(by="y", ascending=False, inplace=True)
         return df.to_dict(orient="records")

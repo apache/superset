@@ -20,6 +20,7 @@ from datetime import datetime
 import logging
 from math import nan
 from unittest.mock import Mock, patch
+from typing import Any, Dict, List, Set
 
 import numpy as np
 import pandas as pd
@@ -1330,3 +1331,43 @@ class TestPivotTableViz(SupersetTestCase):
             viz.PivotTableViz.get_aggfunc("strcol", self.df, {"pandas_aggfunc": "min"})
             == "min"
         )
+
+
+class TestDistributionPieViz(SupersetTestCase):
+    base_df = pd.DataFrame(
+        data={
+            "intcol": [1, 2, 3, 4],
+            "floatcol": [0.1, 0.2, 0.3, 0.4],
+            "strcol_a": ["a", "a", "a", "a"],
+            "strcol_nulls": ["a", "b", "c", None],
+        }
+    )
+
+    @staticmethod
+    def get_cols(data: List[Dict[str, Any]]) -> Set[str]:
+        return set([row["x"] for row in data])
+
+    def test_string_groupby(self):
+        datasource = self.get_datasource_mock()
+        pie_viz = viz.DistributionPieViz(
+            datasource, {"metrics": ["floatcol"], "groupby": ["strcol_nulls"]},
+        )
+        data = pie_viz.get_data(self.base_df)
+        assert self.get_cols(data) == {"<NULL>", "a", "b", "c"}
+
+    def test_int_groupby(self):
+        datasource = self.get_datasource_mock()
+        pie_viz = viz.DistributionPieViz(
+            datasource, {"metrics": ["floatcol"], "groupby": ["intcol"]},
+        )
+        data = pie_viz.get_data(self.base_df)
+        assert self.get_cols(data) == {"1", "2", "3", "4"}
+
+    def test_multi_groupby(self):
+        datasource = self.get_datasource_mock()
+        pie_viz = viz.DistributionPieViz(
+            datasource,
+            {"metrics": ["floatcol"], "groupby": ["intcol", "strcol_nulls"]},
+        )
+        data = pie_viz.get_data(self.base_df)
+        assert self.get_cols(data) == {"1, a", "2, b", "3, c", "4, <NULL>"}
