@@ -51,7 +51,7 @@ export default function Loading({ position = 'floating' }: Props) {
         alt="Loading..."
         src="/static/assets/images/loading.gif"
       />
-      <span className={`loading_img ${position}`}>{t('loading')}...</span>
+      <span className={`loading_img ${position}`}>{t('loading')}</span>
     </div>
   );
 }
