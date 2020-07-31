@@ -19,6 +19,7 @@
 import emotionStyled, { CreateStyled } from '@emotion/styled';
 
 export { useTheme, ThemeProvider, withTheme } from 'emotion-theming';
+export { css } from '@emotion/core';
 
 const defaultTheme = {
   borderRadius: 4,
