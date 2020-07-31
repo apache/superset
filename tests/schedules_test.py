@@ -61,9 +61,13 @@ class TestSchedules(SupersetTestCase):
                 delivery_type=EmailDeliveryType.inline,
             )
 
-            # Pick up a random slice and dashboard
-            slce = db.session.query(Slice).filter_by(slice_name="Participants").all()[0]
-            dashboard = db.session.query(Dashboard).all()[0]
+            # Pick up a sample slice and dashboard
+            slce = db.session.query(Slice).filter_by(slice_name="Participants").one()
+            dashboard = (
+                db.session.query(Dashboard)
+                .filter_by(dashboard_title="USA Births Names")
+                .one()
+            )
 
             dashboard_schedule = DashboardEmailSchedule(**cls.common_data)
             dashboard_schedule.dashboard_id = dashboard.id
@@ -190,7 +194,7 @@ class TestSchedules(SupersetTestCase):
         schedule = (
             db.session.query(DashboardEmailSchedule)
             .filter_by(id=self.dashboard_schedule)
-            .all()[0]
+            .one()
         )
 
         deliver_dashboard(
@@ -226,7 +230,7 @@ class TestSchedules(SupersetTestCase):
         schedule = (
             db.session.query(DashboardEmailSchedule)
             .filter_by(id=self.dashboard_schedule)
-            .all()[0]
+            .one()
         )
 
         schedule.delivery_type = EmailDeliveryType.attachment
@@ -270,7 +274,7 @@ class TestSchedules(SupersetTestCase):
         schedule = (
             db.session.query(DashboardEmailSchedule)
             .filter_by(id=self.dashboard_schedule)
-            .all()[0]
+            .one()
         )
 
         deliver_dashboard(
@@ -309,7 +313,7 @@ class TestSchedules(SupersetTestCase):
         schedule = (
             db.session.query(DashboardEmailSchedule)
             .filter_by(id=self.dashboard_schedule)
-            .all()[0]
+            .one()
         )
 
         # Send individual mails to the group
@@ -351,9 +355,7 @@ class TestSchedules(SupersetTestCase):
         element.screenshot_as_png = read_fixture("sample.png")
 
         schedule = (
-            db.session.query(SliceEmailSchedule)
-            .filter_by(id=self.slice_schedule)
-            .all()[0]
+            db.session.query(SliceEmailSchedule).filter_by(id=self.slice_schedule).one()
         )
 
         schedule.email_format = SliceEmailReportFormat.visualization
@@ -405,9 +407,7 @@ class TestSchedules(SupersetTestCase):
         element.screenshot_as_png = read_fixture("sample.png")
 
         schedule = (
-            db.session.query(SliceEmailSchedule)
-            .filter_by(id=self.slice_schedule)
-            .all()[0]
+            db.session.query(SliceEmailSchedule).filter_by(id=self.slice_schedule).one()
         )
 
         schedule.email_format = SliceEmailReportFormat.visualization
@@ -455,9 +455,7 @@ class TestSchedules(SupersetTestCase):
         response.read.return_value = self.CSV
 
         schedule = (
-            db.session.query(SliceEmailSchedule)
-            .filter_by(id=self.slice_schedule)
-            .all()[0]
+            db.session.query(SliceEmailSchedule).filter_by(id=self.slice_schedule).one()
         )
 
         schedule.email_format = SliceEmailReportFormat.data
@@ -501,9 +499,7 @@ class TestSchedules(SupersetTestCase):
         mock_urlopen.return_value.getcode.return_value = 200
         response.read.return_value = self.CSV
         schedule = (
-            db.session.query(SliceEmailSchedule)
-            .filter_by(id=self.slice_schedule)
-            .all()[0]
+            db.session.query(SliceEmailSchedule).filter_by(id=self.slice_schedule).one()
         )
 
         schedule.email_format = SliceEmailReportFormat.data
