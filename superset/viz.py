@@ -1551,7 +1551,12 @@ class DistributionPieViz(NVD3Viz):
             return None
         metric = self.metric_labels[0]
         df = pd.DataFrame(
-            {"x": df[self.groupby].agg(func=lambda x: ", ".join(map(str, x)), axis=1), "y": df[metric]}
+            {
+                "x": df[self.groupby].agg(
+                    func=lambda x: ", ".join(map(str, x)), axis=1
+                ),
+                "y": df[metric],
+            }
         )
         df.sort_values(by="y", ascending=False, inplace=True)
         return df.to_dict(orient="records")
