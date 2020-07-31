@@ -361,7 +361,7 @@ class Header extends React.PureComponent {
 
     return (
       <div className="dashboard-header">
-        <div className="dashboard-component-header header-large">
+        <div className="dashboard-component-header header-medium">
           <EditableTitle
             title={dashboardTitle}
             canEdit={userCanEdit && editMode}
