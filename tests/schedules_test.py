@@ -62,7 +62,7 @@ class TestSchedules(SupersetTestCase):
             )
 
             # Pick up a random slice and dashboard
-            slce = db.session.query(Slice).all()[0]
+            slce = db.session.query(Slice).filter_by(slice_name="Participants").all()[0]
             dashboard = db.session.query(Dashboard).all()[0]
 
             dashboard_schedule = DashboardEmailSchedule(**cls.common_data)
