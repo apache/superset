@@ -24,8 +24,11 @@ import { logEvent } from '../logger/actions';
 import Chart from './Chart';
 
 function mapStateToProps({ dashboardState }) {
-  // needed to prevent chart from rendering while animating
-  return { isParentMounted: dashboardState?.isTabMounted };
+  return {
+    // needed to prevent chart from rendering while tab switch animation in progress
+    // when undefined, default to have mounted the root tab
+    mountedParent: dashboardState?.mountedTab,
+  };
 }
 
 function mapDispatchToProps(dispatch) {

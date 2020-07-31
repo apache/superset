@@ -321,12 +321,12 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
-export const SET_IS_TAB_MOUNTED = 'SET_IS_TAB_MOUNTED';
+export const SET_MOUNTED_TAB = 'SET_MOUNTED_TAB';
 /**
  * Set if tab switch animation is in progress
  */
-export function setIsTabMounted(isTabMounted) {
-  return { type: SET_IS_TAB_MOUNTED, isTabMounted };
+export function setMountedTab(mountedTab) {
+  return { type: SET_MOUNTED_TAB, mountedTab };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';

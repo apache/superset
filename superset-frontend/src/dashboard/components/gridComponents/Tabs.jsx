@@ -51,7 +51,7 @@ const propTypes = {
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
-  setIsTabMounted: PropTypes.func.isRequired,
+  setMountedTab: PropTypes.func.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -264,12 +264,16 @@ class Tabs extends React.PureComponent {
                     />
                   }
                   onExiting={() => {
-                    // Exiting previous tab, animating start
-                    this.props.setIsTabMounted(false);
+                    if (renderTabContent) {
+                      // Exiting previous tab, animating start
+                      this.props.setMountedTab(null);
+                    }
                   }}
                   onEntering={() => {
                     // Entering current tab, DOM is visible and has dimension
-                    this.props.setIsTabMounted(true);
+                    if (renderTabContent) {
+                      this.props.setMountedTab(tabId);
+                    }
                   }}
                 >
                   {renderTabContent && (

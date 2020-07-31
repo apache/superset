@@ -60,6 +60,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   setDirectPathToChild: PropTypes.func.isRequired,
+  setMountedTab: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -247,6 +248,15 @@ class DashboardBuilder extends React.Component {
                       <TabPane
                         key={index === 0 ? DASHBOARD_GRID_ID : id}
                         eventKey={index}
+                        mountOnEnter
+                        onExiting={() => {
+                          // Exiting previous tab, animating start
+                          this.props.setMountedTab(null);
+                        }}
+                        onEntering={() => {
+                          // Entering current tab, DOM is visible and has dimension
+                          this.props.setMountedTab(id);
+                        }}
                       >
                         <DashboardGrid
                           gridComponent={dashboardLayout[id]}
