@@ -32,7 +32,6 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package.json');
-const postcssPrefixwrap= require('postcss-prefixwrap');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -281,34 +280,6 @@ const config = {
       },
       {
         test: /\.less$/,
-        include: [/antd/],
-        use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: isDevMode,
-            },
-          },
-          {
-            loader: 'postcss-loader',
-            options: {
-              ident: 'postcss',
-              plugins: [postcssPrefixwrap('.antd', { prefixRootTags: false })],
-            },
-          },
-          {
-            loader: 'less-loader',
-            options: {
-              sourceMap: isDevMode,
-              javascriptEnabled: true,
-            },
-          },
-        ],
-      },
-      {
-        test: /\.less$/,
-        exclude: [/antd/],
         include: APP_DIR,
         use: [
           isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,

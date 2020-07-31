@@ -1,8 +1,26 @@
-@import '../../node_modules/antd/dist/antd.less';
-@import 'variables.less';
+@import '~antd/lib/style/themes/index';
+@import '~antd/lib/style/mixins/index';
+@import '~antd/lib/style/core/base';
 
-.antd {
-  height: auto !important;
-  width: auto !important;
-  background: none;
+*[class*='ant-'] {
+  @import '~antd/lib/style/core/global.less';
 }
+
+@import '~antd/lib/style/core/iconfont';
+@import '~antd/lib/style/core/motion';
+@import "~antd/lib/style/components.less";
+
+/*
+  Theme variables here: https://github.com/ant-design/ant-design/blob/master/components/style/themes/default.less
+*/
+
+@primary-color: #20A7C9;
+@info-color: #66BCFE;
+@success-color: #59C189;
+@processing-color: #66BCFE;
+@error-color: #E04355;
+@highlight-color: #E04355;
+@warning-color: #FBC700;
+@normal-color: #d9d9d9;
+@white: #fff;
+@black: #000;

@@ -87,6 +87,12 @@ module.exports = {
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-restricted-syntax': 0,
+        'no-restricted-imports': ['error', {
+          'paths': [{
+            'name': 'antd',
+            'message': 'Please import Ant components from the index of common/components',
+          }]
+        }],
         'padded-blocks': 0,
         'prefer-arrow-callback': 0,
         'react/forbid-prop-types': 0,
@@ -146,6 +152,12 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-syntax': 0,
+    'no-restricted-imports': ['error', {
+      'paths': [{
+        'name': 'antd',
+        'message': 'Please import Ant components from the index of common/components',
+      }]
+    }],
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
     'prefer-object-spread': 1,
