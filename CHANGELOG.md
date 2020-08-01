@@ -19,6 +19,14 @@ under the License.
 ## Change Log
 
 ### 0.37.0 (2020/07/11 08:07 +00:00)
+- [#10450](https://github.com/apache/incubator-superset/pull/10450) fix: excel sheet upload is not working (#10450) (@pphszx)
+- [#10389](https://github.com/apache/incubator-superset/pull/10389) feat: support non-numeric columns in pivot table (#10389) (@villebro)
+- [#10432](https://github.com/apache/incubator-superset/pull/10432) fix(dashboard): chart rerender when switching tabs (#10432) (@ktmud)
+- [#10421](https://github.com/apache/incubator-superset/pull/10421) fix: incorrect filter operator emitted by Filter Box (#10421) (@villebro)
+- [#10400](https://github.com/apache/incubator-superset/pull/10400) fix: bump pivot-table and rose (#10400) (@villebro)
+- [#10382](https://github.com/apache/incubator-superset/pull/10382) fix: treemap template literal (#10382) (@villebro)
+- [#10344](https://github.com/apache/incubator-superset/pull/10344) fix: group by with timestamp granularity (#10344) (@dpgaspar)
+- [#10340](https://github.com/apache/incubator-superset/pull/10340) fix: modified by column on charts and dashboards (#10340) (@dpgaspar)
 - [#10359](https://github.com/apache/incubator-superset/pull/10359) fix: extra filters for chart data endpoint (#10359) (@villebro)
 - [#10345](https://github.com/apache/incubator-superset/pull/10345) Pin slack client, breaking change (#10345) (@bkyryliuk)
 - [#10336](https://github.com/apache/incubator-superset/pull/10336) fix: make __time an ok column name in SQL Lab (#10336) (@villebro)
