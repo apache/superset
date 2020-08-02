@@ -35,7 +35,7 @@ jobs:
         with:
           msg: |
             ### WARNING: Prefer TypeScript
-            
+
             Looks like your PR contains new `.js` or `.jsx` files:
 
             ```

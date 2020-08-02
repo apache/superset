@@ -705,7 +705,7 @@ See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-s
 
 ### Storybook
 
-Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:  
+Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:
 
 ```bash
 cd superset-frontend
