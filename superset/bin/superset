@@ -17,5 +17,5 @@
 # under the License.
 from superset.cli import superset
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     superset()

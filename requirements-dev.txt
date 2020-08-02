@@ -39,4 +39,3 @@ tox==3.11.1
 pillow==7.0.0
 openpyxl==3.0.3 # Pandas use openpyxl to write excel format(using in unittes)
 xlrd==1.2.0
-
