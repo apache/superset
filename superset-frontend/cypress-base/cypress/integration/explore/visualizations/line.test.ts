@@ -46,9 +46,9 @@ describe('Visualization > Line', () => {
   });
 
   it('should allow negative values in Y bounds', () => {
-    cy.get('#controlSections-tab-display').click();
+    cy.get('#controlSections-tab-display').click().wait(1000);
     cy.get('span').contains('Y Axis Bounds').scrollIntoView();
-    cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 });
+    cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 }).wait(1000);
     cy.get('.alert-warning').should('not.exist');
   });
 

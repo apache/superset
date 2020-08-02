@@ -23,7 +23,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-import DatasetList from 'src/views/datasetList/DatasetList';
+import DatasetList from 'src/views/CRUD/dataset/DatasetList';
 import ListView from 'src/components/ListView/ListView';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
@@ -54,13 +54,6 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(datasetsInfoEndpoint, {
   permissions: ['can_list', 'can_edit', 'can_add', 'can_delete'],
-  filters: {
-    database: [],
-    schema: [],
-    table_name: [],
-    owners: [],
-    is_sqllab_view: [],
-  },
 });
 fetchMock.get(datasetsOwnersEndpoint, {
   result: [],
@@ -93,11 +86,11 @@ describe('DatasetList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(DatasetList)).toHaveLength(1);
+    expect(wrapper.find(DatasetList)).toExist();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toHaveLength(1);
+    expect(wrapper.find(ListView)).toExist();
   });
 
   it('fetches info', () => {
@@ -105,15 +98,10 @@ describe('DatasetList', () => {
     expect(callsI).toHaveLength(1);
   });
 
-  it('fetches owners', () => {
-    const callsO = fetchMock.calls(/dataset\/related\/owners/);
-    expect(callsO).toHaveLength(1);
-  });
-
   it('fetches data', () => {
     const callsD = fetchMock.calls(/dataset\/\?q/);
-    expect(callsD).toHaveLength(1);
-    expect(callsD[0][0]).toMatchInlineSnapshot(
+    expect(callsD).toHaveLength(2);
+    expect(callsD[1][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/dataset/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });

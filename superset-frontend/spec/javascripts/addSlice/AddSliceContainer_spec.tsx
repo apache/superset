@@ -49,12 +49,12 @@ describe('AddSliceContainer', () => {
   });
 
   it('renders a select and a VizTypeControl', () => {
-    expect(wrapper.find(Select)).toHaveLength(1);
-    expect(wrapper.find(VizTypeControl)).toHaveLength(1);
+    expect(wrapper.find(Select)).toExist();
+    expect(wrapper.find(VizTypeControl)).toExist();
   });
 
   it('renders a button', () => {
-    expect(wrapper.find(Button)).toHaveLength(1);
+    expect(wrapper.find(Button)).toExist();
   });
 
   it('renders a disabled button if no datasource is selected', () => {

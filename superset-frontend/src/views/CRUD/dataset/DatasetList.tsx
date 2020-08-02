@@ -25,16 +25,14 @@ import React, {
   useState,
 } from 'react';
 import rison from 'rison';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import DatasourceModal from 'src/datasource/DatasourceModal';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import AvatarIcon from 'src/components/AvatarIcon';
-import {
-  FetchDataConfig,
-  FilterOperatorMap,
-  Filters,
-} from 'src/components/ListView/types';
+import { FetchDataConfig, Filters } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
@@ -70,28 +68,58 @@ interface DatasetListProps {
   addSuccessToast: (msg: string) => void;
 }
 
+export const createFetchSchemas = (
+  handleError: (error: Response) => void,
+) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
+  // add filters if filterValue
+  const filters = filterValue
+    ? { filters: [{ col: 'schema', opr: 'sw', value: filterValue }] }
+    : {};
+  try {
+    const queryParams = rison.encode({
+      columns: ['schema'],
+      keys: ['none'],
+      order_by: 'schema',
+      ...(pageIndex ? { page: pageIndex } : {}),
+      ...(pageSize ? { page_size: pageSize } : {}),
+      ...filters,
+    });
+    const { json = {} } = await SupersetClient.get({
+      endpoint: `/api/v1/dataset/?q=${queryParams}`,
+    });
+
+    const schemas: string[] = json?.result?.map(
+      ({ schema }: { schema: string }) => schema,
+    );
+
+    // uniqueify schema values and create options
+    return [...new Set(schemas)]
+      .filter(schema => Boolean(schema))
+      .map(schema => ({ label: schema, value: schema }));
+  } catch (e) {
+    handleError(e);
+  }
+  return [];
+};
+
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
-  const [databases, setDatabases] = useState<{ text: string; value: number }[]>(
-    [],
-  );
   const [datasetCount, setDatasetCount] = useState(0);
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     (Dataset & { chart_count: number; dashboard_count: number }) | null
   >(null);
+  const [
+    datasetCurrentlyEditing,
+    setDatasetCurrentlyEditing,
+  ] = useState<Dataset | null>(null);
   const [datasets, setDatasets] = useState<any[]>([]);
-  const [currentFilters, setCurrentFilters] = useState<Filters>([]);
-  const [filterOperators, setFilterOperators] = useState<FilterOperatorMap>();
   const [
     lastFetchDataConfig,
     setLastFetchDataConfig,
   ] = useState<FetchDataConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentOwners, setCurrentOwners] = useState<
-    { text: string; value: number }[]
-  >([]);
   const [permissions, setPermissions] = useState<string[]>([]);
 
   const [datasetAddModalOpen, setDatasetAddModalOpen] = useState<boolean>(
@@ -99,97 +127,89 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
   const [bulkSelectEnabled, setBulkSelectEnabled] = useState<boolean>(false);
 
-  const updateFilters = () => {
-    const convertFilter = ({
-      name: label,
-      operator,
-    }: {
-      name: string;
-      operator: string;
-    }) => ({ label, value: operator });
-    if (filterOperators) {
-      setCurrentFilters([
-        {
-          Header: 'Database',
-          id: 'database',
-          input: 'select',
-          operators: filterOperators.database.map(convertFilter),
-          selects: databases.map(({ text: label, value }) => ({
-            label,
-            value,
-          })),
-        },
-        {
-          Header: 'Schema',
-          id: 'schema',
-          operators: filterOperators.schema.map(convertFilter),
-        },
-        {
-          Header: 'Table Name',
-          id: 'table_name',
-          operators: filterOperators.table_name.map(convertFilter),
-        },
-        {
-          Header: 'Owners',
-          id: 'owners',
-          input: 'select',
-          operators: filterOperators.owners.map(convertFilter),
-          selects: currentOwners.map(({ text: label, value }) => ({
-            label,
-            value,
-          })),
-        },
-        {
-          Header: 'SQL Lab View',
-          id: 'is_sqllab_view',
-          input: 'checkbox',
-          operators: filterOperators.is_sqllab_view.map(convertFilter),
-        },
-      ]);
-    }
+  const filterTypes: Filters = [
+    {
+      Header: t('Owner'),
+      id: 'owners',
+      input: 'select',
+      operator: 'rel_m_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'dataset',
+        'owners',
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching dataset owner values: %s',
+            errMsg,
+          ),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Datasource'),
+      id: 'database',
+      input: 'select',
+      operator: 'rel_o_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'dataset',
+        'database',
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching dataset datasource values: %s',
+            errMsg,
+          ),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Schema'),
+      id: 'schema',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchSchemas(errMsg =>
+        t('An error occurred while fetching schema values: %s', errMsg),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Type'),
+      id: 'is_sqllab_view',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      selects: [
+        { label: 'Virtual', value: true },
+        { label: 'Physical', value: false },
+      ],
+    },
+    {
+      Header: t('Search'),
+      id: 'table_name',
+      input: 'search',
+      operator: 'ct',
+    },
+  ];
+
+  const fetchDatasetInfo = () => {
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/_info`,
+    }).then(
+      ({ json: infoJson = {} }) => {
+        setPermissions(infoJson.permissions);
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(t('An error occurred while fetching datasets', errMsg)),
+      ),
+    );
   };
 
-  const fetchDataset = () =>
-    Promise.all([
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/_info`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/owners`,
-      }),
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/related/database`,
-      }),
-    ])
-      .then(
-        ([
-          { json: infoJson = {} },
-          { json: ownersJson = {} },
-          { json: databasesJson = {} },
-        ]) => {
-          setCurrentOwners(ownersJson.result);
-          setDatabases(databasesJson.result);
-          setPermissions(infoJson.permissions);
-          setFilterOperators(infoJson.filters);
-        },
-      )
-      .catch(([e1, e2]) => {
-        addDangerToast(t('An error occurred while fetching datasets'));
-        if (e1) {
-          console.error(e1);
-        }
-        if (e2) {
-          console.error(e2);
-        }
-      });
-
   useEffect(() => {
-    fetchDataset();
+    fetchDatasetInfo();
   }, []);
-
-  useEffect(() => {
-    updateFilters();
-  }, [databases, currentOwners, permissions, filterOperators]);
 
   const hasPerm = (perm: string) => {
     if (!permissions.length) {
@@ -205,8 +225,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  const handleDatasetEdit = ({ id }: { id: number }) => {
-    window.location.assign(`/tablemodelview/edit/${id}`);
+  const openDatasetEditModal = ({ id }: Dataset) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${id}`,
+    })
+      .then(({ json = {} }) => {
+        const owners = json.result.owners.map((owner: any) => owner.id);
+        setDatasetCurrentlyEditing({ ...json.result, owners });
+      })
+      .catch(() => {
+        addDangerToast(
+          t('An error occurred while fetching dataset related data'),
+        );
+      });
   };
 
   const openDatasetDeleteModal = (dataset: Dataset) =>
@@ -220,11 +251,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           dashboard_count: json.dashboards.count,
         });
       })
-      .catch(() => {
-        addDangerToast(
-          t('An error occurred while fetching dataset related data'),
-        );
-      });
+      .catch(
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching dataset related data: %s',
+            errMsg,
+          ),
+        ),
+      );
 
   const columns = [
     {
@@ -345,8 +379,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { original } }: any) => {
-        const handleEdit = () => handleDatasetEdit(original);
+      Cell: ({ row: { state, original } }: any) => {
+        const handleEdit = () => openDatasetEditModal(original);
         const handleDelete = () => openDatasetDeleteModal(original);
         if (!canEdit && !canDelete) {
           return null;
@@ -450,6 +484,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyDeleting(null);
   };
 
+  const closeDatasetEditModal = () => setDatasetCurrentlyEditing(null);
+
   const fetchData = useCallback(
     ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
       // set loading state, cache the last config for fetching data in this component.
@@ -477,15 +513,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       return SupersetClient.get({
         endpoint: `/api/v1/dataset/?q=${queryParams}`,
       })
-        .then(({ json }) => {
-          setLoading(false);
-          setDatasets(json.result);
-          setDatasetCount(json.count);
-        })
-        .catch(() => {
-          addDangerToast(t('An error occurred while fetching datasets'));
-          setLoading(false);
-        });
+        .then(
+          ({ json }) => {
+            setLoading(false);
+            setDatasets(json.result);
+            setDatasetCount(json.count);
+          },
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching datasets: %s', errMsg),
+            ),
+          ),
+        )
+        .finally(() => setLoading(false));
     },
     [],
   );
@@ -501,10 +541,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         setDatasetCurrentlyDeleting(null);
         addSuccessToast(t('Deleted: %s', tableName));
       },
-      (err: any) => {
-        console.error(err);
-        addDangerToast(t('There was an issue deleting %s', tableName));
-      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', tableName, errMsg),
+        ),
+      ),
     );
   };
 
@@ -520,11 +561,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }
         addSuccessToast(json.message);
       },
-      (err: any) => {
-        console.error(err);
-        addDangerToast(t('There was an issue deleting the selected datasets'));
-      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting the selected datasets: %s', errMsg),
+        ),
+      ),
     );
+  };
+
+  const handleUpdateDataset = () => {
+    if (lastFetchDataConfig) {
+      fetchData(lastFetchDataConfig);
+    }
   };
 
   return (
@@ -571,54 +619,82 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             : [];
 
           return (
-            <ListView
-              className="dataset-list-view"
-              columns={columns}
-              data={datasets}
-              count={datasetCount}
-              pageSize={PAGE_SIZE}
-              fetchData={fetchData}
-              loading={loading}
-              initialSort={initialSort}
-              filters={currentFilters}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={() => setBulkSelectEnabled(false)}
-              renderBulkSelectCopy={selected => {
-                const { virtualCount, physicalCount } = selected.reduce(
-                  (acc, e) => {
-                    if (e.original.kind === 'physical') acc.physicalCount += 1;
-                    else if (e.original.kind === 'virtual')
-                      acc.virtualCount += 1;
-                    return acc;
-                  },
-                  { virtualCount: 0, physicalCount: 0 },
-                );
-
-                if (!selected.length) {
-                  return t('0 Selected');
-                } else if (virtualCount && !physicalCount) {
-                  return t(
-                    '%s Selected (Virtual)',
-                    selected.length,
-                    virtualCount,
+            <>
+              {datasetCurrentlyDeleting && (
+                <DeleteModal
+                  description={t(
+                    `The dataset ${datasetCurrentlyDeleting.table_name} is linked to 
+                  ${datasetCurrentlyDeleting.chart_count} charts that appear on 
+                  ${datasetCurrentlyDeleting.dashboard_count} dashboards. 
+                  Are you sure you want to continue? Deleting the dataset will break 
+                  those objects.`,
+                  )}
+                  onConfirm={() =>
+                    handleDatasetDelete(datasetCurrentlyDeleting)
+                  }
+                  onHide={closeDatasetDeleteModal}
+                  open
+                  title={t('Delete Dataset?')}
+                />
+              )}
+              {datasetCurrentlyEditing && (
+                <DatasourceModal
+                  datasource={datasetCurrentlyEditing}
+                  onDatasourceSave={handleUpdateDataset}
+                  onHide={closeDatasetEditModal}
+                  show
+                />
+              )}
+              <ListView
+                className="dataset-list-view"
+                columns={columns}
+                data={datasets}
+                count={datasetCount}
+                pageSize={PAGE_SIZE}
+                fetchData={fetchData}
+                filters={filterTypes}
+                loading={loading}
+                initialSort={initialSort}
+                bulkActions={bulkActions}
+                bulkSelectEnabled={bulkSelectEnabled}
+                disableBulkSelect={() => setBulkSelectEnabled(false)}
+                renderBulkSelectCopy={selected => {
+                  const { virtualCount, physicalCount } = selected.reduce(
+                    (acc, e) => {
+                      if (e.original.kind === 'physical')
+                        acc.physicalCount += 1;
+                      else if (e.original.kind === 'virtual')
+                        acc.virtualCount += 1;
+                      return acc;
+                    },
+                    { virtualCount: 0, physicalCount: 0 },
                   );
-                } else if (physicalCount && !virtualCount) {
+
+                  if (!selected.length) {
+                    return t('0 Selected');
+                  } else if (virtualCount && !physicalCount) {
+                    return t(
+                      '%s Selected (Virtual)',
+                      selected.length,
+                      virtualCount,
+                    );
+                  } else if (physicalCount && !virtualCount) {
+                    return t(
+                      '%s Selected (Physical)',
+                      selected.length,
+                      physicalCount,
+                    );
+                  }
+
                   return t(
-                    '%s Selected (Physical)',
+                    '%s Selected (%s Physical, %s Virtual)',
                     selected.length,
                     physicalCount,
+                    virtualCount,
                   );
-                }
-
-                return t(
-                  '%s Selected (%s Physical, %s Virtual)',
-                  selected.length,
-                  physicalCount,
-                  virtualCount,
-                );
-              }}
-            />
+                }}
+              />
+            </>
           );
         }}
       </ConfirmStatusChange>

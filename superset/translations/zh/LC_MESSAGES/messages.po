@@ -4010,6 +4010,12 @@ msgstr "周"
 #~ msgid "Saved Queries"
 #~ msgstr "已保存查询"
 
+#~ msgid "Show"
+#~ msgstr "每页显示"
+
+#~ msgid "entries"
+#~ msgstr "条"
+
 #~ msgid "Chart Cache Timeout"
 #~ msgstr "表缓存超时"
 

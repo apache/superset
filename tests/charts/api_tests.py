@@ -57,9 +57,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
-        )
+        datasource = ConnectorRegistry.get_datasource(datasource_type, datasource_id)
         slice = Slice(
             slice_name=slice_name,
             datasource_id=datasource.id,
@@ -895,14 +893,3 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         payload = get_query_context(table.name, table.id, table.type)
         rv = self.post_assert_metric(CHART_DATA_URI, payload, "data")
         self.assertEqual(rv.status_code, 401)
-
-    def test_datasources(self):
-        """
-            Chart API: Test get datasources
-        """
-        self.login(username="admin")
-        uri = "api/v1/chart/datasources"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 6)

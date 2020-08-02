@@ -34,6 +34,6 @@ describe('Link', () => {
   });
   it('renders an anchor tag', () => {
     const wrapper = shallow(<Link {...mockedProps}>TEST</Link>);
-    expect(wrapper.find('a')).toHaveLength(1);
+    expect(wrapper.find('a')).toExist();
   });
 });

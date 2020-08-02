@@ -271,6 +271,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             className="adhoc-metric-edit-tab"
             eventKey={EXPRESSION_TYPES.SQL}
             title="Custom SQL"
+            data-test="adhoc-metric-edit-tab#custom"
           >
             {this.props.datasourceType !== 'druid' ? (
               <FormGroup>
@@ -304,11 +305,16 @@ export default class AdhocMetricEditPopover extends React.Component {
             bsStyle={hasUnsavedChanges && stateIsValid ? 'primary' : 'default'}
             bsSize="small"
             className="m-r-5"
+            data-test="AdhocMetricEdit#save"
             onClick={this.onSave}
           >
             Save
           </Button>
-          <Button bsSize="small" onClick={this.props.onClose}>
+          <Button
+            bsSize="small"
+            onClick={this.props.onClose}
+            data-test="AdhocMetricEdit#cancel"
+          >
             Close
           </Button>
           <i

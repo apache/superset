@@ -33,7 +33,7 @@ function setup() {
 describe('TabStatusIcon', () => {
   it('renders a circle without an x when hovered', () => {
     const { wrapper } = setup();
-    expect(wrapper.find('div.circle')).toHaveLength(1);
+    expect(wrapper.find('div.circle')).toExist();
     expect(wrapper.text()).toBe('');
   });
 });

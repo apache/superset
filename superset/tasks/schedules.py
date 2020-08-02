@@ -48,7 +48,6 @@ from flask_login import login_user
 from retry.api import retry_call
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import chrome, firefox
-from sqlalchemy.orm import Session
 from werkzeug.http import parse_cookie
 
 from superset import app, db, security_manager, thumbnail_cache
@@ -540,10 +539,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
     report_type: ScheduleType,
     schedule_id: int,
     recipients: Optional[str] = None,
+    is_test_alert: Optional[bool] = False,
 ) -> None:
     model_cls = get_scheduler_model(report_type)
-    dbsession = db.create_scoped_session()
-    schedule = dbsession.query(model_cls).get(schedule_id)
+    schedule = db.session.query(model_cls).get(schedule_id)
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:
@@ -551,7 +550,11 @@ def schedule_alert_query(  # pylint: disable=unused-argument
         return
 
     if report_type == ScheduleType.alert:
-        if run_alert_query(schedule, dbsession):
+        if is_test_alert and recipients:
+            deliver_alert(schedule, recipients)
+            return
+
+        if run_alert_query(schedule):
             # deliver_dashboard OR deliver_slice
             return
     else:
@@ -564,10 +567,12 @@ class AlertState:
     PASS = "pass"
 
 
-def deliver_alert(alert: Alert) -> None:
+def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
     logging.info("Triggering alert: %s", alert)
     img_data = None
     images = {}
+    recipients = recipients or alert.recipients
+
     if alert.slice:
 
         chart_url = get_url_path(
@@ -604,10 +609,10 @@ def deliver_alert(alert: Alert) -> None:
         image_url=image_url,
     )
 
-    _deliver_email(alert.recipients, deliver_as_group, subject, body, data, images)
+    _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
 
-def run_alert_query(alert: Alert, dbsession: Session) -> Optional[bool]:
+def run_alert_query(alert: Alert) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
     """
@@ -659,7 +664,7 @@ def run_alert_query(alert: Alert, dbsession: Session) -> Optional[bool]:
             state=state,
         )
     )
-    dbsession.commit()
+    db.session.commit()
 
     return None
 
@@ -699,23 +704,23 @@ def schedule_window(
     if not model_cls:
         return None
 
-    dbsession = db.create_scoped_session()
-    schedules = dbsession.query(model_cls).filter(model_cls.active.is_(True))
+    schedules = db.session.query(model_cls).filter(model_cls.active.is_(True))
 
     for schedule in schedules:
         logging.info("Processing schedule %s", schedule)
         args = (report_type, schedule.id)
+        schedule_start_at = start_at
 
         if (
             hasattr(schedule, "last_eval_dttm")
             and schedule.last_eval_dttm
             and schedule.last_eval_dttm > start_at
         ):
-            # start_at = schedule.last_eval_dttm + timedelta(seconds=1)
-            pass
+            schedule_start_at = schedule.last_eval_dttm + timedelta(seconds=1)
+
         # Schedule the job for the specified time window
         for eta in next_schedules(
-            schedule.crontab, start_at, stop_at, resolution=resolution
+            schedule.crontab, schedule_start_at, stop_at, resolution=resolution
         ):
             get_scheduler_action(report_type).apply_async(args, eta=eta)  # type: ignore
             break

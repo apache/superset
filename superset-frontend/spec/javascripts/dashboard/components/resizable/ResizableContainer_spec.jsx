@@ -31,6 +31,6 @@ describe('ResizableContainer', () => {
 
   it('should render a Resizable', () => {
     const wrapper = setup();
-    expect(wrapper.find(Resizable)).toHaveLength(1);
+    expect(wrapper.find(Resizable)).toExist();
   });
 });

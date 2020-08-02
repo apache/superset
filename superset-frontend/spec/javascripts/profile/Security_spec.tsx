@@ -43,7 +43,7 @@ describe('Security', () => {
   });
   it('renders no permission label when empty', () => {
     const wrapper = mount(<Security user={userNoPerms} />);
-    expect(wrapper.find('.datasources').find('.label')).toHaveLength(0);
-    expect(wrapper.find('.databases').find('.label')).toHaveLength(0);
+    expect(wrapper.find('.datasources').find('.label')).not.toExist();
+    expect(wrapper.find('.databases').find('.label')).not.toExist();
   });
 });

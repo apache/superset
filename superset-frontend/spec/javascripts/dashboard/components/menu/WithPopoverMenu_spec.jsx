@@ -39,12 +39,12 @@ describe('WithPopoverMenu', () => {
 
   it('should render a div with class "with-popover-menu"', () => {
     const wrapper = setup();
-    expect(wrapper.find('.with-popover-menu')).toHaveLength(1);
+    expect(wrapper.find('.with-popover-menu')).toExist();
   });
 
   it('should render the passed children', () => {
     const wrapper = setup();
-    expect(wrapper.find('#child')).toHaveLength(1);
+    expect(wrapper.find('#child')).toExist();
   });
 
   it('should focus on click in editMode', () => {
@@ -61,12 +61,12 @@ describe('WithPopoverMenu', () => {
 
   it('should render menuItems when focused', () => {
     const wrapper = setup({ editMode: true });
-    expect(wrapper.find('#menu1')).toHaveLength(0);
-    expect(wrapper.find('#menu2')).toHaveLength(0);
+    expect(wrapper.find('#menu1')).not.toExist();
+    expect(wrapper.find('#menu2')).not.toExist();
 
     wrapper.simulate('click');
-    expect(wrapper.find('#menu1')).toHaveLength(1);
-    expect(wrapper.find('#menu2')).toHaveLength(1);
+    expect(wrapper.find('#menu1')).toExist();
+    expect(wrapper.find('#menu2')).toExist();
   });
 
   it('should not focus when disableClick=true', () => {

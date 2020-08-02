@@ -65,7 +65,7 @@ const sumValueAdhocMetric = new AdhocMetric({
 describe('MetricsControl', () => {
   it('renders an OnPasteSelect', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OnPasteSelect)).toHaveLength(1);
+    expect(wrapper.find(OnPasteSelect)).toExist();
   });
 
   describe('constructor', () => {

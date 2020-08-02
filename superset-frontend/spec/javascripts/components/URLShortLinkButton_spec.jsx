@@ -40,6 +40,6 @@ describe('URLShortLinkButton', () => {
 
   it('renders OverlayTrigger', () => {
     const wrapper = setup();
-    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
+    expect(wrapper.find(OverlayTrigger)).toExist();
   });
 });

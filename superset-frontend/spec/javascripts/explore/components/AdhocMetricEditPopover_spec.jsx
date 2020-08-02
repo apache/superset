@@ -60,7 +60,7 @@ function setup(overrides) {
 describe('AdhocMetricEditPopover', () => {
   it('renders a popover with edit metric form contents', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Popover)).toHaveLength(1);
+    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(FormGroup)).toHaveLength(3);
     expect(wrapper.find(Button)).toHaveLength(2);
   });
@@ -106,20 +106,20 @@ describe('AdhocMetricEditPopover', () => {
 
   it('prevents saving if no column or aggregate is chosen', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(0);
+    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
     wrapper.instance().onColumnChange(null);
-    expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(1);
+    expect(wrapper.find(Button).find({ disabled: true })).toExist();
     wrapper.instance().onColumnChange({ column: columns[0] });
-    expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(0);
+    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
     wrapper.instance().onAggregateChange(null);
-    expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(1);
+    expect(wrapper.find(Button).find({ disabled: true })).toExist();
   });
 
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).toHaveLength(0);
+    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).not.toExist();
     wrapper.instance().onColumnChange({ column: columns[1] });
-    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).toHaveLength(1);
+    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).toExist();
   });
 
   it('will initiate a drag when clicked', () => {
@@ -127,7 +127,7 @@ describe('AdhocMetricEditPopover', () => {
     wrapper.instance().onDragDown = sinon.spy();
     wrapper.instance().forceUpdate();
 
-    expect(wrapper.find('i.fa-expand')).toHaveLength(1);
+    expect(wrapper.find('i.fa-expand')).toExist();
     expect(wrapper.instance().onDragDown.calledOnce).toBe(false);
     wrapper.find('i.fa-expand').simulate('mouseDown');
     expect(wrapper.instance().onDragDown.calledOnce).toBe(true);

@@ -365,11 +365,10 @@ class Druid(BaseSupersetView):
         self, refresh_all: bool = True
     ) -> FlaskResponse:
         """endpoint that refreshes druid datasources metadata"""
-        session = db.session()
         DruidCluster = ConnectorRegistry.sources[  # pylint: disable=invalid-name
             "druid"
         ].cluster_class
-        for cluster in session.query(DruidCluster).all():
+        for cluster in db.session.query(DruidCluster).all():
             cluster_name = cluster.cluster_name
             valid_cluster = True
             try:
@@ -391,7 +390,7 @@ class Druid(BaseSupersetView):
                     ),
                     "info",
                 )
-        session.commit()
+        db.session.commit()
         return redirect("/druiddatasourcemodelview/list/")
 
     @has_access

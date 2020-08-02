@@ -17,33 +17,42 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
+import styled from '@superset-ui/style';
+import { t } from '@superset-ui/translation';
+import Button, { DropdownItemProps } from '../Button';
 
-const propTypes = {
-  checked: PropTypes.bool.isRequired,
-  onChange: PropTypes.func.isRequired,
-  style: PropTypes.object,
-};
+const StyledButton = styled(Button)`
+  margin-top: 12px;
+  margin-right: 30px;
+`;
 
-export default function Checkbox({ checked, onChange, style }) {
+const dropdownItems: DropdownItemProps[] = [
+  {
+    label: t('SQL Query'),
+    url: '/superset/sqllab',
+    icon: 'fa-fw fa-search',
+  },
+  {
+    label: t('Chart'),
+    url: '/chart/add',
+    icon: 'fa-fw fa-bar-chart',
+  },
+  {
+    label: t('Dashboard'),
+    url: '/dashboard/new',
+    icon: 'fa-fw fa-dashboard',
+  },
+];
+
+export default function NewMenu() {
   return (
-    <span style={style}>
-      <i
-        role="button"
-        tabIndex={0}
-        className={`fa fa-check ${
-          checked ? 'text-primary' : 'text-transparent'
-        }`}
-        onClick={() => {
-          onChange(!checked);
-        }}
-        style={{
-          border: '1px solid #aaa',
-          borderRadius: '2px',
-          cursor: 'pointer',
-        }}
-      />
-    </span>
+    <li className="dropdown">
+      <StyledButton
+        className="dropdown-toggle btn btn-sm btn-primary"
+        dropdownItems={dropdownItems}
+      >
+        <i className="fa fa-plus" /> New
+      </StyledButton>
+    </li>
   );
 }
-Checkbox.propTypes = propTypes;

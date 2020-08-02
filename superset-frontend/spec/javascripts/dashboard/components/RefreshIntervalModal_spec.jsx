@@ -37,7 +37,7 @@ describe('RefreshIntervalModal', () => {
   });
   it('renders the trigger node', () => {
     const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
-    expect(wrapper.find('.fa-edit')).toHaveLength(1);
+    expect(wrapper.find('.fa-edit')).toExist();
   });
   it('should render a interval seconds', () => {
     const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
@@ -59,9 +59,9 @@ describe('RefreshIntervalModal', () => {
 
     const wrapper = shallow(<RefreshIntervalModal {...props} />);
     wrapper.instance().handleFrequencyChange({ value: 30 });
-    expect(wrapper.find(ModalTrigger).dive().find(Alert)).toHaveLength(1);
+    expect(wrapper.find(ModalTrigger).dive().find(Alert)).toExist();
 
     wrapper.instance().handleFrequencyChange({ value: 3601 });
-    expect(wrapper.find(ModalTrigger).dive().find(Alert)).toHaveLength(0);
+    expect(wrapper.find(ModalTrigger).dive().find(Alert)).not.toExist();
   });
 });

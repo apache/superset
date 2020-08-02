@@ -37,7 +37,7 @@ describe('FixedOrMetricControl', () => {
   });
 
   it('renders a TextControl and a SelectControl', () => {
-    expect(wrapper.find(TextControl)).toHaveLength(1);
-    expect(wrapper.find(MetricsControl)).toHaveLength(1);
+    expect(wrapper.find(TextControl)).toExist();
+    expect(wrapper.find(MetricsControl)).toExist();
   });
 });

@@ -840,6 +840,14 @@ When `superset-ui` packages are linked with `npm link`, the dev server will auto
 
 Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
 
+
+### Visualization Plugins
+
+The topic of authoring new plugins, whether you'd like to contribute
+it back or not has been well documented in the
+[So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/) blog post
+
+
 ### Adding a DB migration
 
 1. Alter the model you want to change. This example will add a `Column` Annotations model.
