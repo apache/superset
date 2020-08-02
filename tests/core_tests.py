@@ -1033,6 +1033,8 @@ class TestCore(SupersetTestCase):
             data = db.session.execute(f"SELECT * from {table_name}").fetchall()
             assert data[0] == ("a", "b")
             assert len(data) == repeat - 1
+        finally:
+            os.remove(f1)
 
     def test_import_excel(self):
         self.login(username="admin")
