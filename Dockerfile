@@ -114,14 +114,13 @@ ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 ######################################################################
 FROM lean AS dev
 
-COPY ./requirements* ./docker/requirements* /app/
+COPY ./requirements/*.txt ./docker/requirements/ /app/
 
 USER root
 # Cache everything for dev purposes...
 RUN cd /app \
     && pip install --ignore-installed -e . \
-    && pip install --ignore-installed -r requirements.txt \
-    && pip install --ignore-installed -r requirements-dev.txt \
+    && pip install --ignore-installed -r requirements/local.txt \
     && pip install --ignore-installed -r requirements-extra.txt \
     && pip install --ignore-installed -r requirements-local.txt || true
 USER superset

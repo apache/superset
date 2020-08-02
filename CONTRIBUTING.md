@@ -307,7 +307,7 @@ Finally, to make changes to the rst files and build the docs using Sphinx,
 you'll need to install a handful of dependencies from the repo you cloned:
 
 ```bash
-pip install -r docs/requirements.txt
+pip install -r requirements/documentation.txt
 ```
 
 To get the feel for how to edit and build the docs, let's edit a file, build
@@ -375,7 +375,7 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 Generate the API documentation with:
 
 ```bash
-pip install -r docs/requirements.txt
+pip install -r requirements/documentation.txt
 python setup.py build_sphinx
 ```
 
@@ -399,8 +399,7 @@ virtualenv -p python3 venv # setup a python3.6 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
+pip install -r requirements/local.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
@@ -553,7 +552,7 @@ in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
 
 ```bash
-pip3 install -r requirements-dev.txt
+pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
