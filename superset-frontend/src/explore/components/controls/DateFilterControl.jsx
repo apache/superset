@@ -590,13 +590,8 @@ class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >
-<<<<<<< HEAD
-          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>
-            {formatTimeRange(timeRange, this.props.endpoints)}
-=======
           <Label name="popover-trigger" className="pointer">
-            {value}
->>>>>>> chore: TypeScript <Label />
+            {formatTimeRange(timeRange, this.props.endpoints)}
           </Label>
         </OverlayTrigger>
       </div>
