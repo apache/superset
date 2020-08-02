@@ -19,7 +19,7 @@ under the License.
 
 # Getting Started with Superset using Docker
 
-Docker is an easy way to get started with Superset. 
+Docker is an easy way to get started with Superset.
 
 ## Prerequisites
 
@@ -28,8 +28,8 @@ Docker is an easy way to get started with Superset.
 
 ## Configuration
 
-The `/app/pythonpath` folder is mounted from [./docker/pythonpath_dev](./docker/pythonpath_dev) 
-which contains a base configuration [./docker/pythonpath/superset_config.py](./docker/pythonpath/superset_config.py) 
+The `/app/pythonpath` folder is mounted from [./docker/pythonpath_dev](./docker/pythonpath_dev)
+which contains a base configuration [./docker/pythonpath/superset_config.py](./docker/pythonpath/superset_config.py)
 intended for use with local development.
 
 ### Local overrides
@@ -62,7 +62,7 @@ To run the container, simply run:
 docker-compose up
 ```
 
-After several minutes for superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088) 
+After several minutes for superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088)
 to start your journey.
 
 ## Developing

@@ -159,21 +159,21 @@ permissions that were attributed.
 Restricting access to a subset of a particular table
 """"""""""""""""""""""""""""""""""""""""""""""""""""
 
-Using ``Row level security filters`` (under the ``Security`` menu) you can create 
-filters that are assigned to a particular table, as well as a set of roles. 
-Say people in your finance department should only have access to rows where 
-``department = "finance"``.  You could create a ``Row level security filter`` 
-with that clause, and assign it to your ``Finance`` role, as well as the 
+Using ``Row level security filters`` (under the ``Security`` menu) you can create
+filters that are assigned to a particular table, as well as a set of roles.
+Say people in your finance department should only have access to rows where
+``department = "finance"``.  You could create a ``Row level security filter``
+with that clause, and assign it to your ``Finance`` role, as well as the
 applicable table.
 
-The ``clause`` field can contain arbitrary text which is then added to the generated 
-SQL statement's ``WHERE`` clause.  So you could even do something like create a 
-filter for the last 30 days and apply it to a specific role, with a clause like 
-``date_field > DATE_SUB(NOW(), INTERVAL 30 DAY)``.  It can also support multiple 
-conditions: ``client_id = 6 AND advertiser="foo"``, etc. 
+The ``clause`` field can contain arbitrary text which is then added to the generated
+SQL statement's ``WHERE`` clause.  So you could even do something like create a
+filter for the last 30 days and apply it to a specific role, with a clause like
+``date_field > DATE_SUB(NOW(), INTERVAL 30 DAY)``.  It can also support multiple
+conditions: ``client_id = 6 AND advertiser="foo"``, etc.
 
-All relevant ``Row level security filters`` will be ANDed together, so it's 
-possible to create a situation where two roles conflict in such a way as to 
-limit a table subset to empty.  For example, the filters ``client_id=4`` and 
-and ``client_id=5``, applied to a role, will result in users of that role having 
+All relevant ``Row level security filters`` will be ANDed together, so it's
+possible to create a situation where two roles conflict in such a way as to
+limit a table subset to empty.  For example, the filters ``client_id=4`` and
+and ``client_id=5``, applied to a role, will result in users of that role having
 ``client_id=4 AND client_id=5`` added to their query, which can never be true.
