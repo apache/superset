@@ -60,7 +60,7 @@ Superset Resources
   `contribution guidelines <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md>`_
   and
   `code of conduct <https://github.com/apache/incubator-superset/blob/master/CODE_OF_CONDUCT.md>`_
-  on Github.
+  on Github. (You can contribute to this documentation [here](https://github.com/apache/incubator-superset/tree/master/docs))
 - Our `mailing list archives <https://lists.apache.org/list.html?dev@superset.apache.org>`_.
   To subscribe, send an email to ``dev-subscribe@superset.apache.org``
 - `Superset Users <https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md>`_
