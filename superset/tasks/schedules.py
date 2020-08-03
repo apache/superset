@@ -551,10 +551,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
 
     if report_type == ScheduleType.alert:
         if is_test_alert and recipients:
-            deliver_alert(schedule_id, recipients)
+            deliver_alert(schedule.id, recipients)
             return
 
-        if run_alert_query(schedule_id):
+        if run_alert_query(schedule.id):
             # deliver_dashboard OR deliver_slice
             return
     else:
