@@ -231,7 +231,7 @@ class TestSqlaTableModel(SupersetTestCase):
         spec.allows_joins = inner_join
         arbitrary_gby = "state || gender || '_test'"
         arbitrary_metric = dict(
-            label="arbitrary", expressionType="SQL", sqlExpression="COUNT(1)"
+            label="arbitrary", expressionType="SQL", sqlExpression="SUM(sum_boys)"
         )
         query_obj = dict(
             groupby=[arbitrary_gby, "name"],
@@ -264,13 +264,30 @@ class TestSqlaTableModel(SupersetTestCase):
             return ret
 
         df1 = self.query_with_expr_helper(is_timeseries=True, inner_join=True)
+        name_list1 = cannonicalize_df(df1).name.values.tolist()
         df2 = self.query_with_expr_helper(is_timeseries=True, inner_join=False)
+        name_list2 = cannonicalize_df(df1).name.values.tolist()
         self.assertFalse(df2.empty)
-        # df1 can be empty if the db does not support join
-        if not df1.empty:
-            pandas.testing.assert_frame_equal(
-                cannonicalize_df(df1), cannonicalize_df(df2)
-            )
+
+        expected_namelist = [
+            "Anthony",
+            "Brian",
+            "Christopher",
+            "Daniel",
+            "David",
+            "Eric",
+            "James",
+            "Jeffrey",
+            "John",
+            "Joseph",
+            "Kenneth",
+            "Kevin",
+            "Mark",
+            "Michael",
+            "Paul",
+        ]
+        assert name_list2 == expected_namelist
+        assert name_list1 == expected_namelist
 
     def test_query_with_expr_groupby(self):
         self.query_with_expr_helper(is_timeseries=False)
