@@ -41,8 +41,8 @@ from .helpers import (
 )
 
 
-def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
-    only_metadata: bool = False, force: bool = False
+def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
+    only_metadata: bool = False, force: bool = False, sample: bool = False,
 ) -> None:
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
@@ -54,6 +54,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
         pdf = pd.read_json(data)
         pdf.columns = [col.replace(".", "_") for col in pdf.columns]
         pdf.year = pd.to_datetime(pdf.year)
+        pdf = pdf.head(100) if sample else pdf
         pdf.to_sql(
             tbl_name,
             database.get_sqla_engine(),
