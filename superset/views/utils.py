@@ -105,9 +105,7 @@ def get_viz(
     form_data: FormData, datasource_type: str, datasource_id: int, force: bool = False
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
-    datasource = ConnectorRegistry.get_datasource(
-        datasource_type, datasource_id, db.session
-    )
+    datasource = ConnectorRegistry.get_datasource(datasource_type, datasource_id)
     viz_obj = viz.viz_types[viz_type](datasource, form_data=form_data, force=force)
     return viz_obj
 
@@ -293,8 +291,7 @@ CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 def get_dashboard_extra_filters(
     slice_id: int, dashboard_id: int
 ) -> List[Dict[str, Any]]:
-    session = db.session()
-    dashboard = session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
 
     # is chart in this dashboard?
     if (

@@ -25,6 +25,10 @@ import {
   getExploreLongUrl,
   shouldUseLegacyApi,
 } from 'src/explore/exploreUtils';
+import {
+  buildTimeRangeString,
+  formatTimeRange,
+} from 'src/explore/dateFilterUtils';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
 
@@ -243,6 +247,40 @@ describe('exploreUtils', () => {
     it('returns false for formData without viz_type', () => {
       const useLegacyApi = shouldUseLegacyApi(formData);
       expect(useLegacyApi).toBe(false);
+    });
+  });
+
+  describe('buildTimeRangeString', () => {
+    it('generates proper time range string', () => {
+      expect(
+        buildTimeRangeString('2010-07-30T00:00:00', '2020-07-30T00:00:00'),
+      ).toBe('2010-07-30T00:00:00 : 2020-07-30T00:00:00');
+      expect(buildTimeRangeString('', '2020-07-30T00:00:00')).toBe(
+        ' : 2020-07-30T00:00:00',
+      );
+      expect(buildTimeRangeString('', '')).toBe(' : ');
+    });
+  });
+
+  describe('formatTimeRange', () => {
+    it('generates a readable time range', () => {
+      expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
+      expect(formatTimeRange('No filter')).toBe('No filter');
+      expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
+        'Yesterday < col < Tomorrow',
+      );
+      expect(
+        formatTimeRange('2010-07-30T00:00:00 : 2020-07-30T00:00:00', [
+          'inclusive',
+          'exclusive',
+        ]),
+      ).toBe('2010-07-30 ≤ col < 2020-07-30');
+      expect(
+        formatTimeRange('2010-07-30T01:00:00 : ', ['exclusive', 'inclusive']),
+      ).toBe('2010-07-30T01:00:00 < col ≤ ∞');
+      expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
+        '-∞ < col < 2020-07-30',
+      );
     });
   });
 });

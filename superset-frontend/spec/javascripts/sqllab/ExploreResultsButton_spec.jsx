@@ -108,7 +108,7 @@ describe('ExploreResultsButton', () => {
 
   it('renders a Button', () => {
     const wrapper = getExploreResultsButtonWrapper();
-    expect(wrapper.find(Button)).toHaveLength(1);
+    expect(wrapper.find(Button)).toExist();
   });
 
   describe('datasourceName', () => {

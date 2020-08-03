@@ -24,7 +24,8 @@ import { t } from '@superset-ui/translation';
 import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
-import withToasts from '../../messageToasts/enhancers/withToasts';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 
 type DatasetAddObject = {
   id: number;
@@ -73,7 +74,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     tableName: string;
   }) => {
     setDatasourceId(dbId);
-    setDisableSave(isNil(dbId) || isEmpty(schema) || isEmpty(tableName));
+    setDisableSave(isNil(dbId) || isEmpty(tableName));
     setSchema(schema);
     setTableName(tableName);
   };
@@ -83,7 +84,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       endpoint: '/api/v1/dataset/',
       body: JSON.stringify({
         database: datasourceId,
-        schema: currentSchema,
+        ...(currentSchema ? { schema: currentSchema } : {}),
         table_name: currentTableName,
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -95,10 +96,16 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
         addSuccessToast(t('The dataset has been saved'));
         onHide();
       })
-      .catch(e => {
-        addDangerToast(t('Error while saving dataset'));
-        console.error(e);
-      });
+      .catch(
+        createErrorHandler((errMsg: unknown) =>
+          addDangerToast(
+            t(
+              'Error while saving dataset: %s',
+              (errMsg as { table_name?: string }).table_name,
+            ),
+          ),
+        ),
+      );
   };
 
   return (

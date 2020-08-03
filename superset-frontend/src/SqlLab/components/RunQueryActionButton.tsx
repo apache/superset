@@ -32,6 +32,9 @@ interface Props {
   stopQuery: () => void;
   sql: string;
 }
+const commonBtnStyle = {
+  width: '140px',
+};
 
 const RunQueryActionButton = ({
   allowAsync = false,
@@ -42,7 +45,7 @@ const RunQueryActionButton = ({
   stopQuery = NO_OP,
   sql = '',
 }: Props) => {
-  const runBtnText = selectedText ? t('Run Selected Query') : t('Run');
+  const runBtnText = selectedText ? t('Run Selection') : t('Run');
   const btnStyle = selectedText ? 'warning' : 'primary';
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
@@ -51,6 +54,7 @@ const RunQueryActionButton = ({
     bsSize: 'small',
     bsStyle: btnStyle,
     disabled: !dbId,
+    style: commonBtnStyle,
   };
 
   if (shouldShowStopBtn) {

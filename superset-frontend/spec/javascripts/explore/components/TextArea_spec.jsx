@@ -38,7 +38,7 @@ describe('SelectControl', () => {
   });
 
   it('renders a FormControl', () => {
-    expect(wrapper.find(FormControl)).toHaveLength(1);
+    expect(wrapper.find(FormControl)).toExist();
   });
 
   it('calls onChange when toggled', () => {
@@ -51,7 +51,7 @@ describe('SelectControl', () => {
     const props = { ...defaultProps };
     props.language = 'markdown';
     wrapper = shallow(<TextAreaControl {...props} />);
-    expect(wrapper.find(FormControl)).toHaveLength(0);
-    expect(wrapper.find(AceEditor)).toHaveLength(1);
+    expect(wrapper.find(FormControl)).not.toExist();
+    expect(wrapper.find(AceEditor)).toExist();
   });
 });

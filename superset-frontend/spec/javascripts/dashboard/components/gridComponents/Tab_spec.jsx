@@ -74,7 +74,7 @@ describe('Tabs', () => {
   describe('renderType=RENDER_TAB', () => {
     it('should render a DragDroppable', () => {
       const wrapper = setup();
-      expect(wrapper.find(DragDroppable)).toHaveLength(1);
+      expect(wrapper.find(DragDroppable)).toExist();
     });
 
     it('should render an EditableTitle with meta.text', () => {
@@ -97,17 +97,17 @@ describe('Tabs', () => {
 
     it('should render a WithPopoverMenu', () => {
       const wrapper = setup();
-      expect(wrapper.find(WithPopoverMenu)).toHaveLength(1);
+      expect(wrapper.find(WithPopoverMenu)).toExist();
     });
 
     it('should render a DeleteComponentModal when focused if its not the only tab', () => {
       let wrapper = setup();
       wrapper.find(WithPopoverMenu).simulate('click'); // focus
-      expect(wrapper.find(DeleteComponentModal)).toHaveLength(0);
+      expect(wrapper.find(DeleteComponentModal)).not.toExist();
 
       wrapper = setup({ editMode: true });
       wrapper.find(WithPopoverMenu).simulate('click');
-      expect(wrapper.find(DeleteComponentModal)).toHaveLength(1);
+      expect(wrapper.find(DeleteComponentModal)).toExist();
 
       wrapper = setup({
         editMode: true,
@@ -117,7 +117,7 @@ describe('Tabs', () => {
         },
       });
       wrapper.find(WithPopoverMenu).simulate('click');
-      expect(wrapper.find(DeleteComponentModal)).toHaveLength(0);
+      expect(wrapper.find(DeleteComponentModal)).not.toExist();
     });
 
     it('should show modal when clicked delete icon', () => {

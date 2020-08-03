@@ -99,7 +99,7 @@ class TestCore(SupersetTestCase):
 
     def test_slice_endpoint(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
         resp = self.get_resp("/superset/slice/{}/".format(slc.id))
         assert "Time Column" in resp
         assert "List Roles" in resp
@@ -113,7 +113,7 @@ class TestCore(SupersetTestCase):
 
     def test_viz_cache_key(self):
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -229,7 +229,7 @@ class TestCore(SupersetTestCase):
     def test_save_slice(self):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
+        slice_id = self.get_slice(slice_name).id
         copy_name_prefix = "Test Sankey"
         copy_name = f"{copy_name_prefix}[save]{random.random()}"
         tbl_id = self.table_ids.get("energy_usage")
@@ -295,7 +295,7 @@ class TestCore(SupersetTestCase):
     def test_filter_endpoint(self):
         self.login(username="admin")
         slice_name = "Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
+        slice_id = self.get_slice(slice_name).id
         db.session.commit()
         tbl_id = self.table_ids.get("energy_usage")
         table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
@@ -315,9 +315,7 @@ class TestCore(SupersetTestCase):
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(username="admin")
-        slc = self.get_slice(
-            slice_name="Girls", session=db.session, expunge_from_session=False
-        )
+        slc = self.get_slice(slice_name="Girls", expunge_from_session=False)
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
         assert "modified" in slc_data_attributes
@@ -368,9 +366,7 @@ class TestCore(SupersetTestCase):
         self.assertEqual(data, [])
 
         # make user owner of slice and verify that endpoint returns said slice
-        slc = self.get_slice(
-            slice_name=slice_name, session=db.session, expunge_from_session=False
-        )
+        slc = self.get_slice(slice_name=slice_name, expunge_from_session=False)
         slc.owners = [user]
         db.session.merge(slc)
         db.session.commit()
@@ -381,9 +377,7 @@ class TestCore(SupersetTestCase):
         self.assertEqual(data[0]["title"], slice_name)
 
         # remove ownership and ensure user no longer gets slice
-        slc = self.get_slice(
-            slice_name=slice_name, session=db.session, expunge_from_session=False
-        )
+        slc = self.get_slice(slice_name=slice_name, expunge_from_session=False)
         slc.owners = []
         db.session.merge(slc)
         db.session.commit()
@@ -561,7 +555,7 @@ class TestCore(SupersetTestCase):
         db.session.commit()
 
     def test_warm_up_cache(self):
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
         data = self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(slc.id))
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
@@ -769,7 +763,7 @@ class TestCore(SupersetTestCase):
 
     def test_user_profile(self, username="admin"):
         self.login(username=username)
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
 
         # Setting some faves
         url = f"/superset/favstar/Slice/{slc.id}/select/"
@@ -811,6 +805,9 @@ class TestCore(SupersetTestCase):
             for l in content:
                 test_file.write(f"{l}\n")
 
+    def create_sample_excelfile(self, filename: str, content: Dict[str, str]) -> None:
+        pd.DataFrame(content).to_excel(filename)
+
     def enable_csv_upload(self, database: models.Database) -> None:
         """Enables csv upload in the given database."""
         database.allow_csv_upload = True
@@ -836,6 +833,22 @@ class TestCore(SupersetTestCase):
         if extra:
             form_data.update(extra)
         return self.get_resp("/csvtodatabaseview/form", data=form_data)
+
+    def upload_excel(
+        self, filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    ):
+        form_data = {
+            "excel_file": open(filename, "rb"),
+            "name": table_name,
+            "con": utils.get_example_database().id,
+            "sheet_name": "Sheet1",
+            "if_exists": "fail",
+            "index_label": "test_label",
+            "mangle_dupe_cols": False,
+        }
+        if extra:
+            form_data.update(extra)
+        return self.get_resp("/exceltodatabaseview/form", data=form_data)
 
     @mock.patch(
         "superset.models.core.config",
@@ -980,6 +993,39 @@ class TestCore(SupersetTestCase):
         finally:
             os.remove(f1)
             os.remove(f2)
+
+    def test_import_excel(self):
+        self.login(username="admin")
+        table_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+        f1 = "testExcel.xlsx"
+        self.create_sample_excelfile(f1, {"a": ["john", "paul"], "b": [1, 2]})
+        self.enable_csv_upload(utils.get_example_database())
+
+        try:
+            success_msg_f1 = f'Excel file "{f1}" uploaded to table "{table_name}"'
+
+            # initial upload with fail mode
+            resp = self.upload_excel(f1, table_name)
+            self.assertIn(success_msg_f1, resp)
+
+            # upload again with fail mode; should fail
+            fail_msg = f'Unable to upload Excel file "{f1}" to table "{table_name}"'
+            resp = self.upload_excel(f1, table_name)
+            self.assertIn(fail_msg, resp)
+
+            # upload again with append mode
+            resp = self.upload_excel(f1, table_name, extra={"if_exists": "append"})
+            self.assertIn(success_msg_f1, resp)
+
+            # upload again with replace mode
+            resp = self.upload_excel(f1, table_name, extra={"if_exists": "replace"})
+            self.assertIn(success_msg_f1, resp)
+
+            # make sure that john and empty string are replaced with None
+            data = db.session.execute(f"SELECT * from {table_name}").fetchall()
+            assert data == [(0, "john", 1), (1, "paul", 2)]
+        finally:
+            os.remove(f1)
 
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)

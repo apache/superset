@@ -29,7 +29,18 @@ import uuid
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 from itertools import product
-from typing import Any, cast, Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 import dataclasses
 import geohash
@@ -734,6 +745,7 @@ class PivotTableViz(BaseViz):
     verbose_name = _("Pivot Table")
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
+    enforce_numerical_metrics = False
 
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
@@ -764,6 +776,18 @@ class PivotTableViz(BaseViz):
             raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
         return d
 
+    @staticmethod
+    def get_aggfunc(
+        metric: str, df: pd.DataFrame, form_data: Dict[str, Any]
+    ) -> Union[str, Callable[[Any], Any]]:
+        aggfunc = form_data.get("pandas_aggfunc") or "sum"
+        if pd.api.types.is_numeric_dtype(df[metric]):
+            # Ensure that Pandas's sum function mimics that of SQL.
+            if aggfunc == "sum":
+                return lambda x: x.sum(min_count=1)
+        # only min and max work properly for non-numerics
+        return aggfunc if aggfunc in ("min", "max") else "max"
+
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
@@ -771,22 +795,21 @@ class PivotTableViz(BaseViz):
         if self.form_data.get("granularity") == "all" and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
 
-        aggfunc = self.form_data.get("pandas_aggfunc") or "sum"
-
-        # Ensure that Pandas's sum function mimics that of SQL.
-        if aggfunc == "sum":
-            aggfunc = lambda x: x.sum(min_count=1)
+        metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
+        aggfuncs: Dict[str, Union[str, Callable[[Any], Any]]] = {}
+        for metric in metrics:
+            aggfuncs[metric] = self.get_aggfunc(metric, df, self.form_data)
 
         groupby = self.form_data.get("groupby")
         columns = self.form_data.get("columns")
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
-        metrics = [utils.get_metric_name(m) for m in self.form_data["metrics"]]
+
         df = df.pivot_table(
             index=groupby,
             columns=columns,
             values=metrics,
-            aggfunc=aggfunc,
+            aggfunc=aggfuncs,
             margins=self.form_data.get("pivot_margins"),
         )
 
@@ -1524,11 +1547,43 @@ class DistributionPieViz(NVD3Viz):
     is_timeseries = False
 
     def get_data(self, df: pd.DataFrame) -> VizData:
+        def _label_aggfunc(labels: pd.Series) -> str:
+            """
+            Convert a single or multi column label into a single label, replacing
+            null values with `NULL_STRING` and joining multiple columns together
+            with a comma. Examples:
+
+            >>> _label_aggfunc(pd.Series(["abc"]))
+            'abc'
+            >>> _label_aggfunc(pd.Series([1]))
+            '1'
+            >>> _label_aggfunc(pd.Series(["abc", "def"]))
+            'abc, def'
+            >>> # note: integer floats are stripped of decimal digits
+            >>> _label_aggfunc(pd.Series([0.1, 2.0, 0.3]))
+            '0.1, 2, 0.3'
+            >>> _label_aggfunc(pd.Series([1, None, "abc", 0.8], dtype="object"))
+            '1, <NULL>, abc, 0.8'
+            """
+            label_list: List[str] = []
+            for label in labels:
+                if isinstance(label, str):
+                    label_recast = label
+                elif label is None or isinstance(label, float) and math.isnan(label):
+                    label_recast = NULL_STRING
+                elif isinstance(label, float) and label.is_integer():
+                    label_recast = str(int(label))
+                else:
+                    label_recast = str(label)
+                label_list.append(label_recast)
+
+            return ", ".join(label_list)
+
         if df.empty:
             return None
         metric = self.metric_labels[0]
         df = pd.DataFrame(
-            {"x": df[self.groupby].agg(func=", ".join, axis=1), "y": df[metric]}
+            {"x": df[self.groupby].agg(func=_label_aggfunc, axis=1), "y": df[metric]}
         )
         df.sort_values(by="y", ascending=False, inplace=True)
         return df.to_dict(orient="records")

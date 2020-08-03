@@ -37,7 +37,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship, sessionmaker, subqueryload
+from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
@@ -62,18 +62,17 @@ config = app.config
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(mapper: Mapper, connection: Connection, target: "Dashboard") -> None:
-    # pylint: disable=unused-argument
+def copy_dashboard(  # pylint: disable=unused-argument
+    mapper: Mapper, connection: Connection, target: "Dashboard"
+) -> None:
     dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
-    session_class = sessionmaker(autoflush=False)
-    session = session_class(bind=connection)
-    new_user = session.query(User).filter_by(id=target.id).first()
+    new_user = db.session.query(User).filter_by(id=target.id).first()
 
     # copy template dashboard to user
-    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    template = db.session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,
         position_json=template.position_json,
@@ -83,15 +82,15 @@ def copy_dashboard(mapper: Mapper, connection: Connection, target: "Dashboard") 
         slices=template.slices,
         owners=[new_user],
     )
-    session.add(dashboard)
-    session.commit()
+    db.session.add(dashboard)
+    db.session.commit()
 
     # set dashboard as the welcome dashboard
     extra_attributes = UserAttribute(
         user_id=target.id, welcome_dashboard_id=dashboard.id
     )
-    session.add(extra_attributes)
-    session.commit()
+    db.session.add(extra_attributes)
+    db.session.commit()
 
 
 sqla.event.listen(User, "after_insert", copy_dashboard)
@@ -307,7 +306,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         logger.info(
             "Started import of the dashboard: %s", dashboard_to_import.to_json()
         )
-        session = db.session
         logger.info("Dashboard has %d slices", len(dashboard_to_import.slices))
         # copy slices object as Slice.import_slice will mutate the slice
         # and will remove the existing dashboard - slice association
@@ -324,7 +322,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         i_params_dict = dashboard_to_import.params_dict
         remote_id_slice_map = {
             slc.params_dict["remote_id"]: slc
-            for slc in session.query(Slice).all()
+            for slc in db.session.query(Slice).all()
             if "remote_id" in slc.params_dict
         }
         for slc in slices:
@@ -375,7 +373,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
         # override the dashboard
         existing_dashboard = None
-        for dash in session.query(Dashboard).all():
+        for dash in db.session.query(Dashboard).all():
             if (
                 "remote_id" in dash.params_dict
                 and dash.params_dict["remote_id"] == dashboard_to_import.id
@@ -402,7 +400,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             )
 
         new_slices = (
-            session.query(Slice)
+            db.session.query(Slice)
             .filter(Slice.id.in_(old_to_new_slc_id_dict.values()))
             .all()
         )
@@ -410,12 +408,12 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         if existing_dashboard:
             existing_dashboard.override(dashboard_to_import)
             existing_dashboard.slices = new_slices
-            session.flush()
+            db.session.flush()
             return existing_dashboard.id
 
         dashboard_to_import.slices = new_slices
-        session.add(dashboard_to_import)
-        session.flush()
+        db.session.add(dashboard_to_import)
+        db.session.flush()
         return dashboard_to_import.id  # type: ignore
 
     @classmethod
@@ -457,7 +455,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         eager_datasources = []
         for datasource_id, datasource_type in datasource_ids:
             eager_datasource = ConnectorRegistry.get_eager_datasource(
-                db.session, datasource_type, datasource_id
+                datasource_type, datasource_id
             )
             copied_datasource = eager_datasource.copy()
             copied_datasource.alter_params(

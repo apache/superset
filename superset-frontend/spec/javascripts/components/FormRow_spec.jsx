@@ -46,13 +46,13 @@ describe('FormRow', () => {
   });
 
   it('renders an InfoTooltipWithTrigger only if needed', () => {
-    expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(1);
+    expect(wrapper.find(InfoTooltipWithTrigger)).toExist();
     wrapper = getWrapper({ tooltip: null });
-    expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(0);
+    expect(wrapper.find(InfoTooltipWithTrigger)).not.toExist();
   });
 
   it('renders a Row and 2 Cols', () => {
-    expect(wrapper.find(Row)).toHaveLength(1);
+    expect(wrapper.find(Row)).toExist();
     expect(wrapper.find(Col)).toHaveLength(2);
   });
 });

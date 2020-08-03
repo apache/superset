@@ -45,6 +45,6 @@ describe('FilterIndicatorGroup', () => {
 
   it('should show indicator group with badge', () => {
     const wrapper = setup();
-    expect(wrapper.find(FilterBadgeIcon)).toHaveLength(1);
+    expect(wrapper.find(FilterBadgeIcon)).toExist();
   });
 });

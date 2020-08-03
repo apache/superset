@@ -53,7 +53,7 @@ describe('ColorPickerControl', () => {
   it('renders a OverlayTrigger', () => {
     const controlHeader = wrapper.find(ControlHeader);
     expect(controlHeader).toHaveLength(1);
-    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
+    expect(wrapper.find(OverlayTrigger)).toExist();
   });
 
   it('renders a Popover with a SketchPicker', () => {
