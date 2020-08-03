@@ -120,6 +120,7 @@ testdata() {
   say "::group::Load test data"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
+  pip install -e .
   superset db upgrade
   superset load_test_users
   superset load_examples --load-test-data

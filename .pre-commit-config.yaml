@@ -32,15 +32,16 @@ repos:
     hooks:
       - id: pip-compile-multi-verify
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.2.3
+    rev: v3.2.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-docstring-first
-    -   id: check-added-large-files
-    -   id: check-yaml
+      - id: check-added-large-files
+      - id: check-docstring-first
+      - id: check-yaml
         exclude: ^helm/superset/templates/
-    -   id: debug-statements
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: ["--markdown-linebreak-ext=md"]
   - repo: https://github.com/psf/black
     rev: 19.10b0
     hooks:

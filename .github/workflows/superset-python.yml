@@ -22,11 +22,31 @@ jobs:
           apt-get-install
           pip-upgrade
           pip install -r requirements/testing.txt
-    - name: pre-commit
-      run: pre-commit run --all-files
     - name: pylint
       # `-j 0` run Pylint in parallel
       run: pylint -j 0 superset
+
+  pre-commit:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.6]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2.1.1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      uses: apache-superset/cached-dependencies@b90713b
+      with:
+        run: |
+          apt-get-install
+          pip-upgrade
+          pip install -r requirements/integration.txt
+    - name: pre-commit
+      run: pre-commit run --all-files
 
   docs:
     runs-on: ubuntu-18.04
