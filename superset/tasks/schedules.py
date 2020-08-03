@@ -53,7 +53,6 @@ from werkzeug.http import parse_cookie
 from superset import app, db, security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.models.alerts import Alert, AlertLog
-from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
     EmailDeliveryType,
@@ -552,17 +551,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
 
     if report_type == ScheduleType.alert:
         if is_test_alert and recipients:
-            deliver_alert(schedule.id, schedule.slice.id, schedule.label, recipients)
+            deliver_alert(schedule_id, recipients)
             return
 
-        if run_alert_query(
-            schedule.id,
-            schedule.database_id,
-            schedule.slice.id,
-            schedule.sql,
-            schedule.label,
-            schedule.recipients,
-        ):
+        if run_alert_query(schedule_id):
             # deliver_dashboard OR deliver_slice
             return
     else:
@@ -575,21 +567,23 @@ class AlertState:
     PASS = "pass"
 
 
-def deliver_alert(alert_id: int, slice_id: int, label: str, recipients: str) -> None:
-    logging.info("Triggering alert: <%s:%s>", alert_id, label)
+def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
+    alert = db.session.query(Alert).get(alert_id)
+
+    logging.info("Triggering alert: %s", alert)
     img_data = None
     images = {}
-    alert_slice = db.session.query(Slice).get(slice_id)
+    recipients = recipients or alert.recipients
 
-    if alert_slice:
+    if alert.slice:
 
         chart_url = get_url_path(
-            "Superset.slice", slice_id=alert_slice.id, standalone="true"
+            "Superset.slice", slice_id=alert.slice.id, standalone="true"
         )
-        screenshot = ChartScreenshot(chart_url, alert_slice.digest)
+        screenshot = ChartScreenshot(chart_url, alert.slice.digest)
         cache_key = screenshot.cache_key()
         image_url = get_url_path(
-            "ChartRestApi.screenshot", pk=alert_slice.id, digest=cache_key
+            "ChartRestApi.screenshot", pk=alert.slice.id, digest=cache_key
         )
 
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
@@ -601,7 +595,7 @@ def deliver_alert(alert_id: int, slice_id: int, label: str, recipients: str) -> 
         image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
 
     # generate the email
-    subject = f"[Superset] Triggered alert: {label}"
+    subject = f"[Superset] Triggered alert: {alert.label}"
     deliver_as_group = False
     data = None
     if img_data:
@@ -613,36 +607,30 @@ def deliver_alert(alert_id: int, slice_id: int, label: str, recipients: str) -> 
             <img src="cid:screenshot" alt="%(label)s" />
         """
         ),
-        label=label,
+        label=alert.label,
         image_url=image_url,
     )
 
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
 
-def run_alert_query(
-    alert_id: int,
-    database_id: int,
-    slice_id: int,
-    sql: str,
-    label: str,
-    recipients: str,
-) -> Optional[bool]:
+def run_alert_query(alert_id: int) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
-    database_id, sql, alert_id, slice_id, label
     """
-    logger.info("Processing alert ID: %i", alert_id)
-    database = db.session.query(Database).get(database_id)
+    alert = db.session.query(Alert).get(alert_id)
+
+    logger.info("Processing alert ID: %i", alert.id)
+    database = alert.database
     if not database:
         logger.error("Alert database not preset")
         return None
 
-    if not sql:
+    if not alert.sql:
         logger.error("Alert SQL not preset")
         return None
 
-    parsed_query = ParsedQuery(sql)
+    parsed_query = ParsedQuery(alert.sql)
     sql = parsed_query.stripped()
 
     state = None
@@ -650,30 +638,26 @@ def run_alert_query(
 
     df = pd.DataFrame()
     try:
-        logger.info("Evaluating SQL for alert <%s:%s>", alert_id, label)
+        logger.info("Evaluating SQL for alert %s", alert)
         df = database.get_df(sql)
     except Exception as exc:  # pylint: disable=broad-except
         state = AlertState.ERROR
         logging.exception(exc)
-        logging.error("Failed at evaluating alert: %s (%s)", label, alert_id)
+        logging.error("Failed at evaluating alert: %s (%s)", alert.label, alert.id)
 
     dttm_end = datetime.utcnow()
 
     if state != AlertState.ERROR:
+        alert.last_eval_dttm = datetime.utcnow()
         if not df.empty:
             # Looking for truthy cells
             for row in df.to_records():
                 if any(row):
                     state = AlertState.TRIGGER
-                    deliver_alert(alert_id, slice_id, label, recipients)
+                    deliver_alert(alert.id)
                     break
         if not state:
             state = AlertState.PASS
-
-    alert = db.session.query(Alert).get(alert_id)
-
-    if state != AlertState.ERROR:
-        alert.last_eval_dttm = datetime.utcnow()
 
     alert.last_state = state
     alert.logs.append(
