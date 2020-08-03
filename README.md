@@ -38,7 +38,7 @@ Superset
 A modern, enterprise-ready business intelligence web application.
 
 [**Why Superset**](#why-superset) |
-[**Database Support**](#database-support) |
+[**Supported Databases**](#supported-databases) |
 [**Installation and Configuration**](#installation-and-configuration) |
 [**Get Help**](#get-help) |
 [**Contributor Guide**](#contributor-guide) |
@@ -91,11 +91,35 @@ Superset provides:
 * Fast loading dashboards with configurable caching
 
 
-## Database Support
+## Supported Databases
 
 Superset speaks many SQL dialects through SQLAlchemy - a Python
-SQL toolkit that is compatible with most databases. A list of
-supported databases can be found
+SQL toolkit that is compatible with most databases. Here are some of the major database solutions that are supported:
+
+<p align="center">
+  <img src="superset-frontend/images/redshift.png" alt="redshift" border="0" width="106" height="41"/>
+  <img src="superset-frontend/images/google-biquery.png" alt="google-biquery" border="0" width="114" height="43"/>
+  <img src="superset-frontend/images/snowflake.png" alt="snowflake" border="0" width="152" height="46"/>
+  <img src="superset-frontend/images/presto.png" alt="presto" border="0" width="152" height="46"/>
+  <img src="superset-frontend/images/druid.png" alt="druid" border="0" width="135" height="37" />
+  <img src="superset-frontend/images/postgresql.png" alt="postgresql" border="0" width="132" height="81" />
+  <img src="superset-frontend/images/mysql.png" alt="mysql" border="0" width="119" height="62" />
+  <img src="superset-frontend/images/mssql-server.png" alt="mssql-server" border="0" width="93" height="74" />
+  <img src="superset-frontend/images/db2.png" alt="db2" border="0" width="62" height="62" />
+  <img src="superset-frontend/images/sqlite.png" alt="sqlite" border="0" width="102" height="45" />
+  <img src="superset-frontend/images/sybase.png" alt="sybase" border="0" width="128" height="47" />
+  <img src="superset-frontend/images/mariadb.png" alt="mariadb" border="0" width="83" height="63" />
+  <img src="superset-frontend/images/vertica.png" alt="vertica" border="0" width="128" height="40" />
+  <img src="superset-frontend/images/oracle.png" alt="oracle" border="0" width="121" height="66" />
+  <img src="superset-frontend/images/firebird.png" alt="firebird" border="0" width="86" height="56" />
+  <img src="superset-frontend/images/greenplum.png" alt="greenplum" border="0" width="140" height="45" />
+  <img src="superset-frontend/images/clickhouse.png" alt="clickhouse" border="0" width="133" height="34" />  
+  <img src="superset-frontend/images/exasol.png" alt="exasol" border="0" width="106" height="59" />
+  <img src="superset-frontend/images/monet-db.png" alt="monet-db" border="0" width="106" height="46" />
+  <img src="superset-frontend/images/apache-kylin.png" alt="apache-kylin" border="0" width="56" height="64"/>
+</p>
+
+A complete list of supported databases can be found
 [here](https://superset.incubator.apache.org/#databases).
 
 
