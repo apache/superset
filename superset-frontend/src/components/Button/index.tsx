@@ -22,10 +22,17 @@ import {
   Button as BootstrapButton,
   Tooltip,
   OverlayTrigger,
+  MenuItem,
 } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
+
+export interface DropdownItemProps {
+  label: string;
+  url: string;
+  icon?: string;
+}
 
 export interface ButtonProps {
   className?: string;
@@ -38,6 +45,7 @@ export interface ButtonProps {
   bsSize?: BootstrapButton.ButtonProps['bsSize'];
   style?: BootstrapButton.ButtonProps['style'];
   children?: React.ReactNode;
+  dropdownItems?: DropdownItemProps[];
 }
 
 const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
@@ -82,23 +90,41 @@ export default function Button(props: ButtonProps) {
   };
   const tooltip = props.tooltip;
   const placement = props.placement;
+  const dropdownItems = props.dropdownItems;
   delete buttonProps.tooltip;
   delete buttonProps.placement;
+
+  if (tooltip && props.disabled) {
+    // Working around the fact that tooltips don't get triggered when buttons are disabled
+    // https://github.com/react-bootstrap/react-bootstrap/issues/1588
+    buttonProps.style = { pointerEvents: 'none' };
+  }
 
   let button = (
     <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
   );
+
+  if (dropdownItems) {
+    button = (
+      <div style={BUTTON_WRAPPER_STYLE}>
+        <SupersetButton {...buttonProps} data-toggle="dropdown">
+          {props.children}
+        </SupersetButton>
+        <ul className="dropdown-menu">
+          {dropdownItems.map(
+            (dropdownItem: DropdownItemProps, index1: number) => (
+              <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
+                <i className={`fa ${dropdownItem.icon}`} />
+                &nbsp; {dropdownItem.label}
+              </MenuItem>
+            ),
+          )}
+        </ul>
+      </div>
+    );
+  }
+
   if (tooltip) {
-    if (props.disabled) {
-      // Working around the fact that tooltips don't get triggered when buttons are disabled
-      // https://github.com/react-bootstrap/react-bootstrap/issues/1588
-      buttonProps.style = { pointerEvents: 'none' };
-      button = (
-        <div style={BUTTON_WRAPPER_STYLE}>
-          <SupersetButton {...buttonProps}>{props.children}</SupersetButton>
-        </div>
-      );
-    }
     return (
       <OverlayTrigger
         placement={placement}
@@ -110,5 +136,6 @@ export default function Button(props: ButtonProps) {
       </OverlayTrigger>
     );
   }
+
   return button;
 }

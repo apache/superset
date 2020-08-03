@@ -42,3 +42,4 @@ addParameters({
     { name: 'Large', value: '64px' },
   ],
 });
+

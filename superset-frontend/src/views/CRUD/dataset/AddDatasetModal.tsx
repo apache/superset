@@ -97,8 +97,13 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
         onHide();
       })
       .catch(
-        createErrorHandler(errMsg =>
-          addDangerToast(t('Error while saving dataset: %s', errMsg)),
+        createErrorHandler((errMsg: unknown) =>
+          addDangerToast(
+            t(
+              'Error while saving dataset: %s',
+              (errMsg as { table_name?: string }).table_name,
+            ),
+          ),
         ),
       );
   };

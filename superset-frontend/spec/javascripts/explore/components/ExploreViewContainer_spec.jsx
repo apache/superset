@@ -68,15 +68,15 @@ describe('ExploreViewContainer', () => {
   });
 
   it('renders QueryAndSaveButtons', () => {
-    expect(wrapper.find(QueryAndSaveBtns)).toHaveLength(1);
+    expect(wrapper.find(QueryAndSaveBtns)).toExist();
   });
 
   it('renders ControlPanelsContainer', () => {
-    expect(wrapper.find(ControlPanelsContainer)).toHaveLength(1);
+    expect(wrapper.find(ControlPanelsContainer)).toExist();
   });
 
   it('renders ChartContainer', () => {
-    expect(wrapper.find(ChartContainer)).toHaveLength(1);
+    expect(wrapper.find(ChartContainer)).toExist();
   });
 
   describe('componentWillReceiveProps()', () => {

@@ -48,7 +48,7 @@ describe('ConfirmStatusChange', () => {
 
     wrapper.update();
 
-    expect(wrapper.find(Modal).exists()).toBeTruthy();
+    expect(wrapper.find(Modal)).toExist();
   });
 
   it('calls the function on confirm', () => {

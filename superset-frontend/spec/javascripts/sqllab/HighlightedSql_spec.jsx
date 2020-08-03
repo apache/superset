@@ -31,11 +31,11 @@ describe('HighlightedSql', () => {
   });
   it('renders a ModalTrigger', () => {
     const wrapper = shallow(<HighlightedSql sql={sql} />);
-    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
+    expect(wrapper.find(ModalTrigger)).toExist();
   });
   it('renders a ModalTrigger while using shrink', () => {
     const wrapper = shallow(<HighlightedSql sql={sql} shrink maxWidth={20} />);
-    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
+    expect(wrapper.find(ModalTrigger)).toExist();
   });
   it('renders two SyntaxHighlighter in modal', () => {
     const wrapper = mount(

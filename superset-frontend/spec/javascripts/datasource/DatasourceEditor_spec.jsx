@@ -67,7 +67,7 @@ describe('DatasourceEditor', () => {
   });
 
   it('renders Tabs', () => {
-    expect(wrapper.find(Tabs)).toHaveLength(1);
+    expect(wrapper.find(Tabs)).toExist();
   });
 
   it('makes an async request', () => {

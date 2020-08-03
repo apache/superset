@@ -69,9 +69,8 @@ class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
     def setUp(self):
-        session = db.session
         security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        session.commit()
+        db.session.commit()
 
         ds = (
             db.session.query(SqlaTable)
@@ -82,7 +81,7 @@ class TestRolePermission(SupersetTestCase):
         ds.schema_perm = ds.get_schema_perm()
 
         ds_slices = (
-            session.query(Slice)
+            db.session.query(Slice)
             .filter_by(datasource_type="table")
             .filter_by(datasource_id=ds.id)
             .all()
@@ -92,12 +91,11 @@ class TestRolePermission(SupersetTestCase):
         create_schema_perm("[examples].[temp_schema]")
         gamma_user = security_manager.find_user(username="gamma")
         gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        db.session.commit()
 
     def tearDown(self):
-        session = db.session
         ds = (
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter_by(table_name="wb_health_population")
             .first()
         )
@@ -105,7 +103,7 @@ class TestRolePermission(SupersetTestCase):
         ds.schema = None
         ds.schema_perm = None
         ds_slices = (
-            session.query(Slice)
+            db.session.query(Slice)
             .filter_by(datasource_type="table")
             .filter_by(datasource_id=ds.id)
             .all()
@@ -114,21 +112,20 @@ class TestRolePermission(SupersetTestCase):
             s.schema_perm = None
 
         delete_schema_perm(schema_perm)
-        session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        db.session.commit()
 
     def test_set_perm_sqla_table(self):
-        session = db.session
         table = SqlaTable(
             schema="tmp_schema",
             table_name="tmp_perm_table",
             database=get_example_database(),
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
+            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
         )
         self.assertEqual(
             stored_table.perm, f"[examples].[tmp_perm_table](id:{stored_table.id})"
@@ -147,9 +144,9 @@ class TestRolePermission(SupersetTestCase):
 
         # table name change
         stored_table.table_name = "tmp_perm_table_v2"
-        session.commit()
+        db.session.commit()
         stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
+            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
         self.assertEqual(
             stored_table.perm, f"[examples].[tmp_perm_table_v2](id:{stored_table.id})"
@@ -169,9 +166,9 @@ class TestRolePermission(SupersetTestCase):
 
         # schema name change
         stored_table.schema = "tmp_schema_v2"
-        session.commit()
+        db.session.commit()
         stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
+            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
         self.assertEqual(
             stored_table.perm, f"[examples].[tmp_perm_table_v2](id:{stored_table.id})"
@@ -191,13 +188,13 @@ class TestRolePermission(SupersetTestCase):
 
         # database change
         new_db = Database(sqlalchemy_uri="some_uri", database_name="tmp_db")
-        session.add(new_db)
+        db.session.add(new_db)
         stored_table.database = (
-            session.query(Database).filter_by(database_name="tmp_db").one()
+            db.session.query(Database).filter_by(database_name="tmp_db").one()
         )
-        session.commit()
+        db.session.commit()
         stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
+            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
         self.assertEqual(
             stored_table.perm, f"[tmp_db].[tmp_perm_table_v2](id:{stored_table.id})"
@@ -217,9 +214,9 @@ class TestRolePermission(SupersetTestCase):
 
         # no schema
         stored_table.schema = None
-        session.commit()
+        db.session.commit()
         stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
+            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
         self.assertEqual(
             stored_table.perm, f"[tmp_db].[tmp_perm_table_v2](id:{stored_table.id})"
@@ -231,26 +228,25 @@ class TestRolePermission(SupersetTestCase):
         )
         self.assertIsNone(stored_table.schema_perm)
 
-        session.delete(new_db)
-        session.delete(stored_table)
-        session.commit()
+        db.session.delete(new_db)
+        db.session.delete(stored_table)
+        db.session.commit()
 
     def test_set_perm_druid_datasource(self):
-        session = db.session
         druid_cluster = (
-            session.query(DruidCluster).filter_by(cluster_name="druid_test").one()
+            db.session.query(DruidCluster).filter_by(cluster_name="druid_test").one()
         )
         datasource = DruidDatasource(
             datasource_name="tmp_datasource",
             cluster=druid_cluster,
             cluster_id=druid_cluster.id,
         )
-        session.add(datasource)
-        session.commit()
+        db.session.add(datasource)
+        db.session.commit()
 
         # store without a schema
         stored_datasource = (
-            session.query(DruidDatasource)
+            db.session.query(DruidDatasource)
             .filter_by(datasource_name="tmp_datasource")
             .one()
         )
@@ -267,7 +263,7 @@ class TestRolePermission(SupersetTestCase):
 
         # store with a schema
         stored_datasource.datasource_name = "tmp_schema.tmp_datasource"
-        session.commit()
+        db.session.commit()
         self.assertEqual(
             stored_datasource.perm,
             f"[druid_test].[tmp_schema.tmp_datasource](id:{stored_datasource.id})",
@@ -284,16 +280,15 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
-        session.delete(stored_datasource)
-        session.commit()
+        db.session.delete(stored_datasource)
+        db.session.commit()
 
     def test_set_perm_druid_cluster(self):
-        session = db.session
         cluster = DruidCluster(cluster_name="tmp_druid_cluster")
-        session.add(cluster)
+        db.session.add(cluster)
 
         stored_cluster = (
-            session.query(DruidCluster)
+            db.session.query(DruidCluster)
             .filter_by(cluster_name="tmp_druid_cluster")
             .one()
         )
@@ -307,7 +302,7 @@ class TestRolePermission(SupersetTestCase):
         )
 
         stored_cluster.cluster_name = "tmp_druid_cluster2"
-        session.commit()
+        db.session.commit()
         self.assertEqual(
             stored_cluster.perm, f"[tmp_druid_cluster2].(id:{stored_cluster.id})"
         )
@@ -317,18 +312,17 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
-        session.delete(stored_cluster)
-        session.commit()
+        db.session.delete(stored_cluster)
+        db.session.commit()
 
     def test_set_perm_database(self):
-        session = db.session
         database = Database(
             database_name="tmp_database", sqlalchemy_uri="sqlite://test"
         )
-        session.add(database)
+        db.session.add(database)
 
         stored_db = (
-            session.query(Database).filter_by(database_name="tmp_database").one()
+            db.session.query(Database).filter_by(database_name="tmp_database").one()
         )
         self.assertEqual(stored_db.perm, f"[tmp_database].(id:{stored_db.id})")
         self.assertIsNotNone(
@@ -338,9 +332,9 @@ class TestRolePermission(SupersetTestCase):
         )
 
         stored_db.database_name = "tmp_database2"
-        session.commit()
+        db.session.commit()
         stored_db = (
-            session.query(Database).filter_by(database_name="tmp_database2").one()
+            db.session.query(Database).filter_by(database_name="tmp_database2").one()
         )
         self.assertEqual(stored_db.perm, f"[tmp_database2].(id:{stored_db.id})")
         self.assertIsNotNone(
@@ -349,8 +343,8 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
-        session.delete(stored_db)
-        session.commit()
+        db.session.delete(stored_db)
+        db.session.commit()
 
     def test_hybrid_perm_druid_cluster(self):
         cluster = DruidCluster(cluster_name="tmp_druid_cluster3")
@@ -400,14 +394,13 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_set_perm_slice(self):
-        session = db.session
         database = Database(
             database_name="tmp_database", sqlalchemy_uri="sqlite://test"
         )
         table = SqlaTable(table_name="tmp_perm_table", database=database)
-        session.add(database)
-        session.add(table)
-        session.commit()
+        db.session.add(database)
+        db.session.add(table)
+        db.session.commit()
 
         # no schema permission
         slice = Slice(
@@ -416,10 +409,10 @@ class TestRolePermission(SupersetTestCase):
             datasource_name="tmp_perm_table",
             slice_name="slice_name",
         )
-        session.add(slice)
-        session.commit()
+        db.session.add(slice)
+        db.session.commit()
 
-        slice = session.query(Slice).filter_by(slice_name="slice_name").one()
+        slice = db.session.query(Slice).filter_by(slice_name="slice_name").one()
         self.assertEqual(slice.perm, table.perm)
         self.assertEqual(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
         self.assertEqual(slice.schema_perm, table.schema_perm)
@@ -427,7 +420,7 @@ class TestRolePermission(SupersetTestCase):
 
         table.schema = "tmp_perm_schema"
         table.table_name = "tmp_perm_table_v2"
-        session.commit()
+        db.session.commit()
         # TODO(bogdan): modify slice permissions on the table update.
         self.assertNotEquals(slice.perm, table.perm)
         self.assertEqual(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
@@ -440,7 +433,7 @@ class TestRolePermission(SupersetTestCase):
 
         # updating slice refreshes the permissions
         slice.slice_name = "slice_name_v2"
-        session.commit()
+        db.session.commit()
         self.assertEqual(slice.perm, table.perm)
         self.assertEqual(
             slice.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
@@ -448,11 +441,10 @@ class TestRolePermission(SupersetTestCase):
         self.assertEqual(slice.schema_perm, table.schema_perm)
         self.assertEqual(slice.schema_perm, "[tmp_database].[tmp_perm_schema]")
 
-        session.delete(slice)
-        session.delete(table)
-        session.delete(database)
-
-        session.commit()
+        db.session.delete(slice)
+        db.session.delete(table)
+        db.session.delete(database)
+        db.session.commit()
 
         # TODO test slice permission
 
@@ -532,11 +524,11 @@ class TestRolePermission(SupersetTestCase):
         self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
 
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
-        session = db.session
-
-        example_db = session.query(Database).filter_by(database_name="examples").one()
+        example_db = (
+            db.session.query(Database).filter_by(database_name="examples").one()
+        )
         example_db.expose_in_sqllab = True
-        session.commit()
+        db.session.commit()
 
         arguments = {
             "keys": ["none"],
@@ -959,12 +951,10 @@ class TestRowLevelSecurity(SupersetTestCase):
     rls_entry = None
 
     def setUp(self):
-        session = db.session
-
         # Create the RowLevelSecurityFilter
         self.rls_entry = RowLevelSecurityFilter()
         self.rls_entry.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["energy_usage", "unicode_test"]))
             .all()
         )
@@ -974,13 +964,11 @@ class TestRowLevelSecurity(SupersetTestCase):
         )  # db.session.query(Role).filter_by(name="Gamma").first())
         self.rls_entry.roles.append(security_manager.find_role("Alpha"))
         db.session.add(self.rls_entry)
-
         db.session.commit()
 
     def tearDown(self):
-        session = db.session
-        session.delete(self.rls_entry)
-        session.commit()
+        db.session.delete(self.rls_entry)
+        db.session.commit()
 
     # Do another test to make sure it doesn't alter another query
     def test_rls_filter_alters_query(self):

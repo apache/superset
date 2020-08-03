@@ -156,7 +156,7 @@ class TestDatasetApi(SupersetTestCase):
             "template_params": None,
         }
         for key, value in expected_result.items():
-            self.assertEqual(response["result"][key], expected_result[key])
+            self.assertEqual(response["result"][key], value)
         self.assertEqual(len(response["result"]["columns"]), 8)
         self.assertEqual(len(response["result"]["metrics"]), 2)
 
@@ -717,10 +717,7 @@ class TestDatasetApi(SupersetTestCase):
         )
 
         cli_export = export_to_dict(
-            session=db.session,
-            recursive=True,
-            back_references=False,
-            include_defaults=False,
+            recursive=True, back_references=False, include_defaults=False,
         )
         cli_export_tables = cli_export["databases"][0]["tables"]
         expected_response = []

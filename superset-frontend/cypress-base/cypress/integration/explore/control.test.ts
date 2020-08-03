@@ -46,16 +46,10 @@ describe('Datasource control', () => {
     cy.get('.modal-footer button').contains('Save').click();
     cy.get('.modal-footer button').contains('OK').click();
     // select new metric
-    cy.get('.metrics-select:eq(0)').click();
-    cy.get('.metrics-select:eq(0) input[type="text"]')
+    cy.get('[data-test=metrics]')
+      .find('.Select__control input')
       .focus()
-      .type(newMetricName);
-    cy.get('.metrics-select:eq(0) .Select__menu .Select__option')
-      .contains(newMetricName)
-      .click();
-    cy.get('.metrics-select:eq(0) .Select__multi-value__label')
-      .contains(newMetricName)
-      .click();
+      .type(newMetricName, { force: true });
     // delete metric
     cy.get('#datasource_menu').click();
     cy.get('a').contains('Edit Datasource').click();

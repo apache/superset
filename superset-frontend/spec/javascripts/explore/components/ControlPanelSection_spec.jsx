@@ -43,7 +43,7 @@ describe('ControlPanelSection', () => {
 
   it('renders a Panel component', () => {
     wrapper = shallow(<ControlPanelSection {...defaultProps} />);
-    expect(wrapper.find(Panel)).toHaveLength(1);
+    expect(wrapper.find(Panel)).toExist();
   });
 
   describe('with optional props', () => {

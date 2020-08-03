@@ -22,7 +22,6 @@ import { Col, Row, Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import Loading from 'src/components/Loading';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import TableCollection from './TableCollection';
 import Pagination from './Pagination';
@@ -51,6 +50,9 @@ const ListViewStyles = styled.div`
           background: white;
           position: sticky;
           top: 0;
+          &:first-of-type {
+            padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+          }
         }
       }
     }
@@ -153,6 +155,11 @@ const ListViewStyles = styled.div`
       overflow: hidden;
       white-space: nowrap;
       max-width: 300px;
+      line-height: 1;
+      vertical-align: middle;
+      &:first-of-type {
+        padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+      }
     }
 
     .sort-icon {
@@ -302,9 +309,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
       }
     });
   }
-  if (loading && !data.length) {
-    return <Loading />;
-  }
+
   return (
     <ListViewStyles>
       <div className={`superset-list-view ${className}`}>

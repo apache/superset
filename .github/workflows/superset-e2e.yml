@@ -34,22 +34,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Setup Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2.1.1
       with:
         python-version: '3.6'
 
     - name: Install dependencies
-      uses: apache-superset/cached-dependencies@adc6f73
+      uses: apache-superset/cached-dependencies@b90713b
       with:
-        # Run commands in parallel does help initial installation without cache
-        parallel: true
         run: |
           npm-install && build-instrumented-assets
           pip-install && setup-postgres && testdata
           cypress-install
 
     - name: Run Cypress
-      uses: apache-superset/cached-dependencies@adc6f73
+      uses: apache-superset/cached-dependencies@b90713b
       env:
         CYPRESS_BROWSER: ${{ matrix.browser }}
         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

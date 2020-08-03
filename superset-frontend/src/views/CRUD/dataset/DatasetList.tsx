@@ -27,6 +27,7 @@ import React, {
 import rison from 'rison';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import DatasourceModal from 'src/datasource/DatasourceModal';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
@@ -66,78 +67,41 @@ interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
-interface Database {
-  allow_csv_upload: boolean;
-  allow_ctas: boolean;
-  allow_cvas: null | boolean;
-  allow_dml: boolean;
-  allow_multi_schema_metadata_fetch: boolean;
-  allow_run_async: boolean;
-  allows_cost_estimate: boolean;
-  allows_subquery: boolean;
-  allows_virtual_table_explore: boolean;
-  backend: string;
-  database_name: string;
-  explore_database_id: number;
-  expose_in_sqllab: boolean;
-  force_ctas_schema: null | boolean;
-  function_names: string[];
-  id: number;
-}
-
-const createFetchDatabases = (handleError: (err: Response) => void) => async (
-  filterValue = '',
-  pageIndex?: number,
-  pageSize?: number,
-) => {
-  try {
-    const queryParams = rison.encode({
-      columns: ['database_name', 'id'],
-      keys: ['none'],
-      ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_size: pageSize } : {}),
-      ...(filterValue ? { filter: filterValue } : {}),
-    });
-    const { json = {} } = await SupersetClient.get({
-      endpoint: `/api/v1/database/?q=${queryParams}`,
-    });
-
-    return json?.result?.map(
-      ({ database_name: label, id: value }: Database) => ({
-        label,
-        value,
-      }),
-    );
-  } catch (e) {
-    handleError(e);
-  }
-  return [];
-};
 
 export const createFetchSchemas = (
   handleError: (error: Response) => void,
 ) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
+  // add filters if filterValue
+  const filters = filterValue
+    ? { filters: [{ col: 'schema', opr: 'sw', value: filterValue }] }
+    : {};
   try {
     const queryParams = rison.encode({
+      columns: ['schema'],
+      keys: ['none'],
+      order_by: 'schema',
       ...(pageIndex ? { page: pageIndex } : {}),
       ...(pageSize ? { page_size: pageSize } : {}),
-      ...(filterValue ? { filter: filterValue } : {}),
+      ...filters,
     });
     const { json = {} } = await SupersetClient.get({
-      endpoint: `/api/v1/database/schemas/?q=${queryParams}`,
+      endpoint: `/api/v1/dataset/?q=${queryParams}`,
     });
 
-    return json?.result?.map(
-      ({ text: label, value }: { text: string; value: any }) => ({
-        label,
-        value,
-      }),
+    const schemas: string[] = json?.result?.map(
+      ({ schema }: { schema: string }) => schema,
     );
+
+    // uniqueify schema values and create options
+    return [...new Set(schemas)]
+      .filter(schema => Boolean(schema))
+      .map(schema => ({ label: schema, value: schema }));
   } catch (e) {
     handleError(e);
   }
   return [];
 };
+
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -146,6 +110,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     (Dataset & { chart_count: number; dashboard_count: number }) | null
   >(null);
+  const [
+    datasetCurrentlyEditing,
+    setDatasetCurrentlyEditing,
+  ] = useState<Dataset | null>(null);
   const [datasets, setDatasets] = useState<any[]>([]);
   const [
     lastFetchDataConfig,
@@ -184,9 +152,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       input: 'select',
       operator: 'rel_o_m',
       unfilteredLabel: 'All',
-      fetchSelects: createFetchDatabases(
+      fetchSelects: createFetchRelated(
+        'dataset',
+        'database',
         createErrorHandler(errMsg =>
-          t('An error occurred while fetching datasource values: %s', errMsg),
+          t(
+            'An error occurred while fetching dataset datasource values: %s',
+            errMsg,
+          ),
         ),
       ),
       paginate: true,
@@ -252,8 +225,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  const handleDatasetEdit = ({ id }: { id: number }) => {
-    window.location.assign(`/tablemodelview/edit/${id}`);
+  const openDatasetEditModal = ({ id }: Dataset) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${id}`,
+    })
+      .then(({ json = {} }) => {
+        const owners = json.result.owners.map((owner: any) => owner.id);
+        setDatasetCurrentlyEditing({ ...json.result, owners });
+      })
+      .catch(() => {
+        addDangerToast(
+          t('An error occurred while fetching dataset related data'),
+        );
+      });
   };
 
   const openDatasetDeleteModal = (dataset: Dataset) =>
@@ -395,8 +379,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       disableSortBy: true,
     },
     {
-      Cell: ({ row: { original } }: any) => {
-        const handleEdit = () => handleDatasetEdit(original);
+      Cell: ({ row: { state, original } }: any) => {
+        const handleEdit = () => openDatasetEditModal(original);
         const handleDelete = () => openDatasetDeleteModal(original);
         if (!canEdit && !canDelete) {
           return null;
@@ -500,6 +484,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setDatasetCurrentlyDeleting(null);
   };
 
+  const closeDatasetEditModal = () => setDatasetCurrentlyEditing(null);
+
   const fetchData = useCallback(
     ({ pageIndex, pageSize, sortBy, filters }: FetchDataConfig) => {
       // set loading state, cache the last config for fetching data in this component.
@@ -583,6 +569,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
+  const handleUpdateDataset = () => {
+    if (lastFetchDataConfig) {
+      fetchData(lastFetchDataConfig);
+    }
+  };
+
   return (
     <>
       <SubMenu {...menuData} />
@@ -627,54 +619,82 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             : [];
 
           return (
-            <ListView
-              className="dataset-list-view"
-              columns={columns}
-              data={datasets}
-              count={datasetCount}
-              pageSize={PAGE_SIZE}
-              fetchData={fetchData}
-              filters={filterTypes}
-              loading={loading}
-              initialSort={initialSort}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={() => setBulkSelectEnabled(false)}
-              renderBulkSelectCopy={selected => {
-                const { virtualCount, physicalCount } = selected.reduce(
-                  (acc, e) => {
-                    if (e.original.kind === 'physical') acc.physicalCount += 1;
-                    else if (e.original.kind === 'virtual')
-                      acc.virtualCount += 1;
-                    return acc;
-                  },
-                  { virtualCount: 0, physicalCount: 0 },
-                );
-
-                if (!selected.length) {
-                  return t('0 Selected');
-                } else if (virtualCount && !physicalCount) {
-                  return t(
-                    '%s Selected (Virtual)',
-                    selected.length,
-                    virtualCount,
+            <>
+              {datasetCurrentlyDeleting && (
+                <DeleteModal
+                  description={t(
+                    `The dataset ${datasetCurrentlyDeleting.table_name} is linked to
+                  ${datasetCurrentlyDeleting.chart_count} charts that appear on
+                  ${datasetCurrentlyDeleting.dashboard_count} dashboards.
+                  Are you sure you want to continue? Deleting the dataset will break
+                  those objects.`,
+                  )}
+                  onConfirm={() =>
+                    handleDatasetDelete(datasetCurrentlyDeleting)
+                  }
+                  onHide={closeDatasetDeleteModal}
+                  open
+                  title={t('Delete Dataset?')}
+                />
+              )}
+              {datasetCurrentlyEditing && (
+                <DatasourceModal
+                  datasource={datasetCurrentlyEditing}
+                  onDatasourceSave={handleUpdateDataset}
+                  onHide={closeDatasetEditModal}
+                  show
+                />
+              )}
+              <ListView
+                className="dataset-list-view"
+                columns={columns}
+                data={datasets}
+                count={datasetCount}
+                pageSize={PAGE_SIZE}
+                fetchData={fetchData}
+                filters={filterTypes}
+                loading={loading}
+                initialSort={initialSort}
+                bulkActions={bulkActions}
+                bulkSelectEnabled={bulkSelectEnabled}
+                disableBulkSelect={() => setBulkSelectEnabled(false)}
+                renderBulkSelectCopy={selected => {
+                  const { virtualCount, physicalCount } = selected.reduce(
+                    (acc, e) => {
+                      if (e.original.kind === 'physical')
+                        acc.physicalCount += 1;
+                      else if (e.original.kind === 'virtual')
+                        acc.virtualCount += 1;
+                      return acc;
+                    },
+                    { virtualCount: 0, physicalCount: 0 },
                   );
-                } else if (physicalCount && !virtualCount) {
+
+                  if (!selected.length) {
+                    return t('0 Selected');
+                  } else if (virtualCount && !physicalCount) {
+                    return t(
+                      '%s Selected (Virtual)',
+                      selected.length,
+                      virtualCount,
+                    );
+                  } else if (physicalCount && !virtualCount) {
+                    return t(
+                      '%s Selected (Physical)',
+                      selected.length,
+                      physicalCount,
+                    );
+                  }
+
                   return t(
-                    '%s Selected (Physical)',
+                    '%s Selected (%s Physical, %s Virtual)',
                     selected.length,
                     physicalCount,
+                    virtualCount,
                   );
-                }
-
-                return t(
-                  '%s Selected (%s Physical, %s Virtual)',
-                  selected.length,
-                  physicalCount,
-                  virtualCount,
-                );
-              }}
-            />
+                }}
+              />
+            </>
           );
         }}
       </ConfirmStatusChange>

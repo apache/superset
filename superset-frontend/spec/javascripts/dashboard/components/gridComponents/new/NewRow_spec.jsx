@@ -32,7 +32,7 @@ describe('NewRow', () => {
 
   it('should render a DraggableNewComponent', () => {
     const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent)).toHaveLength(1);
+    expect(wrapper.find(DraggableNewComponent)).toExist();
   });
 
   it('should set appropriate type and id', () => {

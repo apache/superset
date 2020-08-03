@@ -33,11 +33,11 @@ describe('UserInfo', () => {
   });
   it('renders a Gravatar', () => {
     const wrapper = mount(<UserInfo {...mockedProps} />);
-    expect(wrapper.find(Gravatar)).toHaveLength(1);
+    expect(wrapper.find(Gravatar)).toExist();
   });
   it('renders a Panel', () => {
     const wrapper = mount(<UserInfo {...mockedProps} />);
-    expect(wrapper.find(Panel)).toHaveLength(1);
+    expect(wrapper.find(Panel)).toExist();
   });
   it('renders 5 icons', () => {
     const wrapper = mount(<UserInfo {...mockedProps} />);

@@ -59,6 +59,6 @@ describe('SqlEditorLeftBar', () => {
   });
 
   it('renders a TableElement', () => {
-    expect(wrapper.find(TableElement)).toHaveLength(1);
+    expect(wrapper.find(TableElement)).toExist();
   });
 });

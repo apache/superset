@@ -73,7 +73,7 @@ describe('ResultSet', () => {
   });
   it('renders a Table', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
-    expect(wrapper.find(FilterableTable)).toHaveLength(1);
+    expect(wrapper.find(FilterableTable)).toExist();
   });
   describe('componentWillReceiveProps', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
@@ -101,7 +101,7 @@ describe('ResultSet', () => {
       const wrapper = shallow(<ResultSet {...mockedProps} />);
       const filterableTable = wrapper.find(FilterableTable);
       expect(filterableTable.props().data).toBe(mockedProps.query.results.data);
-      expect(wrapper.find(ExploreResultsButton)).toHaveLength(1);
+      expect(wrapper.find(ExploreResultsButton)).toExist();
     });
     it('should render empty results', () => {
       const wrapper = shallow(<ResultSet {...mockedProps} />);
@@ -112,8 +112,8 @@ describe('ResultSet', () => {
         },
       };
       wrapper.setProps({ query: emptyResults });
-      expect(wrapper.find(FilterableTable)).toHaveLength(0);
-      expect(wrapper.find(Alert)).toHaveLength(1);
+      expect(wrapper.find(FilterableTable)).not.toExist();
+      expect(wrapper.find(Alert)).toExist();
       expect(wrapper.find(Alert).shallow().text()).toBe(
         'The query returned no data',
       );
@@ -127,21 +127,21 @@ describe('ResultSet', () => {
     });
     it('should render stopped query', () => {
       const wrapper = shallow(<ResultSet {...stoppedQueryProps} />);
-      expect(wrapper.find(Alert)).toHaveLength(1);
+      expect(wrapper.find(Alert)).toExist();
     });
     it('should render running/pending/fetching query', () => {
       const wrapper = shallow(<ResultSet {...runningQueryProps} />);
-      expect(wrapper.find(ProgressBar)).toHaveLength(1);
+      expect(wrapper.find(ProgressBar)).toExist();
     });
     it('should render a failed query with an error message', () => {
       const wrapper = shallow(
         <ResultSet {...failedQueryWithErrorMessageProps} />,
       );
-      expect(wrapper.find(ErrorMessageWithStackTrace)).toHaveLength(1);
+      expect(wrapper.find(ErrorMessageWithStackTrace)).toExist();
     });
     it('should render a failed query with an errors object', () => {
       const wrapper = shallow(<ResultSet {...failedQueryWithErrorsProps} />);
-      expect(wrapper.find(ErrorMessageWithStackTrace)).toHaveLength(1);
+      expect(wrapper.find(ErrorMessageWithStackTrace)).toExist();
     });
   });
 });

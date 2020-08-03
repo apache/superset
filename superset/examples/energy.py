@@ -29,7 +29,9 @@ from superset.utils import core as utils
 from .helpers import get_example_data, merge_slice, misc_dash_slices, TBL
 
 
-def load_energy(only_metadata: bool = False, force: bool = False) -> None:
+def load_energy(
+    only_metadata: bool = False, force: bool = False, sample: bool = False
+) -> None:
     """Loads an energy related dataset to use with sankey and graphs"""
     tbl_name = "energy_usage"
     database = utils.get_example_database()
@@ -38,6 +40,7 @@ def load_energy(only_metadata: bool = False, force: bool = False) -> None:
     if not only_metadata and (not table_exists or force):
         data = get_example_data("energy.json.gz")
         pdf = pd.read_json(data)
+        pdf = pdf.head(100) if sample else pdf
         pdf.to_sql(
             tbl_name,
             database.get_sqla_engine(),
