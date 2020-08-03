@@ -583,7 +583,9 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
         image_url = get_url_path(
             "ChartRestApi.screenshot", pk=alert.slice.id, digest=cache_key
         )
-
+        standalone_index = chart_url.find("/?standalone=true")
+        if standalone_index != -1:
+            image_url = chart_url[:standalone_index]
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         img_data = screenshot.compute_and_cache(
             user=user, cache=thumbnail_cache, force=True,
@@ -602,10 +604,15 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
         textwrap.dedent(
             """\
             <h2>Alert: %(label)s</h2>
-            <img src="cid:screenshot" alt="%(label)s" />
+            <p><b>SQL Statement: </b>%(sql)s</p>
+            <p>Click <a href="%(image_url)s">here</a> or the image below to view the Slice related to this alert.</p>
+            <a href="%(image_url)s">
+                <img src="cid:screenshot" alt="%(label)s" />
+            </a>
         """
         ),
         label=alert.label,
+        sql=alert.sql,
         image_url=image_url,
     )
 
