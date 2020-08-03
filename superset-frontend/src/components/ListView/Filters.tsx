@@ -94,7 +94,7 @@ function SelectFilter({
     spacing: {
       baseUnit: 2,
       minWidth: '5em',
-      fontSize: theme.typography.sizes.s,
+      fontSize: `${theme.typography.sizes.s}px`,
     },
   };
 
