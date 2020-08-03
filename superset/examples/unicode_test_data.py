@@ -36,7 +36,9 @@ from .helpers import (
 )
 
 
-def load_unicode_test_data(only_metadata: bool = False, force: bool = False) -> None:
+def load_unicode_test_data(
+    only_metadata: bool = False, force: bool = False, sample: bool = False
+) -> None:
     """Loading unicode test dataset from a csv file in the repo"""
     tbl_name = "unicode_test"
     database = utils.get_example_database()
@@ -50,6 +52,7 @@ def load_unicode_test_data(only_metadata: bool = False, force: bool = False) -> 
         # generate date/numeric data
         df["dttm"] = datetime.datetime.now().date()
         df["value"] = [random.randint(1, 100) for _ in range(len(df))]
+        df = df.head(100) if sample else df
         df.to_sql(  # pylint: disable=no-member
             tbl_name,
             database.get_sqla_engine(),
