@@ -96,7 +96,7 @@ Superset provides:
 Superset speaks many SQL dialects through SQLAlchemy - a Python
 SQL toolkit that is compatible with most databases. Here are some of the major database solutions that are supported:
 
-<p float="left">
+<p align="center">
   <img src="superset-frontend/images/redshift.png" alt="redshift" border="0" width="106" height="41"/>
   <img src="superset-frontend/images/google-biquery.png" alt="google-biquery" border="0" width="114" height="43"/>
   <img src="superset-frontend/images/snowflake.png" alt="snowflake" border="0" width="152" height="46"/>
