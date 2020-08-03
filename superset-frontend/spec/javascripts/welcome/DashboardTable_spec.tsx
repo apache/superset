@@ -56,7 +56,7 @@ describe('DashboardTable', () => {
         // there's a delay between response and updating state, so manually set it
         // rather than adding a timeout which could introduce flakiness
         wrapper.setState({ dashboards: mockDashboards });
-        expect(wrapper.find(ListView)).toHaveLength(1);
+        expect(wrapper.find(ListView)).toExist();
         done();
       });
     });

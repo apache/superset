@@ -25,4 +25,3 @@ openapi_spec_methods_override = {
         }
     },
 }
-""" Overrides GET methods OpenApi descriptions """

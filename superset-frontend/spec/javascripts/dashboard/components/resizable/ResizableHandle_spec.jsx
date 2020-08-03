@@ -25,7 +25,7 @@ import ResizableHandle from 'src/dashboard/components/resizable/ResizableHandle'
 describe('ResizableHandle', () => {
   it('should render a right resize handle', () => {
     const wrapper = shallow(<ResizableHandle.right />);
-    expect(wrapper.find('.resize-handle.resize-handle--right')).toHaveLength(1);
+    expect(wrapper.find('.resize-handle.resize-handle--right')).toExist();
   });
 
   it('should render a bottom resize handle', () => {

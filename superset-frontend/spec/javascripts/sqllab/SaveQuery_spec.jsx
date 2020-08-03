@@ -42,7 +42,7 @@ describe('SavedQuery', () => {
   });
   it('has a ModalTrigger', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
+    expect(wrapper.find(ModalTrigger)).toExist();
   });
   it('has a cancel button', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);

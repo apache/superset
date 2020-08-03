@@ -22,21 +22,20 @@ import { getChartMetadataRegistry } from '@superset-ui/chart';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-// @ts-ignore
-import { Panel } from 'react-bootstrap';
+import { uniqBy } from 'lodash';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import Icon from 'src/components/Icon';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import {
   FetchDataConfig,
-  FilterOperatorMap,
   Filters,
+  SelectOption,
 } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const PAGE_SIZE = 25;
 
@@ -49,8 +48,6 @@ interface State {
   bulkSelectEnabled: boolean;
   chartCount: number;
   charts: any[];
-  filterOperators: FilterOperatorMap;
-  filters: Filters;
   lastFetchDataConfig: FetchDataConfig | null;
   loading: boolean;
   permissions: string[];
@@ -58,7 +55,42 @@ interface State {
   // In future it would be better to have a unified Chart entity.
   sliceCurrentlyEditing: Slice | null;
 }
+const createFetchDatasets = (handleError: (err: Response) => void) => async (
+  filterValue = '',
+  pageIndex?: number,
+  pageSize?: number,
+) => {
+  // add filters if filterValue
+  const filters = filterValue
+    ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
+    : {};
+  try {
+    const queryParams = rison.encode({
+      columns: ['datasource_name', 'datasource_id'],
+      keys: ['none'],
+      order_by: 'datasource_name',
+      ...(pageIndex ? { page: pageIndex } : {}),
+      ...(pageSize ? { page_size: pageSize } : {}),
+      ...filters,
+    });
 
+    const { json = {} } = await SupersetClient.get({
+      endpoint: `/api/v1/dataset/?q=${queryParams}`,
+    });
+
+    const datasets = json?.result?.map(
+      ({ table_name: tableName, id }: { table_name: string; id: number }) => ({
+        label: tableName,
+        value: id,
+      }),
+    );
+
+    return uniqBy<SelectOption>(datasets, 'value');
+  } catch (e) {
+    handleError(e);
+  }
+  return [];
+};
 class ChartList extends React.PureComponent<Props, State> {
   static propTypes = {
     addDangerToast: PropTypes.func.isRequired,
@@ -68,8 +100,6 @@ class ChartList extends React.PureComponent<Props, State> {
     bulkSelectEnabled: false,
     chartCount: 0,
     charts: [],
-    filterOperators: {},
-    filters: [],
     lastFetchDataConfig: null,
     loading: true,
     permissions: [],
@@ -81,20 +111,15 @@ class ChartList extends React.PureComponent<Props, State> {
       endpoint: `/api/v1/chart/_info`,
     }).then(
       ({ json: infoJson = {} }) => {
-        this.setState(
-          {
-            filterOperators: infoJson.filters,
-            permissions: infoJson.permissions,
-          },
-          this.updateFilters,
-        );
+        this.setState({
+          permissions: infoJson.permissions,
+        });
       },
-      e => {
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t('An error occurred while fetching charts: %s', e.statusText),
-        );
-        console.error(e);
-      },
+          t('An error occurred while fetching chart info: %s', errMsg),
+        ),
+      ),
     );
   }
 
@@ -104,10 +129,6 @@ class ChartList extends React.PureComponent<Props, State> {
 
   get canDelete() {
     return this.hasPerm('can_delete');
-  }
-
-  get isSIP34FilterUIEnabled() {
-    return isFeatureEnabled(FeatureFlag.LIST_VIEWS_SIP34_FILTER_UI);
   }
 
   initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -138,7 +159,7 @@ class ChartList extends React.PureComponent<Props, State> {
         },
       }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
       Header: t('Datasource'),
-      accessor: 'datasource_name',
+      accessor: 'datasource_id',
     },
     {
       Cell: ({
@@ -228,6 +249,63 @@ class ChartList extends React.PureComponent<Props, State> {
     },
   ];
 
+  filters: Filters = [
+    {
+      Header: t('Owner'),
+      id: 'owners',
+      input: 'select',
+      operator: 'rel_m_m',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchRelated(
+        'chart',
+        'owners',
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t(
+              'An error occurred while fetching chart dataset values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+      ),
+      paginate: true,
+    },
+    {
+      Header: t('Viz Type'),
+      id: 'viz_type',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      selects: getChartMetadataRegistry()
+        .keys()
+        .map(k => ({ label: k, value: k })),
+    },
+    {
+      Header: t('Datasource'),
+      id: 'datasource_id',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'All',
+      fetchSelects: createFetchDatasets(
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t(
+              'An error occurred while fetching chart dataset values: %s',
+              errMsg,
+            ),
+          ),
+        ),
+      ),
+      paginate: false,
+    },
+    {
+      Header: t('Search'),
+      id: 'slice_name',
+      input: 'search',
+      operator: 'name_or_description',
+    },
+  ];
+
   hasPerm = (perm: string) => {
     if (!this.state.permissions.length) {
       return false;
@@ -295,15 +373,11 @@ class ChartList extends React.PureComponent<Props, State> {
         }
         this.props.addSuccessToast(json.message);
       },
-      (err: any) => {
-        console.error(err);
+      createErrorHandler(errMsg =>
         this.props.addDangerToast(
-          t(
-            'There was an issue deleting the selected charts: %s',
-            err.statusText,
-          ),
-        );
-      },
+          t('There was an issue deleting the selected charts: %s', errMsg),
+        ),
+      ),
     );
   };
 
@@ -319,29 +393,11 @@ class ChartList extends React.PureComponent<Props, State> {
       loading: true,
     });
 
-    const filterExps = filters
-      .map(({ id: col, operator: opr, value }) => ({
-        col,
-        opr,
-        value,
-      }))
-      .reduce((acc, fltr) => {
-        if (
-          fltr.col === 'datasource' &&
-          fltr.value &&
-          typeof fltr.value === 'string'
-        ) {
-          const { datasource_id: dsId, datasource_type: dsType } = JSON.parse(
-            fltr.value,
-          );
-          return [
-            ...acc,
-            { ...fltr, col: 'datasource_id', value: dsId },
-            { ...fltr, col: 'datasource_type', value: dsType },
-          ];
-        }
-        return [...acc, fltr];
-      }, []);
+    const filterExps = filters.map(({ id: col, operator: opr, value }) => ({
+      col,
+      opr,
+      value,
+    }));
 
     const queryParams = rison.encode({
       order_column: sortBy[0].id,
@@ -354,162 +410,19 @@ class ChartList extends React.PureComponent<Props, State> {
     return SupersetClient.get({
       endpoint: `/api/v1/chart/?q=${queryParams}`,
     })
-      .then(({ json = {} }) => {
-        this.setState({ charts: json.result, chartCount: json.count });
-      })
-      .catch(e => {
-        console.log(e.body);
-        this.props.addDangerToast(
-          t('An error occurred while fetching charts: %s', e.statusText),
-        );
-      })
+      .then(
+        ({ json = {} }) => {
+          this.setState({ charts: json.result, chartCount: json.count });
+        },
+        createErrorHandler(errMsg =>
+          this.props.addDangerToast(
+            t('An error occurred while fetching charts: %s', errMsg),
+          ),
+        ),
+      )
       .finally(() => {
         this.setState({ loading: false });
       });
-  };
-
-  fetchOwners = async (
-    filterValue = '',
-    pageIndex?: number,
-    pageSize?: number,
-  ) => {
-    const resource = '/api/v1/chart/related/owners';
-
-    try {
-      const queryParams = rison.encode({
-        ...(pageIndex ? { page: pageIndex } : {}),
-        ...(pageSize ? { page_ize: pageSize } : {}),
-        ...(filterValue ? { filter: filterValue } : {}),
-      });
-      const { json = {} } = await SupersetClient.get({
-        endpoint: `${resource}?q=${queryParams}`,
-      });
-
-      return json?.result?.map(
-        ({ text: label, value }: { text: string; value: any }) => ({
-          label,
-          value,
-        }),
-      );
-    } catch (e) {
-      console.error(e);
-      this.props.addDangerToast(
-        t(
-          'An error occurred while fetching chart owner values: %s',
-          e.statusText,
-        ),
-      );
-    }
-    return [];
-  };
-
-  fetchDatasets = async () => {
-    const resource = '/api/v1/chart/datasources';
-    try {
-      const { json = {} } = await SupersetClient.get({
-        endpoint: `${resource}`,
-      });
-
-      return json?.result?.map((ds: { label: string; value: any }) => ({
-        ...ds,
-        value: JSON.stringify(ds.value),
-      }));
-    } catch (e) {
-      this.props.addDangerToast(
-        t(
-          'An error occurred while fetching chart dataset values: %s',
-          e.statusText,
-        ),
-      );
-    }
-    return [];
-  };
-
-  updateFilters = async () => {
-    const { filterOperators } = this.state;
-
-    if (this.isSIP34FilterUIEnabled) {
-      this.setState({
-        filters: [
-          {
-            Header: 'Owner',
-            id: 'owners',
-            input: 'select',
-            operator: 'rel_m_m',
-            unfilteredLabel: 'All',
-            fetchSelects: this.fetchOwners,
-            paginate: true,
-          },
-          {
-            Header: 'Viz Type',
-            id: 'viz_type',
-            input: 'select',
-            operator: 'eq',
-            unfilteredLabel: 'All',
-            selects: getChartMetadataRegistry()
-              .keys()
-              .map(k => ({ label: k, value: k })),
-          },
-          {
-            Header: 'Dataset',
-            id: 'datasource',
-            input: 'select',
-            operator: 'eq',
-            unfilteredLabel: 'All',
-            fetchSelects: this.fetchDatasets,
-            paginate: false,
-          },
-          {
-            Header: 'Search',
-            id: 'slice_name',
-            input: 'search',
-            operator: 'name_or_description',
-          },
-        ],
-      });
-      return;
-    }
-
-    const convertFilter = ({
-      name: label,
-      operator,
-    }: {
-      name: string;
-      operator: string;
-    }) => ({ label, value: operator });
-
-    const owners = await this.fetchOwners();
-    this.setState({
-      filters: [
-        {
-          Header: 'Chart',
-          id: 'slice_name',
-          operators: filterOperators.slice_name.map(convertFilter),
-        },
-        {
-          Header: 'Description',
-          id: 'description',
-          operators: filterOperators.slice_name.map(convertFilter),
-        },
-        {
-          Header: 'Visualization Type',
-          id: 'viz_type',
-          operators: filterOperators.viz_type.map(convertFilter),
-        },
-        {
-          Header: 'Datasource Name',
-          id: 'datasource_name',
-          operators: filterOperators.datasource_name.map(convertFilter),
-        },
-        {
-          Header: 'Owners',
-          id: 'owners',
-          input: 'select',
-          operators: filterOperators.owners.map(convertFilter),
-          selects: owners,
-        },
-      ],
-    });
   };
 
   render() {
@@ -518,7 +431,6 @@ class ChartList extends React.PureComponent<Props, State> {
       charts,
       chartCount,
       loading,
-      filters,
       sliceCurrentlyEditing,
     } = this.state;
     return (
@@ -536,9 +448,9 @@ class ChartList extends React.PureComponent<Props, State> {
         />
         {sliceCurrentlyEditing && (
           <PropertiesModal
-            show
             onHide={this.closeChartEditModal}
             onSave={this.handleChartUpdated}
+            show
             slice={sliceCurrentlyEditing}
           />
         )}
@@ -563,19 +475,18 @@ class ChartList extends React.PureComponent<Props, State> {
 
             return (
               <ListView
-                className="chart-list-view"
-                columns={this.columns}
-                data={charts}
-                count={chartCount}
-                pageSize={PAGE_SIZE}
-                fetchData={this.fetchData}
-                loading={loading}
-                initialSort={this.initialSort}
-                filters={filters}
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
+                className="chart-list-view"
+                columns={this.columns}
+                count={chartCount}
+                data={charts}
                 disableBulkSelect={this.toggleBulkSelect}
-                isSIP34FilterUIEnabled={this.isSIP34FilterUIEnabled}
+                fetchData={this.fetchData}
+                filters={this.filters}
+                initialSort={this.initialSort}
+                loading={loading}
+                pageSize={PAGE_SIZE}
               />
             );
           }}

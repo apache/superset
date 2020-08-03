@@ -18,14 +18,14 @@ import logging
 from typing import Callable, Optional
 
 from flask_appbuilder import Model
-from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import make_transient
+
+from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 
 
 def import_datasource(  # pylint: disable=too-many-arguments
-    session: Session,
     i_datasource: Model,
     lookup_database: Callable[[Model], Model],
     lookup_datasource: Callable[[Model], Model],
@@ -52,11 +52,11 @@ def import_datasource(  # pylint: disable=too-many-arguments
 
     if datasource:
         datasource.override(i_datasource)
-        session.flush()
+        db.session.flush()
     else:
         datasource = i_datasource.copy()
-        session.add(datasource)
-        session.flush()
+        db.session.add(datasource)
+        db.session.flush()
 
     for metric in i_datasource.metrics:
         new_m = metric.copy()
@@ -81,13 +81,11 @@ def import_datasource(  # pylint: disable=too-many-arguments
         imported_c = i_datasource.column_class.import_obj(new_c)
         if imported_c.column_name not in [c.column_name for c in datasource.columns]:
             datasource.columns.append(imported_c)
-    session.flush()
+    db.session.flush()
     return datasource.id
 
 
-def import_simple_obj(
-    session: Session, i_obj: Model, lookup_obj: Callable[[Model], Model]
-) -> Model:
+def import_simple_obj(i_obj: Model, lookup_obj: Callable[[Model], Model]) -> Model:
     make_transient(i_obj)
     i_obj.id = None
     i_obj.table = None
@@ -97,9 +95,9 @@ def import_simple_obj(
     i_obj.table = None
     if existing_column:
         existing_column.override(i_obj)
-        session.flush()
+        db.session.flush()
         return existing_column
 
-    session.add(i_obj)
-    session.flush()
+    db.session.add(i_obj)
+    db.session.flush()
     return i_obj

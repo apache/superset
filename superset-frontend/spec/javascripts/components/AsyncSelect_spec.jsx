@@ -48,7 +48,7 @@ describe('AsyncSelect', () => {
 
   it('has one select', () => {
     const wrapper = shallow(<AsyncSelect {...mockedProps} />);
-    expect(wrapper.find(Select)).toHaveLength(1);
+    expect(wrapper.find(Select)).toExist();
   });
 
   it('calls onChange on select change', () => {
@@ -114,7 +114,7 @@ describe('AsyncSelect', () => {
         setTimeout(() => {
           expect(fetchMock.calls(dataGlob)).toHaveLength(1);
           expect(onChangeSpy.mock.calls).toHaveLength(0);
-          expect(wrapper.find(Select)).toHaveLength(1);
+          expect(wrapper.find(Select)).toExist();
           done();
         });
       });

@@ -20,6 +20,10 @@ set -e
 GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-.}
 ASSETS_MANIFEST="$GITHUB_WORKSPACE/superset/static/assets/manifest.json"
 
+# Rounded job start time, used to create a unique Cypress build id for
+# parallelization so we can manually rerun a job after 20 minutes
+NONCE=$(echo "$(date "+%Y%m%d%H%M") - ($(date +%M)%20)" | bc)
+
 # Echo only when not in parallel mode
 say() {
   if [[ $(echo "$INPUT_PARALLEL" | tr '[:lower:]' '[:upper:]') != 'TRUE' ]]; then
@@ -36,10 +40,11 @@ default-setup-command() {
 pip-install() {
   cd "$GITHUB_WORKSPACE"
 
-  # Don't use pip cache as it doesn't seem to help much.
+  # Pip cache saves at most about 20s on a good day
   # cache-restore pip
 
   say "::group::Install Python pacakges"
+  pip install --upgrade pip
   pip install -r requirements.txt
   pip install -r requirements-dev.txt
   pip install -e ".[postgres,mysql]"
@@ -52,15 +57,16 @@ pip-install() {
 npm-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
-  cache-restore npm
+  # cache-restore npm
 
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
   echo "node: $(node --version)"
-  npm ci
+  rm -rf ./node_modules
+  npm install
   say "::endgroup::"
 
-  cache-save npm
+  # cache-save npm
 }
 
 build-assets() {
@@ -69,16 +75,6 @@ build-assets() {
   say "::group::Build static assets"
   npm run build -- --no-progress
   say "::endgroup::"
-}
-
-build-assets-cached() {
-  cache-restore assets
-  if [[ -f "$ASSETS_MANIFEST" ]]; then
-    echo 'Skip frontend build because static assets already exist.'
-  else
-    build-assets
-    cache-save assets
-  fi
 }
 
 build-instrumented-assets() {
@@ -139,7 +135,7 @@ codecov() {
   local codecovScript="${HOME}/codecov.sh"
   # download bash script if needed
   if [[ ! -f "$codecovScript" ]]; then
-    curl -s https://codecov.io/bash > "$codecovScript"
+    curl -s https://codecov.io/bash >"$codecovScript"
   fi
   bash "$codecovScript" "$@"
   say "::endgroup::"
@@ -160,19 +156,22 @@ cypress-install() {
 # Run Cypress and upload coverage reports
 cypress-run() {
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-  
+
   local page=$1
   local group=${2:-Default}
   local cypress="./node_modules/.bin/cypress run"
   local browser=${CYPRESS_BROWSER:-chrome}
+
+  export TERM="xterm"
 
   say "::group::Run Cypress for [$page]"
   if [[ -z $CYPRESS_RECORD_KEY ]]; then
     $cypress --spec "cypress/integration/$page" --browser "$browser"
   else
     # additional flags for Cypress dashboard recording
-    $cypress --spec "cypress/integration/$page" --browser "$browser" --record \
-      --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}"
+    $cypress --spec "cypress/integration/$page" --browser "$browser" \
+      --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
+      --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
   fi
 
   # don't add quotes to $record because we do want word splitting
@@ -186,7 +185,7 @@ cypress-run-all() {
   local flasklog="${HOME}/flask.log"
   local port=8081
 
-  nohup flask run --no-debugger -p $port > "$flasklog" 2>&1 < /dev/null &
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
   cypress-run "*/**/*"
@@ -205,7 +204,7 @@ cypress-run-all() {
 
   # Restart Flask with new configs
   kill $flaskProcessId
-  nohup flask run --no-debugger -p $port > "$flasklog" 2>&1 < /dev/null &
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
   cypress-run "sqllab/*" "Backend persist"

@@ -75,7 +75,6 @@ openapi_spec_methods_override = {
         "get": {"description": "Get a list of all possible owners for a dashboard."}
     },
 }
-""" Overrides GET methods OpenApi descriptions """
 
 
 def validate_json(value: Union[bytes, bytearray, str]) -> None:

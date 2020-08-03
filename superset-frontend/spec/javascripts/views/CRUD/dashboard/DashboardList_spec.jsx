@@ -23,89 +23,74 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
-import ChartList from 'src/views/chartList/ChartList';
+import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ListView from 'src/components/ListView/ListView';
+import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
-// store needed for withToasts(ChartTable)
+// store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
-const chartssOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
-const chartsEndpoint = 'glob:*/api/v1/chart/?*';
-const chartsVizTypesEndpoint = 'glob:*/api/v1/chart/viz_types';
-const chartsDtasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
+const dashboardsInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
+const dashboardOwnersEndpoint = 'glob:*/api/v1/dashboard/related/owners*';
+const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 
-const mockCharts = [...new Array(3)].map((_, i) => ({
-  changed_on: new Date().toISOString(),
-  creator: 'super user',
+const mockDashboards = [...new Array(3)].map((_, i) => ({
   id: i,
-  slice_name: `cool chart ${i}`,
   url: 'url',
-  viz_type: 'bar',
-  datasource_name: `ds${i}`,
+  dashboard_title: `title ${i}`,
+  changed_by_name: 'user',
+  changed_by_url: 'changed_by_url',
+  changed_by_fk: 1,
+  published: true,
+  changed_on_utc: new Date().toISOString(),
+  changed_on_delta_humanized: '5 minutes ago',
+  owners: [{ first_name: 'admin', last_name: 'admin_user' }],
 }));
 
-fetchMock.get(chartsInfoEndpoint, {
+fetchMock.get(dashboardsInfoEndpoint, {
   permissions: ['can_list', 'can_edit'],
-  filters: {
-    slice_name: [],
-    description: [],
-    viz_type: [],
-    datasource_name: [],
-    owners: [],
-  },
 });
-fetchMock.get(chartssOwnersEndpoint, {
+fetchMock.get(dashboardOwnersEndpoint, {
   result: [],
 });
-fetchMock.get(chartsEndpoint, {
-  result: mockCharts,
-  chart_count: 3,
+fetchMock.get(dashboardsEndpoint, {
+  result: mockDashboards,
+  dashboard_count: 3,
 });
 
-fetchMock.get(chartsVizTypesEndpoint, {
-  result: [],
-  count: 0,
-});
-
-fetchMock.get(chartsDtasourcesEndpoint, {
-  result: [],
-  count: 0,
-});
-
-describe('ChartList', () => {
+describe('DashboardList', () => {
   const mockedProps = {};
-  const wrapper = mount(<ChartList {...mockedProps} />, {
+  const wrapper = mount(<DashboardList {...mockedProps} />, {
     context: { store },
     wrappingComponent: ThemeProvider,
     wrappingComponentProps: { theme: supersetTheme },
   });
 
   it('renders', () => {
-    expect(wrapper.find(ChartList)).toHaveLength(1);
+    expect(wrapper.find(DashboardList)).toExist();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toHaveLength(1);
+    expect(wrapper.find(ListView)).toExist();
   });
 
   it('fetches info', () => {
-    const callsI = fetchMock.calls(/chart\/_info/);
+    const callsI = fetchMock.calls(/dashboard\/_info/);
     expect(callsI).toHaveLength(1);
-  });
-
-  it('fetches owners', () => {
-    const callsO = fetchMock.calls(/chart\/related\/owners/);
-    expect(callsO).toHaveLength(1);
   });
 
   it('fetches data', () => {
     wrapper.update();
-    const callsD = fetchMock.calls(/chart\/\?q/);
+    const callsD = fetchMock.calls(/dashboard\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/chart/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+  it('edits', () => {
+    expect(wrapper.find(PropertiesModal)).not.toExist();
+    wrapper.find('[data-test="pencil"]').first().simulate('click');
+    expect(wrapper.find(PropertiesModal)).toExist();
   });
 });

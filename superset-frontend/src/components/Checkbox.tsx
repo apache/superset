@@ -16,6 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.save-btn {
-  width: 100px;
+import React from 'react';
+
+interface CheckboxProps {
+  checked: boolean;
+  onChange: (val?: boolean) => {};
+  style: object;
+}
+
+export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
+  return (
+    <span style={style}>
+      <i
+        role="button"
+        tabIndex={0}
+        className={`fa fa-check ${
+          checked ? 'text-primary' : 'text-transparent'
+        }`}
+        onClick={() => {
+          onChange(!checked);
+        }}
+        style={{
+          border: '1px solid #aaa',
+          borderRadius: '2px',
+          cursor: 'pointer',
+        }}
+      />
+    </span>
+  );
 }

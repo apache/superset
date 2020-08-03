@@ -66,26 +66,26 @@ describe('Header', () => {
 
   it('should render a DragDroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).toHaveLength(1);
+    expect(wrapper.find(DragDroppable)).toExist();
   });
 
   it('should render a WithPopoverMenu', () => {
     const wrapper = setup();
-    expect(wrapper.find(WithPopoverMenu)).toHaveLength(1);
+    expect(wrapper.find(WithPopoverMenu)).toExist();
   });
 
   it('should render a HoverMenu in editMode', () => {
     let wrapper = setup();
-    expect(wrapper.find(HoverMenu)).toHaveLength(0);
+    expect(wrapper.find(HoverMenu)).not.toExist();
 
     // we cannot set props on the Header because of the WithDragDropContext wrapper
     wrapper = setup({ editMode: true });
-    expect(wrapper.find(HoverMenu)).toHaveLength(1);
+    expect(wrapper.find(HoverMenu)).toExist();
   });
 
   it('should render an EditableTitle with meta.text', () => {
     const wrapper = setup();
-    expect(wrapper.find(EditableTitle)).toHaveLength(1);
+    expect(wrapper.find(EditableTitle)).toExist();
     expect(wrapper.find('input').prop('value')).toBe(props.component.meta.text);
   });
 
@@ -105,7 +105,7 @@ describe('Header', () => {
     const wrapper = setup({ editMode: true });
     wrapper.find(WithPopoverMenu).simulate('click'); // focus
 
-    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
+    expect(wrapper.find(DeleteComponentButton)).toExist();
   });
 
   it('should call deleteComponent when deleted', () => {
