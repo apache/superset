@@ -29,9 +29,11 @@ import ExpandableList from 'src/components/ExpandableList';
 import { FetchDataConfig, Filters } from 'src/components/ListView/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
+import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 
 const PAGE_SIZE = 25;
+const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
 
 interface Props {
   addDangerToast: (msg: string) => void;
@@ -42,6 +44,7 @@ interface State {
   bulkSelectEnabled: boolean;
   dashboardCount: number;
   dashboards: any[];
+  favoriteStatus: object;
   dashboardToEdit: Dashboard | null;
   lastFetchDataConfig: FetchDataConfig | null;
   loading: boolean;
@@ -68,6 +71,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     bulkSelectEnabled: false,
     dashboardCount: 0,
     dashboards: [],
+    favoriteStatus: {}, // Hash mapping dashboard id to 'isStarred' status
     dashboardToEdit: null,
     lastFetchDataConfig: null,
     loading: true,
@@ -106,6 +110,61 @@ class DashboardList extends React.PureComponent<Props, State> {
   initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   columns = [
+    {
+      Cell: ({ row: { original } }: any) => {
+        // TODO: return null if no user is logged in
+        const fetchFaveStar = (id: number) => {
+          SupersetClient.get({
+            endpoint: `${FAVESTAR_BASE_URL}/${id}/count/`,
+          })
+            .then(({ json }) => {
+              const faves = {
+                ...this.state.favoriteStatus,
+              };
+
+              faves[id] = json.count > 0;
+
+              this.setState({
+                favoriteStatus: faves,
+              });
+            })
+            .catch(() => {});
+        };
+
+        const saveFaveStar = (id: number, isStarred: boolean) => {
+          const urlSuffix = isStarred ? 'unselect' : 'select';
+
+          SupersetClient.get({
+            endpoint: `${FAVESTAR_BASE_URL}/${id}/${urlSuffix}/`,
+          })
+            .then(() => {
+              const faves = {
+                ...this.state.favoriteStatus,
+              };
+
+              faves[id] = !isStarred;
+
+              this.setState({
+                favoriteStatus: faves,
+              });
+            })
+            .catch(() => {});
+        };
+
+        return (
+          <FaveStar
+            itemId={original.id}
+            fetchFaveStar={fetchFaveStar}
+            saveFaveStar={saveFaveStar}
+            isStarred={!!this.state.favoriteStatus[original.id]}
+            height={20}
+          />
+        );
+      },
+      Header: '',
+      id: 'favorite',
+      disableSortBy: true,
+    },
     {
       Cell: ({
         row: {

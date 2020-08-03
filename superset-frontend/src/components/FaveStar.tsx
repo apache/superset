@@ -27,6 +27,8 @@ interface FaveStarProps {
   saveFaveStar(id: number, isStarred: boolean): any;
   isStarred: boolean;
   width?: number;
+  height?: number;
+  showTooltip?: boolean;
 }
 
 export default class FaveStar extends React.PureComponent<FaveStarProps> {
@@ -40,26 +42,47 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
   }
 
   render() {
-    return (
-      <TooltipWrapper
-        label="fave-unfave"
-        tooltip={t('Click to favorite/unfavorite')}
-      >
-        <a
-          href="#"
-          onClick={this.onClick.bind(this)}
-          className="fave-unfave-icon"
+    if (this.props.showTooltip) {
+      return (
+        <TooltipWrapper
+          label="fave-unfave"
+          tooltip={t('Click to favorite/unfavorite')}
         >
-          <Icon
-            name={
-              this.props.isStarred ? 'favorite-selected' : 'favorite-unselected'
-            }
-            viewBox="0 0 16 15"
-            width={this.props.width || 20}
-            height="auto"
-          />
-        </a>
-      </TooltipWrapper>
+          <a
+            href="#"
+            onClick={this.onClick.bind(this)}
+            className="fave-unfave-icon"
+          >
+            <Icon
+              name={
+                this.props.isStarred
+                  ? 'favorite-selected'
+                  : 'favorite-unselected'
+              }
+              viewBox="0 0 16 15"
+              width={this.props.width || 20}
+              height="auto"
+            />
+          </a>
+        </TooltipWrapper>
+      );
+    }
+
+    return (
+      <a
+        href="#"
+        onClick={this.onClick.bind(this)}
+        className="fave-unfave-icon"
+      >
+        <Icon
+          name={
+            this.props.isStarred ? 'favorite-selected' : 'favorite-unselected'
+          }
+          viewBox="0 0 16 15"
+          width={this.props.width || 20}
+          height={this.props.height || 'auto'}
+        />
+      </a>
     );
   }
 }

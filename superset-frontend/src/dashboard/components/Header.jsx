@@ -390,6 +390,7 @@ class Header extends React.PureComponent {
               fetchFaveStar={this.props.fetchFaveStar}
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
+              showTooltip
             />
           )}
         </div>
