@@ -177,3 +177,9 @@ possible to create a situation where two roles conflict in such a way as to
 limit a table subset to empty.  For example, the filters ``client_id=4`` and
 and ``client_id=5``, applied to a role, will result in users of that role having
 ``client_id=4 AND client_id=5`` added to their query, which can never be true.
+
+Supported Authentication Types
+""""""""""""""""""""""""""""""
+Superset has been written on top of `Flask-AppBuilder <https://flask-appbuilder.readthedocs.io/en/latest/>`_, So it uses the Authentication Types that Flask-ApBuilder.
+Fore more detail please follow this link:
+`Supported Authentication Types on Flask-AppBuilder <https://flask-appbuilder.readthedocs.io/en/latest/security.html#supported-authentication-types>`_
