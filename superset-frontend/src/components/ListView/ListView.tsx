@@ -17,13 +17,15 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import { Col, Row, Alert } from 'react-bootstrap';
 import styled from '@superset-ui/style';
 import cx from 'classnames';
 import Button from 'src/components/Button';
+import Icon from 'src/components/Icon';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import TableCollection from './TableCollection';
+import CardCollection from './CardCollection';
 import Pagination from './Pagination';
 import FilterControls from './Filters';
 import { FetchDataConfig, Filters, SortColumn } from './types';
@@ -188,27 +190,6 @@ const ListViewStyles = styled.div`
   }
 `;
 
-export interface ListViewProps {
-  columns: any[];
-  data: any[];
-  count: number;
-  pageSize: number;
-  fetchData: (conf: FetchDataConfig) => any;
-  loading: boolean;
-  className?: string;
-  initialSort?: SortColumn[];
-  filters?: Filters;
-  bulkActions?: Array<{
-    key: string;
-    name: React.ReactNode;
-    onSelect: (rows: any[]) => any;
-    type?: 'primary' | 'secondary' | 'danger';
-  }>;
-  bulkSelectEnabled?: boolean;
-  disableBulkSelect?: () => void;
-  renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
-}
-
 const BulkSelectWrapper = styled(Alert)`
   border-radius: 0;
   margin-bottom: 0;
@@ -257,6 +238,80 @@ const bulkSelectColumnConfig = {
   size: 'sm',
 };
 
+const ViewModeContainer = styled.div`
+  padding: 24px 0px 8px 16px;
+  display: inline-block;
+  position: relative;
+  top: 8px;
+
+  .toggle-button {
+    display: inline-block;
+    border-radius: 2px;
+    padding: 4px 4px 0 4px;
+
+    &:first-of-type {
+      margin-right: 8px;
+    }
+  }
+
+  .active {
+    background-color: ${({ theme }) => theme.colors.grayscale.base};
+    svg {
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+    }
+  }
+`;
+
+const ViewModeToggle = ({
+  mode,
+  setMode,
+}: {
+  mode: 'table' | 'card';
+  setMode: (mode: 'table' | 'card') => void;
+}) => {
+  return (
+    <ViewModeContainer>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setMode('card')}
+        className={cx('toggle-button', { active: mode === 'card' })}
+      >
+        <Icon name="card-view" />
+      </div>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setMode('table')}
+        className={cx('toggle-button', { active: mode === 'table' })}
+      >
+        <Icon name="list-view" />
+      </div>
+    </ViewModeContainer>
+  );
+};
+export interface ListViewProps<T = any> {
+  columns: any[];
+  data: T[];
+  count: number;
+  pageSize: number;
+  fetchData: (conf: FetchDataConfig) => any;
+  loading: boolean;
+  className?: string;
+  initialSort?: SortColumn[];
+  filters?: Filters;
+  bulkActions?: Array<{
+    key: string;
+    name: React.ReactNode;
+    onSelect: (rows: any[]) => any;
+    type?: 'primary' | 'secondary' | 'danger';
+  }>;
+  bulkSelectEnabled?: boolean;
+  disableBulkSelect?: () => void;
+  renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
+  renderCard?: (row: T) => React.ReactNode;
+}
+
 const ListView: FunctionComponent<ListViewProps> = ({
   columns,
   data,
@@ -271,6 +326,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
   bulkSelectEnabled = false,
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
+  renderCard,
 }) => {
   const {
     getTableProps,
@@ -310,10 +366,18 @@ const ListView: FunctionComponent<ListViewProps> = ({
     });
   }
 
+  const cardViewEnabled = Boolean(renderCard);
+  const [viewingMode, setViewingMode] = useState<'table' | 'card'>(
+    cardViewEnabled ? 'card' : 'table',
+  );
+
   return (
     <ListViewStyles>
       <div className={`superset-list-view ${className}`}>
         <div className="header">
+          {cardViewEnabled && (
+            <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />
+          )}
           {filterable && (
             <FilterControls
               filters={filters}
@@ -364,14 +428,23 @@ const ListView: FunctionComponent<ListViewProps> = ({
               )}
             </BulkSelectWrapper>
           )}
-          <TableCollection
-            getTableProps={getTableProps}
-            getTableBodyProps={getTableBodyProps}
-            prepareRow={prepareRow}
-            headerGroups={headerGroups}
-            rows={rows}
-            loading={loading}
-          />
+          {viewingMode === 'card' && (
+            <CardCollection
+              renderCard={renderCard}
+              rows={rows}
+              loading={loading}
+            />
+          )}
+          {viewingMode === 'table' && (
+            <TableCollection
+              getTableProps={getTableProps}
+              getTableBodyProps={getTableBodyProps}
+              prepareRow={prepareRow}
+              headerGroups={headerGroups}
+              rows={rows}
+              loading={loading}
+            />
+          )}
         </div>
         <div className="footer">
           <Row>

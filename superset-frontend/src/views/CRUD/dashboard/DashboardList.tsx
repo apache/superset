@@ -47,8 +47,12 @@ interface Props {
 interface State {
   bulkSelectEnabled: boolean;
   dashboardCount: number;
+<<<<<<< HEAD
   dashboards: any[];
   favoriteStatus: object;
+=======
+  dashboards: Dashboard[];
+>>>>>>> fixup
   dashboardToEdit: Dashboard | null;
   lastFetchDataConfig: FetchDataConfig | null;
   loading: boolean;
@@ -512,6 +516,9 @@ class DashboardList extends React.PureComponent<Props, State> {
                   initialSort={this.initialSort}
                   loading={loading}
                   pageSize={PAGE_SIZE}
+                  renderCard={props => (
+                    <div key={props.id}>{props.dashboard_title}</div>
+                  )}
                 />
               </>
             );

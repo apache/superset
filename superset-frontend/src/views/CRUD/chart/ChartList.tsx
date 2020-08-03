@@ -53,7 +53,7 @@ interface Props {
 interface State {
   bulkSelectEnabled: boolean;
   chartCount: number;
-  charts: any[];
+  charts: Slice[];
   favoriteStatus: object;
   lastFetchDataConfig: FetchDataConfig | null;
   loading: boolean;
@@ -519,6 +519,9 @@ class ChartList extends React.PureComponent<Props, State> {
                 initialSort={this.initialSort}
                 loading={loading}
                 pageSize={PAGE_SIZE}
+                renderCard={props => (
+                  <div key={props.id}>{props.slice_name}</div>
+                )}
               />
             );
           }}

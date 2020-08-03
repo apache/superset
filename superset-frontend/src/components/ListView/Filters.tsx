@@ -218,6 +218,7 @@ interface UIFiltersProps {
 }
 
 const FilterWrapper = styled.div`
+  display: inline-block;
   padding: 24px 16px 8px;
 `;
 

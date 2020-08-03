@@ -40,6 +40,8 @@ import { ReactComponent as SortIcon } from 'images/icons/sort.svg';
 import { ReactComponent as TrashIcon } from 'images/icons/trash.svg';
 import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 import { ReactComponent as ShareIcon } from 'images/icons/share.svg';
+import { ReactComponent as CardViewIcon } from 'images/icons/card-view.svg';
+import { ReactComponent as ListViewIcon } from 'images/icons/list-view.svg';
 
 type IconName =
   | 'cancel-x'
@@ -64,7 +66,9 @@ type IconName =
   | 'sort-desc'
   | 'trash'
   | 'share'
-  | 'warning';
+  | 'warning'
+  | 'list-view'
+  | 'card-view';
 
 export const iconsRegistry: Record<
   IconName,
@@ -82,6 +86,8 @@ export const iconsRegistry: Record<
   'favorite-unselected': FavoriteUnselectedIcon,
   'sort-asc': SortAscIcon,
   'sort-desc': SortDescIcon,
+  'card-view': CardViewIcon,
+  'list-view': ListViewIcon,
   check: CheckIcon,
   close: CloseIcon,
   compass: CompassIcon,
