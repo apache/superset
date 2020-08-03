@@ -18,7 +18,7 @@
 # https://cwiki.apache.org/confluence/display/INFRA/.asf.yaml+features+for+git+repositories
 ---
 github:
-  description: "Apache Superset is a Data Visualization and Exploration Platform"
+  description: "Apache Superset is a Data Visualization and Data Exploration Platform"
   homepage: https://superset.apache.org/
   labels:
     - superset
