@@ -849,7 +849,7 @@ it back or not has been well documented in the
 
 To contribute a plugin to Superset-UI, your plugin must meet the following criteria:
 * The plugin should be applicable to the community at large, not a particularly specialized use case
-* The plugin should be written with typescript
+* The plugin should be written with TypeScript
 * The plugin should contain sufficient unit/e2e tests
 * The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
 * The plugin should use them variables via Emotion, as passed in by the ThemeProvider
