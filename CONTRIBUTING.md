@@ -814,7 +814,7 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
 ### Improving visualizations
 
-Bugfixes for core visualizations are welcome. To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
+To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
 
 ```bash
 git clone https://github.com/apache-superset/superset-ui.git
