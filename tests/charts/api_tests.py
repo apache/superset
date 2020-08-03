@@ -677,7 +677,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["result"][0]["rowcount"], 100)
+        self.assertEqual(data["result"][0]["rowcount"], 45)
 
     def test_chart_data_limit_offset(self):
         """
