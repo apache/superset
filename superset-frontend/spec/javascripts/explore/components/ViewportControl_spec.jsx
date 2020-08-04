@@ -18,8 +18,9 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { mount } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import Label from 'src/components/Label';
 import ViewportControl from 'src/explore/components/controls/ViewportControl';
@@ -34,13 +35,17 @@ const defaultProps = {
     bearing: 0,
     pitch: 0,
   },
+  name: "foo",
 };
 
 describe('ViewportControl', () => {
   let wrapper;
   let inst;
   beforeEach(() => {
-    wrapper = shallow(<ViewportControl {...defaultProps} />);
+    wrapper = mount(<ViewportControl {...defaultProps} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
     inst = wrapper.instance();
   });
 
@@ -51,12 +56,16 @@ describe('ViewportControl', () => {
   });
 
   it('renders a Popover with 5 TextControl', () => {
-    const popOver = shallow(inst.renderPopover());
+    const popOver = mount(inst.renderPopover(), {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
     expect(popOver.find(TextControl)).toHaveLength(5);
   });
 
   it('renders a summary in the label', () => {
-    expect(wrapper.find(Label).first().render().text()).toBe(
+    const label = wrapper.find(Label).first();
+    expect(label.render().text()).toBe(
       '6° 51\' 8.50" | 31° 13\' 21.56"',
     );
   });

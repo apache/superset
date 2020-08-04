@@ -20,6 +20,7 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { shallow } from 'enzyme';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 import SouthPaneContainer, { SouthPane } from 'src/SqlLab/components/SouthPane';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
@@ -70,6 +71,7 @@ describe('SouthPane', () => {
     actions: {},
     activeSouthPaneTab: '',
     height: 1,
+    displayLimit: 1,
     databases: {},
     offline: false,
   };
@@ -77,6 +79,8 @@ describe('SouthPane', () => {
   const getWrapper = () =>
     shallow(<SouthPaneContainer {...mockedProps} />, {
       context: { store },
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
     }).dive();
 
   let wrapper;

@@ -391,7 +391,7 @@ class DateFilterControl extends React.Component {
       const timeRange = buildTimeRangeString(nextState.since, nextState.until);
 
       return (
-        <Styles theme={this.props.theme}>
+        <Styles theme={this.props.theme} key={timeFrame}>
           <OverlayTrigger
             key={timeFrame}
             placement="right"

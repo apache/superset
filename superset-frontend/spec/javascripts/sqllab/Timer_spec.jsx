@@ -19,6 +19,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import Timer from 'src/components/Timer';
 import { now } from 'src/modules/dates';
@@ -33,7 +34,10 @@ describe('Timer', () => {
 
   beforeEach(() => {
     mockedProps.startTime = now() + 1;
-    wrapper = mount(<Timer {...mockedProps} />);
+    wrapper = mount(<Timer {...mockedProps} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
   });
 
   it('is a valid element', () => {

@@ -19,6 +19,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import Security from 'src/profile/components/Security';
+import { supersetTheme, ThemeProvider } from '@superset-ui/style';
 
 import { user, userNoPerms } from './fixtures';
 
@@ -30,19 +31,31 @@ describe('Security', () => {
     expect(React.isValidElement(<Security {...mockedProps} />)).toBe(true);
   });
   it('renders 2 role labels', () => {
-    const wrapper = mount(<Security {...mockedProps} />);
+    const wrapper = mount(<Security {...mockedProps} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
     expect(wrapper.find('.roles').find('.label')).toHaveLength(2);
   });
   it('renders 2 datasource labels', () => {
-    const wrapper = mount(<Security {...mockedProps} />);
+    const wrapper = mount(<Security {...mockedProps} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
     expect(wrapper.find('.datasources').find('.label')).toHaveLength(2);
   });
   it('renders 3 database labels', () => {
-    const wrapper = mount(<Security {...mockedProps} />);
+    const wrapper = mount(<Security {...mockedProps} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
     expect(wrapper.find('.databases').find('.label')).toHaveLength(3);
   });
   it('renders no permission label when empty', () => {
-    const wrapper = mount(<Security user={userNoPerms} />);
+    const wrapper = mount(<Security user={userNoPerms} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    });
     expect(wrapper.find('.datasources').find('.label')).not.toExist();
     expect(wrapper.find('.databases').find('.label')).not.toExist();
   });
