@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './hooks/useColumnCellProps';
 export * from './hooks/useSticky';
 export * from './components/GlobalFilter';
 export * from './components/Pagination';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useMemo, useCallback } from 'react';
-import { ColumnInstance, Column, DefaultSortTypes } from 'react-table';
+import { ColumnInstance, DefaultSortTypes, ColumnWithLooseAccessor } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort, FaSortUp as FaSortAsc, FaSortDown as FaSortDesc } from 'react-icons/fa';
 import { t } from '@superset-ui/translation';
@@ -83,7 +83,7 @@ function cellBar({
   );
 }
 
-function SortIcon({ column }: { column: ColumnInstance }) {
+function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   const { isSorted, isSortedDesc } = column;
   let sortIcon = <FaSort />;
   if (isSorted) {
@@ -173,53 +173,66 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const getColumnConfigs = useCallback(
-    (column: DataColumnMeta, i: number): Column<D> => {
+    (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
       const { key, label, dataType } = column;
+      let className = '';
+      if (dataType === DataType.Number) {
+        className += ' dt-metric';
+      } else if (emitFilter) {
+        className += ' dt-is-filter';
+      }
       const valueRange = showCellBars && getValueRange(key);
-      const cellProps: Column<D>['cellProps'] = ({ value: value_ }, sharedCellProps) => {
-        let className = '';
-        const value = value_ as DataRecordValue;
-        if (dataType === DataType.Number) {
-          className += ' dt-metric';
-        } else if (emitFilter) {
-          className += ' dt-is-filter';
-          if (isActiveFilterValue(key, value)) {
-            className += ' dt-is-active-filter';
-          }
-        }
-        const [isHtml, text] = formatValue(column, value);
-        const style = {
-          ...sharedCellProps.style,
-          background: valueRange
-            ? cellBar({
-                value: value as number,
-                valueRange,
-                alignPositiveNegative,
-                colorPositiveNegative,
-              })
-            : undefined,
-        };
-        return {
-          // show raw number in title in case of numeric values
-          title: typeof value === 'number' ? String(value) : undefined,
-          dangerouslySetInnerHTML: isHtml ? { __html: text } : undefined,
-          cellContent: text,
-          onClick: emitFilter && !valueRange ? () => toggleFilter(key, value) : undefined,
-          className,
-          style,
-        };
-      };
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
         accessor: ((datum: D) => datum[key]) as never,
-        Header: label,
-        SortIcon,
+        Cell: ({ column: col, value }: { column: ColumnInstance<D>; value: DataRecordValue }) => {
+          const [isHtml, text] = formatValue(column, value);
+          const style = {
+            background: valueRange
+              ? cellBar({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                  colorPositiveNegative,
+                })
+              : undefined,
+          };
+          const html = isHtml ? { __html: text } : undefined;
+          const cellProps = {
+            // show raw number in title in case of numeric values
+            title: typeof value === 'number' ? String(value) : undefined,
+            onClick: emitFilter && !valueRange ? () => toggleFilter(key, value) : undefined,
+            className: `${className}${
+              isActiveFilterValue(key, value) ? ' dt-is-active-filter' : ''
+            }`,
+            style,
+          };
+          if (html) {
+            // eslint-disable-next-line react/no-danger
+            return <td {...cellProps} dangerouslySetInnerHTML={html} />;
+          }
+          // If cellProps renderes textContent already, then we don't have to
+          // render `Cell`. This saves some time for large tables.
+          return <td {...cellProps}>{text}</td>;
+        },
+        Header: ({ column: col, title, onClick, style }) => {
+          return (
+            <th
+              title={title}
+              className={col.isSorted ? `${className || ''} is-sorted` : className}
+              style={style}
+              onClick={onClick}
+            >
+              {label}
+              <SortIcon column={col} />
+            </th>
+          );
+        },
         sortDescFirst: sortDesc,
         sortType: getSortTypeByDataType(dataType),
-        cellProps,
       };
     },
     [
