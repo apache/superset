@@ -11,8 +11,9 @@ on:
 jobs:
   build:
     name: Build and test
-
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
+    env:
+      CODECOV_TOKEN: "${{ secrets.CODECOV_TOKEN }}"
 
     strategy:
       matrix:
@@ -58,6 +59,5 @@ jobs:
       run: yarn test
 
     - name: Report code coverage
-      uses: codecov/codecov-action@v1
-      with:
-        fail_ci_if_error: true
+      run: curl -s https://codecov.io/bash | bash
+
