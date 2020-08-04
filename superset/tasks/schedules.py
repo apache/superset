@@ -551,10 +551,10 @@ def schedule_alert_query(  # pylint: disable=unused-argument
 
     if report_type == ScheduleType.alert:
         if is_test_alert and recipients:
-            deliver_alert(schedule, recipients)
+            deliver_alert(schedule.id, recipients)
             return
 
-        if run_alert_query(schedule):
+        if run_alert_query(schedule.id):
             # deliver_dashboard OR deliver_slice
             return
     else:
@@ -567,7 +567,9 @@ class AlertState:
     PASS = "pass"
 
 
-def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
+def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
+    alert = db.session.query(Alert).get(alert_id)
+
     logging.info("Triggering alert: %s", alert)
     img_data = None
     images = {}
@@ -612,10 +614,12 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
     _deliver_email(recipients, deliver_as_group, subject, body, data, images)
 
 
-def run_alert_query(alert: Alert) -> Optional[bool]:
+def run_alert_query(alert_id: int) -> Optional[bool]:
     """
     Execute alert.sql and return value if any rows are returned
     """
+    alert = db.session.query(Alert).get(alert_id)
+
     logger.info("Processing alert ID: %i", alert.id)
     database = alert.database
     if not database:
@@ -650,7 +654,7 @@ def run_alert_query(alert: Alert) -> Optional[bool]:
             for row in df.to_records():
                 if any(row):
                     state = AlertState.TRIGGER
-                    deliver_alert(alert)
+                    deliver_alert(alert.id)
                     break
         if not state:
             state = AlertState.PASS
