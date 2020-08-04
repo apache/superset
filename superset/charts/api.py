@@ -116,6 +116,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "datasource_url",
         "table.default_endpoint",
         "table.table_name",
+        "thumbnail_url",
         "viz_type",
         "params",
         "cache_timeout",

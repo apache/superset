@@ -41,6 +41,8 @@ import {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
+import ListViewCard, { ActionIcon } from 'src/components/ListViewCard';
+import { Menu } from 'src/common/components';
 
 const PAGE_SIZE = 25;
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -53,7 +55,7 @@ interface Props {
 interface State {
   bulkSelectEnabled: boolean;
   chartCount: number;
-  charts: Slice[];
+  charts: Chart[];
   favoriteStatus: object;
   lastFetchDataConfig: FetchDataConfig | null;
   loading: boolean;
@@ -457,6 +459,57 @@ class ChartList extends React.PureComponent<Props, State> {
       });
   };
 
+  renderCard = (props: Chart) => {
+    const menu = (
+      <Menu>
+        {this.canDelete && (
+          <Menu.Item>
+            <ConfirmStatusChange
+              title={t('Please Confirm')}
+              description={
+                <>
+                  {t('Are you sure you want to delete')}{' '}
+                  <b>{props.slice_name}</b>?
+                </>
+              }
+              onConfirm={() => this.handleChartDelete(props)}
+            >
+              {confirmDelete => (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={confirmDelete}
+                >
+                  <ActionIcon name="trash" /> Delete
+                </div>
+              )}
+            </ConfirmStatusChange>
+          </Menu.Item>
+        )}
+        {this.canEdit && (
+          <Menu.Item
+            role="button"
+            tabIndex={0}
+            onClick={() => this.openChartEditModal(props)}
+          >
+            <ActionIcon name="pencil" /> Edit
+          </Menu.Item>
+        )}
+      </Menu>
+    );
+    return (
+      <ListViewCard
+        title={props.slice_name}
+        url={props.url}
+        imgURL={props.thumbnail_url ?? ''}
+        imgFallbackURL={'/static/assets/images/chart-card-fallback.png'}
+        description={props.changed_on_delta_humanized ?? ''}
+        menu={menu}
+      />
+    );
+  };
+
   render() {
     const {
       bulkSelectEnabled,
@@ -519,9 +572,7 @@ class ChartList extends React.PureComponent<Props, State> {
                 initialSort={this.initialSort}
                 loading={loading}
                 pageSize={PAGE_SIZE}
-                renderCard={props => (
-                  <div key={props.id}>{props.slice_name}</div>
-                )}
+                renderCard={this.renderCard}
               />
             );
           }}

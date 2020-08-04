@@ -430,6 +430,7 @@ const ListView: FunctionComponent<ListViewProps> = ({
           )}
           {viewingMode === 'card' && (
             <CardCollection
+              prepareRow={prepareRow}
               renderCard={renderCard}
               rows={rows}
               loading={loading}

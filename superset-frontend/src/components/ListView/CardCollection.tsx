@@ -22,22 +22,39 @@ import styled from '@superset-ui/style';
 
 interface Props {
   renderCard?: (row: any) => React.ReactNode;
+  prepareRow: TableInstance['prepareRow'];
   rows: TableInstance['rows'];
   loading: boolean;
 }
 
 const CardContainer = styled.div`
-  div {
-    display: inline-block;
-  }
+  justify-content: space-between;
+  flex-wrap: wrap;
+  display: flex;
+  padding: 8px 16px;
 `;
 
-export default function CardCollection({ renderCard, rows, loading }: Props) {
+const CardWrapper = styled.div`
+  display: inline-block;
+  margin: 16px;
+`;
+
+export default function CardCollection({
+  renderCard,
+  prepareRow,
+  rows,
+  loading,
+}: Props) {
   return (
     <CardContainer>
       {rows.map(row => {
         if (!renderCard) return null;
-        return renderCard(row.original);
+        prepareRow(row);
+        return (
+          <CardWrapper key={row.id}>
+            {renderCard({ ...row.original, loading })}
+          </CardWrapper>
+        );
       })}
     </CardContainer>
   );

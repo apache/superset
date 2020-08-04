@@ -30,4 +30,6 @@ export default interface Chart {
   changed_on: string;
   description: string | null;
   cache_timeout: number | null;
+  thumbnail_url?: string;
+  changed_on_delta_humanized?: string;
 }
