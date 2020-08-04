@@ -51,7 +51,6 @@ const propTypes = {
 
 const Styles = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -128,9 +127,9 @@ class ExploreChartPanel extends React.PureComponent {
     );
 
     return (
-      <Styles className="chart-container">
-        <div>{header}</div>
-        <div>{this.renderChart()}</div>
+      <Styles className="panel panel-default chart-container">
+        <div className="panel-heading">{header}</div>
+        <div className="panel-body">{this.renderChart()}</div>
       </Styles>
     );
   }
