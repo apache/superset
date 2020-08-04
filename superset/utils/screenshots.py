@@ -159,9 +159,9 @@ class AuthWebDriverProxy:
         time.sleep(SELENIUM_HEADSTART)
         try:
             logger.debug("Wait for the presence of %s", element_name)
-            element = WebDriverWait(driver, current_app.config["SCREENSHOT_LOCATE_WAIT"]).until(
-                EC.presence_of_element_located((By.CLASS_NAME, element_name))
-            )
+            element = WebDriverWait(
+                driver, current_app.config["SCREENSHOT_LOCATE_WAIT"]
+            ).until(EC.presence_of_element_located((By.CLASS_NAME, element_name)))
             logger.debug("Wait for .loading to be done")
             WebDriverWait(driver, current_app.config["SCREENSHOT_LOAD_WAIT"]).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
