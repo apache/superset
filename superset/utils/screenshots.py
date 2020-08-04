@@ -102,8 +102,6 @@ class AuthWebDriverProxy:
         self._window: WindowSize = window or (800, 600)
         config_auth_func = current_app.config.get("WEBDRIVER_AUTH_FUNC", auth_driver)
         self._auth_func = auth_func or config_auth_func
-        self._element_locate_wait = current_app.config.get("SCREENSHOT_LOCATE_WAIT", 10)
-        self._element_load_wait = current_app.config.get("SCREENSHOT_LOAD_WAIT", 60)
 
     def create(self) -> WebDriver:
         if self._driver_type == "firefox":
@@ -161,11 +159,11 @@ class AuthWebDriverProxy:
         time.sleep(SELENIUM_HEADSTART)
         try:
             logger.debug("Wait for the presence of %s", element_name)
-            element = WebDriverWait(driver, self._element_locate_wait).until(
+            element = WebDriverWait(driver, current_app.config["SCREENSHOT_LOCATE_WAIT"]).until(
                 EC.presence_of_element_located((By.CLASS_NAME, element_name))
             )
             logger.debug("Wait for .loading to be done")
-            WebDriverWait(driver, self._element_load_wait).until_not(
+            WebDriverWait(driver, current_app.config["SCREENSHOT_LOAD_WAIT"]).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
             logger.info("Taking a PNG screenshot")
