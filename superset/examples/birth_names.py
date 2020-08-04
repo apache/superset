@@ -67,6 +67,7 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
         if_exists="replace",
         chunksize=500,
         dtype={
+            # TODO(bkyryliuk): use TIMESTAMP type for presto
             "ds": DateTime if database.backend != "presto" else String(255),
             "gender": String(16),
             "state": String(10),

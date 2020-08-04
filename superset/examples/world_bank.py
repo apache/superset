@@ -66,6 +66,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
             if_exists="replace",
             chunksize=50,
             dtype={
+                # TODO(bkyryliuk): use TIMESTAMP type for presto
                 "year": DateTime if database.backend != "presto" else String(255),
                 "country_code": String(3),
                 "country_name": String(255),
