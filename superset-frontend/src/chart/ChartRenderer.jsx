@@ -34,8 +34,6 @@ const propTypes = {
   setControlValue: PropTypes.func,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
-  // last mounted parent tab
-  mountedParent: PropTypes.string,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -88,11 +86,8 @@ class ChartRenderer extends React.Component {
     if (resultsReady) {
       this.hasQueryResponseChange =
         nextProps.queryResponse !== this.props.queryResponse;
-      // null mountedParent means animationg is still in progress
-      if (nextProps.mountedParent === null) return false;
       return (
         this.hasQueryResponseChange ||
-        nextProps.mountedParent !== this.props.mountedParent ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||

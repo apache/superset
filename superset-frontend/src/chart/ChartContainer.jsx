@@ -23,14 +23,6 @@ import * as actions from './chartAction';
 import { logEvent } from '../logger/actions';
 import Chart from './Chart';
 
-function mapStateToProps({ dashboardState }) {
-  return {
-    // needed to prevent chart from rendering while tab switch animation in progress
-    // when undefined, default to have mounted the root tab
-    mountedParent: dashboardState?.mountedTab,
-  };
-}
-
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(
@@ -43,4 +35,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(Chart);
+export default connect(null, mapDispatchToProps)(Chart);

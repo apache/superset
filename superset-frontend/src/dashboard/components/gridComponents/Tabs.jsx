@@ -263,12 +263,6 @@ class Tabs extends React.PureComponent {
                       onDeleteTab={this.handleDeleteTab}
                     />
                   }
-                  onExiting={() => {
-                    if (renderTabContent) {
-                      // Exiting previous tab, animating start
-                      this.props.setMountedTab(null);
-                    }
-                  }}
                   onEntering={() => {
                     // Entering current tab, DOM is visible and has dimension
                     if (renderTabContent) {

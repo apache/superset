@@ -123,11 +123,14 @@ export default function dashboardStateReducer(state = {}, action) {
     [SET_DIRECT_PATH]() {
       return {
         ...state,
+        // change of direct path (tabs) will reset current mounted tab
+        mountedTab: null,
         directPathToChild: action.path,
         directPathLastUpdated: Date.now(),
       };
     },
     [SET_MOUNTED_TAB]() {
+      // set current mounted tab after tab is really mounted to DOM
       return {
         ...state,
         mountedTab: action.mountedTab,

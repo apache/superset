@@ -249,10 +249,6 @@ class DashboardBuilder extends React.Component {
                         key={index === 0 ? DASHBOARD_GRID_ID : id}
                         eventKey={index}
                         mountOnEnter
-                        onExiting={() => {
-                          // Exiting previous tab, animating start
-                          this.props.setMountedTab(null);
-                        }}
                         onEntering={() => {
                           // Entering current tab, DOM is visible and has dimension
                           this.props.setMountedTab(id);
