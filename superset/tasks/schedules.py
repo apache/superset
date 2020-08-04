@@ -581,7 +581,10 @@ def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
         )
         screenshot = ChartScreenshot(chart_url, alert.slice.digest)
         image_url = _get_url_path(
-            "Superset.slice", user_friendly=True, slice_id=alert.slice.id, standalone="true"
+            "Superset.slice",
+            user_friendly=True,
+            slice_id=alert.slice.id,
+            standalone="true",
         )
         standalone_index = image_url.find("/?standalone=true")
         if standalone_index != -1:
