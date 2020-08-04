@@ -595,6 +595,7 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
         image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
 
     # generate the email
+    # TODO add sql query results to email
     subject = f"[Superset] Triggered alert: {alert.label}"
     deliver_as_group = False
     data = None
