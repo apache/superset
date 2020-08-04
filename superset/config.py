@@ -337,6 +337,12 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 
+# Used for thumbnails and other api: Time in seconds before selenium
+# times out after trying to locate an element on the page and wait
+# for that element to load for an alert screenshot.
+SCREENSHOT_LOCATE_WAIT = 10
+SCREENSHOT_LOAD_WAIT = 60
+
 # ---------------------------------------------------
 # Image and file configuration
 # ---------------------------------------------------
@@ -798,12 +804,6 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # Time in seconds, selenium will wait for the page to load
 # and render for the email report.
 EMAIL_PAGE_RENDER_WAIT = 30
-
-# Used for alerting functionality: Time in seconds before selenium
-# times out after trying to locate an element on the page and wait
-# for that element to load for an alert screenshot.
-SCREENSHOT_LOCATE_WAIT = 10
-SCREENSHOT_LOAD_WAIT = 60
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
