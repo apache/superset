@@ -573,6 +573,8 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
     images = {}
     recipients = recipients or alert.recipients
 
+    alert_url = get_url_path("AlertModelView.show", pk=alert.id)
+
     if alert.slice:
 
         chart_url = get_url_path(
@@ -600,18 +602,9 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
     data = None
     if img_data:
         images = {"screenshot": img_data}
-    body = __(
-        textwrap.dedent(
-            """\
-            <h2>Alert: %(label)s</h2>
-            <p><b>SQL Statement: </b>%(sql)s</p>
-            <p>Click <a href="%(image_url)s">here</a> or the image below 
-            to view the Slice related to this alert.</p>
-            <a href="%(image_url)s">
-                <img src="cid:screenshot" alt="%(label)s" />
-            </a>
-        """
-        ),
+    body = render_template(
+        "email/alert.txt",
+        alert_url=alert_url,
         label=alert.label,
         sql=alert.sql,
         image_url=image_url,
