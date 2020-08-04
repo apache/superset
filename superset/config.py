@@ -799,9 +799,9 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # and render for the email report.
 EMAIL_PAGE_RENDER_WAIT = 30
 
-# Time in seconds before selenium times out after trying to
-# locate an element on the page and wait for that element to
-# load for an alert screenshot.
+# Used for alerting functionality: Time in seconds before selenium
+# times out after trying to locate an element on the page and wait
+# for that element to load for an alert screenshot.
 SCREENSHOT_LOCATE_WAIT = 10
 SCREENSHOT_LOAD_WAIT = 60
 
