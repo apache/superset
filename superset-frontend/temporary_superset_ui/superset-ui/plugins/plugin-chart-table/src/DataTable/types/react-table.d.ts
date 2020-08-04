@@ -19,10 +19,10 @@ import {
   UseSortByHooks,
   TableInstance,
   ColumnInstance,
-  Column,
+  Renderer,
+  HeaderProps,
 } from 'react-table';
 
-import { UseColumnCellPropsColumnOption } from '../hooks/useColumnCellProps';
 import { UseStickyState, UseStickyTableOptions, UseStickyInstanceProps } from '../hooks/useSticky';
 
 declare module 'react-table' {
@@ -53,13 +53,6 @@ declare module 'react-table' {
       UseSortByState<D>,
       UseStickyState {}
 
-  export interface ColumnInterface<D extends object>
-    extends UseGlobalFiltersColumnOptions<D>,
-      UseSortByColumnOptions<D>,
-      UseColumnCellPropsColumnOption<D> {
-    SortIcon: Column['Header'];
-  }
-
   // Typing from @types/react-table is incomplete
   interface TableSortByToggleProps {
     style?: React.CSSProperties;
@@ -67,10 +60,17 @@ declare module 'react-table' {
     onClick?: React.MouseEventHandler;
   }
 
+  export interface ColumnInterface<D extends object>
+    extends UseGlobalFiltersColumnOptions<D>,
+      UseSortByColumnOptions<D> {
+    // must define as a new property because it's not possible to override
+    // the existing `Header` renderer option
+    Header?: Renderer<TableSortByToggleProps & HeaderProps<D>>;
+  }
+
   export interface ColumnInstance<D extends object>
     extends UseGlobalFiltersColumnOptions<D>,
-      UseSortByColumnProps<D>,
-      UseColumnCellPropsColumnOption<D> {
+      UseSortByColumnProps<D> {
     getSortByToggleProps: (props?: Partial<TableSortByToggleProps>) => TableSortByToggleProps;
   }
 
