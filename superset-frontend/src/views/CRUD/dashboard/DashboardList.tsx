@@ -21,7 +21,11 @@ import { t } from '@superset-ui/translation';
 import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createFetchRelated,
+  createErrorHandler,
+  createFaveStarHandlers,
+} from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
@@ -109,53 +113,22 @@ class DashboardList extends React.PureComponent<Props, State> {
 
   initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
+  fetchMethods = createFaveStarHandlers(
+    FAVESTAR_BASE_URL,
+    this,
+    (message: string) => {
+      this.props.addDangerToast(message);
+    },
+  );
+
   columns = [
     {
       Cell: ({ row: { original } }: any) => {
-        // TODO: return null if no user is logged in
-        const fetchFaveStar = (id: number) => {
-          SupersetClient.get({
-            endpoint: `${FAVESTAR_BASE_URL}/${id}/count/`,
-          })
-            .then(({ json }) => {
-              const faves = {
-                ...this.state.favoriteStatus,
-              };
-
-              faves[id] = json.count > 0;
-
-              this.setState({
-                favoriteStatus: faves,
-              });
-            })
-            .catch(() => {});
-        };
-
-        const saveFaveStar = (id: number, isStarred: boolean) => {
-          const urlSuffix = isStarred ? 'unselect' : 'select';
-
-          SupersetClient.get({
-            endpoint: `${FAVESTAR_BASE_URL}/${id}/${urlSuffix}/`,
-          })
-            .then(() => {
-              const faves = {
-                ...this.state.favoriteStatus,
-              };
-
-              faves[id] = !isStarred;
-
-              this.setState({
-                favoriteStatus: faves,
-              });
-            })
-            .catch(() => {});
-        };
-
         return (
           <FaveStar
             itemId={original.id}
-            fetchFaveStar={fetchFaveStar}
-            saveFaveStar={saveFaveStar}
+            fetchFaveStar={this.fetchMethods.fetchFaveStar}
+            saveFaveStar={this.fetchMethods.saveFaveStar}
             isStarred={!!this.state.favoriteStatus[original.id]}
             height={20}
           />
