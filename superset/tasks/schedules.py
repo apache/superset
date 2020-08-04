@@ -605,7 +605,8 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
             """\
             <h2>Alert: %(label)s</h2>
             <p><b>SQL Statement: </b>%(sql)s</p>
-            <p>Click <a href="%(image_url)s">here</a> or the image below to view the Slice related to this alert.</p>
+            <p>Click <a href="%(image_url)s">here</a> or the image below 
+            to view the Slice related to this alert.</p>
             <a href="%(image_url)s">
                 <img src="cid:screenshot" alt="%(label)s" />
             </a>
