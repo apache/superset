@@ -20,6 +20,7 @@ import {
   SupersetClient,
   SupersetClientResponse,
 } from '@superset-ui/connection';
+import { t } from '@superset-ui/translation';
 import rison from 'rison';
 import getClientErrorObject from 'src/utils/getClientErrorObject';
 
@@ -81,7 +82,7 @@ export function createFaveStarHandlers(
         });
       })
       .catch(() =>
-        handleErrorFunc('There was an error fetching the favorite status'),
+        handleErrorFunc(t('There was an error fetching the favorite status')),
       );
   };
 
@@ -103,7 +104,7 @@ export function createFaveStarHandlers(
         });
       })
       .catch(() =>
-        handleErrorFunc('There was an error saving the favorite status'),
+        handleErrorFunc(t('There was an error saving the favorite status')),
       );
   };
 
