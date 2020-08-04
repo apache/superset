@@ -61,7 +61,7 @@
     "@babel/runtime-corejs3": "^7.8.4",
     "@data-ui/sparkline": "^0.0.54",
     "@emotion/core": "^10.0.28",
-    "@slowday/legacy-preset-chart-deckgl": "^0.2.402",
+    "@slowday/legacy-preset-chart-deckgl": "^0.2.405",
     "@storybook/addon-actions": "^5.3.19",
     "@storybook/addon-knobs": "^5.3.19",
     "@superset-ui/chart": "^0.14.9",
