@@ -30,6 +30,7 @@ import FormLabel from 'src/components/FormLabel';
 import SupersetAsyncSelect from './AsyncSelect';
 import RefreshLabel from './RefreshLabel';
 import './TableSelector.less';
+import TooltipWrapper from './TooltipWrapper';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -257,16 +258,22 @@ export default class TableSelector extends React.PureComponent {
 
   renderTableOption(option) {
     return (
-      <span className="TableLabel">
-        <span className="m-r-5">
-          <small className="text-muted">
-            <i
-              className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`}
-            />
-          </small>
+      <TooltipWrapper
+        placement="top"
+        label={`${option.label}-tooltip`}
+        tooltip={option.label}
+      >
+        <span className="TableLabel">
+          <span className="m-r-5">
+            <small className="text-muted">
+              <i
+                className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`}
+              />
+            </small>
+          </span>
+          {option.label}
         </span>
-        {option.label}
-      </span>
+      </TooltipWrapper>
     );
   }
 
