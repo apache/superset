@@ -18,7 +18,6 @@
 """Utility functions used across Superset"""
 
 import logging
-import textwrap
 import time
 import urllib.request
 from collections import namedtuple
@@ -585,6 +584,9 @@ def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
         image_url = get_url_path(
             "ChartRestApi.screenshot", pk=alert.slice.id, digest=cache_key
         )
+        standalone_index = chart_url.find("/?standalone=true")
+        if standalone_index != -1:
+            image_url = chart_url[:standalone_index]
 
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         img_data = screenshot.compute_and_cache(
@@ -595,19 +597,17 @@ def deliver_alert(alert_id: int, recipients: Optional[str] = None) -> None:
         image_url = "https://media.giphy.com/media/dzaUX7CAG0Ihi/giphy.gif"
 
     # generate the email
+    # TODO add sql query results to email
     subject = f"[Superset] Triggered alert: {alert.label}"
     deliver_as_group = False
     data = None
     if img_data:
         images = {"screenshot": img_data}
-    body = __(
-        textwrap.dedent(
-            """\
-            <h2>Alert: %(label)s</h2>
-            <img src="cid:screenshot" alt="%(label)s" />
-        """
-        ),
+    body = render_template(
+        "email/alert.txt",
+        alert_url=get_url_path("AlertModelView.show", pk=alert.id),
         label=alert.label,
+        sql=alert.sql,
         image_url=image_url,
     )
 
