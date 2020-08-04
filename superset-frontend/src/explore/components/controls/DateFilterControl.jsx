@@ -82,7 +82,7 @@ const DEFAULT_SINCE = moment()
 const DEFAULT_UNTIL = moment().utc().startOf('day').format(MOMENT_FORMAT);
 const SEPARATOR = ' : ';
 const FREEFORM_TOOLTIP = t(
-  'Superset supports smart date parsing. Strings like `3 weeks ago`, `last sunday` or ' +
+  'Superset supports smart date parsing. Strings like `3 weeks ago`, `last sunday`, or ' +
     '`2 weeks from now` can be used.',
 );
 
