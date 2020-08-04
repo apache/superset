@@ -38,25 +38,27 @@ describe('Dashboard add to favorite', () => {
 
   it('should allow favor/unfavor', () => {
     if (!isFavoriteDashboard) {
-      cy.get('.favstar').find('i').should('have.class', 'fa-star-o');
-      cy.get('.favstar').trigger('click');
-      cy.get('.favstar')
-        .find('i')
-        .should('have.class', 'fa-star')
-        .and('not.have.class', 'fa-star-o');
+      cy.get('a.fave-unfave-icon')
+        .find('svg')
+        .should('have.attr', 'data-test', 'favorite-unselected');
+      cy.get('a.fave-unfave-icon').trigger('click');
+      cy.get('a.fave-unfave-icon')
+        .find('svg')
+        .should('have.attr', 'data-test', 'favorite-selected')
+        .and('not.have.attr', 'data-test', 'favorite-unselected');
     } else {
-      cy.get('.favstar')
-        .find('i')
-        .should('have.class', 'fa-star')
-        .and('not.have.class', 'fa-star-o');
-      cy.get('.favstar').trigger('click');
-      cy.get('.fave-unfave-icon')
-        .find('i')
-        .should('have.class', 'fa-star-o')
-        .and('not.have.class', 'fa-star');
+      cy.get('a.fave-unfave-icon')
+        .find('svg')
+        .should('have.attr', 'data-test', 'favorite-unselected')
+        .and('not.have.attr', 'data-test', 'favorite-selected');
+      cy.get('a.fave-unfave-icon').trigger('click');
+      cy.get('a.fave-unfave-icon')
+        .find('svg')
+        .should('have.attr', 'data-test', 'favorite-unselected')
+        .and('not.have.attr', 'data-test', 'favorite-selected');
     }
 
     // reset to original fav state
-    cy.get('.favstar').trigger('click');
+    cy.get('a.fave-unfave-icon').trigger('click');
   });
 });

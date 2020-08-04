@@ -23,10 +23,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createFetchRelated,
+  createErrorHandler,
+  createFaveStarHandlers,
+} from 'src/views/CRUD/utils';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu from 'src/components/Menu/SubMenu';
 import Icon from 'src/components/Icon';
+import FaveStar from 'src/components/FaveStar';
 import ListView, { ListViewProps } from 'src/components/ListView/ListView';
 import {
   FetchDataConfig,
@@ -38,6 +43,7 @@ import PropertiesModal, { Slice } from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
 
 const PAGE_SIZE = 25;
+const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
 interface Props {
   addDangerToast: (msg: string) => void;
@@ -48,6 +54,7 @@ interface State {
   bulkSelectEnabled: boolean;
   chartCount: number;
   charts: any[];
+  favoriteStatus: object;
   lastFetchDataConfig: FetchDataConfig | null;
   loading: boolean;
   permissions: string[];
@@ -100,6 +107,7 @@ class ChartList extends React.PureComponent<Props, State> {
     bulkSelectEnabled: false,
     chartCount: 0,
     charts: [],
+    favoriteStatus: {}, // Hash mapping dashboard id to 'isStarred' status
     lastFetchDataConfig: null,
     loading: true,
     permissions: [],
@@ -133,7 +141,31 @@ class ChartList extends React.PureComponent<Props, State> {
 
   initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
+  fetchMethods = createFaveStarHandlers(
+    FAVESTAR_BASE_URL,
+    this,
+    (message: string) => {
+      this.props.addDangerToast(message);
+    },
+  );
+
   columns = [
+    {
+      Cell: ({ row: { original } }: any) => {
+        return (
+          <FaveStar
+            itemId={original.id}
+            fetchFaveStar={this.fetchMethods.fetchFaveStar}
+            saveFaveStar={this.fetchMethods.saveFaveStar}
+            isStarred={!!this.state.favoriteStatus[original.id]}
+            height={20}
+          />
+        );
+      },
+      Header: '',
+      id: 'favorite',
+      disableSortBy: true,
+    },
     {
       Cell: ({
         row: {
