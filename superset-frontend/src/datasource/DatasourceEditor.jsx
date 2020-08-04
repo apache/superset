@@ -98,18 +98,23 @@ function ColumnCollectionTable({
               <Field
                 fieldKey="expression"
                 label={t('SQL Expression')}
-                control={<TextControl />}
+                control={
+                  <TextAreaControl
+                    language="markdown"
+                    offerEditInModal={false}
+                  />
+                }
               />
             )}
             <Field
               fieldKey="verbose_name"
               label={t('Label')}
-              control={<TextControl />}
+              control={<TextControl placeholder={t('Label')} />}
             />
             <Field
               fieldKey="description"
               label={t('Description')}
-              control={<TextControl />}
+              control={<TextControl placeholder={t('Description')} />}
             />
             {allowEditDataType && (
               <Field
@@ -145,7 +150,7 @@ function ColumnCollectionTable({
                       database/column name level via the extra parameter.`)}
                 </div>
               }
-              control={<TextControl />}
+              control={<TextControl placeholder={'%y/%m/%d'} />}
             />
           </Fieldset>
         </FormContainer>
@@ -603,12 +608,12 @@ export class DatasourceEditor extends React.PureComponent {
               <Field
                 fieldKey="description"
                 label={t('Description')}
-                control={<TextControl />}
+                control={<TextControl placeholder={t('Description')} />}
               />
               <Field
                 fieldKey="d3format"
                 label={t('D3 Format')}
-                control={<TextControl />}
+                control={<TextControl placeholder="%y/%m/%d" />}
               />
               <Field
                 label={t('Warning Message')}
@@ -616,7 +621,7 @@ export class DatasourceEditor extends React.PureComponent {
                 description={t(
                   'Warning message to display in the metric selector',
                 )}
-                control={<TextControl />}
+                control={<TextControl placeholder={t('Warning Message')} />}
               />
             </Fieldset>
           </FormContainer>
