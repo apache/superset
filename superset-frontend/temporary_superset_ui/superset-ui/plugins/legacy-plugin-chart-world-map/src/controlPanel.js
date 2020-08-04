@@ -52,7 +52,8 @@ export default {
       ],
     },
     {
-      label: t('Bubbles'),
+      label: t('Options'),
+      expanded: true,
       controlSetRows: [
         [
           {
@@ -79,21 +80,29 @@ export default {
             },
           },
         ],
+        ['color_picker'],
+        ['linear_color_scheme'],
       ],
     },
   ],
   controlOverrides: {
     entity: {
-      label: t('Country Control'),
+      label: t('Country Column'),
       description: t('3 letter code of the country'),
     },
     metric: {
-      label: t('Metric for color'),
+      label: t('Metric for Color'),
       description: t('Metric that defines the color of the country'),
     },
     secondary_metric: {
-      label: t('Bubble size'),
+      label: t('Bubble Size'),
       description: t('Metric that defines the size of the bubble'),
+    },
+    color_picker: {
+      label: t('Bubble Color'),
+    },
+    linear_color_scheme: {
+      label: t('Country Color Scheme'),
     },
   },
 };

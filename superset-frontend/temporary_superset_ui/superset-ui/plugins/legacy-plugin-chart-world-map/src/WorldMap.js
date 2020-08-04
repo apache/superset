@@ -19,6 +19,8 @@
 /* eslint-disable react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
+import { extent as d3Extent } from 'd3-array';
+import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { getNumberFormatter } from '@superset-ui/number-format';
 
@@ -36,13 +38,14 @@ const propTypes = {
   height: PropTypes.number,
   maxBubbleSize: PropTypes.number,
   showBubbles: PropTypes.bool,
+  linearColorScheme: PropTypes.string,
+  color: PropTypes.string,
 };
 
 const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
-  const { data, width, height, maxBubbleSize, showBubbles } = props;
-
+  const { data, width, height, maxBubbleSize, showBubbles, linearColorScheme, color } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
   div.selectAll('*').remove();
@@ -50,19 +53,19 @@ function WorldMap(element, props) {
   // Ignore XXX's to get better normalization
   const filteredData = data.filter(d => d.country && d.country !== 'XXX');
 
-  const ext = d3.extent(filteredData, d => d.m1);
-  const extRadius = d3.extent(filteredData, d => d.m2);
+  const extRadius = d3.extent(filteredData, d => Math.sqrt(d.m2));
   const radiusScale = d3.scale
     .linear()
     .domain([extRadius[0], extRadius[1]])
     .range([1, maxBubbleSize]);
 
-  // color gradient based on http://colorbrewer2.org/#type=sequential&scheme=Greens&n=9
-  const colorScale = d3.scale.linear().domain([ext[0], ext[1]]).range(['#c7e9c0', '#00441b']);
+  const colorScale = getSequentialSchemeRegistry()
+    .get(linearColorScheme)
+    .createLinearScale(d3Extent(filteredData, d => d.m1));
 
   const processedData = filteredData.map(d => ({
     ...d,
-    radius: radiusScale(d.m2),
+    radius: radiusScale(Math.sqrt(d.m2)),
     fillColor: colorScale(d.m1),
   }));
 
@@ -85,7 +88,7 @@ function WorldMap(element, props) {
       borderWidth: 1,
       borderColor: '#feffff',
       highlightBorderColor: '#feffff',
-      highlightFillColor: '#00749A',
+      highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
         `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(d.m1)}</div>`,
@@ -93,7 +96,7 @@ function WorldMap(element, props) {
     bubblesConfig: {
       borderWidth: 1,
       borderOpacity: 1,
-      borderColor: '#00749A',
+      borderColor: color,
       popupOnHover: true,
       radius: null,
       popupTemplate: (geo, d) =>
@@ -101,7 +104,7 @@ function WorldMap(element, props) {
       fillOpacity: 0.5,
       animate: true,
       highlightOnHover: true,
-      highlightFillColor: '#00749A',
+      highlightFillColor: color,
       highlightBorderColor: 'black',
       highlightBorderWidth: 2,
       highlightBorderOpacity: 1,
@@ -115,7 +118,7 @@ function WorldMap(element, props) {
 
   if (showBubbles) {
     map.bubbles(processedData);
-    div.selectAll('circle.datamaps-bubble').style('fill', '#00749A');
+    div.selectAll('circle.datamaps-bubble').style('fill', color).style('stroke', color);
   }
 }
 

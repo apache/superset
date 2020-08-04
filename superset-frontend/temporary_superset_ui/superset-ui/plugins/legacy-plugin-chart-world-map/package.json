@@ -29,12 +29,15 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
+    "d3-array": "^2.4.0",
+    "d3-color": "^1.4.1",
     "datamaps": "^0.5.8",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.14.0",
     "@superset-ui/chart-controls": "^0.14.0",
+    "@superset-ui/color": "^0.14.9",
     "@superset-ui/number-format": "^0.14.0",
     "@superset-ui/style": "^0.14.3",
     "@superset-ui/translation": "^0.14.0",

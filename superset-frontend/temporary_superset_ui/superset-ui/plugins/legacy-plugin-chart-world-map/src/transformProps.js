@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { rgb } from 'd3-color';
+
 export default function transformProps(chartProps) {
   const { width, height, formData, queryData } = chartProps;
-  const { maxBubbleSize, showBubbles } = formData;
+  const { maxBubbleSize, showBubbles, linearColorScheme, colorPicker } = formData;
+  const { r, g, b } = colorPicker;
 
   return {
     data: queryData.data,
@@ -26,5 +29,7 @@ export default function transformProps(chartProps) {
     height,
     maxBubbleSize: parseInt(maxBubbleSize, 10),
     showBubbles,
+    linearColorScheme,
+    color: rgb(r, g, b).hex(),
   };
 }
