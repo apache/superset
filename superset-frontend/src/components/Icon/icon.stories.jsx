@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import Icon, { iconsRegistry } from './';
-import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
+import { withKnobs, select } from '@storybook/addon-knobs';
 import { supersetTheme } from '@superset-ui/style';
+import Icon, { iconsRegistry } from './';
 
 export default {
   title: 'Icon',
@@ -27,13 +27,12 @@ export default {
   decorators: [withKnobs],
 };
 
-
 const palette = {};
 Object.entries(supersetTheme.colors).forEach(([familyName, family]) => {
   Object.entries(family).forEach(([colorName, colorValue]) => {
     palette[`${familyName} / ${colorName}`] = colorValue;
   });
-})
+});
 
 const colorKnob = {
   label: 'Color',
@@ -65,5 +64,4 @@ export const SupersetIcon = () => {
       ))}
     </>
   );
-  
-}
+};
