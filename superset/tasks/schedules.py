@@ -18,7 +18,6 @@
 """Utility functions used across Superset"""
 
 import logging
-import textwrap
 import time
 import urllib.request
 from collections import namedtuple
@@ -573,8 +572,6 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
     images = {}
     recipients = recipients or alert.recipients
 
-    alert_url = get_url_path("AlertModelView.show", pk=alert.id)
-
     if alert.slice:
 
         chart_url = get_url_path(
@@ -588,6 +585,7 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
         standalone_index = chart_url.find("/?standalone=true")
         if standalone_index != -1:
             image_url = chart_url[:standalone_index]
+
         user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
         img_data = screenshot.compute_and_cache(
             user=user, cache=thumbnail_cache, force=True,
@@ -604,7 +602,7 @@ def deliver_alert(alert: Alert, recipients: Optional[str] = None) -> None:
         images = {"screenshot": img_data}
     body = render_template(
         "email/alert.txt",
-        alert_url=alert_url,
+        alert_url=get_url_path("AlertModelView.show", pk=alert.id),
         label=alert.label,
         sql=alert.sql,
         image_url=image_url,
