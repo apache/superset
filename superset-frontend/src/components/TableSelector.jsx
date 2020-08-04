@@ -247,12 +247,18 @@ export default class TableSelector extends React.PureComponent {
 
   renderDatabaseOption(db) {
     return (
-      <span>
-        <Label bsStyle="default" className="m-r-5">
-          {db.backend}
-        </Label>
-        {db.database_name}
-      </span>
+      <TooltipWrapper
+        placement="top"
+        label={`${db.database_name}-tooltip`}
+        tooltip={db.database_name}
+      >
+        <span>
+          <Label bsStyle="default" className="m-r-5">
+            {db.backend}
+          </Label>
+          {db.database_name}
+        </span>
+      </TooltipWrapper>
     );
   }
 
